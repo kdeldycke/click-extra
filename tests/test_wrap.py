@@ -23,10 +23,10 @@ import click
 import pytest
 
 from click_extra.cli import demo
-from click_extra.colorize import ExtraHelpColorsMixin
+from click_extra.colorize import _HelpColorsMixin
 from click_extra.commands import ColorizedCommand, ColorizedGroup
-from click_extra.context import ExtraContext
-from click_extra.testing import ExtraCliRunner
+from click_extra.context import Context
+from click_extra.testing import CliRunner
 from click_extra.wrap import (
     _config_args_for_target,
     resolve_target,
@@ -100,7 +100,7 @@ def _restore_click():
 @pytest.fixture
 def runner():
     """CLI runner for wrapper tests."""
-    return ExtraCliRunner()
+    return CliRunner()
 
 
 @pytest.fixture
@@ -156,16 +156,16 @@ def test_patched_class_inherits_click(cls, base):
 
 @pytest.mark.parametrize("cls", [ColorizedCommand, ColorizedGroup])
 def test_patched_class_has_mixin(cls):
-    assert issubclass(cls, ExtraHelpColorsMixin)
+    assert issubclass(cls, _HelpColorsMixin)
 
 
 @pytest.mark.parametrize("cls", [ColorizedCommand, ColorizedGroup])
 def test_patched_class_context(cls):
-    assert cls.context_class is ExtraContext
+    assert cls.context_class is Context
 
 
 def test_patched_command_no_extra_params():
-    """Patched commands carry no default_extra_params."""
+    """Patched commands carry no default_params."""
     cmd = ColorizedCommand(name="test", callback=lambda: None)
     option_names = {
         opt for p in cmd.params if isinstance(p, click.Option) for opt in p.opts
@@ -449,7 +449,7 @@ def test_group_dispatches_to_wrap(runner, greet_script, args, expected):
     ],
 )
 def test_group_options_work_with_wrap(runner, greet_script, group_opts):
-    """Default ExtraGroup options are accepted alongside the wrap subcommand."""
+    """Default Group options are accepted alongside the wrap subcommand."""
     result = runner.invoke(
         demo,
         [*group_opts, "wrap", greet_script, "--help"],

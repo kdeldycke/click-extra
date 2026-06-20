@@ -35,7 +35,7 @@ The table below lists every entry Click Extra writes, the option that triggers i
 
 | Constant                  | String key                    | Set by                                                     | Value                                                                  |
 | ------------------------- | ----------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `context.RAW_ARGS`        | `click_extra.raw_args`        | `ExtraCommand.make_context` (always, on `@command` group)  | `list[str]` — pre-parsed `argv` slice fed to the current command       |
+| `context.RAW_ARGS`        | `click_extra.raw_args`        | `Command.make_context` (always, on `@command` group)  | `list[str]` — pre-parsed `argv` slice fed to the current command       |
 | `context.CONF_SOURCE`     | `click_extra.conf_source`     | `ConfigOption.load_conf` (`@config_option`)                | `pathlib.Path \| URL \| None` — file the configuration was loaded from |
 | `context.CONF_FULL`       | `click_extra.conf_full`       | `ConfigOption.load_conf` (`@config_option`)                | `dict \| None` — full parsed configuration document                    |
 | `context.TOOL_CONFIG`     | `click_extra.tool_config`     | `ConfigOption._apply_config_schema` (with `config_schema`) | The deserialised app section (also reachable via `get_tool_config()`)  |
@@ -47,7 +47,7 @@ The table below lists every entry Click Extra writes, the option that triggers i
 | `context.PROGRESS`        | `click_extra.progress`        | `ProgressOption.set_progress` (always present on `@command`) | `bool` — `True` when progress spinners may display                   |
 | `context.TABLE_FORMAT`    | `click_extra.table_format`    | `--table-format` callback (`@table_format_option`)         | `TableFormat`                                                          |
 | `context.SORT_BY`         | `click_extra.sort_by`         | `--sort-by` callback (`@sort_by_option`)                   | `tuple[str, ...]` — column IDs in priority order                       |
-| `context.THEME`           | `click_extra.theme.active`    | `--theme` callback (always present on `@command`)          | `HelpExtraTheme` — palette picked for this invocation                  |
+| `context.THEME`           | `click_extra.theme.active`    | `--theme` callback (always present on `@command`)          | `HelpTheme` — palette picked for this invocation                  |
 | `context.ZERO_EXIT`       | `click_extra.zero_exit`       | `-0` / `--zero-exit` callback (`@zero_exit_option`)        | `bool` — `True` to always exit 0 *(write-only)*                        |
 
 ## Worked examples
@@ -125,7 +125,7 @@ Outside an active CLI invocation (e.g. at import time, in unit tests that build 
 
 Click's default parser lets options and positional arguments interleave freely (GNU style): `mytool alice --greeting Hi bob` is parsed the same as `mytool --greeting Hi alice bob`. The POSIX convention is stricter: option parsing stops at the first positional argument, and everything after it is treated as a positional, even tokens that look like options.
 
-`ExtraContext` honors the standard [`POSIXLY_CORRECT`](https://www.gnu.org/software/libc/manual/html_node/Standard-Environment.html) environment variable that GNU getopt-based tools obey. When it is present in the environment (regardless of its value), Click Extra forces `allow_interspersed_args` to `False`, so any `@command` or `@group` built with Click Extra automatically switches to POSIX parsing.
+`Context` honors the standard [`POSIXLY_CORRECT`](https://www.gnu.org/software/libc/manual/html_node/Standard-Environment.html) environment variable that GNU getopt-based tools obey. When it is present in the environment (regardless of its value), Click Extra forces `allow_interspersed_args` to `False`, so any `@command` or `@group` built with Click Extra automatically switches to POSIX parsing.
 
 ```{click:source}
 from click_extra import argument, command, echo, option

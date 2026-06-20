@@ -33,9 +33,9 @@ from . import context
 from .accessibility import AccessibleOption
 from .colorize import (
     ColorOption,
-    ExtraHelpColorsMixin,
     HelpKeywords,
     NoColorOption,
+    _HelpColorsMixin,
 )
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
@@ -47,7 +47,7 @@ from .config import (
     _collect_opaque_paths_from_schema,
     _make_schema_callable,
 )
-from .context import ExtraContext
+from .context import Context
 from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import TimerOption
 from .logging import QuietOption, VerboseOption, VerbosityOption
@@ -56,7 +56,7 @@ from .parameters import ExtraOption, ShowParamsOption
 from .spinner import ProgressOption
 from .table import TableFormatOption
 from .theme import ThemeOption
-from .version import ExtraVersionOption
+from .version import VersionOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from typing import Any, NoReturn
 
 
-def default_extra_params() -> list[click.Option]:
+def default_params() -> list[click.Option]:
     """Default additional options added to ``@command`` and ``@group``.
 
     .. caution::
@@ -144,7 +144,7 @@ def default_extra_params() -> list[click.Option]:
         VerboseOption(),
         QuietOption(),
         ManOption(),
-        ExtraVersionOption(),
+        VersionOption(),
         # @click.decorators.help_option(),
     ]
 
@@ -152,10 +152,10 @@ def default_extra_params() -> list[click.Option]:
 DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
 
 
-class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
+class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
     """Like ``cloup.command``, with sane defaults and extra help screen colorization."""
 
-    context_class: type[cloup.Context] = ExtraContext
+    context_class: type[cloup.Context] = Context
 
     def __init__(
         self,
@@ -175,9 +175,9 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         """List of extra parameters:
 
         :param version_fields: dictionary of
-            ``ExtraVersionOption`` template field overrides forwarded to the
+            ``VersionOption`` template field overrides forwarded to the
             version option.  Accepts any field from
-            ``ExtraVersionOption.template_fields`` (e.g. ``prog_name``,
+            ``VersionOption.template_fields`` (e.g. ``prog_name``,
             ``version``, ``git_branch``).  Lets you customize ``--version``
             output from the command decorator without replacing the default
             ``params`` list.
@@ -278,7 +278,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         """
         super().__init__(*args, **kwargs)
 
-        # Forward keyword overrides to the ExtraHelpColorsMixin attributes.
+        # Forward keyword overrides to the _HelpColorsMixin attributes.
         if extra_keywords is not None:
             self.extra_keywords = extra_keywords
         if excluded_keywords is not None:
@@ -327,7 +327,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         # Forward version template fields to the version option.
         if version_fields:
             for param in self.params:
-                if isinstance(param, ExtraVersionOption):
+                if isinstance(param, VersionOption):
                     for field_id, field_value in version_fields.items():
                         if field_id not in param.template_fields:
                             msg = (
@@ -418,7 +418,7 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         """Intercept the call to the original ``click.core.Command.make_context`` so
         we can keep a copy of the raw, pre-parsed arguments provided to the CLI.
 
-        The result are passed to our own ``ExtraContext`` constructor which is able to
+        The result are passed to our own ``Context`` constructor which is able to
         initialize the context's ``meta`` property under our own
         :data:`click_extra.context.RAW_ARGS` entry. This will be used in
         ``ShowParamsOption.print_params()`` to print the table of parameters fed to the
@@ -524,34 +524,34 @@ def _enhance_short_option_error(
     raise click.NoSuchOption(original_token, possibilities=possibilities, ctx=ctx)
 
 
-class ColorizedCommand(ExtraHelpColorsMixin, click.Command):  # type: ignore[misc]
+class ColorizedCommand(_HelpColorsMixin, click.Command):  # type: ignore[misc]
     """Click Command with help colorization but no extra params.
 
-    Mixes in :class:`~click_extra.colorize.ExtraHelpColorsMixin` for keyword
-    highlighting and uses :class:`ExtraContext` for the colorized formatter,
-    without inheriting from ``ExtraCommand`` (which would inject
-    ``default_extra_params``).
+    Mixes in :class:`~click_extra.colorize._HelpColorsMixin` for keyword
+    highlighting and uses :class:`Context` for the colorized formatter,
+    without inheriting from ``Command`` (which would inject
+    ``default_params``).
 
     Use this as a base for lightweight subcommands (like ``help``) or for
     monkey-patching third-party CLIs (via :func:`~click_extra.wrap.patch_click`).
     """
 
-    context_class: type[cloup.Context] = ExtraContext
+    context_class: type[cloup.Context] = Context
 
 
-class ColorizedGroup(ExtraHelpColorsMixin, click.Group):  # type: ignore[misc]
+class ColorizedGroup(_HelpColorsMixin, click.Group):  # type: ignore[misc]
     """Click Group with help colorization but no extra params.
 
     Same as :class:`ColorizedCommand` but for groups.
     """
 
-    context_class: type[cloup.Context] = ExtraContext
+    context_class: type[cloup.Context] = Context
 
 
 class HelpCommand(ColorizedCommand):
     """Synthetic subcommand that displays help for the parent group or a subcommand.
 
-    Auto-injected into every ``ExtraGroup``. Supports nested resolution:
+    Auto-injected into every ``Group``. Supports nested resolution:
     ``mycli help subgroup subcmd`` shows the help for ``subcmd`` within
     ``subgroup``.
     """
@@ -680,7 +680,7 @@ class HelpCommand(ColorizedCommand):
 
 
 def _make_help_command() -> HelpCommand:
-    """Create the synthetic ``help`` subcommand for an ``ExtraGroup``."""
+    """Create the synthetic ``help`` subcommand for an ``Group``."""
     return HelpCommand(
         name="help",
         help="Show help for a command.",
@@ -696,20 +696,20 @@ def _make_help_command() -> HelpCommand:
     )
 
 
-class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
+class Group(Command, cloup.Group):  # type: ignore[misc]
     """Like ``cloup.Group``, with sane defaults and extra help screen colorization."""
 
-    command_class = ExtraCommand
-    """Makes commands of an ``ExtraGroup`` be instances of ``ExtraCommand``.
+    command_class = Command
+    """Makes commands of an ``Group`` be instances of ``Command``.
 
-    That way all subcommands created from an ``ExtraGroup`` benefits from the same
+    That way all subcommands created from an ``Group`` benefits from the same
     defaults and extra help screen colorization.
 
     See: https://click.palletsprojects.com/en/stable/api/#click.Group.command_class
     """
 
     group_class = type
-    """Let ``ExtraGroup`` produce sub-groups that are also of ``ExtraGroup`` type.
+    """Let ``Group`` produce sub-groups that are also of ``Group`` type.
 
     See: https://click.palletsprojects.com/en/stable/api/#click.Group.group_class
     """
@@ -720,7 +720,7 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
         help_command: bool = True,
         **kwargs: Any,
     ) -> None:
-        """Like ``ExtraCommand.__init__``, but auto-injects a ``help`` subcommand.
+        """Like ``Command.__init__``, but auto-injects a ``help`` subcommand.
 
         :param help_command: when ``True`` (the default), a ``help`` subcommand is
             automatically registered.  Set to ``False`` to suppress it, or register
@@ -932,8 +932,8 @@ class ExtraGroup(ExtraCommand, cloup.Group):  # type: ignore[misc]
         return raw
 
 
-class LazyGroup(ExtraGroup):
-    """An ``ExtraGroup`` that supports lazy loading of subcommands.
+class LazyGroup(Group):
+    """An ``Group`` that supports lazy loading of subcommands.
 
     .. hint::
         This implementation is based on the snippet from Click's documentation:

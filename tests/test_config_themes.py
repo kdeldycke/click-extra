@@ -23,7 +23,7 @@ import click_extra
 from click_extra import Style, context
 from click_extra.theme import (
     BUILTIN_THEMES,
-    HelpExtraTheme,
+    HelpTheme,
     get_theme_registry,
     theme_registry,
     themes_from_config,
@@ -104,7 +104,7 @@ def test_config_loads_new_theme(invoke, create_config):
 
     result = invoke(cli, "--config", str(config_path), "--theme", "midnight")
     assert result.exit_code == 0, result.stderr
-    assert isinstance(captured["theme"], HelpExtraTheme)
+    assert isinstance(captured["theme"], HelpTheme)
     option = captured["theme"].option
     assert isinstance(option, Style)
     assert option.fg == "blue"

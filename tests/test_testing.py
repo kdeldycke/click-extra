@@ -22,7 +22,7 @@ from pathlib import Path
 import click
 
 from click_extra import (
-    ExtraCliRunner,
+    CliRunner,
     Style,
     command,
     echo,
@@ -39,7 +39,7 @@ def test_real_fs():
     assert str(Path(__file__)).startswith(str(Path.cwd()))
 
 
-def test_temporary_fs(extra_runner):
+def test_temporary_fs(runner):
     """Check the CLI runner fixture properly encapsulated the filesystem in temporary
     directory."""
     assert not str(Path(__file__)).startswith(str(Path.cwd()))
@@ -53,7 +53,7 @@ def test_runner_output():
         echo("3 - stdout")
         echo("4 - stderr", err=True)
 
-    runner_mix = ExtraCliRunner()
+    runner_mix = CliRunner()
     result_mix = runner_mix.invoke(cli_output)
 
     assert result_mix.output == "1 - stdout\n2 - stderr\n3 - stdout\n4 - stderr\n"
@@ -180,10 +180,10 @@ def run_cli_extra(ctx):
     echo(f"Context.color = {ctx.color!r}")
 
 
-def test_extra_command_default_color():
-    """With @command and no color env var, ExtraContext and ColorOption resolve the GNU
+def test_command_default_color():
+    """With @command and no color env var, Context and ColorOption resolve the GNU
     auto default (ctx.color=None), yet a forced runner still renders ANSI codes."""
-    runner = ExtraCliRunner()
+    runner = CliRunner()
     # Clear ambient color env vars so the auto default is deterministic.
     env = {var: None for var in color_envvars}
     result = runner.invoke(run_cli_extra, color=True, env=env)
@@ -192,10 +192,10 @@ def test_extra_command_default_color():
     assert "Context.color = None" in result.stdout
 
 
-def test_extra_command_no_color_flag():
+def test_command_no_color_flag():
     """Invoke with --no-color. Verify ctx.color=False and ANSI stripped from echo
     output."""
-    runner = ExtraCliRunner()
+    runner = CliRunner()
     result = runner.invoke(run_cli_extra, "--no-color", color=True)
     assert result.exit_code == 0
     assert "\x1b[" not in result.stdout
@@ -206,13 +206,13 @@ def test_extra_command_no_color_flag():
 
 
 def test_force_color_attribute():
-    """ExtraCliRunner.force_color=True overrides color parameter."""
+    """CliRunner.force_color=True overrides color parameter."""
 
     @click.command
     def simple_cli():
         echo(Style(fg="green")("styled"))
 
-    runner = ExtraCliRunner()
+    runner = CliRunner()
     runner.force_color = True
     result = runner.invoke(simple_cli, color=None)
     assert result.exit_code == 0
@@ -225,7 +225,7 @@ def test_force_color_attribute():
 
 def test_no_color_envvar():
     """NO_COLOR=1 env var causes ctx.color=False via ColorOption."""
-    runner = ExtraCliRunner()
+    runner = CliRunner()
     result = runner.invoke(run_cli_extra, env={"NO_COLOR": "1"}, color=True)
     assert result.exit_code == 0
     assert "Context.color = False" in result.stdout
@@ -233,7 +233,7 @@ def test_no_color_envvar():
 
 def test_force_color_envvar():
     """FORCE_COLOR=1 env var keeps ctx.color=True via ColorOption."""
-    runner = ExtraCliRunner()
+    runner = CliRunner()
     result = runner.invoke(run_cli_extra, env={"FORCE_COLOR": "1"}, color=True)
     assert result.exit_code == 0
     assert "Context.color = True" in result.stdout

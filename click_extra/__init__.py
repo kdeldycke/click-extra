@@ -19,17 +19,26 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-# Mypy override: ``from cloup import *`` below makes mypy think Style is cloup.Style.
-# Declaring the correct type here first, before the star import, causes mypy to treat
-# the later star import's Style as a no-redef (keeping click_extra.styling.Style as
-# the canonical type for consumers of this package).
+# Mypy override: the ``from click import *`` / ``from cloup import *`` star imports
+# below make mypy resolve these re-implemented names to the click or cloup base class,
+# which hides click-extra's own attributes. Declaring the correct types here first,
+# before the star imports, makes mypy treat the later bindings as no-redefs and keeps
+# click-extra's subclasses canonical for consumers of this package.
 if TYPE_CHECKING:
+    from .colorize import HelpFormatter
+    from .commands import Command, Group
+    from .context import Context
+    from .parameters import Argument, Option
     from .styling import Style
+    from .theme import HelpTheme
 
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
-from click import *
+# The ignore mirrors the cloup star import below: the names pre-declared in the
+# TYPE_CHECKING block above are re-implemented by click-extra, so click's originals
+# arrive here as incompatible redefinitions.
+from click import *  # type: ignore[assignment]
 from click._utils import UNSET
 from click.core import ParameterSource
 
@@ -65,13 +74,13 @@ from . import context
 from .accessibility import AccessibleOption, clear, echo_via_pager
 from .colorize import (
     ColorOption,
-    HelpExtraFormatter,
+    HelpFormatter,
     HelpKeywords,
     NoColorOption,
 )
 from .commands import (
-    ExtraCommand,
-    ExtraGroup,
+    Command,
+    Group,
     HelpCommand,
     LazyGroup,
 )
@@ -93,7 +102,7 @@ from .config import (
     normalize_config_keys,
     run_config_validation,
 )
-from .context import ExtraContext
+from .context import Context
 from .decorators import (  # type: ignore[no-redef]
     accessible_option,
     argument,
@@ -129,14 +138,14 @@ from .execution import (
     ZeroExitOption,
 )
 from .logging import (
-    ExtraFormatter,
-    ExtraStreamHandler,
+    Formatter,
     LogLevel,
     QuietOption,
+    StreamHandler,
     VerboseOption,
     VerbosityOption,
-    extraBasicConfig,
-    new_extra_logger,
+    basicConfig,
+    new_logger,
 )
 from .man_page import (
     ManOption,
@@ -178,10 +187,10 @@ from .table import (
     serialize_data,
 )
 from .telemetry import TelemetryOption
-from .testing import ExtraCliRunner
+from .testing import CliRunner, Result
 from .theme import (
     BUILTIN_THEMES,
-    HelpExtraTheme,
+    HelpTheme,
     ThemeOption,
     get_current_theme,
     get_default_theme,
@@ -189,7 +198,7 @@ from .theme import (
     set_default_theme,
     theme_registry,
 )
-from .version import ExtraVersionOption
+from .version import VersionOption
 
 __all__ = [
     "BOOL",
@@ -216,6 +225,7 @@ __all__ = [
     "BadParameter",
     "Choice",
     "ChoiceSource",
+    "CliRunner",
     "ClickException",
     "Color",
     "ColorOption",
@@ -230,21 +240,13 @@ __all__ = [
     "Context",
     "DateTime",
     "EnumChoice",
-    "ExtraCliRunner",
-    "ExtraCommand",
-    "ExtraContext",
-    "ExtraFormatter",
-    "ExtraGroup",
     "ExtraOption",
-    "ExtraStreamHandler",
-    "ExtraVersionOption",
     "File",
     "FileError",
     "FloatRange",
+    "Formatter",
     "Group",
     "HelpCommand",
-    "HelpExtraFormatter",
-    "HelpExtraTheme",
     "HelpFormatter",
     "HelpKeywords",
     "HelpSection",
@@ -271,12 +273,14 @@ __all__ = [
     "Path",
     "ProgressOption",
     "QuietOption",
+    "Result",
     "Section",
     "SectionMixin",
     "ShowParamsOption",
     "SortByOption",
     "Spinner",
     "SpinnerPreset",
+    "StreamHandler",
     "Style",
     "TableFormat",
     "TableFormatOption",
@@ -295,6 +299,7 @@ __all__ = [
     "accessible_option",
     "annotations",
     "argument",
+    "basicConfig",
     "clear",
     "color_option",
     "columns_option",
@@ -309,7 +314,6 @@ __all__ = [
     "echo",
     "echo_via_pager",
     "edit",
-    "extraBasicConfig",
     "file_path",
     "flatten_config_keys",
     "format_filename",
@@ -331,7 +335,7 @@ __all__ = [
     "lazy_group",
     "make_pass_decorator",
     "man_option",
-    "new_extra_logger",
+    "new_logger",
     "no_color_option",
     "no_config_option",
     "normalize_config_keys",
@@ -401,25 +405,3 @@ __git_long_hash__ = ""
 __git_short_hash__ = ""
 __git_tag__ = ""
 __git_tag_sha__ = ""
-
-
-def __getattr__(name: str) -> object:
-    import warnings
-
-    old_to_new = {
-        "extra_command": (command, "command"),
-        "extra_group": (group, "group"),
-        "extra_version_option": (version_option, "version_option"),
-    }
-
-    if name in old_to_new:
-        func, new_name = old_to_new[name]
-        warnings.warn(
-            f"{name!r} is deprecated and will be removed in Click Extra 8.0.0. Use"
-            f" {new_name!r} instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return func
-
-    raise AttributeError(name)

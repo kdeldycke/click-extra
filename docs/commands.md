@@ -20,10 +20,10 @@ For the types Click Extra does re-implement, each subclasses its Cloup counterpa
 flowchart TB
     subgraph CE["click_extra (extends and overrides)"]
         direction LR
-        XCmd["ExtraCommand"]
-        XGrp["ExtraGroup"]
+        XCmd["Command"]
+        XGrp["Group"]
         XOpt["Option"]
-        XCtx["ExtraContext"]
+        XCtx["Context"]
         XSty["Style"]
     end
     subgraph CL["cloup (first fallback)"]
@@ -58,44 +58,43 @@ For example:
 
 Here is some of the main decorators of Click Extra and how they wraps and extends Cloup and Click ones:
 
-| Decorators from `click_extra` | Wrapped decorator     | Base class                       |
-| :---------------------------- | :-------------------- | :------------------------------- |
-| `@command`                    | `@cloup.command`      | `click_extra.ExtraCommand`       |
-| `@group`                      | `@cloup.group`        | `click_extra.ExtraGroup`         |
-| `@lazy_group`                 | `@click_extra.group`  | `click_extra.LazyGroup`          |
-| `@option`                     | `@cloup.option`       | `click_extra.Option`             |
-| `@argument`                   | `@cloup.argument`     | `click_extra.Argument`           |
-| `@version_option`             | `@click_extra.option` | `click_extra.ExtraVersionOption` |
-| `@color_option`               | `@click_extra.option` | `click_extra.ColorOption`        |
-| `@config_option`              | `@click_extra.option` | `click_extra.ConfigOption`       |
-| `@no_config_option`           | `@click_extra.option` | `click_extra.NoConfigOption`     |
-| `@show_params_option`         | `@click_extra.option` | `click_extra.ShowParamsOption`   |
-| `@table_format_option`        | `@click_extra.option` | `click_extra.TableFormatOption`  |
-| `@telemetry_option`           | `@click_extra.option` | `click_extra.TelemetryOption`    |
-| `@timer_option`               | `@click_extra.option` | `click_extra.TimerOption`        |
-| `@verbose_option`             | `@click_extra.option` | `click_extra.VerboseOption`      |
-| `@verbosity_option`           | `@click_extra.option` | `click_extra.VerbosityOption`    |
-| `@option_group`               | `@cloup.option_group` | `cloup.OptionGroup`              |
-| `@pass_context`               | `@click.pass_context` | -                                |
-| `@help_option`                | `@click.help_option`  | -                                |
-| …                             | …                     | …                                |
+| Decorators from `click_extra` | Wrapped decorator     | Base class                      |
+| :---------------------------- | :-------------------- | :------------------------------ |
+| `@command`                    | `@cloup.command`      | `click_extra.Command`           |
+| `@group`                      | `@cloup.group`        | `click_extra.Group`             |
+| `@lazy_group`                 | `@click_extra.group`  | `click_extra.LazyGroup`         |
+| `@option`                     | `@cloup.option`       | `click_extra.Option`            |
+| `@argument`                   | `@cloup.argument`     | `click_extra.Argument`          |
+| `@version_option`             | `@click_extra.option` | `click_extra.VersionOption`     |
+| `@color_option`               | `@click_extra.option` | `click_extra.ColorOption`       |
+| `@config_option`              | `@click_extra.option` | `click_extra.ConfigOption`      |
+| `@no_config_option`           | `@click_extra.option` | `click_extra.NoConfigOption`    |
+| `@show_params_option`         | `@click_extra.option` | `click_extra.ShowParamsOption`  |
+| `@table_format_option`        | `@click_extra.option` | `click_extra.TableFormatOption` |
+| `@telemetry_option`           | `@click_extra.option` | `click_extra.TelemetryOption`   |
+| `@timer_option`               | `@click_extra.option` | `click_extra.TimerOption`       |
+| `@verbose_option`             | `@click_extra.option` | `click_extra.VerboseOption`     |
+| `@verbosity_option`           | `@click_extra.option` | `click_extra.VerbosityOption`   |
+| `@option_group`               | `@cloup.option_group` | `cloup.OptionGroup`             |
+| `@pass_context`               | `@click.pass_context` | -                               |
+| `@help_option`                | `@click.help_option`  | -                               |
+| …                             | …                     | …                               |
 
 Same for the main classes and functions, where some are re-implemented by Click Extra, and others are direct aliases to Cloup or Click ones:
 
 | Classes from `click_extra` | Alias to                     | Parent class              |
 | :------------------------- | :--------------------------- | :------------------------ |
-| `ExtraCommand`             | -                            | `cloup.Command`           |
-| `ExtraGroup`               | -                            | `cloup.Group`             |
-| `LazyGroup`                | -                            | `click_extra.ExtraGroup`  |
+| `Command`                  | -                            | `cloup.Command`           |
+| `Group`                    | -                            | `cloup.Group`             |
+| `LazyGroup`                | -                            | `click_extra.Group`       |
 | `Option`                   | -                            | `cloup.Option`            |
 | `Argument`                 | -                            | `cloup.Argument`          |
-| `ExtraContext`             | -                            | `cloup.Context`           |
-| `HelpFormatter`            | `cloup.HelpFormatter`        |                           |
-| `HelpExtraFormatter`       | -                            | `cloup.HelpFormatter`     |
-| `HelpTheme`                | `cloup.HelpThene`            |                           |
-| `HelpExtraTheme`           | -                            | `cloup.HelpThene`         |
-| `ExtraCliRunner`           | -                            | `click.testing.CliRunner` |
-| `ExtraVersionOption`       | -                            |                           |
+| `Context`                  | -                            | `cloup.Context`           |
+| `HelpFormatter`            | -                            | `cloup.HelpFormatter`     |
+| `HelpTheme`                | -                            | `cloup.HelpTheme`         |
+| `CliRunner`                | -                            | `click.testing.CliRunner` |
+| `Result`                   | -                            | `click.testing.Result`    |
+| `VersionOption`            | -                            | `click_extra.ExtraOption` |
 | `Style`                    | `cloup.Style`                |                           |
 | `echo`                     | `click.echo`                 |                           |
 | `ParameterSource`          | `click.core.ParameterSource` |                           |
@@ -114,7 +113,7 @@ You can inspect the implementation details in:
 
 ## Default options
 
-The `@command` and `@group` decorators are pre-configured with a set of {py:func}`default options <click_extra.commands.default_extra_params>`. The `--help`/`-h` option is added separately through `help_option_names`, which is why it survives even when `default_extra_params()` is reset:
+The `@command` and `@group` decorators are pre-configured with a set of {py:func}`default options <click_extra.commands.default_params>`. The `--help`/`-h` option is added separately through `help_option_names`, which is why it survives even when `default_params()` is reset:
 
 ```{tip}
 Each default option publishes its resolved value on `ctx.meta` so you can pick it up from anywhere in your CLI. See the [available keys](context.md#available-keys) table for the full inventory and worked examples.
@@ -216,7 +215,7 @@ This is by design: decorators are cumulative, to allow you to add your own optio
 
 But notice the `UserWarning` log messages: `The parameter --version is used more than once. Remove its duplicate as parameters should be unique.`. As it is not a good practice to have duplicate options and you must avoid it. There's also a non-zero chance for this situation to result in complete failure in a future Click release.
 
-Finally, if the second `--version` option is placed right before the `--help` option, it is because Click is adding its own generated `--help` option at the end of the {py:func}`~click_extra.commands.default_extra_params` list.
+Finally, if the second `--version` option is placed right before the `--help` option, it is because Click is adding its own generated `--help` option at the end of the {py:func}`~click_extra.commands.default_params` list.
 ````
 
 ### Option order
@@ -225,7 +224,7 @@ Notice how the options above are ordered in the help message.
 
 The default behavior of `@command` is to order options in the way they are provided to the `params=` argument of the decorator. Then adds to that list the additional option decorators positioned after the `@command` decorator.
 
-After that, there is a final sorting step applied by {py:class}`~click_extra.commands.ExtraCommand`. This is done by the `extra_option_at_end` option, which is `True` by default.
+After that, there is a final sorting step applied by {py:class}`~click_extra.commands.Command`. This is done by the `extra_option_at_end` option, which is `True` by default.
 
 ### Option's defaults
 
@@ -285,9 +284,9 @@ The advantage of the `context_settings` method we demonstrated above, is that it
 
 ### Version fields
 
-Click's `@version_option(prog_name=...)` lets you customize the name displayed by `--version`. But with Click Extra's default options, the `ExtraVersionOption` is created for you — so there's no decorator call to pass `prog_name` to.
+Click's `@version_option(prog_name=...)` lets you customize the name displayed by `--version`. But with Click Extra's default options, the `VersionOption` is created for you — so there's no decorator call to pass `prog_name` to.
 
-The `version_fields` parameter on `@command` and `@group` solves this. It forwards values to the `ExtraVersionOption` in the default params list, without replacing it. It accepts any field from `ExtraVersionOption.template_fields`:
+The `version_fields` parameter on `@command` and `@group` solves this. It forwards values to the `VersionOption` in the default params list, without replacing it. It accepts any field from `VersionOption.template_fields`:
 
 ```{click:source}
 :emphasize-lines: 3
@@ -341,7 +340,7 @@ assert "42.0" in result.output
 
 ## `help` subcommand
 
-Every `ExtraGroup` automatically includes a `help` subcommand. It is the standard way to get help in most major CLIs (git, docker, cargo, npm, kubectl, gh).
+Every `Group` automatically includes a `help` subcommand. It is the standard way to get help in most major CLIs (git, docker, cargo, npm, kubectl, gh).
 
 `mycli help` shows the group's own help, and `mycli help <subcommand>` shows a specific subcommand's help:
 

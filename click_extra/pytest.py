@@ -33,7 +33,7 @@ from extra_platforms import is_windows
 
 from click_extra.decorators import argument, command, group, option
 from click_extra.testing import (
-    ExtraCliRunner,
+    CliRunner,
     RegexLineMismatch,
     regex_fullmatch_line_by_line,
 )
@@ -48,17 +48,17 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def extra_runner():
-    """Runner fixture for ``click.testing.ExtraCliRunner``."""
-    runner = ExtraCliRunner()
+def runner():
+    """Runner fixture for ``click.testing.CliRunner``."""
+    runner = CliRunner()
     with runner.isolated_filesystem():
         yield runner
 
 
 @pytest.fixture
-def invoke(extra_runner):
-    """Invoke fixture shorthand for ``click.testing.ExtraCliRunner.invoke``."""
-    return extra_runner.invoke
+def invoke(runner):
+    """Invoke fixture shorthand for ``click.testing.CliRunner.invoke``."""
+    return runner.invoke
 
 
 skip_naked = pytest.mark.skip(reason="Naked decorator not supported.")

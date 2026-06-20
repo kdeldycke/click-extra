@@ -289,7 +289,7 @@ def test_standalone_show_params_option(
         assert_output_regex(
             result.stderr,
             r"warning: Cannot extract parameters values: "
-            r"<(Group|Command) show-params> does not inherits from ExtraCommand\.\n",
+            r"<(Group|Command) show-params> does not inherits from Command\.\n",
         )
 
     assert result.exit_code == 0
@@ -761,7 +761,7 @@ def test_integrated_show_params_option(invoke, create_config):
         (
             "show-params-cli.version",
             "--version",
-            "click_extra.version.ExtraVersionOption",
+            "click_extra.version.VersionOption",
             "click.types.BoolParamType",
             "bool",
             "✘",

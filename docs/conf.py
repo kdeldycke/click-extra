@@ -194,7 +194,7 @@ def setup(app):
     """Sphinx extension entry point.
 
     Registers the ``autodoc-process-docstring`` hook that injects a colored
-    example into every :class:`HelpExtraTheme` slot's autodoc block. The
+    example into every :class:`HelpTheme` slot's autodoc block. The
     example is computed live by replaying the templates in
     ``_PALETTE_EXAMPLES`` through the active dark theme's slot styling, so
     the rendered output cannot drift from the actual Theme code path —

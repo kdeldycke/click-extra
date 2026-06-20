@@ -26,10 +26,10 @@ from .accessibility import AccessibleOption
 from .colorize import ColorOption, NoColorOption
 from .commands import (
     DEFAULT_HELP_NAMES,
-    ExtraCommand,
-    ExtraGroup,
+    Command,
+    Group,
     LazyGroup,
-    default_extra_params,
+    default_params,
 )
 from .config import ConfigOption, NoConfigOption, ValidateConfigOption
 from .execution import JobsOption, TimerOption, ZeroExitOption
@@ -39,7 +39,7 @@ from .parameters import Argument, Option, ShowParamsOption
 from .table import ColumnsOption, TableFormatOption
 from .telemetry import TelemetryOption
 from .theme import ThemeOption
-from .version import ExtraVersionOption
+from .version import VersionOption
 
 
 def allow_missing_parenthesis(dec_factory):
@@ -69,7 +69,7 @@ def decorator_factory(dec, *new_args, **new_defaults):
         which the produced decorator's `cls` argument must inherit.
 
         The idea is to ensure that, for example, the `@command` decorator
-        re-implemented by Click Extra is always a subclass of `ExtraCommand`, even when
+        re-implemented by Click Extra is always a subclass of `Command`, even when
         the user overrides the `cls` argument. That way it can always rely on the
         additional properties and methods defined in the Click Extra framework, where we
         have extended Cloup and Click so much that we want to prevent surprising side
@@ -123,13 +123,13 @@ def decorator_factory(dec, *new_args, **new_defaults):
 # Replace and extend existing Click and Cloup commands decorators.
 command = decorator_factory(
     dec=cloup.command,
-    cls=ExtraCommand,
-    params=default_extra_params,
+    cls=Command,
+    params=default_params,
 )
 group = decorator_factory(
     dec=cloup.group,
-    cls=ExtraGroup,
-    params=default_extra_params,
+    cls=Group,
+    params=default_params,
 )
 
 
@@ -138,7 +138,7 @@ option = decorator_factory(dec=cloup.option, cls=Option)
 argument = decorator_factory(dec=cloup.argument, cls=Argument)
 
 help_option = decorator_factory(click.decorators.help_option, *DEFAULT_HELP_NAMES)
-version_option = decorator_factory(dec=option, cls=ExtraVersionOption)
+version_option = decorator_factory(dec=option, cls=VersionOption)
 
 
 # Introduce new commands decorators specific to Click Extra.

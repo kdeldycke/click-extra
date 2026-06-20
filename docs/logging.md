@@ -322,15 +322,15 @@ To prevent this behavior, you can associate the `--verbosity` option with your o
 
 The preferred way to customize log messages is to create your own logger and attach it to the `--verbosity` option.
 
-This can be done with {py:func}`~click_extra.logging.new_extra_logger`. Here is how we can for example change the format of the log messages:
+This can be done with {py:func}`~click_extra.logging.new_logger`. Here is how we can for example change the format of the log messages:
 
 ```{click:source}
 :emphasize-lines: 5-8, 11, 18
 import logging
 from click import command
-from click_extra import new_extra_logger, verbosity_option
+from click_extra import new_logger, verbosity_option
 
-new_extra_logger(
+new_logger(
     name="app_logger",
     format="{levelname} | {name} | {message}"
 )
@@ -379,9 +379,9 @@ Now if we don't explicitly pass the custom logger to the `--verbosity` option, t
 :emphasize-lines: 11
 import logging
 from click import command
-from click_extra import new_extra_logger, verbosity_option
+from click_extra import new_logger, verbosity_option
 
-new_extra_logger(
+new_logger(
     name="app_logger",
     format="{levelname} | {name} | {message}"
 )
@@ -427,7 +427,7 @@ assert dedent("""\
 ````{important}
 By design, [new loggers are always created as sub-loggers](https://github.com/python/cpython/blob/3.14/Doc/library/logging.rst?plain=1#L112-L113) of `root`. And as such, their messages are propagated back to it.
 
-But {py:func}`~click_extra.logging.new_extra_logger` always creates new loggers by setting their `propagate` attribute to `False`. This means that messages of new loggers won't be propagated to their parents.
+But {py:func}`~click_extra.logging.new_logger` always creates new loggers by setting their `propagate` attribute to `False`. This means that messages of new loggers won't be propagated to their parents.
 
 This is the reason why, in the example above, the `root` and `app_logger` loggers are independent.
 
@@ -437,9 +437,9 @@ Let's experiment with that property and set the `propagate` attribute to `True`:
 :emphasize-lines: 7
 import logging
 from click import command
-from click_extra import new_extra_logger, verbosity_option
+from click_extra import new_logger, verbosity_option
 
-new_extra_logger(
+new_logger(
     name="app_logger",
     propagate=True,
     format="{levelname} | {name} | {message}"
@@ -483,9 +483,9 @@ You can creatively configure loggers to produce any kind of messages, like this 
 :emphasize-lines: 7
 import logging
 from click import command
-from click_extra import new_extra_logger, verbosity_option
+from click_extra import new_logger, verbosity_option
 
-new_extra_logger(
+new_logger(
     name="json_logger",
     format='{{"time": "{asctime}", "name": "{name}", "level": "{levelname}", "msg": "{message}"}}',
 )
@@ -515,9 +515,9 @@ But for convenience, you can pass the logger object directly to the option:
 :emphasize-lines: 5, 8
 import logging
 from click import command
-from click_extra import new_extra_logger, verbosity_option
+from click_extra import new_logger, verbosity_option
 
-my_logger = new_extra_logger(name="app_logger")
+my_logger = new_logger(name="app_logger")
 
 @command
 @verbosity_option(default_logger=my_logger)
@@ -545,15 +545,15 @@ assert dedent("""\
 
 ### Global configuration
 
-If you want to change the global configuration of all loggers, you can rely on `new_extra_logger`. Because the latter defaults to the `root` logger, any default logger propagating their messages to it will be affected:
+If you want to change the global configuration of all loggers, you can rely on `new_logger`. Because the latter defaults to the `root` logger, any default logger propagating their messages to it will be affected:
 
 ```{click:source}
 :emphasize-lines: 5, 8
 import logging
 from click import command
-from click_extra import new_extra_logger, verbosity_option
+from click_extra import new_logger, verbosity_option
 
-root_logger = new_extra_logger(format="{levelname} | {name} | {message}")
+root_logger = new_logger(format="{levelname} | {name} | {message}")
 
 @command
 @verbosity_option(default_logger=root_logger)

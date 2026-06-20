@@ -215,7 +215,7 @@ Notice in the example above how the `@command()` decorator from Cloup is used wi
 
 ## Available options
 
-Click Extra provides these additional, pre-configured options decorators you can use standalone. Some of them are included by default in the {py:func}`@extra_command and @extra_group <click_extra.commands.default_extra_params>` decorators (see the last column):
+Click Extra provides these additional, pre-configured options decorators you can use standalone. Some of them are included by default in the {py:func}`@command and @group <click_extra.commands.default_params>` decorators (see the last column):
 
 | Decorator                                                             | Specification                             | Default |
 | --------------------------------------------------------------------- | ----------------------------------------- | ------- |
@@ -234,7 +234,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | {py:class}`@quiet_option <click_extra.logging.QuietOption>`           | `-q, --quiet`                             | ✅      |
 | [`@man_option`](man-page.md#generating-man-pages)                     | `--man`                                   | ✅      |
 | [`@version_option`](version.md)                                       | `--version`                               | ✅      |
-| {py:class}`@help_option <click_extra.colorize.HelpExtraFormatter>`    | `-h, --help`                              | ✅      |
+| {py:class}`@help_option <click_extra.colorize.HelpFormatter>`    | `-h, --help`                              | ✅      |
 | [`@jobs_option`](execution.md#parallel-jobs)                          | `--jobs [auto\|max\|INTEGER]`             | ❌      |
 | {py:mod}`@telemetry_option <click_extra.telemetry>`                   | `--telemetry / --no-telemetry`            | ❌      |
 | [`@zero_exit_option`](execution.md#zero-exit-code)                    | `-0, --zero-exit`                         | ❌      |

@@ -30,9 +30,9 @@ import pytest
 
 import click_extra
 from click_extra import (
-    ExtraVersionOption,
     HelpCommand,
     LazyGroup,
+    VersionOption,
     command,
     echo,
     group,
@@ -41,7 +41,7 @@ from click_extra import (
     pass_context,
     version_option,
 )
-from click_extra.commands import default_extra_params
+from click_extra.commands import default_params
 from click_extra.pytest import (
     command_decorators,
     default_debug_uncolored_log_end,
@@ -75,9 +75,9 @@ def all_command_cli():
     """A CLI that is mixing all variations and flavors of subcommands."""
 
     def versioned_extra_params():
-        params = default_extra_params()
+        params = default_params()
         for p in params:
-            if isinstance(p, ExtraVersionOption):
+            if isinstance(p, VersionOption):
                 p.version = "2021.10.08"
         return params
 
@@ -175,7 +175,7 @@ def test_short_option_error_enhancement(
     exit_code,
     expected_fragment,
 ):
-    """``ExtraCommand.parse_args`` improves error messages for single-dash
+    """``Command.parse_args`` improves error messages for single-dash
     multi-character tokens whose first character is not a registered short
     option.  Vanilla Click would split ``-dbgwrong`` character by character and
     report "No such option: -d"; we re-raise with the full token and close-match
@@ -925,10 +925,8 @@ def test_decorator_overrides():
         (click.Group, True),
         (cloup.Command, True),
         (cloup.Group, True),
-        (click_extra.Command, True),
-        (click_extra.Group, True),
-        (click_extra.ExtraCommand, False),
-        (click_extra.ExtraGroup, False),
+        (click_extra.Command, False),
+        (click_extra.Group, False),
         (str, True),
         (int, True),
     ),

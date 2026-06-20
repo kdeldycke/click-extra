@@ -43,7 +43,7 @@ from cloup._util import identity
 
 from . import ParameterSource, theme as _theme
 from .parameters import ExtraOption
-from .theme import HelpExtraTheme, ThemeChoice
+from .theme import HelpTheme, ThemeChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -467,7 +467,7 @@ class HelpKeywords:
             getattr(self, f.name).difference_update(getattr(other, f.name))
 
 
-class ExtraHelpColorsMixin:  # (Command)??
+class _HelpColorsMixin:  # (Command)??
     """Adds extra-keywords highlighting to Click commands.
 
     This mixin for ``click.Command``-like classes intercepts the top-level helper-
@@ -532,7 +532,7 @@ class ExtraHelpColorsMixin:  # (Command)??
         # Static methods are qualified with the class name (not ``self``) so
         # ``collect_keywords`` can be called on commands that don't inherit the
         # mixin (used by ``wrap.patch_click`` for third-party CLIs).
-        ExtraHelpColorsMixin._collect_params(
+        _HelpColorsMixin._collect_params(
             command.get_params(ctx),
             ctx,
             kw,
@@ -549,7 +549,7 @@ class ExtraHelpColorsMixin:  # (Command)??
                     options.update(param.opts)
                     options.update(param.secondary_opts)
                     if isinstance(param.type, (click.Choice, ThemeChoice)):
-                        ExtraHelpColorsMixin._collect_choice_keywords(
+                        _HelpColorsMixin._collect_choice_keywords(
                             param,
                             parent_ctx,
                             kw,
@@ -646,7 +646,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             # metavar (with delimiters like brackets and pipes). All other
             # types fall back to a plain uppercased name (e.g. TEXT, INTEGER).
             if isinstance(param.type, (click.Choice, ThemeChoice)):
-                ExtraHelpColorsMixin._collect_choice_keywords(param, ctx, kw)
+                _HelpColorsMixin._collect_choice_keywords(param, ctx, kw)
             elif isinstance(param.type, click.DateTime):
                 # Highlight each datetime format string as a choice.
                 kw.choices.update(param.type.formats)
@@ -681,7 +681,7 @@ class ExtraHelpColorsMixin:  # (Command)??
 
     def get_help(self, ctx: click.Context) -> str:
         """Replace default formatter by our own."""
-        ctx.formatter_class = HelpExtraFormatter
+        ctx.formatter_class = HelpFormatter
         return super().get_help(ctx)  # type: ignore[no-any-return,misc]
 
     @staticmethod
@@ -703,7 +703,7 @@ class ExtraHelpColorsMixin:  # (Command)??
             cmd_ctx = cmd_ctx.parent
         return excluded
 
-    def format_help(self, ctx: click.Context, formatter: HelpExtraFormatter) -> None:
+    def format_help(self, ctx: click.Context, formatter: HelpFormatter) -> None:
         """Feed our custom formatter instance with the keywords to highlight."""
         formatter.keywords = self.collect_keywords(ctx)
         formatter.excluded_keywords = self._collect_excluded_keywords(ctx)
@@ -727,7 +727,7 @@ def _escape_for_help_screen(text: str) -> str:
     return re.escape(text).replace("-", "-\\s*").replace("\\ ", "\\s+")
 
 
-class HelpExtraFormatter(cloup.HelpFormatter):
+class HelpFormatter(cloup.HelpFormatter):
     """Extends Cloup's custom HelpFormatter to highlights options, choices, metavars and
     default values.
 
@@ -738,12 +738,12 @@ class HelpExtraFormatter(cloup.HelpFormatter):
     - https://github.com/janluke/cloup/issues/95
     """
 
-    theme: HelpExtraTheme
+    theme: HelpTheme
 
     def __init__(self, *args, **kwargs) -> None:
         """Forces theme to the active one for the current Click context.
 
-        Also transform Cloup's standard ``HelpTheme`` to our own ``HelpExtraTheme``.
+        Also transform Cloup's standard ``HelpTheme`` to our own ``HelpTheme``.
 
         Resolves the active theme via :func:`click_extra.theme.get_current_theme`,
         which reads the per-invocation pick from the Click context (set by
@@ -752,7 +752,7 @@ class HelpExtraFormatter(cloup.HelpFormatter):
         """
         active_theme = _theme.get_current_theme()
         theme = kwargs.get("theme", active_theme)
-        if not isinstance(theme, HelpExtraTheme):
+        if not isinstance(theme, HelpTheme):
             theme = active_theme.with_(**theme._asdict())
         kwargs["theme"] = theme
         super().__init__(*args, **kwargs)

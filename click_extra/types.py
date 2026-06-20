@@ -35,7 +35,7 @@ class MultiChoice(click.ParamType):
     against ``choices`` when that set is non-empty.
 
     The rendered metavar is ``[a,b,c]`` (separator-joined, parallel to
-    ``Choice``'s ``[a|b|c]``): :class:`click_extra.colorize.ExtraHelpColorsMixin`
+    ``Choice``'s ``[a|b|c]``): :class:`click_extra.colorize._HelpColorsMixin`
     auto-detects the separator and highlights each individual value the same way
     it does for ``Choice``.
 

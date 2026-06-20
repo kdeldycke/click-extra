@@ -31,7 +31,7 @@ from click_extra.theme import (
     BUILTIN_THEMES,
     LITERAL_STYLES,
     REPLACEABLE_STYLES,
-    HelpExtraTheme,
+    HelpTheme,
 )
 
 if sys.version_info >= (3, 11):
@@ -95,7 +95,7 @@ def _toml_table_order() -> list[str]:
 
 
 def _parsed_themes_toml() -> dict[str, dict]:
-    """Load ``themes.toml`` raw (without going through ``HelpExtraTheme.from_dict``)."""
+    """Load ``themes.toml`` raw (without going through ``HelpTheme.from_dict``)."""
     result: dict[str, dict] = tomllib.loads(_THEMES_TOML.read_text(encoding="utf-8"))
     return result
 
@@ -132,11 +132,11 @@ def test_builtin_themes_match_toml():
 
 
 def test_builtin_themes_are_helpextratheme_instances():
-    """Every ``BUILTIN_THEMES`` entry is a :class:`HelpExtraTheme` instance."""
+    """Every ``BUILTIN_THEMES`` entry is a :class:`HelpTheme` instance."""
     for name, theme in BUILTIN_THEMES.items():
-        assert isinstance(theme, HelpExtraTheme), (
+        assert isinstance(theme, HelpTheme), (
             f"BUILTIN_THEMES[{name!r}] is {type(theme).__name__}, "
-            f"expected HelpExtraTheme."
+            f"expected HelpTheme."
         )
 
 
@@ -166,9 +166,9 @@ def test_builtin_themes_follow_manpage_font_convention(theme_name):
 
 @pytest.mark.parametrize("theme_name", sorted(BUILTIN_THEMES))
 def test_theme_round_trips_through_dict(theme_name):
-    """``HelpExtraTheme.to_dict``/``from_dict`` round-trips every built-in theme."""
+    """``HelpTheme.to_dict``/``from_dict`` round-trips every built-in theme."""
     theme = BUILTIN_THEMES[theme_name]
-    rebuilt = HelpExtraTheme.from_dict(theme.to_dict())
+    rebuilt = HelpTheme.from_dict(theme.to_dict())
     assert rebuilt == theme
 
 
@@ -181,23 +181,23 @@ def test_themes_toml_payload_matches_to_dict(theme_name):
 
 def test_to_dict_omits_identity_slots():
     """Slots left at the ``identity`` default do not appear in ``to_dict`` output."""
-    blank = HelpExtraTheme()
+    blank = HelpTheme()
     assert blank.to_dict() == {}
 
 
 def test_to_dict_emits_cross_ref_highlight_only_when_overridden():
     """``cross_ref_highlight`` is emitted only when it differs from the default."""
-    default = HelpExtraTheme()
+    default = HelpTheme()
     assert "cross_ref_highlight" not in default.to_dict()
 
-    flipped = HelpExtraTheme(cross_ref_highlight=False)
+    flipped = HelpTheme(cross_ref_highlight=False)
     assert flipped.to_dict() == {"cross_ref_highlight": False}
 
 
 def test_from_dict_rejects_unknown_keys():
     """Typos like ``optoin`` raise ``TypeError`` instead of being silently dropped."""
     with pytest.raises(TypeError, match="optoin"):
-        HelpExtraTheme.from_dict({"optoin": {"fg": "cyan"}})
+        HelpTheme.from_dict({"optoin": {"fg": "cyan"}})
 
 
 # --- Cascade ----------------------------------------------------------------
@@ -206,7 +206,7 @@ def test_from_dict_rejects_unknown_keys():
 def test_cascade_overrides_only_set_slots():
     """``cascade`` keeps base's slots wherever the overlay leaves them at default."""
     dark = BUILTIN_THEMES["dark"]
-    overlay = HelpExtraTheme.from_dict({"option": {"fg": "magenta"}})
+    overlay = HelpTheme.from_dict({"option": {"fg": "magenta"}})
     merged = overlay.cascade(dark)
 
     # Overlay slot wins.
@@ -221,7 +221,7 @@ def test_cascade_overrides_only_set_slots():
 def test_cascade_returns_new_instance_when_overlay_changes_anything():
     """Even a single-slot overlay produces a distinct theme instance."""
     dark = BUILTIN_THEMES["dark"]
-    overlay = HelpExtraTheme.from_dict({"option": {"fg": "magenta"}})
+    overlay = HelpTheme.from_dict({"option": {"fg": "magenta"}})
     merged = overlay.cascade(dark)
 
     assert merged is not dark
@@ -240,9 +240,9 @@ def test_cascade_round_trips_through_dict():
 
 
 def test_cascade_rejects_non_theme_base():
-    """``cascade`` rejects anything that is not a :class:`HelpExtraTheme`."""
-    overlay = HelpExtraTheme()
-    with pytest.raises(TypeError, match="not a HelpExtraTheme"):
+    """``cascade`` rejects anything that is not a :class:`HelpTheme`."""
+    overlay = HelpTheme()
+    with pytest.raises(TypeError, match="not a HelpTheme"):
         overlay.cascade(object())  # type: ignore[arg-type]
 
 
@@ -361,6 +361,8 @@ def test_load_builtin_themes_tolerates_missing_file(caplog, monkeypatch):
     assert result == {}
     assert "themes.toml" in caplog.text
     assert "no-color theme" in caplog.text
+    # The warning points users at the config-file fallback for custom themes.
+    assert "[tool.<cli>.themes.<name>]" in caplog.text
 
 
 def test_themechoice_inert_when_registry_empty(monkeypatch):

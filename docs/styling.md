@@ -180,7 +180,7 @@ print(hash(a) == hash(b))
 
 ## Shared dataclass round-trip helpers
 
-The serialization machinery `Style.to_dict` / `from_dict` relies on three small module-level helpers that codify "walk dataclass fields, skip the cloup `_style_kwargs` cache, skip default-valued fields, raise on unknown keys". They're public so other dataclass-shaped values in click-extra (notably [`HelpExtraTheme`](theme.md)) can reuse them, and so downstream code with similar patterns can build on the same primitives.
+The serialization machinery `Style.to_dict` / `from_dict` relies on three small module-level helpers that codify "walk dataclass fields, skip the cloup `_style_kwargs` cache, skip default-valued fields, raise on unknown keys". They're public so other dataclass-shaped values in click-extra (notably [`HelpTheme`](theme.md)) can reuse them, and so downstream code with similar patterns can build on the same primitives.
 
 ### `fields_to_dict(instance, *, encode=…, keep=…)`
 

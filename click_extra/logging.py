@@ -25,11 +25,8 @@ from enum import IntEnum
 from gettext import gettext as _
 from logging import (
     FileHandler,
-    Formatter,
     Handler,
     Logger,
-    StreamHandler,
-    basicConfig,
     getLogger,
 )
 from unittest.mock import patch
@@ -89,7 +86,7 @@ _RESET_REGISTERED: str = f"{context.META_NAMESPACE}_verbosity_reset_registered"
 """Internal sentinel marking that ``reset_loggers`` was queued on the context.
 
 Lives in ``ctx.meta`` so the verbosity inheritance chain
-(``ExtraVerbosity`` / ``VerbosityOption`` / ``VerboseOption`` / ``QuietOption``)
+(``_VerbosityOption`` / ``VerbosityOption`` / ``VerboseOption`` / ``QuietOption``)
 registers the close callback at most once per invocation, even when several
 verbosity options are passed.
 """
@@ -98,7 +95,7 @@ verbosity options are passed.
 _COUNTER_SCANNED: str = f"{context.META_NAMESPACE}_verbosity_counter_scanned"
 """Internal sentinel marking that the ``-v``/``-q`` counter was pre-resolved.
 
-The first verbosity option reaching :meth:`ExtraVerbosity.handle_parse_result`
+The first verbosity option reaching :meth:`_VerbosityOption.handle_parse_result`
 reads the raw ``--verbose``/``--quiet`` repetition counts from the parsed
 ``opts`` and stashes them on the context before any option applies a level. This
 way the option that fires first already reconciles the full counter and never
@@ -123,7 +120,7 @@ def _last_param(
     return options[-1] if options else None  # type: ignore[index]
 
 
-class ExtraStreamHandler(StreamHandler):
+class StreamHandler(logging.StreamHandler):
     """A handler to output logs to the console.
 
     Wraps :class:`logging.StreamHandler`, but use :func:`click.echo` to support color printing.
@@ -171,14 +168,14 @@ class ExtraStreamHandler(StreamHandler):
             self.handleError(record)
 
 
-class ExtraFormatter(Formatter):
+class Formatter(logging.Formatter):
     """Click Extra's default log formatter."""
 
     def formatMessage(self, record: LogRecord) -> str:
         """Colorize the record's log level name before calling the standard
         formatter.
 
-        Colors are sourced from a :class:`click_extra.theme.HelpExtraTheme`,
+        Colors are sourced from a :class:`click_extra.theme.HelpTheme`,
         resolved per-invocation via :func:`click_extra.theme.get_current_theme`.
         """
         level = record.levelname.lower()
@@ -188,7 +185,7 @@ class ExtraFormatter(Formatter):
         return super().formatMessage(record)
 
 
-def extraBasicConfig(
+def basicConfig(
     *,
     # Arguments from Python's standard library's basicConfig:
     filename: str | None = None,
@@ -203,9 +200,9 @@ def extraBasicConfig(
     encoding: str | None = None,
     errors: str | None = "backslashreplace",
     # New arguments specific to this function:
-    stream_handler_class: type[Handler] = ExtraStreamHandler,
+    stream_handler_class: type[Handler] = StreamHandler,
     file_handler_class: type[Handler] = FileHandler,
-    formatter_class: type[Formatter] = ExtraFormatter,
+    formatter_class: type[logging.Formatter] = Formatter,
 ) -> None:
     """Configure the global ``root`` logger.
 
@@ -216,18 +213,18 @@ def extraBasicConfig(
 
     Differences in default values:
 
-    ==========  ================================  ======================================
-    Argument    :func:`extraBasicConfig` default  :func:`logging.basicConfig` default
-    ==========  ================================  ======================================
-    ``style``   ``{``                             ``%``
-    ``format``  ``{levelname}: {message}``        ``%(levelname)s:%(name)s:%(message)s``
-    ==========  ================================  ======================================
+    ==========  ===========================  ======================================
+    Argument    :func:`basicConfig` default  :func:`logging.basicConfig` default
+    ==========  ===========================  ======================================
+    ``style``   ``{``                        ``%``
+    ``format``  ``{levelname}: {message}``   ``%(levelname)s:%(name)s:%(message)s``
+    ==========  ===========================  ======================================
 
     This function takes the same parameters as :func:`logging.basicConfig`, but require them
     to be all passed as explicit keywords arguments.
 
     :param filename: Specifies that a :class:`logging.FileHandler` be created, using the
-        specified filename, rather than an :py:class:`ExtraStreamHandler`.
+        specified filename, rather than an :py:class:`StreamHandler`.
     :param filemode: If *filename* is specified, open the file in this :func:`mode <.open>`.
 
         Defaults to ``a``.
@@ -245,7 +242,7 @@ def extraBasicConfig(
         Defaults to ``{``.
     :param level: Set the ``root`` logger level to the specified :ref:`level <levels>`.
     :param stream: Use the specified stream to initialize the
-        :py:class:`ExtraStreamHandler`. Note that this argument is incompatible with
+        :py:class:`StreamHandler`. Note that this argument is incompatible with
         *filename* - if both are present, a ``ValueError`` is raised.
     :param handlers: If specified, this should be an iterable of already created
         handlers to add to the ``root`` logger. Any handlers which don't already have a
@@ -272,24 +269,24 @@ def extraBasicConfig(
 
     :param stream_handler_class: A :py:class:`logging.Handler` class that will be used in
         :func:`logging.basicConfig` to create a default stream-based handler. Defaults to
-        :py:class:`ExtraStreamHandler`.
+        :py:class:`StreamHandler`.
     :param file_handler_class: A :py:class:`logging.Handler` class that will be used in
         :func:`logging.basicConfig` to create a default file-based handler. Defaults to
         :py:class:`FileHandler`.
     :param formatter_class: A :py:class:`logging.Formatter` class of the formatter that
         will be used in :func:`logging.basicConfig` to setup the default formatter. Defaults to
-        :py:class:`ExtraFormatter`.
+        :py:class:`Formatter`.
 
     .. note::
         I don't like the camel-cased name of this function and would have called it
-        ``extra_basic_config()``, but it's kept this way for consistency with Python's
-        standard library.
+        ``basic_config()``, but it's kept this way for consistency with Python's
+        standard library :func:`logging.basicConfig`.
     """
     # Collect all arguments that are not None, because basicConfig is testing the
     # presence of them instead of their values. So we'll add them conditionally to
     # kwargs.
     kwargs = {}
-    for arg_id in inspect.signature(extraBasicConfig).parameters:
+    for arg_id in inspect.signature(basicConfig).parameters:
         if arg_id in locals() and locals()[arg_id] is not None:
             kwargs[arg_id] = locals()[arg_id]
 
@@ -302,10 +299,10 @@ def extraBasicConfig(
         patch.object(logging, "FileHandler", kwargs.pop("file_handler_class")),
         patch.object(logging, "Formatter", kwargs.pop("formatter_class")),
     ):
-        basicConfig(**kwargs)
+        logging.basicConfig(**kwargs)
 
 
-def new_extra_logger(
+def new_logger(
     name: str = logging.root.name,
     *,
     propagate: bool = False,
@@ -320,17 +317,17 @@ def new_extra_logger(
       with that name if it doesn't exist,
     - Set the logger's :attr:`propagate <logging.Logger.propagate>` attribute to ``False``,
     - Force removal of any existing handlers and formatters attached to the logger,
-    - Attach a new :py:class:`ExtraStreamHandler` with :py:class:`ExtraFormatter`,
+    - Attach a new :py:class:`StreamHandler` with :py:class:`Formatter`,
     - Return the logger object.
 
-    This function is a wrapper around :func:`extraBasicConfig` and takes the same keywords arguments.
+    This function is a wrapper around :func:`basicConfig` and takes the same keywords arguments.
 
     :param name: ID of the logger to setup. If ``None``, Python's ``root``
         logger will be used. If a logger with the provided name is not found in the
         global registry, a new logger with that name will be created.
     :param propagate: Sets the logger's :attr:`propagate <logging.Logger.propagate>` attribute. Defaults to ``False``.
-    :param force: Same as the *force* parameter from :func:`logging.basicConfig` and :func:`extraBasicConfig`. Defaults to ``True``.
-    :param kwargs: Any other keyword parameters supported by :func:`logging.basicConfig` and :func:`extraBasicConfig`.
+    :param force: Same as the *force* parameter from :func:`logging.basicConfig` and :func:`basicConfig`. Defaults to ``True``.
+    :param kwargs: Any other keyword parameters supported by :func:`logging.basicConfig` and :func:`basicConfig`.
     """
     if name == logging.root.name:
         logger = logging.root
@@ -346,12 +343,12 @@ def new_extra_logger(
         )
 
     with root_logger_patch:
-        extraBasicConfig(force=force, **kwargs)
+        basicConfig(force=force, **kwargs)
 
     return logger
 
 
-class ExtraVerbosity(ExtraOption):
+class _VerbosityOption(ExtraOption):
     """A base class implementing all the common helpers to manipulated logger's
     verbosity.
 
@@ -399,7 +396,7 @@ class ExtraVerbosity(ExtraOption):
 
         Both require extending :class:`LogLevel`, which ripples into the
         ``--verbosity`` :class:`~click_extra.types.EnumChoice`, the
-        :class:`ExtraFormatter` level-name color lookup and the level-ordering tests.
+        :class:`Formatter` level-name color lookup and the level-ordering tests.
         They are intentionally left out of the symmetric-counter change that
         introduced ``-q``, where the counter simply clamps at ``DEBUG``/``CRITICAL``.
     """
@@ -438,7 +435,7 @@ class ExtraVerbosity(ExtraOption):
         for logger in list(self.all_loggers)[::-1]:
             getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL}.")
             logger.setLevel(DEFAULT_LEVEL.value)
-            # new_extra_logger(name=logger.name)
+            # new_logger(name=logger.name)
 
     def handle_parse_result(self, ctx, opts, args):
         """Pre-resolve the ``-v``/``-q`` counter before any level is applied.
@@ -570,7 +567,7 @@ class ExtraVerbosity(ExtraOption):
         :param default_logger: If a :class:`logging.Logger` object is provided, that's
             the instance to which we will set the level to. If the parameter is a string
             and is found in the global registry, we will use it as the logger's ID.
-            Otherwise, we will create a new logger with :func:`new_extra_logger`
+            Otherwise, we will create a new logger with :func:`new_logger`
             Default to the global ``root`` logger.
         """
         # A logger object has been provided, fetch its name.
@@ -583,7 +580,7 @@ class ExtraVerbosity(ExtraOption):
         # XXX That's also the case in which the root logger will fall into, because as
         # a special case, it is not registered in Logger.manager.loggerDict.
         else:
-            logger = new_extra_logger(name=default_logger)
+            logger = new_logger(name=default_logger)
             self.logger_name = logger.name
 
         kwargs.setdefault("callback", self.set_level)
@@ -596,8 +593,8 @@ class ExtraVerbosity(ExtraOption):
         )
 
 
-class VerbosityOption(ExtraVerbosity):
-    """``--verbosity LEVEL`` option to set the log level of :class:`ExtraVerbosity`."""
+class VerbosityOption(_VerbosityOption):
+    """``--verbosity LEVEL`` option to set the log level of :class:`_VerbosityOption`."""
 
     def set_level(
         self, ctx: click.Context, param: click.Parameter, value: LogLevel
@@ -634,8 +631,8 @@ class VerbosityOption(ExtraVerbosity):
         )
 
 
-class VerboseOption(ExtraVerbosity):
-    """``--verbose``/``-v`` option to raise the log level of :class:`ExtraVerbosity` by
+class VerboseOption(_VerbosityOption):
+    """``--verbose``/``-v`` option to raise the log level of :class:`_VerbosityOption` by
     one step per repetition.
 
     Each ``-v`` raises the verbosity by one :class:`LogLevel` step. The option can be
@@ -652,7 +649,7 @@ class VerboseOption(ExtraVerbosity):
 
     ``-v`` shares a single signed counter with :class:`QuietOption`'s ``-q``, so the two
     cancel out: ``-v -q`` leaves the level unchanged. See
-    :meth:`ExtraVerbosity.resolve_level` for the full reconciliation rule with
+    :meth:`_VerbosityOption.resolve_level` for the full reconciliation rule with
     ``--verbosity``.
     """
 
@@ -681,7 +678,7 @@ class VerboseOption(ExtraVerbosity):
 
         The number of repetitions is saved in
         ``ctx.meta[click_extra.context.VERBOSE]`` and folded into the verbosity
-        counter by :meth:`ExtraVerbosity.resolve_level`.
+        counter by :meth:`_VerbosityOption.resolve_level`.
         """
         context.set(ctx, context.VERBOSE, value)
         self.apply_verbosity(ctx)
@@ -717,8 +714,8 @@ class VerboseOption(ExtraVerbosity):
         )
 
 
-class QuietOption(ExtraVerbosity):
-    """``--quiet``/``-q`` option to lower the log level of :class:`ExtraVerbosity` by
+class QuietOption(_VerbosityOption):
+    """``--quiet``/``-q`` option to lower the log level of :class:`_VerbosityOption` by
     one step per repetition.
 
     The symmetric counterpart of :class:`VerboseOption`: where ``-v`` raises the
@@ -732,7 +729,7 @@ class QuietOption(ExtraVerbosity):
 
     ``-q`` shares a single signed counter with :class:`VerboseOption`'s ``-v``, so the
     two cancel out: ``-v -q`` leaves the level unchanged. See
-    :meth:`ExtraVerbosity.resolve_level` for the full reconciliation rule with
+    :meth:`_VerbosityOption.resolve_level` for the full reconciliation rule with
     ``--verbosity``.
     """
 
@@ -761,7 +758,7 @@ class QuietOption(ExtraVerbosity):
 
         The number of repetitions is saved in
         ``ctx.meta[click_extra.context.QUIET]`` and folded into the verbosity counter
-        by :meth:`ExtraVerbosity.resolve_level`.
+        by :meth:`_VerbosityOption.resolve_level`.
         """
         context.set(ctx, context.QUIET, value)
         self.apply_verbosity(ctx)

@@ -124,8 +124,8 @@ To understand how we ended up with the result above, [go read the tutorial](http
 
 ### Testing
 
-- [`ExtraCliRunner`](https://kdeldycke.github.io/click-extra/testing.html) — `click.testing.CliRunner` subclass that captures `stdout` and `stderr` separately and preserves ANSI codes for assertion against colored output
-- [pytest fixtures](https://kdeldycke.github.io/click-extra/pytest.html#fixtures) (`invoke`, `extra_runner`, `create_config`) and ready-made regex helpers (`default_options_uncolored_help`, `default_debug_*`) for click-extra-aware test suites
+- [`CliRunner`](https://kdeldycke.github.io/click-extra/testing.html) — `click.testing.CliRunner` subclass that captures `stdout` and `stderr` separately and preserves ANSI codes for assertion against colored output
+- [pytest fixtures](https://kdeldycke.github.io/click-extra/pytest.html#fixtures) (`invoke`, `runner`, `create_config`) and ready-made regex helpers (`default_options_uncolored_help`, `default_debug_*`) for click-extra-aware test suites
 
 ### Upstream
 

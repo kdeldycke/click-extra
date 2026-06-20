@@ -109,7 +109,7 @@ Three flavors ship in `click_extra/themes.toml`:
 - **Branded themes** (`solarized_dark`, `dracula`, `nord`, `monokai`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized_dark` should look like Solarized, not "whatever the terminal calls cyan"). Terminals without 24-bit support fall back to the nearest 256-color cell automatically. Each theme's slot mapping is hand-curated: there's no automated translation from generic colour-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
 - **Monochrome theme** (`manpage`) uses no color at all: it renders literal tokens bold and replaceable tokens italic, the way `man-pages(7)` typesets a command. Pick it for low-color terminals, screenshots, or output meant to read like a man page. The bold/italic split is the one in [literal and replaceable slots](#literal-and-replaceable-slots).
 
-`click_extra.theme.BUILTIN_THEMES` is a `dict[str, HelpExtraTheme]` mapping the names above to their instances; it is built by parsing `click_extra/themes.toml` at import time and is seeded into `theme_registry` immediately afterwards. Read the TOML file directly for the exact palette mapping, or call `theme.to_dict()` at runtime to get a TOML/JSON-friendly dict.
+`click_extra.theme.BUILTIN_THEMES` is a `dict[str, HelpTheme]` mapping the names above to their instances; it is built by parsing `click_extra/themes.toml` at import time and is seeded into `theme_registry` immediately afterwards. Read the TOML file directly for the exact palette mapping, or call `theme.to_dict()` at runtime to get a TOML/JSON-friendly dict.
 
 ```{note}
 Some standalone-binary builders (Nuitka, PyInstaller) and trimmed downstream packages omit package data files, dropping `click_extra/themes.toml`. The file is then loaded leniently rather than aborting the import: click-extra logs a warning, leaves `BUILTIN_THEMES` empty, and keeps the colorless `nocolor_theme` as the default. CLIs stay usable, and you can still define your own palettes in a `[tool.<cli>.themes.<name>]` config table (see [Themes from your config file](#themes-from-your-config-file) below); only the built-in palettes are missing until the data file is restored. For Nuitka, bundle it with `--include-package-data=click_extra`.
@@ -140,7 +140,7 @@ Use `click_extra.theme.get_current_theme()` to read the theme that applies to th
 
 ### Adding a new built-in theme
 
-A built-in theme is a single TOML table in `click_extra/themes.toml`: declare a `[<name>]` table with one inline-table per styled slot. The file is parsed at import time via `HelpExtraTheme.from_dict`, so adding a theme requires no Python — only the data:
+A built-in theme is a single TOML table in `click_extra/themes.toml`: declare a `[<name>]` table with one inline-table per styled slot. The file is parsed at import time via `HelpTheme.from_dict`, so adding a theme requires no Python — only the data:
 
 ```toml
 # click_extra/themes.toml
@@ -187,12 +187,12 @@ def cocktail():
 After this runs, `cocktail --theme neon` becomes a valid invocation, and `cocktail --help` lists `neon` alongside the built-in choices.
 
 ```{tip}
-For themes that depend on runtime state (terminal-background detection, environment variables, user settings), compute the `HelpExtraTheme` once at startup and pass it to `register_theme`. The registry holds plain instances only — if you need lazy or per-invocation resolution, load the theme from `[tool.<cli>.themes.<name>]` (see [Themes from your `--config` file](#themes-from-your-config-file) below) so it lands on `ctx.meta` rather than the process-wide dict.
+For themes that depend on runtime state (terminal-background detection, environment variables, user settings), compute the `HelpTheme` once at startup and pass it to `register_theme`. The registry holds plain instances only — if you need lazy or per-invocation resolution, load the theme from `[tool.<cli>.themes.<name>]` (see [Themes from your `--config` file](#themes-from-your-config-file) below) so it lands on `ctx.meta` rather than the process-wide dict.
 ```
 
 ## Anatomy of a theme
 
-`HelpExtraTheme` is a frozen dataclass that extends [`cloup.HelpTheme`](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) with extra styling slots for log levels and Click Extra's own categories.
+`HelpTheme` is a frozen dataclass that extends [`cloup.HelpTheme`](https://cloup.readthedocs.io/en/stable/pages/formatting.html#help-formatting-and-themes) with extra styling slots for log levels and Click Extra's own categories.
 
 Use `with_()` to derive a new theme that only overrides a few styles:
 
@@ -228,7 +228,7 @@ See [Cross-reference highlighting](colorize.md#cross-reference-highlighting) for
 
 ### Manual loading from a mapping
 
-`HelpExtraTheme.to_dict()` and `HelpExtraTheme.from_dict()` round-trip a theme through plain mappings, so a theme can live in a TOML, JSON, or YAML file alongside the rest of an application's configuration:
+`HelpTheme.to_dict()` and `HelpTheme.from_dict()` round-trip a theme through plain mappings, so a theme can live in a TOML, JSON, or YAML file alongside the rest of an application's configuration:
 
 ```toml
 [my_theme]
@@ -241,10 +241,10 @@ choice = { fg = "magenta" }
 import tomllib
 from pathlib import Path
 
-from click_extra import HelpExtraTheme, register_theme
+from click_extra import HelpTheme, register_theme
 
 raw = tomllib.loads(Path("config.toml").read_text())
-register_theme("my_theme", HelpExtraTheme.from_dict(raw["my_theme"]))
+register_theme("my_theme", HelpTheme.from_dict(raw["my_theme"]))
 ```
 
 `to_dict()` only emits slots that diverge from the default (`identity` / `None`), and `from_dict()` raises `TypeError` on unknown keys, so configuration typos surface at load time rather than silently producing a half-styled theme.
@@ -253,9 +253,9 @@ For the much more common case where the theme should live in the same `--config`
 
 ## Themes from your config file
 
-`ConfigOption` recognizes a `themes` sub-table inside the app's section. Every `[<cli>.themes.<name>]` entry is parsed via `HelpExtraTheme.from_dict` and made available to `--theme` for the duration of the invocation, with two distinct behaviors depending on whether `<name>` matches a built-in:
+`ConfigOption` recognizes a `themes` sub-table inside the app's section. Every `[<cli>.themes.<name>]` entry is parsed via `HelpTheme.from_dict` and made available to `--theme` for the duration of the invocation, with two distinct behaviors depending on whether `<name>` matches a built-in:
 
-- **Override an existing palette.** Re-declare a built-in name (`dark`, `dracula`, `light`, …) and the slots you set are overlaid on top of the built-in palette via `HelpExtraTheme.cascade`. Unset slots inherit from the built-in, so a one-line override like `option = { fg = "bright_cyan" }` is enough.
+- **Override an existing palette.** Re-declare a built-in name (`dark`, `dracula`, `light`, …) and the slots you set are overlaid on top of the built-in palette via `HelpTheme.cascade`. Unset slots inherit from the built-in, so a one-line override like `option = { fg = "bright_cyan" }` is enough.
 - **Define a new palette.** Use any other name and `--theme <name>` becomes a valid choice for that invocation. Unset slots default to *no styling* (`identity`), so you typically declare a slot for every category you care about.
 
 In both cases the theme registry mutation is **per-invocation**: it lives on `ctx.meta` under `click_extra.context.THEME_OVERRIDES` and never touches the module-level `theme_registry`. Sphinx builds, test runners, and any other host process running multiple CLI invocations back-to-back never leak themes between them.

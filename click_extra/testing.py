@@ -151,7 +151,7 @@ We need to collect them to help us identify which extra parameters passed to
 """
 
 
-class ExtraResult(click.testing.Result):
+class Result(click.testing.Result):
     """A ``Result`` subclass with automatic traceback formatting.
 
     Enhances ``__repr__`` so that pytest assertion failures show the full
@@ -174,7 +174,7 @@ class ExtraResult(click.testing.Result):
         return f"<{type(self).__name__} {exc_str}>"
 
 
-class ExtraCliRunner(click.testing.CliRunner):
+class CliRunner(click.testing.CliRunner):
     """Augment :class:`click.testing.CliRunner` with extra features and bug fixes."""
 
     force_color: bool = False
@@ -189,7 +189,7 @@ class ExtraCliRunner(click.testing.CliRunner):
         catch_exceptions: bool = True,
         color: bool | Literal["forced"] | None = None,
         **extra: Any,
-    ) -> ExtraResult:
+    ) -> Result:
         """Same as ``click.testing.CliRunner.invoke()`` with extra features.
 
         - The first positional parameter is the CLI to invoke. The remaining positional
@@ -290,8 +290,8 @@ class ExtraCliRunner(click.testing.CliRunner):
             )
 
         # Upgrade the result to our subclass for automatic traceback formatting.
-        result.__class__ = ExtraResult
-        extra_result: ExtraResult = result  # type: ignore[assignment]
+        result.__class__ = Result
+        extra_result: Result = result  # type: ignore[assignment]
 
         # ``color`` has been explicitly set to ``False``, so strip all ANSI codes.
         if color is False:

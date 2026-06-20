@@ -783,8 +783,8 @@ class ManOption(ExtraOption):
 
     Eager and value-less, like :class:`~click_extra.parameters.ShowParamsOption`.
     Part of the default option set injected by
-    :func:`~click_extra.commands.default_extra_params`, so every ``@extra_command``
-    and ``@extra_group`` exposes it. Use
+    :func:`~click_extra.commands.default_params`, so every ``@command``
+    and ``@group`` exposes it. Use
     :func:`@man_option <click_extra.decorators.man_option>` to add it to a plain
     Click CLI.
 

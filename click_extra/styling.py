@@ -109,7 +109,7 @@ _ANSI_SGR_RE: re.Pattern[str] = re.compile(r"\x1b\[(\d+(?:;\d+)*)m")
 
 # --- Shared dict round-trip helpers ------------------------------------------
 #
-# ``Style`` (per-attribute) and ``HelpExtraTheme`` (per-slot) both serialize
+# ``Style`` (per-attribute) and ``HelpTheme`` (per-slot) both serialize
 # their dataclass fields to plain dicts for TOML/JSON/YAML round-tripping.
 # These helpers codify the shared rules: walk ``dataclasses.fields``, skip
 # cloup's lazy ``_style_kwargs`` cache, skip values that match the field

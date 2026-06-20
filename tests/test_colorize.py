@@ -32,11 +32,10 @@ from packaging.version import Version
 
 from click_extra import (
     Color,
-    ExtraCommand,
-    ExtraContext,
+    Command,
+    Context,
     ExtraOption,
-    HelpExtraFormatter,
-    HelpExtraTheme,
+    HelpFormatter,
     HelpTheme,
     IntRange,
     LogLevel,
@@ -89,17 +88,17 @@ def test_theme_definition():
     """Ensure we do not leave any property we would have inherited from cloup and
     logging primitives."""
     assert (
-        set(HelpTheme.__dataclass_fields__)
-        <= HelpExtraTheme.__dataclass_fields__.keys()
+        set(cloup.HelpTheme.__dataclass_fields__)
+        <= HelpTheme.__dataclass_fields__.keys()
     )
 
     log_levels = {level.name.lower() for level in LogLevel}
-    assert log_levels <= HelpExtraTheme.__dataclass_fields__.keys()
-    assert log_levels.isdisjoint(HelpTheme.__dataclass_fields__)
+    assert log_levels <= HelpTheme.__dataclass_fields__.keys()
+    assert log_levels.isdisjoint(cloup.HelpTheme.__dataclass_fields__)
 
 
 def test_extra_theme():
-    theme = HelpExtraTheme()
+    theme = HelpTheme()
 
     # Check the same instance is returned when no attribute is set.
     assert theme.with_() == theme
@@ -798,8 +797,8 @@ class Port(IntEnum):
 def test_option_highlight(opt, expected_outputs):
     """Test highlighting of all option variations: types, defaults, ranges,
     envvars, choices, flags, metavars, deprecated messages."""
-    cli = ExtraCommand("test", params=[opt])
-    ctx = ExtraContext(cli)
+    cli = Command("test", params=[opt])
+    ctx = Context(cli)
     help = cli.get_help(ctx)
 
     for expected in expected_outputs:
@@ -815,7 +814,7 @@ def test_bracket_field_full_combination_styling():
     ``env var: `` / ``default: `` labels, and the ``; `` separators — while
     the value tokens (``NAME``, ``VAL``) and the ``required`` label get
     their own slot styling layered on top. This is the contract referenced
-    in :attr:`HelpExtraTheme.bracket`'s docstring.
+    in :attr:`HelpTheme.bracket`'s docstring.
     """
     opt = ExtraOption(
         ["--threshold"],
@@ -826,11 +825,11 @@ def test_bracket_field_full_combination_styling():
         show_envvar=True,
         type=int,
     )
-    cli = ExtraCommand("test", params=[opt])
-    ctx = ExtraContext(cli)
+    cli = Command("test", params=[opt])
+    ctx = Context(cli)
     help_text = cli.get_help(ctx)
 
-    # ExtraCommand's ``populate_auto_envvars`` augments the option's
+    # Command's ``populate_auto_envvars`` augments the option's
     # ``envvar`` with the auto-generated ``TEST_THRESHOLD`` based on the
     # command name, so the rendered bracket field carries both names.
     # Reconstruct the expected bracket field from the slot primitives.
@@ -880,11 +879,11 @@ def test_bracket_field_inner_slot_fallback_to_bracket():
     from cloup._util import identity
 
     from click_extra import Style
-    from click_extra.theme import HelpExtraTheme
+    from click_extra.theme import HelpTheme
 
     # Minimal theme: only ``bracket`` is set; the four inner slots stay at
     # identity. The whole bracket-field content should render bracket-dim.
-    bracket_only = HelpExtraTheme(bracket=Style(dim=True))
+    bracket_only = HelpTheme(bracket=Style(dim=True))
     assert bracket_only.envvar is identity
     assert bracket_only.default is identity
     assert bracket_only.required is identity
@@ -899,8 +898,8 @@ def test_bracket_field_inner_slot_fallback_to_bracket():
         show_envvar=True,
         type=int,
     )
-    cli = ExtraCommand("test", params=[opt])
-    ctx = ExtraContext(cli, formatter_settings={"theme": bracket_only})
+    cli = Command("test", params=[opt])
+    ctx = Context(cli, formatter_settings={"theme": bracket_only})
     help_text = cli.get_help(ctx)
 
     bracket = bracket_only.bracket
@@ -934,9 +933,9 @@ def test_bracket_field_inner_slot_override_takes_precedence():
     from cloup._util import identity
 
     from click_extra import Style
-    from click_extra.theme import HelpExtraTheme
+    from click_extra.theme import HelpTheme
 
-    partial = HelpExtraTheme(
+    partial = HelpTheme(
         bracket=Style(dim=True),
         required=Style(fg="red", bold=True),
     )
@@ -951,8 +950,8 @@ def test_bracket_field_inner_slot_override_takes_precedence():
         show_default=True,
         show_envvar=True,
     )
-    cli = ExtraCommand("test", params=[opt])
-    ctx = ExtraContext(cli, formatter_settings={"theme": partial})
+    cli = Command("test", params=[opt])
+    ctx = Context(cli, formatter_settings={"theme": partial})
     help_text = cli.get_help(ctx)
 
     bracket = partial.bracket
@@ -977,8 +976,8 @@ def test_skip_hidden_option():
     opt2 = ExtraOption(
         ["--visible"], help="Visible option referencing --hidden option."
     )
-    cli = ExtraCommand("test", params=[opt1, opt2])
-    ctx = ExtraContext(cli)
+    cli = Command("test", params=[opt1, opt2])
+    ctx = Context(cli)
 
     help = cli.get_help(ctx)
 
@@ -998,7 +997,7 @@ def test_cross_ref_highlight_disabled():
         cross_ref_highlight=False,
     )
 
-    cli = ExtraCommand(
+    cli = Command(
         "test",
         params=[
             ExtraOption(
@@ -1014,7 +1013,7 @@ def test_cross_ref_highlight_disabled():
             ),
         ],
     )
-    ctx = ExtraContext(cli, formatter_settings={"theme": no_xref_theme})
+    ctx = Context(cli, formatter_settings={"theme": no_xref_theme})
     help_text = cli.get_help(ctx)
 
     # Bracket fields ARE still styled (structural).
@@ -1039,7 +1038,7 @@ def test_choice_does_not_override_default_style():
     line-wrapping splits a hyphenated default so the second word starts a new
     line and passes the lookbehind.
     """
-    cli = ExtraCommand(
+    cli = Command(
         "test",
         params=[
             ExtraOption(
@@ -1054,7 +1053,7 @@ def test_choice_does_not_override_default_style():
     )
     # Narrow width to force the bracket field default value to wrap so
     # "outline" starts a new indented line after "rounded-".
-    ctx = ExtraContext(cli, formatter_settings={"width": 45})
+    ctx = Context(cli, formatter_settings={"width": 45})
     help_text = cli.get_help(ctx)
 
     # The default value must be fully styled as a default, even when
@@ -1193,8 +1192,8 @@ def test_choice_does_not_override_default_style():
 def test_choice_collection_case(params, expected, forbidden):
     """Choice keywords must use the original-case strings from the type definition,
     not the normalized (lowercased) forms produced by ``normalize_choice()``."""
-    cli = ExtraCommand("test", params=params)
-    ctx = ExtraContext(cli)
+    cli = Command("test", params=params)
+    ctx = Context(cli)
     help_text = cli.get_help(ctx)
 
     for fragment in expected:
@@ -1241,8 +1240,8 @@ def test_choice_collection_case(params, expected, forbidden):
 def test_argument_highlight(params, expected, forbidden):
     """Argument metavars get the ``argument`` style, distinct from option
     metavars."""
-    cli = ExtraCommand("test", params=params, help="Copy SRC to DST.")
-    ctx = ExtraContext(cli)
+    cli = Command("test", params=params, help="Copy SRC to DST.")
+    ctx = Context(cli)
     help_text = cli.get_help(ctx)
 
     for fragment in expected:
@@ -1345,13 +1344,13 @@ def test_no_false_positive_highlight(
 ):
     """Verify that highlighting does not leak into compound words, URLs, dotted
     names, already-styled regions, or partial-word matches."""
-    cli = ExtraCommand("test", params=params, help=help_text)
-    ctx = ExtraContext(cli)
+    cli = Command("test", params=params, help=help_text)
+    ctx = Context(cli)
     rendered = cli.get_help(ctx)
 
     # Special case: the partial-word test uses the formatter directly.
     if not params:
-        formatter = HelpExtraFormatter()
+        formatter = HelpFormatter()
         formatter.write("package snapshot")
         formatter.keywords.choices.add("snap")
         rendered = formatter.getvalue()
@@ -1367,9 +1366,9 @@ def test_no_false_positive_highlight(
 def test_parent_keywords_highlighted_in_subcommand_help():
     """Parent group names, options, and choices must be highlighted in
     subcommand help text."""
-    from click_extra.commands import ExtraGroup
+    from click_extra.commands import Group
 
-    grp = ExtraGroup(
+    grp = Group(
         "myapp",
         params=[
             ExtraOption(
@@ -1379,14 +1378,14 @@ def test_parent_keywords_highlighted_in_subcommand_help():
         ],
     )
 
-    sub = ExtraCommand(
+    sub = Command(
         "sub",
         help="Example: myapp --table-format github sub",
     )
     grp.add_command(sub)
 
-    parent_ctx = ExtraContext(grp, info_name="myapp")
-    ctx = ExtraContext(sub, parent=parent_ctx, info_name="sub")
+    parent_ctx = Context(grp, info_name="myapp")
+    ctx = Context(sub, parent=parent_ctx, info_name="sub")
     help_text = sub.get_help(ctx)
 
     assert " " + theme.invoked_command("myapp") + " " in help_text
@@ -1397,9 +1396,9 @@ def test_parent_keywords_highlighted_in_subcommand_help():
 def test_parent_choice_case_with_custom_metavar():
     """Parent choices with custom metavar must use original-case strings in
     subcommand help, not normalized (lowercased) forms."""
-    from click_extra.commands import ExtraGroup
+    from click_extra.commands import Group
 
-    grp = ExtraGroup(
+    grp = Group(
         "myapp",
         params=[
             ExtraOption(
@@ -1414,7 +1413,7 @@ def test_parent_choice_case_with_custom_metavar():
         ],
     )
 
-    sub = ExtraCommand(
+    sub = Command(
         "sub",
         params=[
             ExtraOption(
@@ -1425,8 +1424,8 @@ def test_parent_choice_case_with_custom_metavar():
     )
     grp.add_command(sub)
 
-    parent_ctx = ExtraContext(grp, info_name="myapp")
-    ctx = ExtraContext(sub, parent=parent_ctx, info_name="sub")
+    parent_ctx = Context(grp, info_name="myapp")
+    ctx = Context(sub, parent=parent_ctx, info_name="sub")
     help_text = sub.get_help(ctx)
 
     # Uppercase "ERROR" from the parent's choices must not produce a
@@ -1436,9 +1435,9 @@ def test_parent_choice_case_with_custom_metavar():
 
 def test_command_aliases_collected():
     """Command aliases are collected as keywords for highlighting."""
-    from click_extra.commands import ExtraGroup
+    from click_extra.commands import Group
 
-    grp = ExtraGroup("cli")
+    grp = Group("cli")
 
     @command(params=None, aliases=["ci"])
     def commit():
@@ -1446,7 +1445,7 @@ def test_command_aliases_collected():
 
     grp.add_command(commit)
 
-    ctx = ExtraContext(grp, info_name="cli")
+    ctx = Context(grp, info_name="cli")
     kw = grp.collect_keywords(ctx)
     assert "ci" in kw.command_aliases
 
@@ -1639,13 +1638,13 @@ def test_help_keywords_subtract(base_kwargs, removals_kwargs, checks):
 
 def test_extra_keywords_merged():
     """extra_keywords injects additional strings into the collected set."""
-    from click_extra.commands import ExtraGroup
+    from click_extra.commands import Group
 
-    grp = ExtraGroup(
+    grp = Group(
         "cli",
         extra_keywords=HelpKeywords(long_options={"--phantom"}),
     )
-    ctx = ExtraContext(grp, info_name="cli")
+    ctx = Context(grp, info_name="cli")
     kw = grp.collect_keywords(ctx)
     assert "--phantom" in kw.long_options
 
@@ -1657,7 +1656,7 @@ def test_excluded_keywords_preserved_in_collection():
     metavars can be styled with the full choices set before the excluded
     choices are removed for cross-ref passes.
     """
-    cmd = ExtraCommand(
+    cmd = Command(
         "exporter",
         params=[
             ExtraOption(
@@ -1669,7 +1668,7 @@ def test_excluded_keywords_preserved_in_collection():
         excluded_keywords=HelpKeywords(choices={"json"}),
     )
 
-    ctx = ExtraContext(cmd, info_name="exporter")
+    ctx = Context(cmd, info_name="exporter")
     kw = cmd.collect_keywords(ctx)
     # "json" is still in the collected keywords (exclusion is deferred).
     assert "json" in kw.choices
@@ -1677,8 +1676,8 @@ def test_excluded_keywords_preserved_in_collection():
 
 
 def test_excluded_keywords_via_constructor():
-    """excluded_keywords can be passed through the ExtraCommand constructor."""
-    cmd = ExtraCommand(
+    """excluded_keywords can be passed through the Command constructor."""
+    cmd = Command(
         "demo",
         params=[
             ExtraOption(["--output"], help="Write to file."),
@@ -1692,7 +1691,7 @@ def test_excluded_keywords_via_constructor():
 
 def test_excluded_keywords_suppresses_highlighting():
     """Excluded keywords do not appear styled in the rendered help text."""
-    cmd = ExtraCommand(
+    cmd = Command(
         "tool",
         help="Export data.",
         params=[
@@ -1705,7 +1704,7 @@ def test_excluded_keywords_suppresses_highlighting():
         excluded_keywords=HelpKeywords(choices={"json"}),
     )
 
-    ctx = ExtraContext(cmd, info_name="tool")
+    ctx = Context(cmd, info_name="tool")
     help_text = cmd.get_help(ctx)
 
     # "csv" is highlighted (magenta).
@@ -1757,20 +1756,20 @@ def test_excluded_keywords_suppresses_highlighting():
 def test_style_choice_metavar(metavar, choices, expected):
     """_style_choice_metavar styles known choices inside bracket-delimited
     metavar strings and returns None for non-bracket strings."""
-    fmt = HelpExtraFormatter()
+    fmt = HelpFormatter()
     assert fmt._style_choice_metavar(metavar, choices) == expected
 
 
 def test_multiple_choice_options_metavar_styled():
     """Each choice option gets its metavar individually styled."""
-    cmd = ExtraCommand(
+    cmd = Command(
         "tool",
         params=[
             ExtraOption(["--format"], type=click.Choice(["json", "csv"])),
             ExtraOption(["--shade"], type=click.Choice(["red", "blue"])),
         ],
     )
-    ctx = ExtraContext(cmd)
+    ctx = Context(cmd)
     help_text = cmd.get_help(ctx)
     assert "[" + theme.choice("json") + "|" + theme.choice("csv") + "]" in help_text
     assert "[" + theme.choice("red") + "|" + theme.choice("blue") + "]" in help_text
@@ -1779,7 +1778,7 @@ def test_multiple_choice_options_metavar_styled():
 def test_excluded_multiple_choices_styled_in_metavar_only():
     """Multiple excluded choices appear styled in their own metavar but not in
     free-text descriptions."""
-    cmd = ExtraCommand(
+    cmd = Command(
         "tool",
         params=[
             ExtraOption(
@@ -1790,7 +1789,7 @@ def test_excluded_multiple_choices_styled_in_metavar_only():
         ],
         excluded_keywords=HelpKeywords(choices={"json", "xml"}),
     )
-    ctx = ExtraContext(cmd, info_name="tool")
+    ctx = Context(cmd, info_name="tool")
     help_text = cmd.get_help(ctx)
     plain = strip_ansi(help_text)
 
@@ -1902,7 +1901,7 @@ def test_excluded_keywords_plain_click_group_parent():
     def plain_grp():
         pass
 
-    @plain_grp.command(cls=ExtraCommand)
+    @plain_grp.command(cls=Command)
     @option("--mode", type=click.Choice(["fast", "slow"]))
     def child(mode):
         """Run in fast or slow mode."""

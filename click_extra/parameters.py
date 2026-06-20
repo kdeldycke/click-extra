@@ -129,11 +129,22 @@ class ExtraOption(Option):
     their own parameter source from within their own callback.
 
     .. note::
+        This is the one click-extra class that deliberately keeps the ``Extra``
+        prefix. The ``8.0.0`` cleanup dropped it everywhere else (``ExtraCommand``
+        became ``Command``, ``ExtraContext`` became ``Context``, and so on), shadowing
+        the matching Cloup or Click class. Here the plain ``Option`` name is already
+        taken by the user-facing enhanced wrapper this class subclasses, so the prefix
+        is not legacy baggage but a real distinction: ``ExtraOption`` marks
+        click-extra's *own* built-in options. That marker is load-bearing, since
+        :class:`~click_extra.commands.Command` sorts parameters with
+        ``isinstance(param, ExtraOption)`` to push the built-in options to the end.
+
+    .. note::
         Bracket fields (envvar, default, range, required) cannot be pre-styled in
         ``get_help_record()`` because Click's text wrapper splits lines *after* the
         record is returned, which would break ANSI codes that span wrapped boundaries.
         Styling is instead applied post-wrapping in
-        ``HelpExtraFormatter._style_bracket_fields()``, which uses the structured data
+        ``HelpFormatter._style_bracket_fields()``, which uses the structured data
         from ``Option.get_help_extra()`` to identify each field by its label.
     """
 
@@ -644,7 +655,7 @@ def render_params_table(
         Click does not keep the raw, pre-parsed arguments around, so values and
         their provenance cannot be read back directly. The workaround replays
         :data:`~click_extra.context.RAW_ARGS` (captured on the context by
-        ``ExtraCommand``/``ExtraGroup``) through the command parser, calling
+        ``Command``/``Group``) through the command parser, calling
         ``consume_value()`` rather than ``handle_parse_result()`` so eager
         callbacks are not re-triggered.
     """
@@ -1111,19 +1122,19 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         also driving ``click-extra wrap --show-params`` for foreign CLIs. The
         live invocation context carries everything the core needs: the captured
         :data:`~click_extra.context.RAW_ARGS` (attached by
-        ``ExtraCommand``/``ExtraGroup``) for value and source resolution, plus
+        ``Command``/``Group``) for value and source resolution, plus
         any sibling ``--table-format`` / ``--columns`` options.
         """
         # Exit early if the callback was processed but the option wasn't set.
         if not value:
             return
 
-        # Warn when the live command is not an ExtraCommand: without the captured
+        # Warn when the live command is not a Command: without the captured
         # raw arguments, the value/source columns fall back to defaults.
         if context.get(ctx, context.RAW_ARGS) is None:
             logging.getLogger("click_extra").warning(
                 f"Cannot extract parameters values: "
-                f"{ctx.command} does not inherits from ExtraCommand.",
+                f"{ctx.command} does not inherits from Command.",
             )
 
         render_params_table(ctx)

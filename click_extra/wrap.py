@@ -36,14 +36,14 @@ from click.core import ParameterSource
 from click.utils import make_str
 
 from . import EnumChoice, context, option
-from .colorize import ExtraHelpColorsMixin, HelpExtraFormatter
-from .commands import ColorizedCommand, ColorizedGroup, ExtraGroup
-from .context import ExtraContext
+from .colorize import HelpFormatter, _HelpColorsMixin
+from .commands import ColorizedCommand, ColorizedGroup, Group
+from .context import Context
 from .decorators import columns_option
 from .man_page import render_manpage, write_manpages
 from .parameters import ShowParamsOption, render_params_table
 from .table import DEFAULT_FORMAT, TableFormat
-from .theme import BUILTIN_THEMES, HelpExtraTheme, nocolor_theme, set_default_theme
+from .theme import BUILTIN_THEMES, HelpTheme, nocolor_theme, set_default_theme
 
 logger = logging.getLogger("click_extra")
 
@@ -54,8 +54,8 @@ _original_get_help = click.Command.get_help
 _original_format_help = click.Command.format_help
 
 
-class WrapperGroup(ExtraGroup):
-    """ExtraGroup that falls back to the ``wrap`` subcommand for unknown names.
+class WrapperGroup(Group):
+    """Group that falls back to the ``wrap`` subcommand for unknown names.
 
     Known subcommands and their aliases are dispatched normally. Anything
     else is treated as a target script and forwarded to ``wrap``.
@@ -81,7 +81,7 @@ class WrapperGroup(ExtraGroup):
 
 
 def patch_click(
-    theme: HelpExtraTheme | None = None,
+    theme: HelpTheme | None = None,
     color: bool | None = True,
 ) -> None:
     """Replace Click's decorator functions with colorized variants.
@@ -103,21 +103,21 @@ def patch_click(
     """
     if color is False:
 
-        class _NoColorContext(ExtraContext):
-            """ExtraContext variant that forces colors off."""
+        class _NoColorContext(Context):
+            """Context variant that forces colors off."""
 
             def __init__(self, *args, **kwargs) -> None:
                 super().__init__(*args, **kwargs)
                 # Pin colors off for a root context, overriding the auto default
-                # ExtraContext would otherwise resolve from the environment.
+                # Context would otherwise resolve from the environment.
                 if not self.parent:
                     self.color = False
 
         ColorizedCommand.context_class = _NoColorContext
         ColorizedGroup.context_class = _NoColorContext
     else:
-        ColorizedCommand.context_class = ExtraContext
-        ColorizedGroup.context_class = ExtraContext
+        ColorizedCommand.context_class = Context
+        ColorizedGroup.context_class = Context
 
     def _patched_command_func(name=None, cls=None, **attrs):
         """Wrapper around ``click.command`` defaulting cls to ColorizedCommand."""
@@ -153,19 +153,19 @@ def patch_click(
 
     # Patch Command methods to colorize ALL commands, including those with
     # explicit ``cls=`` (like Flask's ``FlaskGroup``). Commands that already
-    # have ``ExtraHelpColorsMixin`` skip this path to avoid double-processing.
+    # have ``_HelpColorsMixin`` skip this path to avoid double-processing.
     color_flag = color
 
     def _patched_get_help(self, ctx):
-        if not isinstance(self, ExtraHelpColorsMixin):
-            ctx.formatter_class = HelpExtraFormatter
+        if not isinstance(self, _HelpColorsMixin):
+            ctx.formatter_class = HelpFormatter
             if not ctx.parent and ctx.color is None:
                 ctx.color = color_flag
         return _original_get_help(self, ctx)
 
     def _patched_format_help(self, ctx, formatter):
-        if isinstance(formatter, HelpExtraFormatter) and not isinstance(
-            self, ExtraHelpColorsMixin
+        if isinstance(formatter, HelpFormatter) and not isinstance(
+            self, _HelpColorsMixin
         ):
             logger.debug(
                 "Collecting keywords for %s (%s).",
@@ -174,9 +174,9 @@ def patch_click(
             )
             # collect_keywords() now works on any command: static methods are
             # class-qualified and extra_keywords uses getattr with defaults.
-            formatter.keywords = ExtraHelpColorsMixin.collect_keywords(self, ctx)
+            formatter.keywords = _HelpColorsMixin.collect_keywords(self, ctx)
             formatter.excluded_keywords = (
-                ExtraHelpColorsMixin._collect_excluded_keywords(ctx)
+                _HelpColorsMixin._collect_excluded_keywords(ctx)
             )
         _original_format_help(self, ctx, formatter)
 
@@ -208,8 +208,8 @@ def unpatch_click() -> None:
     click.Command.get_help = _original_get_help  # type: ignore[method-assign]
     click.Command.format_help = _original_format_help  # type: ignore[method-assign]
     # Reset context classes to defaults.
-    ColorizedCommand.context_class = ExtraContext
-    ColorizedGroup.context_class = ExtraContext
+    ColorizedCommand.context_class = Context
+    ColorizedGroup.context_class = Context
 
     # Restore the default theme. Fall back to the colorless theme when
     # themes.toml is absent (some packaging setups drop the data file, so the
@@ -423,7 +423,7 @@ def resolve_target_command(
     return cmd, cmd_ctx
 
 
-class _WrapCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
+class _WrapCommand(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
     """Cloup Command for the ``wrap`` subcommand.
 
     Uses Cloup (not vanilla Click) to support aliases. Like
@@ -432,8 +432,8 @@ class _WrapCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
 
     .. note::
         This extends ``cloup.Command`` instead of
-        :class:`~click_extra.commands.ExtraCommand`, so it does **not** inherit
-        the full :func:`~click_extra.commands.default_extra_params` set. ``wrap``
+        :class:`~click_extra.commands.Command`, so it does **not** inherit
+        the full :func:`~click_extra.commands.default_params` set. ``wrap``
         carries only the options that act on the *target* CLI rather than on
         click-extra itself:
 
@@ -455,7 +455,7 @@ class _WrapCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         inherited through the context, so they are deliberately absent here.
     """
 
-    context_class: type[cloup.Context] = ExtraContext
+    context_class: type[cloup.Context] = Context
 
 
 #: Default columns for the standalone ``wrap --show-params``: the full registry

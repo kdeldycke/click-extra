@@ -72,10 +72,10 @@ def test_font_role_slots_are_known_and_disjoint():
 
     The two frozensets encode the man-pages(7) bold/italic font roles by slot
     name and are maintained by hand, so guard against drift: every name must be
-    a real :class:`HelpExtraTheme` field, the two roles must not overlap, and
+    a real :class:`HelpTheme` field, the two roles must not overlap, and
     the representative slots must keep their expected role.
     """
-    theme_fields = {f.name for f in dataclasses.fields(_theme.HelpExtraTheme)}
+    theme_fields = {f.name for f in dataclasses.fields(_theme.HelpTheme)}
 
     assert _theme.LITERAL_STYLES <= theme_fields
     assert _theme.REPLACEABLE_STYLES <= theme_fields

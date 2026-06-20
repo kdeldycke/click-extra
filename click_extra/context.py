@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Click context plumbing: the :class:`ExtraContext` subclass plus the central
+"""Click context plumbing: the :class:`Context` subclass plus the central
 registry of every ``ctx.meta`` key Click Extra writes or reads.
 
 Click's :attr:`click.Context.meta` is a per-invocation dict that Click shares
@@ -54,7 +54,7 @@ from typing import Any
 import click
 import cloup
 
-from .colorize import HelpExtraFormatter, resolve_color_env
+from .colorize import HelpFormatter, resolve_color_env
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -65,13 +65,13 @@ POSIXLY_CORRECT_ENVVAR: Final[str] = "POSIXLY_CORRECT"
 """Environment variable that requests strict POSIX argument parsing.
 
 When this variable is present in the environment (regardless of its value,
-matching GNU ``getopt`` semantics), :class:`ExtraContext` forces
+matching GNU ``getopt`` semantics), :class:`Context` forces
 ``allow_interspersed_args`` to ``False`` so option parsing stops at the first
 positional argument.
 """
 
 
-class ExtraContext(cloup.Context):
+class Context(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
     ``meta`` property at instantiation.
 
@@ -91,7 +91,7 @@ class ExtraContext(cloup.Context):
         Propose addition of ``meta`` keyword upstream to Click.
     """
 
-    formatter_class = HelpExtraFormatter
+    formatter_class = HelpFormatter
     """Use our own formatter to colorize the help screen."""
 
     def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
@@ -181,7 +181,7 @@ class _LazyMetaDict(dict):
 RAW_ARGS: Final[str] = "click_extra.raw_args"
 """The raw, pre-parsed ``argv`` slice fed to the current command.
 
-Written by :class:`click_extra.commands.ExtraCommand.make_context` so that
+Written by :class:`click_extra.commands.Command.make_context` so that
 :class:`click_extra.parameters.ShowParamsOption` can re-parse the original
 arguments for the ``--show-params`` table without re-running the callbacks.
 Consumers normalize the parser's ``UNSET`` sentinel back to ``None`` on read,
@@ -200,7 +200,7 @@ matching what ``click.Command.parse_args`` does for ``ctx.params``.
 #     non-eager parameters land in `ctx.params`. Reading `ctx.params` there would
 #     see a partial picture.
 #
-# Workaround: ExtraCommand/ExtraGroup.make_context stashes a copy of the raw
+# Workaround: Command/Group.make_context stashes a copy of the raw
 # argv under RAW_ARGS; parameters.render_params_table rebuilds the parser,
 # re-parses those args to recover `opts`, and calls `consume_value()` (not
 # `handle_parse_result()`) per parameter so eager callbacks are not re-fired.
@@ -253,7 +253,7 @@ CONF_FULL: Final[str] = "click_extra.conf_full"
 """Full parsed configuration document (the whole file, every section).
 
 Written by :class:`click_extra.config.ConfigOption.load_conf`. Read by
-:class:`click_extra.commands.ExtraGroup` (for subcommand inheritance) and by
+:class:`click_extra.commands.Group` (for subcommand inheritance) and by
 :func:`click_extra.wrap.run` (to forward the loaded config to wrapped CLIs).
 """
 
@@ -271,7 +271,7 @@ when a schema callable is configured. Read via
 VERBOSITY_LEVEL: Final[str] = "click_extra.verbosity_level"
 """The reconciled :class:`~click_extra.logging.LogLevel` chosen for the run.
 
-Written by :meth:`click_extra.logging.ExtraVerbosity.apply_verbosity`, which
+Written by :meth:`click_extra.logging._VerbosityOption.apply_verbosity`, which
 reconciles every verbosity-related option (``--verbosity``, ``--verbose``/``-v``
 and ``--quiet``/``-q``) into a single level. Read by the same method to detect
 whether the reconciled level changed since a sibling option last fired.
@@ -290,7 +290,7 @@ VERBOSE: Final[str] = "click_extra.verbose"
 
 Written by :meth:`click_extra.logging.VerboseOption.set_level`. Combined with
 :data:`QUIET` into the signed ``verbose - quiet`` counter that
-:meth:`click_extra.logging.ExtraVerbosity.resolve_level` shifts the base level by.
+:meth:`click_extra.logging._VerbosityOption.resolve_level` shifts the base level by.
 """
 
 QUIET: Final[str] = "click_extra.quiet"
@@ -351,7 +351,7 @@ no projection: render every column in its canonical order.
 # --- Theming ------------------------------------------------------------------
 
 THEME: Final[str] = "click_extra.theme.active"
-"""The :class:`~click_extra.theme.HelpExtraTheme` active for this invocation.
+"""The :class:`~click_extra.theme.HelpTheme` active for this invocation.
 
 Written by :class:`click_extra.theme.ThemeOption.set_theme`. Read via
 :func:`click_extra.theme.get_current_theme`, which falls back to
@@ -363,7 +363,7 @@ THEME_OVERRIDES: Final[str] = "click_extra.theme.overrides"
 
 Written by :class:`click_extra.config.ConfigOption` when it sees
 ``[tool.<cli>.themes.<name>]`` tables: each table is built into a
-:class:`~click_extra.theme.HelpExtraTheme` (cascading on top of an existing
+:class:`~click_extra.theme.HelpTheme` (cascading on top of an existing
 theme when *name* matches one already in :data:`~click_extra.theme.theme_registry`).
 Read by :func:`click_extra.theme.get_theme_registry` so ``--theme`` can pick
 the new themes without leaking them into sibling invocations sharing the

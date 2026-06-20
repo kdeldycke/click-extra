@@ -31,7 +31,7 @@ from click_extra import (
     style,
     table_format_option,
 )
-from click_extra.commands import default_extra_params
+from click_extra.commands import default_params
 from click_extra.context import ACCESSIBLE, TABLE_FORMAT
 
 
@@ -55,7 +55,7 @@ def report_cli():
 
 @pytest.mark.once
 def test_default_params_include_accessible():
-    assert any(isinstance(p, AccessibleOption) for p in default_extra_params())
+    assert any(isinstance(p, AccessibleOption) for p in default_params())
 
 
 @pytest.mark.parametrize(

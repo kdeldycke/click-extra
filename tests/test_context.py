@@ -20,9 +20,9 @@ Covers four surfaces the module exposes:
 
 - The registry of ``ctx.meta`` key constants.
 - The :func:`get` / :func:`set` helpers that read and write them.
-- :class:`ExtraContext`, Click Extra's :class:`cloup.Context` subclass.
+- :class:`Context`, Click Extra's :class:`cloup.Context` subclass.
 - :class:`_LazyMetaDict`, the lazy ``ctx._meta`` proxy used by
-  :class:`~click_extra.version.ExtraVersionOption`.
+  :class:`~click_extra.version.VersionOption`.
 """
 
 from __future__ import annotations
@@ -32,12 +32,12 @@ import pytest
 from click.testing import CliRunner
 
 from click_extra import context
-from click_extra.colorize import HelpExtraFormatter, color_envvars
-from click_extra.commands import ExtraCommand
+from click_extra.colorize import HelpFormatter, color_envvars
+from click_extra.commands import Command
 from click_extra.context import (
     META_NAMESPACE,
     POSIXLY_CORRECT_ENVVAR,
-    ExtraContext,
+    Context,
     _LazyMetaDict,
 )
 
@@ -146,25 +146,25 @@ def test_set_then_get_round_trip() -> None:
     assert result.exit_code == 0
 
 
-# --- ExtraContext -----------------------------------------------------------
+# --- Context -----------------------------------------------------------
 
 
-def test_extra_context_uses_help_extra_formatter() -> None:
-    """:class:`ExtraContext` installs Click Extra's colorized formatter."""
-    assert ExtraContext.formatter_class is HelpExtraFormatter
+def test_context_uses_help_formatter() -> None:
+    """:class:`Context` installs Click Extra's colorized formatter."""
+    assert Context.formatter_class is HelpFormatter
 
 
-def test_extra_context_meta_kwarg_seeds_ctx_meta() -> None:
+def test_context_meta_kwarg_seeds_ctx_meta() -> None:
     """The ``meta=`` kwarg populates ``ctx.meta`` at construction time."""
     payload = {"x.foo": "bar", "x.baz": 42}
-    ctx = ExtraContext(click.Command("test"), meta=payload)
+    ctx = Context(click.Command("test"), meta=payload)
     for key, value in payload.items():
         assert ctx.meta[key] == value
 
 
-def test_extra_context_meta_kwarg_omitted_leaves_meta_empty() -> None:
+def test_context_meta_kwarg_omitted_leaves_meta_empty() -> None:
     """Without ``meta=``, ``ctx.meta`` is an empty dict, not ``None``."""
-    ctx = ExtraContext(click.Command("test"))
+    ctx = Context(click.Command("test"))
     assert ctx.meta == {}
 
 
@@ -184,13 +184,13 @@ def test_extra_context_meta_kwarg_omitted_leaves_meta_empty() -> None:
         pytest.param(False, True, True, id="child-overrides-to-true"),
     ],
 )
-def test_extra_context_color(
+def test_context_color(
     monkeypatch: pytest.MonkeyPatch,
     parent_color: bool | None,
     child_color: bool | None,
     expected: bool | None,
 ) -> None:
-    """:class:`ExtraContext` color resolution covers every parent/child path.
+    """:class:`Context` color resolution covers every parent/child path.
 
     Root contexts without an explicit ``color=`` resolve the GNU auto default: with no
     color environment variable they stay at ``None`` (TTY detection). Child contexts
@@ -202,7 +202,7 @@ def test_extra_context_color(
 
     parent = None
     if parent_color is not None:
-        parent = ExtraContext(click.Command("parent"), color=parent_color)
+        parent = Context(click.Command("parent"), color=parent_color)
 
     kwargs: dict[str, Any] = {}
     if parent is not None:
@@ -210,11 +210,11 @@ def test_extra_context_color(
     if child_color is not None:
         kwargs["color"] = child_color
 
-    ctx = ExtraContext(click.Command("child"), **kwargs)
+    ctx = Context(click.Command("child"), **kwargs)
     assert ctx.color is expected
 
 
-# --- ExtraContext POSIXLY_CORRECT -------------------------------------------
+# --- Context POSIXLY_CORRECT -------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -224,7 +224,7 @@ def test_extra_context_color(
         pytest.param(True, False, id="set-forbids-interspersing"),
     ],
 )
-def test_extra_context_posixly_correct(
+def test_context_posixly_correct(
     monkeypatch: pytest.MonkeyPatch,
     env_present: bool,
     expected: bool,
@@ -239,7 +239,7 @@ def test_extra_context_posixly_correct(
     else:
         monkeypatch.delenv(POSIXLY_CORRECT_ENVVAR, raising=False)
 
-    ctx = ExtraContext(click.Command("test"))
+    ctx = Context(click.Command("test"))
     assert ctx.allow_interspersed_args is expected
 
 
@@ -254,7 +254,7 @@ def test_posixly_correct_presence_overrides_explicit_true(
     """
     monkeypatch.setenv(POSIXLY_CORRECT_ENVVAR, "")
 
-    ctx = ExtraContext(click.Command("test"), allow_interspersed_args=True)
+    ctx = Context(click.Command("test"), allow_interspersed_args=True)
     assert ctx.allow_interspersed_args is False
 
 
@@ -266,7 +266,7 @@ def test_posixly_correct_stops_option_parsing_at_first_argument() -> None:
     its default and the remaining tokens fall into the variadic argument.
     """
 
-    @click.command(cls=ExtraCommand)
+    @click.command(cls=Command)
     @click.option("--greeting", default="Hello")
     @click.argument("names", nargs=-1)
     @click.pass_context

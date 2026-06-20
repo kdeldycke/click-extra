@@ -26,8 +26,8 @@ from click_extra.colorize import color_envvars
 from click_extra.pytest import (  # noqa: F401
     assert_output_regex,
     create_config,
-    extra_runner,
     invoke,
+    runner,
 )
 
 

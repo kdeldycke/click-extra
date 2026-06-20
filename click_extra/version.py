@@ -173,7 +173,7 @@ def prebake_version(
     already contain ``+`` — appends ``+<local_version>``.
 
     This is the compile-time complement to the runtime
-    :attr:`ExtraVersionOption.version` property: Nuitka/PyInstaller
+    :attr:`VersionOption.version` property: Nuitka/PyInstaller
     binaries cannot run ``git`` at runtime, so the hash must be baked
     into ``__version__`` in the source file **before** compilation.
 
@@ -310,7 +310,7 @@ def discover_package_init_files() -> list[Path]:
     return paths
 
 
-class ExtraVersionOption(ExtraOption):
+class VersionOption(ExtraOption):
     """Gather CLI metadata and prints a colored version string.
 
     .. note::
@@ -518,7 +518,7 @@ class ExtraVersionOption(ExtraOption):
                 frame.f_locals.get("self"),
                 click.testing.CliRunner,
             ):
-                # Because click_extra.testing.ExtraCliRunner inherits from
+                # Because click_extra.testing.CliRunner inherits from
                 # click.testing.CliRunner, we'd like to keep looking for candidate as
                 # long as the frame is an invoke() function of a CliRunner class.
                 candidate = frame

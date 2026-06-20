@@ -144,10 +144,10 @@ Both `extra_keywords` and `excluded_keywords` accept a `HelpKeywords` instance. 
 For advanced customization, override `collect_keywords()` on your command class. Call `super()` and mutate the returned `HelpKeywords` to add or remove entries:
 
 ```python
-from click_extra import ExtraCommand, HelpKeywords
+from click_extra import Command, HelpKeywords
 
 
-class MyCommand(ExtraCommand):
+class MyCommand(Command):
     def collect_keywords(self, ctx):
         kw = super().collect_keywords(ctx)
         kw.choices.discard("internal")

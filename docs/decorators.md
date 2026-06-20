@@ -2,8 +2,8 @@
 
 Click Extra's decorators (`@command`, `@group`, `@option`, `@argument`, `@version_option`, the full `@*_option` family) are produced by a single factory that wraps cloup's originals with three extra behaviors:
 
-1. **Subclass-enforced `cls=`**: every `@command` / `@group` always yields an `ExtraCommand` / `ExtraGroup` (or a user-supplied subclass thereof), so click-extra's machinery — config loading, theme registry, `--show-params` introspection — can't be silently bypassed by passing a vanilla `click.Command` class.
-2. **Default-parameter injection**: `default_extra_params()` (the global option set: `--time`, `--config`, `--color`, `--theme`, …) is passed as a *callable*, so each command gets its own freshly-instantiated option list rather than sharing the same mutable instances.
+1. **Subclass-enforced `cls=`**: every `@command` / `@group` always yields a `Command` / `Group` (or a user-supplied subclass thereof), so click-extra's machinery — config loading, theme registry, `--show-params` introspection — can't be silently bypassed by passing a vanilla `click.Command` class.
+2. **Default-parameter injection**: `default_params()` (the global option set: `--time`, `--config`, `--color`, `--theme`, …) is passed as a *callable*, so each command gets its own freshly-instantiated option list rather than sharing the same mutable instances.
 3. **Optional-parenthesis decoration**: `@command` and `@command()` are both legal call forms, matching the convention [requested in Cloup #127](https://github.com/janluke/cloup/issues/127#issuecomment-1264704896).
 
 If you only ever use the decorators click-extra ships out of the box, you don't need to read further. This page is for downstream code that wants to wire its own `@my_option` decorator into the same factory.
@@ -16,17 +16,17 @@ The signature reads like this in click-extra's own decorator file:
 
 ```python
 # click_extra/decorators.py
-from .commands import ExtraCommand, ExtraGroup, default_extra_params
+from .commands import Command, Group, default_params
 
 command = decorator_factory(
     dec=cloup.command,
-    cls=ExtraCommand,
-    params=default_extra_params,
+    cls=Command,
+    params=default_params,
 )
 group = decorator_factory(
     dec=cloup.group,
-    cls=ExtraGroup,
-    params=default_extra_params,
+    cls=Group,
+    params=default_params,
 )
 ```
 
@@ -38,14 +38,14 @@ flowchart TD
     paren -->|"@command"| norm["allow_missing_parenthesis<br/>normalizes both call forms"]
     paren -->|"@command()"| norm
     norm --> has{"user passed cls= ?"}
-    has -->|no| build["use the factory's default cls<br/>(ExtraCommand / ExtraGroup / ...)"]
+    has -->|no| build["use the factory's default cls<br/>(Command / Group / ...)"]
     has -->|yes| sub{"cls subclasses<br/>the factory's cls?"}
     sub -->|yes| build
     sub -->|no| err["raise TypeError<br/>with the full MRO listing"]
     build --> out["decorator with merged defaults<br/>and a fresh params() list"]
 ```
 
-After that wiring, `@command` always produces an `ExtraCommand`, and `@command(cls=MyExtraCommand)` is accepted *only if* `MyExtraCommand` is a subclass of `ExtraCommand`. Anything else raises a `TypeError` with a full MRO listing of the offending class, so the caller sees *why* their override was rejected:
+After that wiring, `@command` always produces a `Command`, and `@command(cls=MyCommand)` is accepted *only if* `MyCommand` is a subclass of `Command`. Anything else raises a `TypeError` with a full MRO listing of the offending class, so the caller sees *why* their override was rejected:
 
 ```{python:run}
 import click
@@ -53,15 +53,15 @@ import click
 from click_extra import command
 
 
-# Subclass of ExtraCommand: accepted.
-from click_extra.commands import ExtraCommand
+# Subclass of Command: accepted.
+from click_extra.commands import Command
 
 
-class MyExtraCommand(ExtraCommand):
+class MyCommand(Command):
     pass
 
 
-@command(cls=MyExtraCommand)
+@command(cls=MyCommand)
 def fine():
     pass
 
@@ -82,7 +82,7 @@ except TypeError as exc:
 
 ### Callable `params=`
 
-When the factory is given `params=` as a callable (e.g. `default_extra_params`), it's invoked once per decorated command so each command receives a fresh list of option instances. Without this indirection, two commands declared in the same module would share the *same* `TimerOption` instance, the *same* `ConfigOption` instance, and so on — which sounds harmless but produces subtle bugs (a callback registered by one command runs again when the second command exits, the parameter source map carries stale entries, …). Pass any zero-argument callable that returns a list of `click.Parameter` instances.
+When the factory is given `params=` as a callable (e.g. `default_params`), it's invoked once per decorated command so each command receives a fresh list of option instances. Without this indirection, two commands declared in the same module would share the *same* `TimerOption` instance, the *same* `ConfigOption` instance, and so on — which sounds harmless but produces subtle bugs (a callback registered by one command runs again when the second command exits, the parameter source map carries stale entries, …). Pass any zero-argument callable that returns a list of `click.Parameter` instances.
 
 ## `allow_missing_parenthesis(dec_factory)`
 
@@ -135,13 +135,13 @@ Every default option ships with a matching decorator built via `decorator_factor
 
 | Decorator                | Wraps                                                          |
 | ------------------------ | -------------------------------------------------------------- |
-| `command`                | `cloup.command(cls=ExtraCommand, params=default_extra_params)` |
-| `group`                  | `cloup.group(cls=ExtraGroup, params=default_extra_params)`     |
+| `command`                | `cloup.command(cls=Command, params=default_params)` |
+| `group`                  | `cloup.group(cls=Group, params=default_params)`     |
 | `lazy_group`             | `group(cls=LazyGroup)`                                         |
 | `option`                 | `cloup.option(cls=Option)`                                     |
 | `argument`               | `cloup.argument(cls=Argument)`                                 |
 | `help_option`            | `click.decorators.help_option(*DEFAULT_HELP_NAMES)`            |
-| `version_option`         | `option(cls=ExtraVersionOption)`                               |
+| `version_option`         | `option(cls=VersionOption)`                               |
 | `color_option`           | `option(cls=ColorOption)`                                      |
 | `config_option`          | `option(cls=ConfigOption)`                                     |
 | `no_config_option`       | `option(cls=NoConfigOption)`                                   |

@@ -160,7 +160,7 @@ click-extra's [config module](config.md) replaces the functionality of several u
 
 ### Version option
 
-click-extra's [`ExtraVersionOption`](version.md) adds [template variables](version.md#variables) for git metadata (branch, hash, date, tag), [environment info](version.md#environment-information), and Python/OS details, with [pre-baking for compiled binaries](version.md#pre-baking-git-metadata):
+click-extra's [`VersionOption`](version.md) adds [template variables](version.md#variables) for git metadata (branch, hash, date, tag), [environment info](version.md#environment-information), and Python/OS details, with [pre-baking for compiled binaries](version.md#pre-baking-git-metadata):
 
 - [`click#2324` - Can't pass `click.version_option()` to `click.MultiCommand(params=)`](https://github.com/pallets/click/issues/2324)
 - [`click#2331` - `version_option` module name and package name are not equivalent](https://github.com/pallets/click/issues/2331)

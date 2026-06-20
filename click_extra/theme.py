@@ -15,7 +15,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Help-screen color themes for Click Extra.
 
-Holds the :class:`HelpExtraTheme` dataclass (pure data, no factory methods),
+Holds the :class:`HelpTheme` dataclass (pure data, no factory methods),
 the :data:`nocolor_theme` constant, the process-wide fallback accessed via
 :func:`get_default_theme` / :func:`set_default_theme`, the named-theme
 :data:`theme_registry` plus :func:`register_theme` helper, and the
@@ -24,7 +24,7 @@ the :data:`nocolor_theme` constant, the process-wide fallback accessed via
 The built-in themes (``dark``, ``dracula``, ``light``, ``manpage``,
 ``monokai``, ``nord``, ``solarized_dark``) live in the package data file
 ``click_extra/themes.toml`` and are loaded at module import time via
-:meth:`HelpExtraTheme.from_dict`. ``manpage`` is a colorless theme that
+:meth:`HelpTheme.from_dict`. ``manpage`` is a colorless theme that
 shadows man-pages(7) typography (bold literals, italic replaceable); the
 others apply that same bold/italic split on top of their color palettes.
 Adding a new built-in theme is a one-file edit in that TOML file — no Python
@@ -77,7 +77,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class HelpExtraTheme(cloup.HelpTheme):
+class HelpTheme(cloup.HelpTheme):
     """Extends ``cloup.HelpTheme`` with slots for log levels and the
     structural elements Click Extra highlights in help screens.
 
@@ -88,7 +88,7 @@ class HelpExtraTheme(cloup.HelpTheme):
     """
 
     # --- Log-level slots -----------------------------------------------------
-    # Applied by :class:`~click_extra.logging.ExtraFormatter` to ``levelname``
+    # Applied by :class:`~click_extra.logging.Formatter` to ``levelname``
     # before each record is emitted, so the visible level in the formatted
     # message picks up the matching style.
 
@@ -124,7 +124,7 @@ class HelpExtraTheme(cloup.HelpTheme):
     """
 
     # --- Help-screen structural slots ----------------------------------------
-    # Applied by :class:`~click_extra.colorize.HelpExtraFormatter` while
+    # Applied by :class:`~click_extra.colorize.HelpFormatter` while
     # rendering each command's help output. The post-wrap formatter pass
     # walks the rendered help text and styles the matching tokens.
 
@@ -236,7 +236,7 @@ class HelpExtraTheme(cloup.HelpTheme):
     def with_(  # type: ignore[override]
         self,
         **kwargs: IStyle | bool | None,
-    ) -> HelpExtraTheme:
+    ) -> HelpTheme:
         """Derives a new theme from the current one, with some styles overridden.
 
         Returns the same instance if the provided styles are the same as the current.
@@ -275,7 +275,7 @@ class HelpExtraTheme(cloup.HelpTheme):
         if field.name == "cross_ref_highlight":
             return value
         raise TypeError(
-            f"Cannot serialize HelpExtraTheme.{field.name}: "
+            f"Cannot serialize HelpTheme.{field.name}: "
             f"{value!r} is not a Style instance."
         )
 
@@ -293,7 +293,7 @@ class HelpExtraTheme(cloup.HelpTheme):
         if isinstance(raw, dict):
             return Style.from_dict(raw)
         raise TypeError(
-            f"Cannot deserialize HelpExtraTheme.{field.name}: "
+            f"Cannot deserialize HelpTheme.{field.name}: "
             f"{raw!r} is neither a mapping nor a recognized scalar."
         )
 
@@ -312,7 +312,7 @@ class HelpExtraTheme(cloup.HelpTheme):
         return fields_to_dict(self, encode=self._encode_slot)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> HelpExtraTheme:
+    def from_dict(cls, data: dict[str, Any]) -> HelpTheme:
         """Build a theme from the plain dict produced by :meth:`to_dict`.
 
         Each value is interpreted by field type: a mapping becomes a
@@ -323,7 +323,7 @@ class HelpExtraTheme(cloup.HelpTheme):
         """
         return cls(**dict_to_fields(cls, data, decode=cls._decode_slot))
 
-    def cascade(self, base: HelpExtraTheme) -> HelpExtraTheme:
+    def cascade(self, base: HelpTheme) -> HelpTheme:
         """Layer this theme's set slots on top of *base*.
 
         Mirrors :meth:`Style.cascade <click_extra.styling.Style.cascade>` at
@@ -332,11 +332,11 @@ class HelpExtraTheme(cloup.HelpTheme):
         config file's ``[tool.<cli>.themes.<name>]`` table) on top of a
         full built-in palette.
 
-        :raises TypeError: when *base* is not a :class:`HelpExtraTheme`.
+        :raises TypeError: when *base* is not a :class:`HelpTheme`.
         """
-        if not isinstance(base, HelpExtraTheme):
+        if not isinstance(base, HelpTheme):
             raise TypeError(
-                f"Cannot cascade onto {type(base).__name__}: not a HelpExtraTheme."
+                f"Cannot cascade onto {type(base).__name__}: not a HelpTheme."
             )
         merged = {**base.to_dict(), **self.to_dict()}
         return type(self).from_dict(merged)
@@ -350,7 +350,7 @@ LITERAL_STYLES: frozenset[str] = frozenset({
     "option",
     "choice",
 })
-r"""Names of the :class:`HelpExtraTheme` slots that color *literal* tokens:
+r"""Names of the :class:`HelpTheme` slots that color *literal* tokens:
 text the user types verbatim on the command line.
 
 Covers the command and subcommand names, their aliases, option flags
@@ -378,7 +378,7 @@ REPLACEABLE_STYLES: frozenset[str] = frozenset({
     "metavar",
     "argument",
 })
-r"""Names of the :class:`HelpExtraTheme` slots that color *replaceable* tokens:
+r"""Names of the :class:`HelpTheme` slots that color *replaceable* tokens:
 placeholders the user substitutes with a real value.
 
 Covers type metavars on options (``INTEGER``, ``CONFIG_PATH``) and positional
@@ -390,7 +390,7 @@ for the bold counterpart and the full rationale.
 """
 
 
-nocolor_theme: HelpExtraTheme = HelpExtraTheme()
+nocolor_theme: HelpTheme = HelpTheme()
 """Color theme for Click Extra to force no colors.
 
 All style slots default to :func:`identity <cloup._util.identity>`, so styling
@@ -398,7 +398,7 @@ calls return the raw text unchanged.
 """
 
 
-_default_theme: HelpExtraTheme = nocolor_theme
+_default_theme: HelpTheme = nocolor_theme
 """Process-wide fallback theme. See :func:`get_default_theme`.
 
 Initialized to :data:`nocolor_theme` here, then reassigned to the ``dark``
@@ -406,7 +406,7 @@ built-in theme at the bottom of this module once :file:`themes.toml` is loaded.
 """
 
 
-def get_default_theme() -> HelpExtraTheme:
+def get_default_theme() -> HelpTheme:
     """Return the process-wide fallback theme.
 
     Read by :func:`get_current_theme` when no Click context is active or
@@ -422,7 +422,7 @@ def get_default_theme() -> HelpExtraTheme:
     return _default_theme
 
 
-def set_default_theme(theme: HelpExtraTheme) -> None:
+def set_default_theme(theme: HelpTheme) -> None:
     """Override the process-wide fallback theme.
 
     :class:`ThemeOption` writes its picked theme to ``ctx.meta`` rather
@@ -435,7 +435,7 @@ def set_default_theme(theme: HelpExtraTheme) -> None:
     _default_theme = theme
 
 
-def get_current_theme() -> HelpExtraTheme:
+def get_current_theme() -> HelpTheme:
     """Return the theme active for the current CLI invocation.
 
     Resolution order:
@@ -456,14 +456,14 @@ def get_current_theme() -> HelpExtraTheme:
     if ctx is not None:
         active = context.get(ctx, context.THEME)
         if active is not None:
-            return cast("HelpExtraTheme", active)
+            return cast("HelpTheme", active)
     return _default_theme
 
 
-theme_registry: dict[str, HelpExtraTheme] = {}
+theme_registry: dict[str, HelpTheme] = {}
 """Process-wide registry of named themes used by :class:`ThemeOption`.
 
-Each entry maps a theme name to its :class:`HelpExtraTheme` instance.
+Each entry maps a theme name to its :class:`HelpTheme` instance.
 Built-in themes are seeded here at module load time from
 :data:`BUILTIN_THEMES` (loaded from ``click_extra/themes.toml``).
 
@@ -476,18 +476,18 @@ leak between sibling invocations sharing the same process.
 """
 
 
-def register_theme(name: str, theme: HelpExtraTheme) -> None:
+def register_theme(name: str, theme: HelpTheme) -> None:
     """Register a named theme in the module-level :data:`theme_registry`.
 
     :param name: Lowercase identifier used as the ``--theme`` choice value.
-    :param theme: A :class:`HelpExtraTheme` instance.
+    :param theme: A :class:`HelpTheme` instance.
     """
     theme_registry[name] = theme
 
 
 def get_theme_registry(
     ctx: click.Context | None = None,
-) -> dict[str, HelpExtraTheme]:
+) -> dict[str, HelpTheme]:
     """Return the theme registry visible to *ctx*.
 
     Merges the module-level :data:`theme_registry` with any per-invocation
@@ -500,7 +500,7 @@ def get_theme_registry(
     When *ctx* is ``None`` or has no overrides, returns a copy of the
     module-level registry.
     """
-    merged: dict[str, HelpExtraTheme] = dict(theme_registry)
+    merged: dict[str, HelpTheme] = dict(theme_registry)
     if ctx is not None:
         overrides = context.get(ctx, context.THEME_OVERRIDES)
         if overrides:
@@ -510,19 +510,19 @@ def get_theme_registry(
 
 def themes_from_config(
     table: dict[str, Any],
-) -> dict[str, HelpExtraTheme]:
-    """Build a ``{name: HelpExtraTheme}`` mapping from a ``[tool.<cli>.themes]`` sub-tree.
+) -> dict[str, HelpTheme]:
+    """Build a ``{name: HelpTheme}`` mapping from a ``[tool.<cli>.themes]`` sub-tree.
 
-    For each entry, build a :class:`HelpExtraTheme` via :meth:`from_dict`. If
+    For each entry, build a :class:`HelpTheme` via :meth:`from_dict`. If
     *name* matches an existing key in :data:`theme_registry`, the new theme
-    is layered on top via :meth:`HelpExtraTheme.cascade` so partial overrides
+    is layered on top via :meth:`HelpTheme.cascade` so partial overrides
     (e.g. just one slot) inherit the rest from the built-in palette.
     Stand-alone names produce theme instances with the unset slots left at
     their defaults.
     """
-    result: dict[str, HelpExtraTheme] = {}
+    result: dict[str, HelpTheme] = {}
     for name, slots in table.items():
-        overlay = HelpExtraTheme.from_dict(slots)
+        overlay = HelpTheme.from_dict(slots)
         if name in theme_registry:
             result[name] = overlay.cascade(theme_registry[name])
         else:
@@ -577,8 +577,8 @@ _PALETTE_ATTR_CSS: dict[str, str] = {
 
 # Slots inherited from cloup's HelpTheme. Each one links to cloup's
 # autoapi-generated docs (which expose per-field anchors), instead of
-# click-extra's local HelpExtraTheme autodoc anchor (which only covers the
-# slots HelpExtraTheme adds on top of cloup's base class).
+# click-extra's local HelpTheme autodoc anchor (which only covers the
+# slots HelpTheme adds on top of cloup's base class).
 _PALETTE_CLOUP_SLOTS: frozenset[str] = frozenset({
     "invoked_command",
     "command_help",
@@ -601,20 +601,20 @@ _PALETTE_CLOUP_SLOTS: frozenset[str] = frozenset({
 # left out and the renderer falls back to a plain "(no example available)"
 # placeholder for them.
 _PALETTE_EXAMPLES: dict[str, str] = {
-    # Log-level slots: rendered by ExtraFormatter on the levelname token.
+    # Log-level slots: rendered by Formatter on the levelname token.
     "critical": "«CRITICAL»: Database connection lost.",
     "error": "«ERROR»: Configuration file not found.",
     "warning": "«WARNING»: Requested 16 jobs exceeds available CPU cores (8).",
     "info": "INFO: Loaded 23 records.",
     "debug": "«DEBUG»: Resolved /etc/myapp/config.toml.",
-    # Cloup-inherited help-screen slots: rendered by HelpExtraFormatter on
+    # Cloup-inherited help-screen slots: rendered by HelpFormatter on
     # the matching tokens of help-screen output.
     "invoked_command": "Usage: «my-cli» [OPTIONS] COMMAND [ARGS]...",
     "heading": "«Options:»",
     "constraint": "(«mutually exclusive»)",
     "alias": "  show, «ls»     Show the current state.",
     "alias_secondary": "  show «(»ls«)»     Show the current state.",
-    # HelpExtraTheme-native help-screen slots.
+    # HelpTheme-native help-screen slots.
     "option": (
         "«--config» CONFIG_PATH    Location of the configuration file.\n"
         "«-v», «--verbose»           Increase verbosity."
@@ -673,7 +673,7 @@ def _palette_slot_link(name: str) -> str:
     """Wrap a slot name in an anchor pointing at its dataclass-field definition.
 
     Cloup-inherited slots resolve to a per-field anchor on cloup's autoapi
-    page (e.g. ``#cloup.HelpTheme.invoked_command``); HelpExtraTheme-native
+    page (e.g. ``#cloup.HelpTheme.invoked_command``); HelpTheme-native
     slots resolve to the local autodoc anchor on the same page that hosts
     the palette (``docs/theme.md``), so the link works inside click-extra's
     own documentation without an external roundtrip.
@@ -681,11 +681,11 @@ def _palette_slot_link(name: str) -> str:
     if name in _PALETTE_CLOUP_SLOTS:
         href = f"{_PALETTE_CLOUP_URL}#cloup.HelpTheme.{name}"
     else:
-        href = f"#click_extra.theme.HelpExtraTheme.{name}"
+        href = f"#click_extra.theme.HelpTheme.{name}"
     return f'<a href="{href}"><code>{name}</code></a>'
 
 
-def _render_slot_ansi(theme: HelpExtraTheme, slot: str) -> str:
+def _render_slot_ansi(theme: HelpTheme, slot: str) -> str:
     """Render a slot's example template with literal ANSI SGR escapes.
 
     For each ``«…»`` segment, calls ``theme.<slot>(text)`` — the same code
@@ -693,7 +693,7 @@ def _render_slot_ansi(theme: HelpExtraTheme, slot: str) -> str:
     and splices the resulting escape-bearing string into the template.
     Used by the Sphinx ``autodoc-process-docstring`` hook in
     :func:`inject_slot_example_docstring` to inject a colored example into
-    each :class:`HelpExtraTheme` slot's autodoc block, mirroring the
+    each :class:`HelpTheme` slot's autodoc block, mirroring the
     HTML rendering :func:`_render_slot_example` produces for the
     palette tables.
 
@@ -720,7 +720,7 @@ def inject_slot_example_docstring(
 ) -> None:
     """Sphinx ``autodoc-process-docstring`` hook injecting per-slot colored examples.
 
-    For every :class:`HelpExtraTheme` slot that has an entry in
+    For every :class:`HelpTheme` slot that has an entry in
     :data:`_PALETTE_EXAMPLES`, append an ``ansi-color`` code block to the
     slot's autodoc lines. The example is rendered through
     :func:`_render_slot_ansi`, which calls ``BUILTIN_THEMES["dark"].<slot>(text)``
@@ -736,12 +736,12 @@ def inject_slot_example_docstring(
         def setup(app):
             app.connect("autodoc-process-docstring", inject_slot_example_docstring)
 
-    The hook intentionally targets *only* ``click_extra.theme.HelpExtraTheme.<slot>``
+    The hook intentionally targets *only* ``click_extra.theme.HelpTheme.<slot>``
     names so it won't accidentally rewrite unrelated docstrings; downstream
     projects can register the hook in their own ``conf.py`` if they
-    consume HelpExtraTheme docstrings.
+    consume HelpTheme docstrings.
     """
-    prefix = "click_extra.theme.HelpExtraTheme."
+    prefix = "click_extra.theme.HelpTheme."
     if not name.startswith(prefix):
         return
     slot = name[len(prefix) :]
@@ -761,7 +761,7 @@ def inject_slot_example_docstring(
     lines.extend(f"   {ansi_line}" for ansi_line in rendered.split("\n"))
 
 
-def _render_slot_example(theme: HelpExtraTheme, slot: str) -> str:
+def _render_slot_example(theme: HelpTheme, slot: str) -> str:
     """Render a slot's example template as inline-styled HTML.
 
     Looks up the slot's template in :data:`_PALETTE_EXAMPLES`, then for
@@ -803,7 +803,7 @@ def _render_slot_example(theme: HelpExtraTheme, slot: str) -> str:
     )
 
 
-def palette_html(theme: HelpExtraTheme) -> str:
+def palette_html(theme: HelpTheme) -> str:
     """Render a theme's palette as an inline-styled HTML ``<dl>`` fragment.
 
     The output is a two-column definition list (slot name → styled swatch
@@ -877,7 +877,7 @@ def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
     by :class:`ConfigOption <click_extra.config.ConfigOption>` so malformed
     theme tables surface as :class:`~click_extra.config.ValidationError` with
     a rooted path (``my-cli.themes.<name>``) rather than a deep
-    :class:`TypeError` from :meth:`HelpExtraTheme.from_dict`.
+    :class:`TypeError` from :meth:`HelpTheme.from_dict`.
     """
     # Lazy-imported to avoid a load-time cycle with config.py.
     from .config import ValidationError
@@ -892,7 +892,7 @@ def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
                 code="invalid-theme-shape",
             )
         try:
-            HelpExtraTheme.from_dict(slots)
+            HelpTheme.from_dict(slots)
         except TypeError as exc:
             raise ValidationError(
                 path=name,
@@ -1012,7 +1012,7 @@ class ThemeOption(ExtraOption):
     config-defined themes appear as valid choices and in the ``--help``
     metavar without any further wiring.
 
-    The resolved :class:`HelpExtraTheme` lands on the Click context under
+    The resolved :class:`HelpTheme` lands on the Click context under
     :data:`click_extra.context.THEME` and applies for the duration of the
     current invocation only.
     """
@@ -1057,11 +1057,11 @@ class ThemeOption(ExtraOption):
         )
 
 
-def _load_builtin_themes() -> dict[str, HelpExtraTheme]:
-    """Parse ``themes.toml`` into a ``{name: HelpExtraTheme}`` mapping.
+def _load_builtin_themes() -> dict[str, HelpTheme]:
+    """Parse ``themes.toml`` into a ``{name: HelpTheme}`` mapping.
 
-    Each top-level table maps to a :class:`HelpExtraTheme` via
-    :meth:`HelpExtraTheme.from_dict`. A malformed payload still surfaces
+    Each top-level table maps to a :class:`HelpTheme` via
+    :meth:`HelpTheme.from_dict`. A malformed payload still surfaces
     immediately at import time so a corrupt shipped TOML cannot silently
     degrade ``--theme``.
 
@@ -1095,11 +1095,11 @@ def _load_builtin_themes() -> dict[str, HelpExtraTheme]:
         )
         return {}
     raw = tomllib.loads(payload)
-    return {name: HelpExtraTheme.from_dict(data) for name, data in raw.items()}
+    return {name: HelpTheme.from_dict(data) for name, data in raw.items()}
 
 
-BUILTIN_THEMES: dict[str, HelpExtraTheme] = _load_builtin_themes()
-"""Mapping of built-in theme names to their :class:`HelpExtraTheme` instances.
+BUILTIN_THEMES: dict[str, HelpTheme] = _load_builtin_themes()
+"""Mapping of built-in theme names to their :class:`HelpTheme` instances.
 
 Loaded from the package data file ``click_extra/themes.toml`` at module
 import time and seeded into :data:`theme_registry`. Adding a new built-in

@@ -33,9 +33,9 @@ from click_extra import (
 )
 from click_extra.logging import (
     DEFAULT_LEVEL,
-    ExtraFormatter,
-    ExtraStreamHandler,
-    new_extra_logger,
+    Formatter,
+    StreamHandler,
+    new_logger,
 )
 from click_extra.pytest import (
     command_decorators,
@@ -377,8 +377,8 @@ def test_standalone_option_default_logger(
     assert root_logger.propagate is True
 
     assert len(root_logger.handlers) == 1
-    assert isinstance(root_logger.handlers[0], ExtraStreamHandler)
-    assert isinstance(root_logger.handlers[0].formatter, ExtraFormatter)
+    assert isinstance(root_logger.handlers[0], StreamHandler)
+    assert isinstance(root_logger.handlers[0].formatter, Formatter)
 
     messages = {
         LogLevel.DEBUG: (
@@ -410,7 +410,7 @@ def test_standalone_option_default_logger(
     (
         logging.getLogger("awesome_app"),
         "awesome_app",
-        new_extra_logger("awesome_app"),
+        new_logger("awesome_app"),
     ),
 )
 @pytest.mark.parametrize("params", (("--verbosity", "DEBUG"), None))
@@ -438,9 +438,9 @@ def test_default_logger_param(invoke, logger_param, params):
     assert result.exit_code == 0
 
 
-def test_new_extra_logger_name_passing(invoke):
+def test_new_logger_name_passing(invoke):
     """Test extra logger with custom format, passed to the option by its name."""
-    new_extra_logger(
+    new_logger(
         name="my_logger",
         format="{levelname} | {name} | {message}",
     )
@@ -480,9 +480,9 @@ def test_new_extra_logger_name_passing(invoke):
     assert result.exit_code == 0
 
 
-def test_new_extra_logger_object_passing(invoke):
+def test_new_logger_object_passing(invoke):
     """Test extra logger with custom format, passed as an object to the option."""
-    custom_logger = new_extra_logger(
+    custom_logger = new_logger(
         name="my_logger",
         format="{levelname} | {name} | {message}",
     )
@@ -521,10 +521,10 @@ def test_new_extra_logger_object_passing(invoke):
 
 
 @pytest.mark.skip(reason="Test is flacky because of the logger's propagation.")
-def test_new_extra_logger_root_config(invoke):
-    """Modify the root logger via ``new_extra_logger()``"""
+def test_new_logger_root_config(invoke):
+    """Modify the root logger via ``new_logger()``"""
 
-    root_logger = new_extra_logger(format="{levelname} | {name} | {message}")
+    root_logger = new_logger(format="{levelname} | {name} | {message}")
 
     @click.command
     @verbosity_option(default_logger=root_logger)
@@ -561,7 +561,7 @@ def test_new_extra_logger_root_config(invoke):
 
 
 def test_logger_propagation(invoke):
-    new_extra_logger(
+    new_logger(
         name="my_logger",
         propagate=True,
         format="{levelname} | {name} | {message}",

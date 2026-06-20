@@ -34,8 +34,8 @@ import pytest
 from boltons.strutils import strip_ansi
 
 from click_extra import (
-    ExtraVersionOption,
     Style,
+    VersionOption,
     __version__,
     color_option,
     command,
@@ -46,7 +46,7 @@ from click_extra import (
     verbosity_option,
     version_option,
 )
-from click_extra.commands import default_extra_params
+from click_extra.commands import default_params
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -219,7 +219,7 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     @version_option  # type: ignore[arg-type]
     @pass_context
     def version_metadata(ctx):
-        for field in ExtraVersionOption.template_fields:
+        for field in VersionOption.template_fields:
             value = ctx.meta[f"click_extra.{field}"]
             echo(f"{field} = {value}")
 
@@ -275,9 +275,9 @@ def test_context_meta_laziness(invoke, cmd_decorator):
     assert result.exit_code == 0
     assert "version = 1.0.0" in result.output
 
-    # Retrieve the ExtraVersionOption instance from the command.
+    # Retrieve the VersionOption instance from the command.
     version_param = next(
-        p for p in lazy_cli.params if isinstance(p, ExtraVersionOption)
+        p for p in lazy_cli.params if isinstance(p, VersionOption)
     )
     # Fields that were never accessed should NOT have been cached.
     assert "env_info" not in version_param.__dict__
@@ -305,7 +305,7 @@ def test_module_version_parent_package_fallback(monkeypatch):
     monkeypatch.setitem(sys.modules, "myapp", fake_parent)
     monkeypatch.setitem(sys.modules, "myapp.__main__", fake_main)
 
-    opt = ExtraVersionOption(["--version"])
+    opt = VersionOption(["--version"])
     # Bypass cli_frame resolution by setting the module directly.
     monkeypatch.setattr(
         type(opt),
@@ -335,7 +335,7 @@ def test_package_version_resolves_import_name_to_distribution(monkeypatch):
         lambda: {"PIL": ["pillow"]},
     )
 
-    opt = ExtraVersionOption(["--version"], package_name="PIL")
+    opt = VersionOption(["--version"], package_name="PIL")
     assert opt.package_version == "10.4.0"
 
 
@@ -355,7 +355,7 @@ def test_package_version_ambiguous_import_name_returns_none(monkeypatch):
         lambda: {"plug": ["foo-plug", "bar-plug"]},
     )
 
-    opt = ExtraVersionOption(["--version"], package_name="plug")
+    opt = VersionOption(["--version"], package_name="plug")
     assert opt.package_version is None
 
 
@@ -371,7 +371,7 @@ def test_package_version_unknown_returns_none(monkeypatch):
     monkeypatch.setattr(_metadata, "version", fake_version)
     monkeypatch.setattr(_metadata, "packages_distributions", dict)
 
-    opt = ExtraVersionOption(["--version"], package_name="nonexistent")
+    opt = VersionOption(["--version"], package_name="nonexistent")
     assert opt.package_version is None
 
 
@@ -394,7 +394,7 @@ def test_cli_frame_fallback(monkeypatch):
     monkeypatch.setattr(inspect, "stack", patched_stack)
 
     # Should not raise RuntimeError; instead falls back to outermost frame.
-    frame = ExtraVersionOption.cli_frame()
+    frame = VersionOption.cli_frame()
     assert frame is not None
 
 
@@ -404,9 +404,9 @@ def test_cli_frame_fallback(monkeypatch):
 )
 def test_integrated_version_option_precedence(invoke, params):
     def versioned_extra_params():
-        params = default_extra_params()
+        params = default_params()
         for p in params:
-            if isinstance(p, ExtraVersionOption):
+            if isinstance(p, VersionOption):
                 p.version = "1.2.3.4"
         return params
 
@@ -424,7 +424,7 @@ def test_integrated_version_option_precedence(invoke, params):
 
 @skip_windows_colors
 def test_version_fields_forwarded_to_version_option(invoke):
-    """``version_fields`` on ``@command`` forwards to ``ExtraVersionOption``."""
+    """``version_fields`` on ``@command`` forwards to ``VersionOption``."""
 
     @command(name="my-tool", version_fields={"prog_name": "My Tool"})
     def prog_name_cli():
@@ -806,7 +806,7 @@ def test_prebaked_git_branch():
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
-    opt = ExtraVersionOption()
+    opt = VersionOption()
     # Bypass cli_frame by setting module directly.
     opt.__dict__["module"] = mod
     assert opt.git_branch == "release/1.0"
@@ -821,7 +821,7 @@ def test_prebaked_git_long_hash():
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
-    opt = ExtraVersionOption()
+    opt = VersionOption()
     opt.__dict__["module"] = mod
     assert opt.git_long_hash == "abc123def456" * 3
 
@@ -836,7 +836,7 @@ def test_prebaked_git_tag_sha():
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
-    opt = ExtraVersionOption()
+    opt = VersionOption()
     opt.__dict__["module"] = mod
     assert opt.git_tag_sha == sha
 
@@ -850,7 +850,7 @@ def test_prebaked_empty_dunder_ignored():
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
-    opt = ExtraVersionOption()
+    opt = VersionOption()
     opt.__dict__["module"] = mod
     # Empty string should be ignored; falls back to git subprocess.
     # Since there's no git repo, result is None.
@@ -866,7 +866,7 @@ def test_prebaked_non_string_ignored():
     mod.__file__ = "/fake/path.py"
     mod.__package__ = "fake_cli"
 
-    opt = ExtraVersionOption()
+    opt = VersionOption()
     opt.__dict__["module"] = mod
     assert opt.git_branch is None
 
@@ -878,6 +878,6 @@ def __test_inplace_context():
         pass
 
     with cli.make_context("foo", []) as ctx:
-        for field in ExtraVersionOption.template_fields:
+        for field in VersionOption.template_fields:
             value = ctx.meta[f"click_extra.{field}"]
             assert value is not None

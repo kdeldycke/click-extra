@@ -30,9 +30,9 @@ from click_extra import (
     option,
     option_group,
 )
-from click_extra.commands import ExtraGroup
+from click_extra.commands import Group
 from click_extra.man_page import render_manpage, render_manpages, write_manpages
-from click_extra.testing import ExtraCliRunner
+from click_extra.testing import CliRunner
 
 
 @command
@@ -251,7 +251,7 @@ def test_dynamic_subcommand_discovered():
     def probe():
         """A dynamically resolved command."""
 
-    class DynamicGroup(ExtraGroup):
+    class DynamicGroup(Group):
         def list_commands(self, ctx):
             return [*super().list_commands(ctx), "probe"]
 
@@ -334,7 +334,7 @@ def test_man_option():
     def greet():
         """Greet the world."""
 
-    result = ExtraCliRunner().invoke(greet, ["--man"], color=False)
+    result = CliRunner().invoke(greet, ["--man"], color=False)
     assert result.exit_code == 0
     assert ".TH" in result.stdout
     assert "greet \\- Greet the world." in result.stdout

@@ -293,8 +293,8 @@ THEMES_CONFIG_KEY: str = "themes"
 """Sub-key under ``[tool.<cli>]`` where user-defined themes live in config.
 
 Used by :class:`ConfigOption` to find ``[tool.<cli>.themes.<name>]`` tables,
-build them via :meth:`HelpExtraTheme.from_dict
-<click_extra.theme.HelpExtraTheme.from_dict>`, and stash the result on
+build them via :meth:`HelpTheme.from_dict
+<click_extra.theme.HelpTheme.from_dict>`, and stash the result on
 ``ctx.meta[click_extra.context.THEME_OVERRIDES]``. The constant is the
 single source of truth shared by :func:`_builtin_config_validators`,
 :meth:`ConfigOption._apply_theme_overrides`, and
@@ -2172,7 +2172,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Build per-invocation theme overrides from the config and stash on ``ctx.meta``.
 
         Reads the ``[tool.<cli>.themes.<name>]`` sub-tree, builds each entry into
-        a :class:`HelpExtraTheme <click_extra.theme.HelpExtraTheme>` (cascading
+        a :class:`HelpTheme <click_extra.theme.HelpTheme>` (cascading
         on top of an existing built-in theme when *name* matches one already in
         :data:`~click_extra.theme.theme_registry`), and writes the result to
         ``ctx.meta[click_extra.context.THEME_OVERRIDES]``. The module-level
