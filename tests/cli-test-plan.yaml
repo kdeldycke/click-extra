@@ -74,7 +74,7 @@
   strip_ansi: true
   stdout_contains:
     - "Usage: click-extra run [OPTIONS] SCRIPT [ARGS]..."
-    - "Apply Click Extra help colorization to any Click CLI."
+    - "Run, or introspect, any Click CLI through Click Extra."
 
 
 # -- prebake subcommand -------------------------------------------------------
