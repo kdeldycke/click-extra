@@ -12,10 +12,12 @@
 # Check the CLI reports its version on stdout.
 - cli_parameters: --version
   exit_code: 0
-  stdout_contains: "Click Extra\x1b[0m, version \x1b[32m"
-  stdout_regex_fullmatch: "\x1b\\[97m\x1b\\[1mClick Extra\x1b\\[0m, version \
-    \x1b\\[32m[0-9]+\\.[0-9]+\\.[0-9]+(\\.[a-z]+[0-9]+\
-    (\\+[0-9a-f]+)?)?\x1b\\[0m\n"
+  # click-extra 8.0's --color=auto strips color on captured (non-TTY)
+  # output, so the version line is plain text. strip_ansi stays robust.
+  strip_ansi: true
+  stdout_contains: "Click Extra, version "
+  # yamllint disable-line rule:line-length
+  stdout_regex_fullmatch: "Click Extra, version [0-9]+\\.[0-9]+\\.[0-9]+(\\.[a-z]+[0-9]+(\\+[0-9a-f]+)?)?\n"
 
 
 # Test combination of version and verbosity.

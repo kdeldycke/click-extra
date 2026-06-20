@@ -126,6 +126,12 @@ jobs:
           uv --no-progress run --frozen --with quart -- click-extra             wrap  quart --help
           uv --no-progress run --frozen --with quart -- click-extra                   quart --help
 
+      - name: Self-test the CLI against its test plan
+        # Dogfood the test-plan engine: run tests/cli-test-plan.yaml against the
+        # installed click-extra CLI. The plan path comes from
+        # [tool.click-extra.test-plan] (default ./tests/cli-test-plan.yaml).
+        run: uv --no-progress run --frozen -- click-extra test-plan --command click-extra --jobs max
+
       - name: Run once-only tests
         run: >
           uv --no-progress run --frozen --
