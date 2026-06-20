@@ -86,7 +86,12 @@ def test_default_value(invoke):
     ),
 )
 def test_keyword_resolution(invoke, keyword, expected):
-    """'auto' resolves to CPUs minus one, 'max' to all CPUs, both without warning."""
+    """'auto' resolves to logical CPUs minus one, 'max' to all logical CPUs.
+
+    On a host with enough cores the resolution is silent; on a 1- or 2-core
+    host the keyword collapses to a single (sequential) job with a warning, so
+    the assertion adapts to the host running the suite.
+    """
 
     @command
     @jobs_option
@@ -96,8 +101,85 @@ def test_keyword_resolution(invoke, keyword, expected):
 
     result = invoke(cli, "--jobs", keyword)
     assert result.stdout == f"Jobs: {expected}\n"
-    assert not result.stderr
+    if expected > 1:
+        assert not result.stderr
+    else:
+        assert "sequential" in result.stderr
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("keyword", "cpu_count", "default_jobs", "cpu_phrase"),
+    (
+        # A single logical CPU: 'max' is the whole machine, still just 1 job.
+        ("max", 1, 1, "only 1 logical CPU is available"),
+        # 'auto' reserves one core, so one or two logical CPUs leave a single job.
+        ("auto", 1, 1, "only 1 logical CPU is available"),
+        ("auto", 2, 1, "only 2 logical CPUs are available"),
+    ),
+)
+def test_parallel_keyword_collapses_to_sequential_warns(
+    invoke, keyword, cpu_count, default_jobs, cpu_phrase
+):
+    """'auto'/'max' warn when too few logical CPUs force a single (sequential) job."""
+
+    @command
+    @jobs_option
+    @pass_context
+    def cli(ctx):
+        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
+
+    with patch.multiple(
+        "click_extra.execution",
+        CPU_COUNT=cpu_count,
+        DEFAULT_JOBS=default_jobs,
+    ):
+        result = invoke(cli, "--jobs", keyword)
+
+    assert result.stdout == "Jobs: 1\n"
+    assert result.exit_code == 0
+    assert f"'--jobs {keyword}' resolved to a single job" in result.stderr
+    assert cpu_phrase in result.stderr
+    assert "sequential, not parallel" in result.stderr
+
+
+def test_explicit_single_job_is_silent(invoke):
+    """An explicit '--jobs 1' is a deliberate sequential choice: no warning."""
+
+    @command
+    @jobs_option
+    @pass_context
+    def cli(ctx):
+        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
+
+    with patch("click_extra.execution.CPU_COUNT", 4):
+        result = invoke(cli, "--jobs", "1")
+
+    assert result.stdout == "Jobs: 1\n"
+    assert result.exit_code == 0
+    assert not result.stderr
+
+
+def test_default_collapses_to_sequential_warns(invoke):
+    """The bare default ('auto') also warns when it collapses to a single job.
+
+    This is the silent trap on a two-core host: no flag is passed, yet the
+    default reserves one core and runs sequentially.
+    """
+
+    @command
+    @jobs_option
+    @pass_context
+    def cli(ctx):
+        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
+
+    with patch.multiple("click_extra.execution", CPU_COUNT=2, DEFAULT_JOBS=1):
+        result = invoke(cli)  # No --jobs: exercise the default value.
+
+    assert result.stdout == "Jobs: 1\n"
+    assert result.exit_code == 0
+    assert "'--jobs auto' resolved to a single job" in result.stderr
+    assert "only 2 logical CPUs are available" in result.stderr
 
 
 def test_invalid_value(invoke):

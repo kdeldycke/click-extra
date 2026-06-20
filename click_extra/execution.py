@@ -42,24 +42,41 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 CPU_COUNT = os.cpu_count()
-"""Number of available CPU cores, or ``None`` if undetermined."""
+"""Number of **logical** CPUs available, or ``None`` if undetermined.
+
+This is :func:`os.cpu_count`, which counts *logical* processors (hardware
+threads). On a CPU with simultaneous multi-threading (Intel Hyper-Threading,
+AMD SMT) a 4-physical-core chip reports ``8``. It is therefore **not** a count
+of *physical* cores, and is usually larger than what physical-core tools
+report, such as ``psutil.cpu_count(logical=False)`` or pytest-xdist's
+``-n auto`` (which counts physical cores). Parallelism here is keyed on the
+logical count on purpose: subprocess- and I/O-bound work overlaps well across
+hardware threads.
+"""
 
 DEFAULT_JOBS = max(1, CPU_COUNT - 1) if CPU_COUNT else 1
-"""Default number of parallel jobs: one fewer than available cores.
+"""Default number of parallel jobs: one fewer than :data:`CPU_COUNT` (logical CPUs).
 
-Falls back to ``1`` on single-core machines or when the core count cannot be
-determined.
+Leaves one logical CPU free for the main process and system tasks. Falls back
+to ``1`` (sequential) when the count cannot be determined.
+
+.. caution::
+    This resolves to ``1`` not only on single-core hosts but also on **two-core
+    hosts**, since it reserves one core. There, the default silently runs
+    sequentially. :meth:`JobCount.convert` logs a warning whenever a
+    parallel-intent keyword collapses to a single job this way.
 """
 
 
 class JobCount(click.ParamType):
     """Parse a ``--jobs`` value: an integer or the ``auto``/``max`` keyword.
 
-    Resolves the symbolic keywords against the host's CPU count:
+    Resolves the symbolic keywords against the host's logical CPU count
+    (:data:`CPU_COUNT`), counting hardware threads, not physical cores:
 
     - ``auto`` resolves to :data:`DEFAULT_JOBS` (one fewer than the available
-      cores), the same heuristic used as the option's default.
-    - ``max`` resolves to :data:`CPU_COUNT` (every available core).
+      logical CPUs), the same heuristic used as the option's default.
+    - ``max`` resolves to :data:`CPU_COUNT` (every available logical CPU).
 
     Any other token is parsed as an integer and left to
     :meth:`JobsOption.validate_jobs` for clamping and range-checking. Resolving
@@ -79,19 +96,36 @@ class JobCount(click.ParamType):
         param: click.Parameter | None,
         ctx: click.Context | None,
     ) -> int:
-        """Resolve a keyword to a core count, else parse the value as an integer.
+        """Resolve a keyword to a logical-core count, else parse as an integer.
 
         An already-resolved integer is returned untouched, so option defaults
-        and re-validation can flow back through conversion unharmed.
+        and re-validation can flow back through conversion unharmed. When a
+        parallel-intent keyword (``auto``/``max``) resolves to a single job, a
+        warning is logged: the request reads as "use several cores", but the
+        host has too few logical CPUs, so execution is silently sequential.
         """
         if isinstance(value, int):
             return value
 
         normalized = str(value).strip().lower()
-        if normalized == "auto":
-            return DEFAULT_JOBS
-        if normalized == "max":
-            return CPU_COUNT or 1
+        if normalized in ("auto", "max"):
+            resolved = DEFAULT_JOBS if normalized == "auto" else (CPU_COUNT or 1)
+            # A parallel-intent keyword that collapses to a single job runs
+            # sequentially: warn so it is not mistaken for parallel execution.
+            if resolved <= 1 and not (ctx is not None and ctx.resilient_parsing):
+                if CPU_COUNT is None:
+                    cpu_desc = "the number of logical CPUs could not be determined"
+                elif CPU_COUNT == 1:
+                    cpu_desc = "only 1 logical CPU is available"
+                else:
+                    cpu_desc = f"only {CPU_COUNT} logical CPUs are available"
+                logger.warning(
+                    "'--jobs %s' resolved to a single job: %s, so execution "
+                    "will be sequential, not parallel.",
+                    normalized,
+                    cpu_desc,
+                )
+            return resolved
 
         try:
             return int(normalized)
@@ -107,10 +141,15 @@ class JobsOption(ExtraOption):
     """A pre-configured ``--jobs`` option to control parallel execution.
 
     Accepts an integer or one of two keywords resolved by :class:`JobCount`:
-    ``auto`` (the default: one fewer than the available CPU cores, leaving a
-    core free for the main process and system tasks) and ``max`` (every
-    available core). A value of ``0`` disables parallelism and runs
-    sequentially.
+    ``auto`` (the default: one fewer than the available logical CPU cores,
+    leaving a core free for the main process and system tasks) and ``max``
+    (every available logical CPU core). A value of ``0`` disables parallelism
+    and runs sequentially.
+
+    The core count is the number of *logical* CPUs (hardware threads) reported
+    by :func:`os.cpu_count`, not physical cores: see :data:`CPU_COUNT`. On a
+    host with too few logical CPUs, ``auto``/``max`` resolve to a single job
+    and :class:`JobCount` logs a warning that execution will be sequential.
 
     The resolved value is stored as an :class:`int` in
     ``ctx.meta[click_extra.context.JOBS]``.
@@ -169,7 +208,8 @@ class JobsOption(ExtraOption):
         type=JobCount(),
         help=_(
             "Number of parallel jobs. Accepts an integer, 'auto' (one fewer "
-            "than available CPUs) or 'max' (all CPUs). 0 runs sequentially."
+            "than the host's logical CPUs) or 'max' (all logical CPUs). 0 runs "
+            "sequentially."
         ),
         **kwargs,
     ) -> None:

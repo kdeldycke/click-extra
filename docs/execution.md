@@ -67,9 +67,13 @@ assert re.fullmatch(
 
 ## Parallel jobs
 
-A pre-configured `--jobs` option to control parallel execution. It accepts an integer, or one of two keywords: `auto` (the default: one fewer than available CPU cores, leaving a core free for the main process and system tasks) and `max` (every available core). A value of `0` disables parallelism and runs sequentially.
+A pre-configured `--jobs` option to control parallel execution. It accepts an integer, or one of two keywords: `auto` (the default: one fewer than the available logical CPU cores, leaving a core free for the main process and system tasks) and `max` (every available logical CPU core). A value of `0` disables parallelism and runs sequentially.
 
 The option itself does not drive any concurrency: it only captures the user's intent.
+
+```{important}
+The core count is the number of **logical** CPUs reported by Python's `os.cpu_count()`: hardware threads, not physical cores. On a CPU with simultaneous multi-threading (Intel Hyper-Threading, AMD SMT) a 4-physical-core chip reports `8`. This is deliberately the logical count, since subprocess- and I/O-bound work overlaps well across hardware threads. It can differ from the physical-core counts used elsewhere (`psutil.cpu_count(logical=False)`, or pytest-xdist's `-n auto`), so `--jobs auto` may pick a higher number than a physical-core heuristic would.
+```
 
 ```{click:source}
 from click import command, echo, pass_context
@@ -107,7 +111,11 @@ assert "parallel jobs." in result.stdout
 ```
 
 ```{warning}
-A value of `0` disables parallelism: it is rounded up to `1` and a warning notes that execution will run sequentially. Negative values are likewise clamped to `1`. When the count exceeds the available CPU cores, a warning is logged but the value is honored.
+A value of `0` disables parallelism: it is rounded up to `1` and a warning notes that execution will run sequentially. Negative values are likewise clamped to `1`. When the count exceeds the available logical CPU cores, a warning is logged but the value is honored.
+```
+
+```{warning}
+`auto` and `max` express a wish for parallelism, but on hosts with few logical CPUs they resolve to a single job and run sequentially: `max` on a single-core host, or `auto` on a one- or two-core host (it reserves one core). A warning is then logged, so the silent sequential fallback is not mistaken for parallel execution. An explicit `--jobs 1` is treated as a deliberate sequential choice and stays silent.
 ```
 
 ```{tip}
