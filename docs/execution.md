@@ -122,6 +122,31 @@ A value of `0` disables parallelism: it is rounded up to `1` and a warning notes
 The resolved (clamped, validated) job count is published on `ctx.meta` as `JOBS` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks. It is also logged at info level alongside the host's `os.cpu_count()`, so `--verbosity INFO` reveals how many workers a `--jobs` command will use.
 ```
 
+## Running jobs in parallel
+
+`run_jobs(func, items)` maps `func` over `items` using the resolved `--jobs` count, so a command with `@jobs_option` parallelizes its work with no extra plumbing. It reads the worker count from the context (or an explicit `jobs=` override), runs sequentially when that count is `1` or there is a single item, and otherwise spreads the work across a thread pool. Results are yielded in submission order, like `map`.
+
+```{click:source}
+from click import command, echo
+from click_extra import jobs_option, run_jobs
+
+@command
+@jobs_option
+def bake():
+    """Bake several items in parallel."""
+    items = ("apple", "banana", "cherry")
+    for baked in run_jobs(str.upper, items):
+        echo(f"Baked {baked}")
+```
+
+```{click:run}
+result = invoke(bake, args=["--jobs", "2"])
+assert result.exit_code == 0
+assert "Baked APPLE" in result.stdout
+```
+
+The pool is thread-based, which fits the I/O- and subprocess-bound work CLIs usually parallelize (each child releases the GIL). With a single worker the run stays lazy, so a caller can stop on the first result, for example to abort on the first failure.
+
 ## Zero exit code
 
 A pre-configured `-0`/`--zero-exit` option flag, following the convention popularized by linters and static analysers: they exit with a non-zero code whenever they report findings, so automation can gate on it. Setting this flag flips that behavior, so the CLI returns `0` as long as it ran to completion, reserving non-zero codes for actual execution failures.

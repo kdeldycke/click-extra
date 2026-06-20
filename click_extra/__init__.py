@@ -137,6 +137,7 @@ from .execution import (
     JobsOption,
     TimerOption,
     ZeroExitOption,
+    run_jobs,
 )
 from .logging import (
     Formatter,
@@ -361,6 +362,7 @@ __all__ = [
     "render_manpages",
     "render_table",
     "run_config_validation",
+    "run_jobs",
     "search_params",
     "secho",
     "select_columns",

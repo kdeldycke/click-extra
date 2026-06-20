@@ -33,6 +33,7 @@ from click_extra import (
     group,
     jobs_option,
     pass_context,
+    run_jobs,
     timer_option,
     zero_exit_option,
 )
@@ -198,6 +199,45 @@ def test_resolved_job_count_logged_at_info(invoke):
     assert result.exit_code == 0
     assert "Resolved --jobs to 4" in result.stderr
     assert "os.cpu_count()=8 logical CPUs" in result.stderr
+
+
+@pytest.mark.parametrize("jobs", (1, 2, 5))
+def test_run_jobs_preserves_order(jobs):
+    """Results come back in submission order, sequential or parallel."""
+    assert list(run_jobs(lambda n: n * n, range(5), jobs=jobs)) == [0, 1, 4, 9, 16]
+
+
+def test_run_jobs_sequential_is_lazy():
+    """With one worker, items run lazily so a caller can stop early."""
+    seen = []
+
+    def record(n):
+        seen.append(n)
+        return n
+
+    for result in run_jobs(record, [1, 2, 3], jobs=1):
+        if result == 1:
+            break
+    assert seen == [1]
+
+
+def test_run_jobs_reads_jobs_from_context(invoke):
+    """Without an explicit count, run_jobs reads the resolved --jobs value."""
+
+    @command
+    @jobs_option
+    @pass_context
+    def cli(ctx):
+        echo(",".join(str(n) for n in run_jobs(lambda n: n + 1, range(4))))
+
+    result = invoke(cli, "--jobs", "3")
+    assert result.stdout == "1,2,3,4\n"
+    assert result.exit_code == 0
+
+
+def test_run_jobs_without_context_runs_sequential():
+    """Outside any Click context and with no count, run_jobs falls back to 1."""
+    assert list(run_jobs(str, [1, 2, 3])) == ["1", "2", "3"]
 
 
 def test_invalid_value(invoke):

@@ -26,8 +26,10 @@ from __future__ import annotations
 
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from gettext import gettext as _
 from time import perf_counter
+from typing import TypeVar
 
 import click
 
@@ -36,10 +38,13 @@ from .parameters import ExtraOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Iterable, Iterator, Sequence
     from typing import Any
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
+R = TypeVar("R")
 
 CPU_COUNT = os.cpu_count()
 """Number of **logical** CPUs available, or ``None`` if undetermined.
@@ -238,6 +243,48 @@ class JobsOption(ExtraOption):
             help=help,
             **kwargs,
         )
+
+
+def run_jobs(
+    func: Callable[[T], R],
+    items: Iterable[T],
+    *,
+    jobs: int | None = None,
+) -> Iterator[R]:
+    """Run ``func`` over ``items``, parallelized per the resolved ``--jobs`` count.
+
+    The worker count is taken from ``jobs`` when given, else from the active
+    command's :class:`JobsOption` value (``ctx.meta[click_extra.context.JOBS]``),
+    else ``1``. With a single worker (or at most one item) the items run
+    **sequentially and lazily**, so a caller can stop early on the first result
+    (for example to abort on the first failure); otherwise they run in a thread
+    pool. Either way results are yielded in submission order, like :func:`map`.
+
+    The pool is thread-based, which suits the I/O- and subprocess-bound work CLI
+    tools usually parallelize (each child releases the GIL). The count is a
+    number of logical CPUs: see :data:`CPU_COUNT`.
+
+    :param func: Called once per item; its return value is yielded.
+    :param items: The work items. Materialized up front to size the pool.
+    :param jobs: Override the worker count instead of reading it from the
+        context. ``1`` or fewer forces sequential execution.
+    :return: An iterator over ``func``'s results, in the order of ``items``.
+    """
+    if jobs is None:
+        ctx = click.get_current_context(silent=True)
+        jobs = context.get(ctx, context.JOBS, 1) if ctx is not None else 1
+
+    work = list(items)
+    if jobs <= 1 or len(work) <= 1:
+        # Sequential and lazy: the caller can break early (for example on the
+        # first failure) and the remaining items never run.
+        for item in work:
+            yield func(item)
+    else:
+        # Parallel: every item is submitted up front and results are yielded in
+        # submission order. Breaking early does not cancel running work.
+        with ThreadPoolExecutor(max_workers=min(jobs, len(work))) as executor:
+            yield from executor.map(func, work)
 
 
 class TimerOption(ExtraOption):
