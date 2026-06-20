@@ -102,8 +102,8 @@ assert result.output.startswith(dedent("""\
       Simple program that greets NAME for a total of COUNT times.
 
     \x1b[94m\x1b[4mOptions:\x1b[0m
-      \x1b[36m\x1b[1m--count\x1b[0m \x1b[36m\x1b[2m\x1b[3mINTEGER\x1b[0m             Number of greetings.  \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3m1\x1b[0m\x1b[2m]\x1b[0m
-      \x1b[36m\x1b[1m--name\x1b[0m \x1b[36m\x1b[2m\x1b[3mTEXT\x1b[0m                 The person to greet.
+      \x1b[36m\x1b[1m--count\x1b[0m \x1b[36m\x1b[2m\x1b[3mINTEGER\x1b[0m              Number of greetings.  \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3m1\x1b[0m\x1b[2m]\x1b[0m
+      \x1b[36m\x1b[1m--name\x1b[0m \x1b[36m\x1b[2m\x1b[3mTEXT\x1b[0m                  The person to greet.
     """
 ))
 ```
@@ -221,8 +221,8 @@ Click Extra provides these additional, pre-configured options decorators you can
 | --------------------------------------------------------------------- | ----------------------------------------- | ------- |
 | [`@timer_option`](execution.md#timer)                                 | `--time / --no-time`                      | ✅      |
 | [`@accessible_option`](colorize.md#accessible-flag)                   | `--accessible`                            | ✅      |
-| [`@color_option`](colorize.md#color-no-color-flag)                    | `--color, --ansi [auto\|always\|never]`   | ✅      |
-| [`@no_color_option`](colorize.md#color-no-color-flag)                 | `--no-color, --no-ansi`                    | ✅      |
+| [`@color_option`](colorize.md#color-no-color-flag)                    | `--color [auto\|always\|never]`           | ✅      |
+| [`@no_color_option`](colorize.md#color-no-color-flag)                 | `--no-color`                              | ✅      |
 | [`@theme_option`](theme.md)                                           | `--theme`                                 | ✅      |
 | [`@config_option`](config.md#standalone-option)                       | `--config CONFIG_PATH`                    | ✅      |
 | [`@no_config_option`](config.md#)                                     | `--no-config`                             | ✅      |

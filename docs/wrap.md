@@ -60,7 +60,7 @@ Execution time: 0.342 seconds.
 
 ## Color control
 
-`--color` / `--no-color` (`--ansi` / `--no-ansi`) controls whether ANSI codes are emitted. The flag also respects environment variables like `NO_COLOR`, `CLICOLOR`, and `FORCE_COLOR`:
+`--color` / `--no-color` controls whether ANSI codes are emitted. The flag also respects environment variables like `NO_COLOR`, `CLICOLOR`, and `FORCE_COLOR`:
 
 ```shell-session
 $ click-extra --no-color flask --help

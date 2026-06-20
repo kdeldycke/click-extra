@@ -129,7 +129,7 @@ class HelpTheme(cloup.HelpTheme):
     # walks the rendered help text and styles the matching tokens.
 
     option: IStyle = identity
-    """Style applied to option names (``--config``, ``-v``, ``--ansi/--no-ansi``)
+    """Style applied to option names (``--config``, ``-v``, ``--color/--no-color``)
     wherever they appear: synopsis column, free-form descriptions, and
     docstrings (when :attr:`cross_ref_highlight` is enabled).
     """

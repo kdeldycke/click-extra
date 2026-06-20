@@ -215,7 +215,7 @@ _WHEN_TO_TRISTATE: dict[str, bool | None] = {
 
 
 _COLOR_CLI_OVERRIDE_KEY = "click_extra.color_cli_override"
-"""Context meta key flagging an explicit ``--no-color`` / ``--no-ansi`` on the command line.
+"""Context meta key flagging an explicit ``--no-color`` on the command line.
 
 Set by :meth:`NoColorOption.set_no_color` and read by :meth:`ColorOption.set_color` so
 an explicit negative alias outranks the color environment variables, which may only
@@ -224,14 +224,14 @@ override the built-in default.
 
 
 class ColorOption(ExtraOption):
-    """A pre-configured ``--color[=WHEN]`` tri-state option, aliased by ``--ansi``.
+    """A pre-configured ``--color[=WHEN]`` tri-state option.
 
     Mirrors the `GNU convention
     <https://www.gnu.org/prep/standards/html_node/_002d_002dcolor.html>`_: ``WHEN`` is
     one of :data:`COLOR_WHEN` (``auto``, ``always`` or ``never``), and a bare
-    ``--color`` (no value) means ``always``. The negative aliases ``--no-color`` and
-    ``--no-ansi`` are carried by the separate :class:`NoColorOption`, because Click
-    forbids attaching ``/--no-x`` secondary flags to a value option.
+    ``--color`` (no value) means ``always``. The negative alias ``--no-color`` is
+    carried by the separate :class:`NoColorOption`, because Click forbids attaching
+    ``/--no-x`` secondary flags to a value option.
 
     The resolved tri-state lands on ``ctx.color``, the Click-standard attribute that
     ``echo()`` reads through its ``resolve_color_default()`` → ``should_strip_ansi()``
@@ -256,7 +256,7 @@ class ColorOption(ExtraOption):
     _gnu_optional_value: ClassVar[bool] = True
     """Marks the option for GNU-style optional-argument parsing.
 
-    Read by :meth:`add_to_parser` to make a bare ``--color`` / ``--ansi`` resolve to
+    Read by :meth:`add_to_parser` to make a bare ``--color`` resolve to
     ``flag_value`` instead of swallowing the following token.
     """
 
@@ -268,7 +268,7 @@ class ColorOption(ExtraOption):
         ``subcommand`` as the color value and fail. GNU instead binds an optional
         argument only when it is attached with ``=``.
 
-        This wraps the parser's long-option matcher so a bare ``--color`` / ``--ansi``
+        This wraps the parser's long-option matcher so a bare ``--color``
         replays as ``--color=<flag_value>`` (``always``) and leaves the following
         argument untouched, while ``--color=<when>`` keeps working. The wrapper stays
         inert for every option that does not carry :attr:`_gnu_optional_value`, so it
@@ -303,12 +303,12 @@ class ColorOption(ExtraOption):
 
         Precedence, highest first:
 
-        #. An explicit ``--color`` / ``--ansi`` on the command line.
+        #. An explicit ``--color`` on the command line.
         #. The color environment variables, but only when the value comes from the
            built-in default. A configuration file or ``--accessible`` (both seen here
            as a non-``DEFAULT`` source) therefore wins over the environment, matching
            :class:`~click_extra.accessibility.AccessibleOption`.
-        #. A color state already pinned by ``--no-color`` / ``--no-ansi``, a forced
+        #. A color state already pinned by ``--no-color``, a forced
            test runner, or an explicit ``Context(color=...)`` — preserved when this
            option only resolves to ``auto`` from its default.
         #. The ``auto`` default, leaving ``ctx.color`` at ``None`` for TTY detection.
@@ -318,7 +318,7 @@ class ColorOption(ExtraOption):
 
         # The environment can only override a pure built-in default, never a value
         # coming from the command line, a configuration file or --accessible. An
-        # explicit --no-color / --no-ansi (recorded by NoColorOption) is a
+        # explicit --no-color (recorded by NoColorOption) is a
         # command-line choice and therefore outranks the environment too.
         if source == ParameterSource.DEFAULT and not ctx.meta.get(
             _COLOR_CLI_OVERRIDE_KEY,
@@ -352,12 +352,12 @@ class ColorOption(ExtraOption):
         expose_value=False,
         help=_(
             "Colorize the output. A bare --color is the same as --color=always; "
-            "--no-color and --no-ansi alias --color=never.",
+            "--no-color aliases --color=never.",
         ),
         **kwargs,
     ) -> None:
         if not param_decls:
-            param_decls = ("--color", "--ansi")
+            param_decls = ("--color",)
 
         kwargs.setdefault("callback", self.set_color)
         kwargs.setdefault("type", click.Choice(COLOR_WHEN))
@@ -375,15 +375,15 @@ class ColorOption(ExtraOption):
 
 
 class NoColorOption(ExtraOption):
-    """``--no-color`` / ``--no-ansi`` aliases that force ``--color=never``.
+    """``--no-color`` flag that forces ``--color=never``.
 
     Click rejects ``/--no-x`` secondary flags on a value option, so the negative
-    aliases of the tri-state :class:`ColorOption` cannot live on it and are provided
+    alias of the tri-state :class:`ColorOption` cannot live on it and is provided
     here as a standalone boolean flag. When set, it pins ``ctx.color`` to ``False``;
     when absent it is a no-op, leaving the resolution to :class:`ColorOption`.
 
     Hidden by default to keep the help screen focused on the canonical ``--color``,
-    whose own help text documents these aliases. Eager by default, like
+    whose own help text documents this alias. Eager by default, like
     :class:`ColorOption`, so the color state is settled before other eager options
     render.
     """
@@ -413,7 +413,7 @@ class NoColorOption(ExtraOption):
         **kwargs,
     ) -> None:
         if not param_decls:
-            param_decls = ("--no-color", "--no-ansi")
+            param_decls = ("--no-color",)
 
         kwargs.setdefault("callback", self.set_no_color)
 

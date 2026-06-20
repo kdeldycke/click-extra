@@ -205,9 +205,9 @@ See how the `--version` option gets duplicated at the end:
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert (
-    "  \x1b[36m\x1b[1m--version\x1b[0m                   Show the version and exit.\n"
-    "  \x1b[36m\x1b[1m--version\x1b[0m                   Show the version and exit.\n"
-    "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m                  Show this message and exit.\n"
+    "  \x1b[36m\x1b[1m--version\x1b[0m                    Show the version and exit.\n"
+    "  \x1b[36m\x1b[1m--version\x1b[0m                    Show the version and exit.\n"
+    "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m                   Show this message and exit.\n"
 ) in result.output
 ```
 
@@ -512,10 +512,10 @@ Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 Options:
   --time / --no-time    Measure and print elapsed execution time.  [default: no-
                         time]
-  --color, --ansi [auto|always|never]
+  --color [auto|always|never]
                         Colorize the output. A bare --color is the same as
-                        --color=always; --no-color and --no-ansi alias
-                        --color=never.  [default: auto]
+                        --color=always; --no-color aliases --color=never.
+                        [default: auto]
   --config CONFIG_PATH  Location of the configuration file. Supports glob
                         pattern of local path and remote URL.  [default:
                         ~/Library/Application

@@ -168,8 +168,8 @@ assert result.stdout.startswith(dedent(
       Simple program that greets NAME.
 
     \x1b[94m\x1b[4mOptions:\x1b[0m
-      \x1b[36m\x1b[1m--name\x1b[0m \x1b[36m\x1b[2m\x1b[3mTEXT\x1b[0m                 The person to greet.
-      \x1b[36m\x1b[1m--time\x1b[0m / \x1b[36m\x1b[1m--no-time\x1b[0m          Measure and print elapsed execution time."""
+      \x1b[36m\x1b[1m--name\x1b[0m \x1b[36m\x1b[2m\x1b[3mTEXT\x1b[0m                  The person to greet.
+      \x1b[36m\x1b[1m--time\x1b[0m / \x1b[36m\x1b[1m--no-time\x1b[0m           Measure and print elapsed execution time."""
 ))
 ```
 

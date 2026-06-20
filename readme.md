@@ -90,7 +90,7 @@ To understand how we ended up with the result above, [go read the tutorial](http
 - [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between 40+ table-rendering styles (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
 - [`--jobs`](https://kdeldycke.github.io/click-extra/execution.html#parallel-jobs) for parallel-execution worker counts
 - `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code
-- `--color[=WHEN]` tri-state flag (`auto`/`always`/`never`), aliased by `--ansi` and the hidden `--no-color`/`--no-ansi`, with recognition of `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
+- `--color[=WHEN]` tri-state flag (`auto`/`always`/`never`) with a hidden `--no-color` alias, recognizing `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
 - Recognition of `DO_NOT_TRACK` from [consoledonottrack.com](https://consoledonottrack.com) for telemetry
 - Global `show_envvar` option to display all environment variables in help screens
 - Global `show_choices` to activate selection of choices on user input prompts

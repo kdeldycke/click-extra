@@ -430,18 +430,18 @@ def test_duplicate_option(invoke):
 
     result = invoke(cli, "--help", color=False)
     assert result.stdout.endswith(
-        "  --verbosity LEVEL           Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-        "                              [default: WARNING]\n"
-        "  -v, --verbose               Increase the default WARNING verbosity by one\n"
-        "                              level for each additional repetition of the\n"
-        "                              option.  [default: 0]\n"
-        "  -q, --quiet                 Decrease the default WARNING verbosity by one\n"
-        "                              level for each additional repetition of the\n"
-        "                              option.  [default: 0]\n"
-        "  --man                       Show the command's man page (roff) and exit.\n"
-        "  --version                   Show the version and exit.\n"
-        "  --version                   Show the version and exit.\n"
-        "  -h, --help                  Show this message and exit.\n"
+        "  --verbosity LEVEL            Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
+        "                               [default: WARNING]\n"
+        "  -v, --verbose                Increase the default WARNING verbosity by one\n"
+        "                               level for each additional repetition of the\n"
+        "                               option.  [default: 0]\n"
+        "  -q, --quiet                  Decrease the default WARNING verbosity by one\n"
+        "                               level for each additional repetition of the\n"
+        "                               option.  [default: 0]\n"
+        "  --man                        Show the command's man page (roff) and exit.\n"
+        "  --version                    Show the version and exit.\n"
+        "  --version                    Show the version and exit.\n"
+        "  -h, --help                   Show this message and exit.\n"
     )
     assert not result.stderr
     assert result.exit_code == 0
@@ -572,7 +572,7 @@ def test_option_group_integration(invoke, assert_output_regex):
             command,
             {},
             "  --flag1\n"
-            "  --flag2                     [env var: "
+            "  --flag2                      [env var: "
             + ("CUSTOM2" if os.name == "nt" else "custom2")
             + ", CLI_FLAG2]\n"
             "  --flag3\n",
@@ -582,7 +582,7 @@ def test_option_group_integration(invoke, assert_output_regex):
             command,
             {"show_envvar": None},
             "  --flag1\n"
-            "  --flag2                     [env var: "
+            "  --flag2                      [env var: "
             + ("CUSTOM2" if os.name == "nt" else "custom2")
             + ", CLI_FLAG2]\n"
             "  --flag3\n",
@@ -591,13 +591,13 @@ def test_option_group_integration(invoke, assert_output_regex):
         (
             command,
             {"show_envvar": True},
-            "  --flag1                     [env var: "
+            "  --flag1                      [env var: "
             + ("CUSTOM1" if os.name == "nt" else "custom1")
             + ", CLI_FLAG1]\n"
-            "  --flag2                     [env var: "
+            "  --flag2                      [env var: "
             + ("CUSTOM2" if os.name == "nt" else "custom2")
             + ", CLI_FLAG2]\n"
-            "  --flag3                     [env var: "
+            "  --flag3                      [env var: "
             + ("CUSTOM3" if os.name == "nt" else "custom3")
             + ", CLI_FLAG3]\n",
         ),

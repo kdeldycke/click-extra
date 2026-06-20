@@ -352,7 +352,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.color",
-            "--color, --ansi [auto|always|never]",
+            "--color [auto|always|never]",
             "click_extra.colorize.ColorOption",
             "click.types.Choice",
             "str",
@@ -550,7 +550,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.no_color",
-            "--no-color, --no-ansi",
+            "--no-color",
             "click_extra.colorize.NoColorOption",
             "click.types.BoolParamType",
             "bool",
@@ -1361,7 +1361,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     expected_table: list[list] = [
         [
             "show-params.color",
-            "--color, --ansi [auto|always|never]",
+            "--color [auto|always|never]",
             "click_extra.colorize.ColorOption",
             "click.types.Choice",
             "str",

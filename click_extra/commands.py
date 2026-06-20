@@ -91,7 +91,7 @@ def default_params() -> list[click.Option]:
         .. hint::
             ``--accessible`` is placed before ``--color`` and ``--table-format`` so it
             can lower their defaults (via ``default_map``) before they are resolved.
-    #. ``--color``, ``--ansi`` / ``--no-color``, ``--no-ansi``
+    #. ``--color`` / ``--no-color``
     #. ``--progress`` / ``--no-progress``
     #. ``--theme``
     #. ``--show-params``

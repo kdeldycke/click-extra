@@ -1998,10 +1998,10 @@ def test_keyword_collection(invoke, assert_output_regex):
         r"\x1b\[94m\x1b\[4mOther options:\x1b\[0m\n"
         r"  \x1b\[36m\x1b\[1m--test\x1b\[0m \x1b\[36m\x1b\[2m\x1b\[3mTEXT\x1b\[0m\n"
         r"  \x1b\[36m\x1b\[1m-b\x1b\[0m, \x1b\[36m\x1b\[1m--boolean\x1b\[0m / \x1b\[36m\x1b\[1m\+B\x1b\[0m, \x1b\[36m\x1b\[1m--no-boolean\x1b\[0m\n"
-        r"                              \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-boolean\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
-        r"  \x1b\[36m\x1b\[1m/debug\x1b\[0m; \x1b\[36m\x1b\[1m/no-debug\x1b\[0m           \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-debug\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+        r"                               \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-boolean\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+        r"  \x1b\[36m\x1b\[1m/debug\x1b\[0m; \x1b\[36m\x1b\[1m/no-debug\x1b\[0m            \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-debug\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
         r"  \x1b\[36m\x1b\[1m--long-shout\x1b\[0m / \x1b\[36m\x1b\[1m-S\x1b\[0m, \x1b\[36m\x1b\[1m--no-long-shout\x1b\[0m\n"
-        r"                              \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-long-shout\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+        r"                               \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3mno-long-shout\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
         rf"{default_options_colored_help}\n"
         r"\x1b\[94m\x1b\[4mSubcommand group 1:\x1b\[0m\n"
         r"  \x1b\[36m\x1b\[1mcommand1\x1b\[0m  CLI description with extra \x1b\[36m\x1b\[2m\x1b\[3mMY_VAR\x1b\[0m reference\.\n"
@@ -2073,8 +2073,6 @@ def test_keyword_collection(invoke, assert_output_regex):
     (
         ("--color", True),
         ("--no-color", False),
-        ("--ansi", True),
-        ("--no-ansi", False),
         (None, True),
     ),
 )
@@ -2164,8 +2162,6 @@ def test_standalone_color_option(
     (
         ("--color", True),
         ("--no-color", False),
-        ("--ansi", True),
-        ("--no-ansi", False),
         (None, True),
     ),
 )
@@ -2210,8 +2206,6 @@ def test_no_color_env_convention(
     (
         ("--color", True, "True"),
         ("--no-color", False, "False"),
-        ("--ansi", True, "True"),
-        ("--no-ansi", False, "False"),
         # No flag: the GNU auto default leaves ctx.color at None (TTY detection),
         # yet a forced runner still renders colors.
         (None, True, "None"),
@@ -2293,15 +2287,16 @@ def test_integrated_color_option(
         # screen had already rendered and exited.
         pytest.param(("--help", "--color=always"), True, id="color-after-help"),
         pytest.param(("--version", "--color=always"), True, id="color-after-version"),
-        # A bare --color (GNU optional value) trailing --help still means always.
+        # A bare --color (GNU optional value) trailing an eager screen still means
+        # always.
         pytest.param(("--help", "--color"), True, id="bare-color-after-help"),
-        pytest.param(("--version", "--ansi"), True, id="ansi-after-version"),
+        pytest.param(("--version", "--color"), True, id="bare-color-after-version"),
         # No color request in a piped (non-TTY) run leaves the screens plain.
         pytest.param(("--help",), False, id="help-plain"),
         pytest.param(("--version",), False, id="version-plain"),
-        # Negative aliases win wherever they sit, even after --help.
+        # The negative --no-color wins wherever it sits, even after an eager screen.
         pytest.param(("--help", "--no-color"), False, id="no-color-after-help"),
-        pytest.param(("--version", "--no-ansi"), False, id="no-ansi-after-version"),
+        pytest.param(("--version", "--no-color"), False, id="no-color-after-version"),
         # The last color choice on the line wins, whatever --help's position.
         pytest.param(
             ("--help", "--color=never", "--color=always"), True, id="last-wins-on"
