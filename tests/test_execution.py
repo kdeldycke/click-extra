@@ -182,6 +182,24 @@ def test_default_collapses_to_sequential_warns(invoke):
     assert "only 2 logical CPUs are available" in result.stderr
 
 
+def test_resolved_job_count_logged_at_info(invoke):
+    """The resolved job count and os.cpu_count() are logged at info level."""
+
+    @command
+    @jobs_option
+    @pass_context
+    def cli(ctx):
+        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
+
+    with patch.multiple("click_extra.execution", CPU_COUNT=8, DEFAULT_JOBS=7):
+        result = invoke(cli, "--verbosity", "INFO", "--jobs", "4", color=False)
+
+    assert result.stdout == "Jobs: 4\n"
+    assert result.exit_code == 0
+    assert "Resolved --jobs to 4" in result.stderr
+    assert "os.cpu_count()=8 logical CPUs" in result.stderr
+
+
 def test_invalid_value(invoke):
     """Values that are neither an integer nor a known keyword are rejected."""
 

@@ -13,6 +13,7 @@
 - Add `{author}` and `{license}` version-string template variables, resolved from the package's core metadata.
 - `--jobs` (`JobsOption`) now accepts the keywords `auto` (one fewer than available logical CPUs) and `max` (all logical CPUs) on top of an integer; `0` runs sequentially and the displayed default is now `auto`. The count is `os.cpu_count()` (logical CPUs / hardware threads), not physical cores.
 - `--jobs auto`/`max` now log a warning when too few logical CPUs collapse them to a single, sequential job, so the silent fallback is not mistaken for parallel execution.
+- `--jobs` (`JobsOption`) logs the resolved job count and `os.cpu_count()` at info level, so `--verbosity INFO` reveals a command's parallelism.
 - Lower the Click floor from `8.4.1` to `8.3.1`, restoring support for the full range of Click releases from `8.3.1` onward. Compatibility shims cover the APIs introduced in Click `8.4.0`.
 - The `click:run` and `click:tree` Sphinx directives now capture executed CLIs at the file-descriptor level by default (Click `8.4`+), rendering commands that write through `sys.stdout.fileno()` instead of aborting the build; set `click_extra_run_capture` to `"sys"` to opt out.
 

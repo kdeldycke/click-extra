@@ -172,7 +172,10 @@ class JobsOption(ExtraOption):
         an integer by the time this runs. A value of ``0`` disables
         parallelism: it is rounded up to ``1`` (sequential execution) with a
         warning. Negative values are likewise clamped to ``1``, and a count
-        above the available cores is honored but warned about.
+        above the available cores is honored but warned about. The resolved
+        count is then logged at info level next to the host's logical CPU count
+        (:data:`CPU_COUNT`), so a CLI's parallelism is visible under
+        ``--verbosity INFO``.
         """
         if ctx.resilient_parsing:
             return
@@ -198,6 +201,14 @@ class JobsOption(ExtraOption):
             )
 
         context.set(ctx, context.JOBS, effective)
+
+        # Surface the resolved worker count so any CLI using --jobs can show its
+        # parallelism (and how it maps to the logical CPU count) under -v/INFO.
+        logger.info(
+            "Resolved --jobs to %d (os.cpu_count()=%s logical CPUs).",
+            effective,
+            CPU_COUNT if CPU_COUNT is not None else "unknown",
+        )
 
     def __init__(
         self,

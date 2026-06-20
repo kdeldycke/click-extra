@@ -119,7 +119,7 @@ A value of `0` disables parallelism: it is rounded up to `1` and a warning notes
 ```
 
 ```{tip}
-The resolved (clamped, validated) job count is published on `ctx.meta` as `JOBS` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
+The resolved (clamped, validated) job count is published on `ctx.meta` as `JOBS` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks. It is also logged at info level alongside the host's `os.cpu_count()`, so `--verbosity INFO` reveals how many workers a `--jobs` command will use.
 ```
 
 ## Zero exit code
