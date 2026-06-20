@@ -22,6 +22,7 @@
 - `--jobs` (`JobsOption`) logs the resolved job count and `os.cpu_count()` at info level, so `--verbosity INFO` reveals a command's parallelism.
 - Lower the Click floor from `8.4.1` to `8.3.1`, restoring support for the full range of Click releases from `8.3.1` onward. Compatibility shims cover the APIs introduced in Click `8.4.0`.
 - The `click:run` and `click:tree` Sphinx directives now capture executed CLIs at the file-descriptor level by default (Click `8.4`+), rendering commands that write through `sys.stdout.fileno()` instead of aborting the build; set `click_extra_run_capture` to `"sys"` to opt out.
+- Tolerate a missing `click_extra/themes.toml` data file instead of aborting at import: log a warning, fall back to the no-color theme, and make `--theme` inert when no built-in or config themes are available. Keeps CLIs usable when a packaging or distribution step drops the bundled data file.
 
 ## [`7.20.1` (2026-06-18)](https://github.com/kdeldycke/click-extra/compare/v7.20.0...v7.20.1)
 

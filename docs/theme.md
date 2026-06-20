@@ -111,6 +111,10 @@ Three flavors ship in `click_extra/themes.toml`:
 
 `click_extra.theme.BUILTIN_THEMES` is a `dict[str, HelpExtraTheme]` mapping the names above to their instances; it is built by parsing `click_extra/themes.toml` at import time and is seeded into `theme_registry` immediately afterwards. Read the TOML file directly for the exact palette mapping, or call `theme.to_dict()` at runtime to get a TOML/JSON-friendly dict.
 
+```{note}
+Some standalone-binary builders (Nuitka, PyInstaller) and trimmed downstream packages omit package data files, dropping `click_extra/themes.toml`. The file is then loaded leniently rather than aborting the import: click-extra logs a warning, leaves `BUILTIN_THEMES` empty, and keeps the colorless `nocolor_theme` as the default. CLIs stay usable, but `--theme` offers no built-in palettes until the data file is restored. For Nuitka, bundle it with `--include-package-data=click_extra`.
+```
+
 ### Palettes
 
 Every styled slot of each built-in theme, with the swatch and attribute decorations rendered live from the shipped `themes.toml` at Sphinx build time. The block below iterates `BUILTIN_THEMES` and calls `palette_html()` for each: downstream projects with their own custom themes can drop the same loop into their own docs to get matching swatch listings.

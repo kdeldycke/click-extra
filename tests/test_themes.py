@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 import re
 import sys
 from pathlib import Path
@@ -25,7 +26,7 @@ from pathlib import Path
 import pytest
 from cloup._util import identity
 
-from click_extra import Style
+from click_extra import Style, command, echo, option, theme as theme_mod
 from click_extra.theme import (
     BUILTIN_THEMES,
     LITERAL_STYLES,
@@ -328,3 +329,70 @@ def test_themes_meet_legibility_floor(theme_name):
         f"Slots below the legibility floor ({_LEGIBILITY_FLOOR}) on "
         f"{_THEME_BACKGROUNDS[theme_name]}: " + ", ".join(failures)
     )
+
+
+# --- Missing data file tolerance --------------------------------------------
+
+
+class _MissingResource:
+    """Stand-in for a Traversable whose ``themes.toml`` was dropped.
+
+    Some packaging and distribution setups (Nuitka onefile without
+    ``--include-package-data``, trimmed downstream rebuilds) omit the package
+    data file, so ``read_text`` raises as if the file never shipped.
+    """
+
+    def joinpath(self, *args: str) -> _MissingResource:
+        return self
+
+    def read_text(self, *args: object, **kwargs: object) -> str:
+        raise FileNotFoundError("simulated missing themes.toml")
+
+
+def test_load_builtin_themes_tolerates_missing_file(caplog, monkeypatch):
+    """A dropped themes.toml degrades to an empty mapping plus a warning."""
+    monkeypatch.setattr(
+        theme_mod.resources, "files", lambda package: _MissingResource()
+    )
+
+    with caplog.at_level(logging.WARNING, logger="click_extra"):
+        result = theme_mod._load_builtin_themes()
+
+    assert result == {}
+    assert "themes.toml" in caplog.text
+    assert "no-color theme" in caplog.text
+
+
+def test_themechoice_inert_when_registry_empty(monkeypatch):
+    """With no themes available, ThemeChoice ignores any value instead of failing.
+
+    Mirrors the runtime state once themes.toml is dropped: an empty registry
+    means even the built-in ``dark`` default cannot resolve, so ``convert``
+    returns None rather than aborting the invocation.
+    """
+    monkeypatch.setattr(theme_mod, "theme_registry", {})
+    choice = theme_mod.ThemeChoice()
+    assert choice.convert("dark", None, None) is None
+    assert choice.convert("light", None, None) is None
+
+
+def test_cli_runs_with_empty_theme_registry(invoke, monkeypatch):
+    """A CLI still runs when no themes are available (themes.toml dropped).
+
+    The built-in --theme option defaults to ``dark``; with an empty registry
+    that default must stay inert instead of crashing the whole command.
+    """
+    monkeypatch.setattr(theme_mod, "theme_registry", {})
+
+    @command
+    @option("--fruit", default="apple")
+    def greet(fruit):
+        echo(f"Picked {fruit}")
+
+    result = invoke(greet, ["--fruit", "banana"])
+    assert result.exit_code == 0
+    assert result.output == "Picked banana\n"
+
+    result = invoke(greet, ["--theme", "dark", "--fruit", "kiwi"])
+    assert result.exit_code == 0
+    assert result.output == "Picked kiwi\n"

@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import dataclasses
 import html
+import logging
 import re
 import sys
 from dataclasses import dataclass
@@ -744,7 +745,12 @@ def inject_slot_example_docstring(
     if not name.startswith(prefix):
         return
     slot = name[len(prefix) :]
-    rendered = _render_slot_ansi(BUILTIN_THEMES["dark"], slot)
+    # Skip the example when themes.toml is absent: there is no built-in
+    # "dark" palette to render the slot with.
+    default_theme = BUILTIN_THEMES.get("dark")
+    if default_theme is None:
+        return
+    rendered = _render_slot_ansi(default_theme, slot)
     if not rendered:
         return
     lines.append("")
@@ -961,6 +967,13 @@ class ThemeChoice(click.ParamType):
         if not isinstance(value, str):
             self.fail(f"{value!r} is not a string.", param, ctx)
         registry = get_theme_registry(ctx)
+        # No themes available at all: themes.toml was dropped by the packaging
+        # step and no config themes are defined. The --theme option is inert,
+        # so ignore the value (including the built-in "dark" default that can
+        # no longer be resolved) and let get_current_theme() fall back to the
+        # no-color default instead of failing the whole invocation.
+        if not registry:
+            return None
         lookup = {self._normalize(name): name for name in registry}
         canonical = lookup.get(self._normalize(value))
         if canonical is None:
@@ -1048,21 +1061,37 @@ def _load_builtin_themes() -> dict[str, HelpExtraTheme]:
     """Parse ``themes.toml`` into a ``{name: HelpExtraTheme}`` mapping.
 
     Each top-level table maps to a :class:`HelpExtraTheme` via
-    :meth:`HelpExtraTheme.from_dict`. Failures surface immediately at import
-    time so a malformed shipped TOML cannot silently degrade ``--theme``.
+    :meth:`HelpExtraTheme.from_dict`. A malformed payload still surfaces
+    immediately at import time so a corrupt shipped TOML cannot silently
+    degrade ``--theme``.
 
     Reads the file via :mod:`importlib.resources` so the load works under
     zipped imports (PyOxidizer, PEX, certain Nuitka modes) where
     ``Path(__file__).parent`` doesn't resolve to a real filesystem location.
+
+    .. note::
+        Some packaging and distribution setups drop the ``themes.toml`` data
+        file because they don't bundle package data (Nuitka onefile without
+        ``--include-package-data``, trimmed downstream rebuilds). A missing
+        file is tolerated rather than fatal: the function logs a warning on
+        the ``click_extra`` logger and returns an empty mapping, so importing
+        the package never aborts. The CLI then keeps the colorless
+        :data:`nocolor_theme` as its default (see the module footer) and
+        ``--theme`` simply offers no built-in choices.
     """
-    payload = (
-        resources
-        .files(__package__)
-        .joinpath("themes.toml")
-        .read_text(
-            encoding="utf-8",
+    resource = resources.files(__package__).joinpath("themes.toml")
+    try:
+        payload = resource.read_text(encoding="utf-8")
+    except OSError as error:
+        logging.getLogger("click_extra").warning(
+            "Could not read the packaged %r data file (%s). Built-in themes "
+            "are unavailable: falling back to the no-color theme. A packaging "
+            "or distribution step likely dropped the file, like a Nuitka or "
+            "PyInstaller build without package-data bundling.",
+            f"{__package__}/themes.toml",
+            error,
         )
-    )
+        return {}
     raw = tomllib.loads(payload)
     return {name: HelpExtraTheme.from_dict(data) for name, data in raw.items()}
 
@@ -1077,6 +1106,10 @@ table with one inline-table per styled slot.
 
 Index by name to access any palette, e.g. ``BUILTIN_THEMES["dark"]`` or
 ``BUILTIN_THEMES["solarized_dark"]``.
+
+Empty when the ``themes.toml`` data file is absent (some packaging and
+distribution setups drop it); see :func:`_load_builtin_themes` for the
+fallback behavior.
 """
 
 
@@ -1099,4 +1132,8 @@ the glyph is exposed unstyled.
 
 
 theme_registry.update(BUILTIN_THEMES)
-set_default_theme(BUILTIN_THEMES["dark"])
+# When themes.toml is missing (some packaging/distribution setups drop the data
+# file), BUILTIN_THEMES is empty: keep the no-color fallback installed above
+# rather than crashing on a missing "dark" key.
+if "dark" in BUILTIN_THEMES:
+    set_default_theme(BUILTIN_THEMES["dark"])

@@ -56,13 +56,15 @@ from boltons.formatutils import BaseFormatField, tokenize_format_str
 from . import Style, echo, get_current_context
 from .context import _LazyMetaDict
 from .parameters import ExtraOption
-from .theme import BUILTIN_THEMES
+from .theme import BUILTIN_THEMES, nocolor_theme
 
 # Frozen reference to the default theme's invoked-command style. Used as the
 # default for several version-template fields below. Captured at module load
 # time on purpose: defaults bind once at function-definition time, so reading
 # through ``get_default_theme()`` here would hide later overrides anyway.
-_default_invoked_command = BUILTIN_THEMES["dark"].invoked_command
+# Falls back to the colorless theme when themes.toml is absent (some packaging
+# setups drop the data file, so the built-in "dark" palette is unavailable).
+_default_invoked_command = BUILTIN_THEMES.get("dark", nocolor_theme).invoked_command
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

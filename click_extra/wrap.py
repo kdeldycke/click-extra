@@ -43,7 +43,7 @@ from .decorators import columns_option
 from .man_page import render_manpage, write_manpages
 from .parameters import ShowParamsOption, render_params_table
 from .table import DEFAULT_FORMAT, TableFormat
-from .theme import BUILTIN_THEMES, HelpExtraTheme, set_default_theme
+from .theme import BUILTIN_THEMES, HelpExtraTheme, nocolor_theme, set_default_theme
 
 logger = logging.getLogger("click_extra")
 
@@ -211,8 +211,10 @@ def unpatch_click() -> None:
     ColorizedCommand.context_class = ExtraContext
     ColorizedGroup.context_class = ExtraContext
 
-    # Restore the default theme.
-    set_default_theme(BUILTIN_THEMES["dark"])
+    # Restore the default theme. Fall back to the colorless theme when
+    # themes.toml is absent (some packaging setups drop the data file, so the
+    # built-in "dark" palette is unavailable).
+    set_default_theme(BUILTIN_THEMES.get("dark", nocolor_theme))
 
 
 def resolve_target(script: str) -> tuple[str, str]:
