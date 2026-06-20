@@ -167,7 +167,9 @@ class ClickRunner(CliRunner):
         # Windows does not support fd-backed streams (no Unix file descriptors), so
         # fall back to "sys" when the caller has not pinned a mode explicitly.
         if _CLIRUNNER_HAS_CAPTURE:
-            default_capture = "sys" if sys.platform == "win32" else "fd"
+            default_capture: Literal["sys", "fd"] = (
+                "sys" if sys.platform == "win32" else "fd"
+            )
             super().__init__(echo_stdin=True, capture=capture or default_capture)
         else:
             super().__init__(echo_stdin=True)
