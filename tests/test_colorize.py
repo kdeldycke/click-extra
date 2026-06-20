@@ -2283,6 +2283,57 @@ def test_integrated_color_option(
 
 
 @pytest.mark.parametrize(
+    ("args", "expecting_colors"),
+    (
+        # A --color placed before the eager screen has always worked.
+        pytest.param(("--color=always", "--help"), True, id="color-before-help"),
+        pytest.param(("--color=always", "--version"), True, id="color-before-version"),
+        # ...and now also when placed after it. Click processes eager options in
+        # command-line order, so a late --color used to pin ctx.color only after the
+        # screen had already rendered and exited.
+        pytest.param(("--help", "--color=always"), True, id="color-after-help"),
+        pytest.param(("--version", "--color=always"), True, id="color-after-version"),
+        # A bare --color (GNU optional value) trailing --help still means always.
+        pytest.param(("--help", "--color"), True, id="bare-color-after-help"),
+        pytest.param(("--version", "--ansi"), True, id="ansi-after-version"),
+        # No color request in a piped (non-TTY) run leaves the screens plain.
+        pytest.param(("--help",), False, id="help-plain"),
+        pytest.param(("--version",), False, id="version-plain"),
+        # Negative aliases win wherever they sit, even after --help.
+        pytest.param(("--help", "--no-color"), False, id="no-color-after-help"),
+        pytest.param(("--version", "--no-ansi"), False, id="no-ansi-after-version"),
+        # The last color choice on the line wins, whatever --help's position.
+        pytest.param(
+            ("--help", "--color=never", "--color=always"), True, id="last-wins-on"
+        ),
+        pytest.param(
+            ("--help", "--color=always", "--no-color"), False, id="last-wins-off"
+        ),
+    ),
+)
+def test_color_settles_before_eager_help_and_version(invoke, args, expecting_colors):
+    """--color / --no-color colorize the eager --help and --version screens whatever
+    their position on the command line.
+
+    Click processes eager options in command-line order, so a --color sitting after
+    --help or --version would otherwise pin ``ctx.color`` only once the screen had
+    already printed and exited. ``Command.parse_args`` settles the color options in a
+    pre-pass to close that gap. See ``Command._resolve_color_eagerly``.
+    """
+
+    @command
+    def color_cli():
+        # Never reached: --help / --version short-circuit before invocation.
+        echo(style("Unreached.", fg="yellow"))
+
+    # Omitting the runner's color keeps it in piped (non-TTY) mode without stripping
+    # ANSI, so only an explicit --color can introduce color codes into the screen.
+    result = invoke(color_cli, *args)
+    assert result.exit_code == 0
+    assert ("\x1b[" in result.output) is expecting_colors
+
+
+@pytest.mark.parametrize(
     ("content", "patterns", "expected", "ignore_case"),
     (
         # Function input types.

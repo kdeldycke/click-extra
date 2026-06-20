@@ -28,6 +28,7 @@ from difflib import get_close_matches
 
 import click
 import cloup
+from click.core import iter_params_for_processing
 
 from . import context
 from .accessibility import AccessibleOption
@@ -433,11 +434,71 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         extra.update({"meta": {context.RAW_ARGS: args.copy()}})
         return super().make_context(info_name, args, parent, **extra)
 
+    def _resolve_color_eagerly(self, ctx: click.Context, args: list[str]) -> None:
+        """Settle the color options before any other eager option can render.
+
+        Click processes eager options in command-line order, so a ``--color`` /
+        ``--no-color`` placed *after* ``--help`` or ``--version`` would pin
+        ``ctx.color`` too late: the help or version screen renders and exits first,
+        ignoring it. This pre-pass resolves the
+        :class:`~click_extra.colorize.ColorOption` and
+        :class:`~click_extra.colorize.NoColorOption` ahead of the regular parameter
+        loop, so an explicit color choice colorizes those eager screens whatever its
+        position on the command line.
+
+        This is the command-line counterpart to the environment pre-seed in
+        :meth:`click_extra.context.Context.__init__`, which already settles
+        ``FORCE_COLOR`` / ``NO_COLOR`` at context-construction time. Configuration
+        files and ``--accessible`` are deliberately left to the regular loop, matching
+        that pre-seed's scope.
+
+        .. note::
+            The color options are resolved a second time by
+            ``super().parse_args()``. Their callbacks are idempotent (no env-var side
+            effects, no prompt), so re-running them lands the exact same ``ctx.color``,
+            and :meth:`click_extra.parameters.ExtraOption.handle_parse_result` skips its
+            source pre-record once the slot already carries one.
+        """
+        color_params = [
+            param
+            for param in self.get_params(ctx)
+            if isinstance(param, (ColorOption, NoColorOption))
+        ]
+        if not color_params:
+            return
+
+        # Only pay for a re-parse when a color flag actually sits on the command line.
+        color_flags = {
+            flag
+            for param in color_params
+            for flag in (*param.opts, *param.secondary_opts)
+        }
+        if not any(arg.split("=", 1)[0] in color_flags for arg in args):
+            return
+
+        parser = self.make_parser(ctx)
+        try:
+            opts, _, param_order = parser.parse_args(args=args.copy())
+            # Respect the relative command-line order of --color and --no-color so
+            # the last one wins, matching how the regular loop would arbitrate them.
+            for param in iter_params_for_processing(param_order, color_params):
+                param.handle_parse_result(ctx, opts, args.copy())
+        except click.ClickException:
+            # Defer every parsing and validation error (and its enhanced message) to
+            # the regular parse below, which renders an eager --help/--version first
+            # when present. This pre-pass must never surface an error on its own.
+            return
+
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
         """Like parent's ``parse_args`` but with better error messages for
         single-dash multi-character tokens.
+
+        Also settles the color options before delegating, so ``--color`` /
+        ``--no-color`` colorize the eager help and version screens regardless of their
+        position on the command line. See :meth:`_resolve_color_eagerly`.
         """
         original_args = args.copy()
+        self._resolve_color_eagerly(ctx, args)
         try:
             return super().parse_args(ctx, args)
         except click.NoSuchOption as exc:
