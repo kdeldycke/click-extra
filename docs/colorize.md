@@ -249,11 +249,11 @@ assert "Hello without color." in result.output
 
 ## `--accessible` flag
 
-A screen reader consumes a terminal as a linear stream of characters. Two defaults that please sighted users work against that stream: ANSI color codes carry no meaning once flattened to text, and tables drawn with Unicode box-drawing characters (`│`, `╭`, `─`, …) turn their borders and whitespace-based column alignment into noise.
+A screen reader consumes a terminal as a linear stream of characters. Several defaults that please sighted users work against that stream: ANSI color codes carry no meaning once flattened to text; tables drawn with Unicode box-drawing characters (`│`, `╭`, `─`, …) turn their borders and whitespace-based column alignment into noise; animated progress spinners and bars repeat frames a reader cannot watch advance; and interactive takeovers like a pager or a screen-clear trap or wipe the stream the reader is following.
 
-The `--accessible` flag folds both concerns into a single switch. Enabling it is equivalent to passing `--no-color --table-format plain`: ANSI codes are stripped and tables render without borders. The `ACCESSIBLE` environment variable enables the same mode, so a user can opt in once for every Click Extra command they run.
+The `--accessible` flag folds these concerns into a single switch. Enabling it is equivalent to passing `--no-color --no-progress --table-format plain`, and additionally streams `click_extra.echo_via_pager` output straight to stdout instead of spawning a pager and turns `click_extra.clear` into a no-op: ANSI codes are stripped, progress indicators are silenced, tables render without borders, and no interactive view takes over the screen. The `ACCESSIBLE` environment variable enables the same mode, so a user can opt in once for every Click Extra command they run.
 
-The flag only lowers the *defaults* of `--color` and `--table-format`. An explicit `--color` or `--table-format` on the command line, or in a configuration file, keeps precedence. The resulting order is: command line > configuration file > `--accessible` > built-in defaults. There is no `--no-accessible`: to opt back out of a single value, pass the explicit option you want.
+The flag only lowers the *defaults* of `--color`, `--progress` and `--table-format` (and publishes its own resolved state for the `click_extra.clear` and `click_extra.echo_via_pager` helpers to read). An explicit `--color`, `--progress` or `--table-format` on the command line, or in a configuration file, keeps precedence. The resulting order is: command line > configuration file > `--accessible` > built-in defaults. There is no `--no-accessible`: to opt back out of a single value, pass the explicit option you want.
 
 ```{click:source}
 from click_extra import command, pass_context, style, Color

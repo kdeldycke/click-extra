@@ -221,6 +221,38 @@ Spinner display is **decoupled from color**. A spinner is an interactivity conce
 
 The resolved value is `False` only for **non-interactive output** (a pipe, a `TERM=dumb` terminal, or CI: handled by the widget's own check when you pass `enabled=None`) and for **explicit intent** (`--no-progress` or `--accessible`, the latter so a screen reader is never handed a spinning glyph).
 
+## Progress bars
+
+The same `--progress`/`--no-progress` flag also gates Click's *determinate* progress bar. `click_extra.progressbar` is a drop-in for [`click.progressbar`](https://click.palletsprojects.com/en/stable/api/#click.progressbar): it reads the resolved flag and hides the bar when progress is off, so a single `--no-progress` (or `--accessible`) silences both the indeterminate spinner and the determinate bar.
+
+```{click:source}
+from click_extra import command, progressbar
+
+
+@command
+def harvest():
+    """Pick apples behind a determinate progress bar."""
+    with progressbar((1, 2, 3), label="Picking apples") as bar:
+        for _ in bar:
+            pass
+```
+
+```{click:run}
+# Shown by default: off a TTY the bar emits its label once.
+result = invoke(harvest, args=[])
+assert result.exit_code == 0
+assert "Picking apples" in result.output
+```
+
+```{click:run}
+# --no-progress hides the bar entirely, exactly as it stops the spinner.
+result = invoke(harvest, args=["--no-progress"])
+assert result.exit_code == 0
+assert "Picking apples" not in result.output
+```
+
+The `hidden` argument stays authoritative: pass an explicit `hidden=True` or `hidden=False` to force the bar regardless of the flag, mirroring how an explicit `color=` overrides `ctx.color` on `click.echo`. Color is handled upstream too, since Click renders the bar through `click.echo`: `--no-color` and `NO_COLOR` strip its ANSI without any extra wiring.
+
 ## `click_extra.spinner` API
 
 ```{eval-rst}

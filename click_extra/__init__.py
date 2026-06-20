@@ -62,7 +62,7 @@ Style = _styling_module.Style  # type: ignore[misc]
 del _styling_module
 
 from . import context
-from .accessibility import AccessibleOption
+from .accessibility import AccessibleOption, clear, echo_via_pager
 from .colorize import (
     ColorOption,
     HelpExtraFormatter,
@@ -151,7 +151,13 @@ from .parameters import (
     get_param_spec,
     search_params,
 )
-from .spinner import SPINNERS, ProgressOption, Spinner, SpinnerPreset
+from .spinner import (  # type: ignore[no-redef]
+    SPINNERS,
+    ProgressOption,
+    Spinner,
+    SpinnerPreset,
+    progressbar,
+)
 from .table import (
     ColumnsOption,
     ColumnSpec,

@@ -65,6 +65,7 @@ KEY_CONSTANTS: tuple[tuple[str, str], ...] = (
     ("THEME_OVERRIDES", "click_extra.theme.overrides"),
     ("TELEMETRY", "click_extra.telemetry"),
     ("PROGRESS", "click_extra.progress"),
+    ("ACCESSIBLE", "click_extra.accessible"),
     ("ZERO_EXIT", "click_extra.zero_exit"),
 )
 """Pairs of ``(attribute name, raw string key)`` for every registered

@@ -326,6 +326,71 @@ def test_progress_option_resolution(invoke, args, expected):
     assert f"progress={expected}" in result.stdout
 
 
+@pytest.mark.parametrize(
+    ("args", "expected_hidden"),
+    (
+        # Shown by default.
+        ((), False),
+        # --no-progress hides the determinate bar, just like the spinner.
+        (("--no-progress",), True),
+        # Color is decoupled: --no-color keeps the bar, only stripping its color.
+        (("--no-color",), False),
+        # --accessible hides it: a screen reader wants no animated bar.
+        (("--accessible",), True),
+    ),
+)
+def test_progressbar_follows_progress_flag(invoke, args, expected_hidden):
+    """click_extra.progressbar gates ``hidden`` on the resolved --progress flag."""
+
+    @command
+    def cli():
+        bar = click_extra.progressbar([1, 2, 3], label="Brewing tea")
+        echo(f"hidden={bar.hidden}")
+
+    result = invoke(cli, *args)
+    assert f"hidden={expected_hidden}" in result.stdout
+
+
+@pytest.mark.parametrize("forced", (True, False))
+def test_progressbar_explicit_hidden_overrides_flag(invoke, forced):
+    """An explicit ``hidden=`` wins over --no-progress, like echo(color=...)."""
+
+    @command
+    def cli():
+        bar = click_extra.progressbar([1, 2, 3], hidden=forced)
+        echo(f"hidden={bar.hidden}")
+
+    # --no-progress would otherwise force hidden=True; the explicit value stands.
+    result = invoke(cli, "--no-progress")
+    assert f"hidden={forced}" in result.stdout
+
+
+def test_progressbar_shown_without_active_context():
+    """Outside a Click command the bar defaults to shown, like click.progressbar."""
+    bar = click_extra.progressbar([1, 2, 3])
+    assert bar.hidden is False
+
+
+@pytest.mark.parametrize(
+    ("args", "label_shown"),
+    (
+        ((), True),
+        (("--no-progress",), False),
+    ),
+)
+def test_progressbar_label_emission_off_tty(invoke, args, label_shown):
+    """Off a TTY a shown bar still emits its label once; a hidden one emits nothing."""
+
+    @command
+    def cli():
+        with click_extra.progressbar([1, 2, 3], label="Brewing tea") as bar:
+            for _ in bar:
+                pass
+
+    result = invoke(cli, *args)
+    assert ("Brewing tea" in result.output) is label_shown
+
+
 @pytest.mark.parametrize("term", ("dumb", "unknown"))
 def test_dumb_terminal_disables_spinner(monkeypatch, term):
     """A cursor-less terminal self-disables the spinner even on a TTY."""

@@ -334,6 +334,25 @@ intent (``--no-progress`` / ``--accessible``), never on ``--no-color`` /
 """
 
 
+# --- Accessibility ------------------------------------------------------------
+
+ACCESSIBLE: Final[str] = "click_extra.accessible"
+"""``True`` when the user requested screen-reader-friendly output.
+
+Written by :class:`click_extra.accessibility.AccessibleOption.set_accessible`
+after reconciling the ``--accessible`` flag with the ``ACCESSIBLE`` environment
+variable. Read by output helpers that must degrade a cursor-driven element to a
+linear stream: :func:`click_extra.accessibility.clear` becomes a no-op and
+:func:`click_extra.accessibility.echo_via_pager` writes its text straight to
+stdout instead of spawning a pager.
+
+This is the *readable* counterpart to the ``--color`` / ``--progress`` /
+``--table-format`` defaults that ``--accessible`` also lowers: those are consumed
+through their own resolved values (``ctx.color``, :data:`PROGRESS`, the table
+format), while this flag exposes the accessibility intent itself.
+"""
+
+
 # --- Exit code ----------------------------------------------------------------
 
 ZERO_EXIT: Final[str] = "click_extra.zero_exit"

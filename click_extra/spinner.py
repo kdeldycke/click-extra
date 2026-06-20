@@ -54,7 +54,7 @@ import sys
 import threading
 import time
 from gettext import gettext as _
-from typing import NamedTuple
+from typing import NamedTuple, TypeVar
 
 import click
 
@@ -64,10 +64,11 @@ from .styling import Style
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
     from types import TracebackType
     from typing import IO, Any, Final
 
+    from click._termui_impl import ProgressBar
     from typing_extensions import Self
 
 
@@ -1370,7 +1371,7 @@ class ProgressOption(ExtraOption):
         is_eager=True,
         expose_value=False,
         help=_(
-            "Show a progress spinner during long operations. Disabled for "
+            "Show progress indicators during long operations. Disabled for "
             "non-interactive output (pipes, dumb terminals, CI) and by --accessible."
         ),
         **kwargs,
@@ -1389,3 +1390,42 @@ class ProgressOption(ExtraOption):
             help=help,
             **kwargs,
         )
+
+
+V = TypeVar("V")
+
+
+def progressbar(
+    iterable: Iterable[V] | None = None,
+    length: int | None = None,
+    label: str | None = None,
+    hidden: bool | None = None,
+    **kwargs: Any,
+) -> ProgressBar[V]:
+    """Drop-in for :func:`click.progressbar` honoring ``--progress`` / ``--no-progress``.
+
+    Click's own progress bar is *determinate*, the counterpart to the
+    indeterminate :class:`Spinner`. This thin wrapper gates it on the same
+    :data:`~click_extra.context.PROGRESS` flag the spinner uses, so a single
+    ``--no-progress`` (or ``--accessible``, which lowers the ``progress`` default)
+    silences both.
+
+    :param hidden: tri-state. Left at its default ``None``, the bar follows the
+        resolved ``--progress`` flag: hidden when the user (or ``--accessible``)
+        turned progress off, shown otherwise. An explicit ``True`` or ``False``
+        forces the bar regardless, mirroring how an explicit ``color=`` argument
+        overrides ``ctx.color`` on :func:`click.echo`. With no active context (the
+        bar used outside a Click command) it defaults to shown.
+
+    .. note::
+        Only ``--no-progress`` is wired here. Color is already handled upstream:
+        Click renders the bar through :func:`click.echo`, whose ``color=None``
+        resolves against ``ctx.color``, so ``--no-color`` / ``NO_COLOR`` strip the
+        bar's ANSI without any work from this wrapper.
+    """
+    if hidden is None:
+        ctx = click.get_current_context(silent=True)
+        hidden = ctx is not None and not context.get(ctx, context.PROGRESS, True)
+    return click.progressbar(
+        iterable, length=length, label=label, hidden=hidden, **kwargs
+    )

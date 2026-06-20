@@ -19,6 +19,7 @@ from __future__ import annotations
 import click
 import pytest
 
+import click_extra
 from click_extra import (
     AccessibleOption,
     Color,
@@ -31,7 +32,7 @@ from click_extra import (
     table_format_option,
 )
 from click_extra.commands import default_extra_params
-from click_extra.context import TABLE_FORMAT
+from click_extra.context import ACCESSIBLE, TABLE_FORMAT
 
 
 @pytest.fixture
@@ -131,3 +132,81 @@ def test_standalone_decorator_on_plain_click_command(invoke):
     assert result.exit_code == 0
     assert "color=False" in result.stdout
     assert "table_format=plain" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    (((), False), (("--accessible",), True)),
+)
+def test_accessible_flag_published_to_context(invoke, args, expected):
+    """set_accessible publishes the resolved intent at ctx.meta[ACCESSIBLE]."""
+
+    @command
+    @pass_context
+    def cli(ctx):
+        echo(f"accessible={ctx.meta.get(ACCESSIBLE)}")
+
+    result = invoke(cli, *args)
+    assert f"accessible={expected}" in result.stdout
+
+
+def test_clear_is_noop_under_accessible(invoke, monkeypatch):
+    """clear() defers to click.clear normally, but no-ops under --accessible."""
+    calls = []
+    monkeypatch.setattr(click, "clear", lambda: calls.append(1))
+
+    @command
+    def cli():
+        click_extra.clear()
+
+    assert invoke(cli).exit_code == 0
+    assert calls == [1]  # Deferred to click.clear.
+
+    calls.clear()
+    assert invoke(cli, "--accessible").exit_code == 0
+    assert calls == []  # Bypassed.
+
+
+def test_echo_via_pager_streams_plainly_under_accessible(invoke, monkeypatch):
+    """echo_via_pager pages normally, but writes straight to stdout under --accessible."""
+    paged = []
+    monkeypatch.setattr(click, "echo_via_pager", lambda *a, **k: paged.append(a))
+
+    def fruit_pages():
+        yield "kiwi\n"
+        yield "mango\n"
+
+    @command
+    def cli():
+        click_extra.echo_via_pager("apricot\n")  # str
+        click_extra.echo_via_pager(fruit_pages)  # generator function
+        click_extra.echo_via_pager(["pear\n", "plum\n"])  # iterable
+
+    # Normal mode: every call is handed to the pager.
+    result = invoke(cli)
+    assert result.exit_code == 0
+    assert len(paged) == 3
+
+    # Accessible mode: the pager is bypassed and the text streamed in order.
+    paged.clear()
+    result = invoke(cli, "--accessible")
+    assert result.exit_code == 0
+    assert paged == []
+    assert result.stdout == "apricot\nkiwi\nmango\npear\nplum\n"
+
+
+def test_pager_and_clear_defer_without_accessible_option(invoke, monkeypatch):
+    """With no --accessible option wired, the wrappers defer to Click unchanged."""
+    paged, cleared = [], []
+    monkeypatch.setattr(click, "echo_via_pager", lambda *a, **k: paged.append(a))
+    monkeypatch.setattr(click, "clear", lambda: cleared.append(1))
+
+    @click.command
+    def standalone():
+        click_extra.echo_via_pager("apricot\n")
+        click_extra.clear()
+
+    result = invoke(standalone)
+    assert result.exit_code == 0
+    assert len(paged) == 1
+    assert cleared == [1]
