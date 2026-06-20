@@ -48,8 +48,9 @@ internal call sites and downstream code can converge on a single spelling.
 
 from __future__ import annotations
 
+import functools
 import os
-from typing import Any
+from typing import Any, ParamSpec, TypeVar, cast
 
 import click
 import cloup
@@ -58,7 +59,11 @@ from .colorize import HelpFormatter, resolve_color_env
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Final
+    from collections.abc import Callable
+    from typing import Concatenate, Final
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 POSIXLY_CORRECT_ENVVAR: Final[str] = "POSIXLY_CORRECT"
@@ -432,6 +437,29 @@ commands that suppress their non-zero "problems found" exit code and return
 
 
 # --- Helpers ------------------------------------------------------------------
+
+
+def pass_context(func: Callable[Concatenate[Context, P], R]) -> Callable[P, R]:
+    """Mark a callback as wanting the active :class:`Context` as its first argument.
+
+    Click's own :func:`click.pass_context` is typed for the base
+    :class:`click.Context`. A handler annotated with click-extra's enhanced
+    :class:`Context` (to reach its extra helpers like ``ctx.print_table``)
+    therefore fails static type checking: function parameters are contravariant,
+    so ``Callable[[Context], R]`` is not assignable where a
+    ``Callable[[click.Context], R]`` is expected.
+
+    This drop-in is typed for the enhanced :class:`Context` and still accepts
+    handlers typed for the base ``click.Context`` (a wider first parameter is
+    allowed), so both type-check. At runtime it forwards the active context
+    unchanged, exactly like :func:`click.pass_context`.
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        return func(cast(Context, click.get_current_context()), *args, **kwargs)
+
+    return wrapper
 
 
 def get(ctx: click.Context, key: str, default: Any = None) -> Any:

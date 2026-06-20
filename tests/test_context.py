@@ -372,3 +372,24 @@ def test_lazy_meta_dict_independent_keys_resolve_independently() -> None:
     d["click_extra.alpha"]
     assert source.access_count["alpha"] == 1
     assert source.access_count["beta"] == 0
+
+
+def test_pass_context_typed_for_enhanced_context(invoke):
+    """@pass_context accepts a handler typed with the enhanced Context.
+
+    Click's own pass_context is typed for the base click.Context, so annotating
+    the handler with click-extra's Context (to reach its extra helpers) would
+    fail static type checks by parameter contravariance. This must both
+    type-check (mypy covers this file) and forward the active enhanced Context
+    at runtime.
+    """
+    from click_extra import command, echo, pass_context
+
+    @command
+    @pass_context
+    def cli(ctx: Context) -> None:
+        echo(type(ctx).__name__)
+
+    result = invoke(cli)
+    assert result.exit_code == 0
+    assert result.stdout == "Context\n"

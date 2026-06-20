@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .colorize import HelpFormatter
     from .commands import Command, Group
-    from .context import Context
+    from .context import Context, pass_context
     from .parameters import Argument, Option
     from .styling import Style
     from .theme import HelpTheme
@@ -103,7 +103,7 @@ from .config import (
     normalize_config_keys,
     run_config_validation,
 )
-from .context import Context
+from .context import Context, pass_context
 from .decorators import (  # type: ignore[no-redef]
     accessible_option,
     argument,
