@@ -782,7 +782,7 @@ def _apply_nested_schema(
     but normalization is requested.  Returns ``value`` unchanged otherwise.
     """
     if is_dataclass(hint):
-        sub = _make_schema_callable(hint, strict=strict, normalize=do_normalize)
+        sub = make_schema_callable(hint, strict=strict, normalize=do_normalize)
         return sub(value) if sub else value
     if do_normalize:
         return normalize_config_keys(value)
@@ -800,7 +800,7 @@ def _from_dataclass(
 
     Handles explicit ``config_path`` metadata, type-aware normalization and
     flattening, nested dataclass recursion, and strict validation.  Called by
-    ``_make_schema_callable`` for dataclass schemas.
+    ``make_schema_callable`` for dataclass schemas.
     """
     all_fields = dc_fields(schema)
     known = {f.name for f in all_fields}
@@ -857,7 +857,7 @@ def _from_dataclass(
             and f.name in flattened
             and isinstance(flattened[f.name], dict)
         ):
-            sub = _make_schema_callable(hint, strict=strict)  # type: ignore[arg-type]
+            sub = make_schema_callable(hint, strict=strict)  # type: ignore[arg-type]
             flattened[f.name] = sub(flattened[f.name]) if sub else flattened[f.name]
 
     # --- Phase 4: merge and validate. ---
@@ -879,7 +879,7 @@ def _from_dataclass(
     return schema(**{k: v for k, v in result.items() if k in known})
 
 
-def _make_schema_callable(
+def make_schema_callable(
     schema: type | Callable[[dict[str, Any]], Any] | None,
     *,
     strict: bool = False,
@@ -1131,7 +1131,7 @@ def run_config_validation(
 
     # Stage 4 — build the typed schema instance from the app section.
     schema_instance = None
-    schema_callable = _make_schema_callable(config_schema, strict=schema_strict)
+    schema_callable = make_schema_callable(config_schema, strict=schema_strict)
     if schema_callable is not None:
         try:
             schema_instance = schema_callable(app_section)
@@ -1427,7 +1427,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         Works with all configuration formats.
         """
 
-        self._config_schema_callable = _make_schema_callable(
+        self._config_schema_callable = make_schema_callable(
             config_schema,
             strict=schema_strict,
         )

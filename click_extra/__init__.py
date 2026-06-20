@@ -99,6 +99,7 @@ from .config import (
     ValidationReport,
     flatten_config_keys,
     get_tool_config,
+    make_schema_callable,
     normalize_config_keys,
     run_config_validation,
 )
@@ -334,6 +335,7 @@ __all__ = [
     "launch",
     "lazy_group",
     "make_pass_decorator",
+    "make_schema_callable",
     "man_option",
     "new_logger",
     "no_color_option",

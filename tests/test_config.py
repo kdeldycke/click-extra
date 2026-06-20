@@ -5275,3 +5275,26 @@ def test_run_config_validation_no_schema_no_template():
     assert report.ok
     assert report.schema_instance is None
     assert report.opaque_subtrees == {}
+
+
+def test_make_schema_callable_coerces_dict_to_dataclass():
+    """The public make_schema_callable turns a raw config dict into a dataclass."""
+    from dataclasses import dataclass
+
+    from click_extra import make_schema_callable
+    from click_extra.config import _make_schema_callable
+
+    # The deprecated private alias points at the public function.
+    assert _make_schema_callable is make_schema_callable
+
+    @dataclass
+    class Forecast:
+        city: str = "paris"
+        high_c: int = 0
+
+    load = make_schema_callable(Forecast)
+    # Hyphenated keys are normalized to field names.
+    assert load({"city": "lyon", "high-c": 21}) == Forecast(city="lyon", high_c=21)
+    # A non-dataclass callable is returned as-is; None passes through.
+    assert make_schema_callable(str) is str
+    assert make_schema_callable(None) is None

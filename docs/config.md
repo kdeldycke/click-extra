@@ -306,6 +306,25 @@ Variables in `meta` are presented in their original Python type:
 - `click_extra.conf_full` is a `dict` whose values are either `str` or richer types, depending on the capabilities of [each format](#formats)
 ```
 
+## Coerce a config dict into a dataclass
+
+When you load configuration yourself (or expose a `[tool.<name>]` section consumers fill in), `make_schema_callable(MyDataclass)` returns a callable that turns a raw dict into a validated `MyDataclass` instance. It is the same machinery `config_option` and `get_tool_config` use under the hood: hyphenated keys are normalized to field names, dotted `click_extra.config_path` field metadata is honored, and nested dataclasses are coerced recursively.
+
+```python
+from dataclasses import dataclass
+from click_extra import make_schema_callable
+
+@dataclass
+class Forecast:
+    city: str = "paris"
+    high_c: int = 0
+
+load = make_schema_callable(Forecast)
+load({"city": "lyon", "high-c": 21})  # Forecast(city="lyon", high_c=21)
+```
+
+Pass `strict=True` to reject keys that match no field. A non-dataclass callable (a Pydantic `.model_validate`, say) is returned unchanged, and `None` passes through.
+
 ## Strictness
 
 As you can see [in the first example above](#standalone-option), all unrecognized content is ignored.
