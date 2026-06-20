@@ -1077,7 +1077,8 @@ def _load_builtin_themes() -> dict[str, HelpExtraTheme]:
         the ``click_extra`` logger and returns an empty mapping, so importing
         the package never aborts. The CLI then keeps the colorless
         :data:`nocolor_theme` as its default (see the module footer) and
-        ``--theme`` simply offers no built-in choices.
+        ``--theme`` offers no built-in choices, though themes declared in a
+        CLI's config file (``[tool.<cli>.themes.<name>]``) remain available.
     """
     resource = resources.files(__package__).joinpath("themes.toml")
     try:
@@ -1085,9 +1086,10 @@ def _load_builtin_themes() -> dict[str, HelpExtraTheme]:
     except OSError as error:
         logging.getLogger("click_extra").warning(
             "Could not read the packaged %r data file (%s). Built-in themes "
-            "are unavailable: falling back to the no-color theme. A packaging "
-            "or distribution step likely dropped the file, like a Nuitka or "
-            "PyInstaller build without package-data bundling.",
+            "are unavailable: falling back to the no-color theme. The file was "
+            "likely dropped by a packaging or distribution step. You can still "
+            "define your own themes in your config file, like a "
+            "[tool.<cli>.themes.<name>] table in pyproject.toml.",
             f"{__package__}/themes.toml",
             error,
         )
