@@ -52,7 +52,20 @@ Running 3 test cases across 7 workers (os.cpu_count()=8).
 Test plan results - Total: 3, Skipped: 0, Failed: 0
 ```
 
-Cases run in parallel by default, one fewer than the available logical CPUs (see [`--jobs`](execution.md#parallel-jobs)). Pass `--jobs max` to use every core, or `--jobs 1` for sequential execution, which lets `--exit-on-error` stop on the first failure. With no `--plan-file` or `--plan-envvar`, a built-in default plan exercises `--version` and `--help`. On an interactive terminal a spinner reports progress; it is silent in pipes and CI logs, and `--no-progress` turns it off.
+Cases run in parallel by default, one fewer than the available logical CPUs (see [`--jobs`](execution.md#parallel-jobs)). Pass `--jobs max` to use every core, or `--jobs 1` for sequential execution, which lets `--exit-on-error` stop on the first failure. On an interactive terminal a spinner reports progress; it is silent in pipes and CI logs, and `--no-progress` turns it off.
+
+### Configuring the plan
+
+Rather than passing `--plan-file` every time, a project can declare its plan once under `[tool.click-extra.test-plan]`, and `click-extra test-plan` picks it up when no plan is given on the command line:
+
+```{code-block} toml
+[tool.click-extra.test-plan]
+file = "tests/cli-test-plan.yaml"  # default; a path to the YAML plan
+# inline = "- cli_parameters: --version"  # or embed the plan directly
+# timeout = 30  # default per-case timeout in seconds
+```
+
+The resolution precedence is: `--plan-file`/`--plan-envvar`, then `[tool.click-extra.test-plan]` `inline`, then its `file`, then a built-in default plan that exercises `--version` and `--help`. The config maps onto the {class}`~click_extra.test_plan.TestPlanConfig` schema (wrapped by {class}`~click_extra.test_plan.ClickExtraConfig`).
 
 ## Running from Python
 

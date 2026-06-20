@@ -39,6 +39,7 @@ from . import (
     Spinner,
     SpinnerPreset,
     argument,
+    command,
     context,
     echo,
     file_path,
@@ -49,11 +50,14 @@ from . import (
     style,
 )
 from .colorize import _nearest_256
+from .config import get_tool_config
 from .envvar import merge_envvar_ids
 from .table import print_table
 from .test_plan import (
     DEFAULT_TEST_PLAN,
+    ClickExtraConfig,
     CLITestCase,
+    TestPlanConfig,
     parse_test_plan,
     run_test_plan,
 )
@@ -118,7 +122,7 @@ def demo():
 demo.add_command(wrap_cmd)
 
 
-@demo.command(name="test-plan")
+@command(name="test-plan", config_schema=ClickExtraConfig, schema_strict=False)
 @option(
     "--command",
     "--binary",
@@ -200,9 +204,10 @@ def test_plan_cmd(
 ) -> None:
     """Run declarative CLI test cases against a command or binary.
 
-    Loads test plans from YAML files (--plan-file) or environment variables
-    (--plan-envvar), falling back to a built-in default. Each case invokes the
-    target with its parameters and checks the exit code and output.
+    Resolves the plan by precedence: --plan-file or --plan-envvar, then the
+    [tool.click-extra.test-plan] config (inline, then file), then a built-in
+    default. Each case invokes the target with its parameters and checks the
+    exit code and output.
 
     Cases run in parallel by default (see --jobs): each is an independent
     process invocation, so they overlap well. Pass --jobs max to use every
@@ -217,14 +222,31 @@ def test_plan_cmd(
     # context; read it and hand it to the runner.
     worker_count = context.get(ctx, context.JOBS, 1)
 
-    # Collect cases: --plan-file and --plan-envvar in order, else the default.
+    # The [tool.click-extra.test-plan] config, or its defaults when the section
+    # (or any config file) is absent.
+    config = get_tool_config(ctx)
+    test_plan_config = config.test_plan if config else TestPlanConfig()
+
+    # Collect cases by precedence: CLI sources (--plan-file, --plan-envvar),
+    # then the configured inline plan, then the configured plan file, then a
+    # built-in default.
     cases: list[CLITestCase] = []
     for plan in plan_file:
         cases.extend(parse_test_plan(plan.read_text(encoding="UTF-8")))
     for envvar_id in merge_envvar_ids(plan_envvar):
         cases.extend(parse_test_plan(os.getenv(envvar_id)))
+    if not cases and test_plan_config.inline:
+        cases.extend(parse_test_plan(test_plan_config.inline))
+    if not cases and test_plan_config.file:
+        plan_path = Path(test_plan_config.file)
+        if plan_path.exists():
+            cases.extend(parse_test_plan(plan_path.read_text(encoding="UTF-8")))
     if not cases:
         cases = DEFAULT_TEST_PLAN
+
+    # Fall back to the configured timeout when --timeout is not given.
+    if timeout is None and test_plan_config.timeout is not None:
+        timeout = float(test_plan_config.timeout)
 
     counter = run_test_plan(
         command,
@@ -240,6 +262,9 @@ def test_plan_cmd(
     )
     if counter["failed"]:
         ctx.exit(1)
+
+
+demo.add_command(test_plan_cmd)
 
 
 _ALL_STYLES = (

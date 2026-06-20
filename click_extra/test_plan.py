@@ -439,6 +439,44 @@ def parse_test_plan(plan_string: str | None) -> Generator[CLITestCase, None, Non
         yield CLITestCase(**test_case)
 
 
+@dataclass
+class TestPlanConfig:
+    """Config schema for a project's test plan, read from ``[tool.<cli>.test-plan]``.
+
+    The ``test-plan`` CLI command resolves its cases from this config when no
+    plan is given on the command line. Map it onto an app's config section with
+    a field carrying ``metadata={"click_extra.config_path": "test-plan"}``.
+    """
+
+    file: str = "./tests/cli-test-plan.yaml"
+    """Path to a YAML test plan file, resolved relative to the project root."""
+
+    inline: str | None = None
+    """Inline YAML test plan, an alternative to :attr:`file`. Takes precedence."""
+
+    timeout: int | None = None
+    """Default timeout (seconds) for each case that does not set its own.
+
+    ``None`` leaves cases unbounded unless ``--timeout`` is passed.
+    """
+
+
+@dataclass
+class ClickExtraConfig:
+    """Schema for the ``[tool.click-extra]`` configuration section.
+
+    Currently carries only the ``test-plan`` sub-table, letting a project point
+    ``click-extra test-plan`` at its own plan without repeating it on the
+    command line. It is the ``config_schema`` of the ``test-plan`` CLI command.
+    """
+
+    test_plan: TestPlanConfig = field(
+        default_factory=TestPlanConfig,
+        metadata={"click_extra.config_path": "test-plan"},
+    )
+    """The ``[tool.click-extra.test-plan]`` sub-table (file/inline/timeout)."""
+
+
 def run_test_plan(
     command: Path | str,
     cases: Sequence[CLITestCase],

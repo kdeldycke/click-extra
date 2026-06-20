@@ -204,3 +204,22 @@ def test_cli_rejects_non_integer_jobs(invoke):
     )
     assert result.exit_code == 2
     assert "banana" in result.stderr
+
+
+def test_cli_resolves_plan_from_config(invoke, tmp_path, monkeypatch):
+    """With no --plan-file, the plan comes from [tool.click-extra.test-plan]."""
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.click-extra.test-plan]\nfile = "configured.yaml"\n',
+        encoding="UTF-8",
+    )
+    (tmp_path / "configured.yaml").write_text(
+        "- cli_parameters: --version\n  exit_code: 0\n",
+        encoding="UTF-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = invoke(demo, ["test-plan", "--command", sys.executable])
+    assert result.exit_code == 0
+    # The configured plan has 1 case; the built-in default has 3, so Total: 1
+    # proves the [tool.click-extra.test-plan] file was read.
+    assert "Total: 1" in result.output

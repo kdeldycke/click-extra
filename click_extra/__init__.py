@@ -191,8 +191,10 @@ from .table import (
 from .telemetry import TelemetryOption
 from .test_plan import (
     DEFAULT_TEST_PLAN,
+    ClickExtraConfig,
     CLITestCase,
     SkippedTest,
+    TestPlanConfig,
     parse_test_plan,
     run_test_plan,
 )
@@ -238,6 +240,7 @@ __all__ = [
     "ChoiceSource",
     "CliRunner",
     "ClickException",
+    "ClickExtraConfig",
     "Color",
     "ColorOption",
     "ColumnSpec",
@@ -297,6 +300,7 @@ __all__ = [
     "TableFormat",
     "TableFormatOption",
     "TelemetryOption",
+    "TestPlanConfig",
     "ThemeOption",
     "TimerOption",
     "Tuple",
