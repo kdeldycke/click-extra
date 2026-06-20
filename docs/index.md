@@ -27,6 +27,7 @@ telemetry
 pygments
 sphinx
 mkdocs
+screenshots
 envvar
 decorators
 testing

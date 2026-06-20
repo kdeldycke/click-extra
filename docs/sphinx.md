@@ -10,6 +10,10 @@ $ pip install click_extra[sphinx]
 ```
 ````
 
+```{seealso}
+To capture a CLI's output as a static image for a README, slide, or any surface that cannot run Sphinx, see [CLI screenshots](screenshots.md).
+```
+
 ## Setup
 
 Once [Click Extra is installed](install.md), you can enable its [extensions](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-extensions) in your Sphinx's `conf.py`:
