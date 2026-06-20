@@ -25,7 +25,7 @@ assert "Set <RootLogger root (DEBUG)> to DEBUG." in result.stderr, "missing DEBU
 Each logger's level prints as a debug message. They are set to `DEBUG` at the start of the command and reset back to their default `WARNING` at the end. The `--verbosity` flag also surfaces in `--help`:
 
 ```{click:run}
-:emphasize-lines: 20-21
+:emphasize-lines: 35-36
 result = invoke(my_cli, args=["--help"])
 assert "--verbosity" in result.stdout, "missing --verbosity option"
 ```

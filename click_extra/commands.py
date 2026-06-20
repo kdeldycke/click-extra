@@ -35,6 +35,7 @@ from .colorize import (
     ColorOption,
     ExtraHelpColorsMixin,
     HelpKeywords,
+    NoColorOption,
 )
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
@@ -133,6 +134,7 @@ def default_extra_params() -> list[click.Option]:
         ValidateConfigOption(),
         AccessibleOption(),
         ColorOption(),
+        NoColorOption(),
         ProgressOption(),
         ThemeOption(),
         ShowParamsOption(),

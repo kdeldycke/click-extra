@@ -195,35 +195,40 @@ When choices are `Enum` members, Click Extra colorizes their `name` attribute (n
 
 <a name="color-no-color-flag"></a>
 
-## `--color`/`--no-color` flag
+## `--color` flag
 
-Click Extra adds a `--color`/`--no-color` flag (aliased as `--ansi`/`--no-ansi`) that controls whether ANSI codes are emitted. It is eager, so it takes effect before other eager options like `--version`.
+Click Extra adds a tri-state `--color[=WHEN]` option that follows the [GNU convention](https://www.gnu.org/prep/standards/html_node/_002d_002dcolor.html): `WHEN` is one of `auto`, `always` or `never`, and a bare `--color` (no value) means `always`. The option is eager, so it takes effect before other eager options like `--version`.
 
-The option respects the [`NO_COLOR`](https://no-color.org), `CLICOLOR`, and `CLICOLOR_FORCE` environment variables. When any of these signals "no color", the environment takes precedence over the default value (but an explicit `--color` or `--no-color` on the command line always wins).
+`--ansi` is an alias of `--color`, while `--no-color` and `--no-ansi` are hidden aliases of `--color=never`.
+
+The resolved choice lands on `ctx.color`, the standard Click attribute that `echo()` reads: `always` keeps ANSI codes, `never` strips them, and `auto` (the default) defers to the output stream: colored on a terminal, stripped when piped.
+
+The `auto` default also respects the [`NO_COLOR`](https://no-color.org), [`FORCE_COLOR`](https://force-color.org), `CLICOLOR` and `CLICOLOR_FORCE` environment variables. When one of these is set, it overrides the default (but an explicit `--color`, `--ansi`, `--no-color` or `--no-ansi` on the command line always wins).
 
 ```mermaid
 :align: center
 
 flowchart TD
-    start(["echo() must decide: emit ANSI codes?"]) --> cli{"--color / --no-color<br/>set on CLI or via config?"}
-    cli -->|yes| useflag["use that value"]
+    start(["echo() must decide: emit ANSI codes?"]) --> cli{"--color=WHEN / --no-color<br/>set on CLI or via config?"}
+    cli -->|yes| useflag["always → ON<br/>never → OFF<br/>auto → defer to TTY"]
     cli -->|"no (built-in default)"| env{"a recognized color env var set?<br/>NO_COLOR, CLICOLOR, CLICOLOR_FORCE,<br/>FORCE_COLOR, LLM, ..."}
     env -->|yes| envval["ON if any signals color,<br/>OFF otherwise"]
-    env -->|no| deflt["default: color ON"]
+    env -->|no| deflt["default: auto<br/>(ON on a TTY, OFF when piped)"]
     useflag --> ctxcolor(["ctx.color"])
     envval --> ctxcolor
     deflt --> ctxcolor
     ctxcolor --> strip["echo() strips ANSI when OFF;<br/>NO_COLOR also blanks --theme output"]
 ```
 
-All Click Extra commands and groups include this option by default. Use `color_option` as a standalone decorator when building CLIs with plain `click.command`:
+All Click Extra commands and groups include the `--color` and `--no-color` options by default. Use `color_option` and `no_color_option` as standalone decorators when building CLIs with plain `click.command`:
 
 ```{click:source}
 import click
-from click_extra import echo, color_option
+from click_extra import echo, color_option, no_color_option
 
 @click.command
 @color_option
+@no_color_option
 def greet():
     """Say hello with optional color."""
     ctx = click.get_current_context()
@@ -234,10 +239,18 @@ def greet():
 ```
 
 ```{click:run}
-result = invoke(greet, args=["--color"])
+result = invoke(greet, args=["--color=always"])
 assert result.exit_code == 0
 assert "\x1b[32mHello in green!\x1b[0m" in result.output
 ```
+
+```{click:run}
+result = invoke(greet, args=["--color=never"])
+assert result.exit_code == 0
+assert "Hello without color." in result.output
+```
+
+`--no-color` and `--no-ansi` are hidden aliases of `--color=never`:
 
 ```{click:run}
 result = invoke(greet, args=["--no-color"])

@@ -32,7 +32,7 @@ import pytest
 from click.testing import CliRunner
 
 from click_extra import context
-from click_extra.colorize import HelpExtraFormatter
+from click_extra.colorize import HelpExtraFormatter, color_envvars
 from click_extra.commands import ExtraCommand
 from click_extra.context import (
     META_NAMESPACE,
@@ -173,8 +173,8 @@ def test_extra_context_meta_kwarg_omitted_leaves_meta_empty() -> None:
         # Root context, color= explicitly set.
         pytest.param(None, True, True, id="root-explicit-true"),
         pytest.param(None, False, False, id="root-explicit-false"),
-        # Root context, color= unset → defaults to True.
-        pytest.param(None, None, True, id="root-default-true"),
+        # Root context, color= unset → GNU auto default (None) with no color env var.
+        pytest.param(None, None, None, id="root-default-auto"),
         # Child context inherits parent color when own color= unset.
         pytest.param(True, None, True, id="child-inherits-true"),
         pytest.param(False, None, False, id="child-inherits-false"),
@@ -184,16 +184,21 @@ def test_extra_context_meta_kwarg_omitted_leaves_meta_empty() -> None:
     ],
 )
 def test_extra_context_color(
+    monkeypatch: pytest.MonkeyPatch,
     parent_color: bool | None,
     child_color: bool | None,
-    expected: bool,
+    expected: bool | None,
 ) -> None:
     """:class:`ExtraContext` color resolution covers every parent/child path.
 
-    Root contexts without an explicit ``color=`` default to ``True`` (so help
-    screens stay colorized when piped). Child contexts inherit the parent's
-    color unless they override it explicitly.
+    Root contexts without an explicit ``color=`` resolve the GNU auto default: with no
+    color environment variable they stay at ``None`` (TTY detection). Child contexts
+    inherit the parent's color unless they override it explicitly.
     """
+    # Clear color env vars so a parentless context's auto default is deterministic.
+    for var in color_envvars:
+        monkeypatch.delenv(var, raising=False)
+
     parent = None
     if parent_color is not None:
         parent = ExtraContext(click.Command("parent"), color=parent_color)

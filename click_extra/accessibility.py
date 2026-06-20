@@ -129,7 +129,7 @@ class AccessibleOption(ExtraOption):
 
         if ctx.default_map is None:
             ctx.default_map = {}
-        ctx.default_map.setdefault("color", False)
+        ctx.default_map.setdefault("color", "never")
         ctx.default_map.setdefault("progress", False)
         ctx.default_map.setdefault("table_format", TableFormat.PLAIN)
 

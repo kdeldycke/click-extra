@@ -320,7 +320,9 @@ def test_help_custom_name(invoke):
 )
 @pytest.mark.parametrize("param", ("-h", "--help"))
 def test_subcommand_help(invoke, all_command_cli, cmd_id, param, assert_output_regex):
-    result = invoke(all_command_cli, cmd_id, param)
+    # Force color: under the GNU auto default, piped output (like this runner) is
+    # left uncolored, but here we exercise the colored rendering of extra commands.
+    result = invoke(all_command_cli, cmd_id, param, color="forced")
 
     colored_help_header = (
         r"It works!\n"
@@ -402,7 +404,9 @@ def test_colored_bare_help(invoke, cmd_decorator, param):
     def bare_cli():
         pass
 
-    result = invoke(bare_cli, param)
+    # Force color: with the GNU auto default, piped output is uncolored, but this
+    # test asserts the extra formatter still colorizes even a bare command.
+    result = invoke(bare_cli, param, color="forced")
     assert (
         "\n"
         "\x1b[94m\x1b[4mOptions:\x1b[0m\n"

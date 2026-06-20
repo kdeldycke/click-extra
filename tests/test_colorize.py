@@ -47,6 +47,7 @@ from click_extra import (
     echo,
     group,
     help_option,
+    no_color_option,
     option,
     option_group,
     pass_context,
@@ -2087,6 +2088,7 @@ def test_standalone_color_option(
     @click.command
     @verbosity_option
     @option_decorator
+    @no_color_option
     def standalone_color():
         echo(Style(fg="yellow")("It works!"))
         echo("\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m")
@@ -2177,6 +2179,7 @@ def test_no_color_env_convention(
 ):
     @click.command
     @color_option
+    @no_color_option
     def color_cli7():
         echo(Style(fg="yellow")("It works!"))
 
@@ -2204,16 +2207,20 @@ def test_no_color_env_convention(
 
 
 @pytest.mark.parametrize(
-    ("param", "expecting_colors"),
+    ("param", "expecting_colors", "ctx_color"),
     (
-        ("--color", True),
-        ("--no-color", False),
-        ("--ansi", True),
-        ("--no-ansi", False),
-        (None, True),
+        ("--color", True, "True"),
+        ("--no-color", False, "False"),
+        ("--ansi", True, "True"),
+        ("--no-ansi", False, "False"),
+        # No flag: the GNU auto default leaves ctx.color at None (TTY detection),
+        # yet a forced runner still renders colors.
+        (None, True, "None"),
     ),
 )
-def test_integrated_color_option(invoke, param, expecting_colors, assert_output_regex):
+def test_integrated_color_option(
+    invoke, param, expecting_colors, ctx_color, assert_output_regex
+):
     """Check effect of color option on all things colored, including verbosity option.
 
     Also checks the color option in subcommands is inherited from parent context.
@@ -2238,10 +2245,10 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
     result = invoke(color_cli8, param, "--verbosity", "DEBUG", "command1", color=True)
     if expecting_colors:
         assert result.stdout == (
-            "ctx.color=True\n"
+            f"ctx.color={ctx_color}\n"
             "\x1b[33mIt works!\x1b[0m\n"
             "\x1b[0m\x1b[1;36mArt\x1b[46;34m\x1b[0m\n"
-            "ctx.color=True\n"
+            f"ctx.color={ctx_color}\n"
             "\x1b[35mRun command #1.\x1b[0m\n"
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "\x1b[32mDone.\x1b[0m\n"
@@ -2257,10 +2264,10 @@ def test_integrated_color_option(invoke, param, expecting_colors, assert_output_
 
     else:
         assert result.stdout == (
-            "ctx.color=False\n"
+            f"ctx.color={ctx_color}\n"
             "It works!\n"
             "Art\n"
-            "ctx.color=False\n"
+            f"ctx.color={ctx_color}\n"
             "Run command #1.\n"
             "\x1b[34mprint() bypass Click.\x1b[0m\n"
             "Done.\n"

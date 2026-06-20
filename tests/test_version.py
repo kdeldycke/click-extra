@@ -41,6 +41,7 @@ from click_extra import (
     command,
     echo,
     group,
+    no_color_option,
     pass_context,
     verbosity_option,
     version_option,
@@ -514,6 +515,7 @@ def test_color_option_precedence(invoke):
 
     @click.command
     @color_option
+    @no_color_option
     @version_option(version="2.1.9")
     def color_cli6():
         echo(Style(fg="yellow")("It works!"))

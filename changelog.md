@@ -6,6 +6,9 @@
 > This version is **not released yet** and is under active development.
 
 - **Breaking:** Remove the `show-params` and `man` subcommands; use `click-extra wrap --show-params` and `click-extra wrap --man` instead.
+- **Breaking:** Replace the `--color`/`--no-color` boolean with the GNU-canonical tri-state `--color[=WHEN]`, where `WHEN` is `auto`, `always` or `never`. A bare `--color` means `always`, `--ansi` aliases `--color`, and `--no-color`/`--no-ansi` are hidden aliases of `--color=never`. The default is now `auto`: output is colored on a terminal but stripped when piped, instead of always colored. A bare `--color` no longer swallows the following argument, so `mycli --color subcommand` keeps `subcommand` positional.
+- Add `no_color_option`/`NoColorOption`, the standalone hidden option carrying the `--no-color`/`--no-ansi` aliases for plain `click.command` CLIs.
+- `click-extra wrap` honors the tri-state color resolution, colorizing the wrapped CLI under `auto` only when the output is a terminal.
 - Add a `Spinner` widget: a thread-animated, indeterminate terminal spinner for long blocking work, usable as a context manager or decorator. Ships a 90-entry `SPINNERS` preset catalog and is auto-disabled when its output stream is not a TTY.
 - Add a `spinner` demo subcommand to the `click-extra` CLI that tours the preset catalog on an interactive terminal; `--table` prints them as a reference table, and `--all`, `--random N`, and `--select` choose what to show.
 - Add a `--progress`/`--no-progress` option (`ProgressOption`) to the default option set, publishing at `ctx.meta["click_extra.progress"]` whether progress indicators may display. It is silenced by non-interactive output, `--no-progress`, or `--accessible`, but kept (only decolored) by `--no-color`/`NO_COLOR`.

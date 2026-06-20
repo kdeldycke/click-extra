@@ -30,6 +30,7 @@ from click_extra import (
     secho,
     style,
 )
+from click_extra.colorize import color_envvars
 
 
 def test_real_fs():
@@ -180,13 +181,15 @@ def run_cli_extra(ctx):
 
 
 def test_extra_command_default_color():
-    """With @command, ExtraContext defaults root color=True and ColorOption defaults
-    True. Verify ctx.color=True and ANSI codes present in output."""
+    """With @command and no color env var, ExtraContext and ColorOption resolve the GNU
+    auto default (ctx.color=None), yet a forced runner still renders ANSI codes."""
     runner = ExtraCliRunner()
-    result = runner.invoke(run_cli_extra, color=True)
+    # Clear ambient color env vars so the auto default is deterministic.
+    env = {var: None for var in color_envvars}
+    result = runner.invoke(run_cli_extra, color=True, env=env)
     assert result.exit_code == 0
     assert "\x1b[32mcolored output\x1b[0m" in result.stdout
-    assert "Context.color = True" in result.stdout
+    assert "Context.color = None" in result.stdout
 
 
 def test_extra_command_no_color_flag():

@@ -202,7 +202,7 @@ def cli():
 See how the `--version` option gets duplicated at the end:
 
 ```{click:run}
-:emphasize-lines: 29,30
+:emphasize-lines: 39,40
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert (
@@ -272,7 +272,7 @@ def cli():
 Which results in `[default: INFO]` being featured in the help message:
 
 ```{click:run}
-:emphasize-lines: 24
+:emphasize-lines: 34
 result = invoke(cli, args=["--help"])
 assert (
     "                          \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n"
@@ -506,16 +506,17 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 27-29
+:emphasize-lines: 28-30
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --time / --no-time    Measure and print elapsed execution time.  [default: no-
                         time]
-  --color, --ansi / --no-color, --no-ansi
-                        Strip out all colors and all ANSI codes from output.
-                        [default: color]
+  --color, --ansi [auto|always|never]
+                        Colorize the output. A bare --color is the same as
+                        --color=always; --no-color and --no-ansi alias
+                        --color=never.  [default: auto]
   --config CONFIG_PATH  Location of the configuration file. Supports glob
                         pattern of local path and remote URL.  [default:
                         ~/Library/Application

@@ -82,7 +82,7 @@ class WrapperGroup(ExtraGroup):
 
 def patch_click(
     theme: HelpExtraTheme | None = None,
-    color: bool = True,
+    color: bool | None = True,
 ) -> None:
     """Replace Click's decorator functions with colorized variants.
 
@@ -97,17 +97,19 @@ def patch_click(
         (``_param_memo``) and Cloup's decorator validators.
 
     :param theme: Color theme to use. ``None`` keeps the current default.
-    :param color: When ``False``, the patched context disables ANSI output.
+    :param color: Tri-state ANSI control mirroring ``ctx.color``: ``True`` forces
+        colors on, ``False`` strips them, and ``None`` (the GNU ``auto`` default)
+        defers to the output stream's TTY status.
     """
-    if not color:
+    if color is False:
 
         class _NoColorContext(ExtraContext):
             """ExtraContext variant that forces colors off."""
 
             def __init__(self, *args, **kwargs) -> None:
                 super().__init__(*args, **kwargs)
-                # Override the color=True default that ExtraContext sets for
-                # root contexts.
+                # Pin colors off for a root context, overriding the auto default
+                # ExtraContext would otherwise resolve from the environment.
                 if not self.parent:
                     self.color = False
 
@@ -707,5 +709,5 @@ def wrap(
     # (NO_COLOR, CLICOLOR, etc.), and ThemeOption has reassigned
     # ``theme.default_theme`` to the user's pick. ``theme=None`` instructs
     # ``patch_click`` to keep that current default.
-    patch_click(theme=None, color=ctx.color or False)
+    patch_click(theme=None, color=ctx.color)
     invoke_target(script, module_path, function_name, args)

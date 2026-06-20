@@ -23,7 +23,7 @@ import click
 import cloup
 
 from .accessibility import AccessibleOption
-from .colorize import ColorOption
+from .colorize import ColorOption, NoColorOption
 from .commands import (
     DEFAULT_HELP_NAMES,
     ExtraCommand,
@@ -152,6 +152,7 @@ columns_option = decorator_factory(dec=option, cls=ColumnsOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
 jobs_option = decorator_factory(dec=option, cls=JobsOption)
 man_option = decorator_factory(dec=option, cls=ManOption)
+no_color_option = decorator_factory(dec=option, cls=NoColorOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
 validate_config_option = decorator_factory(dec=option, cls=ValidateConfigOption)
 show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)

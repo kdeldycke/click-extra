@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
     from typing import ClassVar
 
+    from click.parser import _OptionParser
     from cloup.styling import IStyle
 
 
@@ -124,6 +125,34 @@ Source:
 """
 
 
+def resolve_color_env() -> bool | None:
+    """Reconcile the recognized color environment variables into a tri-state.
+
+    Inspects every variable listed in :data:`color_envvars` and returns:
+
+    - ``True`` if at least one *enabling* variable (``FORCE_COLOR``, ``CLICOLOR``, …)
+      is set. Enabling wins over disabling, so a single one is enough to keep colors.
+    - ``False`` if only *disabling* variables (``NO_COLOR``, ``LLM``, …) are set.
+    - ``None`` when no recognized variable is present, leaving the caller free to
+      apply its own default (typically ``auto``).
+
+    A bare variable (no value), or one whose value cannot be parsed as a boolean,
+    counts as activation, in the permissive spirit of the `NO_COLOR
+    <https://no-color.org>`_ and `FORCE_COLOR <https://force-color.org>`_ conventions.
+    """
+    enabling = set()
+    for var, enables in color_envvars.items():
+        if var in os.environ:
+            # Presence without a value encodes an activation, hence the default to
+            # "true"; an unparsable value falls back to True in the same spirit.
+            raw_value = os.environ.get(var, "true")
+            parsed = RawConfigParser.BOOLEAN_STATES.get(raw_value.lower(), True)
+            enabling.add(enables ^ (not parsed))
+    if not enabling:
+        return None
+    return True in enabling
+
+
 @contextmanager
 def forced_color() -> Iterator[None]:
     """Force ANSI color while Click Extra captures CLI text for documentation.
@@ -163,90 +192,230 @@ def forced_color() -> Iterator[None]:
                 os.environ[var] = value
 
 
+COLOR_WHEN = ("auto", "always", "never")
+"""GNU-canonical tri-state values accepted by ``--color=<WHEN>``.
+
+``auto`` defers to terminal detection, ``always`` forces ANSI on, ``never`` strips
+it. See the `GNU coding standards
+<https://www.gnu.org/prep/standards/html_node/_002d_002dcolor.html>`_ and `this
+discussion <https://news.ycombinator.com/item?id=36102377>`_.
+"""
+
+
+_WHEN_TO_TRISTATE: dict[str, bool | None] = {
+    "auto": None,
+    "always": True,
+    "never": False,
+}
+"""Map each :data:`COLOR_WHEN` choice to the ``ctx.color`` value it produces.
+
+``None`` lets Click auto-detect colorization from the output stream's TTY status,
+``True`` keeps ANSI codes, ``False`` strips them.
+"""
+
+
+_COLOR_CLI_OVERRIDE_KEY = "click_extra.color_cli_override"
+"""Context meta key flagging an explicit ``--no-color`` / ``--no-ansi`` on the command line.
+
+Set by :meth:`NoColorOption.set_no_color` and read by :meth:`ColorOption.set_color` so
+an explicit negative alias outranks the color environment variables, which may only
+override the built-in default.
+"""
+
+
 class ColorOption(ExtraOption):
-    """A pre-configured option that is adding a ``--color``/``--no-color`` (aliased by
-    ``--ansi``/``--no-ansi``) to keep or strip colors and ANSI codes from CLI output.
+    """A pre-configured ``--color[=WHEN]`` tri-state option, aliased by ``--ansi``.
 
-    This option is eager by default to allow for other eager options (like
-    ``--version``) to be rendered colorless.
+    Mirrors the `GNU convention
+    <https://www.gnu.org/prep/standards/html_node/_002d_002dcolor.html>`_: ``WHEN`` is
+    one of :data:`COLOR_WHEN` (``auto``, ``always`` or ``never``), and a bare
+    ``--color`` (no value) means ``always``. The negative aliases ``--no-color`` and
+    ``--no-ansi`` are carried by the separate :class:`NoColorOption`, because Click
+    forbids attaching ``/--no-x`` secondary flags to a value option.
+
+    The resolved tri-state lands on ``ctx.color``, the Click-standard attribute that
+    ``echo()`` reads through its ``resolve_color_default()`` → ``should_strip_ansi()``
+    chain: ``True`` keeps ANSI codes, ``False`` strips them, ``None`` (``auto``) defers
+    to the output stream's TTY status.
+
+    This option is eager by default, so other eager options (like ``--version``) are
+    rendered with the resolved color state.
+
+    .. note::
+        ``--color`` is deliberately not wired to an ``envvar``. The color environment
+        variables (``NO_COLOR``, ``FORCE_COLOR``, …) are read manually through
+        :func:`resolve_color_env`. Letting Click manage them would dump the whole
+        :data:`color_envvars` set into the ``--show-params`` env-var column, and only
+        bind one variable per option anyway.
 
     .. todo::
-
-        Should we switch to ``--color=<auto|never|always>`` `as GNU tools does
-        <https://news.ycombinator.com/item?id=36102377>`_?
-
-        Also see `how the isatty property defaults with this option
-        <https://news.ycombinator.com/item?id=36100865>`_, and `how it can be
-        implemented in Python <https://bixense.com/clicolors/>`_.
-
-    .. todo::
-
         Support the `TERM environment variable convention
         <https://news.ycombinator.com/item?id=36101712>`_?
     """
+
+    _gnu_optional_value: ClassVar[bool] = True
+    """Marks the option for GNU-style optional-argument parsing.
+
+    Read by :meth:`add_to_parser` to make a bare ``--color`` / ``--ansi`` resolve to
+    ``flag_value`` instead of swallowing the following token.
+    """
+
+    def add_to_parser(self, parser: _OptionParser, ctx: click.Context) -> None:
+        """Register the option, then teach the parser GNU optional-argument rules.
+
+        Click's optional-value parser binds ``--color`` to the next token whenever it
+        does not look like an option, so ``mycli --color subcommand`` would consume
+        ``subcommand`` as the color value and fail. GNU instead binds an optional
+        argument only when it is attached with ``=``.
+
+        This wraps the parser's long-option matcher so a bare ``--color`` / ``--ansi``
+        replays as ``--color=<flag_value>`` (``always``) and leaves the following
+        argument untouched, while ``--color=<when>`` keeps working. The wrapper stays
+        inert for every option that does not carry :attr:`_gnu_optional_value`, so it
+        is safe to install on the shared parser.
+        """
+        super().add_to_parser(parser, ctx)
+
+        wrapped = parser._match_long_opt
+
+        def _match_long_opt(opt, explicit_value, state):
+            if explicit_value is None:
+                parsed = parser._long_opt.get(opt)
+                if parsed is not None and getattr(
+                    parsed.obj,
+                    "_gnu_optional_value",
+                    False,
+                ):
+                    # Replay as if the user had typed --color=<flag_value>.
+                    wrapped(opt, parsed.obj.flag_value, state)
+                    return
+            wrapped(opt, explicit_value, state)
+
+        parser._match_long_opt = _match_long_opt  # type: ignore[method-assign]
 
     def set_color(
         self,
         ctx: click.Context,
         param: click.Parameter,
+        value: str,
+    ) -> None:
+        """Resolve ``--color=<WHEN>`` against the environment and pin ``ctx.color``.
+
+        Precedence, highest first:
+
+        #. An explicit ``--color`` / ``--ansi`` on the command line.
+        #. The color environment variables, but only when the value comes from the
+           built-in default. A configuration file or ``--accessible`` (both seen here
+           as a non-``DEFAULT`` source) therefore wins over the environment, matching
+           :class:`~click_extra.accessibility.AccessibleOption`.
+        #. A color state already pinned by ``--no-color`` / ``--no-ansi``, a forced
+           test runner, or an explicit ``Context(color=...)`` — preserved when this
+           option only resolves to ``auto`` from its default.
+        #. The ``auto`` default, leaving ``ctx.color`` at ``None`` for TTY detection.
+        """
+        when = value
+        source = ctx.get_parameter_source("color")
+
+        # The environment can only override a pure built-in default, never a value
+        # coming from the command line, a configuration file or --accessible. An
+        # explicit --no-color / --no-ansi (recorded by NoColorOption) is a
+        # command-line choice and therefore outranks the environment too.
+        if source == ParameterSource.DEFAULT and not ctx.meta.get(
+            _COLOR_CLI_OVERRIDE_KEY,
+        ):
+            env_color = resolve_color_env()
+            if env_color is not None:
+                ctx.color = env_color
+                return
+
+        tristate = _WHEN_TO_TRISTATE[when]
+
+        # "auto" defers to TTY detection. Do not overwrite a color state already
+        # pinned upstream (--no-color, a forced runner, Context(color=...)) unless the
+        # user explicitly spelled out --color=auto on the command line.
+        if (
+            tristate is None
+            and source != ParameterSource.COMMANDLINE
+            and ctx.color is not None
+        ):
+            return
+
+        ctx.color = tristate
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        is_flag=False,
+        flag_value="always",
+        default="auto",
+        is_eager=True,
+        expose_value=False,
+        help=_(
+            "Colorize the output. A bare --color is the same as --color=always; "
+            "--no-color and --no-ansi alias --color=never.",
+        ),
+        **kwargs,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--color", "--ansi")
+
+        kwargs.setdefault("callback", self.set_color)
+        kwargs.setdefault("type", click.Choice(COLOR_WHEN))
+
+        super().__init__(
+            param_decls=param_decls,
+            is_flag=is_flag,
+            flag_value=flag_value,
+            default=default,
+            is_eager=is_eager,
+            expose_value=expose_value,
+            help=help,
+            **kwargs,
+        )
+
+
+class NoColorOption(ExtraOption):
+    """``--no-color`` / ``--no-ansi`` aliases that force ``--color=never``.
+
+    Click rejects ``/--no-x`` secondary flags on a value option, so the negative
+    aliases of the tri-state :class:`ColorOption` cannot live on it and are provided
+    here as a standalone boolean flag. When set, it pins ``ctx.color`` to ``False``;
+    when absent it is a no-op, leaving the resolution to :class:`ColorOption`.
+
+    Hidden by default to keep the help screen focused on the canonical ``--color``,
+    whose own help text documents these aliases. Eager by default, like
+    :class:`ColorOption`, so the color state is settled before other eager options
+    render.
+    """
+
+    def set_no_color(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
         value: bool,
     ) -> None:
-        """Reconcile ``--color``/``--no-color``/``--ansi``/``--no-ansi`` with environment variables.
-
-        The reconciliation pass re-inspects the environment for any of the
-        recognised colorization flags (``NO_COLOR``, ``FORCE_COLOR``,
-        ``CLICOLOR``, …): when the user hasn't explicitly passed
-        ``--color`` / ``--no-color`` on the command line, the env vars take
-        precedence. The final reconciled value lands on ``ctx.color`` (the
-        Click-standard attribute that ``echo()`` reads). Renamed from
-        ``disable_colors`` because the callback handles enable as well as
-        disable: the previous name only described half the behavior.
-        """
-        # Collect all colorize flags in environment variables we recognize.
-        colorize_from_env = set()
-        for var, default in color_envvars.items():
-            if var in os.environ:
-                # Presence of the variable in the environment without a value encodes
-                # for an activation, hence the default to True.
-                var_value = os.environ.get(var, "true")
-                # `os.environ` is a dict whose all values are strings. Here we normalize
-                # these string into booleans. If we can't, we fallback to True, in the
-                # same spirit as above.
-                var_boolean = RawConfigParser.BOOLEAN_STATES.get(
-                    var_value.lower(),
-                    True,
-                )
-                colorize_from_env.add(default ^ (not var_boolean))
-
-        # Re-interpret the provided value against the recognized environment variables.
-        if colorize_from_env:
-            # The environment can only override the provided value if it comes from
-            # the default value or the config file.
-            env_takes_precedence = (
-                ctx.get_parameter_source("color") == ParameterSource.DEFAULT
-            )
-            if env_takes_precedence:
-                # One env var is enough to activate colorization.
-                value = True in colorize_from_env
-
-        # Set the official context color flag. This is used by Click's
-        # ``resolve_color_default()`` → ``should_strip_ansi()`` chain in ``echo()``.
-        ctx.color = value
+        """Force ``ctx.color`` off when a negative alias is passed; no-op otherwise."""
+        if value:
+            ctx.color = False
+            # Flag the explicit choice so ColorOption keeps the environment from
+            # overriding it (the environment may only override the built-in default).
+            ctx.meta[_COLOR_CLI_OVERRIDE_KEY] = True
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
         is_flag=True,
-        default=True,
+        default=False,
         is_eager=True,
         expose_value=False,
-        help=_("Strip out all colors and all ANSI codes from output."),
+        hidden=True,
+        help=_("Disable colorization (alias of --color=never)."),
         **kwargs,
     ) -> None:
         if not param_decls:
-            param_decls = ("--color/--no-color", "--ansi/--no-ansi")
+            param_decls = ("--no-color", "--no-ansi")
 
-        kwargs.setdefault("callback", self.set_color)
+        kwargs.setdefault("callback", self.set_no_color)
 
         super().__init__(
             param_decls=param_decls,
@@ -254,6 +423,7 @@ class ColorOption(ExtraOption):
             default=default,
             is_eager=is_eager,
             expose_value=expose_value,
+            hidden=hidden,
             help=help,
             **kwargs,
         )

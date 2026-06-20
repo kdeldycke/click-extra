@@ -67,6 +67,7 @@ from .colorize import (
     ColorOption,
     HelpExtraFormatter,
     HelpKeywords,
+    NoColorOption,
 )
 from .commands import (
     ExtraCommand,
@@ -105,6 +106,7 @@ from .decorators import (  # type: ignore[no-redef]
     jobs_option,
     lazy_group,
     man_option,
+    no_color_option,
     no_config_option,
     option,
     show_params_option,
@@ -253,6 +255,7 @@ __all__ = [
     "ManPage",
     "MissingParameter",
     "MultiChoice",
+    "NoColorOption",
     "NoConfigOption",
     "NoSuchCommand",
     "NoSuchOption",
@@ -326,6 +329,7 @@ __all__ = [
     "make_pass_decorator",
     "man_option",
     "new_extra_logger",
+    "no_color_option",
     "no_config_option",
     "normalize_config_keys",
     "open_file",

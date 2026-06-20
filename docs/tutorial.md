@@ -221,7 +221,8 @@ Click Extra provides these additional, pre-configured options decorators you can
 | --------------------------------------------------------------------- | ----------------------------------------- | ------- |
 | [`@timer_option`](execution.md#timer)                                 | `--time / --no-time`                      | ✅      |
 | [`@accessible_option`](colorize.md#accessible-flag)                   | `--accessible`                            | ✅      |
-| [`@color_option`](colorize.md#color-no-color-flag)                    | `--color, --ansi / --no-color, --no-ansi` | ✅      |
+| [`@color_option`](colorize.md#color-no-color-flag)                    | `--color, --ansi [auto\|always\|never]`   | ✅      |
+| [`@no_color_option`](colorize.md#color-no-color-flag)                 | `--no-color, --no-ansi`                    | ✅      |
 | [`@theme_option`](theme.md)                                           | `--theme`                                 | ✅      |
 | [`@config_option`](config.md#standalone-option)                       | `--config CONFIG_PATH`                    | ✅      |
 | [`@no_config_option`](config.md#)                                     | `--no-config`                             | ✅      |

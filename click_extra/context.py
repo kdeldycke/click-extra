@@ -54,7 +54,7 @@ from typing import Any
 import click
 import cloup
 
-from .colorize import HelpExtraFormatter
+from .colorize import HelpExtraFormatter, resolve_color_env
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -97,18 +97,22 @@ class ExtraContext(cloup.Context):
     def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
         """Like parent's context but with an extra ``meta`` keyword-argument.
 
-        Also force ``color`` default to ``True`` if not provided by user and this
-        context has no parent, and force ``allow_interspersed_args`` to ``False``
-        when ``POSIXLY_CORRECT`` is set in the environment.
+        Also pre-seed ``color`` from the color environment variables for a parentless
+        context when the user did not provide it, and force
+        ``allow_interspersed_args`` to ``False`` when ``POSIXLY_CORRECT`` is set in the
+        environment.
         """
         super().__init__(*args, **kwargs)
 
-        # Click defaults root ``ctx.color`` to ``None`` (auto-detect via TTY), which
-        # strips colors when piped. Override to ``True`` for parentless contexts so
-        # help screens are always colorized by default. The ``ColorOption`` callback
-        # will set the final value later, respecting ``--no-color`` and env vars.
+        # Click defaults root ``ctx.color`` to ``None`` (GNU ``auto``: keep ANSI on a
+        # TTY, strip it when piped). For a parentless context, pre-seed it from the
+        # color environment variables so the eager help and version screens — which
+        # can render before ``--color`` resolves — still honor ``FORCE_COLOR`` /
+        # ``NO_COLOR``. With no recognized variable the value stays ``None`` (auto),
+        # and the ``ColorOption`` callback later layers the command line, configuration
+        # and ``--accessible`` on top.
         if not self.parent and self.color is None:
-            self.color = True
+            self.color = resolve_color_env()
 
         # Honor the POSIX conformance switch: when POSIXLY_CORRECT is present in the
         # environment, stop parsing options at the first positional argument, the way

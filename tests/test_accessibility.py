@@ -61,8 +61,8 @@ def test_default_params_include_accessible():
 @pytest.mark.parametrize(
     ("extra_args", "expected_color", "expected_format"),
     (
-        # Untouched defaults.
-        ((), "color=True", "table_format=rounded-outline"),
+        # Untouched defaults: the GNU auto default leaves ctx.color at None.
+        ((), "color=None", "table_format=rounded-outline"),
         # --accessible lowers both defaults.
         (("--accessible",), "color=False", "table_format=plain"),
         # An explicit color flag keeps precedence over --accessible.

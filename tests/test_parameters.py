@@ -352,23 +352,23 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.color",
-            "--color, --ansi / --no-color, --no-ansi",
+            "--color, --ansi [auto|always|never]",
             "click_extra.colorize.ColorOption",
-            "click.types.BoolParamType",
-            "bool",
+            "click.types.Choice",
+            "str",
             "✘",
             "✘",
             "✓",
             "SHOW_PARAMS_CLI_COLOR",
-            True,
-            "✓",
-            True,
-            "✓",
+            "'auto'",
+            "✘",
+            "'always'",
+            "✘",
             "✘",
             1,
             "",
             "✘",
-            True,
+            "'auto'",
             "DEFAULT",
         ),
         (
@@ -537,6 +537,27 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "✓",
             "SHOW_PARAMS_CLI_MAN",
+            False,
+            "✓",
+            True,
+            "✓",
+            "✘",
+            1,
+            "",
+            "✘",
+            False,
+            "DEFAULT",
+        ),
+        (
+            "show-params-cli.no_color",
+            "--no-color, --no-ansi",
+            "click_extra.colorize.NoColorOption",
+            "click.types.BoolParamType",
+            "bool",
+            "✓",
+            "✘",
+            "✓",
+            "SHOW_PARAMS_CLI_NO_COLOR",
             False,
             "✓",
             True,
@@ -1217,9 +1238,16 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
                 and row[9].endswith("'")
             ):
                 row[9] = row[9][1:-1]
-            # Flag value: empty cell means the attribute is absent (None).
+            # Flag value: empty cell means the attribute is absent (None); a quoted
+            # string flag value (e.g. --color's 'always') renders as a native string.
             if row[11] == "":
                 row[11] = None
+            elif (
+                isinstance(row[11], str)
+                and row[11].startswith("'")
+                and row[11].endswith("'")
+            ):
+                row[11] = row[11][1:-1]
             # Prompt: empty cell means no prompt configured (None).
             if row[15] == "":
                 row[15] = None
@@ -1270,9 +1298,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
 )
 @pytest.mark.parametrize("table_format", TableFormat)
 def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
-    """Check that all rendering styles are responding to the
-    ``--color``/``--no-color`` option.
-    """
+    """Check that all rendering styles are responding to the ``--color`` option."""
 
     @click.command
     @opt1
@@ -1284,18 +1310,18 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     expected_table: list[list] = [
         [
             "show-params.color",
-            "--color, --ansi / --no-color, --no-ansi",
+            "--color, --ansi [auto|always|never]",
             "click_extra.colorize.ColorOption",
-            "click.types.BoolParamType",
-            "bool",
+            "click.types.Choice",
+            "str",
             "✘",
             "✘",
             "",
             "",
-            True,
-            "✓",
-            True,
-            "✓",
+            "'auto'",
+            "✘",
+            "'always'",
+            "✘",
             "✘",
             1,
             "",
@@ -1372,10 +1398,10 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     for args in (
         # There is no impact with just the presence of @color_option decorator.
         ("--show-params",),
-        # Both options are eager, so passing --color/--no-color after --show-params
-        # makes it too late to have an effect.
+        # Both options are eager, so passing --color after --show-params makes it too
+        # late to have an effect.
         ("--show-params", "--color"),
-        ("--show-params", "--no-color"),
+        ("--show-params", "--color=never"),
     ):
         result = invoke(show_params, args)
         assert_table_content(result.stdout, expected_table)
@@ -1393,8 +1419,8 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     assert_table_content(strip_ansi(result.stdout), expected_table)
     assert result.exit_code == 0
 
-    # Force --no-color.
-    result = invoke(show_params, "--no-color", "--show-params")
+    # Force --color=never.
+    result = invoke(show_params, "--color=never", "--show-params")
     assert_table_content(result.stdout, expected_table)
     assert result.exit_code == 0
 
@@ -1427,9 +1453,16 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
                 and row[9].endswith("'")
             ):
                 row[9] = row[9][1:-1]
-            # Flag value: empty cell means the attribute is absent (None).
+            # Flag value: empty cell means the attribute is absent (None); a quoted
+            # string flag value (e.g. --color's 'always') renders as a native string.
             if row[11] == "":
                 row[11] = None
+            elif (
+                isinstance(row[11], str)
+                and row[11].startswith("'")
+                and row[11].endswith("'")
+            ):
+                row[11] = row[11][1:-1]
             # Prompt: empty cell means no prompt configured (None).
             if row[15] == "":
                 row[15] = None
@@ -1442,7 +1475,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
 
     # Check the explicit rendering style of the table.
     result = invoke(
-        show_params, "--no-color", "--table-format", table_format, "--show-params"
+        show_params, "--color=never", "--table-format", table_format, "--show-params"
     )
 
     rendered = render_table(
