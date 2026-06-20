@@ -5282,10 +5282,6 @@ def test_make_schema_callable_coerces_dict_to_dataclass():
     from dataclasses import dataclass
 
     from click_extra import make_schema_callable
-    from click_extra.config import _make_schema_callable
-
-    # The deprecated private alias points at the public function.
-    assert _make_schema_callable is make_schema_callable
 
     @dataclass
     class Forecast:

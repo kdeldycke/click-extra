@@ -927,7 +927,7 @@ class VersionOption(ExtraOption):
         dunder_name = f"__{field_id}__"
         value = getattr(self.module, dunder_name, None)
         if value and isinstance(value, str):
-            return value  # type: ignore[no-any-return]
+            return value
         return None
 
     @cached_property
