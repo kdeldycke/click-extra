@@ -506,7 +506,7 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 28-30
+:emphasize-lines: 30-32
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
@@ -530,6 +530,8 @@ Options:
   --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.  [default:
                         INFO]
   -v, --verbose         Increase the default WARNING verbosity by one level for
+                        each additional repetition of the option.  [default: 0]
+  -q, --quiet           Decrease the default WARNING verbosity by one level for
                         each additional repetition of the option.  [default: 0]
   --version             Show the version and exit.
   -h, --help            Show this message and exit.

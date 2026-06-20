@@ -33,7 +33,7 @@ from .commands import (
 )
 from .config import ConfigOption, NoConfigOption, ValidateConfigOption
 from .execution import JobsOption, TimerOption, ZeroExitOption
-from .logging import VerboseOption, VerbosityOption
+from .logging import QuietOption, VerboseOption, VerbosityOption
 from .man_page import ManOption
 from .parameters import Argument, Option, ShowParamsOption
 from .table import ColumnsOption, TableFormatOption
@@ -154,6 +154,7 @@ jobs_option = decorator_factory(dec=option, cls=JobsOption)
 man_option = decorator_factory(dec=option, cls=ManOption)
 no_color_option = decorator_factory(dec=option, cls=NoColorOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
+quiet_option = decorator_factory(dec=option, cls=QuietOption)
 validate_config_option = decorator_factory(dec=option, cls=ValidateConfigOption)
 show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)
 table_format_option = decorator_factory(dec=option, cls=TableFormatOption)

@@ -271,10 +271,10 @@ when a schema callable is configured. Read via
 VERBOSITY_LEVEL: Final[str] = "click_extra.verbosity_level"
 """The reconciled :class:`~click_extra.logging.LogLevel` chosen for the run.
 
-Written by :meth:`click_extra.logging.ExtraVerbosity.set_level`, which
-arbitrates between every verbosity-related option (``--verbosity``,
-``--verbose``/``-v``) and keeps the highest pick. Read by the same callback
-to detect prior writes from sibling options.
+Written by :meth:`click_extra.logging.ExtraVerbosity.apply_verbosity`, which
+reconciles every verbosity-related option (``--verbosity``, ``--verbose``/``-v``
+and ``--quiet``/``-q``) into a single level. Read by the same method to detect
+whether the reconciled level changed since a sibling option last fired.
 """
 
 VERBOSITY: Final[str] = "click_extra.verbosity"
@@ -282,14 +282,23 @@ VERBOSITY: Final[str] = "click_extra.verbosity"
 
 Written by :meth:`click_extra.logging.VerbosityOption.set_level`. Stored
 alongside :data:`VERBOSITY_LEVEL` so downstream code can tell whether the
-final level came from ``--verbosity`` or from ``-v`` repetitions.
+final level came from ``--verbosity`` or from ``-v``/``-q`` repetitions.
 """
 
 VERBOSE: Final[str] = "click_extra.verbose"
 """Raw repetition count of ``--verbose``/``-v``.
 
-Written by :meth:`click_extra.logging.VerboseOption.set_level`. Same role
-as :data:`VERBOSITY` for the ``-v`` family of flags.
+Written by :meth:`click_extra.logging.VerboseOption.set_level`. Combined with
+:data:`QUIET` into the signed ``verbose - quiet`` counter that
+:meth:`click_extra.logging.ExtraVerbosity.resolve_level` shifts the base level by.
+"""
+
+QUIET: Final[str] = "click_extra.quiet"
+"""Raw repetition count of ``--quiet``/``-q``.
+
+Written by :meth:`click_extra.logging.QuietOption.set_level`. The quiet
+counterpart of :data:`VERBOSE`: each ``-q`` subtracts one step from the
+``verbose - quiet`` net applied on top of the base verbosity level.
 """
 
 

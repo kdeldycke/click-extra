@@ -231,6 +231,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@table_format_option`](table.md)                                    | `--table-format FORMAT`                   | ✅      |
 | [`@verbosity_option`](logging.md#colored-verbosity)                   | `--verbosity LEVEL`                       | ✅      |
 | {py:class}`@verbose_option <click_extra.logging.VerboseOption>`       | `-v, --verbose`                           | ✅      |
+| {py:class}`@quiet_option <click_extra.logging.QuietOption>`           | `-q, --quiet`                             | ✅      |
 | [`@man_option`](man-page.md#generating-man-pages)                     | `--man`                                   | ✅      |
 | [`@version_option`](version.md)                                       | `--version`                               | ✅      |
 | {py:class}`@help_option <click_extra.colorize.HelpExtraFormatter>`    | `-h, --help`                              | ✅      |
@@ -241,7 +242,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 ```{note}
 Because single-letter options are a scarce resource, Click Extra does not impose them on you. All the options above are specified with their long names only. You can always customize them to add a short name if you wish.
 
-That's a general rule, unless some short names follow a widely-accepted convention or an overwhelmingly-followed tradition. Which is the case for `-v, --verbose` and `-h, --help`.
+That's a general rule, unless some short names follow a widely-accepted convention or an overwhelmingly-followed tradition. Which is the case for `-v, --verbose`, `-q, --quiet` and `-h, --help`.
 ```
 
 ````{tip}

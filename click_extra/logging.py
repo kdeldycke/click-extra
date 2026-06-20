@@ -89,10 +89,38 @@ _RESET_REGISTERED: str = f"{context.META_NAMESPACE}_verbosity_reset_registered"
 """Internal sentinel marking that ``reset_loggers`` was queued on the context.
 
 Lives in ``ctx.meta`` so the verbosity inheritance chain
-(``ExtraVerbosity`` / ``VerbosityOption`` / ``VerboseOption``) registers the
-close callback at most once per invocation, even when both ``--verbosity``
-and ``-v`` are passed.
+(``ExtraVerbosity`` / ``VerbosityOption`` / ``VerboseOption`` / ``QuietOption``)
+registers the close callback at most once per invocation, even when several
+verbosity options are passed.
 """
+
+
+_COUNTER_SCANNED: str = f"{context.META_NAMESPACE}_verbosity_counter_scanned"
+"""Internal sentinel marking that the ``-v``/``-q`` counter was pre-resolved.
+
+The first verbosity option reaching :meth:`ExtraVerbosity.handle_parse_result`
+reads the raw ``--verbose``/``--quiet`` repetition counts from the parsed
+``opts`` and stashes them on the context before any option applies a level. This
+way the option that fires first already reconciles the full counter and never
+applies an intermediate, louder level that a later ``-q`` would have to lower
+(which would leak its ``Set ... DEBUG`` debug trace).
+"""
+
+
+def _last_param(
+    ctx: click.Context, klass: type[click.Parameter]
+) -> click.Parameter | None:
+    """Return the last parameter of exactly ``klass`` on the command, or ``None``.
+
+    Tolerates duplicates: when an option is declared more than once (e.g. an explicit
+    ``@verbosity_option`` stacked on a Click Extra command that already ships one),
+    Click keeps the last occurrence, so we mirror that here instead of erroring out on
+    the ambiguity.
+    """
+    options = search_params(
+        ctx.command.params, klass, include_subclasses=False, unique=False
+    )
+    return options[-1] if options else None  # type: ignore[index]
 
 
 class ExtraStreamHandler(StreamHandler):
@@ -335,12 +363,45 @@ class ExtraVerbosity(ExtraOption):
         this class.
 
     .. caution::
-        This class is not intended to be used as-is. It is an internal place to
-        reconcile the verbosity level selected by the competing logger options
-        implemented below:
+        This class is not intended to be used as-is. It is the internal place where
+        the level requested by the three competing options is reconciled:
 
-        - ``--verbosity``
-        - ``--verbose``/``-v``
+        - ``--verbosity LEVEL`` sets an absolute level (defaults to
+          :const:`DEFAULT_LEVEL`).
+        - ``--verbose``/``-v`` raises the verbosity, one :class:`LogLevel` step per
+          repetition.
+        - ``--quiet``/``-q`` lowers the verbosity, one :class:`LogLevel` step per
+          repetition.
+
+        ``-v`` and ``-q`` form a single signed counter around the base level:
+        ``net = (number of -v) - (number of -q)``. The counter is clamped to the
+        :class:`LogLevel` range, so it never reaches past :attr:`LogLevel.DEBUG`
+        (loudest) nor :attr:`LogLevel.CRITICAL` (quietest). See
+        :meth:`resolve_level` for the way the counter is reconciled with an explicit
+        ``--verbosity``.
+
+    .. note::
+        ``-q`` only lowers the *logging* verbosity. It deliberately does not silence
+        :func:`click.echo`: a command's primary output is not a diagnostic and stays
+        on its stream.
+
+    .. todo::
+        Let the counter reach beyond the current :class:`LogLevel` range, as sketched
+        by the ``-vvvv`` (trace) and ``-q`` (silence everything) notes that used to
+        live here:
+
+        - a ``TRACE`` pseudo-level below :attr:`LogLevel.DEBUG` (numeric value ``5``,
+          mirroring ``logging.DEBUG - 5``) so repeated ``-v`` can surface
+          finer-grained tracing past ``DEBUG``;
+        - a ``SILENT`` pseudo-level above :attr:`LogLevel.CRITICAL` (any value above
+          ``logging.CRITICAL``) so repeated ``-q`` can suppress every record,
+          including :attr:`LogLevel.CRITICAL`.
+
+        Both require extending :class:`LogLevel`, which ripples into the
+        ``--verbosity`` :class:`~click_extra.types.EnumChoice`, the
+        :class:`ExtraFormatter` level-name color lookup and the level-ordering tests.
+        They are intentionally left out of the symmetric-counter change that
+        introduced ``-q``, where the counter simply clamps at ``DEBUG``/``CRITICAL``.
     """
 
     logger_name: str
@@ -379,43 +440,122 @@ class ExtraVerbosity(ExtraOption):
             logger.setLevel(DEFAULT_LEVEL.value)
             # new_extra_logger(name=logger.name)
 
-    def set_level(
-        self, ctx: click.Context, param: click.Parameter, level: LogLevel
-    ) -> None:
-        """Set level of all loggers configured on the option.
+    def handle_parse_result(self, ctx, opts, args):
+        """Pre-resolve the ``-v``/``-q`` counter before any level is applied.
 
-        All verbosity-related options are attached to this callback, so that's where we
-        reconcile the multiple values provided by different options. In case of a
-        conflict, the highest versbosity level always takes precedence.
+        The first verbosity option to be processed reads the raw ``--verbose`` and
+        ``--quiet`` repetition counts straight from the parsed ``opts`` and stashes them
+        on the context. By the time any verbosity callback applies a level,
+        :meth:`resolve_level` already sees the full counter, so the option that fires
+        first lands on the final level directly instead of applying a louder
+        intermediate that a later ``-q`` would have to walk back. See
+        :data:`_COUNTER_SCANNED`.
+        """
+        if not ctx.resilient_parsing and not context.get(ctx, _COUNTER_SCANNED):
+            context.set(ctx, _COUNTER_SCANNED, True)
+            for klass, key in (
+                (VerboseOption, context.VERBOSE),
+                (QuietOption, context.QUIET),
+            ):
+                option = _last_param(ctx, klass)
+                if option is not None:
+                    value, _ = option.consume_value(ctx, opts)
+                    context.set(ctx, key, value)
 
-        The final reconciled level chosen for the logger will be saved in
-        ``ctx.meta[click_extra.context.VERBOSITY_LEVEL]``. This context entry
-        served as a kind of global state shared by all verbosity-related options.
+        return super().handle_parse_result(ctx, opts, args)
+
+    def get_base_level(self, ctx: click.Context) -> LogLevel:
+        """Returns the base level the ``-v``/``-q`` counter is anchored at.
+
+        Sourced from the :attr:`~VerbosityOption.default` of any
+        :class:`VerbosityOption` declared on the current command. When the
+        ``-v``/``-q`` options are used standalone (no ``--verbosity``), it defaults to
+        :const:`DEFAULT_LEVEL`.
+        """
+        verbosity_option = _last_param(ctx, VerbosityOption)
+        if verbosity_option is None:
+            return DEFAULT_LEVEL
+        return verbosity_option.default  # type: ignore[return-value]
+
+    def resolve_level(self, ctx: click.Context) -> LogLevel:
+        """Reconcile ``--verbosity``, ``-v`` and ``-q`` into a single level.
+
+        Reads the raw value each option recorded on the context
+        (:data:`~click_extra.context.VERBOSITY`,
+        :data:`~click_extra.context.VERBOSE` and
+        :data:`~click_extra.context.QUIET`) and folds them with this rule:
+
+        - ``net = verbose - quiet``;
+        - ``net == 0``: the ``--verbosity`` value wins (its default when the user did
+          not pass it);
+        - ``net > 0``: the more verbose of the counter result and the ``--verbosity``
+          value wins;
+        - ``net < 0``: the more quiet of the counter result and the ``--verbosity``
+          value wins.
+
+        The counter starts from :meth:`get_base_level` and is clamped to the
+        :class:`LogLevel` range. This keeps ``-v`` backward compatible (it still counts
+        up from the default and the loudest request wins), while letting ``-q`` mirror
+        it downwards.
+        """
+        base = self.get_base_level(ctx)
+        verbosity: LogLevel = context.get(ctx, context.VERBOSITY, base)
+        net: int = context.get(ctx, context.VERBOSE, 0) - context.get(
+            ctx, context.QUIET, 0
+        )
+
+        if net == 0:
+            return verbosity
+
+        levels = tuple(LogLevel)
+        # Higher index == more verbose. ``-v`` raises the index, ``-q`` lowers it.
+        counter_index = min(max(levels.index(base) + net, 0), len(levels) - 1)
+        counter = levels[counter_index]
+
+        # ``min`` picks the more verbose (lowest numeric) level, ``max`` the quieter.
+        return min(counter, verbosity) if net > 0 else max(counter, verbosity)
+
+    def apply_verbosity(self, ctx: click.Context) -> None:
+        """Reconcile the requested verbosity and apply it to all managed loggers.
+
+        Called by every verbosity option after it has recorded its own raw value, so
+        the last option to fire reconciles the complete picture via
+        :meth:`resolve_level`. The reconciled level is published on ``ctx.meta`` under
+        :data:`~click_extra.context.VERBOSITY_LEVEL` and only (re)applied when it
+        actually changes, to keep the debug trace free of redundant ``Set`` lines.
         """
         # Skip logger reconfiguration during help rendering, shell completion,
         # and any ``make_context(resilient_parsing=True)`` path.
         if ctx.resilient_parsing:
             return
 
-        # Skip setting the level if another option has already sets it or is at an equal
-        # or lower level.
-        current_level = context.get(ctx, context.VERBOSITY_LEVEL)
-        if current_level and current_level <= level:
+        new_level = self.resolve_level(ctx)
+
+        # Idempotent: several verbosity options flow through here, so without this
+        # guard the same level would be re-applied and re-logged once per option.
+        if context.get(ctx, context.VERBOSITY_LEVEL) == new_level:
             return
 
-        context.set(ctx, context.VERBOSITY_LEVEL, level)
+        context.set(ctx, context.VERBOSITY_LEVEL, new_level)
 
         for logger in self.all_loggers:
-            logger.setLevel(level.value)
-            getLogger("click_extra").debug(f"Set {logger} to {level}.")
+            logger.setLevel(new_level.value)
+            getLogger("click_extra").debug(f"Set {logger} to {new_level}.")
 
-        # Register the close callback at most once per ctx. Both ``--verbosity``
-        # and ``-v`` flow through this method, so without a guard the same
-        # ``reset_loggers`` would be queued twice on Context._close_callbacks
-        # when both options are passed.
+        # Register the close callback at most once per ctx. All verbosity options flow
+        # through this method, so without a guard the same ``reset_loggers`` would be
+        # queued more than once on Context._close_callbacks.
         if not context.get(ctx, _RESET_REGISTERED):
             ctx.call_on_close(self.reset_loggers)
             context.set(ctx, _RESET_REGISTERED, True)
+
+    def set_level(self, ctx: click.Context, param: click.Parameter, value: Any) -> None:
+        """Base callback: subclasses record their raw value first, then reconcile.
+
+        The base implementation only triggers reconciliation. Each subclass overrides
+        it to stash its own raw value on the context before delegating here.
+        """
+        self.apply_verbosity(ctx)
 
     def __init__(
         self,
@@ -457,16 +597,18 @@ class ExtraVerbosity(ExtraOption):
 
 
 class VerbosityOption(ExtraVerbosity):
-    """``--verbosity LEVEL`` option to set the the log level of :class:`ExtraVerbosity`."""
+    """``--verbosity LEVEL`` option to set the log level of :class:`ExtraVerbosity`."""
 
     def set_level(
         self, ctx: click.Context, param: click.Parameter, value: LogLevel
     ) -> None:
-        """The value passed to ``--verbosity`` will be saved in
+        """Record the ``--verbosity`` value, then reconcile.
+
+        The value passed to ``--verbosity`` is saved in
         ``ctx.meta[click_extra.context.VERBOSITY]``.
         """
         context.set(ctx, context.VERBOSITY, value)
-        super().set_level(ctx, param, value)
+        self.apply_verbosity(ctx)
 
     def __init__(
         self,
@@ -493,39 +635,26 @@ class VerbosityOption(ExtraVerbosity):
 
 
 class VerboseOption(ExtraVerbosity):
-    """``--verbose``/``-v``` option to increase the log level of :class:`ExtraVerbosity`
-    by a number of steps.
+    """``--verbose``/``-v`` option to raise the log level of :class:`ExtraVerbosity` by
+    one step per repetition.
 
-    If ``-v`` is passed to a CLI, then it will increase the verbosity level by one
-    step. The option can be provided multiple times by the user. So if ``-vv`` (or
-    `-v -v`) is passed, the verbosity will be increase by 2 levels.
+    Each ``-v`` raises the verbosity by one :class:`LogLevel` step. The option can be
+    repeated, so ``-vv`` (or ``-v -v``) raises it by two steps.
 
-    The default base-level from which we start incrementing is sourced from
-    :attr:`VerbosityOption.default`. So with ``--verbosity``'s default set to
+    The base level the counter starts from is sourced from
+    :attr:`VerbosityOption.default`. So with ``--verbosity``'s default left at
     ``WARNING``:
 
-    - ``-v`` will increase the level to ``INFO``,
-    - ``-vv`` will increase the level to ``DEBUG``,
-    - any number of repetition above that point will be set to the maximum level, so for
-      ``-vvvvv`` for example will be capped at ``DEBUG``.
+    - ``-v`` raises the level to ``INFO``,
+    - ``-vv`` raises the level to ``DEBUG``,
+    - any further repetition is clamped at the loudest level, so ``-vvvvv`` for example
+      resolves to ``DEBUG``.
+
+    ``-v`` shares a single signed counter with :class:`QuietOption`'s ``-q``, so the two
+    cancel out: ``-v -q`` leaves the level unchanged. See
+    :meth:`ExtraVerbosity.resolve_level` for the full reconciliation rule with
+    ``--verbosity``.
     """
-
-    def get_base_level(self, ctx: click.Context) -> LogLevel:
-        """Returns the default base-level from which the option will start incrementing.
-
-        We try first to get the default level from any instance of
-        :class:`VerbosityOption` defined on the current command. If none is found, it's
-        because the ``--verbose`` option is used standalone. In which case we defaults to
-        :const:`DEFAULT_LEVEL`.
-        """
-        verbosity_option = search_params(
-            ctx.command.params, VerbosityOption, include_subclasses=False
-        )
-        return (
-            verbosity_option.default  # type: ignore[union-attr, return-value]
-            if verbosity_option
-            else DEFAULT_LEVEL
-        )
 
     def get_help_record(self, ctx: click.Context) -> tuple[str, str] | None:
         """Dynamiccaly generates the default help message.
@@ -548,33 +677,23 @@ class VerboseOption(ExtraVerbosity):
             return super().get_help_record(ctx)
 
     def set_level(self, ctx: click.Context, param: click.Parameter, value: int) -> None:
-        """Translate the number of steps to the target log level.
+        """Record the ``-v`` repetition count, then reconcile.
 
-        The value passed to ``--verbose``/``-v`` will be saved in
-        ``ctx.meta[click_extra.context.VERBOSE]``.
+        The number of repetitions is saved in
+        ``ctx.meta[click_extra.context.VERBOSE]`` and folded into the verbosity
+        counter by :meth:`ExtraVerbosity.resolve_level`.
         """
         context.set(ctx, context.VERBOSE, value)
+        self.apply_verbosity(ctx)
 
-        # No -v option has been called, skip meddling with log levels.
-        if value == 0:
-            return
-
-        levels_rank = tuple(LogLevel)
-        base_level = self.get_base_level(ctx)
-        default_level_index = levels_rank.index(base_level)
-
-        # Cap new index to the last, verbosier level.
-        new_level_index = min(default_level_index + value, len(levels_rank) - 1)
-        new_level = levels_rank[new_level_index]
-
-        super().set_level(ctx, param, new_level)
-
-        # Print the message after effectively altering the log level so we have a chance
-        # to see it at DEBUG-level.
-        getLogger("click_extra").debug(
-            f"Increased log verbosity by {value} levels: "
-            f"from {base_level} to {new_level}."
-        )
+        # Report the net effect after the level has been applied, so the message has a
+        # chance to be seen at DEBUG level.
+        if value and not ctx.resilient_parsing:
+            getLogger("click_extra").debug(
+                f"Increased log verbosity by {value} levels: "
+                f"from {self.get_base_level(ctx)} "
+                f"to {context.get(ctx, context.VERBOSITY_LEVEL)}."
+            )
 
     def __init__(
         self,
@@ -588,6 +707,84 @@ class VerboseOption(ExtraVerbosity):
         # Force type and default to have them aligned with the counting option's
         # original behavior:
         # https://github.com/pallets/click/blob/5dd6288/src/click/core.py#L2612-L2618
+        kwargs["type"] = IntRange(min=0)
+        kwargs["default"] = 0
+
+        super().__init__(
+            param_decls=param_decls,
+            count=count,
+            **kwargs,
+        )
+
+
+class QuietOption(ExtraVerbosity):
+    """``--quiet``/``-q`` option to lower the log level of :class:`ExtraVerbosity` by
+    one step per repetition.
+
+    The symmetric counterpart of :class:`VerboseOption`: where ``-v`` raises the
+    verbosity one :class:`LogLevel` step at a time, ``-q`` lowers it. Starting from
+    :attr:`VerbosityOption.default` (``WARNING`` by default):
+
+    - ``-q`` lowers the level to ``ERROR``,
+    - ``-qq`` lowers the level to ``CRITICAL``,
+    - any further repetition is clamped at the quietest level, so ``-qqqqq`` for example
+      resolves to ``CRITICAL``.
+
+    ``-q`` shares a single signed counter with :class:`VerboseOption`'s ``-v``, so the
+    two cancel out: ``-v -q`` leaves the level unchanged. See
+    :meth:`ExtraVerbosity.resolve_level` for the full reconciliation rule with
+    ``--verbosity``.
+    """
+
+    def get_help_record(self, ctx: click.Context) -> tuple[str, str] | None:
+        """Dynamiccaly generates the default help message.
+
+        We need that patch because :meth:`get_base_level` depends on the context, so we
+        cannot hard-code the help message as :meth:`QuietOption.__init__` default.
+        """
+        help_message_patch = nullcontext()
+        if self.help is None:
+            help_message_patch = patch.object(  # type:ignore[assignment]
+                self,
+                "help",
+                (
+                    f"Decrease the default {self.get_base_level(ctx)} verbosity "
+                    "by one level for each additional repetition of the option."
+                ),
+            )
+
+        with help_message_patch:
+            return super().get_help_record(ctx)
+
+    def set_level(self, ctx: click.Context, param: click.Parameter, value: int) -> None:
+        """Record the ``-q`` repetition count, then reconcile.
+
+        The number of repetitions is saved in
+        ``ctx.meta[click_extra.context.QUIET]`` and folded into the verbosity counter
+        by :meth:`ExtraVerbosity.resolve_level`.
+        """
+        context.set(ctx, context.QUIET, value)
+        self.apply_verbosity(ctx)
+
+        # Report the net effect after the level has been applied, so the message has a
+        # chance to be seen at DEBUG level.
+        if value and not ctx.resilient_parsing:
+            getLogger("click_extra").debug(
+                f"Decreased log verbosity by {value} levels: "
+                f"from {self.get_base_level(ctx)} "
+                f"to {context.get(ctx, context.VERBOSITY_LEVEL)}."
+            )
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        count: bool = True,
+        **kwargs,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--quiet", "-q")
+
+        # Force type and default to mirror the counting behavior of VerboseOption.
         kwargs["type"] = IntRange(min=0)
         kwargs["default"] = 0
 

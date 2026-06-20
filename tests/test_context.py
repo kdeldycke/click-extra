@@ -56,6 +56,7 @@ KEY_CONSTANTS: tuple[tuple[str, str], ...] = (
     ("VERBOSITY_LEVEL", "click_extra.verbosity_level"),
     ("VERBOSITY", "click_extra.verbosity"),
     ("VERBOSE", "click_extra.verbose"),
+    ("QUIET", "click_extra.quiet"),
     ("START_TIME", "click_extra.start_time"),
     ("JOBS", "click_extra.jobs"),
     ("TABLE_FORMAT", "click_extra.table_format"),

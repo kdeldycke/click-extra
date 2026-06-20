@@ -288,6 +288,9 @@ default_options_uncolored_help = (
     r"  -v, --verbose               Increase the default WARNING verbosity by one\n"
     r"                              level for each additional repetition of the\n"
     r"                              option.  \[default: 0\]\n"
+    r"  -q, --quiet                 Decrease the default WARNING verbosity by one\n"
+    r"                              level for each additional repetition of the\n"
+    r"                              option.  \[default: 0\]\n"
     r"  --man                       Show the command's man page \(roff\) and exit.\n"
     r"  --version                   Show the version and exit.\n"
     r"  -h, --help                  Show this message and exit.\n"
@@ -329,6 +332,9 @@ default_options_colored_help = (
     r"  \x1b\[36m\x1b\[1m-v\x1b\[0m, \x1b\[36m\x1b\[1m--verbose\x1b\[0m               Increase the default \x1b\[35m\x1b\[1mWARNING\x1b\[0m verbosity by one\n"
     r"                              level for each additional repetition of the\n"
     r"                              option.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3m0\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
+    r"  \x1b\[36m\x1b\[1m-q\x1b\[0m, \x1b\[36m\x1b\[1m--quiet\x1b\[0m                 Decrease the default \x1b\[35m\x1b\[1mWARNING\x1b\[0m verbosity by one\n"
+    r"                              level for each additional repetition of the\n"
+    r"                              option.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3m0\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m\x1b\[1m--man\x1b\[0m                       Show the command's man page \(roff\) and exit.\n"
     r"  \x1b\[36m\x1b\[1m--version\x1b\[0m                   Show the version and exit.\n"
     r"  \x1b\[36m\x1b\[1m-h\x1b\[0m, \x1b\[36m\x1b\[1m--help\x1b\[0m                  Show this message and exit.\n"
@@ -350,6 +356,15 @@ default_debug_uncolored_verbose_log = (
 )
 default_debug_colored_verbose_log = (
     r"\x1b\[34mdebug\x1b\[0m: Increased log verbosity "
+    r"by \d+ levels: from WARNING to [A-Z]+.\n"
+)
+
+
+default_debug_uncolored_quiet_log = (
+    r"debug: Decreased log verbosity by \d+ levels: from WARNING to [A-Z]+.\n"
+)
+default_debug_colored_quiet_log = (
+    r"\x1b\[34mdebug\x1b\[0m: Decreased log verbosity "
     r"by \d+ levels: from WARNING to [A-Z]+.\n"
 )
 

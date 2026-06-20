@@ -50,7 +50,7 @@ from .config import (
 from .context import ExtraContext
 from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import TimerOption
-from .logging import VerboseOption, VerbosityOption
+from .logging import QuietOption, VerboseOption, VerbosityOption
 from .man_page import ManOption
 from .parameters import ExtraOption, ShowParamsOption
 from .spinner import ProgressOption
@@ -97,6 +97,7 @@ def default_extra_params() -> list[click.Option]:
     #. ``--table-format FORMAT``
     #. ``--verbosity LEVEL``
     #. ``-v``, ``--verbose``
+    #. ``-q``, ``--quiet``
     #. ``--man``
     #. ``--version``
     #. ``-h``, ``--help``
@@ -141,6 +142,7 @@ def default_extra_params() -> list[click.Option]:
         TableFormatOption(),
         VerbosityOption(),
         VerboseOption(),
+        QuietOption(),
         ManOption(),
         ExtraVersionOption(),
         # @click.decorators.help_option(),

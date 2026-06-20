@@ -44,7 +44,7 @@ The reconciled log level chosen between `--verbosity` and `--verbose`/`-v` is pu
 ```
 
 ```{important}
-Besides `--verbosity`, there is another [`-v`/`--verbose` option](#click_extra.logging.VerboseOption). The latter works relative to `--verbosity`, and can be used to increase the level in steps, simply by repeating it.
+Besides `--verbosity`, there are the [`-v`/`--verbose`](#click_extra.logging.VerboseOption) and [`-q`/`--quiet`](#click_extra.logging.QuietOption) options. They both work relative to `--verbosity`: `-v` raises the level in steps and `-q` lowers it, simply by repeating them.
 
 In the rest of this documentation, we will mainly focus on the canonical `--verbosity` option to keep things simple (logging is already complicated enough...).
 ```
@@ -114,6 +114,62 @@ assert not result.stderr
 result = invoke(verbose_command, args=["-v"])
 assert result.stdout == "It works!\n"
 assert "We're printing stuff." in result.stderr
+```
+
+### Symmetric `-q`/`--quiet`
+
+`-q`/`--quiet` is the mirror image of `-v`/`--verbose`: each repetition lowers the verbosity one level instead of raising it. Both flags share a single counter centered on the default `WARNING` level, so passing both cancels out.
+
+```{click:source}
+import logging
+import click
+from click_extra import quiet_option, verbose_option
+
+@click.command
+@verbose_option
+@quiet_option
+def weather():
+    logging.critical("Storm warning issued.")
+    logging.error("Sensor offline.")
+    logging.warning("Strong winds expected.")
+    logging.info("Sky is clear.")
+    logging.debug("Humidity at 47%.")
+```
+
+By default the command reports `WARNING` and above:
+
+```{click:run}
+result = invoke(weather)
+assert "Strong winds expected." in result.stderr
+assert "Sky is clear." not in result.stderr
+```
+
+A single `-q` drops the level one step to `ERROR`, hiding the warning:
+
+```{click:run}
+result = invoke(weather, args=["-q"])
+assert "Sensor offline." in result.stderr
+assert "Strong winds expected." not in result.stderr
+```
+
+Repeat it to go quieter still; `-qq` keeps only `CRITICAL`:
+
+```{click:run}
+result = invoke(weather, args=["-qq"])
+assert "Storm warning issued." in result.stderr
+assert "Sensor offline." not in result.stderr
+```
+
+Since `-v` and `-q` form a single signed counter, mixing them nets out. `-v -q` leaves the level untouched:
+
+```{click:run}
+result = invoke(weather, args=["-v", "-q"])
+assert "Strong winds expected." in result.stderr
+assert "Sky is clear." not in result.stderr
+```
+
+```{note}
+`-q` stops at `CRITICAL`, the quietest level: it never suppresses `CRITICAL` messages themselves. It also only lowers the *logging* verbosity, and does not silence regular `echo` output.
 ```
 
 ### Default logger

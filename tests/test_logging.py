@@ -23,7 +23,14 @@ from textwrap import dedent
 import click
 import pytest
 
-from click_extra import LogLevel, command, echo, verbose_option, verbosity_option
+from click_extra import (
+    LogLevel,
+    command,
+    echo,
+    quiet_option,
+    verbose_option,
+    verbosity_option,
+)
 from click_extra.logging import (
     DEFAULT_LEVEL,
     ExtraFormatter,
@@ -35,6 +42,7 @@ from click_extra.pytest import (
     default_debug_colored_config,
     default_debug_colored_log_end,
     default_debug_colored_logging,
+    default_debug_colored_quiet_log,
     default_debug_colored_verbose_log,
     default_debug_colored_version_details,
     default_debug_uncolored_log_end,
@@ -100,6 +108,29 @@ def test_root_logger_defaults():
         (("--verbosity", "CRITICAL", "-vv"), "DEBUG"),
         # --verbosity is higher level and takes precedence.
         (("--verbosity", "DEBUG", "-v"), "DEBUG"),
+        # -q decreases the level, mirroring -v.
+        (("-q",), "ERROR"),
+        (("--quiet",), "ERROR"),
+        (("-qq",), "CRITICAL"),
+        (("-q", "-q"), "CRITICAL"),
+        (("--quiet", "--quiet"), "CRITICAL"),
+        (("-qqq",), "CRITICAL"),
+        (("-qqqqqqqqqqqqqq",), "CRITICAL"),
+        # -v and -q form a signed counter and cancel out.
+        (("-v", "-q"), "WARNING"),
+        (("-q", "-v"), "WARNING"),
+        (("-vv", "-q"), "INFO"),
+        (("-v", "-qq"), "ERROR"),
+        (("-vvv", "-q"), "DEBUG"),
+        # -q reconciles with --verbosity: the quietest of the two wins, and the
+        # counter still starts from the default WARNING.
+        (("--verbosity", "DEBUG", "-q"), "ERROR"),
+        (("--verbosity", "CRITICAL", "-q"), "CRITICAL"),
+        (("--verbosity", "INFO", "-qq"), "CRITICAL"),
+        (("--verbosity", "WARNING", "-q"), "ERROR"),
+        (("--verbosity", "ERROR", "-q"), "ERROR"),
+        # Cancelling counter falls back to the explicit --verbosity value.
+        (("--verbosity", "DEBUG", "-v", "-q"), "DEBUG"),
     ),
 )
 # TODO: test click_extra.group
@@ -116,6 +147,8 @@ def test_integrated_verbosity_options(
         debug_log = default_debug_colored_logging
         if any(a for a in args if a.startswith("-v") or a == "--verbose"):
             debug_log += default_debug_colored_verbose_log
+        if any(a for a in args if a.startswith("-q") or a == "--quiet"):
+            debug_log += default_debug_colored_quiet_log
         debug_log += (
             default_debug_colored_config
             + default_debug_colored_version_details
@@ -209,6 +242,33 @@ def test_custom_verbose_option_name(invoke, args, assert_output_regex):
 
 
 @pytest.mark.parametrize(
+    "args",
+    (
+        # Short option.
+        ("-B",),
+        # Long option.
+        ("--blah",),
+    ),
+)
+def test_custom_quiet_option_name(invoke, args):
+    param_names = ("--blah", "-B")
+
+    @click.command
+    @quiet_option(*param_names)
+    def awesome_app():
+        root_logger = logging.getLogger()
+        root_logger.warning("my warning message.")
+        root_logger.error("my error message.")
+
+    result = invoke(awesome_app, args, color=False)
+    assert not result.stdout
+    # A single -q lowers the level one step, from WARNING to ERROR, so the warning
+    # is suppressed while the error is still shown.
+    assert result.stderr == "error: my error message.\n"
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
     ("cmd_decorator", "cmd_type"),
     command_decorators(with_types=True),
 )
@@ -246,6 +306,8 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
         verbosity_option(),
         verbose_option,
         verbose_option(),
+        quiet_option,
+        quiet_option(),
     ),
 )
 @pytest.mark.parametrize(
@@ -261,6 +323,9 @@ def test_unrecognized_verbosity_level(invoke, cmd_decorator, cmd_type):
         (("-v", "-v"), LogLevel.DEBUG),
         (("-v", "-v", "-v"), LogLevel.DEBUG),
         (("-v", "-v", "-v", "-v", "-v", "-v"), LogLevel.DEBUG),
+        (("-q",), LogLevel.ERROR),
+        (("-q", "-q"), LogLevel.CRITICAL),
+        (("-q", "-q", "-q"), LogLevel.CRITICAL),
     ),
 )
 def test_standalone_option_default_logger(
