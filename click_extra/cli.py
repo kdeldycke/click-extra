@@ -392,7 +392,7 @@ def _animate_spinners(names: list[str]) -> None:
 @option(
     "--select",
     "names",
-    metavar="NAME,…",
+    metavar="NAME,...",
     default=None,
     help="Show a comma-separated list of spinner names.",
 )

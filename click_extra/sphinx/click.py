@@ -332,6 +332,27 @@ class ClickRunner(CliRunner):
         return buffer
 
 
+def _resolve_run_capture(
+    configured: Literal["sys", "fd"],
+) -> Literal["sys", "fd"]:
+    """Degrade the configured stream-capture mode to one the platform supports.
+
+    The ``click_extra_run_capture`` ``conf.py`` value is a build-time
+    *preference*. ``"fd"`` backs the captured streams with a real file descriptor
+    so a command writing through ``sys.stdout.fileno()`` renders (see
+    :class:`ClickRunner`), but Windows has no Unix file descriptors and Click
+    rejects ``capture="fd"`` there. Degrade ``"fd"`` to ``"sys"`` on Windows so
+    the documentation build proceeds: such fileno-writing commands simply do not
+    render, instead of aborting the whole build.
+
+    A direct ``ClickRunner(capture="fd")`` call still honors the explicit pin (and
+    raises on Windows); only the config-derived preference degrades here.
+    """
+    if configured == "fd" and sys.platform == "win32":
+        return "sys"
+    return configured
+
+
 class ClickDirective(SphinxDirective):
     has_content = True
 
@@ -401,7 +422,7 @@ class ClickDirective(SphinxDirective):
         runner = getattr(self.state.document, self.runner_attr, None)
         if runner is None:
             runner = self.runner_factory(
-                capture=self.env.config.click_extra_run_capture
+                capture=_resolve_run_capture(self.env.config.click_extra_run_capture)
             )
             setattr(self.state.document, self.runner_attr, runner)
         return runner
@@ -681,7 +702,9 @@ class TreeDirective(SphinxDirective):
         """
         runner = getattr(self.state.document, self.runner_attr, None)
         if runner is None:
-            runner = ClickRunner(capture=self.env.config.click_extra_run_capture)
+            runner = ClickRunner(
+                capture=_resolve_run_capture(self.env.config.click_extra_run_capture)
+            )
             setattr(self.state.document, self.runner_attr, runner)
         return runner
 
