@@ -22,7 +22,7 @@ from collections.abc import MutableMapping
 from contextlib import nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
-from operator import getitem, methodcaller
+from operator import getitem
 from unittest.mock import patch
 
 import click
@@ -34,7 +34,7 @@ from .envvar import param_envvar_ids
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator, Sequence
+    from collections.abc import Iterable, Iterator, Sequence
     from typing import Any, ClassVar
 
 
@@ -501,8 +501,15 @@ def format_param_row(
     prompt = getattr(param, "prompt", None)
     confirmation_prompt = getattr(param, "confirmation_prompt", None)
 
+    # Click 8.4 returns the UNSET sentinel (not None) for parameters that have no
+    # default. Present it as None, mirroring the normalization
+    # click.Command.parse_args applies to ctx.params. See the RAW_ARGS dossier in
+    # click_extra.context for the full rationale.
+    default_val = param.get_default(ctx)
+    if default_val is UNSET:
+        default_val = None
+
     if is_structured:
-        default_val = param.get_default(ctx)
         if not isinstance(default_val, (str, int, float, bool, list, type(None))):
             default_val = repr(default_val)
         if not isinstance(flag_value, (str, int, float, bool, list, type(None))):
@@ -550,7 +557,7 @@ def format_param_row(
         "hidden": styled_bool(hidden),
         "exposed": styled_bool(param.expose_value),
         "envvars": ", ".join(map(active_theme.envvar, param_envvar_ids(param, ctx))),
-        "default": active_theme.default(repr(param.get_default(ctx))),
+        "default": active_theme.default(repr(default_val)),
         "is_flag": styled_bool(is_flag),
         "flag_value": (
             active_theme.default(repr(flag_value)) if flag_value is not None else None
@@ -670,9 +677,14 @@ def render_params_table(
         logger.debug(f"{context.RAW_ARGS}: {raw_args}")
         parser = cmd.make_parser(subject_ctx)
         opts, _, _ = parser.parse_args(args=list(raw_args))
-        get_param_value: Callable[[click.Parameter], tuple[Any, Any]] = methodcaller(
-            "consume_value", subject_ctx, opts
-        )
+
+        def get_param_value(param):
+            # consume_value() can return the UNSET sentinel for a parameter with
+            # no user input and no default. Normalize it to None, mirroring the
+            # step click.Command.parse_args runs after parsing, which this
+            # re-parse bypasses. See the RAW_ARGS dossier in click_extra.context.
+            value, source = param.consume_value(subject_ctx, opts)
+            return (None if value is UNSET else value), source
     else:
 
         def get_param_value(param):

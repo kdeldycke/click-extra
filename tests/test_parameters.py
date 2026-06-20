@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Sequence
 from itertools import permutations
@@ -35,7 +36,6 @@ from click_extra import (
     INT,
     STRING,
     UNPROCESSED,
-    UNSET,
     UUID,
     Choice,
     ConfigFormat,
@@ -411,7 +411,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "✘",
             "SHOW_PARAMS_CLI_CONFIG",
-            UNSET,
+            "None",
             "✓",
             NO_CONFIG,
             "✘",
@@ -432,7 +432,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "✓",
             "SHOW_PARAMS_CLI_CUSTOM_PARAM",
-            UNSET,
+            "None",
             "✘",
             "",
             "✘",
@@ -440,7 +440,7 @@ def test_integrated_show_params_option(invoke, create_config):
             1,
             "",
             "✘",
-            UNSET,
+            "None",
             "DEFAULT",
         ),
         (
@@ -474,7 +474,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✓",
             "✓",
             "SHOW_PARAMS_CLI_HIDDEN_PARAM",
-            UNSET,
+            "None",
             "✘",
             "",
             "✘",
@@ -482,7 +482,7 @@ def test_integrated_show_params_option(invoke, create_config):
             1,
             "",
             "✘",
-            UNSET,
+            "None",
             "DEFAULT",
         ),
         (
@@ -684,7 +684,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "✓",
             "SHOW_PARAMS_CLI_VALIDATE_CONFIG",
-            UNSET,
+            "None",
             "✘",
             "",
             "✘",
@@ -692,7 +692,7 @@ def test_integrated_show_params_option(invoke, create_config):
             1,
             "",
             "✘",
-            UNSET,
+            "None",
             "DEFAULT",
         ),
         (
@@ -830,6 +830,36 @@ def test_show_params_native_types(invoke, table_format):
     elif table_format == "toml":
         assert "Hidden = false" in output
         assert "Exposed = false" in output
+
+
+def test_show_params_no_default_renders_none(invoke):
+    """A parameter with no default renders as None, not the UNSET sentinel.
+
+    Regression guard for Click 8.4's ``UNSET`` sentinel leaking into the value
+    and default columns through the ``--show-params`` re-parse path. See the
+    RAW_ARGS dossier in ``click_extra.context``.
+    """
+
+    @command
+    @option("--fruit")  # No default.
+    @argument("baskets", nargs=-1)  # No default.
+    def grocery_cli(fruit, baskets):
+        echo(f"fruit is {fruit!r}")
+
+    result = invoke(grocery_cli, "--show-params", "--table-format=json", color=False)
+
+    assert result.exit_code == 0
+    output = result.stdout
+
+    # The UNSET sentinel must never reach the rendered table. (Sentinel.NO_CONFIG
+    # legitimately appears as the --no-config flag value, so guard the exact one.)
+    assert "Sentinel.UNSET" not in output
+
+    rows = {row["ID"]: row for row in json.loads(output)}
+    for param_id in ("grocery-cli.fruit", "grocery-cli.baskets"):
+        assert rows[param_id]["Default"] is None
+        assert rows[param_id]["Value"] is None
+        assert rows[param_id]["Source"] == "DEFAULT"
 
 
 def test_column_registry_is_consistent():

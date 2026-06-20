@@ -137,12 +137,6 @@ def subcommand(int_param):
 
 ```{hint}
 The `click_extra.raw_args` metadata field in the context referenced above is not a standard feature from Click, but a helper introduced by Click Extra. It is only available with `@group` and `@command` decorators.
-
-In the mean time, it is [being discussed in the Click community at `click#1279`](https://github.com/pallets/click/issues/1279#issuecomment-1493348208).
-```
-
-```{todo}
-Propose the `raw_args` feature upstream to Click.
 ```
 
 Now if we feed the following `~/configuration.toml` configuration file:

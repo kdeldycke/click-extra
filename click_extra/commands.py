@@ -423,8 +423,9 @@ class ExtraCommand(ExtraHelpColorsMixin, cloup.Command):  # type: ignore[misc]
         CLI.
 
         .. seealso::
-            This workaround is being discussed upstream in `click#1279
-            <https://github.com/pallets/click/issues/1279#issuecomment-1493348208>`_.
+            See :data:`click_extra.context.RAW_ARGS` for the full rationale and
+            the upstream-proposal notes (related: `click#1279
+            <https://github.com/pallets/click/issues/1279#issuecomment-1493348208>`_).
         """
         # ``args`` needs to be copied: its items are consumed by the parsing process.
         extra.update({"meta": {context.RAW_ARGS: args.copy()}})
