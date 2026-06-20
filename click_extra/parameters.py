@@ -685,6 +685,7 @@ def render_params_table(
             # re-parse bypasses. See the RAW_ARGS dossier in click_extra.context.
             value, source = param.consume_value(subject_ctx, opts)
             return (None if value is UNSET else value), source
+
     else:
 
         def get_param_value(param):
