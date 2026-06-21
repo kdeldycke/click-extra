@@ -297,6 +297,19 @@ def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
     return expanded
 
 
+def _normalize_conf(conf: dict, strict: bool = False) -> dict:
+    """Strip reserved keys, then expand dotted keys into nested dicts.
+
+    The single normalization recipe shared by :py:func:`run_config_validation`
+    (Stage 1) and
+    :py:meth:`~click_extra.config.option.ConfigOption.merge_default_map`, so the
+    document that gets validated and the document that gets merged into
+    ``default_map`` are normalized identically. A change to the recipe applies to
+    both at once instead of risking drift between the two call sites.
+    """
+    return _expand_dotted_keys(_strip_reserved_keys(conf), strict=strict)
+
+
 def normalize_config_keys(
     conf: dict[str, Any],
     opaque_keys: frozenset[str] = frozenset(),
@@ -933,7 +946,7 @@ def run_config_validation(
         return not collect_all
 
     # Stage 1: normalize.
-    normalized = _expand_dotted_keys(_strip_reserved_keys(user_conf), strict=strict)
+    normalized = _normalize_conf(user_conf, strict=strict)
 
     # Stage 2: partition opaque sub-trees from CLI-flag-bound content.
     opaque_paths = _opaque_paths(config_schema, config_validators)

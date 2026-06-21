@@ -87,11 +87,10 @@ from .schema import (
     THEMES_CONFIG_KEY,
     ConfigValidator,
     _builtin_config_validators,
-    _expand_dotted_keys,
+    _normalize_conf,
     _opaque_paths,
     _select_app_section,
     _strip_opaque_subtrees,
-    _strip_reserved_keys,
     make_schema_callable,
     run_config_validation,
 )
@@ -1182,9 +1181,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         CLI-parameter strict check, so user-controlled keys (like mappings whose
         keys are data, not flag names) don't trip ``strict=True``.
         """
-        normalized_conf = _expand_dotted_keys(
-            _strip_reserved_keys(user_conf), strict=self.strict
-        )
+        normalized_conf = _normalize_conf(user_conf, strict=self.strict)
         normalized_conf = self._strip_opaque_from_conf(ctx, normalized_conf)
         filtered_conf = _recursive_update(
             copy.deepcopy(self.params_template), normalized_conf, self.strict
