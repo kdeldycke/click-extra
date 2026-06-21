@@ -410,10 +410,7 @@ class ColorOption(ExtraOption):
         default="auto",
         is_eager=True,
         expose_value=False,
-        help=_(
-            "Colorize the output. A bare --color is the same as --color=always; "
-            "--no-color aliases --color=never.",
-        ),
+        help=_("Colorize the output. A bare --color is the same as --color=always."),
         **kwargs,
     ) -> None:
         if not param_decls:
@@ -442,10 +439,10 @@ class NoColorOption(ExtraOption):
     here as a standalone boolean flag. When set, it pins ``ctx.color`` to ``False``;
     when absent it is a no-op, leaving the resolution to :class:`ColorOption`.
 
-    Hidden by default to keep the help screen focused on the canonical ``--color``,
-    whose own help text documents this alias. Eager by default, like
-    :class:`ColorOption`, so the color state is settled before other eager options
-    render.
+    Shown on its own line directly below ``--color`` (mirroring ``--no-config``
+    below ``--config``), since every other negative in the default option set is
+    visible too. Eager by default, like :class:`ColorOption`, so the color state is
+    settled before other eager options render.
     """
 
     def set_no_color(
@@ -468,7 +465,6 @@ class NoColorOption(ExtraOption):
         default=False,
         is_eager=True,
         expose_value=False,
-        hidden=True,
         help=_("Disable colorization (alias of --color=never)."),
         **kwargs,
     ) -> None:
@@ -483,7 +479,6 @@ class NoColorOption(ExtraOption):
             default=default,
             is_eager=is_eager,
             expose_value=expose_value,
-            hidden=hidden,
             help=help,
             **kwargs,
         )

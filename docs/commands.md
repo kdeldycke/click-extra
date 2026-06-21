@@ -514,8 +514,8 @@ Options:
                         time]
   --color [auto|always|never]
                         Colorize the output. A bare --color is the same as
-                        --color=always; --no-color aliases --color=never.
-                        [default: auto]
+                        --color=always.  [default: auto]
+  --no-color            Disable colorization (alias of --color=never).
   --config CONFIG_PATH  Location of the configuration file. Supports glob
                         pattern of local path and remote URL.  [default:
                         ~/Library/Application

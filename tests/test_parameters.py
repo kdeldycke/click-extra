@@ -554,7 +554,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "click_extra.colorize.NoColorOption",
             "click.types.BoolParamType",
             "bool",
-            "✓",
+            "✘",
             "✘",
             "✓",
             "SHOW_PARAMS_CLI_NO_COLOR",

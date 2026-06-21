@@ -199,7 +199,7 @@ When choices are `Enum` members, Click Extra colorizes their `name` attribute (n
 
 Click Extra adds a tri-state `--color[=WHEN]` option that follows the [GNU convention](https://www.gnu.org/prep/standards/html_node/_002d_002dcolor.html): `WHEN` is one of `auto`, `always` or `never`, and a bare `--color` (no value) means `always`. The option is eager, so it takes effect before other eager options like `--version`.
 
-`--no-color` is a hidden alias of `--color=never`.
+`--no-color` is an alias of `--color=never`.
 
 The resolved choice lands on `ctx.color`, the standard Click attribute that `echo()` reads: `always` keeps ANSI codes, `never` strips them, and `auto` (the default) defers to the output stream: colored on a terminal, stripped when piped.
 
@@ -252,7 +252,7 @@ assert result.exit_code == 0
 assert "Hello without color." in result.output
 ```
 
-`--no-color` is a hidden alias of `--color=never`:
+`--no-color` is an alias of `--color=never`:
 
 ```{click:run}
 result = invoke(greet, args=["--no-color"])
