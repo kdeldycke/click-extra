@@ -43,7 +43,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from shutil import which
-from subprocess import TimeoutExpired, run
+from subprocess import PIPE, STDOUT, TimeoutExpired, run
 
 from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
@@ -134,11 +134,27 @@ class CLITestCase:
     strip_ansi: bool = False
     """Strip ANSI escape sequences from the captured output before matching."""
 
+    output_contains: tuple[str, ...] | str = field(default_factory=tuple)
+    """Substrings that must all be present in the combined output.
+
+    The combined output interleaves stdout and stderr in the order the command
+    wrote them, matching what a user sees in a terminal. The ``output_*``
+    directives are mutually exclusive with the ``stdout_*`` / ``stderr_*`` ones:
+    a single subprocess run captures either the merged stream or the separate
+    ones, not both.
+    """
+
     stdout_contains: tuple[str, ...] | str = field(default_factory=tuple)
     """Substrings that must all be present in stdout."""
 
     stderr_contains: tuple[str, ...] | str = field(default_factory=tuple)
     """Substrings that must all be present in stderr."""
+
+    output_regex_matches: tuple[re.Pattern | str, ...] | str = field(
+        default_factory=tuple
+    )
+    """Regexes that must each match somewhere in the combined output (searched,
+    `re.DOTALL`). See `output_contains` for the merged-stream semantics."""
 
     stdout_regex_matches: tuple[re.Pattern | str, ...] | str = field(
         default_factory=tuple
@@ -149,6 +165,10 @@ class CLITestCase:
         default_factory=tuple
     )
     """Regexes that must each match somewhere in stderr (searched, `re.DOTALL`)."""
+
+    output_regex_fullmatch: re.Pattern | str | None = None
+    """Regex that must fully match the combined output, line by line. See
+    `output_contains` for the merged-stream semantics."""
 
     stdout_regex_fullmatch: re.Pattern | str | None = None
     """Regex that must fully match stdout, line by line."""
@@ -245,6 +265,23 @@ class CLITestCase:
 
             setattr(self, field_id, field_data)
 
+        # output_* (merged stream) and stdout_*/stderr_* (separate streams)
+        # require different subprocess captures, so a case picks one family.
+        output_directives = any(
+            getattr(self, f.name) for f in fields(self) if f.name.startswith("output_")
+        )
+        stream_directives = any(
+            getattr(self, f.name)
+            for f in fields(self)
+            if f.name.startswith(("stdout_", "stderr_"))
+        )
+        if output_directives and stream_directives:
+            raise ValueError(
+                "output_* directives (merged stream) cannot be mixed with "
+                "stdout_*/stderr_* directives (separate streams) in the same "
+                "test case: a subprocess run captures one or the other."
+            )
+
     def run_cli_test(
         self,
         command: Path | str,
@@ -261,11 +298,6 @@ class CLITestCase:
 
         ```{todo}
         Add support for environment variables.
-        ```
-
-        ```{todo}
-        Add support for proper mixed <stdout>/<stderr> stream as a single,
-        intertwined output.
         ```
         """
         if self.only_platforms and current_platform() not in self.only_platforms:  # type: ignore[operator]
@@ -302,10 +334,18 @@ class CLITestCase:
         clean_args = args_cleanup(binary, args, self.cli_parameters)
         logging.info(f"Run CLI command: {' '.join(clean_args)}")
 
+        # When the case asserts on the merged stream (output_* directives), route
+        # stderr into stdout so the OS interleaves both in write order: result.stdout
+        # then holds the combined stream and result.stderr is None. Otherwise capture
+        # the two streams separately.
+        combined_output = any(
+            getattr(self, f.name) for f in fields(self) if f.name.startswith("output_")
+        )
         try:
             result = run(
                 clean_args,
-                capture_output=True,
+                stdout=PIPE,
+                stderr=STDOUT if combined_output else PIPE,
                 timeout=self.timeout,  # type: ignore[arg-type]
                 check=False,
                 # Force UTF-8 decoding of subprocess output. The encoding parameter
@@ -339,13 +379,19 @@ class CLITestCase:
                 continue
 
             # Ignore non-output fields, and empty test cases.
-            elif not (field_id.startswith(("stdout_", "stderr_")) and field_data):
+            elif not (
+                field_id.startswith(("output_", "stdout_", "stderr_")) and field_data
+            ):
                 continue
 
             # Prepare output and name for comparison.
             output = ""
             name = ""
-            if field_id.startswith("stdout_"):
+            if field_id.startswith("output_"):
+                # Combined capture: result.stdout holds the merged stream.
+                output = result.stdout
+                name = "<output>"
+            elif field_id.startswith("stdout_"):
                 output = result.stdout
                 name = "<stdout>"
             elif field_id.startswith("stderr_"):

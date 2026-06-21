@@ -38,6 +38,7 @@ The directives map one-to-one onto {class}`~click_extra.test_plan.CLITestCase` f
 - `stdout_contains` / `stderr_contains`: substrings that must appear.
 - `stdout_regex_matches` / `stderr_regex_matches`: regexes that must each match somewhere.
 - `stdout_regex_fullmatch` / `stderr_regex_fullmatch`: a regex that must fully match, line by line.
+- `output_contains` / `output_regex_matches` / `output_regex_fullmatch`: the same three checks, but against the combined output (stdout and stderr interleaved in the order the command wrote them, like a terminal). These are mutually exclusive with the `stdout_*` / `stderr_*` directives in a single case, since one subprocess run captures either the merged stream or the separate ones. For order-sensitive checks make the command write unbuffered (e.g. `python -u`): a child that block-buffers stdout will have it surface after stderr.
 - `strip_ansi`: strip ANSI escapes before matching.
 - `timeout`: seconds before the case fails as a timeout.
 - `skip_platforms` / `only_platforms`: [`extra_platforms`](https://kdeldycke.github.io/extra-platforms) identifiers (`linux`, `macos`, `windows`, group IDs) controlling where the case runs.

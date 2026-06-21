@@ -87,6 +87,52 @@ def test_case_normalizes_scalars():
     assert case.cli_parameters == ("--foo", "bar")
 
 
+# --- output_* combined-stream directives -------------------------------------
+
+# An unbuffered (-u) script that interleaves stdout and stderr in a known order,
+# so the merged stream is deterministic: "out-1", "err-1", "out-2".
+_INTERLEAVE = (
+    "-u",
+    "-c",
+    "import sys; sys.stdout.write('out-1\\n'); "
+    "sys.stderr.write('err-1\\n'); sys.stdout.write('out-2\\n')",
+)
+
+
+def test_output_contains_sees_merged_stream():
+    """output_contains matches substrings from both stdout and stderr."""
+    case = CLITestCase(
+        cli_parameters=_INTERLEAVE,
+        output_contains=("out-1", "err-1", "out-2"),
+    )
+    # No exception means every substring was found in the merged stream.
+    case.run_cli_test(sys.executable, None, None)
+
+
+def test_output_regex_preserves_cross_stream_order():
+    """output_regex_matches sees stdout and stderr interleaved in write order."""
+    case = CLITestCase(
+        cli_parameters=_INTERLEAVE,
+        # out-1 (stdout), err-1 (stderr), out-2 (stdout): only the merged stream
+        # carries all three in this order. stdout alone lacks err-1.
+        output_regex_matches=(r"out-1.*err-1.*out-2",),
+    )
+    case.run_cli_test(sys.executable, None, None)
+
+
+def test_output_directive_mismatch_fails():
+    """A substring absent from the merged stream fails the case."""
+    case = CLITestCase(cli_parameters=_INTERLEAVE, output_contains=("absent",))
+    with pytest.raises(AssertionError):
+        case.run_cli_test(sys.executable, None, None)
+
+
+def test_output_and_stream_directives_are_mutually_exclusive():
+    """Combining output_* with stdout_*/stderr_* is rejected at construction."""
+    with pytest.raises(ValueError, match="cannot be mixed"):
+        CLITestCase(output_contains="x", stdout_contains="y")
+
+
 # --- run_test_plan -----------------------------------------------------------
 
 

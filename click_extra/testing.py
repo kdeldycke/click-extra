@@ -116,9 +116,14 @@ def render_cli_run(
         output = result.output
 
     elif isinstance(result, subprocess.CompletedProcess):
-        stdout = result.stdout
-        stderr = result.stderr
         exit_code = result.returncode
+        # A subprocess run with stderr merged into stdout (stderr=STDOUT) reports
+        # result.stderr as None: render that as the interleaved <output> stream.
+        if result.stderr is None:
+            output = result.stdout or ""
+        else:
+            stdout = result.stdout
+            stderr = result.stderr
 
     # Render the execution trace.
     trace = []
