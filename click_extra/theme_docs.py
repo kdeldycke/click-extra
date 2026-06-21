@@ -15,12 +15,12 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Render a theme palette as an inline-styled HTML fragment for documentation.
 
-The public entry points :func:`palette_html` and
-:func:`inject_slot_example_docstring` are used by ``docs/theme.md`` and the
-Sphinx ``autodoc-process-docstring`` hook to render the built-in palettes at
-build time. They are re-exported from :mod:`click_extra.theme` for backward
-compatibility. This is build-time documentation code, kept out of the runtime
-theme module.
+:func:`palette_html` is called from ``docs/theme.md`` to render every
+built-in theme's palette at Sphinx build time.
+:func:`inject_slot_example_docstring` is registered as a Sphinx
+``autodoc-process-docstring`` hook from ``docs/conf.py`` to inject a colored
+example into each HelpTheme slot's autodoc block. This is build-time
+documentation code, kept out of the runtime theme module.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ import re
 
 from cloup._util import identity
 
-from .styling import Style, _color_to_css
+from .styling import _ATTR_CSS, Style, _color_to_css, _rgb_to_hex
 from .theme import BUILTIN_THEMES, HelpTheme
 
 TYPE_CHECKING = False
@@ -65,15 +65,14 @@ _PALETTE_SWATCH = (
 # itself in the rendered swatch row (``bold`` shown in bold, ``italic``
 # in italic, ``underline`` with an underline, …). Iteration order doubles
 # as the visual order of the attribute pills next to each slot.
+#
+# Derived from the shared ``_ATTR_CSS`` source of truth in
+# ``click_extra.styling`` so the documentation pills and ``Style.to_css``
+# never drift. ``blink`` has no standard CSS and maps to an empty string,
+# leaving its pill unstyled (no built-in theme sets it).
 _PALETTE_ATTR_CSS: dict[str, str] = {
-    "bold": "font-weight: bold",
-    "dim": "opacity: 0.6",
-    "italic": "font-style: italic",
-    "underline": "text-decoration: underline",
-    "overline": "text-decoration: overline",
-    "blink": "text-decoration: blink",
-    "reverse": "filter: invert(1)",
-    "strikethrough": "text-decoration: line-through",
+    attr: f"{prop}: {value}" if prop else ""
+    for attr, (prop, value) in _ATTR_CSS.items()
 }
 
 # Slots inherited from cloup's HelpTheme. Each one links to cloup's
@@ -231,7 +230,7 @@ def inject_slot_example_docstring(
 
     .. code-block:: python
 
-        from click_extra.theme import inject_slot_example_docstring
+        from click_extra.theme_docs import inject_slot_example_docstring
 
 
         def setup(app):
@@ -318,7 +317,7 @@ def palette_html(theme: HelpTheme) -> str:
     .. code-block:: markdown
 
         ```{python:render}
-        from click_extra.theme import palette_html
+        from click_extra.theme_docs import palette_html
         from my_app.themes import MY_THEME
         print(palette_html(MY_THEME))
         ```
@@ -341,7 +340,7 @@ def palette_html(theme: HelpTheme) -> str:
         if fg is not None:
             css = _color_to_css(fg)
             if isinstance(fg, tuple) and len(fg) == 3:
-                color_label = f"#{fg[0]:02x}{fg[1]:02x}{fg[2]:02x}"
+                color_label = _rgb_to_hex(fg)
             else:
                 color_label = str(fg)
             cell_parts.append(

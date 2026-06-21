@@ -234,7 +234,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | {py:class}`@quiet_option <click_extra.logging.QuietOption>`           | `-q, --quiet`                             | ✅      |
 | [`@man_option`](man-page.md#generating-man-pages)                     | `--man`                                   | ✅      |
 | [`@version_option`](version.md)                                       | `--version`                               | ✅      |
-| {py:class}`@help_option <click_extra.colorize.HelpFormatter>`    | `-h, --help`                              | ✅      |
+| {py:class}`@help_option <click_extra.highlight.HelpFormatter>`    | `-h, --help`                              | ✅      |
 | [`@jobs_option`](execution.md#parallel-jobs)                          | `--jobs [auto\|max\|INTEGER]`             | ❌      |
 | {py:mod}`@telemetry_option <click_extra.telemetry>`                   | `--telemetry / --no-telemetry`            | ❌      |
 | [`@zero_exit_option`](execution.md#zero-exit-code)                    | `-0, --zero-exit`                         | ❌      |

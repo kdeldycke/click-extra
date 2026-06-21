@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def runner():
-    """Runner fixture for ``click.testing.CliRunner``."""
+    """Runner fixture for :class:`click_extra.testing.CliRunner`."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         yield runner
@@ -56,7 +56,7 @@ def runner():
 
 @pytest.fixture
 def invoke(runner):
-    """Invoke fixture shorthand for ``click.testing.CliRunner.invoke``."""
+    """Invoke fixture shorthand for :meth:`click_extra.testing.CliRunner.invoke`."""
     return runner.invoke
 
 
@@ -80,20 +80,20 @@ def command_decorators(
 ) -> tuple[ParameterSet, ...]:
     """Returns collection of Pytest parameters to test all command-like decorators.
 
-    Returns:
+    :return: Pytest parameters covering each command-like decorator variant:
 
-    - `click.command`
-    - `click.command()`
-    - `cloup.command`
-    - `cloup.command()`
-    - `click_extra.command`
-    - `click_extra.command()`
-    - `click.group`
-    - `click.group()`
-    - `cloup.group`
-    - `cloup.group()`
-    - `click_extra.group`
-    - `click_extra.group()`
+        - ``click.command``
+        - ``click.command()``
+        - ``cloup.command``
+        - ``cloup.command()``
+        - ``click_extra.command``
+        - ``click_extra.command()``
+        - ``click.group``
+        - ``click.group()``
+        - ``cloup.group``
+        - ``cloup.group()``
+        - ``click_extra.group``
+        - ``click_extra.group()``
     """
     params: list[tuple[Any, set[str], str, tuple | MarkDecorator]] = []
 
@@ -158,20 +158,20 @@ def option_decorators(
 ) -> tuple[ParameterSet, ...]:
     """Returns collection of Pytest parameters to test all parameter-like decorators.
 
-    Returns:
+    :return: Pytest parameters covering each parameter-like decorator variant:
 
-    - `click.option`
-    - `click.option()`
-    - `cloup.option`
-    - `cloup.option()`
-    - `click_extra.option`
-    - `click_extra.option()`
-    - `click.argument`
-    - `click.argument()`
-    - `cloup.argument`
-    - `cloup.argument()`
-    - `click_extra.argument`
-    - `click_extra.argument()`
+        - ``click.option``
+        - ``click.option()``
+        - ``cloup.option``
+        - ``cloup.option()``
+        - ``click_extra.option``
+        - ``click_extra.option()``
+        - ``click.argument``
+        - ``click.argument()``
+        - ``cloup.argument``
+        - ``cloup.argument()``
+        - ``click_extra.argument``
+        - ``click_extra.argument()``
     """
     params: list[tuple[Any, set[str], str, tuple | MarkDecorator]] = []
 

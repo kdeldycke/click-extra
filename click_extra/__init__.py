@@ -25,9 +25,9 @@ from typing import TYPE_CHECKING
 # before the star imports, makes mypy treat the later bindings as no-redefs and keeps
 # click-extra's subclasses canonical for consumers of this package.
 if TYPE_CHECKING:
-    from .colorize import HelpFormatter
     from .commands import Command, Group
     from .context import Context, pass_context
+    from .highlight import HelpFormatter
     from .parameters import Argument, Option
     from .styling import Style
     from .theme import HelpTheme
@@ -74,8 +74,6 @@ from . import context
 from .accessibility import AccessibleOption, clear, echo_via_pager
 from .colorize import (
     ColorOption,
-    HelpFormatter,
-    HelpKeywords,
     NoColorOption,
 )
 from .commands import (
@@ -142,6 +140,10 @@ from .execution import (
     ZeroExitOption,
     run_jobs,
 )
+from .highlight import (
+    HelpFormatter,
+    HelpKeywords,
+)
 from .logging import (
     Formatter,
     LogLevel,
@@ -183,7 +185,6 @@ from .table import (
     TableFormat,
     TableFormatOption,
     print_data,
-    print_sorted_table,
     print_table,
     render_columns_markdown_table,
     render_table,
@@ -368,7 +369,6 @@ __all__ = [
     "path",
     "pause",
     "print_data",
-    "print_sorted_table",
     "print_table",
     "progressbar",
     "prompt",

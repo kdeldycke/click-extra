@@ -513,13 +513,13 @@ sort_opt = SortByOption(
 @pass_context
 def inventory(ctx):
     """Sortable fruit inventory."""
-    header_defs = (("Fruit", "fruit"), ("Count", "count"), ("Notes", None))
+    headers = ("Fruit", "Count", "Notes")
     data = [
         ["Cherry", "50", "seasonal"],
         ["Apple", "120", ""],
         ["Banana", "80", "organic"],
     ]
-    ctx.print_table(header_defs, data)
+    ctx.print_table(data, headers)
 ```
 
 ```{click:run}

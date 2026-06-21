@@ -13,29 +13,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Gather CLI metadata and print them.
+"""Introspect CLI metadata at runtime and print a colored ``--version`` string.
 
-Pre-baking is inspired by `shadow-rs
-<https://github.com/baoyachi/shadow-rs>`_, which injects build-time
-constants (``BRANCH``, ``SHORT_COMMIT``, ``COMMIT_HASH``,
-``COMMIT_DATE``, ``TAG``, ...) into Rust binaries at compile time.
+:class:`VersionOption` gathers the executed CLI's metadata — module and
+package names, distribution version, author and license, environment profile,
+and the live Git state — and renders them through a customizable, colorized
+message template.
 
-.. todo::
-    Add the following build-time template fields, mirroring the constants
-    shadow-rs injects:
-
-    - ``{build_time}``: when the distribution was built (shadow-rs exposes it
-      as ``BUILD_TIME``, with RFC 2822 and RFC 3339 variants ``BUILD_TIME_2822``
-      / ``BUILD_TIME_3339``).
-    - ``{build_os}`` / ``{build_target}`` / ``{build_target_arch}``: the OS,
-      target triple and architecture the build ran on. These describe the
-      *build* host, unlike ``{env_info}`` which reports the *runtime* Python,
-      OS and architecture, so both are worth keeping for cross-built binaries.
+Git fields (``git_branch``, ``git_short_hash``, ...) are resolved at runtime by
+shelling out to ``git``, with two fallbacks for ``git``-less environments: a
+pre-baked ``__<field>__`` dunder in the CLI module (injected before build by
+:mod:`click_extra.prebake`), then a committed ``.git_archival.json`` populated
+by ``git archive``.
 """
 
 from __future__ import annotations
 
-import ast
 import importlib
 import inspect
 import json
@@ -50,11 +43,6 @@ from gettext import gettext as _
 from importlib import metadata
 from pathlib import Path
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
-
 import click
 from boltons.ecoutils import get_profile
 from boltons.formatutils import BaseFormatField, tokenize_format_str
@@ -62,6 +50,16 @@ from boltons.formatutils import BaseFormatField, tokenize_format_str
 from . import Style, echo, get_current_context
 from .context import _LazyMetaDict
 from .parameters import ExtraOption
+
+# The build-time pre-baking helpers moved to ``click_extra.prebake``. Re-exported
+# here so the historical ``from click_extra.version import prebake_*`` import path
+# keeps working. ``prebake`` imports nothing from this module, so there is no
+# circular import.
+from .prebake import (  # noqa: F401
+    discover_package_init_files,
+    prebake_dunder,
+    prebake_version,
+)
 from .theme import BUILTIN_THEMES, nocolor_theme
 
 # Frozen reference to the default theme's invoked-command style. Used as the
@@ -74,7 +72,7 @@ _default_invoked_command = BUILTIN_THEMES.get("dark", nocolor_theme).invoked_com
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Iterable, Mapping, Sequence
     from importlib.metadata import PackageMetadata
     from types import FrameType, ModuleType
     from typing import Any, ClassVar
@@ -91,14 +89,18 @@ GIT_FIELDS: dict[str, tuple[str, ...]] = {
     "git_date": ("show", "-s", "--format=%ci", "HEAD"),
     "git_tag": ("describe", "--tags", "--exact-match", "HEAD"),
 }
-"""Git fields that can be pre-baked, mapped to their ``git`` subcommand args.
+"""Git fields whose live value *is* the stripped output of one static ``git``
+subcommand, mapped to that subcommand's args.
 
 ``git_tag_sha``, ``git_distance`` and ``git_dirty`` are excluded: their
 resolution is not a single static ``git`` invocation whose stripped output is
-the value. ``git_tag_sha`` depends on ``git_tag`` (it runs
-``git rev-list -1 <tag>``), ``git_distance`` parses ``git describe`` and
-``git_dirty`` maps the porcelain status to a label. See
-:func:`resolve_git_distance` and :func:`resolve_git_dirty`.
+the value. ``git_tag_sha`` dereferences the tag (``git rev-list -1 <tag>``),
+``git_distance`` parses ``git describe`` and ``git_dirty`` maps the porcelain
+status to a label. See :func:`resolve_git_tag_sha`, :func:`resolve_git_distance`
+and :func:`resolve_git_dirty`.
+
+For the resolver of *every* pre-bakeable git field (these five plus the three
+computed ones), keyed uniformly by field ID, see :data:`GIT_RESOLVERS`.
 """
 
 
@@ -166,6 +168,60 @@ def resolve_git_distance(cwd: Path | None = None) -> str | None:
         return None
     match = re.search(r"-(\d+)-g[0-9a-f]+$", described)
     return match.group(1) if match else None
+
+
+def resolve_git_tag_sha(cwd: Path | None = None) -> str | None:
+    """Resolve the commit SHA the tag at ``HEAD`` points at, or ``None``.
+
+    Runs ``git describe --tags --exact-match HEAD`` to find the tag, then
+    ``git rev-list -1 <tag>`` to dereference it to a commit SHA. Returns
+    ``None`` when ``HEAD`` is not at a tagged commit, the directory is not a
+    Git repository, or ``git`` is unavailable.
+    """
+    tag = run_git(*GIT_FIELDS["git_tag"], cwd=cwd)
+    if not tag:
+        return None
+    return run_git("rev-list", "-1", tag, cwd=cwd)
+
+
+def _direct_git_resolver(
+    field_id: str,
+) -> Callable[[Path | None], str | None]:
+    """Build a ``cwd``-taking resolver for a direct :data:`GIT_FIELDS` field.
+
+    The returned callable runs the field's static ``git`` subcommand and
+    returns its stripped output. Defined as a named factory (rather than an
+    inline ``lambda``) so each resolver binds its own ``field_id``.
+    """
+    args = GIT_FIELDS[field_id]
+
+    def resolver(cwd: Path | None = None) -> str | None:
+        return run_git(*args, cwd=cwd)
+
+    return resolver
+
+
+GIT_RESOLVERS: dict[str, Callable[[Path | None], str | None]] = {
+    **{field_id: _direct_git_resolver(field_id) for field_id in GIT_FIELDS},
+    "git_tag_sha": resolve_git_tag_sha,
+    "git_distance": resolve_git_distance,
+    "git_dirty": resolve_git_dirty,
+}
+"""Canonical live resolver for every pre-bakeable ``git_*`` field.
+
+Maps each field ID to a callable that takes an optional working directory and
+returns the field's value by shelling out to ``git`` (or ``None`` when it
+cannot be resolved). This is the single source of truth for *how each git field
+is computed live*, shared by two consumers:
+
+- :class:`VersionOption`'s runtime accessors, which wrap each resolver with the
+  pre-baked-dunder and ``.git_archival.json`` fallbacks.
+- the ``click-extra prebake all`` command, which calls every resolver to bake
+  values into source files at build time.
+
+Keeping it here means adding a new git field is a one-line edit in this module,
+with no matching change needed in the CLI.
+"""
 
 
 def find_archival_file(start: Path) -> Path | None:
@@ -256,200 +312,91 @@ def archival_field(data: Mapping[str, str], field_id: str) -> str | None:
     return None
 
 
-def _find_dunder_str(source: str, name: str) -> ast.Constant | None:
-    """Find a top-level dunder string constant in parsed source.
+def resolve_distribution(names: Iterable[str]) -> str | None:
+    """Return the first installed distribution among *names*, or ``None``.
 
-    Locates the first top-level ``name = "..."`` assignment and returns
-    the :class:`ast.Constant` node for the string value. Returns
-    ``None`` if no matching assignment is found.
+    Probes each candidate name in order with :func:`importlib.metadata.distribution`
+    and returns the first that resolves to an installed distribution. Used to
+    pick a distribution from a set of plausible spellings (for example the
+    program name with ``-`` / ``_`` variants) before reading its metadata.
     """
-    tree = ast.parse(source)
-    for node in ast.iter_child_nodes(tree):
-        if (
-            isinstance(node, ast.Assign)
-            and len(node.targets) == 1
-            and isinstance(node.targets[0], ast.Name)
-            and node.targets[0].id == name
-            and isinstance(node.value, ast.Constant)
-            and isinstance(node.value.value, str)
-        ):
-            return node.value
+    for name in names:
+        if not name:
+            continue
+        try:
+            metadata.distribution(name)
+        except metadata.PackageNotFoundError:
+            continue
+        return name
     return None
 
 
-def _rewrite_str_literal(
-    file_path: Path,
-    source: str,
-    node: ast.Constant,
-    new_value: str,
-) -> None:
-    """Replace a string literal's content in a source file.
+def meta_value(meta: PackageMetadata, *keys: str) -> str | None:
+    """Return the first non-empty value among core-metadata *keys*.
 
-    Uses the AST node's line/column positions to swap the text between
-    the opening and closing quotes, preserving quoting style and all
-    surrounding content.
+    Accessed through ``in`` + ``[]`` (rather than ``.get()``) to dodge the
+    deprecated implicit-``None`` return on missing keys.
     """
-    col_offset = node.col_offset
-    end_lineno = node.end_lineno
-    col_end = node.end_col_offset
-    assert col_offset is not None
-    assert end_lineno is not None and col_end is not None
-    lines = source.splitlines(keepends=True)
-    line = lines[end_lineno - 1]
-    # Replace everything between the opening and closing quotes.
-    new_line = line[: col_offset + 1] + new_value + line[col_end - 1 :]
-    lines[end_lineno - 1] = new_line
-    file_path.write_text("".join(lines), encoding="utf-8")
+    for key in keys:
+        if key in meta:
+            value = meta[key]
+            if value:
+                return value
+    return None
 
 
-def prebake_version(
-    file_path: Path,
-    local_version: str,
-) -> str | None:
-    """Pre-bake a ``__version__`` string with a `PEP 440 local version
-    identifier
-    <https://peps.python.org/pep-0440/#local-version-identifiers>`_.
+def resolve_author(meta: PackageMetadata | None) -> str | None:
+    """Return the author(s) from *meta*'s core metadata, or ``None``.
 
-    Reads *file_path*, finds the ``__version__`` assignment via
-    :mod:`ast`, and — if the version contains ``.dev`` and does not
-    already contain ``+`` — appends ``+<local_version>``.
-
-    This is the compile-time complement to the runtime
-    :attr:`VersionOption.version` property: Nuitka/PyInstaller
-    binaries cannot run ``git`` at runtime, so the hash must be baked
-    into ``__version__`` in the source file **before** compilation.
-
-    Returns the new version string on success, or ``None`` if no change
-    was made (release version, already pre-baked, or no ``__version__``
-    found).
+    Prefers the ``Author`` field, then the ``Maintainer`` field, then the
+    display name parsed out of the ``Author-email`` / ``Maintainer-email``
+    fields (``Name <email>``). Returns ``None`` when *meta* is ``None`` or no
+    author can be determined.
     """
-    source = file_path.read_text(encoding="utf-8")
-    node = _find_dunder_str(source, "__version__")
-    if node is None:
-        logging.warning("No __version__ found in %s", file_path)
+    if not meta:
         return None
 
-    version = node.value
-    assert isinstance(version, str)
+    # Plain-name fields, in order of preference.
+    name = meta_value(meta, "Author", "Maintainer")
+    if name:
+        return name
 
-    if ".dev" not in version:
-        logging.info(
-            "Release version %r in %s — skipping.",
-            version,
-            file_path,
-        )
-        return None
+    # ``Name <email>`` combined fields: keep only the display names, falling
+    # back to the raw value when no name part is present.
+    contact = meta_value(meta, "Author-email", "Maintainer-email")
+    if contact:
+        names = [n for n, _addr in getaddresses([contact]) if n]
+        return ", ".join(names) if names else contact
 
-    if "+" in version:
-        logging.info(
-            "Version %r in %s already has a local identifier — skipping.",
-            version,
-            file_path,
-        )
-        return None
-
-    new_version = f"{version}+{local_version}"
-    _rewrite_str_literal(file_path, source, node, new_version)
-
-    logging.info(
-        "Pre-baked %s: %r → %r",
-        file_path,
-        version,
-        new_version,
-    )
-    return new_version
+    return None
 
 
-def prebake_dunder(
-    file_path: Path,
-    name: str,
-    value: str,
-) -> str | None:
-    """Replace an empty dunder variable's value in a Python source file.
+def resolve_license(meta: PackageMetadata | None) -> str | None:
+    """Return the license from *meta*'s core metadata, or ``None``.
 
-    Reads *file_path*, finds a top-level ``name = ""`` assignment via
-    :mod:`ast`, and — if the current value is an empty string — replaces
-    it with *value*.
-
-    Placeholders must use empty strings (``__field__ = ""``, not
-    ``None``). The AST matcher only recognizes string literals, and
-    the empty string serves as a falsy sentinel that stays
-    type-consistent with baked values (always ``str``).
-
-    This is the generic counterpart to :func:`prebake_version`: where
-    ``prebake_version`` appends a PEP 440 local identifier to
-    ``__version__``, this function does a full replacement of any dunder
-    variable that starts empty. Typical use case: injecting a release
-    commit SHA into ``__git_tag_sha__ = ""`` at build time.
-
-    Returns the new value on success, or ``None`` if no change was made
-    (variable not found, or already has a non-empty value).
+    Prefers the SPDX ``License-Expression`` field (`core metadata 2.4+
+    <https://packaging.python.org/en/latest/specifications/core-metadata/#license-expression>`_).
+    Falls back to the human-readable name of the first ``License ::`` trove
+    classifier, then to the free-form ``License`` field (which may hold the
+    full license text). Returns ``None`` when *meta* is ``None`` or no license
+    can be determined.
     """
-    source = file_path.read_text(encoding="utf-8")
-    node = _find_dunder_str(source, name)
-    if node is None:
-        logging.warning("No %s found in %s", name, file_path)
+    if not meta:
         return None
 
-    current = node.value
+    # SPDX expression (core metadata 2.4+), the modern canonical field.
+    expression = meta_value(meta, "License-Expression")
+    if expression:
+        return expression
 
-    if current:
-        logging.info(
-            "%s in %s already has value %r — skipping.",
-            name,
-            file_path,
-            current,
-        )
-        return None
+    # ``License :: OSI Approved :: GNU GPL v3 (GPLv3)`` → ``GNU GPL v3 (GPLv3)``.
+    for classifier in meta.get_all("Classifier") or []:
+        text = str(classifier)
+        if text.startswith("License ::"):
+            return text.split("::")[-1].strip()
 
-    _rewrite_str_literal(file_path, source, node, value)
-
-    logging.info(
-        "Pre-baked %s in %s: %r → %r",
-        name,
-        file_path,
-        current,
-        value,
-    )
-    return value
-
-
-def discover_package_init_files() -> list[Path]:
-    """Discover ``__init__.py`` files from ``[project.scripts]``.
-
-    Reads the ``pyproject.toml`` in the current working directory,
-    extracts ``[project.scripts]`` entry points, and returns the
-    unique ``__init__.py`` paths for each top-level package.
-
-    Only returns paths that exist on disk. Returns an empty list if
-    ``pyproject.toml`` is missing or has no ``[project.scripts]``.
-    """
-    pyproject_path = Path("pyproject.toml")
-    if not pyproject_path.exists():
-        logging.warning("No pyproject.toml found in current directory.")
-        return []
-
-    data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
-    scripts = data.get("project", {}).get("scripts", {})
-    if not scripts:
-        logging.warning("No [project.scripts] entries found in pyproject.toml.")
-        return []
-
-    seen: set[Path] = set()
-    paths: list[Path] = []
-    for script in scripts.values():
-        # "repomatic.__main__:main" → "repomatic".
-        module_id = script.split(":")[0]
-        package_dir = module_id.split(".")[0]
-        init_path = Path(package_dir) / "__init__.py"
-        if init_path in seen:
-            continue
-        seen.add(init_path)
-        if init_path.exists():
-            paths.append(init_path)
-        else:
-            logging.warning("Package init not found: %s", init_path)
-    return paths
+    # Free-form legacy field (may hold the full license text).
+    return meta_value(meta, "License")
 
 
 class VersionOption(ExtraOption):
@@ -880,76 +827,27 @@ class VersionOption(ExtraOption):
         name = self._distribution_name
         return metadata.metadata(name) if name else None
 
-    @staticmethod
-    def _meta_value(meta: PackageMetadata, *keys: str) -> str | None:
-        """Return the first non-empty value among core-metadata *keys*.
-
-        Accessed through ``in`` + ``[]`` (rather than ``.get()``) to dodge
-        the deprecated implicit-``None`` return on missing keys.
-        """
-        for key in keys:
-            if key in meta:
-                value = meta[key]
-                if value:
-                    return value
-        return None
-
     @cached_property
     def author(self) -> str | None:
         """Returns the package author(s) from its core metadata.
 
-        Prefers the ``Author`` field, then the ``Maintainer`` field, then
-        the display name parsed out of the ``Author-email`` /
-        ``Maintainer-email`` fields (``Name <email>``). Returns ``None``
-        if no author can be determined.
+        Delegates to :func:`resolve_author`: prefers the ``Author`` field,
+        then the ``Maintainer`` field, then the display name parsed out of the
+        ``Author-email`` / ``Maintainer-email`` fields (``Name <email>``).
+        Returns ``None`` if no author can be determined.
         """
-        meta = self._package_metadata
-        if not meta:
-            return None
-
-        # Plain-name fields, in order of preference.
-        name = self._meta_value(meta, "Author", "Maintainer")
-        if name:
-            return name
-
-        # ``Name <email>`` combined fields: keep only the display names,
-        # falling back to the raw value when no name part is present.
-        contact = self._meta_value(meta, "Author-email", "Maintainer-email")
-        if contact:
-            names = [n for n, _addr in getaddresses([contact]) if n]
-            return ", ".join(names) if names else contact
-
-        return None
+        return resolve_author(self._package_metadata)
 
     @cached_property
     def license(self) -> str | None:
         """Returns the package license from its core metadata.
 
-        Prefers the SPDX ``License-Expression`` field (`core metadata 2.4+
-        <https://packaging.python.org/en/latest/specifications/core-metadata/#license-expression>`_).
-        Falls back to the human-readable name of the first ``License ::``
-        trove classifier, then to the free-form ``License`` field (which
-        may hold the full license text). Returns ``None`` if no license
-        can be determined.
+        Delegates to :func:`resolve_license`: prefers the SPDX
+        ``License-Expression`` field, falls back to the human-readable name of
+        the first ``License ::`` trove classifier, then to the free-form
+        ``License`` field. Returns ``None`` if no license can be determined.
         """
-        meta = self._package_metadata
-        if not meta:
-            return None
-
-        # SPDX expression (core metadata 2.4+), the modern canonical field.
-        expression = self._meta_value(meta, "License-Expression")
-        if expression:
-            return expression
-
-        # ``License :: OSI Approved :: GNU GPL v3 (GPLv3)`` →
-        # ``GNU GPL v3 (GPLv3)``.
-        for classifier in meta.get_all("Classifier") or []:
-            text = str(classifier)
-            if text.startswith("License ::"):
-                return text.split("::")[-1].strip()
-
-        # Free-form legacy field (may hold the full license text).
-        return self._meta_value(meta, "License")
+        return resolve_license(self._package_metadata)
 
     @cached_property
     def exec_name(self) -> str:
@@ -1040,7 +938,9 @@ class VersionOption(ExtraOption):
         """
         dunder_name = f"__{field_id}__"
         value = getattr(self.module, dunder_name, None)
-        if value and isinstance(value, str):
+        # ``isinstance`` first so mypy narrows ``value`` from ``Any`` to ``str``
+        # for the return; the ``and value`` keeps only non-empty strings.
+        if isinstance(value, str) and value:
             return value
         return None
 
@@ -1062,6 +962,27 @@ class VersionOption(ExtraOption):
         path = find_archival_file(start)
         return read_archival(path) if path else {}
 
+    def _resolve_uniform_git_field(self, field_id: str) -> str | None:
+        """Resolve a ``git_*`` field that has a single static ``git`` command.
+
+        Applies the precedence shared by every uniform git field: a pre-baked
+        ``__<field_id>__`` dunder, then the live value from
+        :data:`GIT_RESOLVERS` (run inside :attr:`git_repo_path`), then the
+        ``.git_archival.json`` fallback.
+
+        Only valid for the fields in :data:`GIT_FIELDS`. The computed fields
+        (:attr:`git_tag_sha`, :attr:`git_distance`, :attr:`git_dirty`) diverge
+        in their fallbacks and resolve themselves.
+        """
+        live = None
+        if self.git_repo_path:
+            live = GIT_RESOLVERS[field_id](self.git_repo_path)
+        return (
+            self._get_prebaked(field_id)
+            or live
+            or archival_field(self._archival_data, field_id)
+        )
+
     @cached_property
     def git_branch(self) -> str | None:
         """Returns the current Git branch name.
@@ -1069,11 +990,7 @@ class VersionOption(ExtraOption):
         Checks for a pre-baked ``__git_branch__`` dunder first, then
         ``git rev-parse --abbrev-ref HEAD``, then ``.git_archival.json``.
         """
-        return (
-            self._get_prebaked("git_branch")
-            or self._run_git_command(*GIT_FIELDS["git_branch"])
-            or archival_field(self._archival_data, "git_branch")
-        )
+        return self._resolve_uniform_git_field("git_branch")
 
     @cached_property
     def git_long_hash(self) -> str | None:
@@ -1082,11 +999,7 @@ class VersionOption(ExtraOption):
         Checks for a pre-baked ``__git_long_hash__`` dunder first, then
         ``git rev-parse HEAD``, then ``.git_archival.json``.
         """
-        return (
-            self._get_prebaked("git_long_hash")
-            or self._run_git_command(*GIT_FIELDS["git_long_hash"])
-            or archival_field(self._archival_data, "git_long_hash")
-        )
+        return self._resolve_uniform_git_field("git_long_hash")
 
     @cached_property
     def git_short_hash(self) -> str | None:
@@ -1104,11 +1017,7 @@ class VersionOption(ExtraOption):
             a `minimum of 4 characters
             <https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreabbrev>`_.
         """
-        return (
-            self._get_prebaked("git_short_hash")
-            or self._run_git_command(*GIT_FIELDS["git_short_hash"])
-            or archival_field(self._archival_data, "git_short_hash")
-        )
+        return self._resolve_uniform_git_field("git_short_hash")
 
     @cached_property
     def git_date(self) -> str | None:
@@ -1118,11 +1027,7 @@ class VersionOption(ExtraOption):
         ``git show -s --format=%ci HEAD``, then ``.git_archival.json`` (whose
         ``node-date`` is strict ISO 8601, like ``2021-01-01T12:00:00+00:00``).
         """
-        return (
-            self._get_prebaked("git_date")
-            or self._run_git_command(*GIT_FIELDS["git_date"])
-            or archival_field(self._archival_data, "git_date")
-        )
+        return self._resolve_uniform_git_field("git_date")
 
     @cached_property
     def git_tag(self) -> str | None:
@@ -1133,11 +1038,7 @@ class VersionOption(ExtraOption):
 
         Returns ``None`` if HEAD is not at a tagged commit.
         """
-        return (
-            self._get_prebaked("git_tag")
-            or self._run_git_command(*GIT_FIELDS["git_tag"])
-            or archival_field(self._archival_data, "git_tag")
-        )
+        return self._resolve_uniform_git_field("git_tag")
 
     @cached_property
     def git_tag_sha(self) -> str | None:

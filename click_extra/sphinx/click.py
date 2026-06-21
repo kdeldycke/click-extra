@@ -52,7 +52,12 @@ from sphinx.directives.code import CodeBlock
 from sphinx.util import logging
 
 from ..colorize import forced_color
-from ._base import StatelessDomain, compile_directive, make_cleanup
+from ._base import (
+    StatelessDomain,
+    compile_directive,
+    directive_source,
+    make_cleanup,
+)
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -275,11 +280,7 @@ class ClickRunner(CliRunner):
         If any local variable in the provided ``source_code`` conflicts with these
         functions, a :class:`RuntimeError` is raised to help you pinpoint the issue.
         """
-        # Use directive.content instead of directive.block_text as the latter
-        # include the directive text itself in rST.
-        source_code = "\n".join(directive.content)
-        # Get the user-friendly location string as provided by Sphinx.
-        location = directive.get_location()
+        source_code, location = directive_source(directive)
 
         buffer: list[str] = []
 
@@ -607,7 +608,7 @@ class RunDirective(ClickDirective):
 ClickDirective.runner_factory = ClickRunner
 
 
-class TreeDirective(SphinxDirective):
+class TreeDirective(ClickDirective):
     """Render a complete CLI reference for a Click command and all its subcommands.
 
     Walks the Click command tree at build time and emits, in MyST syntax:
@@ -663,32 +664,11 @@ class TreeDirective(SphinxDirective):
     ``no-root`` skips the root ``--help`` block.
     """
 
-    runner_attr: ClassVar[str] = "click_runner"
-    """The runner is shared with :class:`ClickDirective` so a ``click:source``
-    that ran earlier on the same document has already populated the namespace
-    with the CLI variable this directive expects to resolve.
-    """
-
-    @property
-    def runner(self) -> ClickRunner:
-        """Get or create the per-document Click runner.
-
-        Mirrors :attr:`ClickDirective.runner` so the runner namespace is
-        shared across ``click:source``, ``click:run``, and ``click:tree``
-        within a single document.
-        """
-        runner = getattr(self.state.document, self.runner_attr, None)
-        if runner is None:
-            runner = ClickRunner(
-                capture=_resolve_run_capture(self.env.config.click_extra_run_capture)
-            )
-            setattr(self.state.document, self.runner_attr, runner)
-        return runner
-
-    @cached_property
-    def is_myst_syntax(self) -> bool:
-        """Check if the current directive is written with MyST syntax."""
-        return bool(self.state.__module__.split(".", 1)[0] == "myst_parser")
+    # The runner_attr, runner property and is_myst_syntax cached-property are
+    # inherited unchanged from ClickDirective. Sharing the "click_runner"
+    # attribute means a click:source that ran earlier on the same document has
+    # already populated the namespace with the CLI variable this directive
+    # resolves.
 
     @staticmethod
     def _slug(value: str) -> str:

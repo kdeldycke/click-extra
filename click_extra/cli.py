@@ -48,6 +48,12 @@ from . import (
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
 from .config import ClickExtraConfig, TestPlanConfig, get_tool_config
 from .envvar import merge_envvar_ids
+from .prebake import (
+    _find_dunder_str,
+    discover_package_init_files,
+    prebake_dunder,
+    prebake_version,
+)
 from .spinner import (
     _DEFAULT_SHOWCASE,
     _animate_spinners,
@@ -64,12 +70,7 @@ from .test_plan import (
 )
 from .version import (
     GIT_FIELDS,
-    _find_dunder_str,
-    discover_package_init_files,
-    prebake_dunder,
-    prebake_version,
-    resolve_git_distance,
-    resolve_git_dirty,
+    GIT_RESOLVERS,
     run_git,
 )
 
@@ -658,9 +659,12 @@ def all_fields(module: Path | None) -> None:
                 echo(f"Pre-baked {init_path}: __version__ = {baked!r}")
                 changed = True
 
-        # Pre-bake each git field that has an empty dunder placeholder.
-        resolved: dict[str, str] = {}
-        for field_name, git_args in GIT_FIELDS.items():
+        # Pre-bake each git field that has an empty dunder placeholder. The
+        # canonical field-to-resolver mapping lives in click_extra.version, so
+        # adding a git field there needs no matching edit here. Direct fields,
+        # the tag-derived git_tag_sha, and the computed git_distance/git_dirty
+        # all resolve uniformly through their GIT_RESOLVERS callable.
+        for field_name, resolver in GIT_RESOLVERS.items():
             dunder_name = f"__{field_name}__"
             node = _find_dunder_str(source, dunder_name)
             if node is None:
@@ -668,53 +672,15 @@ def all_fields(module: Path | None) -> None:
             if node.value:
                 echo(f"Skipped {init_path}: {dunder_name} already set")
                 continue
-            value = run_git(*git_args)
+            value = resolver(None)
             if not value:
                 echo(f"Skipped {init_path}: {dunder_name} (no git value)")
                 continue
-            resolved[field_name] = value
             baked = prebake_dunder(init_path, dunder_name, value)
             if baked:
                 echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
                 changed = True
                 # Re-read source after each write so AST offsets stay valid.
-                source = init_path.read_text(encoding="utf-8")
-
-        # Handle git_tag_sha: resolved from the tag, not a direct git command.
-        dunder_name = "__git_tag_sha__"
-        node = _find_dunder_str(source, dunder_name)
-        if node is not None and not node.value:
-            tag = resolved.get("git_tag")
-            if tag:
-                sha = run_git("rev-list", "-1", tag)
-                if sha:
-                    baked = prebake_dunder(init_path, dunder_name, sha)
-                    if baked:
-                        echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
-                        changed = True
-
-        # Re-read so the computed-field lookups below see current content
-        # after any git_tag_sha bake above shifted offsets.
-        source = init_path.read_text(encoding="utf-8")
-
-        # Handle git_distance and git_dirty: computed values, not direct
-        # GIT_FIELDS commands.
-        for field_name, resolver in (
-            ("git_distance", resolve_git_distance),
-            ("git_dirty", resolve_git_dirty),
-        ):
-            dunder_name = f"__{field_name}__"
-            node = _find_dunder_str(source, dunder_name)
-            if node is None or node.value:
-                continue
-            value = resolver()
-            if not value:
-                echo(f"Skipped {init_path}: {dunder_name} (no git value)")
-                continue
-            baked = prebake_dunder(init_path, dunder_name, value)
-            if baked:
-                echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
-                changed = True
                 source = init_path.read_text(encoding="utf-8")
 
     if not changed:

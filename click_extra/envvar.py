@@ -79,7 +79,7 @@ def clean_envvar_id(envvar_id: str) -> str:
 
     .. attention::
         We do not rely too much on this utility to try to reproduce the `current
-        behavior of Click, which is is not consistent regarding case-handling of
+        behavior of Click, which is not consistent regarding case-handling of
         environment variable <https://github.com/pallets/click/issues/2483>`_.
     """
     return "_".join(p for p in re.split(r"[^a-zA-Z0-9]+", envvar_id) if p).upper()

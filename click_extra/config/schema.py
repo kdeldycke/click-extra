@@ -525,6 +525,25 @@ def _collect_opaque_paths_from_schema(
     return frozenset(paths)
 
 
+def _opaque_paths(
+    schema: type | Callable[[dict[str, Any]], Any] | None,
+    validators: Sequence[ConfigValidator],
+) -> frozenset[str]:
+    """Union the opaque paths from a schema and a set of extension validators.
+
+    Merges the dotted paths :py:func:`_collect_opaque_paths_from_schema` infers
+    from ``schema`` with every validator's ``extension_path``. The result is the
+    single set of sub-trees, relative to the app section, that click-extra's
+    normalize/flatten/strict machinery must skip. An app can declare an extension
+    point through either source (or both, the union is idempotent), so callers
+    that need the complete skip set route through this helper instead of
+    re-combining the two sources by hand.
+    """
+    schema_paths = _collect_opaque_paths_from_schema(schema)
+    validator_paths = frozenset(v.extension_path for v in validators)
+    return schema_paths | validator_paths
+
+
 def _strip_opaque_subtrees(
     conf: dict[str, Any],
     opaque_paths: Iterable[str],
@@ -917,9 +936,7 @@ def run_config_validation(
     normalized = _expand_dotted_keys(_strip_reserved_keys(user_conf), strict=strict)
 
     # Stage 2 — partition opaque sub-trees from CLI-flag-bound content.
-    opaque_paths = _collect_opaque_paths_from_schema(config_schema) | frozenset(
-        cv.extension_path for cv in config_validators
-    )
+    opaque_paths = _opaque_paths(config_schema, config_validators)
     app_section = _select_app_section(user_conf, app_name, fallback_sections)
     opaque_subtrees: dict[str, dict[str, Any]] = {}
     for path in opaque_paths:

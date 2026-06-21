@@ -57,12 +57,11 @@ from click_extra import (
 )
 from click_extra.colorize import (
     COLOR_DISABLING_TERMS,
-    HelpKeywords,
     color_envvars,
     forced_color,
-    highlight,
     resolve_color_env,
 )
+from click_extra.highlight import HelpKeywords, highlight
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,

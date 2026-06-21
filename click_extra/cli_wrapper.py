@@ -41,14 +41,19 @@ from click.core import ParameterSource
 from click.utils import make_str
 
 from . import EnumChoice, context, option
-from .colorize import HelpFormatter, _HelpColorsMixin
 from .commands import ColorizedCommand, ColorizedGroup, Group
 from .context import Context
 from .decorators import columns_option
+from .highlight import HelpFormatter, _HelpColorsMixin
 from .man_page import render_manpage, write_manpages
 from .parameters import ShowParamsOption, render_params_table
 from .table import DEFAULT_FORMAT, TableFormat
 from .theme import BUILTIN_THEMES, HelpTheme, nocolor_theme, set_default_theme
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +88,29 @@ class WrapperGroup(Group):
         if wrap_cmd is not None:
             return "wrap", wrap_cmd, args
         return super().resolve_command(ctx, args)
+
+
+def _make_patched_decorator(
+    original: Callable[..., Any],
+    default_cls: type[click.Command],
+) -> Callable[..., Any]:
+    """Build a drop-in replacement for ``click.command`` / ``click.group``.
+
+    The returned wrapper defaults its ``cls`` to ``default_cls`` (a colorized
+    variant) while forwarding to ``original``. It handles both the parenthesized
+    form (``@command(...)``) and the bare form (``@command``), where the decorated
+    function arrives as the first positional ``name`` argument.
+    """
+
+    def _patched(name=None, cls=None, **attrs):
+        cls = cls or default_cls
+        # Handle bare usage (no parentheses): the decorated function is passed as
+        # the first positional argument.
+        if callable(name):
+            return original(cls=cls, **attrs)(name)
+        return original(name=name, cls=cls, **attrs)
+
+    return _patched
 
 
 def patch_click(
@@ -124,29 +152,12 @@ def patch_click(
         ColorizedCommand.context_class = Context
         ColorizedGroup.context_class = Context
 
-    def _patched_command_func(name=None, cls=None, **attrs):
-        """Wrapper around ``click.command`` defaulting cls to ColorizedCommand."""
-        # Handle bare @click.command usage (no parentheses): the decorated
-        # function is passed as the first positional argument.
-        if callable(name):
-            func = name
-            if cls is None:
-                cls = ColorizedCommand
-            return _original_click_command(cls=cls, **attrs)(func)
-        if cls is None:
-            cls = ColorizedCommand
-        return _original_click_command(name=name, cls=cls, **attrs)
-
-    def _patched_group_func(name=None, cls=None, **attrs):
-        """Wrapper around ``click.group`` defaulting cls to ColorizedGroup."""
-        if callable(name):
-            func = name
-            if cls is None:
-                cls = ColorizedGroup
-            return _original_click_group(cls=cls, **attrs)(func)
-        if cls is None:
-            cls = ColorizedGroup
-        return _original_click_group(name=name, cls=cls, **attrs)
+    _patched_command_func = _make_patched_decorator(
+        _original_click_command, ColorizedCommand
+    )
+    _patched_group_func = _make_patched_decorator(
+        _original_click_group, ColorizedGroup
+    )
 
     # Replace decorator functions in both namespaces so both ``click.command``
     # and ``from click.decorators import command`` resolve to the wrappers.

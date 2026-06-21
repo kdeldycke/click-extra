@@ -55,7 +55,8 @@ from typing import Any, ParamSpec, TypeVar, cast
 import click
 import cloup
 
-from .colorize import HelpFormatter, resolve_color_env
+from .colorize import resolve_color_env
+from .highlight import HelpFormatter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

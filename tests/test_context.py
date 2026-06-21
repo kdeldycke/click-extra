@@ -32,7 +32,7 @@ import pytest
 from click.testing import CliRunner
 
 from click_extra import context
-from click_extra.colorize import HelpFormatter, color_envvars
+from click_extra.colorize import color_envvars
 from click_extra.commands import Command
 from click_extra.context import (
     META_NAMESPACE,
@@ -40,6 +40,7 @@ from click_extra.context import (
     Context,
     _LazyMetaDict,
 )
+from click_extra.highlight import HelpFormatter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

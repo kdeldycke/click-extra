@@ -62,8 +62,8 @@ from click_extra.version import (
     prebake_dunder,
     prebake_version,
     read_archival,
-    resolve_git_distance,
     resolve_git_dirty,
+    resolve_git_distance,
 )
 
 from .conftest import skip_windows_colors

@@ -52,7 +52,6 @@ from click_extra.table import (
     _column_sort_key,
     _strip_none,
     print_data,
-    print_sorted_table,
     print_table,
     render_table,
     serialize_data,
@@ -1109,17 +1108,6 @@ def test_column_sort_key(header_defs, rows, sort_columns, cell_key, expected_fir
     assert [r[0] for r in result] == expected_first_col
 
 
-def test_print_sorted_table_empty_rows(capsys):
-    """Empty table produces no output."""
-    print_sorted_table(
-        header_defs=[("Name", "name")],
-        table_data=[],
-        sort_columns=("name",),
-        table_format=TableFormat.PLAIN,
-    )
-    assert capsys.readouterr().out == ""
-
-
 @pytest.mark.parametrize(
     ("header_defs", "expected_choices", "expected_default"),
     (
@@ -1166,9 +1154,9 @@ def test_sort_by_option_wires_context(invoke):
     @table_format_option
     @pass_context
     def cli(ctx):
-        header_defs = (("Fruit", "fruit"), ("Count", "count"))
+        headers = ("Fruit", "Count")
         data = [["banana", "3"], ["apple", "1"], ["cherry", "2"]]
-        ctx.print_table(header_defs, data)
+        ctx.print_table(data, headers)
 
     result = invoke(cli, "--table-format", "json", "--sort-by", "fruit", color=False)
     assert result.exit_code == 0
@@ -1188,13 +1176,13 @@ def test_sort_by_option_multi_column(invoke):
     @table_format_option
     @pass_context
     def cli(ctx):
-        header_defs = (("City", "city"), ("Name", "name"), ("Age", "age"))
+        headers = ("City", "Name", "Age")
         data = [
             ["NYC", "Alice", "30"],
             ["LA", "Bob", "25"],
             ["SF", "Alice", "25"],
         ]
-        ctx.print_table(header_defs, data)
+        ctx.print_table(data, headers)
 
     result = invoke(
         cli,

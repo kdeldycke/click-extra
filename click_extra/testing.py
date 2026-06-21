@@ -22,6 +22,7 @@ import logging
 import re
 import subprocess
 from contextlib import nullcontext
+from dataclasses import dataclass
 from functools import cached_property, partial
 from textwrap import indent
 from unittest.mock import patch
@@ -65,6 +66,90 @@ INDENT = " " * len(PROMPT)
 """Constants for rendering of CLI execution."""
 
 
+OUTPUT_LABEL = "<output>"
+"""Label for the merged stream, where stdout and stderr are interleaved."""
+
+STDOUT_LABEL = "<stdout>"
+"""Label for the standard output stream."""
+
+STDERR_LABEL = "<stderr>"
+"""Label for the standard error stream."""
+
+EXIT_CODE_LABEL = "<exit_code>"
+"""Label for the process exit code."""
+
+
+STREAM_FIELDS = {
+    "output_": (OUTPUT_LABEL, "output"),
+    "stdout_": (STDOUT_LABEL, "stdout"),
+    "stderr_": (STDERR_LABEL, "stderr"),
+}
+"""Maps a test-case field prefix to its stream label and :class:`StreamView` attribute.
+
+``output_*`` directives target the merged stream; ``stdout_*`` and ``stderr_*``
+target the separate streams. Both :func:`render_cli_run` and
+:meth:`click_extra.test_plan.CLITestCase.run_cli_test` read this single table so the
+rendered trace and the assertion loop agree on labels and stream selection.
+"""
+
+
+@dataclass(frozen=True)
+class StreamView:
+    """Normalized view of a CLI run's captured streams and exit code.
+
+    Both runners produce one of these so the renderer and the assertion loop read a
+    single shape, regardless of whether the run was driven in-process (Click's
+    :class:`click.testing.Result`) or as a black-box subprocess
+    (:class:`subprocess.CompletedProcess`).
+
+    A run captures either the merged stream (``output``) or the separate ``stdout`` and
+    ``stderr`` streams, never both: the unused fields stay empty.
+    """
+
+    stdout: str = ""
+    """Captured standard output, or empty when the merged stream was captured."""
+
+    stderr: str = ""
+    """Captured standard error, or empty when the merged stream was captured."""
+
+    output: str = ""
+    """Captured merged stream (stdout and stderr interleaved), or empty when the
+    separate streams were captured."""
+
+    exit_code: int | None = None
+    """Process exit code, or ``None`` when unavailable."""
+
+    @classmethod
+    def from_result(cls, result: click.testing.Result) -> StreamView:
+        """Build a view from an in-process :class:`click.testing.Result`.
+
+        Click always exposes ``stdout``, ``stderr`` and the interleaved ``output``
+        together, so all three are carried over verbatim.
+        """
+        return cls(
+            stdout=result.stdout,
+            stderr=result.stderr,
+            output=result.output,
+            exit_code=result.exit_code,
+        )
+
+    @classmethod
+    def from_completed_process(cls, result: subprocess.CompletedProcess) -> StreamView:
+        """Build a view from a black-box :class:`subprocess.CompletedProcess`.
+
+        A subprocess run with stderr merged into stdout (``stderr=STDOUT``) reports
+        ``result.stderr`` as ``None``: that case is rendered as the interleaved
+        ``output`` stream. Otherwise the two streams are kept separate.
+        """
+        if result.stderr is None:
+            return cls(output=result.stdout or "", exit_code=result.returncode)
+        return cls(
+            stdout=result.stdout,
+            stderr=result.stderr,
+            exit_code=result.returncode,
+        )
+
+
 def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
     """Flatten recursive iterables, remove all ``None``, and cast each element to
     strings.
@@ -77,7 +162,7 @@ def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
 
-def format_cli_prompt(
+def _format_cli_prompt(
     cmd_args: Iterable[str],
     extra_env: TEnvVars | None = None,
 ) -> str:
@@ -103,46 +188,33 @@ def render_cli_run(
 
     Mostly used to print debug traces to user or in test results.
     """
-    prompt = format_cli_prompt(args, env)
-    stdout = ""
-    stderr = ""
-    output = ""
-    exit_code = None
+    prompt = _format_cli_prompt(args, env)
 
     if isinstance(result, click.testing.Result):
-        stdout = result.stdout
-        stderr = result.stderr
-        exit_code = result.exit_code
-        output = result.output
+        view = StreamView.from_result(result)
+    else:
+        view = StreamView.from_completed_process(result)
 
-    elif isinstance(result, subprocess.CompletedProcess):
-        exit_code = result.returncode
-        # A subprocess run with stderr merged into stdout (stderr=STDOUT) reports
-        # result.stderr as None: render that as the interleaved <output> stream.
-        if result.stderr is None:
-            output = result.stdout or ""
-        else:
-            stdout = result.stdout
-            stderr = result.stderr
+    # Per-stream colors for the rendered trace, keyed by the shared stream labels.
+    stream_colors = {
+        OUTPUT_LABEL: Color.blue,
+        STDOUT_LABEL: Color.green,
+        STDERR_LABEL: Color.red,
+    }
 
     # Render the execution trace.
-    trace = []
-    trace.append(prompt)
-    if output:
-        trace.append(f"{Style(fg=Color.blue)('<output>')} stream:")
-        trace.append(indent(output, INDENT))
-    if stdout:
-        trace.append(f"{Style(fg=Color.green)('<stdout>')} stream:")
-        trace.append(indent(stdout, INDENT))
-    if stderr:
-        trace.append(f"{Style(fg=Color.red)('<stderr>')} stream:")
-        trace.append(indent(stderr, INDENT))
-    if exit_code is not None:
-        trace.append(f"{Style(fg=Color.yellow)('<exit_code>')}: {exit_code}")
+    trace = [prompt]
+    for label, attr in STREAM_FIELDS.values():
+        content = getattr(view, attr)
+        if content:
+            trace.append(f"{Style(fg=stream_colors[label])(label)} stream:")
+            trace.append(indent(content, INDENT))
+    if view.exit_code is not None:
+        trace.append(f"{Style(fg=Color.yellow)(EXIT_CODE_LABEL)}: {view.exit_code}")
     return "\n".join(trace)
 
 
-def print_cli_run(
+def _print_cli_run(
     args: Iterable[str],
     result: click.testing.Result | subprocess.CompletedProcess,
     env: TEnvVars | None = None,
@@ -231,7 +303,7 @@ class CliRunner(click.testing.CliRunner):
         - Pretty-prints a formatted exception traceback if the command fails.
 
         :param cli: CLI to invoke.
-        :param *args: can be nested iterables composed of ``str``,
+        :param args: can be nested iterables composed of ``str``,
             :py:class:`pathlib.Path` objects and ``None`` values. The nested structure
             will be flattened and ``None`` values will be filtered out. Then all
             elements will be casted to ``str``. See :func:`args_cleanup` for details.
@@ -242,7 +314,7 @@ class CliRunner(click.testing.CliRunner):
             ``click.testing.CliRunner.isolation()``. If ``"forced"``, the parameter
             will be passed as ``True`` to ``click.testing.CliRunner.isolation()`` and
             an extra ``color=True`` parameter will be passed to the invoked CLI.
-        :param **extra: same as ``click.testing.CliRunner.invoke()``, but colliding
+        :param extra: same as ``click.testing.CliRunner.invoke()``, but colliding
             parameters are allowed and properly passed on to the invoked CLI.
         """
         # Pop out the ``args`` parameter from ``extra`` and append it to the positional
@@ -308,7 +380,7 @@ class CliRunner(click.testing.CliRunner):
             extra_result.stderr_bytes = strip_ansi(extra_result.stderr_bytes)  # type: ignore[assignment,arg-type]
             extra_result.output_bytes = strip_ansi(extra_result.output_bytes)  # type: ignore[assignment,arg-type]
 
-        print_cli_run(
+        _print_cli_run(
             [self.get_default_prog_name(cli), *clean_args],
             extra_result,
             env=env,
@@ -355,7 +427,8 @@ class RegexLineMismatch(AssertionError):
 
 
 REGEX_NEWLINE = "\\n"
-"""Newline representation in the regexes above."""
+"""Newline token used to split a multi-line regex pattern for line-by-line
+matching."""
 
 
 def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:

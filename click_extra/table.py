@@ -31,7 +31,7 @@ import tabulate
 from boltons.strutils import strip_ansi
 from tabulate import DataRow, TableFormat as TabulateTableFormat
 
-from . import EnumChoice, context, echo, style
+from . import EnumChoice, context, echo
 from .parameters import ExtraOption
 from .types import MultiChoice
 
@@ -270,16 +270,85 @@ def _rows_as_dicts(
     return [list(row) for row in table_data]
 
 
+def _dump_json(obj: Any, **kwargs) -> str:
+    """Serialize an already-shaped object to JSON.
+
+    Shared core for both :py:func:`_render_json` (tabular rows) and
+    :py:func:`serialize_data` (arbitrary data): keeps a single source of truth for
+    the dump defaults and the trailing newline.
+    """
+    return json.dumps(obj, **{"ensure_ascii": False, "indent": 2, **kwargs}) + "\n"
+
+
+def _dump_yaml(obj: Any, **kwargs) -> str:
+    """Serialize an already-shaped object to YAML.
+
+    Shared core for both :py:func:`_render_yaml` (tabular rows) and
+    :py:func:`serialize_data` (arbitrary data). Requires the ``pyyaml`` package
+    (installable via the ``[yaml]`` extra).
+    """
+    import yaml
+
+    return str(
+        yaml.dump(
+            obj,
+            **{"allow_unicode": True, "default_flow_style": False, **kwargs},
+        )
+    )
+
+
+def _dump_toml(mapping: dict, **kwargs) -> str:
+    """Serialize an already-shaped mapping to TOML.
+
+    Shared core for both :py:func:`_render_toml` (tabular rows shaped as a
+    ``[[record]]`` array-of-tables) and :py:func:`serialize_data` (arbitrary
+    data). Requires the ``tomlkit`` package (installable via the ``[toml]``
+    extra).
+    """
+    import tomlkit
+
+    doc = tomlkit.document()
+    for key, value in mapping.items():
+        doc.add(key, value)
+    return tomlkit.dumps(doc)
+
+
+def _dump_hjson(obj: Any, **kwargs) -> str:
+    """Serialize an already-shaped object to HJSON.
+
+    Shared core for both :py:func:`_render_hjson` (tabular rows) and
+    :py:func:`serialize_data` (arbitrary data). Requires the ``hjson`` package
+    (installable via the ``[hjson]`` extra).
+    """
+    import hjson
+
+    return str(hjson.dumps(obj, **{"ensure_ascii": False, **kwargs})) + "\n"
+
+
+def _dump_xml(doc: dict, **kwargs) -> str:
+    """Serialize an already-shaped, root-wrapped mapping to XML.
+
+    Shared core for both :py:func:`_render_xml` (tabular rows) and
+    :py:func:`serialize_data` (arbitrary data): both build the root-wrapped
+    document and delegate the dump here. Requires the ``xmltodict`` package
+    (installable via the ``[xml]`` extra).
+    """
+    import xmltodict
+
+    result: str = xmltodict.unparse(
+        doc,
+        **{"pretty": True, "encoding": "unicode", "full_document": False, **kwargs},
+    )
+    return result + "\n"
+
+
 def _render_json(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
     **kwargs,
 ) -> str:
     """Render a table as JSON."""
-    data = _rows_as_dicts(table_data, headers)
-    defaults: dict = {"ensure_ascii": False, "indent": 2}
-    defaults.update(kwargs)
-    return json.dumps(data, **defaults) + "\n"
+    return _dump_json(_rows_as_dicts(table_data, headers), **kwargs)
 
 
 def _render_yaml(
@@ -291,12 +360,7 @@ def _render_yaml(
 
     Requires the ``pyyaml`` package (installable via the ``[yaml]`` extra).
     """
-    import yaml
-
-    data = _rows_as_dicts(table_data, headers)
-    defaults: dict = {"allow_unicode": True, "default_flow_style": False}
-    defaults.update(kwargs)
-    return str(yaml.dump(data, **defaults))
+    return _dump_yaml(_rows_as_dicts(table_data, headers), **kwargs)
 
 
 def _render_toml(
@@ -324,9 +388,7 @@ def _render_toml(
                     t.add(str(i), value)
         aot.append(t)
 
-    doc = tomlkit.document()
-    doc.add(RECORD_KEY, aot)
-    return tomlkit.dumps(doc)
+    return _dump_toml({RECORD_KEY: aot}, **kwargs)
 
 
 def _render_hjson(
@@ -338,12 +400,7 @@ def _render_hjson(
 
     Requires the ``hjson`` package (installable via the ``[hjson]`` extra).
     """
-    import hjson
-
-    data = _rows_as_dicts(table_data, headers)
-    defaults: dict = {"ensure_ascii": False}
-    defaults.update(kwargs)
-    return str(hjson.dumps(data, **defaults)) + "\n"
+    return _dump_hjson(_rows_as_dicts(table_data, headers), **kwargs)
 
 
 def _render_xml(
@@ -356,7 +413,6 @@ def _render_xml(
     ``None`` values are omitted. Requires the ``xmltodict`` package (installable
     via the ``[xml]`` extra).
     """
-    import xmltodict
 
     def _xml_safe_name(name: str) -> str:
         """Replace characters invalid in XML element names."""
@@ -378,14 +434,7 @@ def _render_xml(
             for row in table_data
         ]
 
-    defaults: dict = {
-        "pretty": True,
-        "encoding": "unicode",
-        "full_document": False,
-    }
-    defaults.update(kwargs)
-    result: str = xmltodict.unparse({XML_ROOT_KEY: {RECORD_KEY: records}}, **defaults)
-    return result + "\n"
+    return _dump_xml({XML_ROOT_KEY: {RECORD_KEY: records}}, **kwargs)
 
 
 def _render_vertical(
@@ -489,7 +538,7 @@ def _render_tabulate(
     defaults = {
         "disable_numparse": True,
         "numalign": None,
-        # tabulate()'s  format ID uses underscores instead of dashes.
+        # tabulate()'s format ID uses underscores instead of dashes.
         "tablefmt": table_format.value.replace("-", "_"),
     }
     defaults.update(kwargs)
@@ -506,14 +555,22 @@ def _select_table_funcs(
 ) -> tuple[Callable[..., str], Callable[[str], None]]:
     """Returns the rendering and print functions for the given ``table_format``.
 
-    For all formats other than CSV, we relying on Click's ``echo()`` as the print
-    function, to benefit from its sensitivity to global colorization settings. Thanks
-    to this the ``--color``/``--no-color`` option is automatically supported.
+    For all formats other than CSV and structured serializations, we rely on Click's
+    ``echo()`` as the print function, to benefit from its sensitivity to global
+    colorization settings. Thanks to this the ``--color``/``--no-color`` option is
+    automatically supported.
 
-    For CSV formats we returns the Python standard ``print()`` function, to preserve
-    line terminations and avoid extra line returns.
+    For CSV and structured serialization formats we return the Python standard
+    ``print()`` function, to preserve line terminations and avoid extra line returns.
     """
-    print_func = echo
+    # Structured serializations and CSV variants embed their own line terminations,
+    # so they bypass echo() (which would add an extra line return).
+    is_csv = table_format is not None and table_format.value.startswith("csv")
+    if table_format in SERIALIZATION_FORMATS or is_csv:
+        print_func: Callable[[str], None] = partial(print, end="")
+    else:
+        print_func = echo
+
     match table_format:
         case (
             TableFormat.CSV
@@ -521,22 +578,16 @@ def _select_table_funcs(
             | TableFormat.CSV_EXCEL_TAB
             | TableFormat.CSV_UNIX
         ):
-            print_func = partial(print, end="")
             return partial(_render_csv, table_format=table_format), print_func
         case TableFormat.HJSON:
-            print_func = partial(print, end="")
             return _render_hjson, print_func
         case TableFormat.JSON | TableFormat.JSON5 | TableFormat.JSONC:
-            print_func = partial(print, end="")
             return _render_json, print_func
         case TableFormat.TOML:
-            print_func = partial(print, end="")
             return _render_toml, print_func
         case TableFormat.XML:
-            print_func = partial(print, end="")
             return _render_xml, print_func
         case TableFormat.YAML:
-            print_func = partial(print, end="")
             return _render_yaml, print_func
         case TableFormat.VERTICAL:
             return _render_vertical, print_func
@@ -691,49 +742,19 @@ def serialize_data(
 
     match table_format:
         case TableFormat.JSON | TableFormat.JSON5 | TableFormat.JSONC:
-            return (
-                json.dumps(clean, **{"ensure_ascii": False, "indent": 2, **kwargs})
-                + "\n"
-            )
+            return _dump_json(clean, **kwargs)
 
         case TableFormat.HJSON:
-            import hjson
-
-            return str(hjson.dumps(clean, **{"ensure_ascii": False, **kwargs})) + "\n"
+            return _dump_hjson(clean, **kwargs)
 
         case TableFormat.TOML:
-            import tomlkit
-
-            stripped = _strip_none_and_wrap(clean)
-            doc = tomlkit.document()
-            for k, v in stripped.items():
-                doc.add(k, v)
-            return tomlkit.dumps(doc)
+            return _dump_toml(_strip_none_and_wrap(clean), **kwargs)
 
         case TableFormat.YAML:
-            import yaml
-
-            return str(
-                yaml.dump(
-                    clean,
-                    **{"allow_unicode": True, "default_flow_style": False, **kwargs},
-                )
-            )
+            return _dump_yaml(clean, **kwargs)
 
         case TableFormat.XML:
-            import xmltodict
-
-            stripped = _strip_none_and_wrap(clean)
-            result: str = xmltodict.unparse(
-                {root_element: stripped},
-                **{
-                    "pretty": True,
-                    "encoding": "unicode",
-                    "full_document": False,
-                    **kwargs,
-                },
-            )
-            return result + "\n"
+            return _dump_xml({root_element: _strip_none_and_wrap(clean)}, **kwargs)
 
         case _:
             msg = f"Unhandled serialization format: {table_format}"
@@ -798,12 +819,14 @@ class TableFormatOption(ExtraOption):
     The selected table format ID is made available in the context in
     ``ctx.meta[click_extra.context.TABLE_FORMAT]``, and two helper methods
     are added to the context:
+
     - ``ctx.render_table(table_data, headers, **kwargs)``: renders and returns
       the table as a string,
     - ``ctx.print_table(table_data, headers, **kwargs)``: renders and prints
       the table to the console.
 
     Where:
+
     - ``table_data`` is a 2-dimensional iterable of iterables for rows and cells values,
     - ``headers`` is a list of string to be used as column headers,
     - ``**kwargs`` are any extra keyword arguments supported by the underlying table
@@ -892,43 +915,6 @@ def _column_sort_key(
         return tuple(cell_key(row[i]) for i in sort_order)
 
     return key_func
-
-
-def print_sorted_table(
-    header_defs: Sequence[tuple[str, str | None]],
-    table_data: Sequence[Sequence[str | None]],
-    sort_columns: Sequence[str] | None = None,
-    table_format: TableFormat | None = None,
-    *,
-    cell_key: Callable[[str | None], Any] | None = None,
-    **kwargs,
-) -> None:
-    """Sort and print a table using named column definitions.
-
-    ``header_defs`` is an ordered sequence of ``(label, column_id)`` tuples. Columns
-    with ``column_id=None`` are not selectable for sorting but still participate in
-    tie-breaking.
-
-    :param header_defs: Column definitions as ``(label, column_id)`` pairs.
-    :param table_data: Rows of cell values.
-    :param sort_columns: Column IDs to sort by, in priority order. Falls back to
-        natural header order.
-    :param table_format: Rendering format.
-    :param cell_key: Per-cell comparison key. Defaults to ANSI-stripped, case-folded
-        string comparison.
-    """
-    if not table_data:
-        return
-
-    headers = tuple(style(label, bold=True) for label, _ in header_defs)
-    sort_key = _column_sort_key(header_defs, sort_columns, cell_key)
-    print_table(
-        table_data=table_data,
-        headers=headers,
-        table_format=table_format,
-        sort_key=sort_key,
-        **kwargs,
-    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -1119,10 +1105,11 @@ class ColumnsOption(ExtraOption):
 class SortByOption(ExtraOption):
     """A ``--sort-by`` option whose choices are derived from column definitions.
 
-    Stores the selected column IDs in ``ctx.meta[click_extra.context.SORT_BY]`` and replaces
-    ``ctx.print_table`` with :py:func:`print_sorted_table` so that table output is
-    automatically sorted. The option accepts ``multiple=True``, so users can repeat
-    ``--sort-by`` to define a multi-column sort priority.
+    Stores the selected column IDs in ``ctx.meta[click_extra.context.SORT_BY]`` and
+    bakes a row sort into ``ctx.print_table`` so that table output is automatically
+    sorted, without changing its ``(table_data, headers)`` call contract. The option
+    accepts ``multiple=True``, so users can repeat ``--sort-by`` to define a
+    multi-column sort priority.
 
     .. code-block:: python
 
@@ -1136,7 +1123,7 @@ class SortByOption(ExtraOption):
         )
         @pass_context
         def my_cmd(ctx):
-            ctx.print_table(header_defs, rows)
+            ctx.print_table(rows, headers)
     """
 
     def __init__(
@@ -1180,16 +1167,22 @@ class SortByOption(ExtraOption):
         param: click.Parameter,
         sort_columns: tuple[str, ...],
     ) -> None:
-        """Store sort columns and override ``ctx.print_table`` with sorted variant."""
+        """Bake the row sort key into ``ctx.print_table``.
+
+        Builds the sort key from this option's column definitions and the
+        selected ``sort_columns``, then rebinds ``ctx.print_table`` to
+        :func:`print_table` with that key applied. The call contract is the same
+        sorted or not: ``ctx.print_table(table_data, headers)``.
+        """
         if ctx.resilient_parsing:
             return
 
         context.set(ctx, context.SORT_BY, sort_columns)
 
+        sort_key = _column_sort_key(self.header_defs, sort_columns, self.cell_key)
         table_format = context.get(ctx, context.TABLE_FORMAT)
         ctx.print_table = partial(  # type: ignore[attr-defined]
-            print_sorted_table,
+            print_table,
             table_format=table_format,
-            sort_columns=sort_columns,
-            cell_key=self.cell_key,
+            sort_key=sort_key,
         )

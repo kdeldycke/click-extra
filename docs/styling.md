@@ -241,30 +241,6 @@ except TypeError as exc:
     print(repr(exc))
 ```
 
-### `cascade_fields(base, overlay, *, is_set=…)`
-
-Slot-level analogue of `Style.cascade`'s attribute-level merge. Walks both instances' fields and produces a kwargs dict suitable for `type(base)(**kwargs)` (or `dataclasses.replace(base, **kwargs)`):
-
-```{python:run}
-from dataclasses import dataclass, replace
-
-from click_extra.styling import cascade_fields
-
-
-@dataclass
-class Color:
-    r: int = 0
-    g: int = 0
-    b: int = 0
-    name: str = ""
-
-
-base = Color(r=255, g=255, b=255, name="white")
-overlay = Color(name="snow")  # only `name` is set
-merged = replace(base, **cascade_fields(base, overlay))
-print(merged)
-```
-
 ## `click_extra.styling` API
 
 ```{eval-rst}

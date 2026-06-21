@@ -52,7 +52,13 @@ from extra_platforms import current_platform, extract_members, is_windows
 from . import echo
 from .execution import run_jobs
 from .spinner import Spinner
-from .testing import args_cleanup, regex_fullmatch_line_by_line, render_cli_run
+from .testing import (
+    STREAM_FIELDS,
+    StreamView,
+    args_cleanup,
+    regex_fullmatch_line_by_line,
+    render_cli_run,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +68,7 @@ try:
     import yaml
 except ImportError:
     yaml_support = False
-    logger.debug(
-        "YAML support disabled: install click-extra[yaml] to enable it."
-    )
+    logger.debug("YAML support disabled: install click-extra[yaml] to enable it.")
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -186,6 +190,23 @@ class CLITestCase:
     you set in a test plan.
     """
 
+    @property
+    def has_merged_output_directives(self) -> bool:
+        """Whether any ``output_*`` directive (merged stream) is set."""
+        return any(
+            getattr(self, f.name) for f in fields(self) if f.name.startswith("output_")
+        )
+
+    @property
+    def has_separate_stream_directives(self) -> bool:
+        """Whether any ``stdout_*`` or ``stderr_*`` directive (separate streams) is
+        set."""
+        return any(
+            getattr(self, f.name)
+            for f in fields(self)
+            if f.name.startswith(("stdout_", "stderr_"))
+        )
+
     def __post_init__(self) -> None:
         """Normalize all fields.
 
@@ -270,15 +291,7 @@ class CLITestCase:
 
         # output_* (merged stream) and stdout_*/stderr_* (separate streams)
         # require different subprocess captures, so a case picks one family.
-        output_directives = any(
-            getattr(self, f.name) for f in fields(self) if f.name.startswith("output_")
-        )
-        stream_directives = any(
-            getattr(self, f.name)
-            for f in fields(self)
-            if f.name.startswith(("stdout_", "stderr_"))
-        )
-        if output_directives and stream_directives:
+        if self.has_merged_output_directives and self.has_separate_stream_directives:
             raise ValueError(
                 "output_* directives (merged stream) cannot be mixed with "
                 "stdout_*/stderr_* directives (separate streams) in the same "
@@ -290,7 +303,7 @@ class CLITestCase:
         command: Path | str,
         additional_skip_platforms: _TNestedReferences | None,
         default_timeout: float | None,
-    ):
+    ) -> None:
         """Run a CLI command and check its output against the test case.
 
         The provided `command` can be either:
@@ -341,14 +354,11 @@ class CLITestCase:
         # stderr into stdout so the OS interleaves both in write order: result.stdout
         # then holds the combined stream and result.stderr is None. Otherwise capture
         # the two streams separately.
-        combined_output = any(
-            getattr(self, f.name) for f in fields(self) if f.name.startswith("output_")
-        )
         try:
             result = run(
                 clean_args,
                 stdout=PIPE,
-                stderr=STDOUT if combined_output else PIPE,
+                stderr=STDOUT if self.has_merged_output_directives else PIPE,
                 timeout=self.timeout,  # type: ignore[arg-type]
                 check=False,
                 # Force UTF-8 decoding of subprocess output. The encoding parameter
@@ -361,6 +371,11 @@ class CLITestCase:
             raise TimeoutError(
                 f"CLI timed out after {self.timeout} seconds: {' '.join(clean_args)}"
             )
+
+        # Normalize the subprocess result so the assertion loop reads the same shape
+        # the renderer does: the merged stream lands in view.output, the separate
+        # streams in view.stdout/view.stderr.
+        view = StreamView.from_completed_process(result)
 
         # Execution has been completed, save the output for user's inspection.
         self.execution_trace = render_cli_run(clean_args, result)
@@ -387,19 +402,14 @@ class CLITestCase:
             ):
                 continue
 
-            # Prepare output and name for comparison.
+            # Select the stream and its label from the shared field-prefix table.
             output = ""
             name = ""
-            if field_id.startswith("output_"):
-                # Combined capture: result.stdout holds the merged stream.
-                output = result.stdout
-                name = "<output>"
-            elif field_id.startswith("stdout_"):
-                output = result.stdout
-                name = "<stdout>"
-            elif field_id.startswith("stderr_"):
-                output = result.stderr
-                name = "<stderr>"
+            for prefix, (label, attr) in STREAM_FIELDS.items():
+                if field_id.startswith(prefix):
+                    output = getattr(view, attr)
+                    name = label
+                    break
 
             if self.strip_ansi:
                 logging.info(f"Strip ANSI sequences from {name}")

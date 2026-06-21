@@ -567,6 +567,9 @@ class _AnsiSessionMeta(LexerMeta):
 
 
 class _AnsiFilterMixin(Lexer):
+    """Mixin appending ``TokenMergeFilter`` and ``AnsiFilter`` to a session
+    lexer's filter chain so its terminal output renders ANSI colors."""
+
     def __init__(self, *args, **kwargs) -> None:
         """Add ``TokenMergeFilter`` and ``AnsiFilter`` to the filter chain.
 

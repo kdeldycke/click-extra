@@ -410,6 +410,39 @@ class _VerbosityOption(ExtraOption):
     as such, can be a dot-separated string to build hierarchical loggers.
     """
 
+    _help_verb: str | None = None
+    """Direction word used by :meth:`get_help_record` to build the default help.
+
+    Set to ``Increase`` by :class:`VerboseOption` and ``Decrease`` by
+    :class:`QuietOption`. Left ``None`` on the base and on :class:`VerbosityOption`,
+    which both render their help verbatim instead of deriving it from the base level.
+    """
+
+    def get_help_record(self, ctx: click.Context) -> tuple[str, str] | None:
+        """Dynamically generates the default help message.
+
+        We need that patch because :meth:`get_base_level` depends on the context, so we
+        cannot hard-code the help message as the option's ``__init__`` default.
+
+        Only the ``-v``/``-q`` counting options derive their help from the base level
+        (via :attr:`_help_verb`). The base and :class:`VerbosityOption` carry a static
+        help and fall straight through to the parent implementation.
+        """
+        help_message_patch = nullcontext()
+        if self.help is None and self._help_verb is not None:
+            help_message_patch = patch.object(  # type:ignore[assignment]
+                self,
+                "help",
+                (
+                    f"{self._help_verb} the default {self.get_base_level(ctx)} "
+                    "verbosity by one level for each additional repetition of the "
+                    "option."
+                ),
+            )
+
+        with help_message_patch:
+            return super().get_help_record(ctx)
+
     @property
     def all_loggers(self) -> Generator[Logger, None, None]:
         """Returns the list of logger IDs affected by the verbosity option.
@@ -654,25 +687,7 @@ class VerboseOption(_VerbosityOption):
     ``--verbosity``.
     """
 
-    def get_help_record(self, ctx: click.Context) -> tuple[str, str] | None:
-        """Dynamiccaly generates the default help message.
-
-        We need that patch because :meth:`get_base_level` depends on the context, so we
-        cannot hard-code the help message as :meth:`VerboseOption.__init__` default.
-        """
-        help_message_patch = nullcontext()
-        if self.help is None:
-            help_message_patch = patch.object(  # type:ignore[assignment]
-                self,
-                "help",
-                (
-                    f"Increase the default {self.get_base_level(ctx)} verbosity "
-                    "by one level for each additional repetition of the option."
-                ),
-            )
-
-        with help_message_patch:
-            return super().get_help_record(ctx)
+    _help_verb = "Increase"
 
     def set_level(self, ctx: click.Context, param: click.Parameter, value: int) -> None:
         """Record the ``-v`` repetition count, then reconcile.
@@ -734,25 +749,7 @@ class QuietOption(_VerbosityOption):
     ``--verbosity``.
     """
 
-    def get_help_record(self, ctx: click.Context) -> tuple[str, str] | None:
-        """Dynamiccaly generates the default help message.
-
-        We need that patch because :meth:`get_base_level` depends on the context, so we
-        cannot hard-code the help message as :meth:`QuietOption.__init__` default.
-        """
-        help_message_patch = nullcontext()
-        if self.help is None:
-            help_message_patch = patch.object(  # type:ignore[assignment]
-                self,
-                "help",
-                (
-                    f"Decrease the default {self.get_base_level(ctx)} verbosity "
-                    "by one level for each additional repetition of the option."
-                ),
-            )
-
-        with help_message_patch:
-            return super().get_help_record(ctx)
+    _help_verb = "Decrease"
 
     def set_level(self, ctx: click.Context, param: click.Parameter, value: int) -> None:
         """Record the ``-q`` repetition count, then reconcile.

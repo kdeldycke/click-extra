@@ -32,13 +32,7 @@ from click.core import iter_params_for_processing
 
 from . import context
 from .accessibility import AccessibleOption
-from .colorize import (
-    ColorOption,
-    HelpKeywords,
-    NoColorOption,
-    _HelpColorsMixin,
-    highlight,
-)
+from .colorize import ColorOption, NoColorOption
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
@@ -46,12 +40,13 @@ from .config import (
     ConfigValidator,
     NoConfigOption,
     ValidateConfigOption,
-    _collect_opaque_paths_from_schema,
     make_schema_callable,
 )
+from .config.schema import _opaque_paths
 from .context import Context
 from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import TimerOption
+from .highlight import HelpKeywords, _HelpColorsMixin, highlight
 from .logging import QuietOption, VerboseOption, VerbosityOption
 from .man_page import ManOption
 from .parameters import ExtraOption, ShowParamsOption
@@ -148,6 +143,9 @@ def default_params() -> list[click.Option]:
 
 
 DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
+
+EXTRA_OPTION_SETTINGS: tuple[str, ...] = ("show_choices", "show_envvar")
+"""Click Extra context settings forced onto every option when set to non-``None``."""
 
 
 class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
@@ -282,12 +280,6 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         if excluded_keywords is not None:
             self.excluded_keywords = excluded_keywords
 
-        # List of additional global settings for options.
-        extra_option_settings = [
-            "show_choices",
-            "show_envvar",
-        ]
-
         default_ctx_settings: dict[str, Any] = {
             # Click settings:
             "help_option_names": DEFAULT_HELP_NAMES,
@@ -309,7 +301,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         default_ctx_settings.update(self.context_settings)
 
         # If set, force extra settings on all options.
-        for setting in extra_option_settings:
+        for setting in EXTRA_OPTION_SETTINGS:
             if default_ctx_settings[setting] is not None:
                 for param in self.params:
                     # These attributes are specific to options.
@@ -317,7 +309,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                         setattr(param, setting, default_ctx_settings[setting])
 
         # Remove Click Extra-specific settings, before passing it to Cloup and Click.
-        for setting in extra_option_settings:
+        for setting in EXTRA_OPTION_SETTINGS:
             del default_ctx_settings[setting]
         self.context_settings: dict[str, Any] = default_ctx_settings
 
@@ -362,13 +354,9 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                     # validators have been forwarded so the strict-check skip
                     # set stays in sync with the new sources.
                     if config_schema is not None or config_validators:
-                        schema_paths = _collect_opaque_paths_from_schema(
-                            param.config_schema,
+                        param._opaque_paths = _opaque_paths(
+                            param.config_schema, param.config_validators
                         )
-                        validator_paths = frozenset(
-                            v.extension_path for v in param.config_validators
-                        )
-                        param._opaque_paths = schema_paths | validator_paths
 
         if populate_auto_envvars:
             for param in self.params:
@@ -893,26 +881,53 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
 
         return super().invoke(ctx)
 
-    def _get_default_subcommands(self, ctx: click.Context) -> list[str] | None:
-        """Read and validate ``_default_subcommands`` from the loaded configuration."""
+    def _read_subcommand_list(
+        self, ctx: click.Context, key: str
+    ) -> list[str] | None:
+        """Read, validate, dedupe, and existence-check a subcommand-list config key.
+
+        Returns the deduplicated list of subcommand names declared under ``key``
+        in the loaded configuration, or ``None`` when the key is absent or empty.
+        Shared by :meth:`_get_default_subcommands` and
+        :meth:`_get_prepend_subcommands`; each caller layers on its own chain-mode
+        rule (the only behavior that differs between the two keys).
+
+        :raises click.UsageError: when the value is not a list of strings, or when
+            a listed subcommand does not exist in this group.
+        """
         config_branch = _descend_to_group_config(ctx)
         if config_branch is None:
             return None
 
-        raw = config_branch.get(DEFAULT_SUBCOMMANDS_KEY)
+        raw = config_branch.get(key)
         if raw is None:
             return None
 
         # Validate type.
         if not isinstance(raw, list) or not all(isinstance(s, str) for s in raw):
             raise click.UsageError(
-                f"{DEFAULT_SUBCOMMANDS_KEY} must be a list of strings, got {raw!r}."
+                f"{key} must be a list of strings, got {raw!r}."
             )
 
         if not raw:
             return None
 
-        raw = _dedupe_subcommands(raw, DEFAULT_SUBCOMMANDS_KEY)
+        raw = _dedupe_subcommands(raw, key)
+
+        # Validate that all subcommands exist.
+        for name in raw:
+            if self.get_command(ctx, name) is None:
+                raise click.UsageError(
+                    f"Subcommand {name!r} from {key} not found in group {self.name!r}."
+                )
+
+        return raw
+
+    def _get_default_subcommands(self, ctx: click.Context) -> list[str] | None:
+        """Read and validate ``_default_subcommands`` from the loaded configuration."""
+        raw = self._read_subcommand_list(ctx, DEFAULT_SUBCOMMANDS_KEY)
+        if raw is None:
+            return None
 
         # Non-chained groups can only have one default subcommand.
         if not self.chain and len(raw) > 1:
@@ -921,32 +936,12 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
                 f"subcommand, got {len(raw)}: {raw!r}."
             )
 
-        # Validate that all subcommands exist.
-        for name in raw:
-            if self.get_command(ctx, name) is None:
-                raise click.UsageError(
-                    f"Default subcommand {name!r} not found in group {self.name!r}."
-                )
-
         return raw
 
     def _get_prepend_subcommands(self, ctx: click.Context) -> list[str] | None:
         """Read and validate ``_prepend_subcommands`` from the loaded configuration."""
-        config_branch = _descend_to_group_config(ctx)
-        if config_branch is None:
-            return None
-
-        raw = config_branch.get(PREPEND_SUBCOMMANDS_KEY)
+        raw = self._read_subcommand_list(ctx, PREPEND_SUBCOMMANDS_KEY)
         if raw is None:
-            return None
-
-        # Validate type.
-        if not isinstance(raw, list) or not all(isinstance(s, str) for s in raw):
-            raise click.UsageError(
-                f"{PREPEND_SUBCOMMANDS_KEY} must be a list of strings, got {raw!r}."
-            )
-
-        if not raw:
             return None
 
         # Prepend subcommands only work with chained groups.
@@ -954,15 +949,6 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
             raise click.UsageError(
                 f"{PREPEND_SUBCOMMANDS_KEY} requires chain=True on group {self.name!r}."
             )
-
-        raw = _dedupe_subcommands(raw, PREPEND_SUBCOMMANDS_KEY)
-
-        # Validate that all subcommands exist.
-        for name in raw:
-            if self.get_command(ctx, name) is None:
-                raise click.UsageError(
-                    f"Prepend subcommand {name!r} not found in group {self.name!r}."
-                )
 
         return raw
 

@@ -23,6 +23,7 @@ does not need the CLI parameter structure.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import logging
 import sys
@@ -41,54 +42,34 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-yaml_support = True
-try:
-    import yaml
-except ImportError:
-    yaml_support = False
-    logger.debug(
-        "YAML support disabled: install click-extra[yaml] to enable it."
-    )
+_OPTIONAL_PARSERS: tuple[tuple[str, str, str], ...] = (
+    # (import module name, click-extra[extra] name, display label).
+    ("yaml", "yaml", "YAML"),
+    ("json5", "json5", "JSON5"),
+    ("jsonc", "jsonc", "JSONC"),
+    ("hjson", "hjson", "Hjson"),
+    ("xmltodict", "xml", "XML"),
+)
+"""Third-party parsers each gating one optional configuration format.
 
+Each entry pairs the importable module name (probed without importing it) with
+the ``click-extra[extra]`` install target and the human-readable format label
+used in the disabled-support debug message."""
 
-json5_support = True
-try:
-    import json5
-except ImportError:
-    json5_support = False
-    logger.debug(
-        "JSON5 support disabled: install click-extra[json5] to enable it."
-    )
+PARSER_SUPPORT: dict[str, bool] = {}
+"""Availability of each optional parser, keyed by ``click-extra[extra]`` name.
 
+Populated once at import time by probing each module in :data:`_OPTIONAL_PARSERS`
+with :func:`importlib.util.find_spec`. Read by :class:`ConfigFormat` to mark the
+matching format as enabled or disabled. The probe does not import the module, so
+the actual parser is loaded lazily by :func:`parse_content` only when used."""
 
-jsonc_support = True
-try:
-    import jsonc
-except ImportError:
-    jsonc_support = False
-    logger.debug(
-        "JSONC support disabled: install click-extra[jsonc] to enable it."
-    )
-
-
-hjson_support = True
-try:
-    import hjson
-except ImportError:
-    hjson_support = False
-    logger.debug(
-        "HJSON support disabled: install click-extra[hjson] to enable it."
-    )
-
-
-xml_support = True
-try:
-    import xmltodict
-except ImportError:
-    xml_support = False
-    logger.debug(
-        "XML support disabled: install click-extra[xml] to enable it."
-    )
+for _module_name, _extra, _label in _OPTIONAL_PARSERS:
+    PARSER_SUPPORT[_extra] = importlib.util.find_spec(_module_name) is not None
+    if not PARSER_SUPPORT[_extra]:
+        logger.debug(
+            f"{_label} support disabled: install click-extra[{_extra}] to enable it."
+        )
 
 
 class ConfigFormat(Enum):
@@ -113,13 +94,13 @@ class ConfigFormat(Enum):
     """
 
     TOML = (("*.toml",), True, "TOML")
-    YAML = (("*.yaml", "*.yml"), yaml_support, "YAML")
+    YAML = (("*.yaml", "*.yml"), PARSER_SUPPORT["yaml"], "YAML")
     JSON = (("*.json",), True, "JSON")
-    JSON5 = (("*.json5",), json5_support, "JSON5")
-    JSONC = (("*.jsonc",), jsonc_support, "JSONC")
-    HJSON = (("*.hjson",), hjson_support, "Hjson")
+    JSON5 = (("*.json5",), PARSER_SUPPORT["json5"], "JSON5")
+    JSONC = (("*.jsonc",), PARSER_SUPPORT["jsonc"], "JSONC")
+    HJSON = (("*.hjson",), PARSER_SUPPORT["hjson"], "Hjson")
     INI = (("*.ini",), True, "INI")
-    XML = (("*.xml",), xml_support, "XML")
+    XML = (("*.xml",), PARSER_SUPPORT["xml"], "XML")
     PYPROJECT_TOML = (("pyproject.toml",), True, "pyproject.toml")
 
     def __str__(self) -> str:
@@ -146,21 +127,37 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
 
     INI is excluded: it needs the CLI parameter structure for type
     coercion and is handled by ConfigOption.load_ini_config.
+
+    .. note::
+        Optional third-party parsers are imported lazily, at the point of use,
+        rather than at module load. Only enabled formats reach this function
+        (disabled ones are filtered out of ``ConfigOption.file_format_patterns``),
+        so the import always resolves for the formats actually parsed here.
     """
     match fmt:
         case ConfigFormat.TOML:
             return tomllib.loads(content)
         case ConfigFormat.YAML:
+            import yaml
+
             return yaml.full_load(content)
         case ConfigFormat.JSON:
             return json.loads(content)
         case ConfigFormat.JSON5:
+            import json5
+
             return json5.loads(content)
         case ConfigFormat.JSONC:
+            import jsonc
+
             return jsonc.loads(content)
         case ConfigFormat.HJSON:
+            import hjson
+
             return hjson.loads(content)
         case ConfigFormat.XML:
+            import xmltodict
+
             return xmltodict.parse(content)
         case ConfigFormat.PYPROJECT_TOML:
             return tomllib.loads(content).get("tool", {})

@@ -97,7 +97,7 @@ class JobCount(click.ParamType):
     #: Exposed as ``choices`` so the help colorizer highlights them like
     #: ``click.Choice`` values: the keyword collector duck-types on this
     #: attribute (see the ``getattr(param.type, "choices", ...)`` branch in
-    #: :meth:`click_extra.colorize._HelpColorsMixin._collect_params`). It is
+    #: :meth:`click_extra.highlight._HelpColorsMixin._collect_params`). It is
     #: also the single source of truth reused by :meth:`get_metavar` and
     #: :meth:`convert`, so the metavar and the parser never drift apart.
     choices = ("auto", "max")

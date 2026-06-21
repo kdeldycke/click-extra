@@ -122,7 +122,7 @@ class HelpTheme(cloup.HelpTheme):
     """
 
     # --- Help-screen structural slots ----------------------------------------
-    # Applied by :class:`~click_extra.colorize.HelpFormatter` while
+    # Applied by :class:`~click_extra.highlight.HelpFormatter` while
     # rendering each command's help output. The post-wrap formatter pass
     # walks the rendered help text and styles the matching tokens.
 

@@ -467,3 +467,17 @@ Run `uvx click-extra styles` in your terminal to see the real rendering with you
    :undoc-members:
    :show-inheritance:
 ```
+
+## `click_extra.highlight` API
+
+The help-screen keyword highlighting engine (`HelpKeywords`, `HelpFormatter`, `highlight`) lives in its own module, split out of `click_extra.colorize`.
+
+```{eval-rst}
+.. autoclasstree:: click_extra.highlight
+   :strict:
+
+.. automodule:: click_extra.highlight
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```

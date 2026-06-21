@@ -324,7 +324,7 @@ assert result.output == "\x1b[97m\x1b[1mprebaked-cli\x1b[0m, version \x1b[32m1.2
 ```
 
 ```{hint}
-Click Extra ships {func}`prebake_version() <click_extra.version.prebake_version>`, a utility to automate this injection. It parses a Python source file with {mod}`ast`, locates the `__version__` assignment, and appends a `+<local_version>` suffix in place. Call it in your build step before Nuitka/PyInstaller compilation.
+Click Extra ships {func}`prebake_version() <click_extra.prebake.prebake_version>`, a utility to automate this injection. It parses a Python source file with {mod}`ast`, locates the `__version__` assignment, and appends a `+<local_version>` suffix in place. Call it in your build step before Nuitka/PyInstaller compilation.
 ```
 
 ### Version lifecycle
@@ -367,19 +367,19 @@ __git_branch__ = ""
 __git_short_hash__ = ""
 ```
 
-Then inject values at build time using {func}`prebake_dunder() <click_extra.version.prebake_dunder>`:
+Then inject values at build time using {func}`prebake_dunder() <click_extra.prebake.prebake_dunder>`:
 
 ```{code-block} python
 from pathlib import Path
-from click_extra.version import prebake_dunder
+from click_extra.prebake import prebake_dunder
 
 prebake_dunder(Path("mypackage/__init__.py"), "__git_branch__", "main")
 prebake_dunder(Path("mypackage/__init__.py"), "__git_short_hash__", "abc1234")
 ```
 
-{func}`prebake_dunder() <click_extra.version.prebake_dunder>` only replaces empty strings, so running it twice is safe (idempotent). It preserves the quoting style and surrounding file content.
+{func}`prebake_dunder() <click_extra.prebake.prebake_dunder>` only replaces empty strings, so running it twice is safe (idempotent). It preserves the quoting style and surrounding file content.
 
-{func}`discover_package_init_files() <click_extra.version.discover_package_init_files>` can auto-discover `__init__.py` paths from `[project.scripts]` in `pyproject.toml`, so you don't need to hardcode paths in your build scripts.
+{func}`discover_package_init_files() <click_extra.prebake.discover_package_init_files>` can auto-discover `__init__.py` paths from `[project.scripts]` in `pyproject.toml`, so you don't need to hardcode paths in your build scripts.
 
 ### CLI usage
 
@@ -700,6 +700,15 @@ Other internal methods to build-up and render the version string are [available 
    :strict:
 
 .. automodule:: click_extra.version
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.prebake` API
+
+```{eval-rst}
+.. automodule:: click_extra.prebake
    :members:
    :undoc-members:
    :show-inheritance:

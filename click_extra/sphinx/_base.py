@@ -39,12 +39,28 @@ if TYPE_CHECKING:
     from sphinx.environment import BuildEnvironment
 
 
+def directive_source(directive: SphinxDirective) -> tuple[str, str]:
+    """Return the ``(source_code, location)`` pair for ``directive``.
+
+    Centralizes the "join the content lines, fetch the Sphinx-reported source
+    location" preamble shared by every ``exec``-based directive in this
+    package, so callers needing the raw source (for an AST conflict check, say)
+    do not re-derive it independently of :func:`compile_directive`.
+    """
+    # Use directive.content instead of directive.block_text as the latter
+    # includes the directive text itself in rST.
+    source_code = "\n".join(directive.content)
+    # The location string Sphinx reports in tracebacks for this directive.
+    location = directive.get_location()
+    return source_code, location
+
+
 def compile_directive(directive: SphinxDirective) -> CodeType:
     """Compile the body of ``directive`` for later ``exec``.
 
-    Centralizes the "join content lines, label with the directive's source
-    location, hand to :func:`compile`" preamble shared by every ``exec``-based
-    directive in this package.
+    Joins the directive's content lines, labels them with the directive's
+    source location (via :func:`directive_source`), and hands the result to
+    :func:`compile`.
 
     .. danger::
         The compiled code object is intended to run via :func:`exec` in the
@@ -59,11 +75,7 @@ def compile_directive(directive: SphinxDirective) -> CodeType:
         reason. See ``docs/sphinx.md`` under the Setup section for the
         full trust boundary.
     """
-    # Use directive.content instead of directive.block_text as the latter
-    # includes the directive text itself in rST.
-    source_code = "\n".join(directive.content)
-    # The location string Sphinx reports in tracebacks for this directive.
-    location = directive.get_location()
+    source_code, location = directive_source(directive)
     return compile(source_code, location, "exec")
 
 

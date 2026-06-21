@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+"""Custom ``click.ParamType`` subclasses for multi-pick and ``Enum`` choices."""
 
 from __future__ import annotations
 
@@ -35,7 +36,7 @@ class MultiChoice(click.ParamType):
     against ``choices`` when that set is non-empty.
 
     The rendered metavar is ``[a,b,c]`` (separator-joined, parallel to
-    ``Choice``'s ``[a|b|c]``): :class:`click_extra.colorize._HelpColorsMixin`
+    ``Choice``'s ``[a|b|c]``): :class:`click_extra.highlight._HelpColorsMixin`
     auto-detects the separator and highlights each individual value the same way
     it does for ``Choice``.
 
@@ -156,7 +157,7 @@ class EnumChoice(click.Choice):
     - ``ChoiceSource.STR`` to use the ``str()`` string representation, or
     - A custom callable that takes an ``Enum`` member and returns a string.
 
-    Default to ``ChoiceSource.STR``, which makes you to only have to define the
+    Defaults to ``ChoiceSource.STR``, which only requires you to define the
     ``__str__()`` method on your ``Enum`` to produce beautiful choice strings.
     """
 
@@ -261,7 +262,7 @@ class EnumChoice(click.Choice):
             )
 
     def get_choice_string(self, member: enum.Enum) -> str:
-        """Derivate the choice string from the given ``Enum``'s ``member``."""
+        """Derive the choice string from the given ``Enum``'s ``member``."""
         if self._choice_source in (ChoiceSource.KEY, ChoiceSource.NAME):
             choice = member.name
 
@@ -276,8 +277,11 @@ class EnumChoice(click.Choice):
                 choice = self._choice_source(member)
             except Exception as ex:
                 raise ValueError(
-                    f"cannot call {self._choice_source!r} on for {member!r}: {ex}"
+                    f"cannot call {self._choice_source!r} on {member!r}: {ex}"
                 ) from ex
+
+        else:
+            raise ValueError(f"Unsupported choice source {self._choice_source!r}.")
 
         self._check_choice_str(member, choice)
         return choice

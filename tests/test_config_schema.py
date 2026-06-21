@@ -34,11 +34,11 @@ from click_extra import (
     validate_config_option,
 )
 from click_extra.config import (
-    _collect_opaque_paths_from_schema,
     flatten_config_keys,
     get_tool_config,
     normalize_config_keys,
 )
+from click_extra.config.schema import _collect_opaque_paths_from_schema
 
 # --- config_schema and fallback_sections tests ---
 

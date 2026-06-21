@@ -58,6 +58,7 @@ from cloup import OptionGroupMixin
 from .config import ConfigOption
 from .envvar import param_envvar_ids
 from .parameters import ExtraOption, search_params
+from .version import resolve_author, resolve_distribution
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -502,31 +503,25 @@ def _generator_tag() -> str:
 def _resolve_version(ctx: Context) -> str | None:
     """Best-effort version lookup via :mod:`importlib.metadata`.
 
-    Pass ``version=`` to :func:`render_manpage` to override this.
+    Resolves the distribution from the program name (see
+    :func:`_distribution_names`) and reads its version. Pass ``version=`` to
+    :func:`render_manpage` to override this.
     """
-    for name in _distribution_names(ctx):
-        if not name:
-            continue
-        try:
-            return metadata.version(name)
-        except metadata.PackageNotFoundError:
-            continue
-    return None
+    name = resolve_distribution(_distribution_names(ctx))
+    return metadata.version(name) if name else None
 
 
 def _resolve_authors(ctx: Context) -> str | None:
-    """Best-effort AUTHORS lookup from distribution metadata."""
-    for name in _distribution_names(ctx):
-        if not name:
-            continue
-        try:
-            meta = metadata.metadata(name)
-        except metadata.PackageNotFoundError:
-            continue
-        author = meta["Author"] or meta["Author-email"]
-        if author:
-            return author
-    return None
+    """Best-effort AUTHORS lookup from distribution metadata.
+
+    Resolves the distribution from the program name (see
+    :func:`_distribution_names`) and reads its author(s) through the shared
+    :func:`click_extra.version.resolve_author`, so ``--man`` and ``--version``
+    report the same author string (``Author`` / ``Maintainer`` / email display
+    name, in that order).
+    """
+    name = resolve_distribution(_distribution_names(ctx))
+    return resolve_author(metadata.metadata(name)) if name else None
 
 
 def _config_default(config_option: ConfigOption, ctx: Context) -> str | None:

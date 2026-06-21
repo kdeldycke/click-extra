@@ -76,14 +76,19 @@ from .. import (
     get_app_dir,
     get_current_context,
 )
-from ..parameters import ExtraOption, ParamStructure, search_params
+from ..parameters import (
+    PARAM_PATH_SEP,
+    ExtraOption,
+    ParamStructure,
+    search_params,
+)
 from .formats import ConfigFormat, parse_content
 from .schema import (
     THEMES_CONFIG_KEY,
     ConfigValidator,
     _builtin_config_validators,
-    _collect_opaque_paths_from_schema,
     _expand_dotted_keys,
+    _opaque_paths,
     _select_app_section,
     _strip_opaque_subtrees,
     _strip_reserved_keys,
@@ -445,17 +450,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
 
         # Pre-compute the unified opaque-path set: every dotted path that
-        # click-extra must skip during its CLI-parameter strict check. From the
-        # public API point of view these are *extension paths*; inside the
-        # config pipeline they're "opaque" because the strict/normalize/flatten
-        # helpers stop descending into them. Sources are merged so apps can
-        # declare an extension point through either:
-        #   - a schema field typed dict[str, X] / marked with EXTENSION_METADATA_KEY,
-        #   - a ConfigValidator(extension_path=...) registration,
-        #   - or both (idempotent).
-        schema_paths = _collect_opaque_paths_from_schema(config_schema)
-        validator_paths = frozenset(v.extension_path for v in self.config_validators)
-        self._opaque_paths: frozenset[str] = schema_paths | validator_paths
+        # click-extra must skip during its CLI-parameter strict check. See
+        # :py:func:`_opaque_paths` for how the schema and validator sources merge.
+        self._opaque_paths: frozenset[str] = _opaque_paths(
+            config_schema, self.config_validators
+        )
         """Dotted paths, relative to the app section, that strict CLI-parameter
         validation must skip.
 
@@ -579,7 +578,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         cli = get_current_context().find_root().command
         return frozenset(
-            f"{cli.name}{ParamStructure.SEP}{p}" for p in DEFAULT_EXCLUDED_PARAMS
+            f"{cli.name}{PARAM_PATH_SEP}{p}" for p in DEFAULT_EXCLUDED_PARAMS
         )
 
     @cached_property
@@ -987,9 +986,10 @@ class ConfigOption(ExtraOption, ParamStructure):
     def load_ini_config(self, content: str) -> dict[str, Any]:
         """Utility method to parse INI configuration file.
 
-        Internal convention is to use a dot (``.``, as set by ``self.SEP``) in
-        section IDs as a separator between levels. This is a workaround
-        the limitation of ``INI`` format which doesn't allow for sub-sections.
+        Internal convention is to use a dot (``.``, as set by
+        :data:`~click_extra.parameters.PARAM_PATH_SEP`) in section IDs as a
+        separator between levels. This is a workaround the limitation of ``INI``
+        format which doesn't allow for sub-sections.
 
         Returns a ready-to-use data structure.
         """
@@ -1059,7 +1059,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
             # Place collected options at the right level of the dict tree.
             conf = always_merger.merge(
-                conf, self.init_tree_dict(*section_id.split(self.SEP), leaf=sub_conf)
+                conf, self.init_tree_dict(*section_id.split(PARAM_PATH_SEP), leaf=sub_conf)
             )
 
         return conf
@@ -1233,7 +1233,6 @@ class ConfigOption(ExtraOption, ParamStructure):
         if ctx.resilient_parsing:
             return
 
-
         # In this function we would like to inform the user of what we're doing.
         # In theory we could use logger.info() for that, but the logger is stuck to its
         # default WARNING level at this point, because the defaults have not been
@@ -1366,6 +1365,34 @@ class ConfigOption(ExtraOption, ParamStructure):
         context.set(ctx, context.CONF_FULL, user_conf)
 
 
+def _require_sibling_config_option(
+    params: Sequence[click.Parameter],
+    requester: click.Parameter,
+) -> ConfigOption:
+    """Return the sibling :class:`ConfigOption` declared on the same command.
+
+    Both ``--no-config`` and ``--validate-config`` are inert on their own: they
+    drive the parsing machinery owned by ``--config``. This helper centralizes
+    the lookup so both raise the same ``RuntimeError`` (rather than the historic
+    mix of ``RuntimeError`` and ``TypeError``) when no ``ConfigOption`` is found
+    on the command, naming the offending flag in the message.
+
+    :param params: The command's parameter list to scan.
+    :param requester: The option requiring the sibling, used to build the error
+        message from its flag names and class.
+    """
+    config_option = search_params(params, ConfigOption)
+    if not isinstance(config_option, ConfigOption):
+        # RuntimeError (not the type-implied TypeError) is intentional: it keeps
+        # the historical --no-config contract and unifies both call sites on one
+        # exception type for a missing-or-wrong-type sibling.
+        raise RuntimeError(  # noqa: TRY004
+            f"{'/'.join(requester.opts)} {type(requester).__name__} must be used "
+            f"alongside {ConfigOption.__name__}."
+        )
+    return config_option
+
+
 class NoConfigOption(ExtraOption):
     """A pre-configured option adding ``--no-config``.
 
@@ -1427,12 +1454,7 @@ class NoConfigOption(ExtraOption):
         self, ctx: click.Context, param: click.Parameter, value: int
     ) -> None:
         """Ensure that this option is used alongside a ``ConfigOption`` instance."""
-        config_option = search_params(ctx.command.params, ConfigOption)
-        if config_option is None:
-            raise RuntimeError(
-                f"{'/'.join(param.opts)} {self.__class__.__name__} must be used "
-                f"alongside {ConfigOption.__name__}."
-            )
+        _require_sibling_config_option(ctx.command.params, param)
 
 
 class ValidateConfigOption(ExtraOption):
@@ -1497,13 +1519,7 @@ class ValidateConfigOption(ExtraOption):
         info_msg: Callable[..., None] = partial(echo, err=True)
 
         # Find the sibling ConfigOption to reuse its parsing machinery.
-        result = search_params(ctx.command.params, ConfigOption)
-        if not isinstance(result, ConfigOption):
-            raise TypeError(
-                f"{'/'.join(param.opts)} {self.__class__.__name__} must be "
-                f"used alongside {ConfigOption.__name__}."
-            )
-        config_option = result
+        config_option = _require_sibling_config_option(ctx.command.params, param)
 
         # Read and parse the config file.
         try:

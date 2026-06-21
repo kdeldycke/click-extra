@@ -38,6 +38,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+#: Separator joining the keys of a parameter's fully-qualified path
+#: (``cli.subcommand.param``).
+PARAM_PATH_SEP = "."
+
 
 def search_params(
     params: Iterable[click.Parameter],
@@ -225,39 +229,21 @@ class ParamStructure:
     descend to that node, separated by a dot ``.``.
     """
 
-    SEP: str = "."
-    """Use a dot ``.`` as a separator between levels of the tree-like parameter
-    structure."""
+    excluded_params: frozenset[str]
+    """Fully-qualified IDs of the parameters to block from the structure.
 
-    def __init__(
-        self,
-        *args,
-        excluded_params: Iterable[str] | None = None,
-        included_params: Iterable[str] | None = None,
-        **kwargs,
-    ) -> None:
-        """Allow a list of paramerers to be blocked from the parameter structure.
+    Set by subclasses: :class:`ShowParamsOption` freezes an empty set, while
+    :class:`~click_extra.config.ConfigOption` resolves a dynamic default (or the
+    user-provided list) within the active context. The two filters are mutually
+    exclusive, a constraint each subclass enforces in its own constructor.
+    """
 
-        Items of ``excluded_params`` are expected to be the fully-qualified ID of the
-        parameter. Which is the dot-separated ID that is prefixed by the CLI name,
-        featured in the first column of the table.
+    included_params: frozenset[str] | None
+    """Allowlist of parameter IDs, mutually exclusive with ``excluded_params``.
 
-        ``included_params`` is the inverse: only the listed parameters will be allowed.
-        Cannot be used together with ``excluded_params``.
-        """
-        if excluded_params and included_params:
-            msg = "excluded_params and included_params are mutually exclusive."
-            raise ValueError(msg)
-
-        self.excluded_params: frozenset[str] = (
-            frozenset(excluded_params) if excluded_params else frozenset()
-        )
-
-        self.included_params: frozenset[str] | None = (
-            frozenset(included_params) if included_params is not None else None
-        )
-
-        super().__init__(*args, **kwargs)
+    ``None`` disables the allowlist. It is resolved into ``excluded_params`` by
+    :meth:`build_param_trees`, once every parameter ID is known.
+    """
 
     @staticmethod
     def init_tree_dict(*path: str, leaf: Any = None) -> Any:
@@ -279,65 +265,25 @@ class ParamStructure:
         """
         return reduce(getitem, path, tree_dict)
 
-    def _recurse_cmd(
-        self,
-        cmd: click.Command,
-        top_level_params: Iterable[str],
-        parent_keys: tuple[str, ...],
-    ) -> Iterator[tuple[tuple[str, ...], click.Parameter]]:
-        """Recursive generator to walk through all subcommands and their parameters."""
-        if hasattr(cmd, "commands"):
-            ctx = get_current_context()
-
-            for subcmd_id, subcmd in cmd.commands.items():
-                if subcmd_id in top_level_params:
-                    # Subcommand name shadows a top-level parameter (e.g. the
-                    # auto-injected ``help`` subcommand vs Click's ``--help``
-                    # option).  Skip it: the config tree cannot represent both.
-                    logger.debug(
-                        f"{cmd.name}{self.SEP}{subcmd_id} subcommand shadows a "
-                        f"top-level parameter; excluded from parameter tree."
-                    )
-                    continue
-
-                _top_level_params = set()
-
-                for p in subcmd.get_params(ctx):
-                    _top_level_params.add(p.name)
-                    yield ((*parent_keys, subcmd_id, p.name)), p
-
-                yield from self._recurse_cmd(
-                    subcmd,
-                    _top_level_params,
-                    ((*parent_keys, subcmd.name)),
-                )
-
     def walk_params(self) -> Iterator[tuple[tuple[str, ...], click.Parameter]]:
-        """Generates an unfiltered list of all CLI parameters.
+        """Generate an unfiltered list of all CLI parameters.
 
-        Everything is included, from top-level groups to subcommands, and from options
-        to arguments.
+        Everything is included, from top-level groups to subcommands, and from
+        options to arguments.
 
-        Returns a 2-elements tuple:
-            - the first being a tuple of keys leading to the parameter
-            - the second being the parameter object itself
+        Yields a 2-element tuple:
+            - a tuple of keys leading to the parameter;
+            - the parameter object itself.
+
+        Thin adapter over :func:`walk_command_params`: it resolves the root CLI
+        from the active context and drops the per-parameter context that the free
+        function also yields.
         """
         ctx = get_current_context()
         cli = ctx.find_root().command
         assert cli.name is not None
-
-        # Keep track of top-level CLI parameter IDs to check conflict with command
-        # IDs later.
-        top_level_params = set()
-
-        # Global, top-level options shared by all subcommands.
-        for p in cli.get_params(ctx):
-            assert p.name is not None
-            top_level_params.add(p.name)
-            yield (cli.name, p.name), p
-
-        # Subcommand-specific options.
-        yield from self._recurse_cmd(cli, top_level_params, (cli.name,))
+        for keys, param, _ctx in walk_command_params(cli, ctx, (cli.name,)):
+            yield keys, param
 
     TYPE_MAP: ClassVar[dict[type[ParamType], type[str | int | float | bool | list]]] = {
         click.types.StringParamType: str,
@@ -407,14 +353,14 @@ class ParamStructure:
         # Resolve included_params into excluded_params before filtering.
         if self.included_params is not None:
             all_param_ids = frozenset(
-                self.SEP.join(keys) for keys, _ in self.walk_params()
+                PARAM_PATH_SEP.join(keys) for keys, _ in self.walk_params()
             )
             self.excluded_params = all_param_ids - self.included_params
 
         objects: dict[str, Any] = {}
 
         for keys, param in self.walk_params():
-            if self.SEP.join(keys) in self.excluded_params:
+            if PARAM_PATH_SEP.join(keys) in self.excluded_params:
                 continue
 
             objects = always_merger.merge(
@@ -578,11 +524,6 @@ def format_param_row(
         "prompt": prompt,
         "confirmation_prompt": styled_bool(confirmation_prompt),
     }
-
-
-#: Separator joining the keys of a parameter's fully-qualified path
-#: (``cli.subcommand.param``).
-PARAM_PATH_SEP = "."
 
 
 def walk_command_params(

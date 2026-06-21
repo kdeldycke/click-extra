@@ -52,10 +52,10 @@ from click_extra import (
     search_params,
     validate_config_option,
 )
-from click_extra.colorize import _escape_for_help_screen
-from click_extra.config import (
+from click_extra.config.schema import (
     _expand_dotted_keys,
 )
+from click_extra.highlight import _escape_for_help_screen
 from click_extra.pytest import (
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
@@ -2211,7 +2211,7 @@ def test_validate_config_requires_config_option(invoke, tmp_path):
     result = invoke(missing_config, "--validate-config", str(dummy))
 
     assert result.exception
-    assert type(result.exception) is TypeError
+    assert type(result.exception) is RuntimeError
     assert "ValidateConfigOption must be used alongside ConfigOption" in str(
         result.exception
     )

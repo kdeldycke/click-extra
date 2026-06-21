@@ -93,17 +93,29 @@ _ANSI_NAMES: tuple[str, ...] = (
 # Channel values for the 6×6×6 color cube (palette indices 16–231).
 _CUBE_VALUES: tuple[int, ...] = (0, 95, 135, 175, 215, 255)
 
-# Boolean style attributes processed in repr/css/from_ansi.
-_BOOL_ATTRS: tuple[str, ...] = (
-    "bold",
-    "dim",
-    "italic",
-    "underline",
-    "overline",
-    "blink",
-    "reverse",
-    "strikethrough",
-)
+# Single source of truth mapping each boolean style attribute to its CSS
+# ``(property, value)`` equivalent. Consumed by :meth:`Style.to_css` (which
+# groups the three ``text-decoration`` attributes into one declaration) and,
+# in its declaration-string form, by ``click_extra.theme_docs._PALETTE_ATTR_CSS``
+# to render the documentation palette's attribute pills.
+#
+# ``blink`` maps to an empty pair on purpose: there is no standard CSS for it
+# (the legacy ``text-decoration: blink`` keyword is non-functional in modern
+# browsers). It is therefore omitted from the rendered CSS. Animated blink is
+# handled separately by ``click_extra.pygments`` via a ``@keyframes`` rule.
+_ATTR_CSS: dict[str, tuple[str, str]] = {
+    "bold": ("font-weight", "bold"),
+    "dim": ("opacity", "0.6"),
+    "italic": ("font-style", "italic"),
+    "underline": ("text-decoration", "underline"),
+    "overline": ("text-decoration", "overline"),
+    "blink": ("", ""),
+    "reverse": ("filter", "invert(1)"),
+    "strikethrough": ("text-decoration", "line-through"),
+}
+
+# Boolean style attributes processed in repr/css/from_ansi, in palette order.
+_BOOL_ATTRS: tuple[str, ...] = tuple(_ATTR_CSS)
 
 # Match a single ANSI SGR escape: ``\x1b[...m``.
 _ANSI_SGR_RE: re.Pattern[str] = re.compile(r"\x1b\[(\d+(?:;\d+)*)m")
@@ -181,36 +193,6 @@ def dict_to_fields(
     return kwargs
 
 
-def cascade_fields(
-    base: Any,
-    overlay: Any,
-    *,
-    is_set: Callable[[Any, Any], bool] = lambda field, value: value != field.default,
-) -> dict[str, Any]:
-    """Layer *overlay*'s set fields on top of *base*, returning a merged kwargs dict.
-
-    Walks both instances' fields and produces a dict suitable for
-    ``type(base)(**kwargs)`` (or ``dataclasses.replace(base, **kwargs)``).
-    The slot-level analogue of ``Style.cascade``'s attribute-level merge.
-
-    :param base: the underlying instance whose fields fill any gaps.
-    :param overlay: the instance whose set fields win on conflicts.
-    :param is_set: callable ``(field, value) -> bool`` distinguishing
-        "set" from "unset" fields. Default treats a value equal to the
-        field default as unset.
-    """
-    out: dict[str, Any] = {}
-    for f in fields(base):
-        if f.name == "_style_kwargs":
-            continue
-        overlay_val = getattr(overlay, f.name)
-        if is_set(f, overlay_val):
-            out[f.name] = overlay_val
-        else:
-            out[f.name] = getattr(base, f.name)
-    return out
-
-
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
     """Parse a hex color (``#rrggbb`` or shorthand ``#rgb``) to an RGB tuple."""
     s = value.lstrip("#").lower()
@@ -222,6 +204,17 @@ def _hex_to_rgb(value: str) -> tuple[int, int, int]:
         return int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)
     except ValueError as exc:
         raise ValueError(f"Not a valid hex color: {value!r}") from exc
+
+
+def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+    """Format an ``(r, g, b)`` tuple as a ``#rrggbb`` hex string.
+
+    The inverse of :func:`_hex_to_rgb`. The single source of truth for the
+    RGB-to-hex rendering shared by ``__repr__``, ``to_css``, ``to_dict``, and
+    the documentation palette.
+    """
+    r, g, b = rgb
+    return f"#{r:02x}{g:02x}{b:02x}"
 
 
 def _palette_to_rgb(idx: int) -> tuple[int, int, int]:
@@ -305,7 +298,7 @@ def _resolve_rgb(color: object) -> tuple[int, int, int]:
 def _color_repr(value: object) -> str:
     """Compact human-readable form of a color value for ``__repr__``."""
     if isinstance(value, tuple) and len(value) == 3:
-        return f"#{value[0]:02x}{value[1]:02x}{value[2]:02x}"
+        return _rgb_to_hex(value)
     if hasattr(value, "name") and not isinstance(value, str):
         return value.name  # type: ignore[no-any-return]
     return repr(value)
@@ -314,17 +307,15 @@ def _color_repr(value: object) -> str:
 def _color_to_css(color: object) -> str:
     """Render a color value as a CSS color string."""
     if isinstance(color, tuple) and len(color) == 3:
-        return f"#{color[0]:02x}{color[1]:02x}{color[2]:02x}"
+        return _rgb_to_hex(color)
     if isinstance(color, str):
         if color.startswith("#"):
             return color
         if color.startswith("bright_"):
-            r, g, b = _resolve_rgb(color)
-            return f"#{r:02x}{g:02x}{b:02x}"
+            return _rgb_to_hex(_resolve_rgb(color))
         return color  # plain CSS keyword: 'red', 'blue', etc.
     if isinstance(color, int):
-        r, g, b = _palette_to_rgb(color)
-        return f"#{r:02x}{g:02x}{b:02x}"
+        return _rgb_to_hex(_palette_to_rgb(color))
     if hasattr(color, "name") and not isinstance(color, type):
         return _color_to_css(color.name)
     return str(color)
@@ -550,7 +541,7 @@ class Style(cloup.Style):
         ``.name`` are serialized by name; everything else passes through.
         """
         if isinstance(value, tuple) and len(value) == 3:
-            return f"#{value[0]:02x}{value[1]:02x}{value[2]:02x}"
+            return _rgb_to_hex(value)
         if hasattr(value, "name") and not isinstance(value, str):
             return value.name
         return value
@@ -586,23 +577,28 @@ class Style(cloup.Style):
             parts.append(f"color: {_color_to_css(self.fg)}")
         if self.bg is not None:
             parts.append(f"background-color: {_color_to_css(self.bg)}")
+        # Per-attribute CSS comes from the shared ``_ATTR_CSS`` source of
+        # truth. The three ``text-decoration`` attributes are grouped into a
+        # single declaration; ``blink`` (empty pair) is skipped.
         if self.bold:
-            parts.append("font-weight: bold")
+            prop, value = _ATTR_CSS["bold"]
+            parts.append(f"{prop}: {value}")
         if self.italic:
-            parts.append("font-style: italic")
-        decorations: list[str] = []
-        if self.underline:
-            decorations.append("underline")
-        if self.overline:
-            decorations.append("overline")
-        if self.strikethrough:
-            decorations.append("line-through")
+            prop, value = _ATTR_CSS["italic"]
+            parts.append(f"{prop}: {value}")
+        decorations = [
+            _ATTR_CSS[attr][1]
+            for attr in ("underline", "overline", "strikethrough")
+            if getattr(self, attr)
+        ]
         if decorations:
             parts.append(f"text-decoration: {' '.join(decorations)}")
         if self.dim:
-            parts.append("opacity: 0.6")
+            prop, value = _ATTR_CSS["dim"]
+            parts.append(f"{prop}: {value}")
         if self.reverse:
-            parts.append("filter: invert(1)")
+            prop, value = _ATTR_CSS["reverse"]
+            parts.append(f"{prop}: {value}")
         return "; ".join(parts)
 
     @classmethod
