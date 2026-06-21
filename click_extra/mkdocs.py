@@ -124,25 +124,19 @@ def _patch_mkdocs_click() -> None:
 def _ansi_stylesheet() -> str:
     """Build the CSS that colors Click Extra's ``-Ansi-*`` token classes.
 
-    Filters :meth:`~click_extra.pygments.AnsiHtmlFormatter.get_style_defs` down to the
-    ANSI-specific rules: the named and 256-color palette, the SGR text-attribute
-    declarations, the blink keyframes, and the OSC 8 hyperlink rule. The standard
-    Pygments token rules are dropped on purpose. Dumping the full style would override
-    the theme's own syntax-highlighting colors (and, on themes like Material, their
-    light and dark variants) for every code block. The ANSI rules are additive and
-    theme-agnostic, so they layer safely on top.
+    Delegates to :meth:`~click_extra.pygments.AnsiHtmlFormatter.get_ansi_style_defs`,
+    which returns only the ANSI-specific rules: the named and 256-color palette, the
+    SGR text-attribute declarations, the blink keyframes, and the OSC 8 hyperlink rule.
+    The standard Pygments token rules are dropped on purpose. Dumping the full style
+    would override the theme's own syntax-highlighting colors (and, on themes like
+    Material, their light and dark variants) for every code block. The ANSI rules are
+    additive and theme-agnostic, so they layer safely on top.
 
     Scoped under the formatter's default ``cssclass`` (``.highlight``), the wrapper
     ``pymdownx.highlight`` and the Material theme both emit.
     """
     formatter = AnsiHtmlFormatter()
-    container = f".{formatter.cssclass}"
-    rules = [
-        line
-        for line in formatter.get_style_defs(container).splitlines()
-        if "-Ansi" in line or "ansi-blink" in line or "a { color: inherit" in line
-    ]
-    return "\n".join(rules) + "\n"
+    return formatter.get_ansi_style_defs(f".{formatter.cssclass}") + "\n"
 
 
 class AnsiColorPlugin(BasePlugin):

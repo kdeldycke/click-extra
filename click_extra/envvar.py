@@ -121,11 +121,7 @@ def param_envvar_ids(
     user-defined envvars takes precedence. This respects the current implementation
     of ``click.core.Option.resolve_envvar_value()``.
 
-    .. caution::
-        `On Windows, environment variable names are case-insensitive
-        <https://docs.python.org/3/library/os.html#os.environ>`_, so we `normalize them
-        to uppercase as the standard library does
-        <https://github.com/python/cpython/blob/3.14/Lib/os.py#L770-L782>`_.
+    Names are normalized to uppercase on Windows by :func:`merge_envvar_ids`.
     """
     return merge_envvar_ids(param.envvar, param_auto_envvar_id(param, ctx))
 
