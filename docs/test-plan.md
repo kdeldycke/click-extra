@@ -104,3 +104,11 @@ run_test_plan("weather", cases)
    :undoc-members:
    :show-inheritance:
 ```
+
+## Future directions
+
+The current design is a declarative list of directives. Two points of comparison suggest where it could go next.
+
+Click Extra's [`click:run` and `click:source` Sphinx directives](sphinx.md) apply the same run-and-check idea from the documentation side: they execute a CLI in-process while the docs build and assert on its output, so every example doubles as a test. A test plan does it at the subprocess level instead, against any binary. Letting a documented example and a test case share one source is an open avenue.
+
+[scrut](https://github.com/facebookincubator/scrut) is a standalone toolkit aimed at the same black-box CLI testing problem, with a different authoring model: expectations are written inline beneath each command in a Markdown or Cram file, and `scrut update` regenerates them. I came across it after building this feature for my own needs, so the resemblance is convergence, not lineage. Its snapshot-style workflow (generate and refresh expectations instead of hand-writing them), per-case environment and working-directory controls, and glob expectations are the directions worth weighing for a later revision.
