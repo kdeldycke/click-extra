@@ -81,6 +81,8 @@ You can customize the message template with the following variables:
 | {py:attr}`{git_date} <click_extra.version.VersionOption.git_date>`               | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
 | {py:attr}`{git_tag} <click_extra.version.VersionOption.git_tag>`                 | The Git tag pointing at `HEAD`, or `None` if `HEAD` is not at a tagged commit.                                                                                                         |
 | {py:attr}`{git_tag_sha} <click_extra.version.VersionOption.git_tag_sha>`         | The full commit SHA that the current tag points at, or `None` if `HEAD` is not at a tagged commit.                                                                                     |
+| {py:attr}`{git_distance} <click_extra.version.VersionOption.git_distance>`       | The number of commits since the most recent tag, or `None` if no tag is reachable or Git is not available.                                                                            |
+| {py:attr}`{git_dirty} <click_extra.version.VersionOption.git_dirty>`             | The work-tree state: `dirty` for uncommitted changes, `clean` otherwise, or `None` if not in a Git repository or Git is not available.                                                |
 | {py:attr}`{prog_name} <click_extra.version.VersionOption.prog_name>`             | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#version-fields).                        |
 | {py:attr}`{env_info} <click_extra.version.VersionOption.env_info>`               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
@@ -88,6 +90,8 @@ You can customize the message template with the following variables:
 The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (e.g., standalone Nuitka binaries, Docker containers without Git).
 
 All ``git_*`` fields can be [pre-baked at build time](#pre-baking-git-metadata) by defining ``__<field>__`` dunder variables in the CLI module. Pre-baked values take priority over subprocess calls.
+
+The hash, date, branch, tag and distance fields also fall back to a [`.git_archival.json`](#git-metadata-in-archives) file, so they keep working when a CLI runs from a `git archive` export (like a GitHub source tarball) that has no `.git` directory.
 ```
 
 ```{hint}
@@ -350,6 +354,8 @@ The supported dunders are:
 | `__git_date__`       | `{git_date}`       | `git show -s --format=%ci HEAD`                   |
 | `__git_tag__`        | `{git_tag}`        | `git describe --tags --exact-match HEAD`          |
 | `__git_tag_sha__`    | `{git_tag_sha}`    | `git rev-list -1 <tag>` (if `{git_tag}` resolves) |
+| `__git_distance__`   | `{git_distance}`   | `git describe --tags --long` (commit count parsed) |
+| `__git_dirty__`      | `{git_dirty}`      | `git status --porcelain` (mapped to dirty/clean)   |
 
 To pre-bake a value, declare the dunder with an empty string placeholder in your `__init__.py`:
 
@@ -399,6 +405,37 @@ All subcommands resolve the target file by precedence: an explicit `--module`, t
 module = "mypackage/__init__.py"
 ```
 
+## Git metadata in archives
+
+The `git_*` variables normally shell out to `git`, so they go blank when a CLI runs from a tree that has no `.git` directory. The most common case is a source archive: the `tar.gz` GitHub generates for a tag, or any `git archive` export.
+
+Git can bake the metadata into such archives at export time. Commit a `.git_archival.json` file holding [`git archive` placeholders](https://git-scm.com/docs/gitattributes#_creating_an_archive), and mark it for substitution in `.gitattributes`:
+
+```{code-block} json
+:caption: `.git_archival.json`
+{
+    "node": "$Format:%H$",
+    "node-date": "$Format:%cI$",
+    "describe-name": "$Format:%(describe:tags=true,match=*[0-9]*)$",
+    "ref-names": "$Format:%D$"
+}
+```
+
+```{code-block} text
+:caption: `.gitattributes`
+.git_archival.json  export-subst
+```
+
+When `git archive` packs the file (GitHub does this for its source tarballs), it replaces each `$Format:…$` token with the real value. Click Extra reads the result and populates `{git_long_hash}`, `{git_short_hash}`, `{git_date}`, `{git_branch}`, `{git_tag}`, `{git_tag_sha}` and `{git_distance}` from it. `{git_dirty}` is not covered: an archive has no work tree, so its state is unknowable.
+
+```{note}
+This is the schema used by [setuptools-scm](https://setuptools-scm.readthedocs.io/en/latest/usage/#git-archives) and [Dunamai](https://github.com/mtkennerly/dunamai), so a single committed `.git_archival.json` works with all three.
+```
+
+```{important}
+Substitution happens only inside `git archive` output. In a normal checkout the file still holds the literal `$Format:…$` placeholders, which Click Extra ignores in favor of live `git` calls. The resolution order for each field is: pre-baked dunder, then live `git`, then `.git_archival.json`.
+```
+
 ## Colors
 
 Each variable listed in the section above can be rendered in its own style. Pass a `styles` mapping to the `version_option` decorator to set the style of individual fields, keyed by field name:
@@ -415,6 +452,8 @@ Fields not listed in `styles` keep the defaults below, taken from {py:attr}`Vers
 | `exec_name`                          | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
 | `git_branch`                         | `Style(fg="cyan")`{l=python}                       |
 | `git_date`                           | `Style(fg="bright_black")`{l=python}               |
+| `git_distance`                       | `Style(fg="green")`{l=python}                      |
+| `git_dirty`                          | `Style(fg="red")`{l=python}                        |
 | `git_long_hash`                      | `Style(fg="yellow")`{l=python}                     |
 | `git_repo_path`                      | `Style(fg="bright_black")`{l=python}               |
 | `git_short_hash`                     | `Style(fg="yellow")`{l=python}                     |

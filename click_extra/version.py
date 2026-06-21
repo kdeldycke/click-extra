@@ -38,8 +38,10 @@ from __future__ import annotations
 import ast
 import importlib
 import inspect
+import json
 import logging
 import os
+import re
 import subprocess
 import sys
 from email.utils import getaddresses
@@ -91,16 +93,28 @@ GIT_FIELDS: dict[str, tuple[str, ...]] = {
 }
 """Git fields that can be pre-baked, mapped to their ``git`` subcommand args.
 
-``git_tag_sha`` is excluded because its resolution depends on
-``git_tag`` (it runs ``git rev-list -1 <tag>``), so it cannot be
-expressed as a static argument tuple.
+``git_tag_sha``, ``git_distance`` and ``git_dirty`` are excluded: their
+resolution is not a single static ``git`` invocation whose stripped output is
+the value. ``git_tag_sha`` depends on ``git_tag`` (it runs
+``git rev-list -1 <tag>``), ``git_distance`` parses ``git describe`` and
+``git_dirty`` maps the porcelain status to a label. See
+:func:`resolve_git_distance` and :func:`resolve_git_dirty`.
 """
 
 
-def run_git(*args: str, cwd: Path | None = None) -> str | None:
+def run_git(
+    *args: str,
+    cwd: Path | None = None,
+    allow_empty: bool = False,
+) -> str | None:
     """Run a ``git`` command and return its stripped output, or ``None``.
 
     *cwd* defaults to the current working directory when not provided.
+
+    By default an empty output is collapsed to ``None`` (treated like a
+    failure). Set *allow_empty* to keep an empty string instead, which some
+    commands use meaningfully: ``git status --porcelain`` prints nothing for a
+    clean work tree, and that is distinct from the command failing.
     """
     try:
         result = subprocess.run(
@@ -111,13 +125,135 @@ def run_git(*args: str, cwd: Path | None = None) -> str | None:
             check=True,
             timeout=5,
         )
-        return result.stdout.strip() or None
     except (
         subprocess.CalledProcessError,
         FileNotFoundError,
         subprocess.TimeoutExpired,
     ):
         return None
+    output = result.stdout.strip()
+    if output or allow_empty:
+        return output
+    return None
+
+
+def resolve_git_dirty(cwd: Path | None = None) -> str | None:
+    """Report the work-tree state as ``"dirty"``, ``"clean"`` or ``None``.
+
+    Returns ``"dirty"`` when ``git status --porcelain`` reports uncommitted
+    changes, ``"clean"`` when it reports none, and ``None`` when the state
+    cannot be determined (not a Git repository, or ``git`` is unavailable).
+
+    The empty output of a clean work tree is meaningful here, so the command is
+    run with ``allow_empty`` to tell it apart from a failure.
+    """
+    status = run_git("status", "--porcelain", cwd=cwd, allow_empty=True)
+    if status is None:
+        return None
+    return "dirty" if status else "clean"
+
+
+def resolve_git_distance(cwd: Path | None = None) -> str | None:
+    """Count commits since the most recent tag, as a string, or ``None``.
+
+    Parses ``git describe --tags --long``, whose output has the form
+    ``<tag>-<distance>-g<short_hash>``. Returns ``None`` when no tag is
+    reachable, the directory is not a Git repository, or ``git`` is
+    unavailable.
+    """
+    described = run_git("describe", "--tags", "--long", cwd=cwd)
+    if described is None:
+        return None
+    match = re.search(r"-(\d+)-g[0-9a-f]+$", described)
+    return match.group(1) if match else None
+
+
+def find_archival_file(start: Path) -> Path | None:
+    """Walk up from *start* to find a ``.git_archival.json`` file.
+
+    Returns the first match in *start* or any of its parents, or ``None``.
+    """
+    for path in (start, *start.parents):
+        candidate = path / ".git_archival.json"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def read_archival(path: Path) -> dict[str, str]:
+    """Parse a ``.git_archival.json`` file into a string mapping.
+
+    Returns an empty mapping when the file is missing, unreadable, or not a
+    valid JSON object.
+    """
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(key): str(value) for key, value in data.items()}
+
+
+def archival_field(data: Mapping[str, str], field_id: str) -> str | None:
+    """Resolve a ``git_*`` field from parsed ``.git_archival.json`` data.
+
+    *data* follows the `setuptools-scm archival schema
+    <https://setuptools-scm.readthedocs.io/en/latest/usage/#git-archives>`_:
+    ``node`` (full hash), ``node-date``, ``describe-name`` and ``ref-names``.
+    The same file is read by setuptools-scm and Dunamai, so a single committed
+    ``.git_archival.json`` serves all three.
+
+    Returns ``None`` when the field is absent, empty, or still holds an
+    unsubstituted ``$Format:…$`` placeholder. That last case is what a plain
+    checkout contains: ``git archive`` performs the substitution, so values are
+    real only inside an exported archive (including GitHub's source tarballs).
+
+    There is no entry for ``git_dirty``: an archive has no work tree, so its
+    state is unknowable.
+    """
+
+    def value(key: str) -> str | None:
+        raw = data.get(key, "").strip()
+        if not raw or "$Format" in raw:
+            return None
+        return raw
+
+    if field_id == "git_long_hash":
+        return value("node")
+    if field_id == "git_short_hash":
+        node = value("node")
+        return node[:7] if node else None
+    if field_id == "git_date":
+        return value("node-date")
+    if field_id == "git_branch":
+        refs = value("ref-names")
+        if refs:
+            for ref in refs.split(", "):
+                # "HEAD -> main" names the checked-out branch.
+                if " -> " in ref:
+                    return ref.split(" -> ", 1)[1]
+        return None
+    if field_id == "git_tag":
+        refs = value("ref-names")
+        if refs:
+            for ref in refs.split(", "):
+                if ref.startswith("tag: "):
+                    return ref[len("tag: ") :]
+        return None
+    if field_id == "git_tag_sha":
+        # A tag among the refs points at the archived commit itself.
+        if archival_field(data, "git_tag"):
+            return value("node")
+        return None
+    if field_id == "git_distance":
+        described = value("describe-name")
+        if described is None:
+            return None
+        # "<tag>-<distance>-g<short_hash>"; a bare "<tag>" means distance zero.
+        match = re.search(r"-(\d+)-g[0-9a-f]+$", described)
+        return match.group(1) if match else "0"
+    return None
 
 
 def _find_dunder_str(source: str, name: str) -> ast.Constant | None:
@@ -357,6 +493,8 @@ class VersionOption(ExtraOption):
         "git_date",
         "git_tag",
         "git_tag_sha",
+        "git_distance",
+        "git_dirty",
         "prog_name",
         "env_info",
     )
@@ -376,6 +514,8 @@ class VersionOption(ExtraOption):
         "git_date": Style(fg="bright_black"),
         "git_tag": Style(fg="cyan"),
         "git_tag_sha": Style(fg="yellow"),
+        "git_distance": Style(fg="green"),
+        "git_dirty": Style(fg="red"),
         "prog_name": _default_invoked_command,
         "env_info": Style(fg="bright_black"),
     }
@@ -905,14 +1045,34 @@ class VersionOption(ExtraOption):
         return None
 
     @cached_property
+    def _archival_data(self) -> dict[str, str]:
+        """Parsed ``.git_archival.json`` for the CLI, or an empty mapping.
+
+        Found by walking up from the CLI module's directory (falling back to
+        the current working directory). Only populated inside an archive
+        produced by ``git archive`` — including GitHub's source tarballs —
+        where git substitutes the ``$Format:…$`` placeholders. A normal
+        checkout holds the raw placeholders and yields nothing here, so live
+        ``git`` calls take precedence and this is consulted only as a fallback.
+        """
+        if self.module_file:
+            start = Path(self.module_file).parent
+        else:
+            start = Path.cwd()
+        path = find_archival_file(start)
+        return read_archival(path) if path else {}
+
+    @cached_property
     def git_branch(self) -> str | None:
         """Returns the current Git branch name.
 
         Checks for a pre-baked ``__git_branch__`` dunder first, then
-        falls back to ``git rev-parse --abbrev-ref HEAD``.
+        ``git rev-parse --abbrev-ref HEAD``, then ``.git_archival.json``.
         """
-        return self._get_prebaked("git_branch") or self._run_git_command(
-            *GIT_FIELDS["git_branch"]
+        return (
+            self._get_prebaked("git_branch")
+            or self._run_git_command(*GIT_FIELDS["git_branch"])
+            or archival_field(self._archival_data, "git_branch")
         )
 
     @cached_property
@@ -920,10 +1080,12 @@ class VersionOption(ExtraOption):
         """Returns the full Git commit hash.
 
         Checks for a pre-baked ``__git_long_hash__`` dunder first, then
-        falls back to ``git rev-parse HEAD``.
+        ``git rev-parse HEAD``, then ``.git_archival.json``.
         """
-        return self._get_prebaked("git_long_hash") or self._run_git_command(
-            *GIT_FIELDS["git_long_hash"]
+        return (
+            self._get_prebaked("git_long_hash")
+            or self._run_git_command(*GIT_FIELDS["git_long_hash"])
+            or archival_field(self._archival_data, "git_long_hash")
         )
 
     @cached_property
@@ -931,7 +1093,8 @@ class VersionOption(ExtraOption):
         """Returns the short Git commit hash.
 
         Checks for a pre-baked ``__git_short_hash__`` dunder first, then
-        falls back to ``git rev-parse --short HEAD``.
+        ``git rev-parse --short HEAD``, then ``.git_archival.json`` (where it
+        is derived from the first 7 characters of the full hash).
 
         .. hint::
             The short hash is usually the first 7 characters of the full hash, but this
@@ -941,8 +1104,10 @@ class VersionOption(ExtraOption):
             a `minimum of 4 characters
             <https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreabbrev>`_.
         """
-        return self._get_prebaked("git_short_hash") or self._run_git_command(
-            *GIT_FIELDS["git_short_hash"]
+        return (
+            self._get_prebaked("git_short_hash")
+            or self._run_git_command(*GIT_FIELDS["git_short_hash"])
+            or archival_field(self._archival_data, "git_short_hash")
         )
 
     @cached_property
@@ -950,10 +1115,13 @@ class VersionOption(ExtraOption):
         """Returns the commit date in ISO format: ``YYYY-MM-DD HH:MM:SS +ZZZZ``.
 
         Checks for a pre-baked ``__git_date__`` dunder first, then
-        falls back to ``git show -s --format=%ci HEAD``.
+        ``git show -s --format=%ci HEAD``, then ``.git_archival.json`` (whose
+        ``node-date`` is strict ISO 8601, like ``2021-01-01T12:00:00+00:00``).
         """
-        return self._get_prebaked("git_date") or self._run_git_command(
-            *GIT_FIELDS["git_date"]
+        return (
+            self._get_prebaked("git_date")
+            or self._run_git_command(*GIT_FIELDS["git_date"])
+            or archival_field(self._archival_data, "git_date")
         )
 
     @cached_property
@@ -961,12 +1129,14 @@ class VersionOption(ExtraOption):
         """Returns the Git tag pointing at HEAD, if any.
 
         Checks for a pre-baked ``__git_tag__`` dunder first, then
-        falls back to ``git describe --tags --exact-match HEAD``.
+        ``git describe --tags --exact-match HEAD``, then ``.git_archival.json``.
 
         Returns ``None`` if HEAD is not at a tagged commit.
         """
-        return self._get_prebaked("git_tag") or self._run_git_command(
-            *GIT_FIELDS["git_tag"]
+        return (
+            self._get_prebaked("git_tag")
+            or self._run_git_command(*GIT_FIELDS["git_tag"])
+            or archival_field(self._archival_data, "git_tag")
         )
 
     @cached_property
@@ -974,16 +1144,52 @@ class VersionOption(ExtraOption):
         """Returns the commit SHA that the current tag points at.
 
         Checks for a pre-baked ``__git_tag_sha__`` dunder first, then
-        falls back to ``git rev-list -1`` on the tag returned by
-        :attr:`git_tag`. Returns ``None`` if HEAD is not at a tag.
+        ``git rev-list -1`` on the tag returned by :attr:`git_tag`, then
+        ``.git_archival.json``. Returns ``None`` if HEAD is not at a tag.
         """
         prebaked = self._get_prebaked("git_tag_sha")
         if prebaked:
             return prebaked
         tag = self.git_tag
         if tag:
-            return self._run_git_command("rev-list", "-1", tag)
-        return None
+            live = self._run_git_command("rev-list", "-1", tag)
+            if live:
+                return live
+        return archival_field(self._archival_data, "git_tag_sha")
+
+    @cached_property
+    def git_distance(self) -> str | None:
+        """Number of commits since the most recent tag, or ``None``.
+
+        Checks for a pre-baked ``__git_distance__`` dunder first, then parses
+        ``git describe --tags --long``, then falls back to
+        ``.git_archival.json``. ``None`` when no tag is reachable or Git is
+        unavailable.
+        """
+        prebaked = self._get_prebaked("git_distance")
+        if prebaked:
+            return prebaked
+        if self.git_repo_path:
+            distance = resolve_git_distance(self.git_repo_path)
+            if distance is not None:
+                return distance
+        return archival_field(self._archival_data, "git_distance")
+
+    @cached_property
+    def git_dirty(self) -> str | None:
+        """Work-tree state: ``"dirty"``, ``"clean"`` or ``None``.
+
+        Checks for a pre-baked ``__git_dirty__`` dunder first, then runs
+        ``git status --porcelain``. ``None`` when not in a Git repository or
+        Git is unavailable. There is no ``.git_archival.json`` fallback: an
+        archive has no work tree, so its state is unknowable.
+        """
+        prebaked = self._get_prebaked("git_dirty")
+        if prebaked:
+            return prebaked
+        if not self.git_repo_path:
+            return None
+        return resolve_git_dirty(self.git_repo_path)
 
     @cached_property
     def prog_name(self) -> str | None:

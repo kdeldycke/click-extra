@@ -26,6 +26,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 import re
 import sys
 
@@ -55,9 +56,14 @@ from click_extra.pytest import (
     default_debug_colored_version_details,
 )
 from click_extra.version import (
+    archival_field,
     discover_package_init_files,
+    find_archival_file,
     prebake_dunder,
     prebake_version,
+    read_archival,
+    resolve_git_distance,
+    resolve_git_dirty,
 )
 
 from .conftest import skip_windows_colors
@@ -247,6 +253,8 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             r"git_date = (?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}|None)\n"
             r"git_tag = \S+\n"
             r"git_tag_sha = None\n"
+            r"git_distance = (?:\d+|None)\n"
+            r"git_dirty = (?:dirty|clean|None)\n"
             r"prog_name = version-metadata\n"
             r"env_info = {'.+'}\n"
         ),
@@ -888,3 +896,198 @@ def test_prebaked_non_string_ignored():
     opt = VersionOption()
     opt.__dict__["module"] = mod
     assert opt.git_branch is None
+
+
+def test_prebaked_git_distance():
+    """A pre-baked ``__git_distance__`` dunder is used over subprocess."""
+    import types
+
+    mod = types.ModuleType("fake_cli")
+    mod.__git_distance__ = "42"  # type: ignore[attr-defined]
+    mod.__file__ = "/fake/path.py"
+    mod.__package__ = "fake_cli"
+
+    opt = VersionOption()
+    opt.__dict__["module"] = mod
+    assert opt.git_distance == "42"
+
+
+def test_prebaked_git_dirty():
+    """A pre-baked ``__git_dirty__`` dunder is used over subprocess."""
+    import types
+
+    mod = types.ModuleType("fake_cli")
+    mod.__git_dirty__ = "dirty"  # type: ignore[attr-defined]
+    mod.__file__ = "/fake/path.py"
+    mod.__package__ = "fake_cli"
+
+    opt = VersionOption()
+    opt.__dict__["module"] = mod
+    assert opt.git_dirty == "dirty"
+
+
+# --- resolve_git_distance / resolve_git_dirty tests ---
+
+
+@pytest.mark.parametrize(
+    ("describe_output", "expected"),
+    (
+        (None, None),
+        ("v1.2.3-0-gabcdef0", "0"),
+        ("v1.2.3-4-gabcdef0", "4"),
+        ("1.2.3-17-g0123abc", "17"),
+        ("no-distance-here", None),
+    ),
+)
+def test_resolve_git_distance(monkeypatch, describe_output, expected):
+    monkeypatch.setattr("click_extra.version.run_git", lambda *a, **k: describe_output)
+    assert resolve_git_distance() == expected
+
+
+@pytest.mark.parametrize(
+    ("status_output", "expected"),
+    (
+        (None, None),
+        ("", "clean"),
+        (" M file.py", "dirty"),
+        ("?? new.py", "dirty"),
+    ),
+)
+def test_resolve_git_dirty(monkeypatch, status_output, expected):
+    monkeypatch.setattr("click_extra.version.run_git", lambda *a, **k: status_output)
+    assert resolve_git_dirty() == expected
+
+
+# --- .git_archival.json fallback tests ---
+
+
+SUBSTITUTED_ARCHIVAL = {
+    "node": "0123456789abcdef0123456789abcdef01234567",
+    "node-date": "2021-06-01T12:00:00+00:00",
+    "describe-name": "v1.2.3-4-g0123456",
+    "ref-names": "HEAD -> main, tag: v1.2.3",
+}
+
+
+@pytest.mark.parametrize(
+    ("field_id", "expected"),
+    (
+        ("git_long_hash", "0123456789abcdef0123456789abcdef01234567"),
+        ("git_short_hash", "0123456"),
+        ("git_date", "2021-06-01T12:00:00+00:00"),
+        ("git_branch", "main"),
+        ("git_tag", "v1.2.3"),
+        ("git_tag_sha", "0123456789abcdef0123456789abcdef01234567"),
+        ("git_distance", "4"),
+        ("git_dirty", None),
+    ),
+)
+def test_archival_field_substituted(field_id, expected):
+    assert archival_field(SUBSTITUTED_ARCHIVAL, field_id) == expected
+
+
+@pytest.mark.parametrize(
+    "field_id",
+    (
+        "git_long_hash",
+        "git_short_hash",
+        "git_date",
+        "git_branch",
+        "git_tag",
+        "git_tag_sha",
+        "git_distance",
+    ),
+)
+def test_archival_field_unsubstituted_ignored(field_id):
+    """A raw checkout keeps the $Format placeholders, which must be ignored."""
+    raw = {
+        "node": "$Format:%H$",
+        "node-date": "$Format:%cI$",
+        "describe-name": "$Format:%(describe:tags=true,match=*[0-9]*)$",
+        "ref-names": "$Format:%D$",
+    }
+    assert archival_field(raw, field_id) is None
+
+
+def test_archival_field_exact_tag_distance_zero():
+    """A bare describe-name (no -N-g suffix) means distance zero."""
+    data = {"describe-name": "v1.2.3", "ref-names": "tag: v1.2.3"}
+    assert archival_field(data, "git_distance") == "0"
+    assert archival_field(data, "git_tag") == "v1.2.3"
+
+
+def test_read_archival_roundtrip(tmp_path):
+    path = tmp_path / ".git_archival.json"
+    path.write_text(json.dumps(SUBSTITUTED_ARCHIVAL), encoding="utf-8")
+    assert read_archival(path) == SUBSTITUTED_ARCHIVAL
+
+
+def test_read_archival_invalid_json(tmp_path):
+    path = tmp_path / ".git_archival.json"
+    path.write_text("{not json", encoding="utf-8")
+    assert read_archival(path) == {}
+
+
+def test_find_archival_file_walks_up(tmp_path):
+    (tmp_path / ".git_archival.json").write_text("{}", encoding="utf-8")
+    nested = tmp_path / "pkg" / "sub"
+    nested.mkdir(parents=True)
+    assert find_archival_file(nested) == tmp_path / ".git_archival.json"
+
+
+def test_find_archival_file_absent(tmp_path):
+    assert find_archival_file(tmp_path) is None
+
+
+def test_archival_resolves_git_fields(tmp_path):
+    """Git fields resolve from .git_archival.json when there is no live git."""
+    import types
+
+    (tmp_path / ".git_archival.json").write_text(
+        json.dumps(SUBSTITUTED_ARCHIVAL), encoding="utf-8"
+    )
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+
+    mod = types.ModuleType("fake_cli")
+    mod.__file__ = str(pkg / "cli.py")
+    mod.__package__ = "fake_cli"
+
+    opt = VersionOption()
+    opt.__dict__["module"] = mod
+    # Force "no live git" so only the archival fallback is exercised.
+    opt.__dict__["git_repo_path"] = None
+
+    assert opt.git_long_hash == SUBSTITUTED_ARCHIVAL["node"]
+    assert opt.git_short_hash == "0123456"
+    assert opt.git_tag == "v1.2.3"
+    assert opt.git_tag_sha == SUBSTITUTED_ARCHIVAL["node"]
+    assert opt.git_branch == "main"
+    assert opt.git_distance == "4"
+    # No work tree in an archive, so dirtiness is unknowable.
+    assert opt.git_dirty is None
+
+
+# --- dev-version hash assembly ---
+
+
+@pytest.mark.parametrize(
+    ("module_version", "expected"),
+    (
+        # Dev release: hash appended.
+        ("1.0.0.dev1", "1.0.0.dev1+abc1234"),
+        # Release: never modified.
+        ("1.0.0", "1.0.0"),
+        # Already has a local identifier: returned as-is.
+        ("1.0.0.dev1+existing", "1.0.0.dev1+existing"),
+        # Non-canonical ".dev" spellings are not matched by the lightweight
+        # substring check, so no hash is appended.
+        ("1.0.0-dev1", "1.0.0-dev1"),
+    ),
+)
+def test_version_dev_hash_assembly(module_version, expected):
+    """The git short hash is appended to dev releases only."""
+    opt = VersionOption(
+        fields={"module_version": module_version, "git_short_hash": "abc1234"},
+    )
+    assert opt.version == expected

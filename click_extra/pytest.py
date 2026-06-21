@@ -424,6 +424,8 @@ default_debug_uncolored_version_details = (
     r"debug: {git_date}       : (?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}|None)\n"
     r"debug: {git_tag}        : \S+\n"
     r"debug: {git_tag_sha}    : \S+\n"
+    r"debug: {git_distance}   : (?:\d+|None)\n"
+    r"debug: {git_dirty}      : (?:dirty|clean|None)\n"
     r"debug: {prog_name}      : \S+\n"
     r"debug: {env_info}       : {.*}\n"
 )
@@ -446,6 +448,8 @@ default_debug_colored_version_details = (
     r"\x1b\[34mdebug\x1b\[0m: {git_date}       : \x1b\[90m(?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}|None)\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {git_tag}        : \x1b\[36m\S+\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {git_tag_sha}    : \x1b\[33m\S+\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: {git_distance}   : \x1b\[32m(?:\d+|None)\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: {git_dirty}      : \x1b\[31m(?:dirty|clean|None)\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {prog_name}      : \x1b\[97m\S+\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {env_info}       : \x1b\[90m{.*}\x1b\[0m\n"
 )

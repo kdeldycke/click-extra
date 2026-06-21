@@ -68,6 +68,8 @@ from .version import (
     discover_package_init_files,
     prebake_dunder,
     prebake_version,
+    resolve_git_distance,
+    resolve_git_dirty,
     run_git,
 )
 
@@ -637,9 +639,10 @@ def all_fields(module: Path | None) -> None:
         git_branch, git_long_hash, git_short_hash, git_date, git_tag
 
     \b
-    Additional fields (e.g. ``__git_tag_sha__``) are baked if their
-    dunder placeholder exists and a git resolution is available. Fields
-    without a placeholder in the source file are skipped silently.
+    Additional computed fields (``__git_tag_sha__``, ``__git_distance__``,
+    ``__git_dirty__``) are baked if their dunder placeholder exists and a git
+    resolution is available. Fields without a placeholder in the source file
+    are skipped silently.
     """
     paths = _resolve_paths(module)
     changed = False
@@ -689,6 +692,30 @@ def all_fields(module: Path | None) -> None:
                     if baked:
                         echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
                         changed = True
+
+        # Re-read so the computed-field lookups below see current content
+        # after any git_tag_sha bake above shifted offsets.
+        source = init_path.read_text(encoding="utf-8")
+
+        # Handle git_distance and git_dirty: computed values, not direct
+        # GIT_FIELDS commands.
+        for field_name, resolver in (
+            ("git_distance", resolve_git_distance),
+            ("git_dirty", resolve_git_dirty),
+        ):
+            dunder_name = f"__{field_name}__"
+            node = _find_dunder_str(source, dunder_name)
+            if node is None or node.value:
+                continue
+            value = resolver()
+            if not value:
+                echo(f"Skipped {init_path}: {dunder_name} (no git value)")
+                continue
+            baked = prebake_dunder(init_path, dunder_name, value)
+            if baked:
+                echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
+                changed = True
+                source = init_path.read_text(encoding="utf-8")
 
     if not changed:
         echo("No changes made.")
