@@ -1169,24 +1169,40 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Save the user configuration into the context's ``default_map``.
 
         Merge the user configuration into the pre-computed template structure, which
-        will filter out all unrecognized options not supported by the command. Then
-        cleans up blank values and update the context's ``default_map``.
-
-        Uses a `~collections.ChainMap` so each config source keeps its own layer.
-        The first layer wins on key lookup, which makes parameter-source precedence
-        explicit and future-proofs for multi-file config loading.
+        filters out all unrecognized options not supported by the command, then hand
+        the result to :py:meth:`_install_default_map`.
 
         Opaque sub-trees declared by the schema or by registered
         :class:`~click_extra.config.schema.ConfigValidator` instances are stripped from the conf before the
         CLI-parameter strict check, so user-controlled keys (like mappings whose
         keys are data, not flag names) don't trip ``strict=True``.
+
+        .. note::
+            This recomputes the filtered config that
+            :py:func:`~click_extra.config.schema.run_config_validation` already
+            produces as
+            :py:attr:`~click_extra.config.schema.ValidationReport.merged_conf`.
+            :py:meth:`load_conf` installs that result directly and skips this
+            method; it stays as the standalone entry point for external callers.
         """
         normalized_conf = _normalize_conf(user_conf, strict=self.strict)
         normalized_conf = self._strip_opaque_from_conf(ctx, normalized_conf)
         filtered_conf = _recursive_update(
             copy.deepcopy(self.params_template), normalized_conf, self.strict
         )
+        self._install_default_map(ctx, filtered_conf)
 
+    def _install_default_map(
+        self, ctx: click.Context, filtered_conf: dict[str, Any]
+    ) -> None:
+        """Layer a template-filtered config onto the context's ``default_map``.
+
+        Cleans up the blank values left over by the template structure, then layers
+        the app's section on top of any existing ``default_map`` via a
+        `~collections.ChainMap` so each config source keeps its own layer. The first
+        layer wins on key lookup, which makes parameter-source precedence explicit
+        and future-proofs for multi-file config loading.
+        """
         # Clean-up the conf by removing all blank values left-over by the template
         # structure.
         clean_conf = _remove_blanks(filtered_conf, remove_str=False)
@@ -1339,11 +1355,15 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.critical(f"Configuration validation error: {report.errors[0]}")
                 ctx.exit(1)
 
-            # Validation passed. Merge the recognized values into default_map,
+            # Validation passed. Install the recognized values into default_map,
             # publish the typed schema instance built by the pipeline, then apply
             # theme overrides (the [tool.<cli>.themes.<name>] table was already
             # validated above, so building it here cannot surface user error).
-            self.merge_default_map(ctx, user_conf)
+            # The pipeline already filtered user_conf against the template, so the
+            # merged result is installed directly instead of recomputing it via
+            # merge_default_map.
+            assert report.merged_conf is not None  # params_template is always set.
+            self._install_default_map(ctx, report.merged_conf)
             logger.debug(f"New defaults: {ctx.default_map}")
             if self._config_schema_callable is not None:
                 context.set(ctx, context.TOOL_CONFIG, report.schema_instance)

@@ -1673,6 +1673,26 @@ def test_run_config_validation_valid_document():
         verbose=True, managers={"brew": {"timeout": 1}}
     )
     assert report.opaque_subtrees == {"managers": {"brew": {"timeout": 1}}}
+    # No template was supplied, so there is no default_map payload to carry.
+    assert report.merged_conf is None
+
+
+def test_run_config_validation_exposes_merged_conf():
+    """A passing strict check carries the template-filtered config as merged_conf,
+    with recognized values merged in and unknown keys dropped."""
+
+    from click_extra import run_config_validation
+
+    report = run_config_validation(
+        {"my-cli": {"verbose": True, "unknown": "dropped"}},
+        app_name="my-cli",
+        params_template={"my-cli": {"verbose": None, "count": None}},
+        config_schema=None,
+    )
+    assert report.ok
+    assert report.merged_conf is not None
+    assert report.merged_conf["my-cli"]["verbose"] is True
+    assert "unknown" not in report.merged_conf["my-cli"]
 
 
 def test_run_config_validation_collects_all_then_short_circuits():
@@ -1715,6 +1735,8 @@ def test_run_config_validation_collects_all_then_short_circuits():
     assert [e.code for e in full.errors] == ["unknown_parameter", None]
     assert "bogus_flag" in full.errors[0].message
     assert full.errors[1].path == "my-cli.managers.x"
+    # The strict check raised, so no default_map payload is carried.
+    assert full.merged_conf is None
 
     first_only = run_config_validation(
         conf,

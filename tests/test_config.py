@@ -839,6 +839,34 @@ def test_default_map_populated(invoke, create_config):
     assert "sub_default_map={'int_param': 7}" in result.stdout
 
 
+def test_merge_default_map_standalone(invoke):
+    """merge_default_map filters a config into default_map on its own.
+
+    load_conf bypasses this method by installing the merged config the validation
+    pipeline already produced, so it is exercised here directly to cover the
+    standalone entry point external callers rely on.
+    """
+
+    @click.command
+    @option("--flag-a/--no-flag-a")
+    @config_option
+    @no_config_option
+    @pass_context
+    def merge_map_cli(ctx, flag_a):
+        config_opt = next(
+            p for p in ctx.command.params if isinstance(p, ConfigOption)
+        )
+        config_opt.merge_default_map(
+            ctx, {"merge-map-cli": {"flag_a": True, "unknown": "dropped"}}
+        )
+        echo(f"default_map={ctx.default_map}")
+
+    result = invoke(merge_map_cli, "--no-config", color=False)
+    assert result.exit_code == 0
+    # Recognized flag is merged in; the unknown key is filtered out.
+    assert "default_map=ChainMap({'flag_a': True}, {})" in result.stdout
+
+
 def test_default_map_none_without_config(invoke):
     """Verify default_map is left alone when --no-config is used."""
 

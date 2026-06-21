@@ -851,8 +851,9 @@ class ValidationReport:
     """Outcome of one pass through :py:func:`run_config_validation`.
 
     Bundles everything a caller needs after validating a parsed configuration
-    document: the typed schema instance, the extracted opaque sub-trees, and
-    every error detected across all validation stages.
+    document: the typed schema instance, the extracted opaque sub-trees, the
+    template-filtered config ready for ``default_map``, and every error detected
+    across all validation stages.
 
     .. note::
         The report holds references to the parsed sub-trees, not copies, so
@@ -876,6 +877,16 @@ class ValidationReport:
 
     With ``collect_all=False`` this holds at most one error: the first failure
     short-circuits the remaining stages."""
+
+    merged_conf: dict[str, Any] | None = None
+    """The CLI-flag-bound configuration merged onto ``params_template``: the
+    payload :py:meth:`~click_extra.config.option.ConfigOption._install_default_map`
+    layers into the context's ``default_map``.
+
+    ``None`` when ``params_template`` was ``None`` (no strict check) or the strict
+    check raised. Read it only on a successful report: it is the same value
+    :py:meth:`~click_extra.config.option.ConfigOption.merge_default_map` would
+    recompute, so reusing it avoids a second normalize/strip/merge pass."""
 
     @property
     def ok(self) -> bool:
@@ -912,7 +923,8 @@ def run_config_validation(
        registered validator's ``extension_path``) from the CLI-flag-bound
        content. Extracted sub-trees land in
        :py:attr:`ValidationReport.opaque_subtrees`.
-    3. **Strict-check** the CLI-flag-bound part against ``params_template``
+    3. **Strict-check** the CLI-flag-bound part against ``params_template``,
+       keeping the merged result as :py:attr:`ValidationReport.merged_conf`
        (skipped when ``params_template`` is ``None``).
     4. **Schema-build** the app section through the configured callable,
        producing :py:attr:`ValidationReport.schema_instance`.
@@ -939,6 +951,7 @@ def run_config_validation(
         the strict check or schema callable are wrapped into it.
     """
     errors: list[ValidationError] = []
+    merged_conf: dict[str, Any] | None = None
 
     def record(error: ValidationError) -> bool:
         """Append *error*; return ``True`` when the caller should stop early."""
@@ -964,7 +977,9 @@ def run_config_validation(
         )
         stripped = _strip_opaque_subtrees(normalized, prefixed_paths)
         try:
-            _recursive_update(copy.deepcopy(params_template), stripped, strict)
+            merged_conf = _recursive_update(
+                copy.deepcopy(params_template), stripped, strict
+            )
         except ValueError as exc:
             # Path-1 error. Empty path keeps str(ValidationError) == str(exc),
             # so existing message-based assertions and CLI output are preserved.
@@ -978,13 +993,18 @@ def run_config_validation(
         try:
             schema_instance = schema_callable(app_section)
         except (ValueError, TypeError) as exc:
-            # Path-2 error (unknown schema field or type mismatch).
+            # Path-2 error (unknown schema field or type mismatch). The strict
+            # check already passed, so merged_conf is carried even on this exit.
             if record(ValidationError("", str(exc), code="schema_error")):
-                return ValidationReport(None, opaque_subtrees, tuple(errors))
+                return ValidationReport(
+                    None, opaque_subtrees, tuple(errors), merged_conf
+                )
 
     # Stage 5: run every ConfigValidator against its opaque sub-tree.
     for error in _collect_validator_errors(app_name, app_section, config_validators):
         if record(error):
             break
 
-    return ValidationReport(schema_instance, opaque_subtrees, tuple(errors))
+    return ValidationReport(
+        schema_instance, opaque_subtrees, tuple(errors), merged_conf
+    )
