@@ -152,19 +152,27 @@ class ExtraOption(Option):
     .. note::
         Built-in option subclasses share a common shape: their ``__init__``
         defaults ``param_decls`` to the option's canonical flags and wires an
-        eager callback via ``kwargs.setdefault("callback", self.<callback>)``. The
-        callback name encodes its role, a convention all built-in options follow:
+        eager callback via ``kwargs.setdefault("callback", self.<callback>)``.
+        Every callback name encodes its role with a verb prefix. The common
+        roles are:
 
         - ``set_<key>`` publishes a resolved value to ``ctx.meta`` (``set_color``,
-          ``set_theme``, ``set_telemetry``, ``set_progress``, ``set_accessible``,
-          ``set_zero_exit``, the verbosity options' ``set_level``);
+          ``set_no_color``, ``set_theme``, ``set_telemetry``, ``set_progress``,
+          ``set_accessible``, ``set_zero_exit``, the verbosity options'
+          ``set_level``);
         - ``init_<system>`` additionally installs a ``ctx`` helper or records a
           snapshot (``init_timer``, ``init_formatter``, ``init_columns``,
           ``init_sort``);
         - ``validate_<thing>`` coerces and validates the raw input
           (``validate_jobs``, ``validate_config``);
-        - ``print_*`` renders output and exits (``print_params``,
+        - ``print_*`` renders output and exits (``print_man``, ``print_params``,
           ``print_and_exit``).
+
+        A few options own a richer operation and name it with its own verb
+        rather than forcing one of the above. ``ConfigOption`` wires
+        ``load_conf`` to read, parse, and merge a configuration file, and
+        ``NoConfigOption`` wires ``check_sibling_config_option`` to assert that
+        a sibling ``--config`` option exists.
     """
 
     def handle_parse_result(self, ctx, opts, args):
