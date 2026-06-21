@@ -38,6 +38,7 @@ from click_extra import (
     HelpFormatter,
     HelpTheme,
     IntRange,
+    JobsOption,
     LogLevel,
     Style,
     argument,
@@ -1769,7 +1770,7 @@ def test_excluded_keywords_suppresses_highlighting():
         pytest.param(
             "[json|unknown]",
             {"json"},
-            "[" + theme.choice("json") + "|unknown]",
+            "[" + theme.choice("json") + "|" + theme.metavar("unknown") + "]",
             id="partial-match",
         ),
         pytest.param(
@@ -1786,12 +1787,18 @@ def test_excluded_keywords_suppresses_highlighting():
             ),
             id="all-match",
         ),
-        pytest.param("[a|b]", set(), "[a|b]", id="empty-choices"),
+        pytest.param(
+            "[a|b]",
+            set(),
+            "[" + theme.metavar("a") + "|" + theme.metavar("b") + "]",
+            id="empty-choices",
+        ),
     ),
 )
 def test_style_choice_metavar(metavar, choices, expected):
     """_style_choice_metavar styles known choices inside bracket-delimited
-    metavar strings and returns None for non-bracket strings."""
+    metavar strings, styles non-choice parts (type placeholders) as metavars,
+    and returns None for non-bracket strings."""
     fmt = HelpFormatter()
     assert fmt._style_choice_metavar(metavar, choices) == expected
 
@@ -1809,6 +1816,30 @@ def test_multiple_choice_options_metavar_styled():
     help_text = cmd.get_help(ctx)
     assert "[" + theme.choice("json") + "|" + theme.choice("csv") + "]" in help_text
     assert "[" + theme.choice("red") + "|" + theme.choice("blue") + "]" in help_text
+
+
+def test_jobs_hybrid_metavar_highlights_keywords_and_placeholder():
+    """The hybrid ``--jobs [auto|max|INTEGER]`` metavar highlights every part.
+
+    Regression guard: ``JobCount`` is a custom ``ParamType``, not a
+    ``click.Choice``, so the keyword collector learns its ``auto``/``max``
+    keywords only through the ``choices`` attribute it exposes. With no other
+    option contributing these tokens (a bare ``JobsOption`` command pulls in no
+    ``--color``), ``auto``/``max`` can only be styled via ``JobCount``, and the
+    ``INTEGER`` placeholder renders as a metavar rather than staying plain.
+    """
+    cmd = Command("tool", params=[JobsOption()])
+    ctx = Context(cmd)
+    help_text = cmd.get_help(ctx)
+    assert (
+        "["
+        + theme.choice("auto")
+        + "|"
+        + theme.choice("max")
+        + "|"
+        + theme.metavar("INTEGER")
+        + "]"
+    ) in help_text
 
 
 def test_excluded_multiple_choices_styled_in_metavar_only():

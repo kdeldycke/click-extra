@@ -32,6 +32,7 @@ from time import perf_counter
 from typing import TypeVar
 
 import click
+from click.shell_completion import CompletionItem
 
 from . import context, echo
 from .parameters import ExtraOption
@@ -91,9 +92,19 @@ class JobCount(click.ParamType):
 
     name = "jobs"
 
+    #: Symbolic keywords accepted besides an integer count, in render order.
+    #:
+    #: Exposed as ``choices`` so the help colorizer highlights them like
+    #: ``click.Choice`` values: the keyword collector duck-types on this
+    #: attribute (see the ``getattr(param.type, "choices", ...)`` branch in
+    #: :meth:`click_extra.colorize._HelpColorsMixin._collect_params`). It is
+    #: also the single source of truth reused by :meth:`get_metavar` and
+    #: :meth:`convert`, so the metavar and the parser never drift apart.
+    choices = ("auto", "max")
+
     def get_metavar(self, param, ctx=None):
         """Render ``[auto|max|INTEGER]`` (brackets included, as ``Choice`` does)."""
-        return "[auto|max|INTEGER]"
+        return f"[{'|'.join(self.choices)}|INTEGER]"
 
     def convert(
         self,
@@ -113,7 +124,7 @@ class JobCount(click.ParamType):
             return value
 
         normalized = str(value).strip().lower()
-        if normalized in ("auto", "max"):
+        if normalized in self.choices:
             resolved = DEFAULT_JOBS if normalized == "auto" else (CPU_COUNT or 1)
             # A parallel-intent keyword that collapses to a single job runs
             # sequentially: warn so it is not mistaken for parallel execution.
@@ -140,6 +151,26 @@ class JobCount(click.ParamType):
                 param,
                 ctx,
             )
+
+    def shell_complete(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        incomplete: str,
+    ) -> list[CompletionItem]:
+        """Suggest the ``auto``/``max`` keywords; an integer count is free-form.
+
+        Completion proposes only the symbolic keywords, matched
+        case-insensitively to mirror how :meth:`convert` lower-cases its input.
+        An integer has no finite set to enumerate, so none is offered, yet
+        :meth:`convert` still accepts one.
+        """
+        prefix = incomplete.lower()
+        return [
+            CompletionItem(keyword)
+            for keyword in self.choices
+            if keyword.startswith(prefix)
+        ]
 
 
 class JobsOption(ExtraOption):

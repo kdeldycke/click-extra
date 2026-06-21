@@ -14,6 +14,7 @@
 - **Breaking:** Rename the `click_extra.wrap` module to `click_extra.cli_wrapper`. It hosts the `wrap`/`run` command plus the foreign-CLI patching and introspection machinery, not text wrapping (that is `click_extra.wrap_text`). Update any `from click_extra.wrap import ...` to `from click_extra.cli_wrapper import ...`.
 - Fix `from click_extra import *`, which raised `AttributeError` because `VersionOption` was listed in `__all__` without being bound.
 - Fix the dim bracket styling of an `IntRange` option's `[x>=N]` range constraint leaking across the next option in colored help screens, graying out everything up to the following bracketed metavar (like a `Choice` list).
+- Fix inconsistent highlighting of the `--jobs [auto|max|INTEGER]` metavar in colored help, where `max` stayed plain while `auto` and `INTEGER` were styled. The `auto`/`max` keywords now highlight as choices and the `INTEGER` placeholder as a metavar.
 - Add `no_color_option`/`NoColorOption`, the standalone hidden option carrying the `--no-color` flag for plain `click.command` CLIs.
 - `click-extra wrap` honors the tri-state color resolution, colorizing the wrapped CLI under `auto` only when the output is a terminal.
 - `--color` and `--no-color` colorize the eager `--help` and `--version` screens regardless of where they sit on the command line, so `mycli --help --color=always` is colored just like `mycli --color=always --help`.
@@ -30,6 +31,7 @@
 - Add `{author}` and `{license}` version-string template variables, resolved from the package's core metadata.
 - `--jobs` (`JobsOption`) now accepts the keywords `auto` (one fewer than available logical CPUs) and `max` (all logical CPUs) on top of an integer; `0` runs sequentially and the displayed default is now `auto`. The count is `os.cpu_count()` (logical CPUs / hardware threads), not physical cores.
 - `--jobs auto`/`max` now log a warning when too few logical CPUs collapse them to a single, sequential job, so the silent fallback is not mistaken for parallel execution.
+- `--jobs` offers shell completion for its `auto` and `max` keywords; an integer count is left free-form.
 - `--jobs` (`JobsOption`) logs the resolved job count and `os.cpu_count()` at info level, so `--verbosity INFO` reveals a command's parallelism.
 - Add `run_jobs(func, items)`, a parallel-execution driver keyed on the `--jobs` count resolved by `JobsOption`: sequential and lazy at one worker, thread-pooled otherwise, with results in submission order.
 - Add `make_schema_callable(schema)` (the public form of the former private `_make_schema_callable`): builds a callable that coerces a raw config dict into a validated dataclass, the helper behind `config_option` and `get_tool_config`.

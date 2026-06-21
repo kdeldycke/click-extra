@@ -27,6 +27,9 @@ import cloup
 import pytest
 
 from click_extra import (
+    Command,
+    Context,
+    JobsOption,
     command,
     context,
     echo,
@@ -253,6 +256,27 @@ def test_invalid_value(invoke):
     assert result.exit_code == 2
     assert "fast" in result.stderr
     assert "not a valid job count" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("incomplete", "expected"),
+    (
+        ("", ["auto", "max"]),
+        ("a", ["auto"]),
+        ("m", ["max"]),
+        ("ma", ["max"]),
+        ("MA", ["max"]),  # Case-insensitive, mirroring convert().
+        ("auto", ["auto"]),
+        ("3", []),  # An integer count is free-form: no keyword to suggest.
+        ("x", []),
+    ),
+)
+def test_jobs_shell_complete(incomplete, expected):
+    """--jobs completion suggests the auto/max keywords and never an integer."""
+    cmd = Command("tool", params=[JobsOption()])
+    ctx = Context(cmd)
+    completions = cmd.params[0].shell_complete(ctx, incomplete)
+    assert [item.value for item in completions] == expected
 
 
 @pytest.mark.parametrize(

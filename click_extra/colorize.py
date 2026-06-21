@@ -990,9 +990,11 @@ class HelpFormatter(cloup.HelpFormatter):
 
         Takes a rendered metavar like ``[json|xml|csv]`` (Click ``Choice``-style)
         or ``[id,spec,value]`` (Click Extra ``MultiChoice``-style) and returns a
-        styled version where each known choice is wrapped with
-        ``theme.choice``. Returns ``None`` if ``metavar`` does not look like a
-        choice list.
+        styled version where each known choice is wrapped with ``theme.choice``.
+        A part that is not a known choice is a type placeholder (e.g. the
+        ``INTEGER`` in a hybrid ``[auto|max|INTEGER]`` metavar) and is styled
+        with ``theme.metavar`` instead. Returns ``None`` if ``metavar`` does not
+        look like a choice list.
         """
         # Strip the surrounding brackets.
         if not (metavar.startswith("[") and metavar.endswith("]")):
@@ -1003,7 +1005,8 @@ class HelpFormatter(cloup.HelpFormatter):
         sep = "|" if "|" in inner else ","
         parts = inner.split(sep)
         styled_parts = [
-            self.theme.choice(part) if part in choices else part for part in parts
+            self.theme.choice(part) if part in choices else self.theme.metavar(part)
+            for part in parts
         ]
         return "[" + sep.join(styled_parts) + "]"
 
