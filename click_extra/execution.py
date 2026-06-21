@@ -160,9 +160,10 @@ class JobsOption(ExtraOption):
     ``ctx.meta[click_extra.context.JOBS]``.
 
     .. warning::
-        This option is a placeholder for future parallel execution utilities.
-        It does not drive any concurrency by itself: downstream code must read
-        ``ctx.meta[click_extra.context.JOBS]`` and act on it.
+        ``JobsOption`` only resolves and publishes the job count: it does not
+        drive any concurrency by itself. Pass it to :func:`run_jobs` (which
+        reads the resolved ``ctx.meta[click_extra.context.JOBS]`` count), or
+        read that value yourself and act on it.
     """
 
     def validate_jobs(

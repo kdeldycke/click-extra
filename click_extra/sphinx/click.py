@@ -250,9 +250,6 @@ class ClickRunner(CliRunner):
                 color=True,
                 **extra,
             )
-        # TODO: Maybe we can intercept the exception here either make it:
-        # - part of the output in the rendered Sphinx code block, or
-        # - re-raise it so Sphinx can display it properly in its logs.
         output_lines.extend(result.output.splitlines())
         return result
 
@@ -632,9 +629,7 @@ class TreeDirective(SphinxDirective):
 
     .. note::
         Currently MyST-only. Use the directive in a ``.md`` document with
-        ``myst_parser`` enabled. An rST equivalent could be added later by
-        emitting ``.. _label:`` targets, list-tables, and ``.. click:run::``
-        blocks instead of their MyST counterparts.
+        ``myst_parser`` enabled.
     """
 
     has_content = True
