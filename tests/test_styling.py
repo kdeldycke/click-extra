@@ -21,6 +21,7 @@ import cloup
 import pytest
 
 from click_extra import Style
+from click_extra.styling import _nearest_256, supports_truecolor
 
 # --- 1. Hex string color shorthand ------------------------------------------
 
@@ -319,3 +320,78 @@ def test_eq_ignores_style_kwargs_cache():
 def test_eq_with_cloup_style():
     """A click-extra Style equals an equivalent cloup.Style."""
     assert Style(fg="red") == cloup.Style(fg="red")
+
+
+# --- 11. Truecolor detection and quantization -------------------------------
+
+
+@pytest.mark.parametrize(
+    ("colorterm", "term", "expected"),
+    (
+        # Unset: optimistic default keeps 24-bit.
+        (None, None, True),
+        # COLORTERM positively advertises truecolor (case-insensitive, stripped).
+        ("truecolor", None, True),
+        ("24bit", None, True),
+        ("TrueColor", None, True),
+        (" truecolor ", None, True),
+        # COLORTERM set to any other value is a deliberate non-truecolor advert.
+        ("256", None, False),
+        ("8bit", None, False),
+        # A 256color TERM is NOT a downgrade: truecolor terminals report it too.
+        (None, "xterm-256color", True),
+        # A 16color TERM is an unambiguous sub-256 terminal.
+        (None, "xterm-16color", False),
+        # COLORTERM outranks TERM.
+        ("truecolor", "xterm-16color", True),
+    ),
+)
+def test_supports_truecolor(monkeypatch, colorterm, term, expected):
+    monkeypatch.delenv("COLORTERM", raising=False)
+    monkeypatch.delenv("TERM", raising=False)
+    if colorterm is not None:
+        monkeypatch.setenv("COLORTERM", colorterm)
+    if term is not None:
+        monkeypatch.setenv("TERM", term)
+    assert supports_truecolor() is expected
+
+
+def test_style_call_keeps_24bit_on_truecolor(monkeypatch):
+    """An RGB color emits a 24-bit sequence when the terminal supports truecolor."""
+    monkeypatch.setenv("COLORTERM", "truecolor")
+    assert Style(fg="#ff0000")("X") == "\x1b[38;2;255;0;0mX\x1b[0m"
+
+
+def test_style_call_quantizes_without_truecolor(monkeypatch):
+    """An RGB color downsamples to the nearest 256-index without truecolor."""
+    monkeypatch.delenv("COLORTERM", raising=False)
+    monkeypatch.setenv("TERM", "xterm-16color")
+    index = _nearest_256(255, 0, 0)  # 196
+    assert Style(fg="#ff0000")("X") == f"\x1b[38;5;{index}mX\x1b[0m"
+
+
+@pytest.mark.parametrize("colorterm", ("truecolor", "256"))
+def test_style_call_leaves_named_and_indexed_colors(monkeypatch, colorterm):
+    """Named and palette-index colors never quantize, regardless of depth."""
+    monkeypatch.setenv("COLORTERM", colorterm)
+    assert Style(fg="red")("X") == "\x1b[31mX\x1b[0m"
+    assert Style(fg=200)("X") == "\x1b[38;5;200mX\x1b[0m"
+
+
+def test_style_call_cache_survives_depth_flip(monkeypatch):
+    """The same style renders correctly when truecolor flips between calls.
+
+    Quantizing on a transient copy must not poison cloup's lazy
+    ``_style_kwargs`` cache on the shared (often singleton) style instance.
+    """
+    style = Style(fg="#ff0000")
+    index = _nearest_256(255, 0, 0)
+
+    monkeypatch.setenv("COLORTERM", "truecolor")
+    assert style("X") == "\x1b[38;2;255;0;0mX\x1b[0m"
+
+    monkeypatch.setenv("COLORTERM", "256")
+    assert style("X") == f"\x1b[38;5;{index}mX\x1b[0m"
+
+    monkeypatch.setenv("COLORTERM", "truecolor")
+    assert style("X") == "\x1b[38;2;255;0;0mX\x1b[0m"

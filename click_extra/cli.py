@@ -46,7 +46,6 @@ from . import (
     style,
 )
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
-from .colorize import _nearest_256
 from .config import ClickExtraConfig, TestPlanConfig
 from .config_schema import get_tool_config
 from .envvar import merge_envvar_ids
@@ -56,6 +55,7 @@ from .spinner import (
     _spinner_preview,
     _tour_duration,
 )
+from .styling import _nearest_256
 from .table import print_table
 from .test_plan import (
     DEFAULT_TEST_PLAN,

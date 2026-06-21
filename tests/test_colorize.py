@@ -55,10 +55,12 @@ from click_extra import (
     verbosity_option,
 )
 from click_extra.colorize import (
+    COLOR_DISABLING_TERMS,
     HelpKeywords,
     color_envvars,
     forced_color,
     highlight,
+    resolve_color_env,
 )
 from click_extra.pytest import (
     command_decorators,
@@ -2196,6 +2198,40 @@ def test_no_color_env_convention(
 
     assert result.exit_code == 0
     assert not result.stderr
+
+
+@pytest.mark.parametrize(
+    ("term", "expected"),
+    (
+        # A dumb/unknown terminal cannot render ANSI: color-off even on a TTY.
+        ("dumb", False),
+        ("unknown", False),
+        # A capable, empty, or unset TERM expresses no opinion (auto).
+        ("xterm-256color", None),
+        ("", None),
+        (None, None),
+    ),
+)
+def test_resolve_color_env_term(monkeypatch, term, expected):
+    """A dumb/unknown TERM votes color-off, while any other value stays neutral."""
+    # Clear every recognized color variable so only TERM is under test.
+    for var in color_envvars:
+        monkeypatch.delenv(var, raising=False)
+    if term is None:
+        monkeypatch.delenv("TERM", raising=False)
+    else:
+        monkeypatch.setenv("TERM", term)
+    assert resolve_color_env() is expected
+
+
+@pytest.mark.parametrize("term", sorted(COLOR_DISABLING_TERMS))
+def test_resolve_color_env_force_color_beats_dumb_term(monkeypatch, term):
+    """An explicit FORCE_COLOR stays authoritative over a dumb/unknown TERM."""
+    for var in color_envvars:
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("TERM", term)
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    assert resolve_color_env() is True
 
 
 # TODO: test with  configuration file

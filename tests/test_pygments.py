@@ -36,7 +36,6 @@ from pygments.lexers import find_lexer_class_by_name, get_lexer_by_name
 from pygments.token import Text, Token
 
 from click_extra import pygments as extra_pygments
-from click_extra.colorize import _nearest_256
 from click_extra.pygments import (
     _ANSI_STYLES,
     _NAMED_COLORS,
@@ -53,6 +52,7 @@ from click_extra.pygments import (
     _AnsiLinkStart,
     collect_session_lexers,
 )
+from click_extra.styling import _nearest_256
 
 if sys.version_info >= (3, 11):
     import tomllib

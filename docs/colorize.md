@@ -205,14 +205,16 @@ The resolved choice lands on `ctx.color`, the standard Click attribute that `ech
 
 The `auto` default also respects the [`NO_COLOR`](https://no-color.org), [`FORCE_COLOR`](https://force-color.org), `CLICOLOR` and `CLICOLOR_FORCE` environment variables. When one of these is set, it overrides the default (but an explicit `--color` or `--no-color` on the command line always wins).
 
+A `dumb` or `unknown` `TERM` counts as a disabling signal at the same tier: under `auto` it strips color even on a terminal that reports as a TTY, since such a terminal cannot render ANSI. An enabling variable like `FORCE_COLOR` still outranks it.
+
 ```mermaid
 :align: center
 
 flowchart TD
     start(["echo() must decide: emit ANSI codes?"]) --> cli{"--color=WHEN / --no-color<br/>set on CLI or via config?"}
     cli -->|yes| useflag["always → ON<br/>never → OFF<br/>auto → defer to TTY"]
-    cli -->|"no (built-in default)"| env{"a recognized color env var set?<br/>NO_COLOR, CLICOLOR, CLICOLOR_FORCE,<br/>FORCE_COLOR, LLM, ..."}
-    env -->|yes| envval["ON if any signals color,<br/>OFF otherwise"]
+    cli -->|"no (built-in default)"| env{"a recognized color signal set?<br/>NO_COLOR, CLICOLOR, CLICOLOR_FORCE,<br/>FORCE_COLOR, LLM, TERM=dumb/unknown, ..."}
+    env -->|yes| envval["ON if any enabling signal,<br/>OFF otherwise (incl. TERM=dumb)"]
     env -->|no| deflt["default: auto<br/>(ON on a TTY, OFF when piped)"]
     useflag --> ctxcolor(["ctx.color"])
     envval --> ctxcolor

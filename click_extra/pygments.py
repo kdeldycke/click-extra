@@ -70,7 +70,7 @@ from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
 from pygments.style import StyleMeta
 from pygments.token import Generic, Text, Token, string_to_tokentype
 
-from .colorize import _CUBE_VALUES, _nearest_256
+from .styling import _CUBE_VALUES, _nearest_256
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

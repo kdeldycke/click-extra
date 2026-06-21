@@ -450,12 +450,18 @@ def test_bare_decorator_without_parentheses():
         ({}, io.StringIO, False),
         ({"NO_COLOR": "1"}, TTYStringIO, False),
         ({"FORCE_COLOR": "1"}, io.StringIO, True),
+        # A dumb terminal strips color even on a TTY, matching resolve_color_env().
+        ({"TERM": "dumb"}, TTYStringIO, False),
+        ({"TERM": "unknown"}, TTYStringIO, False),
+        # FORCE_COLOR stays authoritative over a dumb terminal.
+        ({"TERM": "dumb", "FORCE_COLOR": "1"}, io.StringIO, True),
     ),
 )
 def test_resolve_color_enabled(monkeypatch, env, stream_factory, expected):
-    """Color follows NO_COLOR / FORCE_COLOR then TTY, with no command context."""
+    """Color follows FORCE_COLOR / dumb TERM / NO_COLOR then TTY, with no context."""
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.delenv("FORCE_COLOR", raising=False)
+    monkeypatch.delenv("TERM", raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
     stream = stream_factory()

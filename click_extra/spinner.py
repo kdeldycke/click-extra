@@ -60,6 +60,7 @@ import click
 from wcwidth import wcswidth
 
 from . import context
+from .colorize import COLOR_DISABLING_TERMS
 from .parameters import ExtraOption
 from .spinner_presets import (
     SPINNER_FRAMES,
@@ -238,7 +239,7 @@ class Spinner:
         """
         if self.enabled is not None:
             return self.enabled
-        if os.environ.get("TERM", "").lower() in {"dumb", "unknown"}:
+        if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
             return False
         isatty = getattr(stream, "isatty", None)
         return bool(isatty and isatty())
@@ -249,19 +250,23 @@ class Spinner:
         Color follows Click Extra's reconciled :attr:`ctx.color
         <click.Context.color>` when a command context is active, so ``--color`` /
         ``--no-color`` and the ``NO_COLOR`` / ``FORCE_COLOR`` family have already
-        been honored. Outside a CLI it falls back to those two environment
-        variables, then to TTY detection. This is independent of
-        :meth:`_resolve_enabled`: a spinner can spin in plain text (a TTY under
-        ``NO_COLOR``), which is exactly the decoupling :class:`ProgressOption`
-        documents.
+        been honored. Outside a CLI it falls back to those two environment variables
+        and a dumb/unknown ``TERM`` (see
+        :data:`~click_extra.colorize.COLOR_DISABLING_TERMS`), then to TTY detection.
+        This is independent of :meth:`_resolve_enabled`: a spinner can spin in plain
+        text (a TTY under ``NO_COLOR``), which is exactly the decoupling
+        :class:`ProgressOption` documents.
         """
         ctx = click.get_current_context(silent=True)
         if ctx is not None and ctx.color is not None:
             return ctx.color
-        # Match ColorOption's enabling-wins reconciliation: FORCE_COLOR before
-        # NO_COLOR, so the two agree when both are set outside a command context.
+        # Mirror resolve_color_env()'s enabling-wins reconciliation outside a command
+        # context: FORCE_COLOR wins, then a dumb/unknown TERM or NO_COLOR forces plain
+        # text, so this fallback agrees with the env path no context has resolved yet.
         if "FORCE_COLOR" in os.environ:
             return True
+        if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
+            return False
         if "NO_COLOR" in os.environ:
             return False
         isatty = getattr(stream, "isatty", None)

@@ -42,8 +42,10 @@ intact and adds:
 
 from __future__ import annotations
 
+import os
 import re
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
+from functools import lru_cache
 
 import cloup
 
@@ -239,6 +241,45 @@ def _palette_to_rgb(idx: int) -> tuple[int, int, int]:
     raise ValueError(f"Palette index out of range: {idx}")
 
 
+@lru_cache(maxsize=512)
+def _nearest_256(r: int, g: int, b: int) -> int:
+    """Map a 24-bit RGB triplet to the nearest index in the 256-color palette.
+
+    The inverse of :func:`_palette_to_rgb`. Compares the Euclidean distance in RGB
+    space against both the 6x6x6 color cube (indices 16-231) and the grayscale ramp
+    (indices 232-255), returning whichever is closer.
+
+    Used by ``Style.__call__`` to downsample branded-theme colors when the
+    terminal lacks truecolor (see :func:`supports_truecolor`), and by
+    ``click_extra.pygments`` and ``click_extra.cli`` for the same 24-bit-to-8-bit
+    quantization.
+
+    .. seealso::
+        `Previous implementation
+        <https://github.com/kdeldycke/dotfiles/blob/64d29369/starship-ansi-colors.py>`_
+        of full-color to 8-bit quantization.
+    """
+    # Color cube (indices 16-231).
+    ci = [
+        min(
+            range(6),
+            key=lambda i, v=v: abs(v - _CUBE_VALUES[i]),  # type: ignore[misc]
+        )
+        for v in (r, g, b)
+    ]
+    cube_idx = 16 + 36 * ci[0] + 6 * ci[1] + ci[2]
+    cube_dist = sum((v - _CUBE_VALUES[i]) ** 2 for v, i in zip((r, g, b), ci))
+
+    # Grayscale ramp (indices 232-255).
+    gray = round((r + g + b) / 3)
+    gi = min(range(24), key=lambda i: abs(gray - (10 * i + 8)))
+    gray_idx = 232 + gi
+    gray_val = 10 * gi + 8
+    gray_dist = sum((v - gray_val) ** 2 for v in (r, g, b))
+
+    return gray_idx if gray_dist < cube_dist else cube_idx
+
+
 def _resolve_rgb(color: object) -> tuple[int, int, int]:
     """Best-effort conversion of any color value to an ``(r, g, b)`` tuple.
 
@@ -303,6 +344,63 @@ def _relative_luminance(color: object) -> float:
     return 0.2126 * _channel(r) + 0.7152 * _channel(g) + 0.0722 * _channel(b)
 
 
+# --- Terminal color-depth detection -----------------------------------------
+
+_TRUECOLOR_COLORTERMS = frozenset({"truecolor", "24bit"})
+"""``COLORTERM`` values that advertise 24-bit (truecolor) support.
+
+The two tokens `Rich
+<https://github.com/Textualize/rich/blob/master/rich/console.py>`_ and the wider
+terminal ecosystem agree on. Any other non-empty ``COLORTERM`` is read as a
+deliberate *non*-truecolor advertisement.
+"""
+
+
+def supports_truecolor() -> bool:
+    """Whether the terminal is assumed to render 24-bit (truecolor) ANSI.
+
+    Drives ``Style.__call__``'s choice between emitting a 24-bit
+    ``38;2;r;g;b`` sequence and quantizing it to the nearest ``38;5;n`` 256-color
+    index, so a branded theme's RGB colors degrade gracefully on a terminal that
+    cannot display them.
+
+    The policy is optimistic: assume truecolor unless the environment positively
+    says otherwise. Precedence, highest first:
+
+    #. ``COLORTERM`` of ``truecolor`` / ``24bit`` (see
+       ``_TRUECOLOR_COLORTERMS``) keeps 24-bit.
+    #. Any other non-empty ``COLORTERM`` quantizes: an explicit lower
+       advertisement.
+    #. A ``TERM`` ending in ``-16color`` quantizes: an unambiguous sub-256
+       terminal. ``*-256color`` is deliberately *not* treated as a downgrade,
+       since truecolor terminals routinely report it while advertising their
+       24-bit support through ``COLORTERM`` instead. Honoring it would strip
+       truecolor from the very terminals this optimistic default protects.
+    #. Otherwise keeps 24-bit.
+
+    A ``dumb`` / ``unknown`` ``TERM`` never reaches this decision for CLI output:
+    it has already disabled color upstream through
+    :func:`~click_extra.colorize.resolve_color_env`.
+    """
+    colorterm = os.environ.get("COLORTERM", "").strip().lower()
+    if colorterm:
+        return colorterm in _TRUECOLOR_COLORTERMS
+    return not os.environ.get("TERM", "").strip().lower().endswith("-16color")
+
+
+def _quantize_color(
+    color: str | tuple[int, int, int] | int | None,
+) -> str | tuple[int, int, int] | int | None:
+    """Map a 24-bit RGB ``(r, g, b)`` color to its nearest 256-palette index.
+
+    Any non-tuple color (a named ANSI string, an existing palette ``int``, or
+    ``None``) is returned untouched: only true-color values need quantizing.
+    """
+    if isinstance(color, tuple) and len(color) == 3:
+        return _nearest_256(*color)
+    return color
+
+
 # --- Style ------------------------------------------------------------------
 
 
@@ -333,6 +431,27 @@ class Style(cloup.Style):
             object.__setattr__(self, "fg", _hex_to_rgb(self.fg))
         if isinstance(self.bg, str) and self.bg.startswith("#"):
             object.__setattr__(self, "bg", _hex_to_rgb(self.bg))
+
+    def __call__(self, text: str) -> str:
+        """Apply the style, quantizing 24-bit colors when truecolor is unavailable.
+
+        On a truecolor terminal (see :func:`supports_truecolor`) this is cloup's
+        unchanged behavior: RGB ``fg`` / ``bg`` emit ``38;2;r;g;b`` sequences. When
+        the terminal does not advertise truecolor, RGB colors are downsampled to the
+        nearest ``38;5;n`` 256-color index so a branded theme degrades instead of
+        relying on the terminal to convert. Named and palette-index colors are
+        unaffected either way.
+        """
+        if supports_truecolor():
+            return super().__call__(text)
+        fg = _quantize_color(self.fg)
+        bg = _quantize_color(self.bg)
+        if fg is self.fg and bg is self.bg:
+            return super().__call__(text)
+        # Quantize on a transient copy. ``replace`` resets cloup's lazy
+        # ``_style_kwargs`` cache (the field is ``init=False``), so the singleton
+        # theme styles keep their truecolor cache intact for the next call.
+        return replace(self, fg=fg, bg=bg)(text)
 
     def __repr__(self) -> str:
         """Compact repr that lists only the attributes actually set."""

@@ -13,15 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Helpers and utilities to apply ANSI coloring to terminal content.
-
-.. note::
-    ``_nearest_256`` (24-bit RGB to 256-color quantization) lives here rather than in
-    ``pygments.py`` because both ``cli.py`` and ``pygments.py`` need it, and
-    ``pygments.py`` is gated behind the optional ``pygments`` extra. Placing it in
-    ``colorize.py`` (which has no optional dependencies) keeps the function available
-    to the CLI regardless of whether Pygments is installed.
-"""
+"""Helpers and utilities to apply ANSI coloring to terminal content."""
 
 from __future__ import annotations
 
@@ -52,43 +44,6 @@ if TYPE_CHECKING:
 
     from click.parser import _OptionParser
     from cloup.styling import IStyle
-
-
-_CUBE_VALUES = (0, 95, 135, 175, 215, 255)
-"""6-level RGB channel values for the 6x6x6 color cube (indices 16-231)."""
-
-
-def _nearest_256(r: int, g: int, b: int) -> int:
-    """Map a 24-bit RGB triplet to the nearest index in the 256-color palette.
-
-    Compares the Euclidean distance in RGB space against both the 6x6x6 color cube
-    (indices 16-231) and the grayscale ramp (indices 232-255), returning whichever is
-    closer.
-
-    .. seealso::
-        `Previous implementation
-        <https://github.com/kdeldycke/dotfiles/blob/64d29369/starship-ansi-colors.py>`_
-        of full-color to 8-bit quantization.
-    """
-    # Color cube (indices 16-231).
-    ci = [
-        min(
-            range(6),
-            key=lambda i, v=v: abs(v - _CUBE_VALUES[i]),  # type: ignore[misc]
-        )
-        for v in (r, g, b)
-    ]
-    cube_idx = 16 + 36 * ci[0] + 6 * ci[1] + ci[2]
-    cube_dist = sum((v - _CUBE_VALUES[i]) ** 2 for v, i in zip((r, g, b), ci))
-
-    # Grayscale ramp (indices 232-255).
-    gray = round((r + g + b) / 3)
-    gi = min(range(24), key=lambda i: abs(gray - (10 * i + 8)))
-    gray_idx = 232 + gi
-    gray_val = 10 * gi + 8
-    gray_dist = sum((v - gray_val) ** 2 for v in (r, g, b))
-
-    return gray_idx if gray_dist < cube_dist else cube_idx
 
 
 color_envvars = {
@@ -125,6 +80,24 @@ Source:
 """
 
 
+COLOR_DISABLING_TERMS = frozenset({"dumb", "unknown"})
+"""``TERM`` values marking a terminal too limited for ANSI niceties.
+
+A ``dumb`` or ``unknown`` terminal advertises neither SGR color nor the
+cursor-control codes (carriage return, clear-line) an animation relies on, so both
+Click Extra's color resolution (:func:`resolve_color_env`) and the spinner's
+animation gating (:meth:`click_extra.spinner.Spinner._resolve_enabled`) treat these
+two values as a hard opt-out. Sharing the set keeps the color and animation axes from
+drifting apart.
+
+An *unset* ``TERM`` is deliberately excluded: it is common on legitimately
+color-capable streams (subprocesses, some IDEs) where defaulting to off would be a
+regression. This matches `Rich
+<https://github.com/Textualize/rich/blob/master/rich/console.py>`_, which keys its
+own dumb-terminal detection on the same two values and not on absence.
+"""
+
+
 def resolve_color_env() -> bool | None:
     """Reconcile the recognized color environment variables into a tri-state.
 
@@ -139,6 +112,11 @@ def resolve_color_env() -> bool | None:
     A bare variable (no value), or one whose value cannot be parsed as a boolean,
     counts as activation, in the permissive spirit of the `NO_COLOR
     <https://no-color.org>`_ and `FORCE_COLOR <https://force-color.org>`_ conventions.
+
+    A ``dumb`` or ``unknown`` ``TERM`` (see :data:`COLOR_DISABLING_TERMS`) casts a
+    disabling vote as well, so a terminal that cannot render ANSI is treated as
+    color-off even when it still reports as a TTY. Because enabling wins, an explicit
+    ``FORCE_COLOR`` stays authoritative over it.
     """
     enabling = set()
     for var, enables in color_envvars.items():
@@ -148,6 +126,11 @@ def resolve_color_env() -> bool | None:
             raw_value = os.environ.get(var, "true")
             parsed = RawConfigParser.BOOLEAN_STATES.get(raw_value.lower(), True)
             enabling.add(enables ^ (not parsed))
+    # A dumb/unknown terminal cannot render ANSI color: cast a disabling vote that an
+    # explicit enabling variable still overrides, but which beats the auto default
+    # when no recognized color variable is set.
+    if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
+        enabling.add(False)
     if not enabling:
         return None
     return True in enabling
@@ -174,12 +157,17 @@ def forced_color() -> Iterator[None]:
     Click Extra recognizes it through :data:`color_envvars`), so it is the lever we set
     here. We also clear the color-disabling variables Click Extra recognizes
     (``NO_COLOR``, ``LLM``, …) so an opt-out in the build environment cannot suppress the
-    rendering. The previous environment is restored on exit, so the override never leaks
-    beyond a single capture.
+    rendering, and pin ``COLORTERM=truecolor`` so the branded 24-bit themes render at
+    full depth instead of being quantized to the 256-color palette (see
+    :func:`~click_extra.styling.supports_truecolor`). The previous environment is
+    restored on exit, so the override never leaks beyond a single capture.
     """
     disabling = [var for var, enables in color_envvars.items() if not enables]
-    saved = {var: os.environ.get(var) for var in ("FORCE_COLOR", *disabling)}
+    saved = {
+        var: os.environ.get(var) for var in ("FORCE_COLOR", "COLORTERM", *disabling)
+    }
     os.environ["FORCE_COLOR"] = "1"
+    os.environ["COLORTERM"] = "truecolor"
     for var in disabling:
         os.environ.pop(var, None)
     try:
@@ -247,10 +235,6 @@ class ColorOption(ExtraOption):
         :func:`resolve_color_env`. Letting Click manage them would dump the whole
         :data:`color_envvars` set into the ``--show-params`` env-var column, and only
         bind one variable per option anyway.
-
-    .. todo::
-        Support the `TERM environment variable convention
-        <https://news.ycombinator.com/item?id=36101712>`_?
     """
 
     _gnu_optional_value: ClassVar[bool] = True
