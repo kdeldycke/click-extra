@@ -1785,6 +1785,7 @@ def test_make_schema_callable_coerces_dict_to_dataclass():
         high_c: int = 0
 
     load = make_schema_callable(Forecast)
+    assert load is not None
     # Hyphenated keys are normalized to field names.
     assert load({"city": "lyon", "high-c": 21}) == Forecast(city="lyon", high_c=21)
     # A non-dataclass callable is returned as-is; None passes through.

@@ -25,9 +25,10 @@ except ImportError:
     )
 
 
+import difflib
+
 import click
 import cloup
-from _pytest.assertion.util import assertrepr_compare
 from extra_platforms import is_windows
 
 from click_extra.decorators import argument, command, group, option
@@ -478,7 +479,7 @@ default_debug_colored_log_end = (
 
 
 @pytest.fixture
-def assert_output_regex(request):
+def assert_output_regex():
     """An assert-like utility for Pytest to compare CLI output against the regex.
 
     Designed for the regexes defined above.
@@ -487,17 +488,18 @@ def assert_output_regex(request):
     def _check_output(output: str, regex: str) -> None:
         """Check that the ``output`` matches the given ``regex``.
 
-        Rely on Pytest's terminal writer to enhance diff highlighting.
+        On mismatch, raise an ``AssertionError`` carrying a line diff (built
+        with :func:`difflib.ndiff`) that points at the offending characters.
         """
         try:
             regex_fullmatch_line_by_line(regex, output)
         except RegexLineMismatch as ex:
-            explanation = assertrepr_compare(
-                request.config, "==", ex.regex_line, ex.content_line
+            diff = "\n".join(
+                line.rstrip("\n")
+                for line in difflib.ndiff([ex.regex_line], [ex.content_line])
             )
-            diff = "\n".join(explanation)  # type: ignore[arg-type]
             raise AssertionError(
-                f"Output line {ex.content_line} does not match:\n{diff}"
-            )
+                f"Output line #{ex.line_number} does not match:\n{diff}"
+            ) from ex
 
     return _check_output

@@ -15,6 +15,7 @@
 - Fix `from click_extra import *`, which raised `AttributeError` because `VersionOption` was listed in `__all__` without being bound.
 - Fix the dim bracket styling of an `IntRange` option's `[x>=N]` range constraint leaking across the next option in colored help screens, graying out everything up to the following bracketed metavar (like a `Choice` list).
 - Fix inconsistent highlighting of the `--jobs [auto|max|INTEGER]` metavar in colored help, where `max` stayed plain while `auto` and `INTEGER` were styled. The `auto`/`max` keywords now highlight as choices and the `INTEGER` placeholder as a metavar.
+- Fix the `assert_output_regex` testing fixture raising a `TypeError` on a failed match under pytest 9, where a private pytest helper it relied on changed signature. The mismatch diff is now built with the standard-library `difflib`.
 - Add `no_color_option`/`NoColorOption`, the standalone option carrying the `--no-color` flag for plain `click.command` CLIs. It is shown on its own line directly below `--color` in the help screen, like `--no-config` below `--config`.
 - `click-extra wrap` honors the tri-state color resolution, colorizing the wrapped CLI under `auto` only when the output is a terminal.
 - `--color` and `--no-color` colorize the eager `--help` and `--version` screens regardless of where they sit on the command line, so `mycli --help --color=always` is colored just like `mycli --color=always --help`.

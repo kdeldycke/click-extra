@@ -198,6 +198,19 @@ def sphinx_app(request, tmp_path):
 
 
 @pytest.fixture
+def sphinx_app_for_format(request, tmp_path):
+    """``sphinx_app`` variant whose format is supplied by the caller.
+
+    Identical to :func:`sphinx_app` but without the default ``params``: the
+    :class:`FormatType` is taken from the test's indirect parametrization. A
+    ``params``-bearing fixture cannot also be parametrized by a test (pytest
+    rejects it as a duplicate parametrization), so a test that drives the
+    format per case parametrizes this variant instead.
+    """
+    yield from SphinxAppWrapper.create(request.param, tmp_path)
+
+
+@pytest.fixture
 def sphinx_app_rst(tmp_path):
     """Create a Sphinx application for testing RST format only.
 

@@ -630,7 +630,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
 
 @pytest.mark.parametrize("var_name", ["invoke", "isolated_filesystem"])
 @pytest.mark.parametrize(
-    ("sphinx_app", "content", "directive_lineno", "error_lineno"),
+    ("sphinx_app_for_format", "content", "directive_lineno", "error_lineno"),
     [
         # Test variable conflicts in both rST and MyST formats.
         (
@@ -871,18 +871,18 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             ),
         ),
     ],
-    indirect=["sphinx_app"],
+    indirect=["sphinx_app_for_format"],
 )
 def test_directive_variable_conflict(
-    var_name, sphinx_app, content, directive_lineno, error_lineno
+    var_name, sphinx_app_for_format, content, directive_lineno, error_lineno
 ):
     """Test that variable conflicts are properly detected in real Sphinx environment."""
-    format_type = sphinx_app.format_type
+    format_type = sphinx_app_for_format.format_type
 
     content = dedent(content).format(var_name=var_name)
 
     with pytest.raises(RuntimeError) as exc_info:
-        sphinx_app.build_document(content)
+        sphinx_app_for_format.build_document(content)
 
     file_extension = format_type.value
     expected_pattern = (
