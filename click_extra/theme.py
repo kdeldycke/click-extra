@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import sys
 from dataclasses import dataclass
 from gettext import gettext as _
 from importlib import resources
