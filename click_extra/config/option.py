@@ -58,7 +58,6 @@ from functools import cached_property, partial
 from gettext import gettext as _
 from pathlib import Path, PurePosixPath
 
-import requests
 from boltons.iterutils import flatten, unique
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
@@ -790,6 +789,15 @@ class ConfigOption(ExtraOption, ParamStructure):
         if location and location.scheme in ("http", "https"):
             # It's an URL, try to download it.
             logger.debug(f"Download file from URL: {location}")
+            # ``requests`` (with its transitive urllib3 / charset-normalizer /
+            # idna stack) is among the heaviest imports Click Extra would
+            # otherwise pay on every CLI startup, yet it is only ever needed to
+            # fetch a configuration file over HTTP(S): a rare path. Import it
+            # lazily here to keep it off the default import path, mirroring the
+            # optional serialization-format imports deferred in
+            # click_extra.table. Do not hoist this back to module scope.
+            import requests
+
             with requests.get(str(location)) as response:
                 if response.ok:
                     files_found += 1

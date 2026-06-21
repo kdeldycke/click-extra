@@ -50,6 +50,7 @@ from click_extra.table import (
     TableFormat,
     _apply_default,
     _column_sort_key,
+    _setup_tabulate,
     _strip_none,
     print_data,
     print_table,
@@ -61,6 +62,11 @@ from click_extra.table import (
 @pytest.mark.once
 def test_table_formats_definition():
     """Check all table formats are accounted for and properly named."""
+    # Click Extra registers its custom formats (``aligned``, ``colon_grid``
+    # backport) into tabulate lazily, on first render. Trigger that setup so the
+    # registry below reflects the fully-configured state.
+    _setup_tabulate()
+
     # Formats from tabulate.
     tabulate_formats = [
         (f.upper(), f.replace("_", "-"))

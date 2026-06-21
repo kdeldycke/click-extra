@@ -44,7 +44,6 @@ from importlib import metadata
 from pathlib import Path
 
 import click
-from boltons.ecoutils import get_profile
 from boltons.formatutils import BaseFormatField, tokenize_format_str
 
 from . import Style, echo, get_current_context
@@ -1112,6 +1111,13 @@ class VersionOption(ExtraOption):
         Returns the data produced by `boltons.ecoutils.get_profile()
         <https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile>`_.
         """
+        # ``boltons.ecoutils`` introspects the interpreter, OS and platform to
+        # build its profile, and is comparatively expensive to import. It is
+        # only consulted when a version string actually renders ``{env_info}``,
+        # so it is imported lazily here to keep it off every CLI's startup
+        # path. Do not hoist this back to module scope.
+        from boltons.ecoutils import get_profile
+
         return get_profile(scrub=True)
 
     def colored_template(self, template: str | None = None) -> str:

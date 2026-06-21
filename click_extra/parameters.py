@@ -18,11 +18,10 @@
 from __future__ import annotations
 
 import logging
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
 from operator import getitem
-from unittest.mock import patch
 
 import click
 import cloup
@@ -41,6 +40,32 @@ logger = logging.getLogger(__name__)
 #: Separator joining the keys of a parameter's fully-qualified path
 #: (``cli.subcommand.param``).
 PARAM_PATH_SEP = "."
+
+
+@contextmanager
+def patch_attr(obj: object, name: str, value: Any) -> Iterator[None]:
+    """Temporarily set ``obj.name`` to ``value``, restoring the original on exit.
+
+    A minimal, dependency-free stand-in for ``unittest.mock.patch.object`` for
+    the simple save-set-restore monkeypatching Click Extra performs at runtime
+    (in :mod:`~click_extra.logging`, :mod:`~click_extra.parameters` and
+    :mod:`~click_extra.testing`).
+
+    .. note::
+        ``unittest.mock`` drags the whole test framework, and its heavy
+        transitive imports, into the startup path of every CLI built with Click
+        Extra. Reimplementing the single feature actually used keeps that cost
+        out of import time. Do not swap this back for ``unittest.mock``.
+
+    Like ``patch.object`` without ``create=True``, the attribute must already
+    exist: a missing ``name`` raises :exc:`AttributeError`.
+    """
+    original = getattr(obj, name)
+    setattr(obj, name, value)
+    try:
+        yield
+    finally:
+        setattr(obj, name, original)
 
 
 def search_params(
@@ -414,7 +439,7 @@ def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
     """
     if not hasattr(param, "hidden"):
         return None
-    with patch.object(param, "hidden", False) if param.hidden else nullcontext():
+    with patch_attr(param, "hidden", False) if param.hidden else nullcontext():
         help_record = param.get_help_record(ctx)
         return help_record[0] if help_record else None
 

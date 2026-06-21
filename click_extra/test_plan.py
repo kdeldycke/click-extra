@@ -34,6 +34,7 @@ This is the black-box, subprocess-level complement to
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 import os
 import re
@@ -63,11 +64,13 @@ from .testing import (
 logger = logging.getLogger(__name__)
 
 # Optional YAML support, mirroring the per-format extra pattern in config.py.
-yaml_support = True
-try:
-    import yaml
-except ImportError:
-    yaml_support = False
+#
+# ``yaml`` is detected without being imported: ``find_spec`` only locates the
+# module, so merely importing click_extra does not pay PyYAML's import cost on
+# every startup. The actual ``import yaml`` is deferred to run_test_plan(), the
+# single consumer. Do not replace this with a top-level ``import yaml``.
+yaml_support = importlib.util.find_spec("yaml") is not None
+if not yaml_support:
     logger.debug("YAML support disabled: install click-extra[yaml] to enable it.")
 
 TYPE_CHECKING = False
@@ -464,6 +467,10 @@ def parse_test_plan(plan_string: str | None) -> Generator[CLITestCase, None, Non
         raise ImportError(
             "YAML support disabled: install click-extra[yaml] to enable it."
         )
+
+    # Imported lazily (see the ``yaml_support`` note above) to keep PyYAML off
+    # the default import path.
+    import yaml
 
     plan = yaml.full_load(plan_string)
 

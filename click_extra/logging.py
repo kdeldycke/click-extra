@@ -29,13 +29,12 @@ from logging import (
     Logger,
     getLogger,
 )
-from unittest.mock import patch
 
 import click
 from click.types import IntRange
 
 from . import EnumChoice, context
-from .parameters import ExtraOption, search_params
+from .parameters import ExtraOption, patch_attr, search_params
 from .theme import get_current_theme
 
 TYPE_CHECKING = False
@@ -297,9 +296,9 @@ def basicConfig(
 
     # Consume along the way each kwargs' parameter not recognized by basicConfig.
     with (
-        patch.object(logging, "StreamHandler", kwargs.pop("stream_handler_class")),
-        patch.object(logging, "FileHandler", kwargs.pop("file_handler_class")),
-        patch.object(logging, "Formatter", kwargs.pop("formatter_class")),
+        patch_attr(logging, "StreamHandler", kwargs.pop("stream_handler_class")),
+        patch_attr(logging, "FileHandler", kwargs.pop("file_handler_class")),
+        patch_attr(logging, "Formatter", kwargs.pop("formatter_class")),
     ):
         logging.basicConfig(**kwargs)
 
@@ -338,7 +337,7 @@ def new_logger(
     else:
         logger = getLogger(name)  # type: ignore[assignment]
         logger.propagate = propagate
-        root_logger_patch = patch.object(  # type: ignore[assignment]
+        root_logger_patch = patch_attr(  # type: ignore[assignment]
             logging,
             "root",
             logger,
@@ -430,7 +429,7 @@ class _VerbosityOption(ExtraOption):
         """
         help_message_patch = nullcontext()
         if self.help is None and self._help_verb is not None:
-            help_message_patch = patch.object(  # type:ignore[assignment]
+            help_message_patch = patch_attr(  # type:ignore[assignment]
                 self,
                 "help",
                 (

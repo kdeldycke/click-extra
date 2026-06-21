@@ -22,14 +22,12 @@ import json
 import re
 from dataclasses import dataclass
 from enum import Enum
-from functools import partial
+from functools import cache, partial
 from gettext import gettext as _
 from io import StringIO
 
 import click
-import tabulate
 from boltons.strutils import strip_ansi
-from tabulate import DataRow, TableFormat as TabulateTableFormat
 
 from . import EnumChoice, context, echo
 from .parameters import ExtraOption
@@ -41,41 +39,54 @@ if TYPE_CHECKING:
     from typing import Any
 
 
-tabulate.MIN_PADDING = 0
-"""Neutralize spurious double-spacing in table rendering."""
+@cache
+def _setup_tabulate() -> None:
+    """Import ``tabulate``, apply Click Extra's patches, and register its formats.
 
+    ``tabulate`` is a comparatively heavy dependency, only needed when a table
+    is actually rendered through it (the CSV, structured and serialization
+    formats use other backends). Importing and configuring it here, on the first
+    render rather than at module load, keeps it off the default import path of
+    every CLI built with Click Extra. This mirrors the optional
+    serialization-format imports deferred elsewhere in this module.
 
-tabulate._table_formats.update(  # type: ignore[attr-defined]
-    {
-        "aligned": TabulateTableFormat(
-            lineabove=None,
-            linebelowheader=None,
-            linebetweenrows=None,
-            linebelow=None,
-            headerrow=DataRow("", " ", ""),
-            datarow=DataRow("", " ", ""),
-            padding=0,
-            with_header_hide=None,
-        ),
-    },
-)
-"""Custom table formats registered with tabulate.
+    .. note::
+        ``@cache`` ensures the import and the one-time monkeypatches below run
+        only once. Do not hoist ``import tabulate`` back to module scope.
+    """
+    import tabulate
+    from tabulate import DataRow, TableFormat as TabulateTableFormat
 
-``aligned``
-    A minimal format with single-space column separators and no borders or decorations.
-    Similar to ``plain`` but more compact (single space instead of double space between
-    columns). Useful for bar plugin output or other contexts requiring minimal formatting.
-"""
+    # Neutralize spurious double-spacing in table rendering.
+    tabulate.MIN_PADDING = 0
 
-# Patch the ``github`` format to support alignment colons in separator rows, matching
-# the ``pipe`` format. Backport of https://github.com/astanin/python-tabulate/pull/410
-_fmts = tabulate._table_formats  # type: ignore[attr-defined]
-_fmts["github"] = _fmts["pipe"]
+    fmts = tabulate._table_formats  # type: ignore[attr-defined]
 
-# Backport ``colon_grid`` for tabulate < 0.10 by aliasing it to ``grid``. Lets
-# downstream distributions ship click-extra without bumping tabulate globally.
-if "colon_grid" not in _fmts:
-    _fmts["colon_grid"] = _fmts["grid"]
+    # Register the custom ``aligned`` format: a minimal format with single-space
+    # column separators and no borders or decorations. Similar to ``plain`` but
+    # more compact (single space instead of double space between columns). Useful
+    # for bar plugin output or other contexts requiring minimal formatting.
+    fmts["aligned"] = TabulateTableFormat(
+        lineabove=None,
+        linebelowheader=None,
+        linebetweenrows=None,
+        linebelow=None,
+        headerrow=DataRow("", " ", ""),
+        datarow=DataRow("", " ", ""),
+        padding=0,
+        with_header_hide=None,
+    )
+
+    # Patch the ``github`` format to support alignment colons in separator rows,
+    # matching the ``pipe`` format. Backport of
+    # https://github.com/astanin/python-tabulate/pull/410
+    fmts["github"] = fmts["pipe"]
+
+    # Backport ``colon_grid`` for tabulate < 0.10 by aliasing it to ``grid``.
+    # Lets downstream distributions ship click-extra without bumping tabulate
+    # globally.
+    if "colon_grid" not in fmts:
+        fmts["colon_grid"] = fmts["grid"]
 
 
 class TableFormat(Enum):
@@ -542,6 +553,9 @@ def _render_tabulate(
         "tablefmt": table_format.value.replace("-", "_"),
     }
     defaults.update(kwargs)
+    _setup_tabulate()
+    import tabulate
+
     result = tabulate.tabulate(table_data, headers, **defaults)  # type: ignore[arg-type]
     # Normalize separator rows for GFM-compatible formats so that mdformat
     # treats the output as already canonical and does not re-pad it.

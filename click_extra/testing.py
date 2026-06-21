@@ -25,7 +25,6 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from functools import cached_property, partial
 from textwrap import indent
-from unittest.mock import patch
 
 import click
 import click.testing
@@ -35,6 +34,7 @@ from boltons.tbutils import ExceptionInfo
 from extra_platforms import is_windows
 
 from . import Color, Style
+from .parameters import patch_attr
 from .theme import get_current_theme
 
 TYPE_CHECKING = False
@@ -354,7 +354,7 @@ class CliRunner(click.testing.CliRunner):
             # Monkeypatch the original command's ``main()`` call to pass extra
             # parameter for ``Context`` initialization. Because we cannot simply add
             # colliding parameter IDs to ``**extra``.
-            extra_params_bypass = patch.object(
+            extra_params_bypass = patch_attr(
                 cli,
                 "main",
                 partial(cli.main, **extra_bypass),
