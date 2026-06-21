@@ -13,6 +13,7 @@
 - **Breaking:** Remove the deprecated `extra_command`, `extra_group` and `extra_version_option` aliases; use `command`, `group` and `version_option` instead.
 - **Breaking:** Rename the `click_extra.wrap` module to `click_extra.cli_wrapper`. It hosts the `wrap`/`run` command plus the foreign-CLI patching and introspection machinery, not text wrapping (that is `click_extra.wrap_text`). Update any `from click_extra.wrap import ...` to `from click_extra.cli_wrapper import ...`.
 - Fix `from click_extra import *`, which raised `AttributeError` because `VersionOption` was listed in `__all__` without being bound.
+- Fix the dim bracket styling of an `IntRange` option's `[x>=N]` range constraint leaking across the next option in colored help screens, graying out everything up to the following bracketed metavar (like a `Choice` list).
 - Add `no_color_option`/`NoColorOption`, the standalone hidden option carrying the `--no-color` flag for plain `click.command` CLIs.
 - `click-extra wrap` honors the tri-state color resolution, colorizing the wrapped CLI under `auto` only when the output is a terminal.
 - `--color` and `--no-color` colorize the eager `--help` and `--version` screens regardless of where they sit on the command line, so `mycli --help --color=always` is colored just like `mycli --color=always --help`.

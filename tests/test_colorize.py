@@ -869,6 +869,40 @@ def test_bracket_field_full_combination_styling():
     assert theme.required("required") in help_text
 
 
+def test_range_field_does_not_leak_into_following_choice():
+    """A range field must not bleed its bracket styling into the next option.
+
+    Regression guard: the ``[x>=1]`` field emitted for an ``IntRange(min=1)``
+    option is immediately followed by a ``Choice`` option whose ``[apple|mango]``
+    metavar supplies a closing ``]``. When the range bound matched ``\\S+`` it
+    absorbed the field's own ``]``, letting the bracket regex run past the field
+    and dim everything up to the choice metavar's ``]``. Assert the range field
+    is self-contained and closed, and the following choice keeps its own
+    styling.
+    """
+    cli = Command(
+        "test",
+        params=[
+            ExtraOption(["--count"], type=IntRange(min=1)),
+            ExtraOption(["--fruit"], type=click.Choice(["apple", "mango"])),
+        ],
+    )
+    ctx = Context(cli)
+    help_text = cli.get_help(ctx)
+
+    # The range field is delimited and closed on its own. Under the bug the
+    # content rendered as a dim ``bracket`` blob, so this cyan+dim
+    # ``range_label`` sequence would be absent.
+    assert (
+        theme.bracket("[") + theme.range_label("x>=1") + theme.bracket("]")
+    ) in help_text
+
+    # The choice metavar that follows keeps its per-choice styling, proving the
+    # range field's dim style did not swallow it.
+    assert theme.choice("apple") in help_text
+    assert theme.choice("mango") in help_text
+
+
 def test_bracket_field_inner_slot_fallback_to_bracket():
     """Inner bracket-field slots fall back to ``bracket`` when at identity.
 

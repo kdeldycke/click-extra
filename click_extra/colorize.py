@@ -809,13 +809,20 @@ class HelpFormatter(cloup.HelpFormatter):
     excluded_keywords: HelpKeywords | None = None
 
     #: Matches range expressions like ``0<=x<=9``, ``x>=1024``, ``0<=x<100``.
-    _range_re: ClassVar[re.Pattern] = re.compile(r"(?:\S+(?:<|<=))?x(?:<|<=|>|>=)\S+")
+    #:
+    #: Bounds use ``[^\]\s]+`` (not ``\S+``) so a bound can't absorb the closing
+    #: ``]`` of its own field: with ``\S+``, ``[x>=1]`` matches ``1]`` and the
+    #: enclosing bracket regex then runs on to the next ``]`` on screen. Keep this
+    #: exclusion in sync with the range branch embedded in ``_bracket_re``.
+    _range_re: ClassVar[re.Pattern] = re.compile(
+        r"(?:[^\]\s]+(?:<|<=))?x(?:<|<=|>|>=)[^\]\s]+"
+    )
     _bracket_re: ClassVar[re.Pattern] = re.compile(
         r"(  )"  # 2 spaces (column or description spacing).
         r"\["  # Opening bracket.
         r"("  # Capture the bracket content.
         r"(?:env\s+var:|default:|required"  # Must start with a recognized label
-        r"|(?:\S+(?:<|<=))?x(?:<|<=|>|>=)\S+)"  # or a range expression.
+        r"|(?:[^\]\s]+(?:<|<=))?x(?:<|<=|>|>=)[^\]\s]+)"  # or a range (see _range_re).
         r"[^\]]*"  # Followed by any non-] characters.
         r")"
         r"\]",  # Closing bracket.
