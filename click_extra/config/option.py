@@ -789,22 +789,31 @@ class ConfigOption(ExtraOption, ParamStructure):
         if location and location.scheme in ("http", "https"):
             # It's an URL, try to download it.
             logger.debug(f"Download file from URL: {location}")
-            # ``requests`` (with its transitive urllib3 / charset-normalizer /
-            # idna stack) is among the heaviest imports Click Extra would
-            # otherwise pay on every CLI startup, yet it is only ever needed to
-            # fetch a configuration file over HTTP(S): a rare path. Import it
-            # lazily here to keep it off the default import path, mirroring the
-            # optional serialization-format imports deferred in
-            # click_extra.table. Do not hoist this back to module scope.
-            import requests
+            # Fetch the remote config with the standard library rather than
+            # ``requests``: downloading a file is the only HTTP call Click Extra
+            # makes, and ``urllib`` handles it (TLS, redirects, and the
+            # ``*_proxy`` environment variables) without forcing ``requests``
+            # and its urllib3 / charset-normalizer / idna stack onto every
+            # install. It is still imported lazily, on this rare path only, so
+            # ``http.client`` / ``ssl`` stay off every CLI's startup. Do not
+            # hoist these back to module scope.
+            from urllib.error import HTTPError
+            from urllib.request import urlopen
 
-            with requests.get(str(location)) as response:
-                if response.ok:
+            try:
+                with urlopen(str(location)) as response:
                     files_found += 1
+                    # Decode using the charset advertised in the Content-Type
+                    # header, defaulting to UTF-8: the near-universal encoding
+                    # for configuration files.
+                    charset = response.headers.get_content_charset() or "utf-8"
                     # TODO: use mime-type to guess file format?
-                    yield location, response.text
-                else:
-                    logger.warning(f"Can't download {location}: {response.reason}")
+                    yield location, response.read().decode(charset)
+            # A 4xx/5xx leaves files_found at 0, so the search falls through to
+            # the FileNotFoundError below, like a missing local file. Lower-level
+            # URLError failures (DNS, refused connection, TLS) still propagate.
+            except HTTPError as error:
+                logger.warning(f"Can't download {location}: {error.reason}")
 
         # Not an URL, search local file system.
         else:

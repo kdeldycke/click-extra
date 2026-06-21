@@ -96,9 +96,6 @@ dependencies = [
   "deepmerge>=1.0.1",
   # _recursive_update and _remove_blanks moved to extra_platforms._utils in 8.0.0.
   "extra-platforms>=8",
-  # requests 2.34 ships inline types, removing the need for the types-requests
-  # stub package.
-  "requests>=2.34",
   # tabulate 0.9 is widely packaged; the `colon_grid` format added in 0.10 is
   # backported in table.py by aliasing it to `grid` when missing.
   "tabulate[widechars]>=0.9",
@@ -229,6 +226,10 @@ test = [
   "pytest-httpserver>=1.1",
   # pytest-randomly 3.x introduced the current seed-management plugin interface.
   "pytest-randomly>=3",
+  # requests is used only by the test suite to fetch fixtures and PyPI metadata
+  # (test_pygments, test_pyproject); the runtime config-URL loader uses urllib.
+  # 2.34 ships inline types, removing the need for the types-requests stub.
+  "requests>=2.34",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
   # tomli 2.0 aligned API with stdlib tomllib; only installed on Python 3.10.
