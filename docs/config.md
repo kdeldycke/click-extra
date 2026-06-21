@@ -314,10 +314,12 @@ When you load configuration yourself (or expose a `[tool.<name>]` section consum
 from dataclasses import dataclass
 from click_extra import make_schema_callable
 
+
 @dataclass
 class Forecast:
     city: str = "paris"
     high_c: int = 0
+
 
 load = make_schema_callable(Forecast)
 load({"city": "lyon", "high-c": 21})  # Forecast(city="lyon", high_c=21)
