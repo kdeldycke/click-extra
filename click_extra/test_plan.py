@@ -81,8 +81,11 @@ def _split_args(cli: str) -> list[str]:
     """Split a command-line string into a list of arguments.
 
     ```{todo}
-    Evaluate better Windows CLI parsing with:
-    [w32lex](https://github.com/maxpat78/w32lex).
+    Tokenize Windows command lines with quoting/escaping support, like `shlex`
+    does on POSIX. The current `str.split()` fallback only splits on whitespace,
+    so a quoted argument such as `--name "two words"` is wrongly broken into
+    three tokens. Use [w32lex](https://github.com/maxpat78/w32lex), the Windows
+    counterpart to `shlex`.
     ```
     """
     if is_windows():
