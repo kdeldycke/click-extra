@@ -21,12 +21,16 @@ constants (``BRANCH``, ``SHORT_COMMIT``, ``COMMIT_HASH``,
 ``COMMIT_DATE``, ``TAG``, ...) into Rust binaries at compile time.
 
 .. todo::
-    shadow-rs also provides constants not yet covered here:
-    ``BUILD_TIME``, ``BUILD_TIME_2822``, ``BUILD_TIME_3339``,
-    ``BUILD_OS``, ``BUILD_TARGET``, ``BUILD_TARGET_ARCH``. Some overlap
-    with data already in ``{env_info}`` (Python version, OS,
-    architecture). Others like ``BUILD_TIME`` could be added as new
-    template fields.
+    Add the following build-time template fields, mirroring the constants
+    shadow-rs injects:
+
+    - ``{build_time}``: when the distribution was built (shadow-rs exposes it
+      as ``BUILD_TIME``, with RFC 2822 and RFC 3339 variants ``BUILD_TIME_2822``
+      / ``BUILD_TIME_3339``).
+    - ``{build_os}`` / ``{build_target}`` / ``{build_target_arch}``: the OS,
+      target triple and architecture the build ran on. These describe the
+      *build* host, unlike ``{env_info}`` which reports the *runtime* Python,
+      OS and architecture, so both are worth keeping for cross-built binaries.
 """
 
 from __future__ import annotations
