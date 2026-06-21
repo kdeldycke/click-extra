@@ -475,7 +475,7 @@ def _render_vertical(
 
 
 _GFM_SEPARATOR_RE = re.compile(r"^\|[-: |]+\|$")
-"""Matches a GFM table separator row (e.g. ``|:---|:---|``)."""
+"""Matches a GFM table separator row (like ``|:---|:---|``)."""
 
 
 def _pad_gfm_separator(text: str) -> str:
@@ -731,7 +731,7 @@ def serialize_data(
         stringified automatically. Set to a custom callable for different behavior.
     :param root_element: Root element name for XML output.
     :param kwargs: Extra keyword arguments forwarded to the underlying serializer
-        (e.g. ``sort_keys``, ``indent`` for JSON).
+        (like ``sort_keys`` or ``indent`` for JSON).
     :raises ValueError: If the format is not a serialization format.
     """
     if table_format not in SERIALIZATION_FORMATS:
@@ -1042,7 +1042,7 @@ class ColumnsOption(ExtraOption):
     ``columns=``, the option stays generic: it parses any IDs and leaves
     validation to the downstream consumer.
 
-    Empty / unset means *render every column in canonical order* — the default
+    Empty / unset means *render every column in canonical order*: the default
     behavior, indistinguishable from not passing ``--columns`` at all.
     """
 

@@ -103,7 +103,7 @@ class StatelessDomain(Domain):
     Sphinx requires :meth:`merge_domaindata` on any domain declaring
     ``parallel_read_safe = True``, and MyST-Parser warns when
     :meth:`resolve_any_xref` is missing. Both stubs are no-ops here because
-    ``click:*`` and ``python:*`` register directives only — no roles, no
+    ``click:*`` and ``python:*`` register directives only: no roles, no
     cross-references, no shared state to merge.
     """
 

@@ -155,7 +155,7 @@ Both forms are equivalent. You can also freely mix them in the same file:
 }
 ```
 
-Dotted keys are expanded into nested dicts and deep-merged before the configuration is applied. This works across all [supported formats](#formats), and at any nesting depth (e.g. `"subcommand.nested.option"` expands to three levels).
+Dotted keys are expanded into nested dicts and deep-merged before the configuration is applied. This works across all [supported formats](#formats), and at any nesting depth (for example, `"subcommand.nested.option"` expands to three levels).
 
 ```{hint}
 This is especially handy in formats like JSON that have no native section syntax, letting you keep a flat structure when the nesting would be excessive.
@@ -191,7 +191,7 @@ A conflict occurs when the same key is used as both a scalar and a namespace. Fo
 }
 ```
 
-Here `subcommand` is a plain string, but `subcommand.int_param` requires it to be a dict. By default, Click Extra logs a warning and the **last value wins** — in this case, `subcommand` becomes `{"int_param": 3}`, silently dropping `"some_value"`.
+Here `subcommand` is a plain string, but `subcommand.int_param` requires it to be a dict. By default, Click Extra logs a warning and the **last value wins**: in this case, `subcommand` becomes `{"int_param": 3}`, silently dropping `"some_value"`.
 
 In [`strict` mode](#strictness), conflicts and invalid dotted keys raise a `ValueError` instead of being silently resolved.
 
@@ -210,7 +210,7 @@ The same conflict detection applies at deeper levels:
 Here `int_param` is set to both `{"nested": 1}` (via the first key) and `2` (via the second). A warning is logged and `int_param` resolves to `2`.
 
 ```{note}
-Most formats prevent these conflicts at parse time — TOML rejects a key used as both a scalar and a table, YAML forbids duplicate keys — so in practice this mainly affects JSON.
+Most formats prevent these conflicts at parse time (TOML rejects a key used as both a scalar and a table, YAML forbids duplicate keys), so in practice this mainly affects JSON.
 ```
 
 ### Invalid dotted keys
@@ -463,16 +463,16 @@ The exit codes are:
 
 ## Extending validation
 
-`--validate-config` and the runtime strict check both speak the language of CLI parameters: every recognized key must correspond to a flag on the command tree. That works for configurations that mirror the CLI one-to-one, but breaks the moment your app declares its own sub-tables whose keys are *data*, not flag names. The user-defined IDs under `[my-cli.managers.<id>]`, the matrix axes in `[my-cli.test-matrix.<axis>]`, the plugin names in `[my-cli.plugins.<plugin>]` — none of these are CLI options, so click-extra's strict mode rightfully refuses to accept them.
+`--validate-config` and the runtime strict check both speak the language of CLI parameters: every recognized key must correspond to a flag on the command tree. That works for configurations that mirror the CLI one-to-one, but breaks the moment your app declares its own sub-tables whose keys are *data*, not flag names. The user-defined IDs under `[my-cli.managers.<id>]`, the matrix axes in `[my-cli.test-matrix.<axis>]`, the plugin names in `[my-cli.plugins.<plugin>]`: none of these are CLI options, so click-extra's strict mode rightfully refuses to accept them.
 
-Click-extra's answer is to declare such sub-tables as **extension points**. Each extension point names a dotted path in the app's configuration section and pairs with a {py:class}`~click_extra.config.schema.ConfigValidator` that owns the validation logic for it. Click-extra's machinery treats the path as a passthrough: the strict check skips it, the dataclass schema doesn't descend into it, and the contents arrive at the app's validator verbatim. The result is one validation surface that covers both halves — click-extra checks the CLI-flag-bound keys, the app checks its own extension content, and `--validate-config` reports every failure with the same path-rooted error type.
+Click-extra's answer is to declare such sub-tables as **extension points**. Each extension point names a dotted path in the app's configuration section and pairs with a {py:class}`~click_extra.config.schema.ConfigValidator` that owns the validation logic for it. Click-extra's machinery treats the path as a passthrough: the strict check skips it, the dataclass schema doesn't descend into it, and the contents arrive at the app's validator verbatim. The result is one validation surface that covers both halves: click-extra checks the CLI-flag-bound keys, the app checks its own extension content, and `--validate-config` reports every failure with the same path-rooted error type.
 
 ```{tip}
 Three terms describe the same mechanism from three angles, and you'll see all of them in this documentation and in the click-extra source:
 
-- **Extension** is what the *app* does — declare a sub-tree that lives outside click-extra's schema and validate it through your own logic. This is the public-facing name (`ConfigValidator`, `EXTENSION_METADATA_KEY`).
-- **Passthrough** is what *click-extra* does — let the extension sub-tree flow through the strict-check, normalize, and flatten stages without inspection. Use this term when describing how data moves through the pipeline.
-- **Opaque** is what the *pipeline* sees — a path it must not descend into. The internal helpers (`_collect_opaque_paths_from_schema`, the `opaque_keys` parameter on `normalize_config_keys`/`flatten_config_keys`, the `_opaque_paths` cache on `ConfigOption`) all use this term. Same set of paths, viewed from the inside.
+- **Extension** is what the *app* does: declare a sub-tree that lives outside click-extra's schema and validate it through your own logic. This is the public-facing name (`ConfigValidator`, `EXTENSION_METADATA_KEY`).
+- **Passthrough** is what *click-extra* does: let the extension sub-tree flow through the strict-check, normalize, and flatten stages without inspection. Use this term when describing how data moves through the pipeline.
+- **Opaque** is what the *pipeline* sees: a path it must not descend into. The internal helpers (`_collect_opaque_paths_from_schema`, the `opaque_keys` parameter on `normalize_config_keys`/`flatten_config_keys`, the `_opaque_paths` cache on `ConfigOption`) all use this term. Same set of paths, viewed from the inside.
 
 All three vocabularies refer to the same dotted-path set. *Extension* is what you write in your app code, *passthrough* is what you'd say to explain the behavior, *opaque* is what you'll search for when reading click-extra's source.
 ```
@@ -507,7 +507,7 @@ timeout = 600
 
 passes through both the CLI-flag strict check (which sees `verbose` and ignores everything under `managers`) and the schema's typed instantiation (which receives `managers` as a single dict, not flattened into `managers_winget_search_path` etc.).
 
-When the underlying Python type isn't a mapping — for example, a nested dataclass that still represents extension content — mark the field explicitly with {py:data}`~click_extra.config.schema.EXTENSION_METADATA_KEY`:
+When the underlying Python type isn't a mapping (for example, a nested dataclass that still represents extension content), mark the field explicitly with {py:data}`~click_extra.config.schema.EXTENSION_METADATA_KEY`:
 
 ```{code-block} python
 :emphasize-lines: 1,7
@@ -574,7 +574,7 @@ def my_cli(verbose):
     """An app that validates its own extension sub-tree."""
 ```
 
-The validator receives the value at `app_section[extension_path]` — the contents of `[my-cli.managers]`, in this example — already extracted from the file. It's a pure function: no side effects, no `click.echo`, no `sys.exit`. Click-extra runs it both during `--validate-config` (where every error is collected and reported before exit) and during normal `--config` loading (where the first error fails the run with a clean exit code).
+The validator receives the value at `app_section[extension_path]` (the contents of `[my-cli.managers]`, in this example) already extracted from the file. It's a pure function: no side effects, no `click.echo`, no `sys.exit`. Click-extra runs it both during `--validate-config` (where every error is collected and reported before exit) and during normal `--config` loading (where the first error fails the run with a clean exit code).
 
 `ValidationError` carries a dotted `path` and a `message`. Validators raise with paths relative to their extension sub-tree:
 
@@ -620,7 +620,7 @@ $ echo $?
 Normal `--config` loading is fail-fast: the first `ValidationError` becomes a critical-level log message and the run exits 1, before any subcommand callback fires. Both modes go through the same pipeline, so an unknown CLI-flag key, an unknown schema field (under `schema_strict`), and an extension-validator failure all surface as the same `ValidationError`, whichever sub-tree the offending key sits in.
 
 ```{note}
-The internal name for an extension path is `opaque_path`. You'll see it in click-extra's source under `_collect_opaque_paths_from_schema`, in the `opaque_keys` parameter of `normalize_config_keys` and `flatten_config_keys`, and in the cached `ConfigOption._opaque_paths` attribute. From the pipeline's point of view those paths are stop markers — places it must not descend into. From your app's point of view they're extension points. The vocabulary divergence is intentional: developers reading their own code see *extension* (intent); developers reading click-extra's source see *opaque* (implementation).
+The internal name for an extension path is `opaque_path`. You'll see it in click-extra's source under `_collect_opaque_paths_from_schema`, in the `opaque_keys` parameter of `normalize_config_keys` and `flatten_config_keys`, and in the cached `ConfigOption._opaque_paths` attribute. From the pipeline's point of view those paths are stop markers: places it must not descend into. From your app's point of view they're extension points. The vocabulary divergence is intentional: developers reading their own code see *extension* (intent); developers reading click-extra's source see *opaque* (implementation).
 ```
 
 ### Validating programmatically
@@ -658,7 +658,7 @@ Pass `params_template=None` to skip the CLI-parameter strict check (useful for a
 
 Click-extra auto-registers one extension point on every `ConfigOption`:
 
-- **`themes`** — `[<cli>.themes.<name>]` tables override existing palettes or define new ones. Validated by {py:func}`~click_extra.theme.validate_themes_config`; loaded into `ctx.meta` by {py:meth}`ConfigOption._apply_theme_overrides <click_extra.config.option.ConfigOption._apply_theme_overrides>`. See [Themes from your `--config` file](theme.md#themes-from-your-config-file) for the schema and behavior.
+- **`themes`**: `[<cli>.themes.<name>]` tables override existing palettes or define new ones. Validated by {py:func}`~click_extra.theme.validate_themes_config`; loaded into `ctx.meta` by {py:meth}`ConfigOption._apply_theme_overrides <click_extra.config.option.ConfigOption._apply_theme_overrides>`. See [Themes from your `--config` file](theme.md#themes-from-your-config-file) for the schema and behavior.
 
 App-supplied `ConfigValidator`s on the same `extension_path` run alongside the built-in: both validators are called, both sets of errors surface.
 
@@ -720,7 +720,7 @@ Like `excluded_params`, you need to provide the fully-qualified ID of the option
 
 ### Schema-only configuration
 
-When using `config_schema` for typed configuration access, your config keys typically don't correspond to CLI parameters — they're custom fields consumed via `get_tool_config()`. In that case, passing them through `merge_default_map` is unnecessary and can cause collisions if a config key happens to share a name with a subcommand.
+When using `config_schema` for typed configuration access, your config keys typically don't correspond to CLI parameters: they're custom fields consumed via `get_tool_config()`. In that case, passing them through `merge_default_map` is unnecessary and can cause collisions if a config key happens to share a name with a subcommand.
 
 Set `included_params=()` (empty tuple) to disable `merge_default_map` entirely. All configuration access goes through the schema:
 
@@ -744,7 +744,7 @@ def my_app(ctx):
 ```
 
 ```{note}
-`included_params=()` is different from `included_params=None`. `None` means "not configured, use the default behavior" (which applies `excluded_params`). `()` means "the allowlist is explicitly empty — merge nothing into `default_map`."
+`included_params=()` is different from `included_params=None`. `None` means "not configured, use the default behavior" (which applies `excluded_params`). `()` means "the allowlist is explicitly empty: merge nothing into `default_map`."
 ```
 
 ## Disabling autodiscovery
@@ -850,7 +850,7 @@ Syncing
 
 ### Prepend subcommands
 
-The `_prepend_subcommands` key always prepends subcommands to every invocation, regardless of whether CLI subcommands are provided. This is useful for always injecting a subcommand (e.g. `debug`) on a dev machine.
+The `_prepend_subcommands` key always prepends subcommands to every invocation, regardless of whether CLI subcommands are provided. This is useful for always injecting a subcommand (like `debug`) on a dev machine.
 
 ```{important}
 `_prepend_subcommands` only works with `chain=True` groups. Non-chained groups resolve exactly one subcommand, so prepending would break the user's intended command.
@@ -1044,13 +1044,13 @@ Write example.
 
 ### `pyproject.toml`
 
-The `PYPROJECT_TOML` format reads `[tool.<cli-name>]`{l=toml} sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata — not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
+The `PYPROJECT_TOML` format reads `[tool.<cli-name>]`{l=toml} sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata: not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
 
 ```{tip}
 `pyproject.toml` is becoming the standard place to centralize tool configuration for Python projects. Instead of scattering dedicated config files at the root of your repository (`ruff.toml`, `typos.toml`, `mypy.ini`, …), you can consolidate them all under `[tool.*]`{l=toml} sections in a single `pyproject.toml`. This keeps the repository root clean, makes it easy to review and coordinate tool configurations in one place, and reduces the number of files contributors need to discover.
 ```
 
-`PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}` — exactly the [same structure as a regular TOML config file](#toml).
+`PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}`, exactly the [same structure as a regular TOML config file](#toml).
 
 ```{seealso}
 For a production example of a CLI built on Click Extra's `pyproject.toml` configuration with a [typed dataclass schema](#typed-configuration-schema), nested sub-tables, and 48 config options, see [repomatic's configuration reference](https://kdeldycke.github.io/repomatic/configuration.html). Repomatic also uses Click Extra's config system to [bridge `[tool.X]` sections](https://kdeldycke.github.io/repomatic/tool-runner.html#config-resolution) for third-party tools that don't read `pyproject.toml` natively.
@@ -1060,7 +1060,7 @@ For a production example of a CLI built on Click Extra's `pyproject.toml` config
 
 When auto-discovering configuration (no explicit `--config` flag), Click Extra searches for `pyproject.toml` starting from the current working directory and walking up to the VCS root *before* checking the standard app config directory. This matches the discovery behavior of uv, ruff, and mypy, so users get the configuration they expect without passing `--config` explicitly.
 
-The CWD search only applies to `pyproject.toml` — other config formats (TOML, YAML, JSON, etc.) are still discovered from the app config directory. If a `pyproject.toml` is found via CWD search, the app-dir search is skipped entirely. If `--config` is passed explicitly, CWD search is bypassed.
+The CWD search only applies to `pyproject.toml`: other config formats (TOML, YAML, JSON, etc.) are still discovered from the app config directory. If a `pyproject.toml` is found via CWD search, the app-dir search is skipped entirely. If `--config` is passed explicitly, CWD search is bypassed.
 
 Given a `pyproject.toml` in the search path:
 
@@ -1093,9 +1093,9 @@ Running `cli` from anywhere inside the project tree will find `pyproject.toml` a
 
 #### Dedicated file wins, no merging
 
-When both a dedicated configuration file (e.g., `my-cli.toml`) and a `pyproject.toml` with a `[tool.my-cli]`{l=toml} section exist, Click Extra uses the **first parseable file** it finds and ignores all others. There is no merging across files.
+When both a dedicated configuration file (like `my-cli.toml`) and a `pyproject.toml` with a `[tool.my-cli]`{l=toml} section exist, Click Extra uses the **first parseable file** it finds and ignores all others. There is no merging across files.
 
-This is the de facto standard across the ecosystem. Every major tool that supports both a dedicated config file and `pyproject.toml` follows the same strict precedence — dedicated file wins, `pyproject.toml` is ignored entirely:
+This is the de facto standard across the ecosystem. Every major tool that supports both a dedicated config file and `pyproject.toml` follows the same strict precedence (dedicated file wins, `pyproject.toml` is ignored entirely):
 
 | Tool                                                                              | Precedence rule                                                                |
 | :-------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
@@ -1107,7 +1107,7 @@ The rationale:
 
 - **No merging surprises.** Merging two config sources creates ambiguity: which key wins when both files define it? Are arrays concatenated or replaced? Every tool above chose "first match wins, full stop" to avoid this class of problems entirely.
 - **Explicit intent.** A dedicated file at the repository root, named after the tool, is the most visible and explicit signal. If someone creates one alongside a `[tool.*]`{l=toml} section, the dedicated file represents a deliberate override.
-- **Clean migration path.** Users moving from a dedicated file to `pyproject.toml` simply delete the dedicated file. Users who need the dedicated file (e.g., sharing it across non-Python repos) keep it and `pyproject.toml` is silently ignored.
+- **Clean migration path.** Users moving from a dedicated file to `pyproject.toml` simply delete the dedicated file. Users who need the dedicated file (for example, sharing it across non-Python repos) keep it and `pyproject.toml` is silently ignored.
 
 ```{seealso}
 Other non-Python tools that support `[tool.*]`{l=toml} in `pyproject.toml`:
@@ -1534,11 +1534,11 @@ Parent search works with both plain paths and [glob patterns](#search-pattern-sp
 
 The parent directory walk stops as soon as it hits any of the following boundaries:
 
-- **Filesystem root** — the walk always stops at `/` (or the drive root on Windows).
-- **Inaccessible directory** — if a parent directory exists but is not readable, the walk stops immediately.
-- **VCS root** (`stop_at=VCS`, the default) — the walk stops at the nearest repository root (a directory containing `.git` or `.hg`). If no VCS root is found, the walk continues to the filesystem root.
-- **Explicit path** (`stop_at="/some/path"`) — the walk stops as soon as it leaves the given directory.
-- **No boundary** (`stop_at=None`) — the walk continues all the way to the filesystem root.
+- **Filesystem root**: the walk always stops at `/` (or the drive root on Windows).
+- **Inaccessible directory**: if a parent directory exists but is not readable, the walk stops immediately.
+- **VCS root** (`stop_at=VCS`, the default): the walk stops at the nearest repository root (a directory containing `.git` or `.hg`). If no VCS root is found, the walk continues to the filesystem root.
+- **Explicit path** (`stop_at="/some/path"`): the walk stops as soon as it leaves the given directory.
+- **No boundary** (`stop_at=None`): the walk continues all the way to the filesystem root.
 
 ```{code-block} python
 :caption: Stop at an explicit directory
@@ -1701,7 +1701,7 @@ If no `config_schema` was set, `get_tool_config()` returns `None`. When a `confi
 
 ### Format-agnostic
 
-The `config_schema` feature works with all configuration formats supported by `ConfigOption` — TOML, YAML, JSON, JSON5, JSONC, Hjson, INI, and XML. The parsed configuration is normalized into a Python dict before the schema is applied, so the same schema works regardless of the source format.
+The `config_schema` feature works with all configuration formats supported by `ConfigOption`: TOML, YAML, JSON, JSON5, JSONC, Hjson, INI, and XML. The parsed configuration is normalized into a Python dict before the schema is applied, so the same schema works regardless of the source format.
 
 For example, the same `AppConfig` dataclass works with YAML:
 
@@ -1742,7 +1742,7 @@ For dataclass schemas, this normalization is applied automatically. For callable
 
 ### Nested configuration sections
 
-TOML and YAML configurations often group related settings under sub-tables (e.g. `[tool.myapp.dependency-graph]`{l=toml}). When using a dataclass schema, Click Extra automatically flattens these nested sections by joining parent and child keys with `_`, so they map directly to flat dataclass fields:
+TOML and YAML configurations often group related settings under sub-tables (like `[tool.myapp.dependency-graph]`{l=toml}). When using a dataclass schema, Click Extra automatically flattens these nested sections by joining parent and child keys with `_`, so they map directly to flat dataclass fields:
 
 ```python
 from click_extra.config import flatten_config_keys, normalize_config_keys
@@ -1767,9 +1767,9 @@ For callable schemas, use `flatten_config_keys` and `normalize_config_keys` expl
 
 ### Type-aware flattening
 
-By default, `flatten_config_keys` recurses into every nested dict. This breaks fields typed as `dict[str, X]` where the dict keys are data rather than config structure (e.g. GitHub Actions matrix axis names like `os` or `python-version`).
+By default, `flatten_config_keys` recurses into every nested dict. This breaks fields typed as `dict[str, X]` where the dict keys are data rather than config structure (for example, GitHub Actions matrix axis names like `os` or `python-version`).
 
-When using a dataclass schema, Click Extra inspects field type hints and automatically stops flattening at `dict`-typed field boundaries — the same extension-point detection covered in [Extending validation](#extending-validation), seen from the flattening pipeline's side. The dict value is assigned whole to the matching field:
+When using a dataclass schema, Click Extra inspects field type hints and automatically stops flattening at `dict`-typed field boundaries: the same extension-point detection covered in [Extending validation](#extending-validation), seen from the flattening pipeline's side. The dict value is assigned whole to the matching field:
 
 ```python
 from dataclasses import dataclass, field
@@ -1807,11 +1807,11 @@ flatten_config_keys(conf, opaque_keys=frozenset({"matrix_replace"}))
 
 Dataclass fields can carry metadata to control how their values are extracted from the raw config:
 
-- **`click_extra.config_path`**: A dotted TOML path (e.g. `"test-matrix.replace"`). The value is extracted directly from the raw config before normalization and flattening, bypassing the standard pipeline.
+- **`click_extra.config_path`**: A dotted TOML path (like `"test-matrix.replace"`). The value is extracted directly from the raw config before normalization and flattening, bypassing the standard pipeline.
 
-- **`click_extra.normalize_keys`**: Set to `False` to skip key normalization on the extracted value. Useful when the value contains keys that are external identifiers (e.g. GitHub Actions axis names like `python-version`) that must not be converted to `python_version`.
+- **`click_extra.normalize_keys`**: Set to `False` to skip key normalization on the extracted value. Useful when the value contains keys that are external identifiers (for example, GitHub Actions axis names like `python-version`) that must not be converted to `python_version`.
 
-- **`click_extra.extension`** (alias: {py:data}`~click_extra.config.schema.EXTENSION_METADATA_KEY`): Set to `True` to declare the field as an [extension point](#extending-validation). The sub-tree at that field becomes a passthrough — strict-check skips it, the flatten pipeline treats it as opaque, and a registered `ConfigValidator` (or your own code) takes over its validation. Equivalent to typing the field as `dict[str, X]`; use the metadata form when the field's runtime type isn't a mapping.
+- **`click_extra.extension`** (alias: {py:data}`~click_extra.config.schema.EXTENSION_METADATA_KEY`): Set to `True` to declare the field as an [extension point](#extending-validation). The sub-tree at that field becomes a passthrough: strict-check skips it, the flatten pipeline treats it as opaque, and a registered `ConfigValidator` (or your own code) takes over its validation. Equivalent to typing the field as `dict[str, X]`; use the metadata form when the field's runtime type isn't a mapping.
 
 ```python
 from dataclasses import dataclass, field

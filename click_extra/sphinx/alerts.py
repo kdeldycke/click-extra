@@ -63,7 +63,7 @@ CODE_FENCE_PATTERN = re.compile(r"^(\s*)(`{3,}|~{3,})(.*)$")
 INDENTED_CODE_BLOCK_PATTERN = re.compile(r"^( {4}|\t)")
 """Regex pattern to match indented code block lines (4 spaces or 1 tab)."""
 
-# Directives whose content should be preserved unchanged like code blocks
+# Directives whose content should be preserved unchanged like code blocks.
 CODE_CONTENT_DIRECTIVES = frozenset({
     "code-block",
     "sourcecode",
@@ -134,8 +134,8 @@ def check_colon_fence(app: Sphinx) -> None:
 def count_quote_depth(line: str) -> tuple[str, int, str]:
     """Parse a line to extract indent, quote depth, and content.
 
-    Returns:
-        Tuple of (indent, depth, content) where depth is the number of > markers.
+    :return: tuple of (indent, depth, content) where depth is the number of >
+        markers.
     """
     if match := QUOTE_PREFIX_PATTERN.match(line):
         indent, quotes, content = match.groups()
@@ -147,7 +147,7 @@ def process_fence(state: ParserState, indent: str, chars: str, after: str) -> No
     """Process a fence line, updating fence stack."""
     char, length = chars[0], len(chars)
 
-    # Try to close existing fence
+    # Try to close existing fence.
     if not after.strip():
         for i in range(len(state.fence_stack) - 1, -1, -1):
             fence = state.fence_stack[i]
@@ -156,7 +156,7 @@ def process_fence(state: ParserState, indent: str, chars: str, after: str) -> No
                 state.just_opened_fence_directive = False
                 return
 
-    # Opening a new fence - determine if it's a code block
+    # Opening a new fence - determine if it's a code block.
     after_stripped = after.strip()
     is_code = True
     if after_stripped.startswith("{") and "}" in after_stripped:
@@ -194,7 +194,7 @@ def mark_parent_nested(state: ParserState) -> None:
 
     parent = state.alert_stack[-1]
     if not parent.has_nested:
-        # Update the opening line to use 4 colons
+        # Update the opening line to use 4 colons.
         old_line = state.result[parent.opening_line_index]
         state.result[parent.opening_line_index] = old_line.replace(":::{", "::::{", 1)
         parent.has_nested = True
@@ -202,11 +202,11 @@ def mark_parent_nested(state: ParserState) -> None:
 
 def open_alert(state: ParserState, alert_type: str, indent: str, depth: int) -> None:
     """Open a new alert at the given depth."""
-    # Mark parent as nested if this is a nested alert
+    # Mark parent as nested if this is a nested alert.
     if state.alert_stack:
         mark_parent_nested(state)
 
-    # Insert blank line if we just opened a fence directive
+    # Insert blank line if we just opened a fence directive.
     if state.just_opened_fence_directive:
         state.result.append("")
 
@@ -233,7 +233,7 @@ def process_quoted_line(state: ParserState, line: str) -> bool:
     if depth == 0:
         return False
 
-    # Check if this could start a new alert
+    # Check if this could start a new alert.
     if alert_match := GITHUB_ALERT_PATTERN.match(content):
         alert_type = alert_match.group(1)
 
@@ -241,46 +241,46 @@ def process_quoted_line(state: ParserState, line: str) -> bool:
         # In that case, treat this as literal text, not a new alert
         # (handles duplicate directives like "> [!TIP]" followed by "> [!TIP]")
         if state.alert_stack and depth == state.alert_stack[-1].depth:
-            # This is a duplicate directive line - treat as content
+            # This is a duplicate directive line - treat as content.
             current_alert = state.alert_stack[-1]
             stripped_content = content.lstrip()
             state.result.append(f"{current_alert.indent}{stripped_content}")
             return True
 
-        # Close any alerts at same or deeper level
+        # Close any alerts at same or deeper level.
         close_alerts_to_depth(state, depth - 1)
 
-        # Open new alert
+        # Open new alert.
         open_alert(state, alert_type, indent, depth)
         return True
 
-    # Not a new alert - check if we're continuing an existing alert
+    # Not a new alert - check if we're continuing an existing alert.
     if not state.alert_stack:
         return False
 
     current_alert = state.alert_stack[-1]
 
-    # If depth decreased below current alert, close deeper alerts
+    # If depth decreased below current alert, close deeper alerts.
     if depth < current_alert.depth:
         close_alerts_to_depth(state, depth)
         if not state.alert_stack:
             return False
         current_alert = state.alert_stack[-1]
 
-    # If at the alert's depth or deeper, add content
+    # If at the alert's depth or deeper, add content.
     if depth >= current_alert.depth:
-        # Calculate how many extra > levels beyond the alert's depth
+        # Calculate how many extra > levels beyond the alert's depth.
         extra_depth = depth - current_alert.depth
 
         if extra_depth > 0:
-            # Preserve extra > markers as blockquote syntax
+            # Preserve extra > markers as blockquote syntax.
             blockquote_prefix = "> " * extra_depth
             stripped_content = content.lstrip()
             state.result.append(
                 f"{current_alert.indent}{blockquote_prefix}{stripped_content}"
             )
         else:
-            # Same depth as alert - just strip the quote prefix
+            # Same depth as alert - just strip the quote prefix.
             stripped_content = content.lstrip()
             state.result.append(f"{current_alert.indent}{stripped_content}")
         return True
@@ -301,11 +301,11 @@ def replace_github_alerts(text: str) -> str | None:
     state = ParserState()
 
     for line in lines:
-        # Handle code fences
+        # Handle code fences.
         if fence_match := CODE_FENCE_PATTERN.match(line):
             indent, chars, after = fence_match.groups()
 
-            # Check if fence would close and affect alerts
+            # Check if fence would close and affect alerts.
             if state.alert_stack:
                 for fence in reversed(state.fence_stack):
                     if (
@@ -314,7 +314,7 @@ def replace_github_alerts(text: str) -> str | None:
                         and indent == fence.indent
                         and not after.strip()
                     ):
-                        # Closing a fence that contains our alert
+                        # Closing a fence that contains our alert.
                         close_alerts_to_depth(state, 0)
                         break
 
@@ -323,7 +323,7 @@ def replace_github_alerts(text: str) -> str | None:
             state.prev_line_blank = False
             continue
 
-        # Skip processing inside code blocks
+        # Skip processing inside code blocks.
         if state.in_code_block():
             state.result.append(line)
             state.prev_line_blank = not line.strip()
@@ -345,7 +345,7 @@ def replace_github_alerts(text: str) -> str | None:
             state.just_opened_fence_directive = False
             continue
 
-        # Non-quoted line - close all alerts
+        # Non-quoted line - close all alerts.
         if state.alert_stack:
             close_alerts_to_depth(state, 0)
 
@@ -355,7 +355,7 @@ def replace_github_alerts(text: str) -> str | None:
         if not is_blank:
             state.just_opened_fence_directive = False
 
-    # Close any remaining alerts
+    # Close any remaining alerts.
     close_alerts_to_depth(state, 0)
 
     return "\n".join(state.result) if state.modified else None

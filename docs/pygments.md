@@ -276,7 +276,7 @@ That's why you need Click Extra's lexers. If we switch to the new `ansi-pycon` l
 ```
 
 ```{seealso}
-Because they are registered as standard Pygments entry points, these lexers also work out of the box with any tool that drives Pygments through `get_lexer_by_name()` — including [Sphinx](sphinx.md#ansi-shell-sessions), [MkDocs](mkdocs.md), Hexo, mdBook, Jekyll, and similar.
+Because they are registered as standard Pygments entry points, these lexers also work out of the box with any tool that drives Pygments through `get_lexer_by_name()`, including [Sphinx](sphinx.md#ansi-shell-sessions), [MkDocs](mkdocs.md), Hexo, mdBook, Jekyll, and similar.
 ```
 
 ### Lexer design
@@ -448,7 +448,7 @@ assert result.exit_code == 0
 assert "\x1b[38;5;" in result.output
 ```
 
-The same swatch can be reproduced from any Python script — the output above is captured from `click-extra palette`, but the underlying ANSI text is what `pygmentize -l ansi-color -f ansi-html` consumes:
+The same swatch can be reproduced from any Python script: the output above is captured from `click-extra palette`, but the underlying ANSI text is what `pygmentize -l ansi-color -f ansi-html` consumes:
 
 ```{code-block} python
 swatch = "\x1b[38;5;{0};48;5;{0}m\u2588\x1b[1m\u2588\x1b[m"

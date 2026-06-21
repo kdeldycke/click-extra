@@ -125,11 +125,11 @@ class ValidationError(Exception):
     of who detected the problem.
 
     :param path: Dotted path to the offending key, relative to the configuration
-        file root (e.g. ``"my-cli.managers.winget.cli_searchpath"``). An empty
+        file root (like ``"my-cli.managers.winget.cli_searchpath"``). An empty
         string means the error applies to the document as a whole.
     :param message: Human-readable description of the failure. Should be a
         single sentence, no trailing punctuation, no path repeated.
-    :param code: Optional machine-readable error code (e.g. ``"unknown_field"``)
+    :param code: Optional machine-readable error code (like ``"unknown_field"``)
         for callers that want to dispatch on error type without parsing the
         message string.
     """
@@ -171,7 +171,7 @@ class ConfigValidator:
         how to surface the error.
     :param description: Optional human-readable summary of what the validator
         checks. Surfaces in documentation generators that introspect the
-        decorator (e.g. autodoc), and may be reused in ``--help`` text in a
+        decorator (like autodoc), and may be reused in ``--help`` text in a
         future release.
     """
 
@@ -270,7 +270,7 @@ def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
     Recurses into nested dicts so dotted keys at any level are expanded.
 
     In non-strict mode, logs a warning when a key resolves to both a scalar
-    and a dict (e.g. ``{"a": 1, "a.b": 2}``), as one value will silently
+    and a dict (like ``{"a": 1, "a.b": 2}``), as one value will silently
     override the other.
 
     In strict mode, raises ``ValueError`` on type conflicts and invalid
@@ -306,21 +306,21 @@ def normalize_config_keys(
 
     Recursively replaces hyphens with underscores in all dict keys, using the
     same ``str.replace("-", "_")`` transform that Click applies internally when
-    deriving parameter names from option declarations (e.g. ``--foo-bar`` becomes
-    ``foo_bar``).  Click does not expose this as a public function, so we
+    deriving parameter names from option declarations (``--foo-bar`` becomes
+    ``foo_bar``). Click does not expose this as a public function, so we
     replicate the one-liner here.
 
     Handles the convention mismatch between configuration formats (TOML, YAML,
-    JSON all commonly use kebab-case) and Python identifiers.  Works with all
+    JSON all commonly use kebab-case) and Python identifiers. Works with all
     configuration formats supported by ``ConfigOption``.
 
     :param opaque_keys: Fully-qualified key names (using ``"_"`` as
-        separator) where recursion stops.  The key itself is still
-        normalized, but its dict value is kept as-is.  Used in tandem
+        separator) where recursion stops. The key itself is still
+        normalized, but its dict value is kept as-is. Used in tandem
         with ``flatten_config_keys``'s ``opaque_keys`` to protect data
-        dicts (e.g. GitHub Actions matrix axes) from normalization.
+        dicts (like GitHub Actions matrix axes) from normalization.
     :param _prefix: Internal parameter for tracking the accumulated key
-        path during recursion.  Callers should not set this.
+        path during recursion. Callers should not set this.
 
     .. todo::
         Propose upstream to Click to extract the inline ``name.replace("-", "_")``
@@ -345,8 +345,8 @@ def flatten_config_keys(
 ) -> dict[str, Any]:
     """Flatten nested dicts into a single level by joining keys with a separator.
 
-    Useful for mapping nested configuration structures (e.g. TOML sub-tables) to
-    flat Python dataclass fields.  After normalization with
+    Useful for mapping nested configuration structures (like TOML sub-tables) to
+    flat Python dataclass fields. After normalization with
     `normalize_config_keys`, the flattened keys match dataclass field names
     directly::
 
@@ -359,17 +359,17 @@ def flatten_config_keys(
         {'dependency_graph_all_groups': True, 'dependency_graph_output': 'deps.mmd'}
 
     :param conf: Nested dictionary to flatten.
-    :param sep: Separator used to join parent and child keys.  Defaults to
+    :param sep: Separator used to join parent and child keys. Defaults to
         ``"_"`` which produces valid Python identifiers when combined with
         `normalize_config_keys`.
     :param opaque_keys: Fully-qualified key names where flattening stops.
         When the accumulated key matches an entry in this set, the dict
-        value is kept as-is instead of being recursively flattened.  This
+        value is kept as-is instead of being recursively flattened. This
         is useful for fields typed as ``dict[str, X]`` where the dict keys
-        are data (e.g. GitHub Actions matrix axis names), not config
+        are data (like GitHub Actions matrix axis names), not config
         structure.
     :param _prefix: Internal parameter for tracking the accumulated key
-        path during recursion.  Callers should not set this.
+        path during recursion. Callers should not set this.
     """
     items: dict[str, Any] = {}
     for key, value in conf.items():
@@ -404,13 +404,13 @@ def _safe_get_type_hints(cls: type) -> dict[str, Any]:
     """Resolve type hints for a class, returning empty dict on failure.
 
     Wraps ``typing.get_type_hints`` to handle cases where annotations
-    reference types that are not importable in the current context (e.g.
+    reference types that are not importable in the current context (like
     forward references to types only available under ``TYPE_CHECKING``).
 
     When the initial resolution fails (common for locally-defined classes
     whose annotations are stringified by ``from __future__ import
     annotations``), a second attempt is made with a ``localns`` built from
-    ``default_factory`` values on the class's dataclass fields.  This
+    ``default_factory`` values on the class's dataclass fields. This
     allows nested dataclass types like ``sub: SubConfig =
     field(default_factory=SubConfig)`` to be resolved even when
     ``SubConfig`` is not in the module's global scope.
@@ -495,7 +495,7 @@ def _collect_opaque_paths_from_schema(
 
     The helper name retains the historical ``opaque`` term because callers
     inside :py:mod:`click_extra.config` use the result to bypass the
-    normalize/flatten/strict machinery — that pipeline's vocabulary is "opaque
+    normalize/flatten/strict machinery: that pipeline's vocabulary is "opaque
     paths." From a public API point of view those are the *extension paths*,
     but inside this module the two names refer to the same set.
 
@@ -574,7 +574,7 @@ def _extract_dotted(conf: dict[str, Any], path: str) -> tuple[Any, bool]:
     """Extract a value at a dotted path from a nested dict.
 
     :param conf: Nested dict to search.
-    :param path: Dotted path (e.g. ``"test-matrix.replace"``).
+    :param path: Dotted path (like ``"test-matrix.replace"``).
     :return: ``(value, True)`` if found, ``(None, False)`` otherwise.
     """
     current: Any = conf
@@ -611,7 +611,7 @@ def _apply_nested_schema(
     """Recursively apply a schema callable to a dict value if the hint is a dataclass.
 
     Falls back to ``normalize_config_keys`` when the hint is not a dataclass
-    but normalization is requested.  Returns ``value`` unchanged otherwise.
+    but normalization is requested. Returns ``value`` unchanged otherwise.
     """
     if is_dataclass(hint):
         sub = make_schema_callable(hint, strict=strict, normalize=do_normalize)
@@ -631,7 +631,7 @@ def _from_dataclass(
     """Build a dataclass instance from a raw configuration dict.
 
     Handles explicit ``config_path`` metadata, type-aware normalization and
-    flattening, nested dataclass recursion, and strict validation.  Called by
+    flattening, nested dataclass recursion, and strict validation. Called by
     ``make_schema_callable`` for dataclass schemas.
     """
     all_fields = dc_fields(schema)
@@ -658,7 +658,7 @@ def _from_dataclass(
         result[f.name] = value
 
     # --- Phase 2: type-aware normalize + flatten. ---
-    # Detect opaque fields, i.e. flatten boundaries the recursion must not cross:
+    # Detect opaque fields, the flatten boundaries the recursion must not cross:
     #   - extension points (mapping-typed or EXTENSION_METADATA_KEY-marked), and
     #   - nested-dataclass-typed fields (Phase 3 hands their intact dict to the
     #     sub-schema callable, so flattening must stop here too).
@@ -722,7 +722,7 @@ def make_schema_callable(
     - **Dataclass types** (detected via ``dataclasses.is_dataclass``) are
       auto-wrapped: keys are normalized (hyphens to underscores), nested
       dicts are flattened, and the result is filtered to known fields
-      before instantiation.  Three schema-aware features refine this
+      before instantiation. Three schema-aware features refine this
       process:
 
       1. **Type-aware flattening.**  Fields typed as ``dict[str, X]``
@@ -740,7 +740,7 @@ def make_schema_callable(
          itself a dataclass are recursively processed with the same
          logic.
 
-    - **Any other callable** is returned as-is.  The caller is responsible
+    - **Any other callable** is returned as-is. The caller is responsible
       for key normalization if needed.
     - ``None`` returns ``None``.
 
@@ -748,7 +748,7 @@ def make_schema_callable(
         contains keys that do not match any dataclass field (after
         normalization and flattening).
     :param normalize: If ``False``, skip ``normalize_config_keys`` on
-        the remaining config dict.  Used internally when recursing into
+        the remaining config dict. Used internally when recursing into
         nested dataclasses whose parent opted out of normalization via
         ``click_extra.normalize_keys = False``.
     """
@@ -909,8 +909,8 @@ def run_config_validation(
     :param app_name: Name of the app's section (used to resolve the section and
         to root opaque paths and error paths at the document level).
     :param params_template: The CLI-parameter template the strict check runs
-        against. Pass ``None`` to skip the strict check entirely (e.g. for a
-        schema-only validation).
+        against. Pass ``None`` to skip the strict check entirely (for example,
+        for a schema-only validation).
     :param config_schema: Dataclass type or callable describing the typed
         configuration, or ``None``.
     :param config_validators: Extension validators to run against opaque
@@ -932,10 +932,10 @@ def run_config_validation(
         errors.append(error)
         return not collect_all
 
-    # Stage 1 — normalize.
+    # Stage 1: normalize.
     normalized = _expand_dotted_keys(_strip_reserved_keys(user_conf), strict=strict)
 
-    # Stage 2 — partition opaque sub-trees from CLI-flag-bound content.
+    # Stage 2: partition opaque sub-trees from CLI-flag-bound content.
     opaque_paths = _opaque_paths(config_schema, config_validators)
     app_section = _select_app_section(user_conf, app_name, fallback_sections)
     opaque_subtrees: dict[str, dict[str, Any]] = {}
@@ -944,7 +944,7 @@ def run_config_validation(
         if found and isinstance(subtree, dict):
             opaque_subtrees[path] = subtree
 
-    # Stage 3 — strict-check the CLI-flag-bound part against the template.
+    # Stage 3: strict-check the CLI-flag-bound part against the template.
     if params_template is not None:
         prefixed_paths = (
             f"{app_name}.{path}" if app_name else path for path in opaque_paths
@@ -958,7 +958,7 @@ def run_config_validation(
             if record(ValidationError("", str(exc), code="unknown_parameter")):
                 return ValidationReport(None, opaque_subtrees, tuple(errors))
 
-    # Stage 4 — build the typed schema instance from the app section.
+    # Stage 4: build the typed schema instance from the app section.
     schema_instance = None
     schema_callable = make_schema_callable(config_schema, strict=schema_strict)
     if schema_callable is not None:
@@ -969,7 +969,7 @@ def run_config_validation(
             if record(ValidationError("", str(exc), code="schema_error")):
                 return ValidationReport(None, opaque_subtrees, tuple(errors))
 
-    # Stage 5 — run every ConfigValidator against its opaque sub-tree.
+    # Stage 5: run every ConfigValidator against its opaque sub-tree.
     for error in _collect_validator_errors(app_name, app_section, config_validators):
         if record(error):
             break

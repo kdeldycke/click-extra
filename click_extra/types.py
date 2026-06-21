@@ -151,7 +151,7 @@ class EnumChoice(click.Choice):
     Allows to select which part of the members to use as choice strings, by setting the
     ``choice_source`` parameter to one of:
 
-    - ``ChoiceSource.KEY`` or ``ChoiceSource.NAME`` to use the key (i.e. the ``name``
+    - ``ChoiceSource.KEY`` or ``ChoiceSource.NAME`` to use the key (the ``name``
       property),
     - ``ChoiceSource.VALUE`` to use the ``value``,
     - ``ChoiceSource.STR`` to use the ``str()`` string representation, or

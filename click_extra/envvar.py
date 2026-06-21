@@ -91,7 +91,7 @@ def param_auto_envvar_id(
 ) -> str | None:
     """Compute the auto-generated environment variable of an option or argument.
 
-    Returns the auto envvar as it is exactly computed within Click's internals, i.e.
+    Returns the auto envvar exactly as computed within Click's internals, by
     ``click.core.Parameter.resolve_envvar_value()`` and
     ``click.core.Option.resolve_envvar_value()``.
     """

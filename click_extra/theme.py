@@ -27,7 +27,7 @@ The built-in themes (``dark``, ``dracula``, ``light``, ``manpage``,
 :meth:`HelpTheme.from_dict`. ``manpage`` is a colorless theme that
 shadows man-pages(7) typography (bold literals, italic replaceable); the
 others apply that same bold/italic split on top of their color palettes.
-Adding a new built-in theme is a one-file edit in that TOML file — no Python
+Adding a new built-in theme is a one-file edit in that TOML file: no Python
 needed. The same TOML schema is used for user-defined themes loaded from
 configuration: see :doc:`/theme` for the user guide.
 
@@ -36,7 +36,7 @@ configuration: see :doc:`/theme` for the user guide.
     ``meta`` dict under :data:`click_extra.context.THEME` by
     :class:`ThemeOption`. Use :func:`get_current_theme` to retrieve it: that
     helper consults the active Click context first and falls back to
-    :func:`get_default_theme` when no context is in flight (e.g. at import
+    :func:`get_default_theme` when no context is in flight (like at import
     time, in ``wrap`` patching, or in bare REPL usage). Per-invocation
     context storage means concurrent invocations of the same CLI in one
     process (Sphinx builds, test runners, REPLs) do not leak ``--theme``
@@ -139,7 +139,7 @@ class HelpTheme(cloup.HelpTheme):
 
     choice: IStyle = identity
     """Style applied to each individual value inside a :class:`click.Choice`
-    metavar (e.g. ``json``, ``csv``, ``xml`` within ``[json|csv|xml]``) and
+    metavar (like ``json``, ``csv``, ``xml`` within ``[json|csv|xml]``) and
     to those values referenced in option descriptions.
     """
 
@@ -152,8 +152,8 @@ class HelpTheme(cloup.HelpTheme):
     """Style applied to the literal bracket characters and label prefixes of
     trailing fields: ``[``, ``]``, ``default:``, ``env var:``, and the field
     separators between them. Also acts as the **fallback** for the four
-    inner bracket-field slots — :attr:`envvar`, :attr:`default`,
-    :attr:`required`, :attr:`range_label` — whenever any of them is left at
+    inner bracket-field slots (:attr:`envvar`, :attr:`default`,
+    :attr:`required`, :attr:`range_label`) whenever any of them is left at
     :func:`identity <cloup._util.identity>`. A theme that only sets
     ``bracket`` therefore renders the whole bracket field with a single
     uniform style; richer themes layer specific colors on top by setting
@@ -426,7 +426,7 @@ def set_default_theme(theme: HelpTheme) -> None:
     :class:`ThemeOption` writes its picked theme to ``ctx.meta`` rather
     than calling this helper, so per-invocation choices do not leak across
     invocations sharing the same process. Use this only for genuinely
-    process-wide overrides — :func:`click_extra.wrap.patch_click` is the
+    process-wide overrides: :func:`click_extra.wrap.patch_click` is the
     canonical caller.
     """
     global _default_theme
@@ -466,7 +466,7 @@ Built-in themes are seeded here at module load time from
 :data:`BUILTIN_THEMES` (loaded from ``click_extra/themes.toml``).
 
 Use :func:`register_theme` to add your own at import time, *or* declare
-them in your CLI's config file under ``[tool.<cli>.themes.<name>]`` — the
+them in your CLI's config file under ``[tool.<cli>.themes.<name>]``: the
 latter goes through :class:`ConfigOption <click_extra.config.option.ConfigOption>`,
 lands on ``ctx.meta`` (see :data:`click_extra.context.THEME_OVERRIDES`),
 and never mutates this module-level dict, so per-invocation choices don't
@@ -514,7 +514,7 @@ def themes_from_config(
     For each entry, build a :class:`HelpTheme` via :meth:`from_dict`. If
     *name* matches an existing key in :data:`theme_registry`, the new theme
     is layered on top via :meth:`HelpTheme.cascade` so partial overrides
-    (e.g. just one slot) inherit the rest from the built-in palette.
+    (like just one slot) inherit the rest from the built-in palette.
     Stand-alone names produce theme instances with the unset slots left at
     their defaults.
     """
@@ -567,9 +567,9 @@ class ThemeChoice(click.ParamType):
     can collect theme names for per-token highlighting through the same
     code path it uses for Click's own ``Choice``. The ``choices`` attribute
     is a property that queries :func:`get_theme_registry` at every lookup,
-    so themes registered late — typically by
+    so themes registered late (typically by
     :class:`ConfigOption <click_extra.config.option.ConfigOption>` parsing
-    ``[tool.<cli>.themes.<name>]`` tables before ``--theme`` is processed —
+    ``[tool.<cli>.themes.<name>]`` tables before ``--theme`` is processed)
     are valid choices and appear in the ``--help`` metavar.
 
     Implemented as a fresh :class:`click.ParamType` rather than a
@@ -577,12 +577,12 @@ class ThemeChoice(click.ParamType):
     semantics for ``self.choices``: the previous subclass design swallowed
     Click's :py:meth:`__init__`-time assignment with a no-op setter, which
     would silently break under any future Click version that uses
-    ``object.__setattr__`` (e.g. for slots) instead of regular attribute
+    ``object.__setattr__`` (like for slots) instead of regular attribute
     assignment.
     """
 
     # Match ``click.Choice.name`` so machinery that branches on parameter
-    # type (e.g. metavar generation) treats this the same way.
+    # type (like metavar generation) treats this the same way.
     name: str = "choice"
 
     def __init__(self, case_sensitive: bool = False) -> None:
@@ -764,7 +764,7 @@ import time and seeded into :data:`theme_registry`. Adding a new built-in
 theme is a one-file edit in that TOML file: declare a new ``[<name>]``
 table with one inline-table per styled slot.
 
-Index by name to access any palette, e.g. ``BUILTIN_THEMES["dark"]`` or
+Index by name to access any palette, like ``BUILTIN_THEMES["dark"]`` or
 ``BUILTIN_THEMES["solarized_dark"]``.
 
 Empty when the ``themes.toml`` data file is absent (some packaging and

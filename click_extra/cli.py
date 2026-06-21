@@ -578,7 +578,7 @@ def version(git_hash: str | None, module: Path | None) -> None:
     """Inject Git commit hash into ``__version__``.
 
     Appends the Git short hash as a PEP 440 local version identifier
-    (e.g. ``1.0.0.dev0`` becomes ``1.0.0.dev0+abc1234``).
+    (for example ``1.0.0.dev0`` becomes ``1.0.0.dev0+abc1234``).
 
     Only modifies ``.dev`` versions without an existing ``+`` suffix.
     Release versions and already pre-baked versions are left untouched.
@@ -606,8 +606,8 @@ def version(git_hash: str | None, module: Path | None) -> None:
 def field(name: str, module: Path | None, value: str) -> None:
     """Replace an empty dunder variable with a value.
 
-    NAME is the template field name (e.g. ``git_tag_sha``) or the full
-    dunder name (e.g. ``__git_tag_sha__``). Double underscores are added
+    NAME is the template field name (like ``git_tag_sha``) or the full
+    dunder name (like ``__git_tag_sha__``). Double underscores are added
     automatically when missing.
 
     VALUE is the string to inject.

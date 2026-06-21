@@ -1527,7 +1527,7 @@ def test_parent_patterns_relative_path(tmp_path):
     def test_cli():
         pass
 
-    # Change to the parent directory to create a relative path
+    # Change to the parent directory to create a relative path.
     import os
 
     old_cwd = os.getcwd()
@@ -1541,13 +1541,13 @@ def test_parent_patterns_relative_path(tmp_path):
 
             patterns = list(config_opt.parent_patterns(relative_path))
 
-            # All root_dirs should be absolute
+            # All root_dirs should be absolute.
             assert all(
                 root_dir is not None and Path(root_dir).is_absolute()
                 for root_dir, _ in patterns
             )
 
-            # First pattern should resolve to the config file's parent
+            # First pattern should resolve to the config file's parent.
             root_dir, file_pattern = patterns[0]
             assert root_dir is not None
             assert Path(root_dir) == config_file.parent
@@ -1874,7 +1874,7 @@ def test_multiple_files_matching_glob(invoke, create_config, tmp_path):
 
     result = invoke(glob_cli, color=False)
     assert result.exit_code == 0
-    # Both params come from the same file — values are not merged across files.
+    # Both params come from the same file: values are not merged across files.
     assert (
         "param_a='from_first'" in result.stdout
         and "param_b='from_first'" in result.stdout
@@ -1910,7 +1910,7 @@ def test_brace_multi_format_search(invoke, tmp_path, ext):
     """All format extensions are found in the search directory.
 
     Regression test: before BRACE expansion, only the first format in the
-    default pattern got the directory prefix — others were searched in CWD.
+    default pattern got the directory prefix: others were searched in CWD.
     """
     conf_texts = {
         "toml": "[brace-cli]\nint_param = 42\n",

@@ -18,10 +18,10 @@
 This package gathers the three layers behind ``--config``, ``--no-config``, and
 ``--validate-config``:
 
-- :mod:`~click_extra.config.formats` — the supported file formats and their
+- :mod:`~click_extra.config.formats`: the supported file formats and their
   stateless content parsers.
-- :mod:`~click_extra.config.schema` — the schema-building and validation engine.
-- :mod:`~click_extra.config.option` — the option classes and click-extra's own
+- :mod:`~click_extra.config.schema`: the schema-building and validation engine.
+- :mod:`~click_extra.config.option`: the option classes and click-extra's own
   configuration schemas.
 
 Every public symbol is re-exported here so consumers can keep importing from

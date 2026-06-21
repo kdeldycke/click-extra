@@ -371,10 +371,10 @@ default_debug_colored_quiet_log = (
 default_config_file_pattern = (
     # ``*.json5`` and ``*.jsonc`` are only emitted by ``ConfigFormat`` when
     # the optional ``json5`` and ``json-with-comments`` packages are
-    # importable (see ``click_extra.config``).  Make both optional in the
+    # importable (see ``click_extra.config``). Make both optional in the
     # regex so the same assertion matches whether or not those extras are
     # installed: full match in upstream CI, gracefully shorter match in
-    # hermetic builders (Guix, Nixpkgs) that ship neither extra.  Same
+    # hermetic builders (Guix, Nixpkgs) that ship neither extra. Same
     # shape as the ``git_long_hash = (?:hash|None)`` graceful-degradation
     # pattern further down.
     r"\{\*\.toml,\*\.yaml,\*\.yml,\*\.json"

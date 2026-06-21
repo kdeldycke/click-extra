@@ -81,8 +81,8 @@ class Context(cloup.Context):
     """Like ``cloup._context.Context``, but with the ability to populate the context's
     ``meta`` property at instantiation.
 
-    Also defaults ``color`` to ``True`` for root contexts (i.e. without a parent), so
-    help screens are always colorized — even when piped. Click's own default is ``None``
+    Also defaults ``color`` to ``True`` for root contexts (those without a parent), so
+    help screens are always colorized, even when piped. Click's own default is ``None``
     (auto-detect via TTY), which strips colors in non-interactive contexts.
 
     Parent-to-child color inheritance is handled by Click itself at ``Context.__init__``
@@ -112,8 +112,8 @@ class Context(cloup.Context):
 
         # Click defaults root ``ctx.color`` to ``None`` (GNU ``auto``: keep ANSI on a
         # TTY, strip it when piped). For a parentless context, pre-seed it from the
-        # color environment variables so the eager help and version screens — which
-        # can render before ``--color`` resolves — still honor ``FORCE_COLOR`` /
+        # color environment variables so the eager help and version screens, which
+        # can render before ``--color`` resolves, still honor ``FORCE_COLOR`` /
         # ``NO_COLOR``. With no recognized variable the value stays ``None`` (auto),
         # and the ``ColorOption`` callback later layers the command line, configuration
         # and ``--accessible`` on top.
@@ -265,7 +265,7 @@ wrapped CLIs).
 """
 
 TOOL_CONFIG: Final[str] = "click_extra.tool_config"
-"""The app-specific config section, deserialised through ``config_schema``.
+"""The app-specific config section, deserialized through ``config_schema``.
 
 Written by :class:`~click_extra.config.option.ConfigOption`'s
 ``_apply_config_schema`` method only when a schema callable is configured. Read via

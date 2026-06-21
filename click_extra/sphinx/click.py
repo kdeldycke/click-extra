@@ -378,7 +378,7 @@ class ClickDirective(SphinxDirective):
 
     The standard ``emphasize-lines`` option applies to the source block only. Use
     ``emphasize-result-lines`` to highlight specific lines in the captured output
-    block, with the same syntax (e.g. ``:emphasize-result-lines: 1,3-5``).
+    block, with the same syntax (like ``:emphasize-result-lines: 1,3-5``).
     """
 
     default_language: str

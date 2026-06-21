@@ -107,8 +107,8 @@ def prebake_version(
     <https://peps.python.org/pep-0440/#local-version-identifiers>`_.
 
     Reads *file_path*, finds the ``__version__`` assignment via
-    :mod:`ast`, and — if the version contains ``.dev`` and does not
-    already contain ``+`` — appends ``+<local_version>``.
+    :mod:`ast`, and, if the version contains ``.dev`` and does not
+    already contain ``+``, appends ``+<local_version>``.
 
     This is the compile-time complement to the runtime
     :attr:`click_extra.version.VersionOption.version` property:
@@ -165,12 +165,12 @@ def prebake_dunder(
     """Replace an empty dunder variable's value in a Python source file.
 
     Reads *file_path*, finds a top-level ``name = ""`` assignment via
-    :mod:`ast`, and — if the current value is an empty string — replaces
+    :mod:`ast`, and, if the current value is an empty string, replaces
     it with *value*.
 
     Placeholders must use empty strings (``__field__ = ""``, not
     ``None``). The AST matcher only recognizes string literals, and
-    the empty string serves as a falsy sentinel that stays
+    the empty string acts as a falsy sentinel that stays
     type-consistent with baked values (always ``str``).
 
     This is the generic counterpart to :func:`prebake_version`: where

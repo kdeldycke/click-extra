@@ -15,9 +15,9 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Introspect CLI metadata at runtime and print a colored ``--version`` string.
 
-:class:`VersionOption` gathers the executed CLI's metadata — module and
+:class:`VersionOption` gathers the executed CLI's metadata (module and
 package names, distribution version, author and license, environment profile,
-and the live Git state — and renders them through a customizable, colorized
+and the live Git state) and renders them through a customizable, colorized
 message template.
 
 Git fields (``git_branch``, ``git_short_hash``, ...) are resolved at runtime by
@@ -610,7 +610,7 @@ class VersionOption(ExtraOption):
         # Our heuristics to locate the CLI implementation failed. Fall back to
         # the outermost frame in the stack. This happens in Nuitka-compiled
         # binaries where the entry point module's ``__name__`` may be a
-        # submodule of the Click ecosystem package (e.g.
+        # submodule of the Click ecosystem package (like
         # ``click_extra.__main__``) and all frames get skipped.
         count_size = len(str(len(frame_chain)))
         for counter, (p_name, f_name) in enumerate(frame_chain):
@@ -633,22 +633,22 @@ class VersionOption(ExtraOption):
         if not module:
             raise RuntimeError(f"Cannot find module of {frame!r}")
 
-        # If the module is a generated entry point script (e.g., .venv/bin/cli-name),
+        # If the module is a generated entry point script (like .venv/bin/cli-name),
         # try to find the actual CLI module.
         if module.__name__ == "__main__" and not module.__package__:
             module_file = getattr(module, "__file__", None)
             if module_file:
                 module_path = Path(module_file)
-                # Entry points are typically in bin/ or Scripts/ directories
+                # Entry points are typically in bin/ or Scripts/ directories.
                 if module_path.parent.name in ("bin", "Scripts"):
                     script_name = module_path.name
 
-                    # Try to find the package via entry_points API
+                    # Try to find the package via entry_points API.
                     actual_module = self._resolve_entry_point_module(script_name)
                     if actual_module:
                         return actual_module
 
-                    # Fallback: inspect frame globals for imported callables
+                    # Fallback: inspect frame globals for imported callables.
                     actual_module = self._resolve_module_from_frame(frame)
                     if actual_module:
                         return actual_module
@@ -715,7 +715,7 @@ class VersionOption(ExtraOption):
 
         # If not found, try to get it from the command's callback globals.
         # This handles cases where the command is defined in a different context
-        # (e.g., Sphinx documentation blocks, or standalone scripts).
+        # (like Sphinx documentation blocks, or standalone scripts).
         if version is None:
             ctx = get_current_context(silent=True)
             if ctx and ctx.command and hasattr(ctx.command, "callback"):
@@ -727,7 +727,7 @@ class VersionOption(ExtraOption):
 
         # If still not found, check the parent package. This handles
         # ``__main__`` entry points where ``__version__`` is defined in
-        # the package's ``__init__.py`` (e.g. Nuitka-compiled binaries).
+        # the package's ``__init__.py`` (like Nuitka-compiled binaries).
         # Skip modules belonging to the Click ecosystem because
         # ``cli_frame()`` may resolve to a CliRunner frame instead of
         # the user's module, producing false-positive lookups. ``__main__``
@@ -895,7 +895,7 @@ class VersionOption(ExtraOption):
         dev build was produced from. If Git is unavailable, the plain dev version is
         returned.
 
-        Versions that already contain a ``+`` (i.e., a pre-baked local version
+        Versions that already contain a ``+`` (a pre-baked local version
         identifier, typically set at build time by CI pipelines) are returned as-is
         to avoid producing invalid double-suffixed versions like
         ``1.2.3.dev0+abc1234+xyz5678``.
@@ -950,7 +950,7 @@ class VersionOption(ExtraOption):
 
         Found by walking up from the CLI module's directory (falling back to
         the current working directory). Only populated inside an archive
-        produced by ``git archive`` — including GitHub's source tarballs —
+        produced by ``git archive`` (including GitHub's source tarballs),
         where git substitutes the ``$Format:…$`` placeholders. A normal
         checkout holds the raw placeholders and yields nothing here, so live
         ``git`` calls take precedence and this is consulted only as a fallback.

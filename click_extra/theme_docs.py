@@ -131,9 +131,9 @@ _PALETTE_EXAMPLES: dict[str, str] = {
     # The single wide marker covers the entire bracket field because
     # ``bracket`` is the runtime fallback for every inner slot (``envvar``,
     # ``default``, ``required``, ``range_label``) when those slots are left
-    # at ``identity``.  A theme that only sets ``bracket`` therefore colours
-    # the whole field — structural tokens and value tokens alike — with the
-    # same style.  See ``_bracket_or`` in ``highlight.py`` and
+    # at ``identity``. A theme that only sets ``bracket`` therefore colors
+    # the whole field (structural tokens and value tokens alike) with the
+    # same style. See ``_bracket_or`` in ``highlight.py`` and
     # ``test_bracket_field_inner_slot_fallback_to_bracket`` in the test suite.
     "bracket": "--port INTEGER    «[env var: PORT; default: 8080; required]»",
     "envvar": (
@@ -173,7 +173,7 @@ def _palette_slot_link(name: str) -> str:
     """Wrap a slot name in an anchor pointing at its dataclass-field definition.
 
     Cloup-inherited slots resolve to a per-field anchor on cloup's autoapi
-    page (e.g. ``#cloup.HelpTheme.invoked_command``); HelpTheme-native
+    page (like ``#cloup.HelpTheme.invoked_command``); HelpTheme-native
     slots resolve to the local autodoc anchor on the same page that hosts
     the palette (``docs/theme.md``), so the link works inside click-extra's
     own documentation without an external roundtrip.
@@ -188,8 +188,8 @@ def _palette_slot_link(name: str) -> str:
 def _render_slot_ansi(theme: HelpTheme, slot: str) -> str:
     """Render a slot's example template with literal ANSI SGR escapes.
 
-    For each ``«…»`` segment, calls ``theme.<slot>(text)`` — the same code
-    path click-extra uses to style real help-screen output at runtime —
+    For each ``«…»`` segment, calls ``theme.<slot>(text)`` (the same code
+    path click-extra uses to style real help-screen output at runtime)
     and splices the resulting escape-bearing string into the template.
     Used by the Sphinx ``autodoc-process-docstring`` hook in
     :func:`inject_slot_example_docstring` to inject a colored example into
@@ -268,7 +268,7 @@ def _render_slot_example(theme: HelpTheme, slot: str) -> str:
     every ``«…»``-marked segment calls ``theme.<slot>(text)`` to obtain the
     actual styling click-extra would apply at runtime. The styled bytes are
     converted to an inline CSS ``<span>`` via :meth:`Style.to_css`, so the
-    rendered HTML faithfully reflects whatever the theme's slot produces —
+    rendered HTML faithfully reflects whatever the theme's slot produces,
     including the dim/italic/bold attribute mix and the foreground color.
 
     Returns an empty string when the slot has no example template (cloup
@@ -357,7 +357,7 @@ def palette_html(theme: HelpTheme) -> str:
         # Each example is rendered by replaying ``theme.<slot>(text)`` on
         # the marked segments of ``_PALETTE_EXAMPLES[slot]``, so the visual
         # is computed from the same code path that styles real help-screen
-        # output at runtime — no hand-authored ANSI escapes anywhere.
+        # output at runtime: no hand-authored ANSI escapes anywhere.
         example_html = _render_slot_example(theme, f.name)
         body = " ".join(cell_parts) or "—"
         if example_html:

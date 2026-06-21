@@ -87,7 +87,7 @@ You can customize the message template with the following variables:
 | {py:attr}`{env_info} <click_extra.version.VersionOption.env_info>`               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
 ```{note}
-The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (e.g., standalone Nuitka binaries, Docker containers without Git).
+The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (like standalone Nuitka binaries or Docker containers without Git).
 
 All ``git_*`` fields can be [pre-baked at build time](#pre-baking-git-metadata) by defining ``__<field>__`` dunder variables in the CLI module. Pre-baked values take priority over subprocess calls.
 
@@ -98,9 +98,9 @@ The hash, date, branch, tag and distance fields also fall back to a [`.git_archi
 The `{version}` variable is resolved in this order:
 
 1. A `__version__` variable defined alongside your CLI (see [standalone scripts](#standalone-script)).
-2. A `__version__` variable in the parent package's `__init__.py` (for `__main__` entry points, e.g. Nuitka-compiled binaries).
-3. The version from package metadata via [`importlib.metadata`](https://docs.python.org/3/library/importlib.metadata.html#distribution-versions) — this is the most common source for installed packages.
-4. `None` if none of the above succeeds (e.g. unpackaged scripts without `__version__`).
+2. A `__version__` variable in the parent package's `__init__.py` (for `__main__` entry points, like Nuitka-compiled binaries).
+3. The version from package metadata via [`importlib.metadata`](https://docs.python.org/3/library/importlib.metadata.html#distribution-versions): this is the most common source for installed packages.
+4. `None` if none of the above succeeds (like unpackaged scripts without `__version__`).
 ```
 
 Both `{exec_name}` and `{version}` are derived through a short fallback chain (`{version}` additionally appends the Git short hash for `.dev` builds):
@@ -119,7 +119,7 @@ flowchart TD
         m["{module_version}"] -->|unset| p["{package_version}"]
         p -->|unset| nil["None"]
     end
-    VER -.->|"if .dev without +local, and git available"| gh["append the Git short hash<br/>e.g. 1.2.3.dev0+abc1234"]
+    VER -.->|"if .dev without +local, and git available"| gh["append the Git short hash<br/>for example 1.2.3.dev0+abc1234"]
     click EXEC "#click_extra.version.VersionOption.exec_name" "exec_name property"
     click x1 "#click_extra.version.VersionOption.module_name" "module_name property"
     click x2 "#click_extra.version.VersionOption.package_name" "package_name property"
@@ -336,7 +336,7 @@ The version resolution adapts to the runtime environment:
 | **Local dev** (from source)       | `1.0.0.dev0`            | Yes            | `1.0.0.dev0+abc1234` |
 | **Nuitka binary** (pre-baked)     | `1.0.0.dev0+abc1234`    | No             | `1.0.0.dev0+abc1234` |
 | **Nuitka binary** (not pre-baked) | `1.0.0.dev0`            | No             | `1.0.0.dev0`         |
-| **Release**                       | `1.0.0`                 | —              | `1.0.0`              |
+| **Release**                       | `1.0.0`                 | N/A            | `1.0.0`              |
 
 For Nuitka binaries, the recommended workflow is to inject the commit hash into `__version__` **before** compilation. [Repomatic](https://github.com/kdeldycke/repomatic) automates this via its `prebake-version` command.
 

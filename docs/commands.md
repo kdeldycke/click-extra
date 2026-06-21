@@ -147,7 +147,7 @@ assert result.output == dedent(
 )
 ```
 
-As you can see, all options are stripped out, but the colouring and formatting of the help message is preserved.
+As you can see, all options are stripped out, but the coloring and formatting of the help message is preserved.
 
 ### Change default options
 
@@ -284,7 +284,7 @@ The advantage of the `context_settings` method we demonstrated above, is that it
 
 ### Version fields
 
-Click's `@version_option(prog_name=...)` lets you customize the name displayed by `--version`. But with Click Extra's default options, the `VersionOption` is created for you — so there's no decorator call to pass `prog_name` to.
+Click's `@version_option(prog_name=...)` lets you customize the name displayed by `--version`. But with Click Extra's default options, the `VersionOption` is created for you: so there's no decorator call to pass `prog_name` to.
 
 The `version_fields` parameter on `@command` and `@group` solves this. It forwards values to the `VersionOption` in the default params list, without replacing it. It accepts any field from `VersionOption.template_fields`:
 
@@ -564,7 +564,7 @@ Usage: wrap.py aws_sam [OPTIONS] COMMAND [ARGS]...
 Commands:
 
   Learn:
-    docs NEW!           Launch the AWS SAM CLI documentation in a browser.
+    docs NEW! Launch the AWS SAM CLI documentation in a browser.
 
   Create an App:
     init                Initialize an AWS SAM application.
@@ -573,8 +573,8 @@ Commands:
     build               Build your AWS serverless function code.
     local               Run your AWS serverless function locally.
     validate            Validate an AWS SAM template.
-    sync NEW!           Sync an AWS SAM project to AWS.
-    remote NEW!         Invoke or send an event to cloud resources in your AWS
+    sync NEW! Sync an AWS SAM project to AWS.
+    remote NEW! Invoke or send an event to cloud resources in your AWS
                         Cloudformation stack.
 
   Deploy your App:
@@ -587,7 +587,7 @@ Commands:
     traces              Fetch AWS X-Ray traces.
 
   And More:
-    list NEW!           Fetch the state of your AWS serverless application.
+    list NEW! Fetch the state of your AWS serverless application.
     delete              Delete an AWS SAM application and the artifacts created
                         by sam deploy.
     pipeline            Manage the continuous delivery of your AWS serverless
@@ -629,7 +629,7 @@ Usage: sam [OPTIONS] COMMAND [ARGS]...
 Commands:
 
   Learn:
-    docs NEW!           Launch the AWS SAM CLI documentation in a browser.
+    docs NEW! Launch the AWS SAM CLI documentation in a browser.
 
   Create an App:
     init                Initialize an AWS SAM application.
@@ -638,8 +638,8 @@ Commands:
     build               Build your AWS serverless function code.
     local               Run your AWS serverless function locally.
     validate            Validate an AWS SAM template.
-    sync NEW!           Sync an AWS SAM project to AWS.
-    remote NEW!         Invoke or send an event to cloud resources in your AWS
+    sync NEW! Sync an AWS SAM project to AWS.
+    remote NEW! Invoke or send an event to cloud resources in your AWS
                         Cloudformation stack.
 
   Deploy your App:
@@ -652,7 +652,7 @@ Commands:
     traces              Fetch AWS X-Ray traces.
 
   And More:
-    list NEW!           Fetch the state of your AWS serverless application.
+    list NEW! Fetch the state of your AWS serverless application.
     delete              Delete an AWS SAM application and the artifacts created
                         by sam deploy.
     pipeline            Manage the continuous delivery of your AWS serverless

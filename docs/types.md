@@ -6,7 +6,7 @@ A collection of custom Click parameter types for common use-cases.
 
 `click.Choice` is supporting `Enum`s, but naively: the [`Enum.name` property](https://docs.python.org/3/library/enum.html#enum.Enum.name) of each members is used for choices. It [was designed that way to simplify the implementation](https://github.com/pallets/click/issues/2911#issuecomment-2891534372), because it is the part of `Enum` that is guaranteed to be unique strings.
 
-But this is not always what we want, especially when the `Enum`'s names are not user-friendly (e.g. they contain underscores, uppercase letters, etc.). This custom `EnumChoice` type solve this issue by allowing you to select which part of the `Enum` members to use as choice strings.
+But this is not always what we want, especially when the `Enum`'s names are not user-friendly: they may contain underscores, uppercase letters, etc. This custom `EnumChoice` type solve this issue by allowing you to select which part of the `Enum` members to use as choice strings.
 
 ### Limits of `Click.Choice`
 
@@ -230,7 +230,7 @@ assert "'oThER-forMAt' is not one of 'text', 'html', 'other-format'." in result.
 
 That's done by setting the `choice_source` parameter to one of:
 
-- `ChoiceSource.KEY` or `ChoiceSource.NAME` to use the key (i.e. the [`Enum.name` property](https://docs.python.org/3/library/enum.html#enum.Enum.name)),
+- `ChoiceSource.KEY` or `ChoiceSource.NAME` to use the key (the [`Enum.name` property](https://docs.python.org/3/library/enum.html#enum.Enum.name)),
 - `ChoiceSource.VALUE` to use the [`Enum.value`](https://docs.python.org/3/library/enum.html#enum.Enum.value), or
 - `ChoiceSource.STR` to use the [`str()` string representation](https://docs.python.org/3/library/enum.html#enum.Enum.__str__) (which is the default behavior).
 

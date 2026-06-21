@@ -1,6 +1,6 @@
 # {octicon}`pencil` Styling
 
-Click Extra ships its own `Style` class as a drop-in replacement for [`cloup.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style) (which itself wraps [`click.style`](https://click.palletsprojects.com/en/stable/api/#click.style)). The runtime contract — calling the instance to apply styling, equality, hashing, `with_()` — is identical to cloup's; everything below is purely additive ergonomics.
+Click Extra ships its own `Style` class as a drop-in replacement for [`cloup.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style) (which itself wraps [`click.style`](https://click.palletsprojects.com/en/stable/api/#click.style)). The runtime contract (calling the instance to apply styling, equality, hashing, `with_()`) is identical to cloup's; everything below is purely additive ergonomics.
 
 The class lands automatically when you do `from click_extra import Style`: `__init__.py` re-exports it after `from cloup import *` so the click-extra version takes precedence.
 
@@ -49,7 +49,7 @@ print(repr(base | override))
 print(repr(override | base))
 ```
 
-## `cascade(base)` — fill gaps from a base style
+## `cascade(base)`: fill gaps from a base style
 
 Where `|` lets the right operand always win, `cascade` keeps the *instance*'s set values and only fills its `None` fields from `base`. Useful for theme-inheritance patterns where a derived style should keep its overrides and inherit the rest:
 
@@ -92,7 +92,7 @@ except TypeError as exc:
     print(repr(exc))
 ```
 
-## `to_css()` — CSS declaration list
+## `to_css()`: CSS declaration list
 
 Renders the style as a semicolon-separated CSS declaration list, suitable for inline `style="..."` attributes on HTML spans. Used by [`AnsiHtmlFormatter`](pygments.md#ansi-html-formatter) and the [theme palette swatches](theme.md#palettes):
 
@@ -120,7 +120,7 @@ The mapping is:
 
 `underline`, `overline` and `strikethrough` collapse into a single `text-decoration` declaration when more than one is set.
 
-## `from_ansi()` — parse ANSI SGR escapes
+## `from_ansi()`: parse ANSI SGR escapes
 
 Given one or more consecutive ANSI SGR escapes (the `\x1b[...m` sequences Click emits), rebuild a `Style` instance. Supports the standard 8/16-color codes (30–37, 40–47, 90–97, 100–107), the `38;5;n` / `48;5;n` 256-color extension, and the `38;2;r;g;b` / `48;2;r;g;b` 24-bit extension. Reset codes (`0`) are ignored. Multiple back-to-back escapes (as Click emits when combining colors with attributes) are merged into a single `Style`:
 
@@ -142,7 +142,7 @@ print(repr(Style.from_ansi("\x1b[38;5;226m")))
 
 `from_ansi` is the inverse of calling the style: parsing the output of `Style(fg="red", bold=True)("text")` recovers the same style.
 
-## `contrast_ratio(other)` — WCAG accessibility check
+## `contrast_ratio(other)`: WCAG accessibility check
 
 Returns the [WCAG 2.x contrast ratio](https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio) between this style's foreground and another style's foreground. Result is in `[1, 21]`: `1` = identical colors (no contrast), `21` = maximum contrast (black on white). WCAG AA requires `4.5+` for normal text and `3.0+` for large text; AAA wants `7.0+` and `4.5+` respectively.
 

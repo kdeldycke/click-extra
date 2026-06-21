@@ -60,7 +60,7 @@ The preset sets both the frames and the interval; an explicit `frames=` or `inte
 
 ### Full inventory
 
-Every style is browsable from the CLI. On an interactive terminal `click-extra spinner` animates a live tour of the selection (`--all` for the whole catalog, `--random N` for a sample, or `--select name1,name2` for specific ones); `--table` prints the reference table below instead of animating. The Frames column previews each animation, and the Tour column is the dwell time the live tour spends on each — three full cycles, clamped to two-to-three seconds:
+Every style is browsable from the CLI. On an interactive terminal `click-extra spinner` animates a live tour of the selection (`--all` for the whole catalog, `--random N` for a sample, or `--select name1,name2` for specific ones); `--table` prints the reference table below instead of animating. The Frames column previews each animation, and the Tour column is the dwell time the live tour spends on each: three full cycles, clamped to two-to-three seconds:
 
 ```{click:run}
 from click_extra.cli import demo
@@ -135,7 +135,7 @@ Both `label` and `echo()` are safe to touch while the animation runs, so a worke
 
 ## Styling and color
 
-The spinner's glyph, label and timer are painted with a [`Style`](styling.md) instance — the very type Click Extra's [theme system](theme.md) is built on. The simplest customization is a foreground color:
+The spinner's glyph, label and timer are painted with a [`Style`](styling.md) instance: the very type Click Extra's [theme system](theme.md) is built on. The simplest customization is a foreground color:
 
 ```python
 from click_extra import Spinner, Style
@@ -144,7 +144,7 @@ with Spinner("Counting sheep", style=Style(fg="cyan")):
     sleep(5)
 ```
 
-A `Style` carries far more than a foreground color. Add a background with `bg`, and text attributes like `bold`, `dim`, `italic`, `underline`, `blink` or `reverse` — and combine them freely:
+A `Style` carries far more than a foreground color. Add a background with `bg`, and text attributes like `bold`, `dim`, `italic`, `underline`, `blink` or `reverse`, and combine them freely:
 
 ```python
 with Spinner("Counting sheep", style=Style(fg="bright_white", bg="blue", bold=True)):
@@ -190,7 +190,7 @@ with Spinner("Simmering stock", timer=True) as spinner:
     spinner.ok()  # ✓ Simmering stock (5.0s)
 ```
 
-The default format is compact: `2.3s`, then `1:05`, then `1:02:03`. For anything else, pass a callable instead of `True` — it receives the elapsed seconds and returns the string to show:
+The default format is compact: `2.3s`, then `1:05`, then `1:02:03`. For anything else, pass a callable instead of `True`: it receives the elapsed seconds and returns the string to show:
 
 ```python
 with Spinner("Simmering stock", timer=lambda s: f"{s / 60:.0f} min") as spinner:

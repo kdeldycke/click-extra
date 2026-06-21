@@ -2,7 +2,7 @@
 
 Click's environment-variable handling spreads across several internal methods on `Parameter`, `Option`, and `Context`. This module centralizes that logic into a small set of pure helpers that downstream code can call to introspect what Click *would* read for a given parameter, plus a couple of subprocess-friendly conveniences.
 
-The helpers underpin click-extra's [`show_envvar` defaults](commands.md#default-options) on every option's help screen, the [`--show-params` table](parameters.md#show-params-option), and the auto-envvar reconciliation in [`TelemetryOption`](telemetry.md), [`ColorOption`](colorize.md), and others — but they're equally useful for any downstream code that needs to surface the env-var contract of its CLI.
+The helpers underpin click-extra's [`show_envvar` defaults](commands.md#default-options) on every option's help screen, the [`--show-params` table](parameters.md#show-params-option), and the auto-envvar reconciliation in [`TelemetryOption`](telemetry.md), [`ColorOption`](colorize.md), and others, but they're equally useful for any downstream code that needs to surface the env-var contract of its CLI.
 
 ```{seealso}
 [Environment variables are a legacy mess: Let's dive deep into them](https://allvpv.org/haotic-journey-through-envvars/) is the best survey of the wider problem space these helpers paper over.
@@ -10,7 +10,7 @@ The helpers underpin click-extra's [`show_envvar` defaults](commands.md#default-
 
 ## `merge_envvar_ids(*envvar_ids)`
 
-Merge and deduplicate environment-variable names from any combination of strings and arbitrarily-nested iterables. `None` values are filtered out. Order is preserved (first occurrence wins), and on Windows every name is upper-cased to match the [platform's case-insensitive `os.environ` semantics](https://docs.python.org/3/library/os.html#os.environ) — the same normalization the standard library applies internally.
+Merge and deduplicate environment-variable names from any combination of strings and arbitrarily-nested iterables. `None` values are filtered out. Order is preserved (first occurrence wins), and on Windows every name is upper-cased to match the [platform's case-insensitive `os.environ` semantics](https://docs.python.org/3/library/os.html#os.environ): the same normalization the standard library applies internally.
 
 ```{python:run}
 from click_extra.envvar import merge_envvar_ids
@@ -49,7 +49,7 @@ This helper does not exactly replicate Click's own auto-envvar derivation: [Clic
 
 ## `param_auto_envvar_id(param, ctx)`
 
-Compute the auto-generated environment variable Click would read for an option or argument, given a parameter instance and either an active `click.Context` or a plain settings dict (e.g. `context_settings`). Returns `None` when the parameter has `allow_from_autoenv=False`, or when no `auto_envvar_prefix` is configured. The output exactly mirrors what `click.core.Parameter.resolve_envvar_value()` and `click.core.Option.resolve_envvar_value()` produce internally:
+Compute the auto-generated environment variable Click would read for an option or argument, given a parameter instance and either an active `click.Context` or a plain settings dict (like `context_settings`). Returns `None` when the parameter has `allow_from_autoenv=False`, or when no `auto_envvar_prefix` is configured. The output exactly mirrors what `click.core.Parameter.resolve_envvar_value()` and `click.core.Option.resolve_envvar_value()` produce internally:
 
 ```{python:run}
 import click
@@ -73,9 +73,9 @@ with click.Context(show) as ctx:
     print(param_auto_envvar_id(debug_opt, ctx))
 ```
 
-## `param_envvar_ids(param, ctx)` — the main entry point
+## `param_envvar_ids(param, ctx)`: the main entry point
 
-Returns the deduplicated, ordered tuple of environment variables Click would consider for an option or argument: the user-declared `envvar=` value (single string or iterable) followed by the auto-generated one. Click reads them in this order and stops at the first one set, which means **user-declared envvars take precedence over the auto-generated one** — `param_envvar_ids` preserves that ordering.
+Returns the deduplicated, ordered tuple of environment variables Click would consider for an option or argument: the user-declared `envvar=` value (single string or iterable) followed by the auto-generated one. Click reads them in this order and stops at the first one set, which means **user-declared envvars take precedence over the auto-generated one**: `param_envvar_ids` preserves that ordering.
 
 ```mermaid
 :align: center
@@ -111,7 +111,7 @@ This is what powers click-extra's `--show-params` table: each row's *Env. vars.*
 
 ## `env_copy(extend=None)`
 
-Returns a shallow copy of `os.environ` with optional extra keys layered on top, or `None` when `extend` is empty. Mirrors Python's own subprocess-handling pattern — `subprocess.Popen(env=None)` inherits the current environment, so returning `None` for the no-extension case is a useful contract:
+Returns a shallow copy of `os.environ` with optional extra keys layered on top, or `None` when `extend` is empty. Mirrors Python's own subprocess-handling pattern: `subprocess.Popen(env=None)` inherits the current environment, so returning `None` for the no-extension case is a useful contract:
 
 ```{python:run}
 import os

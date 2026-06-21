@@ -777,7 +777,7 @@ def test_bare_escape_at_end():
 
 def test_osc_sequence_stripped():
     """Non-hyperlink OSC sequences are fully consumed and stripped."""
-    # ESC ] 0 ; title BEL — OSC set window title.
+    # ESC ] 0 ; title BEL: OSC set window title.
     tokens = lex("\x1b]0;title\x07visible")
     assert tokens == [(Text, "visible\n")]
 
@@ -943,7 +943,7 @@ def test_independent_fg_bg():
 
 def test_sgr_with_trailing_semicolons():
     """Trailing semicolons in SGR parameters produce zero codes, which are resets."""
-    # \x1b[31;m is "31" then empty "m" — but this is one sequence with params "31;".
+    # \x1b[31;m is "31" then empty "m", but this is one sequence with params "31;".
     # The ";" splits into ["31", ""], and int("") raises ValueError, so the whole
     # sequence is ignored.
     tokens = lex("\x1b[31;mtext")
@@ -990,7 +990,7 @@ def test_256color_out_of_range():
 
 def test_24bit_truncated_params():
     """Truncated 24-bit RGB sequence (missing channels) is ignored."""
-    # 38;2;255;128 — missing the blue channel.
+    # 38;2;255;128: missing the blue channel.
     tokens = lex("\x1b[38;2;255;128mtext\x1b[0m")
     assert tokens[0] == (Text, "text")
 

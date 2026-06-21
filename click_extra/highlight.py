@@ -95,7 +95,7 @@ class _HelpColorsMixin:
 
     #: Extra keywords to merge into the auto-collected set. Consumers can set
     #: this attribute on a command instance to inject additional keywords for
-    #: help screen highlighting (e.g. placeholder option names like
+    #: help screen highlighting (like placeholder option names such as
     #: ``--<manager-id>`` that appear in prose but are not real parameters).
     extra_keywords: HelpKeywords | None = None
 
@@ -115,7 +115,7 @@ class _HelpColorsMixin:
 
         # Includes the full command path and each ancestor name, so that
         # individual components are highlighted even when interleaved with
-        # options (e.g. "repomatic --table-format github sync-uv-lock").
+        # options (like "repomatic --table-format github sync-uv-lock").
         if ctx.command_path:
             kw.cli_names.add(ctx.command_path)
         ancestor: click.Context | None = ctx
@@ -125,7 +125,7 @@ class _HelpColorsMixin:
             ancestor = ancestor.parent
         command = ctx.command
 
-        # Will fetch command's metavar (i.e. the "[OPTIONS]" after the CLI name in
+        # Will fetch command's metavar (the "[OPTIONS]" after the CLI name in
         # "Usage:") and dig into subcommands to get subcommand_metavar:
         # ("COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...").
         kw.metavars.update(command.collect_usage_pieces(ctx))
@@ -144,7 +144,7 @@ class _HelpColorsMixin:
                 subcommand_objs.add(subcommand)
 
         # Collect options, choices, metavars, envvars, defaults from current
-        # command parameters. User-defined help options (e.g. -h, --help) are
+        # command parameters. User-defined help options (like -h, --help) are
         # seeded into the options set.
         options: set[str] = set(ctx.help_option_names)
         # Static methods are qualified with the class name (not ``self``) so
@@ -158,7 +158,7 @@ class _HelpColorsMixin:
         )
 
         # Collect option names and choices from parent groups. Subcommand
-        # docstrings often reference parent options in usage examples (e.g.
+        # docstrings often reference parent options in usage examples (like
         # "myapp --table-format github sub").
         parent_ctx = ctx.parent
         while parent_ctx:
@@ -208,9 +208,9 @@ class _HelpColorsMixin:
     ) -> None:
         """Collect choice keywords from a ``click.Choice`` parameter.
 
-        When a custom metavar (e.g. ``LEVEL``) replaces the standard
+        When a custom metavar (like ``LEVEL``) replaces the standard
         ``[choice1|choice2]`` rendering, original-case choice strings are
-        collected to match developer-written prose (e.g. "Either CRITICAL,
+        collected to match developer-written prose (such as "Either CRITICAL,
         ERROR, ...") without producing false-positive highlights for common
         English words like "error" and "info".
         """
@@ -228,7 +228,7 @@ class _HelpColorsMixin:
             kw.choices.update(
                 param.type.normalize_choice(c, ctx) for c in param.type.choices
             )
-            # Also collect the rendered metavar string (e.g.
+            # Also collect the rendered metavar string (like
             # ``[json|xml|csv]``) so it can be styled and placeholdered
             # before cross-ref highlighting. This protects choices that
             # appear in ``excluded_keywords`` from losing their
@@ -250,26 +250,26 @@ class _HelpColorsMixin:
 
             # Only collect option names from actual Option parameters, not from
             # Arguments. An Argument's opts contains the bare parameter name
-            # (e.g. "keys") which would pollute the option keywords and
+            # (like "keys") which would pollute the option keywords and
             # interfere with highlighting of real options like "--list-keys".
             if isinstance(param, click.Option):
                 options.update(param.opts)
                 options.update(param.secondary_opts)
             elif isinstance(param, click.Argument):
-                # Collect argument metavars (e.g. "MY_ARG") as a distinct
+                # Collect argument metavars (like "MY_ARG") as a distinct
                 # category from option metavars.
                 kw.arguments.add(param.make_metavar(ctx=ctx))
 
             # Only Choice and DateTime types produce their own structured
             # metavar (with delimiters like brackets and pipes). All other
-            # types fall back to a plain uppercased name (e.g. TEXT, INTEGER).
+            # types fall back to a plain uppercased name (like TEXT, INTEGER).
             if isinstance(param.type, (click.Choice, ThemeChoice)):
                 _HelpColorsMixin._collect_choice_keywords(param, ctx, kw)
             elif isinstance(param.type, click.DateTime):
                 # Highlight each datetime format string as a choice.
                 kw.choices.update(param.type.formats)
             elif type_choices := getattr(param.type, "choices", None):
-                # Duck-typed choice-like ``click.ParamType`` (e.g.
+                # Duck-typed choice-like ``click.ParamType`` (such as
                 # :class:`click_extra.types.MultiChoice` and its subclasses):
                 # each accepted value is worth highlighting individually, and
                 # the rendered ``[a,b,c]`` metavar protects the brackets +
@@ -281,7 +281,7 @@ class _HelpColorsMixin:
                 # Argument metavars are collected in the arguments set.
                 kw.metavars.add(param.make_metavar(ctx=ctx))
 
-            # A user-provided metavar (e.g. ``metavar="LEVEL"``) is always
+            # A user-provided metavar (like ``metavar="LEVEL"``) is always
             # worth highlighting, even for Choice/DateTime types.
             if param.metavar and not isinstance(param, click.Argument):
                 kw.metavars.add(param.metavar)
@@ -386,7 +386,7 @@ class HelpFormatter(cloup.HelpFormatter):
         On Click ``8.3.x``, :func:`click.formatting.wrap_text` measures line length
         with raw :func:`len`, counting every byte of the ANSI escape sequences
         embedded in ``initial_indent`` (the styled ``Usage:`` heading +
-        invoked-command name). With 24-bit RGB themes (e.g. Solarized Dark,
+        invoked-command name). With 24-bit RGB themes (like Solarized Dark,
         Dracula, Nord, Monokai), each styled token carries 17+ extra
         bytes of escape, which inflates the measured line beyond the width
         budget and causes premature wraps mid-token: ``[OPTIONS\\n  ]``.
@@ -549,7 +549,7 @@ class HelpFormatter(cloup.HelpFormatter):
         Takes a rendered metavar like ``[json|xml|csv]`` (Click ``Choice``-style)
         or ``[id,spec,value]`` (Click Extra ``MultiChoice``-style) and returns a
         styled version where each known choice is wrapped with ``theme.choice``.
-        A part that is not a known choice is a type placeholder (e.g. the
+        A part that is not a known choice is a type placeholder (like the
         ``INTEGER`` in a hybrid ``[auto|max|INTEGER]`` metavar) and is styled
         with ``theme.metavar`` instead. Returns ``None`` if ``metavar`` does not
         look like a choice list.
@@ -624,7 +624,7 @@ class HelpFormatter(cloup.HelpFormatter):
         # ANSI codes.
         #
         # To prevent cross-reference highlighting from restyling keywords that
-        # appear inside bracket field content (e.g. a choice value like
+        # appear inside bracket field content (such as a choice value like
         # "outline" within a default value "rounded-outline"), we replace each
         # styled bracket field with a null-byte placeholder, run all cross-ref
         # passes on the placeholder text, then restore the styled fields.
@@ -637,7 +637,7 @@ class HelpFormatter(cloup.HelpFormatter):
 
         help_text = self._bracket_re.sub(_bracket_to_placeholder, help_text)
 
-        # Style and placeholder choice metavars (e.g. ``[json|xml|csv]``)
+        # Style and placeholder choice metavars (like ``[json|xml|csv]``)
         # before applying excluded_keywords and running cross-ref passes.
         # This ensures that choices excluded from cross-ref highlighting
         # (like "version") are still highlighted inside their own metavar.
@@ -674,7 +674,7 @@ class HelpFormatter(cloup.HelpFormatter):
 
             # Highlight options (long and short combined). Per-keyword lookbehind
             # excludes the option's own leading symbol to prevent matching repeated
-            # prefixes (e.g. "---debug" should not match "--debug").
+            # prefixes (for example, "---debug" should not match "--debug").
             all_options = sorted(
                 kw.long_options | kw.short_options, key=len, reverse=True
             )
@@ -806,7 +806,7 @@ def highlight(
             start_idx = match.start()
             end_idx = match.end()
 
-            # Skip zero-length matches (e.g. from pure lookbehind/lookahead).
+            # Skip zero-length matches (like those from pure lookbehind/lookahead).
             if start_idx >= end_idx:
                 start_pos = start_idx + 1
                 continue

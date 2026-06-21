@@ -117,7 +117,7 @@ def test_manpages_hook_honors_prog_name_and_output_dir(tmp_path):
 
 
 def test_manpages_hook_skips_non_html_builder(tmp_path):
-    """Non-HTML builders (e.g. ``linkcheck``) must not emit man pages."""
+    """Non-HTML builders (like ``linkcheck``) must not emit man pages."""
     outdir = _build_with_manpages(
         tmp_path,
         [{"script": "click_extra.cli:demo"}],

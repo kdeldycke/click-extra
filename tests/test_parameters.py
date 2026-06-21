@@ -1290,7 +1290,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
             ):
                 row[9] = row[9][1:-1]
             # Flag value: empty cell means the attribute is absent (None); a quoted
-            # string flag value (e.g. --color's 'always') renders as a native string.
+            # string flag value (like --color's 'always') renders as a native string.
             if row[11] == "":
                 row[11] = None
             elif (
@@ -1505,7 +1505,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
             ):
                 row[9] = row[9][1:-1]
             # Flag value: empty cell means the attribute is absent (None); a quoted
-            # string flag value (e.g. --color's 'always') renders as a native string.
+            # string flag value (like --color's 'always') renders as a native string.
             if row[11] == "":
                 row[11] = None
             elif (

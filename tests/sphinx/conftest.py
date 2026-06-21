@@ -213,7 +213,7 @@ def sphinx_app_rst(tmp_path):
 def sphinx_app_myst(tmp_path):
     """Create a Sphinx application for testing MyST format only.
 
-    The ``click:*`` and ``python:*`` directive families are enabled —
+    The ``click:*`` and ``python:*`` directive families are enabled:
     see :func:`sphinx_app_rst` for the rationale.
     """
     yield from SphinxAppWrapper.create(FormatType.MYST, tmp_path)
@@ -298,9 +298,8 @@ def shell_block(*lines: str) -> str:
 def admonition_block(admonition_type: str, content: str) -> str:
     """Build expected admonition block.
 
-    Args:
-        admonition_type: The type of admonition (note, tip, warning, etc.)
-        content: The inner HTML content of the admonition (without the title)
+    :param admonition_type: The type of admonition (note, tip, warning, etc.)
+    :param content: The inner HTML content of the admonition (without the title)
     """
     title = admonition_type.capitalize()
     return (

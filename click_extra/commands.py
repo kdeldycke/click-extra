@@ -17,7 +17,7 @@
 
 Our flavor of commands, groups and context are all subclasses of their vanilla
 counterparts, but are pre-configured with good and common defaults. You can still
-leverage the mixins in here to build up your own custom variants.
+use the mixins in here to build up your own custom variants.
 """
 
 from __future__ import annotations
@@ -172,9 +172,9 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
 
         :param version_fields: dictionary of
             ``VersionOption`` template field overrides forwarded to the
-            version option.  Accepts any field from
-            ``VersionOption.template_fields`` (e.g. ``prog_name``,
-            ``version``, ``git_branch``).  Lets you customize ``--version``
+            version option. Accepts any field from
+            ``VersionOption.template_fields`` (like ``prog_name``,
+            ``version``, ``git_branch``). Lets you customize ``--version``
             output from the command decorator without replacing the default
             ``params`` list.
         :param extra_keywords: a ``HelpKeywords`` instance whose entries are
@@ -499,12 +499,12 @@ def _enhance_short_option_error(
 
     Click's parser treats ``-dbgwrong`` as stacked short flags ``-d -b -g -w
     -r -o -n -g``, then reports "No such option: -d" on the first unregistered
-    character.  That is technically correct (short-option combining is POSIX
-    behaviour) but confusing when the user meant it as a single option name.
+    character. That is technically correct (short-option combining is POSIX
+    behavior) but confusing when the user meant it as a single option name.
 
     This function detects that situation by checking whether the failed character
     is the *first* character of a multi-char single-dash token from the original
-    argument list.  If so, it collects every registered option name and uses
+    argument list. If so, it collects every registered option name and uses
     ``difflib.get_close_matches`` to suggest alternatives, then raises a new
     ``NoSuchOption`` with the full token.
 
@@ -538,7 +538,7 @@ def _enhance_short_option_error(
     failed_char = option_name[1]
 
     # Find the original multi-char token whose *first* character (after the
-    # dash) is the one that failed.  That means the whole token was never
+    # dash) is the one that failed. That means the whole token was never
     # partially consumed as stacked short flags: it was one thing the user
     # typed, and Click split it character-by-character without matching
     # anything.
@@ -814,7 +814,7 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         """Like ``Command.__init__``, but auto-injects a ``help`` subcommand.
 
         :param help_command: when ``True`` (the default), a ``help`` subcommand is
-            automatically registered.  Set to ``False`` to suppress it, or register
+            automatically registered. Set to ``False`` to suppress it, or register
             your own ``help`` subcommand to override it.
         """
         super().__init__(*args, **kwargs)
@@ -881,9 +881,7 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
 
         return super().invoke(ctx)
 
-    def _read_subcommand_list(
-        self, ctx: click.Context, key: str
-    ) -> list[str] | None:
+    def _read_subcommand_list(self, ctx: click.Context, key: str) -> list[str] | None:
         """Read, validate, dedupe, and existence-check a subcommand-list config key.
 
         Returns the deduplicated list of subcommand names declared under ``key``
@@ -905,9 +903,7 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
 
         # Validate type.
         if not isinstance(raw, list) or not all(isinstance(s, str) for s in raw):
-            raise click.UsageError(
-                f"{key} must be a list of strings, got {raw!r}."
-            )
+            raise click.UsageError(f"{key} must be a list of strings, got {raw!r}.")
 
         if not raw:
             return None
@@ -981,7 +977,7 @@ class LazyGroup(Group):
 
                 {"<command-name>": "<module-name>.<command-object-name>"}
 
-            Example:
+            For example:
 
             .. code-block:: python
 
@@ -1009,7 +1005,7 @@ class LazyGroup(Group):
             register commands with custom settings like Cloup's ``section`` or
             ``fallback_to_default_section``:
 
-            - section: Optional[Section] = None,
+            - section: Section | None = None,
             - fallback_to_default_section: bool = True,
 
             See: https://github.com/janluke/cloup/blob/master/cloup/_sections.py#L169

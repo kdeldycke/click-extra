@@ -69,7 +69,7 @@ from click_extra.version import (
 from .conftest import skip_windows_colors
 
 # Regex matching the version with optional PEP 440 local version suffix for dev
-# versions (e.g., "7.6.0.dev0+abc1234").
+# versions (like "7.6.0.dev0+abc1234").
 _ver = re.escape(__version__) + r"(\+[a-f0-9]{4,40})?"
 
 
@@ -286,9 +286,7 @@ def test_context_meta_laziness(invoke, cmd_decorator):
     assert "version = 1.0.0" in result.output
 
     # Retrieve the VersionOption instance from the command.
-    version_param = next(
-        p for p in lazy_cli.params if isinstance(p, VersionOption)
-    )
+    version_param = next(p for p in lazy_cli.params if isinstance(p, VersionOption))
     # Fields that were never accessed should NOT have been cached.
     assert "env_info" not in version_param.__dict__
     assert "git_date" not in version_param.__dict__
@@ -562,7 +560,7 @@ def test_dev_version_appends_git_hash(invoke, cmd_decorator):
 
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_prebaked_dev_version_not_double_suffixed(invoke, cmd_decorator):
-    """A version with an existing ``+`` is returned as-is — no second hash appended."""
+    """A version with an existing ``+`` is returned as-is: no second hash appended."""
 
     @cmd_decorator
     @version_option(fields={"module_version": "1.0.0.dev1+abc1234"})

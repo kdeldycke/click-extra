@@ -167,7 +167,7 @@ def test_no_color_env_convention(
     def color_cli7():
         echo(Style(fg="yellow")("It works!"))
 
-    # Unset all recognized color env vars so the outer environment (e.g.
+    # Unset all recognized color env vars so the outer environment (like
     # LLM=1 set by AI agents) doesn't leak into the baseline case.
     if env is None:
         env = {var: None for var in color_envvars if var in os.environ}

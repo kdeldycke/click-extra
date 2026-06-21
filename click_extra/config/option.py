@@ -38,7 +38,7 @@
     Help message would be: *you can use this option with other options or environment
     variables to have them set in the generated configuration*.
 
-Dotted keys in configuration files (e.g. ``"subcommand.option": value``) are
+Dotted keys in configuration files (like ``"subcommand.option": value``) are
 automatically expanded into nested dicts before merging, so users can freely mix
 flat dot-notation and nested structures in any supported format.
 """
@@ -110,12 +110,12 @@ VCS_DIRS = (".git", ".hg", ".svn", ".bzr", "CVS", ".darcs")
 """VCS directory names used to identify version control system roots.
 
 Includes:
-- ``.git`` — Git
-- ``.hg`` — Mercurial
-- ``.svn`` — Subversion
-- ``.bzr`` — Bazaar
-- ``CVS`` — CVS (note: uppercase, no leading dot)
-- ``.darcs`` — Darcs
+- ``.git``: Git
+- ``.hg``: Mercurial
+- ``.svn``: Subversion
+- ``.bzr``: Bazaar
+- ``CVS``: CVS (note: uppercase, no leading dot)
+- ``.darcs``: Darcs
 """
 
 
@@ -348,9 +348,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         self.stop_at = stop_at
         """Boundary for parent directory walking.
 
-        - ``None`` — walk up to filesystem root.
-        - ``VCS`` — stop at the nearest VCS root (``.git`` or ``.hg``) (default).
-        - A ``Path`` or ``str`` — stop at that directory.
+        - ``None``: walk up to filesystem root.
+        - ``VCS``: stop at the nearest VCS root (``.git`` or ``.hg``) (default).
+        - A ``Path`` or ``str``: stop at that directory.
         """
 
         if excluded_params is not None and included_params is not None:
@@ -386,14 +386,14 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Supports:
 
-        - **Dataclass types** — detected via ``__dataclass_fields__``.  Keys
+        - **Dataclass types**: detected via ``__dataclass_fields__``. Keys
           are normalized, nested dicts are flattened, and the result is filtered
-          to known fields before instantiation.  This allows nested config
-          sections (e.g. ``[tool.myapp.sub-section]``) to map directly to flat
-          dataclass fields (e.g. ``sub_section_key``).
-        - **Any callable** ``dict → T`` — called directly with the raw
-          dict.  Works with Pydantic's ``Model.model_validate``, attrs, or
-          custom factory functions.  The caller is responsible for key
+          to known fields before instantiation. This allows nested config
+          sections (like ``[tool.myapp.sub-section]``) to map directly to flat
+          dataclass fields (like ``sub_section_key``).
+        - **Any callable** ``dict → T``: called directly with the raw
+          dict. Works with Pydantic's ``Model.model_validate``, attrs, or
+          custom factory functions. The caller is responsible for key
           normalization and flattening.
 
         The resulting object is stored in
@@ -406,7 +406,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         - If ``True``, raise ``ValueError`` when the config section contains keys
           that do not match any dataclass field (after normalization and
-          flattening).  Only applies when ``config_schema`` is a dataclass.
+          flattening). Only applies when ``config_schema`` is a dataclass.
         - If ``False``, silently ignore unrecognized keys.
 
         .. note::
@@ -522,7 +522,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         )
         all_format_patterns = tuple(flatten(self.file_format_patterns.values()))
 
-        # Check 1: broad glob + all-literal format patterns
+        # Check 1: broad glob + all-literal format patterns.
         if default_is_magic:
             all_literal = all(
                 not glob.is_magic(p.replace("\\", "/"), flags=self.search_pattern_flags)
@@ -535,7 +535,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                     f"files only to discard most of them."
                 )
 
-        # Check 2: literal default that never matches any format pattern
+        # Check 2: literal default that never matches any format pattern.
         if not default_is_magic:
             pattern_str = "|".join(all_format_patterns)
             if not fnmatch.fnmatch(
@@ -547,7 +547,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                     f"be found."
                 )
 
-        # Check 4: dotfile without DOTGLOB
+        # Check 4: dotfile without DOTGLOB.
         if not (self.search_pattern_flags & glob.DOTGLOB):
             dotfiles: list[str] = []
             if file_part.startswith("."):
@@ -646,8 +646,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             extra["default"] = "disabled"
         elif self.search_pattern_flags & glob.GLOBTILDE:
             # When the default already starts with ``~`` (user-supplied tilde
-            # pattern), use it as-is.  Passing through ``Path()`` would
-            # normalise forward slashes to backslashes on Windows.
+            # pattern), use it as-is. Passing through ``Path()`` would
+            # normalize forward slashes to backslashes on Windows.
             default_str = str(default)
             extra["default"] = (
                 default_str
@@ -737,7 +737,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             parts = Path(pattern).parts
             magic_idx = next(i for i, part in enumerate(parts) if is_magic(part))
             if magic_idx == 0:
-                # Entirely magic (e.g., "{*.toml,*.yaml}").
+                # Entirely magic (like "{*.toml,*.yaml}").
                 root_dir = None
                 file_pattern = pattern
             else:
@@ -881,12 +881,12 @@ class ConfigOption(ExtraOption, ParamStructure):
         (or filesystem root) is reached.
 
         A ``pyproject.toml`` without a ``[tool.<cli_name>]`` section is
-        skipped so unrelated project configs (e.g. a dotfiles repo's
+        skipped so unrelated project configs (like a dotfiles repo's
         ``[tool.ruff]``) do not shadow the user's app-dir config; the
         caller falls back to the standard app-dir search instead.
 
         Only runs when ``ConfigFormat.PYPROJECT_TOML`` is in
-        ``file_format_patterns``.  Returns ``(path, parsed_tool_section)`` on
+        ``file_format_patterns``. Returns ``(path, parsed_tool_section)`` on
         success, or ``(None, None)`` if no valid ``pyproject.toml`` was found.
         """
         cwd = Path.cwd()
@@ -1059,7 +1059,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
             # Place collected options at the right level of the dict tree.
             conf = always_merger.merge(
-                conf, self.init_tree_dict(*section_id.split(PARAM_PATH_SEP), leaf=sub_conf)
+                conf,
+                self.init_tree_dict(*section_id.split(PARAM_PATH_SEP), leaf=sub_conf),
             )
 
         return conf
@@ -1178,7 +1179,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Opaque sub-trees declared by the schema or by registered
         :class:`~click_extra.config.schema.ConfigValidator` instances are stripped from the conf before the
-        CLI-parameter strict check, so user-controlled keys (e.g. mappings whose
+        CLI-parameter strict check, so user-controlled keys (like mappings whose
         keys are data, not flag names) don't trip ``strict=True``.
         """
         normalized_conf = _expand_dotted_keys(
@@ -1277,8 +1278,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(message)
 
         # Search for pyproject.toml from CWD upward before the standard
-        # app-dir search.  This matches the discovery behavior of uv, ruff,
-        # and mypy.  Only runs on auto-discovery (not explicit --config).
+        # app-dir search. This matches the discovery behavior of uv, ruff,
+        # and mypy. Only runs on auto-discovery (not explicit --config).
         conf_path: Path | URL | None = None
         user_conf = None
         if (

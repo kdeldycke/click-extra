@@ -366,7 +366,7 @@ class ColorOption(ExtraOption):
            as a non-``DEFAULT`` source) therefore wins over the environment, matching
            :class:`~click_extra.accessibility.AccessibleOption`.
         #. A color state already pinned by ``--no-color``, a forced
-           test runner, or an explicit ``Context(color=...)`` — preserved when this
+           test runner, or an explicit ``Context(color=...)``: preserved when this
            option only resolves to ``auto`` from its default.
         #. The ``auto`` default, leaving ``ctx.color`` at ``None`` for TTY detection.
         """

@@ -30,7 +30,7 @@ extensions = [
 This unlocks the always-on features: the ANSI-capable Pygments HTML formatter and the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter. The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
-**Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted — there is no sandbox.
+**Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
 
 This is intentional: build-time execution is the whole point of those directives. But it means the same trust boundary I'd apply to a `Makefile` or `conftest.py` applies here:
 
@@ -608,7 +608,7 @@ def sql_output(name):
     echo(sql_query)
 ```
 
-Then you can force the SQL Pygments highlighter on its output by passing the [short name of that lexer (i.e. `sql`)](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqlLexer) as the first argument to the directive:
+Then you can force the SQL Pygments highlighter on its output by passing the [short name of that lexer (`sql`)](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqlLexer) as the first argument to the directive:
 
 ````{code-block} markdown
 :emphasize-lines: 1
@@ -624,7 +624,7 @@ And renders to:
 invoke(sql_output, args=["--name", "Joe"])
 ```
 
-See how the output (i.e. the second line above) is now rendered with the `sql` Pygments lexer, which is more appropriate for SQL queries. But of course it also parse and renders the whole block as if it is SQL code, which mess up the rendering of the first line, as it is a shell command.
+See how the output (the second line above) is now rendered with the `sql` Pygments lexer, which is more appropriate for SQL queries. But of course it also parse and renders the whole block as if it is SQL code, which mess up the rendering of the first line, as it is a shell command.
 
 In fact, if you look at Sphinx logs, you will see that a warning has been raised because of that:
 
@@ -723,7 +723,7 @@ Click Extra also adds five general-purpose Python execution directives, register
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `python:source`      | Define and show a Python source block, executed silently. Use it to teach readers what a snippet looks like and to seed imports/variables for follow-up blocks.                                                                       |
 | `python:run`         | Execute a Python block and render its captured `stdout` in a code block. Output language defaults to `text`; override with `:language:` for structured output (`json`, `html`, `yaml`, etc.).                                         |
-| `python:render`      | Execute a Python block and parse its captured `stdout` as **live document content** using the host file's parser. Generated tables, headings, admonitions, and cross-references become first-class document nodes — not a code block. |
+| `python:render`      | Execute a Python block and parse its captured `stdout` as **live document content** using the host file's parser. Generated tables, headings, admonitions, and cross-references become first-class document nodes, not a code block. |
 | `python:render-myst` | Execute a Python block and parse its captured `stdout` as MyST, regardless of host. Lets a `.rst` document embed MyST-generated content.                                                                                              |
 | `python:render-rst`  | Execute a Python block and parse its captured `stdout` as reST, regardless of host. Lets a `.md` document embed reST-generated content.                                                                                               |
 
@@ -743,7 +743,7 @@ This project eats its own dog food: the [ANSI lexer table in `pygments.md`](pygm
 
 `python:render` reuses the host state machine, so cross-references and Sphinx-aware roles resolve naturally. The forced-parser variants (`render-myst`, `render-rst`) parse into a fresh sub-document and graft the resulting nodes back into the page.
 
-### `python:render` — docs as code
+### `python:render`: docs as code
 
 ```{tip}
 The strongest use case is replacing a `docs/docs_update.py` script that walks an in-process registry, renders Markdown, and rewrites a region of a `.md` file between `<!-- start -->` / `<!-- end -->` markers. With `python:render`, the same code lives inline in the page itself and runs at build time. The rendered HTML is always current because the source-of-truth registry is queried on every build.

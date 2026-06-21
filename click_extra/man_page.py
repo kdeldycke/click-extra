@@ -327,7 +327,7 @@ class ManPage:
     """
 
     name: str
-    """Full command path, space-joined (e.g. ``weather forecast``)."""
+    """Full command path, space-joined (like ``weather forecast``)."""
 
     short_help: str = ""
     """One-line description for the NAME section."""
@@ -491,7 +491,7 @@ def _generator_tag() -> str:
 
     This is Click Extra's *own* version (the generator), not the documented
     CLI's version, which is carried by the ``.TH`` header instead. Falls back to
-    the bare name when the distribution metadata is unavailable (e.g. running
+    the bare name when the distribution metadata is unavailable (such as running
     from an uninstalled source tree).
     """
     try:
@@ -625,7 +625,7 @@ def extract_manpage(
 ) -> ManPage:
     """Build a :class:`ManPage` from a Click command and its context.
 
-    The context must have been created for ``command`` (e.g. via
+    The context must have been created for ``command`` (for example via
     :meth:`click.Command.make_context` with ``resilient_parsing=True``), so
     that auto-generated environment-variable prefixes resolve correctly.
     """
@@ -714,7 +714,7 @@ def render_manpage(
 ) -> str:
     """Render a single command's man page as a roff string.
 
-    Reuses ``ctx`` when given (e.g. the live invocation context), otherwise
+    Reuses ``ctx`` when given (like the live invocation context), otherwise
     builds a throwaway one with ``resilient_parsing=True``. Keyword overrides
     (``version``, ``date``, ``manual``, ``authors``, ``copyright``) are passed
     through to :func:`~click_extra.man_page.extract_manpage`.
@@ -734,7 +734,7 @@ def render_manpages(
     """Render the whole command tree, one man page per (sub)command.
 
     Returns an ordered mapping of ``{filename: roff}`` where each filename is
-    the command path joined by hyphens plus the section suffix (e.g.
+    the command path joined by hyphens plus the section suffix (like
     ``weather-forecast.1``).
     """
     pages: dict[str, str] = {}

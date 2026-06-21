@@ -155,9 +155,7 @@ def patch_click(
     _patched_command_func = _make_patched_decorator(
         _original_click_command, ColorizedCommand
     )
-    _patched_group_func = _make_patched_decorator(
-        _original_click_group, ColorizedGroup
-    )
+    _patched_group_func = _make_patched_decorator(_original_click_group, ColorizedGroup)
 
     # Replace decorator functions in both namespaces so both ``click.command``
     # and ``from click.decorators import command`` resolve to the wrappers.
@@ -191,8 +189,8 @@ def patch_click(
             # collect_keywords() now works on any command: static methods are
             # class-qualified and extra_keywords uses getattr with defaults.
             formatter.keywords = _HelpColorsMixin.collect_keywords(self, ctx)
-            formatter.excluded_keywords = (
-                _HelpColorsMixin._collect_excluded_keywords(ctx)
+            formatter.excluded_keywords = _HelpColorsMixin._collect_excluded_keywords(
+                ctx
             )
         _original_format_help(self, ctx, formatter)
 
@@ -262,15 +260,15 @@ def resolve_target(script: str) -> tuple[str, str]:
             return module_path, function_name
 
     # 2. .py file path. Checked before the module:function heuristic so that
-    # Windows absolute paths (e.g. ``C:\...\foo.py``) are not mistaken for
-    # ``module:function`` notation — the drive-letter colon would otherwise
+    # Windows absolute paths (like ``C:\...\foo.py``) are not mistaken for
+    # ``module:function`` notation: the drive-letter colon would otherwise
     # split the path at the wrong position.
     if script.endswith(".py"):
         if Path(script).is_file():
             logger.info("Resolved %r as .py file.", script)
             return script, ""
         # .py path that does not exist: fall through to bare module lookup.
-        # Skip the module:function check below — a .py name is never valid
+        # Skip the module:function check below: a .py name is never valid
         # module:function notation.
     else:
         # 3. Explicit module:function notation.

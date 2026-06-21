@@ -368,7 +368,7 @@ def test_branded_themes_meet_wcag_aa_large(theme_name, slot):
 
     Branded palettes are deliberate 24-bit RGB choices, so we can hold them
     to a real WCAG threshold. AA Large is the realistic floor: full AA
-    (4.5+) is unattainable for some published themes (e.g. Solarized's
+    (4.5+) is unattainable for some published themes (like Solarized's
     accent blue on its base03 background sits at ~4.08).
 
     A regression that drops one of these slots below 3.0 means the theme is

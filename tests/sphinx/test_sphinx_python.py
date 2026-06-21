@@ -77,7 +77,7 @@ def test_python_run_language_override(sphinx_app_myst):
 
 def test_python_run_emphasize_lines_split(sphinx_app_myst):
     """``:emphasize-lines:`` highlights source only; ``:emphasize-result-lines:``
-    highlights result only — independently, on the same block."""
+    highlights result only: independently, on the same block."""
     content = dedent("""
         ```{python:run}
         :show-source:

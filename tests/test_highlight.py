@@ -791,8 +791,8 @@ def test_bracket_field_full_combination_styling():
 
     Covers the canonical ``[env var: NAME; default: VAL; required]`` block
     that combines all three trailing-field labels. The bracket slot styles
-    only the structural tokens — the outer ``[`` / ``]``, the
-    ``env var: `` / ``default: `` labels, and the ``; `` separators — while
+    only the structural tokens: the outer ``[`` / ``]``, the
+    ``env var: `` / ``default: `` labels, and the ``; `` separators, while
     the value tokens (``NAME``, ``VAL``) and the ``required`` label get
     their own slot styling layered on top. This is the contract referenced
     in :attr:`HelpTheme.bracket`'s docstring.
@@ -828,8 +828,8 @@ def test_bracket_field_full_combination_styling():
     )
     assert expected in help_text
 
-    # The alternative "wide-marker" rendering — bracket-styling the whole
-    # field content as one block — is NOT what click-extra emits. Asserting
+    # The alternative "wide-marker" rendering, bracket-styling the whole
+    # field content as one block, is NOT what click-extra emits. Asserting
     # the negative directly via ``theme.bracket("required") not in ...``
     # is unreliable because the bracket slot's dim escape ``\x1b[2m`` is a
     # tail substring of every other slot's combined escape (red+dim,
@@ -888,7 +888,7 @@ def test_bracket_field_inner_slot_fallback_to_bracket():
     Contract: a theme that styles only ``bracket`` and leaves
     ``envvar`` / ``default`` / ``required`` / ``range_label`` at
     :func:`identity <cloup._util.identity>` should still render the whole
-    bracket field with the bracket styling — value tokens inherit it
+    bracket field with the bracket styling: value tokens inherit it
     rather than rendering plain. Specific inner slots override piecemeal.
     """
     from cloup._util import identity
@@ -919,7 +919,7 @@ def test_bracket_field_inner_slot_fallback_to_bracket():
 
     bracket = bracket_only.bracket
     # Every styleable token inside the bracket field gets ``bracket``'s
-    # styling — including the values (``PORT, TEST_THRESHOLD``, ``8080``)
+    # styling: including the values (``PORT, TEST_THRESHOLD``, ``8080``)
     # and the ``required`` label which would normally route through their
     # own slots.
     expected = (
@@ -1048,7 +1048,7 @@ def test_choice_does_not_override_default_style():
     """Choice cross-ref highlighting must not restyle text inside bracket fields.
 
     When a default value contains a substring that matches a choice keyword
-    (e.g. ``outline`` from ``rounded-outline``), the choice style must not
+    (like ``outline`` from ``rounded-outline``), the choice style must not
     override the default value style. Regression test for the case where
     line-wrapping splits a hyphenated default so the second word starts a new
     line and passes the lookbehind.
@@ -1128,7 +1128,7 @@ def test_choice_does_not_override_default_style():
             id="case-insensitive-no-false-positive",
         ),
         # Case-insensitive choices without a custom metavar use normalized forms.
-        # Click renders the metavar in lowercase (e.g. [critical|error]).
+        # Click renders the metavar in lowercase (like [critical|error]).
         # Normalized forms are collected so the metavar values are highlighted.
         # This means false positives in prose are possible for these choices.
         pytest.param(
@@ -2243,7 +2243,7 @@ def test_keyword_collection(invoke, assert_output_regex):
             "|\x1b[32msimple-grid\x1b[0m|\x1b[32msimple-outline\x1b[0m]",
             False,
         ),
-        # Regex patterns - basic patterns
+        # Regex patterns - basic patterns.
         (
             "Hey-xx-xxx-heY-xXxXxxxxx-hey",
             re.compile(r"h\w+"),
@@ -2256,7 +2256,7 @@ def test_keyword_collection(invoke, assert_output_regex):
             "\x1b[32mHey\x1b[0m-xx-xxx-\x1b[32mheY\x1b[0m-xXxXxxxxx-\x1b[32mhey\x1b[0m",
             True,
         ),
-        # Regex patterns - character classes
+        # Regex patterns - character classes.
         (
             "test123-abc456-xyz789",
             re.compile(r"\d+"),
@@ -2269,84 +2269,84 @@ def test_keyword_collection(invoke, assert_output_regex):
             "\x1b[32mfile.txt\x1b[0m \x1b[32mconfig.json\x1b[0m \x1b[32mdata.csv\x1b[0m",
             False,
         ),
-        # Regex patterns - word boundaries
+        # Regex patterns - word boundaries.
         (
             "testing test tested",
             re.compile(r"\btest\b"),
             "testing \x1b[32mtest\x1b[0m tested",
             False,
         ),
-        # Regex patterns - alternation
+        # Regex patterns - alternation.
         (
             "apple banana cherry",
             re.compile(r"apple|cherry"),
             "\x1b[32mapple\x1b[0m banana \x1b[32mcherry\x1b[0m",
             False,
         ),
-        # Regex patterns - quantifiers
+        # Regex patterns - quantifiers.
         (
             "a aa aaa aaaa aaaaa",
             re.compile(r"a{2,3}"),
             "a \x1b[32maa\x1b[0m \x1b[32maaa\x1b[0m \x1b[32maaaa\x1b[0m \x1b[32maaaaa\x1b[0m",
             False,
         ),
-        # Compiled regex patterns
+        # Compiled regex patterns.
         (
             "test@example.com admin@site.org",
             re.compile(r"\w+@\w+\.\w+"),
             "\x1b[32mtest@example.com\x1b[0m \x1b[32madmin@site.org\x1b[0m",
             False,
         ),
-        # Mixed literal and regex patterns
+        # Mixed literal and regex patterns.
         (
             "--verbose --debug --help -v -d -h",
             ["--help", re.compile(r"--\w+"), re.compile(r"-[a-z]")],
             "\x1b[32m--verbose\x1b[0m \x1b[32m--debug\x1b[0m \x1b[32m--help\x1b[0m \x1b[32m-v\x1b[0m \x1b[32m-d\x1b[0m \x1b[32m-h\x1b[0m",
             False,
         ),
-        # Overlapping regex matches
+        # Overlapping regex matches.
         (
             "aaabbb",
             [re.compile(r"aa"), re.compile(r"aaa")],
             "\x1b[32maaa\x1b[0mbbb",
             False,
         ),
-        # Regex with special characters (already escaped in literal)
+        # Regex with special characters (already escaped in literal).
         (
             "Price: $10.99 and $5.50",
             re.compile(r"\$\d+\.\d+"),
             "Price: \x1b[32m$10.99\x1b[0m and \x1b[32m$5.50\x1b[0m",
             False,
         ),
-        # Empty regex match (should not highlight)
+        # Empty regex match (should not highlight).
         (
             "test string",
             re.compile(r"xyz"),
             "test string",
             False,
         ),
-        # Case-insensitive regex
+        # Case-insensitive regex.
         (
             "HTML CSS JavaScript",
             re.compile(r"html|css"),
             "\x1b[32mHTML\x1b[0m \x1b[32mCSS\x1b[0m JavaScript",
             True,
         ),
-        # Pre-compiled regex with flags
+        # Pre-compiled regex with flags.
         (
             "HTML CSS JavaScript",
             re.compile(r"html|css", re.IGNORECASE),
             "\x1b[32mHTML\x1b[0m \x1b[32mCSS\x1b[0m JavaScript",
             False,
         ),
-        # Complex regex patterns
+        # Complex regex patterns.
         (
             "IP: 192.168.1.1 and 10.0.0.1",
             re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"),
             "IP: \x1b[32m192.168.1.1\x1b[0m and \x1b[32m10.0.0.1\x1b[0m",
             False,
         ),
-        # Regex matching start/end anchors (should work within content)
+        # Regex matching start/end anchors (should work within content).
         (
             "start middle end",
             re.compile(r"start|end"),

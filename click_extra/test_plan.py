@@ -364,7 +364,7 @@ class CLITestCase:
                 # Force UTF-8 decoding of subprocess output. The encoding parameter
                 # only affects parent-side decoding and does not change child process
                 # behavior. Without this, Windows defaults to cp1252, causing
-                # UnicodeDecodeError on non-ASCII output (e.g. contributor names).
+                # UnicodeDecodeError on non-ASCII output (like contributor names).
                 encoding="utf-8",
             )
         except TimeoutExpired:

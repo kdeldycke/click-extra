@@ -144,7 +144,7 @@ class Spinner:
         :param timer: append the elapsed wall-clock time to the spinner, and to
             any final :meth:`ok` / :meth:`fail` line. ``True`` uses the default
             compact format (``2.3s``, ``1:05``, then ``1:02:03``). Pass a callable
-            ``(seconds: float) -> str`` to format the duration yourself, e.g.
+            ``(seconds: float) -> str`` to format the duration yourself, like
             ``timer=lambda s: f"{s / 60:.0f}m"`` for whole minutes.
         :param stream: where to draw; defaults to :data:`sys.stderr` so the
             spinner never mixes into ``stdout`` data.
@@ -166,7 +166,7 @@ class Spinner:
         # This is the same `callable(first_arg)` test as
         # `click_extra.decorators.allow_missing_parenthesis`, inlined here on
         # purpose: that helper wraps a decorator *factory function* and returns a
-        # function, so it cannot wrap `Spinner` without replacing the class — and
+        # function, so it cannot wrap `Spinner` without replacing the class: and
         # `Spinner` must stay a class to double as a context manager and to support
         # ``isinstance()`` / subclassing. The bare-call hook therefore has to live
         # in ``__init__``, the one place the parenthesis-less form reaches.
@@ -343,7 +343,7 @@ class Spinner:
         """Best-effort: turn on virtual-terminal processing for a Windows console.
 
         Without it, legacy Windows consoles print the spinner's ANSI control codes
-        literally (``⠋␛[0m … ␛[K``) instead of animating in place — the recurring
+        literally (``⠋␛[0m … ␛[K``) instead of animating in place: the recurring
         complaint behind yaspin's Windows issues. Modern terminals (Windows
         Terminal, recent conhost) already enable it; this just covers the
         laggards. A no-op everywhere but Windows, and silent when the console (or

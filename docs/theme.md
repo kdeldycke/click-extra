@@ -46,7 +46,7 @@ Now invocations of the `weather` CLI pick up the light theme without passing `--
 | [`monokai`](#monokai)               | 24-bit RGB           | Classic dark theme with high-saturation magenta and lime accents.    |
 | [`manpage`](#manpage)               | None (monochrome)    | Bold literals, italic replaceable, no color. Shadows a man page.     |
 
-Each row is keyed by the `--theme` choice value; access the instance via `BUILTIN_THEMES["<name>"]` (e.g. `BUILTIN_THEMES["dark"]`). Click any name to jump to that theme's [palette listing](#palettes) below.
+Each row is keyed by the `--theme` choice value; access the instance via `BUILTIN_THEMES["<name>"]` (like `BUILTIN_THEMES["dark"]`). Click any name to jump to that theme's [palette listing](#palettes) below.
 
 Click each tab below for a live render of the theme applied to the same `weather` CLI's `--help` output. Colors are produced at Sphinx build time, not screenshots.
 
@@ -106,7 +106,7 @@ assert result.exit_code == 0
 Three flavors ship in `click_extra/themes.toml`:
 
 - **ANSI themes** (`dark`, `light`) use the 16 named ANSI colors via `cloup.styling.Color`, so the rendered colors track whatever palette the user's terminal is configured with. Pick these when you want to blend in with the user's terminal theme.
-- **Branded themes** (`solarized_dark`, `dracula`, `nord`, `monokai`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized_dark` should look like Solarized, not "whatever the terminal calls cyan"). On a terminal that does not advertise truecolor, click-extra downsamples each triplet to the nearest 256-color cell itself rather than leaving the conversion to the terminal: the choice is optimistic, keeping 24-bit unless `COLORTERM` is set to an explicit non-truecolor value or `TERM` ends in `-16color` (see `click_extra.styling.supports_truecolor`). Each theme's slot mapping is hand-curated: there's no automated translation from generic colour-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
+- **Branded themes** (`solarized_dark`, `dracula`, `nord`, `monokai`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized_dark` should look like Solarized, not "whatever the terminal calls cyan"). On a terminal that does not advertise truecolor, click-extra downsamples each triplet to the nearest 256-color cell itself rather than leaving the conversion to the terminal: the choice is optimistic, keeping 24-bit unless `COLORTERM` is set to an explicit non-truecolor value or `TERM` ends in `-16color` (see `click_extra.styling.supports_truecolor`). Each theme's slot mapping is hand-curated: there's no automated translation from generic color-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
 - **Monochrome theme** (`manpage`) uses no color at all: it renders literal tokens bold and replaceable tokens italic, the way `man-pages(7)` typesets a command. Pick it for low-color terminals, screenshots, or output meant to read like a man page. The bold/italic split is the one in [literal and replaceable slots](#literal-and-replaceable-slots).
 
 `click_extra.theme.BUILTIN_THEMES` is a `dict[str, HelpTheme]` mapping the names above to their instances; it is built by parsing `click_extra/themes.toml` at import time and is seeded into `theme_registry` immediately afterwards. Read the TOML file directly for the exact palette mapping, or call `theme.to_dict()` at runtime to get a TOML/JSON-friendly dict.
@@ -141,7 +141,7 @@ Use `click_extra.theme.get_current_theme()` to read the theme that applies to th
 
 ### Adding a new built-in theme
 
-A built-in theme is a single TOML table in `click_extra/themes.toml`: declare a `[<name>]` table with one inline-table per styled slot. The file is parsed at import time via `HelpTheme.from_dict`, so adding a theme requires no Python — only the data:
+A built-in theme is a single TOML table in `click_extra/themes.toml`: declare a `[<name>]` table with one inline-table per styled slot. The file is parsed at import time via `HelpTheme.from_dict`, so adding a theme requires no Python: only the data:
 
 ```toml
 # click_extra/themes.toml
@@ -155,7 +155,7 @@ option = { fg = "#8cd0d3" }
 # ... fill in the rest of the slots
 ```
 
-Tables are kept in alphabetical order; `tests/test_theme.py` enforces this. The slot mapping is the work: generic colour-scheme catalogs (base16, pygments, iTerm palettes) don't expose the semantic roles Click Extra needs (option, metavar, choice, deprecated, envvar, ...), so each theme is hand-curated. Use the existing `solarized_dark`, `dracula`, `nord`, and `monokai` tables as templates.
+Tables are kept in alphabetical order; `tests/test_theme.py` enforces this. The slot mapping is the work: generic color-scheme catalogs (base16, pygments, iTerm palettes) don't expose the semantic roles Click Extra needs (option, metavar, choice, deprecated, envvar, ...), so each theme is hand-curated. Use the existing `solarized_dark`, `dracula`, `nord`, and `monokai` tables as templates.
 
 ## Registering a custom theme
 
@@ -188,7 +188,7 @@ def cocktail():
 After this runs, `cocktail --theme neon` becomes a valid invocation, and `cocktail --help` lists `neon` alongside the built-in choices.
 
 ```{tip}
-For themes that depend on runtime state (terminal-background detection, environment variables, user settings), compute the `HelpTheme` once at startup and pass it to `register_theme`. The registry holds plain instances only — if you need lazy or per-invocation resolution, load the theme from `[tool.<cli>.themes.<name>]` (see [Themes from your `--config` file](#themes-from-your-config-file) below) so it lands on `ctx.meta` rather than the process-wide dict.
+For themes that depend on runtime state (terminal-background detection, environment variables, user settings), compute the `HelpTheme` once at startup and pass it to `register_theme`. The registry holds plain instances only: if you need lazy or per-invocation resolution, load the theme from `[tool.<cli>.themes.<name>]` (see [Themes from your `--config` file](#themes-from-your-config-file) below) so it lands on `ctx.meta` rather than the process-wide dict.
 ```
 
 ## Anatomy of a theme
@@ -250,7 +250,7 @@ register_theme("my_theme", HelpTheme.from_dict(raw["my_theme"]))
 
 `to_dict()` only emits slots that diverge from the default (`identity` / `None`), and `from_dict()` raises `TypeError` on unknown keys, so configuration typos surface at load time rather than silently producing a half-styled theme.
 
-For the much more common case where the theme should live in the same `--config` file the CLI already reads, see the [next section](#themes-from-your-config-file) — click-extra wires the loader for you.
+For the much more common case where the theme should live in the same `--config` file the CLI already reads, see the [next section](#themes-from-your-config-file): click-extra wires the loader for you.
 
 ## Themes from your config file
 

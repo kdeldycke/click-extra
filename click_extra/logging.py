@@ -111,7 +111,7 @@ def _last_param(
 ) -> click.Parameter | None:
     """Return the last parameter of exactly ``klass`` on the command, or ``None``.
 
-    Tolerates duplicates: when an option is declared more than once (e.g. an explicit
+    Tolerates duplicates: when an option is declared more than once (like an explicit
     ``@verbosity_option`` stacked on a Click Extra command that already ships one),
     Click keeps the last occurrence, so we mirror that here instead of erroring out on
     the ambiguity.

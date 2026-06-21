@@ -753,4 +753,3 @@ Unlike the upstream ``\\b``-based renderers, :class:`~click_extra.spinner.Spinne
 line, so the multi-character animations (``bouncingBar``, ``pong``, ``shark``, …)
 render correctly here.
 """
-

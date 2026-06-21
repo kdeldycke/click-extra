@@ -35,24 +35,24 @@ The table below lists every entry Click Extra writes, the option that triggers i
 
 | Constant                  | String key                    | Set by                                                     | Value                                                                  |
 | ------------------------- | ----------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `context.RAW_ARGS`        | `click_extra.raw_args`        | `Command.make_context` (always, on `@command` group)  | `list[str]` — pre-parsed `argv` slice fed to the current command       |
-| `context.CONF_SOURCE`     | `click_extra.conf_source`     | `ConfigOption.load_conf` (`@config_option`)                | `pathlib.Path \| URL \| None` — file the configuration was loaded from |
-| `context.CONF_FULL`       | `click_extra.conf_full`       | `ConfigOption.load_conf` (`@config_option`)                | `dict \| None` — full parsed configuration document                    |
+| `context.RAW_ARGS`        | `click_extra.raw_args`        | `Command.make_context` (always, on `@command` group)  | `list[str]`: pre-parsed `argv` slice fed to the current command       |
+| `context.CONF_SOURCE`     | `click_extra.conf_source`     | `ConfigOption.load_conf` (`@config_option`)                | `pathlib.Path \| URL \| None`: file the configuration was loaded from |
+| `context.CONF_FULL`       | `click_extra.conf_full`       | `ConfigOption.load_conf` (`@config_option`)                | `dict \| None`: full parsed configuration document                    |
 | `context.TOOL_CONFIG`     | `click_extra.tool_config`     | `ConfigOption._apply_config_schema` (with `config_schema`) | The deserialised app section (also reachable via `get_tool_config()`)  |
-| `context.VERBOSITY_LEVEL` | `click_extra.verbosity_level` | `--verbosity` / `--verbose` callbacks (reconciled)         | `LogLevel` — the highest level any verbosity option picked             |
-| `context.VERBOSITY`       | `click_extra.verbosity`       | `--verbosity` callback                                     | `LogLevel` — raw value of `--verbosity LEVEL` *(write-only)*           |
-| `context.VERBOSE`         | `click_extra.verbose`         | `--verbose` / `-v` callback                                | `int` — repetition count *(write-only)*                                |
-| `context.START_TIME`      | `click_extra.start_time`      | `--time` callback (`@timer_option`)                        | `float` — `time.perf_counter()` snapshot                               |
-| `context.JOBS`            | `click_extra.jobs`            | `--jobs` callback (`@jobs_option`)                         | `int` — effective parallel job count (clamped to >= 1)                 |
-| `context.PROGRESS`        | `click_extra.progress`        | `ProgressOption.set_progress` (always present on `@command`) | `bool` — `True` when progress spinners may display                   |
+| `context.VERBOSITY_LEVEL` | `click_extra.verbosity_level` | `--verbosity` / `--verbose` callbacks (reconciled)         | `LogLevel`: the highest level any verbosity option picked             |
+| `context.VERBOSITY`       | `click_extra.verbosity`       | `--verbosity` callback                                     | `LogLevel`: raw value of `--verbosity LEVEL` *(write-only)*           |
+| `context.VERBOSE`         | `click_extra.verbose`         | `--verbose` / `-v` callback                                | `int`: repetition count *(write-only)*                                |
+| `context.START_TIME`      | `click_extra.start_time`      | `--time` callback (`@timer_option`)                        | `float`: `time.perf_counter()` snapshot                               |
+| `context.JOBS`            | `click_extra.jobs`            | `--jobs` callback (`@jobs_option`)                         | `int`: effective parallel job count (clamped to >= 1)                 |
+| `context.PROGRESS`        | `click_extra.progress`        | `ProgressOption.set_progress` (always present on `@command`) | `bool`: `True` when progress spinners may display                   |
 | `context.TABLE_FORMAT`    | `click_extra.table_format`    | `--table-format` callback (`@table_format_option`)         | `TableFormat`                                                          |
-| `context.SORT_BY`         | `click_extra.sort_by`         | `--sort-by` callback (`@sort_by_option`)                   | `tuple[str, ...]` — column IDs in priority order                       |
-| `context.THEME`           | `click_extra.theme.active`    | `--theme` callback (always present on `@command`)          | `HelpTheme` — palette picked for this invocation                  |
-| `context.ZERO_EXIT`       | `click_extra.zero_exit`       | `-0` / `--zero-exit` callback (`@zero_exit_option`)        | `bool` — `True` to always exit 0 *(write-only)*                        |
+| `context.SORT_BY`         | `click_extra.sort_by`         | `--sort-by` callback (`@sort_by_option`)                   | `tuple[str, ...]`: column IDs in priority order                       |
+| `context.THEME`           | `click_extra.theme.active`    | `--theme` callback (always present on `@command`)          | `HelpTheme`: palette picked for this invocation                  |
+| `context.ZERO_EXIT`       | `click_extra.zero_exit`       | `-0` / `--zero-exit` callback (`@zero_exit_option`)        | `bool`: `True` to always exit 0 *(write-only)*                        |
 
 ## Worked examples
 
-### Switching behaviour on the active theme
+### Switching behavior on the active theme
 
 ```{click:source}
 from click_extra import command, context, echo, pass_context
@@ -118,7 +118,7 @@ assert "config: none" in result.stdout
 Inside a `@command`-decorated function, you can either accept `ctx` via [`@pass_context`](https://click.palletsprojects.com/en/stable/commands/#nested-handling-and-contexts) or call [`click.get_current_context()`](https://click.palletsprojects.com/en/stable/api/#click.get_current_context) from any helper that runs while the CLI is being invoked. Both give you the same context, and both expose the same `.meta` dict.
 
 ```{caution}
-Outside an active CLI invocation (e.g. at import time, in unit tests that build options directly without invoking a CLI, or in a REPL) there is no context, and these keys are not available. Helpers that need to work in both modes should fall through to a sane default. The [theming layer](theme.md) does this with `get_current_theme()`, which falls back to `get_default_theme()` when no context is in flight.
+Outside an active CLI invocation (for example at import time, in unit tests that build options directly without invoking a CLI, or in a REPL) there is no context, and these keys are not available. Helpers that need to work in both modes should fall through to a sane default. The [theming layer](theme.md) does this with `get_current_theme()`, which falls back to `get_default_theme()` when no context is in flight.
 ```
 
 ## POSIX-compliant argument parsing

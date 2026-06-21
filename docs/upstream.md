@@ -130,18 +130,18 @@ click-extra implements `NO_COLOR`, `FORCE_COLOR`, and full [help colorization](c
 
 ### Themes and palettes
 
-click-extra ships [seven built-in themes](theme.md#built-in-themes) (`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`, plus a monochrome `manpage`) and is the only Click-ecosystem library that lets end users [define new themes or override existing ones from the CLI's `--config` file](theme.md#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`). Click itself has no theme system — formatter-level customization is still WIP upstream — and the competing rich help layers expose themes through Python or environment variables, not the CLI's own configuration file:
+click-extra ships [seven built-in themes](theme.md#built-in-themes) (`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`, plus a monochrome `manpage`) and is the only Click-ecosystem library that lets end users [define new themes or override existing ones from the CLI's `--config` file](theme.md#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`). Click itself has no theme system (formatter-level customization is still WIP upstream), and the competing rich help layers expose themes through Python or environment variables, not the CLI's own configuration file:
 
-- [`click#561` - Add Custom Formatter System](https://github.com/pallets/click/issues/561) — open since 2016, the prerequisite for a Click-native theme API.
-- [`click#3097` - WIP: Help page customization low level api](https://github.com/pallets/click/pull/3097) — open PR exploring the formatter customization Click maintainers committed to in `#561`.
-- [`rich-click#219` - Colour themes (can be set by user)](https://github.com/ewels/rich-click/issues/219) — closed completed in August 2025; rich-click now ships themes settable via `RICH_CLICK_THEME` env var or Python config, but not via the wrapped CLI's own configuration file.
-- [`rich-click#311` - Using themes outside click](https://github.com/ewels/rich-click/issues/311) — open follow-up showing the demand for richer theme reuse.
+- [`click#561` - Add Custom Formatter System](https://github.com/pallets/click/issues/561): open since 2016, the prerequisite for a Click-native theme API.
+- [`click#3097` - WIP: Help page customization low level api](https://github.com/pallets/click/pull/3097): open PR exploring the formatter customization Click maintainers committed to in `#561`.
+- [`rich-click#219` - Colour themes (can be set by user)](https://github.com/ewels/rich-click/issues/219): closed completed in August 2025; rich-click now ships themes settable via `RICH_CLICK_THEME` env var or Python config, but not via the wrapped CLI's own configuration file.
+- [`rich-click#311` - Using themes outside click](https://github.com/ewels/rich-click/issues/311): open follow-up showing the demand for richer theme reuse.
 
 ### Configuration validation
 
 click-extra's config pipeline exposes an [extension hook](config.md#extending-validation) (`ConfigValidator`) so apps can validate data-keyed sub-tables (`[tool.<cli>.managers.<id>]`, `[tool.<cli>.plugins]`, …) inside the same strict-check pipeline that polices CLI-flag-bound keys. `--validate-config` collects every error before exiting and surfaces all failures with the same rooted `ValidationError` shape.
 
-This is click-extra's own design rather than an answer to a documented upstream issue: Click maintainers have closed every config-file proposal as out of scope ([`#1753`](https://github.com/pallets/click/issues/1753), [`#386`](https://github.com/pallets/click/issues/386), [`#42`](https://github.com/pallets/click/issues/42), [`#971`](https://github.com/pallets/click/issues/971)) and deferred to external packages, so validation of those external config files lives wherever each package chose to put it. The closest related upstream gap is [`click_config_file#11`](https://github.com/phha/click_config_file/issues/11) (listed under [Configuration files](#configuration-files) above): "warn when providing unsupported options in the config file?" — open since 2018 in an unmaintained package.
+This is click-extra's own design rather than an answer to a documented upstream issue: Click maintainers have closed every config-file proposal as out of scope ([`#1753`](https://github.com/pallets/click/issues/1753), [`#386`](https://github.com/pallets/click/issues/386), [`#42`](https://github.com/pallets/click/issues/42), [`#971`](https://github.com/pallets/click/issues/971)) and deferred to external packages, so validation of those external config files lives wherever each package chose to put it. The closest related upstream gap is [`click_config_file#11`](https://github.com/phha/click_config_file/issues/11) (listed under [Configuration files](#configuration-files) above): "warn when providing unsupported options in the config file?": open since 2018 in an unmaintained package.
 
 ### Configuration files
 
@@ -184,12 +184,12 @@ click-extra's [logging module](logging.md) replaces the unmaintained `click-log`
 
 click-extra's [`Spinner`](spinner.md) is a thread-animated, indeterminate progress spinner for blocking work of unknown duration. It supersedes the `click-spinner` package, last released in 2020 and [openly looking for a maintainer](https://github.com/click-contrib/click-spinner/issues/38) since 2022. By design it resolves the issues and pull requests still open or rejected against that package:
 
-- [`click-spinner#27` - Support for more spinner types and custom spinners](https://github.com/click-contrib/click-spinner/pull/27) — closed unmerged over maintenance concerns; click-extra accepts any `frames` sequence and ships a 90-entry `SPINNERS` catalog ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners) (a superset of the molovo/revolver set this PR proposed), including the multi-character animations the PR had to drop because click-spinner's backspace renderer could not erase them.
-- [`click-spinner#33` - PEP 561 compatible (inline types)](https://github.com/click-contrib/click-spinner/pull/33) — closed unmerged and redirected to typeshed; click-extra is fully annotated and ships `py.typed`.
-- [`click-spinner#34` - Feature request: spin clockwise](https://github.com/click-contrib/click-spinner/issues/34) / [`click-spinner#35`](https://github.com/click-contrib/click-spinner/pull/35) — open issue, abandoned PR; click-extra exposes a `reverse` flag.
-- [`click-spinner#36` - Spinner left last symbol on cmd](https://github.com/click-contrib/click-spinner/issues/36) / [`click-spinner#37`](https://github.com/click-contrib/click-spinner/pull/37) — open; click-extra erases the line with `\r\x1b[K` rather than a non-destructive `\b` that lingers in terminals like VS Code.
-- [`click-spinner#41` - Fix output in corner cases](https://github.com/click-contrib/click-spinner/pull/41) — open; click-extra always erases on exit and never rings the bell on a disabled or redirected stream.
-- [`click-spinner#42` - Printing to stdout breaks the spinner](https://github.com/click-contrib/click-spinner/issues/42) — open; click-extra defaults to `stderr` so `stdout` data stays clean, and its `echo()` method prints above the animation without corrupting it.
+- [`click-spinner#27` - Support for more spinner types and custom spinners](https://github.com/click-contrib/click-spinner/pull/27): closed unmerged over maintenance concerns; click-extra accepts any `frames` sequence and ships a 90-entry `SPINNERS` catalog ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners) (a superset of the molovo/revolver set this PR proposed), including the multi-character animations the PR had to drop because click-spinner's backspace renderer could not erase them.
+- [`click-spinner#33` - PEP 561 compatible (inline types)](https://github.com/click-contrib/click-spinner/pull/33): closed unmerged and redirected to typeshed; click-extra is fully annotated and ships `py.typed`.
+- [`click-spinner#34` - Feature request: spin clockwise](https://github.com/click-contrib/click-spinner/issues/34) / [`click-spinner#35`](https://github.com/click-contrib/click-spinner/pull/35): open issue, abandoned PR; click-extra exposes a `reverse` flag.
+- [`click-spinner#36` - Spinner left last symbol on cmd](https://github.com/click-contrib/click-spinner/issues/36) / [`click-spinner#37`](https://github.com/click-contrib/click-spinner/pull/37): open; click-extra erases the line with `\r\x1b[K` rather than a non-destructive `\b` that lingers in terminals like VS Code.
+- [`click-spinner#41` - Fix output in corner cases](https://github.com/click-contrib/click-spinner/pull/41): open; click-extra always erases on exit and never rings the bell on a disabled or redirected stream.
+- [`click-spinner#42` - Printing to stdout breaks the spinner](https://github.com/click-contrib/click-spinner/issues/42): open; click-extra defaults to `stderr` so `stdout` data stays clean, and its `echo()` method prints above the animation without corrupting it.
 
 ### Option parsing
 
@@ -199,8 +199,8 @@ click-extra's [`Spinner`](spinner.md) is a thread-animated, indeterminate progre
 
 click-extra's [`MultiChoice` type](types.md#multichoice) parses a single comma-separated token into a tuple of validated values: the pick-many counterpart to `click.Choice`, with a rendered `[a,b,c]` metavar that mirrors `click.Choice`'s `[a|b|c]` and per-value highlighting in the [help colorizer](colorize.md). The canonical Click idiom for this is `multiple=True + Choice`, which requires the flag to be repeated (`--tag a --tag b --tag c`); SQL `SELECT a, b, c`-style syntax has been requested upstream multiple times and not shipped:
 
-- [`click#2771` - Allow `nargs=-1` in options with a non-whitespace separator](https://github.com/pallets/click/issues/2771) — open, exactly the same feature request.
-- [`click#2537` - Allow `nargs=-1` for `click.option`](https://github.com/pallets/click/issues/2537) — closed as not planned, the earlier space-separated variant.
+- [`click#2771` - Allow `nargs=-1` in options with a non-whitespace separator](https://github.com/pallets/click/issues/2771): open, exactly the same feature request.
+- [`click#2537` - Allow `nargs=-1` for `click.option`](https://github.com/pallets/click/issues/2537): closed as not planned, the earlier space-separated variant.
 
 The [`--columns` option on `--show-params`](parameters.md#columns-selection) is the headline consumer; the type is also exposed at the package root for arbitrary tags / categories / modes use cases in downstream CLIs.
 
@@ -236,13 +236,13 @@ click-extra maintains and extends the [`click:source`/`click:run` directives](sp
 
 ### Sphinx `python:*` directives and live document rendering
 
-The [`python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` directives](sphinx.md#python-directives) extend the `click:*` family to arbitrary Python (no Click CLI required). The `render*` variants parse the captured `stdout` as live document content — generated tables, headings, admonitions, and cross-references become first-class document nodes rather than a code block. This replaces the `docs_update.py` regenerator + marker-region pattern that many downstream click-extra-consuming projects use (Meta Package Manager, Mail Deduplicate, …), so the rendered HTML is always current at build time without a separate generation step.
+The [`python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` directives](sphinx.md#python-directives) extend the `click:*` family to arbitrary Python (no Click CLI required). The `render*` variants parse the captured `stdout` as live document content: generated tables, headings, admonitions, and cross-references become first-class document nodes rather than a code block. This replaces the `docs_update.py` regenerator + marker-region pattern that many downstream click-extra-consuming projects use (Meta Package Manager, Mail Deduplicate, …), so the rendered HTML is always current at build time without a separate generation step.
 
 The `click:*` half of this story remains stuck upstream: the directives still live in `pallets-sphinx-themes` despite open requests to move them where Click users actually look for them, and MyST integration is unfinished:
 
-- [`sphinx-click#158` - Move custom directives into Sphinx-click](https://github.com/click-contrib/sphinx-click/issues/158) — open, acknowledged by maintainers.
-- [`sphinx-click#127` - Support myst-parser](https://github.com/click-contrib/sphinx-click/issues/127) — open, click directives still RST-only upstream.
-- [`pallets-sphinx-themes#61`](https://github.com/pallets/pallets-sphinx-themes/issues/61) — open since 2022, also flagged in the [previous section](#sphinx-click-source-and-click-run-directives).
+- [`sphinx-click#158` - Move custom directives into Sphinx-click](https://github.com/click-contrib/sphinx-click/issues/158): open, acknowledged by maintainers.
+- [`sphinx-click#127` - Support myst-parser](https://github.com/click-contrib/sphinx-click/issues/127): open, click directives still RST-only upstream.
+- [`pallets-sphinx-themes#61`](https://github.com/pallets/pallets-sphinx-themes/issues/61): open since 2022, also flagged in the [previous section](#sphinx-click-source-and-click-run-directives).
 
 The `python:*` half (rendering executed Python output as live document content) is click-extra's own design rather than an answer to a single upstream ticket.
 
