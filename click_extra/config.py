@@ -1692,12 +1692,26 @@ class TestPlanConfig:
 
 
 @dataclass
+class PrebakeConfig:
+    """Config schema for the prebake commands, read from ``[tool.<cli>.prebake]``.
+
+    Lets a project pin the target ``__init__.py`` once for its build pipeline,
+    instead of passing ``--module`` to every ``click-extra prebake`` command.
+    """
+
+    module: str | None = None
+    """Path to the ``__init__.py`` to pre-bake, resolved relative to the project
+    root. Overrides the ``[project.scripts]`` auto-discovery; leave unset to keep
+    it."""
+
+
+@dataclass
 class ClickExtraConfig:
     """Schema for the ``[tool.click-extra]`` configuration section.
 
-    Currently carries only the ``test-plan`` sub-table, letting a project point
-    ``click-extra test-plan`` at its own plan without repeating it on the
-    command line. It is the ``config_schema`` of the ``test-plan`` CLI command.
+    Wired as the ``config_schema`` of the top-level ``click-extra`` group, so
+    every subcommand reads the same section and pulls its own sub-table through
+    :func:`get_tool_config`.
     """
 
     test_plan: TestPlanConfig = field(
@@ -1705,3 +1719,9 @@ class ClickExtraConfig:
         metadata={"click_extra.config_path": "test-plan"},
     )
     """The ``[tool.click-extra.test-plan]`` sub-table (file/inline/timeout)."""
+
+    prebake: PrebakeConfig = field(
+        default_factory=PrebakeConfig,
+        metadata={"click_extra.config_path": "prebake"},
+    )
+    """The ``[tool.click-extra.prebake]`` sub-table (target module)."""

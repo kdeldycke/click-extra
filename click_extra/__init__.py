@@ -91,6 +91,7 @@ from .config import (
     ConfigFormat,
     ConfigOption,
     NoConfigOption,
+    PrebakeConfig,
     TestPlanConfig,
     ValidateConfigOption,
 )
@@ -287,6 +288,7 @@ __all__ = [
     "Parameter",
     "ParameterSource",
     "Path",
+    "PrebakeConfig",
     "ProgressOption",
     "QuietOption",
     "Result",

@@ -46,6 +46,7 @@ from click_extra import (
     verbosity_option,
     version_option,
 )
+from click_extra.cli import demo
 from click_extra.commands import default_params
 from click_extra.pytest import (
     command_decorators,
@@ -593,6 +594,23 @@ def init_file(tmp_path):
         return p
 
     return _make
+
+
+def test_prebake_cli_resolves_module_from_config(invoke, tmp_path, monkeypatch):
+    """``click-extra prebake`` resolves its target from ``[tool.click-extra.prebake]``."""
+    target = tmp_path / "pkg" / "__init__.py"
+    target.parent.mkdir()
+    target.write_text('__git_tag_sha__ = ""\n', encoding="UTF-8")
+    (tmp_path / "pyproject.toml").write_text(
+        f'[tool.click-extra.prebake]\nmodule = "{target.as_posix()}"\n',
+        encoding="UTF-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    # No --module on the command line: the path comes from the config section.
+    result = invoke(demo, ["prebake", "field", "git_tag_sha", "abc123"])
+    assert result.exit_code == 0
+    assert '__git_tag_sha__ = "abc123"' in target.read_text(encoding="UTF-8")
 
 
 def test_prebake_dev_version(init_file):

@@ -390,7 +390,12 @@ $ click-extra prebake field git_tag_sha abc123def456...
 $ click-extra prebake field git_branch main --module mypackage/__init__.py
 ```
 
-All subcommands auto-discover target files from `[project.scripts]` in `pyproject.toml`. Use `--module` to target a specific file instead.
+All subcommands resolve the target file by precedence: an explicit `--module`, then the `module` key of the `[tool.click-extra.prebake]` configuration, then auto-discovery from `[project.scripts]` in `pyproject.toml`. Pin the target once to drop `--module` from repeated build invocations:
+
+```toml
+[tool.click-extra.prebake]
+module = "mypackage/__init__.py"
+```
 
 ## Colors
 

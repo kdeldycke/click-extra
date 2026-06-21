@@ -74,14 +74,22 @@ from .version import (
 
 
 def _resolve_paths(module: Path | None) -> list[Path]:
-    """Resolve target ``__init__.py`` paths from ``--module`` or auto-discovery."""
+    """Resolve target ``__init__.py`` paths.
+
+    Precedence: an explicit ``--module``, then the ``[tool.click-extra.prebake]``
+    ``module`` config value, then ``[project.scripts]`` auto-discovery.
+    """
     if module:
         return [module]
+    config = get_tool_config()
+    if config and config.prebake.module:
+        return [Path(config.prebake.module)]
     paths = discover_package_init_files()
     if not paths:
         raise ClickException(
-            "No __init__.py found. Pass --module explicitly or add "
-            "[project.scripts] to pyproject.toml."
+            "No __init__.py found. Pass --module explicitly, set "
+            "[tool.click-extra.prebake] module, or add [project.scripts] to "
+            "pyproject.toml."
         )
     return paths
 
@@ -115,6 +123,8 @@ _demo_section = cloup.Section(
     name="click-extra",
     cls=WrapperGroup,
     version_fields={"prog_name": "Click Extra"},
+    config_schema=ClickExtraConfig,
+    schema_strict=False,
 )
 def demo():
     """Click Extra CLI."""
@@ -123,7 +133,7 @@ def demo():
 demo.add_command(wrap_cmd)
 
 
-@command(name="test-plan", config_schema=ClickExtraConfig, schema_strict=False)
+@command(name="test-plan")
 @option(
     "--command",
     "--binary",
