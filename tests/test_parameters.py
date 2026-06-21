@@ -63,7 +63,7 @@ from click_extra import (
 from click_extra.config import NO_CONFIG
 from click_extra.pytest import command_decorators
 
-from .test_colorize import HashType
+from .test_highlight import HashType
 
 
 class Custom(ParamType):

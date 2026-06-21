@@ -18,10 +18,10 @@
    :undoc-members:
 ```
 
-## tests.test_colorize module
+## tests.test_color module
 
 ```{eval-rst}
-.. automodule:: tests.test_colorize
+.. automodule:: tests.test_color
    :members:
    :show-inheritance:
    :undoc-members:
@@ -49,6 +49,15 @@
 
 ```{eval-rst}
 .. automodule:: tests.test_envvar
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## tests.test_highlight module
+
+```{eval-rst}
+.. automodule:: tests.test_highlight
    :members:
    :show-inheritance:
    :undoc-members:
