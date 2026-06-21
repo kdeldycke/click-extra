@@ -110,7 +110,7 @@ def test_debug_output(invoke, cmd_decorator, option_decorator, assert_output_reg
 @skip_windows_colors
 def test_set_version(invoke):
     @click.group
-    @version_option(version="1.2.3.4")
+    @version_option(fields={"version": "1.2.3.4"})
     def color_cli2():
         echo("It works!")
 
@@ -177,8 +177,7 @@ def test_style_reset(invoke, cmd_decorator):
     @cmd_decorator
     @version_option(
         message_style=None,
-        version_style=None,
-        prog_name_style=None,
+        styles={"version": None, "prog_name": None},
     )
     def color_reset():
         pass
@@ -196,9 +195,11 @@ def test_custom_message_style(invoke, cmd_decorator):
     @version_option(
         message="{prog_name} v{version} - {package_name} (latest)",
         message_style=Style(fg="cyan"),
-        prog_name_style=Style(fg="green", bold=True),
-        version_style=Style(fg="bright_yellow", bg="red"),
-        package_name_style=Style(fg="bright_blue", italic=True),
+        styles={
+            "prog_name": Style(fg="green", bold=True),
+            "version": Style(fg="bright_yellow", bg="red"),
+            "package_name": Style(fg="bright_blue", italic=True),
+        },
     )
     def custom_style():
         pass
@@ -266,7 +267,7 @@ def test_context_meta_laziness(invoke, cmd_decorator):
     """
 
     @cmd_decorator
-    @version_option(version="1.0.0")
+    @version_option(fields={"version": "1.0.0"})
     @pass_context
     def lazy_cli(ctx):
         # Access only the version field.
@@ -336,7 +337,7 @@ def test_package_version_resolves_import_name_to_distribution(monkeypatch):
         lambda: {"PIL": ["pillow"]},
     )
 
-    opt = VersionOption(["--version"], package_name="PIL")
+    opt = VersionOption(["--version"], fields={"package_name": "PIL"})
     assert opt.package_version == "10.4.0"
 
 
@@ -356,7 +357,7 @@ def test_package_version_ambiguous_import_name_returns_none(monkeypatch):
         lambda: {"plug": ["foo-plug", "bar-plug"]},
     )
 
-    opt = VersionOption(["--version"], package_name="plug")
+    opt = VersionOption(["--version"], fields={"package_name": "plug"})
     assert opt.package_version is None
 
 
@@ -372,7 +373,7 @@ def test_package_version_unknown_returns_none(monkeypatch):
     monkeypatch.setattr(_metadata, "version", fake_version)
     monkeypatch.setattr(_metadata, "packages_distributions", dict)
 
-    opt = VersionOption(["--version"], package_name="nonexistent")
+    opt = VersionOption(["--version"], fields={"package_name": "nonexistent"})
     assert opt.package_version is None
 
 
@@ -517,7 +518,7 @@ def test_color_option_precedence(invoke):
     @click.command
     @color_option
     @no_color_option
-    @version_option(version="2.1.9")
+    @version_option(fields={"version": "2.1.9"})
     def color_cli6():
         echo(Style(fg="yellow")("It works!"))
 
@@ -540,7 +541,7 @@ def test_dev_version_appends_git_hash(invoke, cmd_decorator):
     unavailable)."""
 
     @cmd_decorator
-    @version_option(module_version="1.0.0.dev1")
+    @version_option(fields={"module_version": "1.0.0.dev1"})
     def dev_cli():
         echo("It works!")
 
@@ -556,7 +557,7 @@ def test_prebaked_dev_version_not_double_suffixed(invoke, cmd_decorator):
     """A version with an existing ``+`` is returned as-is — no second hash appended."""
 
     @cmd_decorator
-    @version_option(module_version="1.0.0.dev1+abc1234")
+    @version_option(fields={"module_version": "1.0.0.dev1+abc1234"})
     def prebaked_cli():
         echo("It works!")
 
@@ -571,7 +572,7 @@ def test_release_version_unchanged(invoke, cmd_decorator):
     """A non-dev version is never modified."""
 
     @cmd_decorator
-    @version_option(module_version="2.5.0")
+    @version_option(fields={"module_version": "2.5.0"})
     def release_cli():
         echo("It works!")
 

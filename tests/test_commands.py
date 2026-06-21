@@ -424,7 +424,7 @@ def test_duplicate_option(invoke):
     """
 
     @command
-    @version_option(version="0.1")
+    @version_option(fields={"version": "0.1"})
     def cli():
         pass
 

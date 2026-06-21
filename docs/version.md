@@ -20,7 +20,7 @@ import click
 import click_extra
 
 @click.command
-@click_extra.version_option(version="1.2.3")
+@click_extra.version_option(fields={"version": "1.2.3"})
 def cli():
     pass
 ```
@@ -141,7 +141,7 @@ import click_extra
 @click.command
 @click_extra.version_option(
     message="✨ {prog_name} v{version} - {package_name}",
-    version="1.2.3",
+    fields={"version": "1.2.3"},
 )
 def my_own_cli():
     pass
@@ -165,16 +165,18 @@ The [`version_fields` parameter on `@command` and `@group`](commands.md#version-
 Fields can also be forced directly on the `VersionOption` instance via the [`params=` argument](commands.md#change-default-options):
 
 ```{click:source}
-:emphasize-lines: 4-9
+:emphasize-lines: 4-13
 import click
 from click_extra import VersionOption
 
 @click.command(params=[
     VersionOption(
-        prog_name="Acme CLI",
-        version="42.0",
         message="{prog_name} {version} (branch: {git_branch})",
-        git_branch="release/42",
+        fields={
+            "prog_name": "Acme CLI",
+            "version": "42.0",
+            "git_branch": "release/42",
+        },
     ),
 ])
 def acme():
@@ -399,35 +401,39 @@ module = "mypackage/__init__.py"
 
 ## Colors
 
-Each variable listed in the section above can be rendered in its own style. They all have dedicated parameters you can pass to the `version_option` decorator:
+Each variable listed in the section above can be rendered in its own style. Pass a `styles` mapping to the `version_option` decorator to set the style of individual fields, keyed by field name:
 
-| Parameter               | Description                             | Default Style                                      |
-| ----------------------- | --------------------------------------- | -------------------------------------------------- |
-| `message_style`         | Style of the whole message.             | `None`{l=python}                                   |
-| `module_style`          | Style for `{module}` variable.          | `None`{l=python}                                   |
-| `module_name_style`     | Style for `{module_name}` variable.     | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `module_file_style`     | Style for `{module_file}` variable.     | `None`{l=python}                                   |
-| `module_version_style`  | Style for `{module_version}` variable.  | `Style(fg="green")`{l=python}                      |
-| `package_name_style`    | Style for `{package_name}` variable.    | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `package_version_style` | Style for `{package_version}` variable. | `Style(fg="green")`{l=python}                      |
-| `author_style`          | Style for `{author}` variable.          | `None`{l=python}                                   |
-| `license_style`         | Style for `{license}` variable.         | `None`{l=python}                                   |
-| `exec_name_style`       | Style for `{exec_name}` variable.       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `version_style`         | Style for `{version}` variable.         | `Style(fg="green")`{l=python}                      |
-| `git_repo_path_style`   | Style for `{git_repo_path}` variable.   | `Style(fg="bright_black")`{l=python}               |
-| `git_branch_style`      | Style for `{git_branch}` variable.      | `Style(fg="cyan")`{l=python}                       |
-| `git_long_hash_style`   | Style for `{git_long_hash}` variable.   | `Style(fg="yellow")`{l=python}                     |
-| `git_short_hash_style`  | Style for `{git_short_hash}` variable.  | `Style(fg="yellow")`{l=python}                     |
-| `git_date_style`        | Style for `{git_date}` variable.        | `Style(fg="bright_black")`{l=python}               |
-| `git_tag_style`         | Style for `{git_tag}` variable.         | `Style(fg="cyan")`{l=python}                       |
-| `git_tag_sha_style`     | Style for `{git_tag_sha}` variable.     | `Style(fg="yellow")`{l=python}                     |
-| `prog_name_style`       | Style for `{prog_name}` variable.       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `env_info_style`        | Style for `{env_info}` variable.        | `Style(fg="bright_black")`{l=python}               |
+- `styles={"version": Style(fg="green")}` paints the `{version}` field green.
+- `styles={"version": None}` clears the field's style, so it falls back to `message_style`.
+
+The `message_style` parameter sets the style of the message literals (the text around the fields) and of any field that has no style of its own. It defaults to `None`{l=python} (no color).
+
+Fields not listed in `styles` keep the defaults below, taken from {py:attr}`VersionOption.default_styles <click_extra.version.VersionOption.default_styles>`. Fields absent from this table have no style of their own and fall back to `message_style`:
+
+| Field                                | Default style                                      |
+| ------------------------------------ | -------------------------------------------------- |
+| `exec_name`                          | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `git_branch`                         | `Style(fg="cyan")`{l=python}                       |
+| `git_date`                           | `Style(fg="bright_black")`{l=python}               |
+| `git_long_hash`                      | `Style(fg="yellow")`{l=python}                     |
+| `git_repo_path`                      | `Style(fg="bright_black")`{l=python}               |
+| `git_short_hash`                     | `Style(fg="yellow")`{l=python}                     |
+| `git_tag`                            | `Style(fg="cyan")`{l=python}                       |
+| `git_tag_sha`                        | `Style(fg="yellow")`{l=python}                     |
+| `module_name`                        | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `module_version`                     | `Style(fg="green")`{l=python}                      |
+| `package_name`                       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `package_version`                    | `Style(fg="green")`{l=python}                      |
+| `prog_name`                          | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `version`                            | `Style(fg="green")`{l=python}                      |
+| `env_info`                           | `Style(fg="bright_black")`{l=python}               |
+
+The remaining fields (`module`, `module_file`, `author`, `license`) have no default style and fall back to `message_style`.
 
 Here is an example:
 
 ```{click:source}
-:emphasize-lines: 7-10
+:emphasize-lines: 7-13
 import click
 from click_extra import version_option, Style
 
@@ -435,10 +441,12 @@ from click_extra import version_option, Style
 @version_option(
     message="{prog_name} v{version} 🔥 {package_name} ( ͡❛ ͜ʖ ͡❛)",
     message_style=Style(fg="cyan"),
-    prog_name_style=Style(fg="green", bold=True),
-    version_style=Style(fg="bright_yellow", bg="red"),
-    package_name_style=Style(fg="bright_blue", italic=True),
-    version="1.2.3",
+    styles={
+        "prog_name": Style(fg="green", bold=True),
+        "version": Style(fg="bright_yellow", bg="red"),
+        "package_name": Style(fg="bright_blue", italic=True),
+    },
+    fields={"version": "1.2.3"},
 )
 def cli():
     pass
@@ -457,19 +465,18 @@ assert result.output == (
 The [`Style()` helper is defined by Cloup](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style).
 ```
 
-You can pass `None` to any of the style parameters to disable styling for the corresponding variable:
+You can pass `None` as a field's style to disable styling for the corresponding variable, and set `message_style=None` to strip the style of the message literals:
 
 ```{click:source}
-:emphasize-lines: 6-8
+:emphasize-lines: 6-7
 import click
 from click_extra import version_option
 
 @click.command
 @version_option(
     message_style=None,
-    version_style=None,
-    prog_name_style=None,
-    version="1.2.3",
+    styles={"version": None, "prog_name": None},
+    fields={"version": "1.2.3"},
 )
 def cli():
     pass
@@ -519,7 +526,7 @@ from click_extra import version_option
 @click.command
 @version_option(
     message="{prog_name} {version}, from {module_file} (Python {env_info[python][version]})",
-    version="1.2.3",
+    fields={"version": "1.2.3"},
 )
 def custom_env_info():
     pass
@@ -544,7 +551,7 @@ import click
 from click_extra import version_option, verbosity_option, echo
 
 @click.command
-@version_option(version="1.2.3")
+@version_option(fields={"version": "1.2.3"})
 @verbosity_option
 def version_in_logs():
     echo("Standard operation")
@@ -568,7 +575,7 @@ import click
 from click_extra import echo, pass_context, version_option
 
 @click.command
-@version_option(version="1.2.3")
+@version_option(fields={"version": "1.2.3"})
 @pass_context
 def version_metadata(ctx):
     version = ctx.meta["click_extra.version"]
@@ -615,7 +622,7 @@ import click
 from click_extra import echo, pass_context, version_option, VersionOption, search_params
 
 @click.command
-@version_option(version="1.2.3")
+@version_option(fields={"version": "1.2.3"})
 @pass_context
 def template_rendering(ctx):
     # Search for a ``--version`` parameter.

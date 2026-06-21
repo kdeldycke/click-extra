@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Breaking:** `VersionOption` and `@version_option` replace their 19 per-field value parameters and 20 per-field `*_style` parameters with two mappings: `fields={...}` for forced field values and `styles={...}` for per-field styles. Default per-field styles move to the `VersionOption.default_styles` class attribute; `message` and `message_style` are unchanged. For example, `version_option(version="1.2.3", version_style=Style(fg="green"))` becomes `version_option(fields={"version": "1.2.3"}, styles={"version": Style(fg="green")})`.
 - **Breaking:** Remove the `show-params` and `man` subcommands; use `click-extra wrap --show-params` and `click-extra wrap --man` instead.
 - **Breaking:** Replace the `--color`/`--no-color` boolean with the GNU-canonical tri-state `--color[=WHEN]`, where `WHEN` is `auto`, `always` or `never`. A bare `--color` means `always`, and `--no-color` is a hidden alias of `--color=never`. The default is now `auto`: output is colored on a terminal but stripped when piped, instead of always colored. A bare `--color` no longer swallows the following argument, so `mycli --color subcommand` keeps `subcommand` positional.
 - **Breaking:** Remove the `--ansi`/`--no-ansi` aliases of `--color`/`--no-color`; use `--color`/`--no-color` instead.

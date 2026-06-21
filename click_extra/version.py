@@ -72,10 +72,10 @@ _default_invoked_command = BUILTIN_THEMES.get("dark", nocolor_theme).invoked_com
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
     from importlib.metadata import PackageMetadata
     from types import FrameType, ModuleType
-    from typing import Any
+    from typing import Any, ClassVar
 
     from cloup.styling import IStyle
 
@@ -362,51 +362,37 @@ class VersionOption(ExtraOption):
     )
     """List of field IDs recognized by the message template."""
 
+    default_styles: ClassVar[dict[str, IStyle]] = {
+        "module_name": _default_invoked_command,
+        "module_version": Style(fg="green"),
+        "package_name": _default_invoked_command,
+        "package_version": Style(fg="green"),
+        "exec_name": _default_invoked_command,
+        "version": Style(fg="green"),
+        "git_repo_path": Style(fg="bright_black"),
+        "git_branch": Style(fg="cyan"),
+        "git_long_hash": Style(fg="yellow"),
+        "git_short_hash": Style(fg="yellow"),
+        "git_date": Style(fg="bright_black"),
+        "git_tag": Style(fg="cyan"),
+        "git_tag_sha": Style(fg="yellow"),
+        "prog_name": _default_invoked_command,
+        "env_info": Style(fg="bright_black"),
+    }
+    """Default style for each template field.
+
+    Fields absent from this mapping render with no style of their own and fall
+    back to ``message_style`` (or no color when that is unset). User-provided
+    ``styles`` are merged over these defaults.
+    """
+
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
         message: str | None = None,
-        # Field value overrides.
-        module: str | None = None,
-        module_name: str | None = None,
-        module_file: str | None = None,
-        module_version: str | None = None,
-        package_name: str | None = None,
-        package_version: str | None = None,
-        author: str | None = None,
-        license: str | None = None,
-        exec_name: str | None = None,
-        version: str | None = None,
-        git_repo_path: str | None = None,
-        git_branch: str | None = None,
-        git_long_hash: str | None = None,
-        git_short_hash: str | None = None,
-        git_date: str | None = None,
-        git_tag: str | None = None,
-        git_tag_sha: str | None = None,
-        prog_name: str | None = None,
-        env_info: dict[str, str] | None = None,
-        # Field style overrides.
+        fields: Mapping[str, Any] | None = None,
+        styles: Mapping[str, IStyle | None] | None = None,
         message_style: IStyle | None = None,
-        module_style: IStyle | None = None,
-        module_name_style: IStyle | None = _default_invoked_command,
-        module_file_style: IStyle | None = None,
-        module_version_style: IStyle | None = Style(fg="green"),
-        package_name_style: IStyle | None = _default_invoked_command,
-        package_version_style: IStyle | None = Style(fg="green"),
-        author_style: IStyle | None = None,
-        license_style: IStyle | None = None,
-        exec_name_style: IStyle | None = _default_invoked_command,
-        version_style: IStyle | None = Style(fg="green"),
-        git_repo_path_style: IStyle | None = Style(fg="bright_black"),
-        git_branch_style: IStyle | None = Style(fg="cyan"),
-        git_long_hash_style: IStyle | None = Style(fg="yellow"),
-        git_short_hash_style: IStyle | None = Style(fg="yellow"),
-        git_date_style: IStyle | None = Style(fg="bright_black"),
-        git_tag_style: IStyle | None = Style(fg="cyan"),
-        git_tag_sha_style: IStyle | None = Style(fg="yellow"),
-        prog_name_style: IStyle | None = _default_invoked_command,
-        env_info_style: IStyle | None = Style(fg="bright_black"),
         is_flag=True,
         expose_value=False,
         is_eager=True,
@@ -419,66 +405,51 @@ class VersionOption(ExtraOption):
             <https://docs.python.org/3/library/string.html#format-string-syntax>`_.
             Defaults to ``{prog_name}, version {version}``.
 
-        :param module: forces the value of ``{module}``.
-        :param module_name: forces the value of ``{module_name}``.
-        :param module_file: forces the value of ``{module_file}``.
-        :param module_version: forces the value of ``{module_version}``.
-        :param package_name: forces the value of ``{package_name}``.
-        :param package_version: forces the value of ``{package_version}``.
-        :param author: forces the value of ``{author}``.
-        :param license: forces the value of ``{license}``.
-        :param exec_name: forces the value of ``{exec_name}``.
-        :param version: forces the value of ``{version}``.
-        :param git_repo_path: forces the value of ``{git_repo_path}``.
-        :param git_branch: forces the value of ``{git_branch}``.
-        :param git_long_hash: forces the value of ``{git_long_hash}``.
-        :param git_short_hash: forces the value of ``{git_short_hash}``.
-        :param git_date: forces the value of ``{git_date}``.
-        :param git_tag: forces the value of ``{git_tag}``.
-        :param git_tag_sha: forces the value of ``{git_tag_sha}``.
-        :param prog_name: forces the value of ``{prog_name}``.
-        :param env_info: forces the value of ``{env_info}``.
+        :param fields: mapping of template field name to a forced value,
+            overriding the value auto-computed for that field. Keys must be
+            members of ``template_fields`` (for example
+            ``{"version": "1.2.3"}``).
 
-        :param message_style: default style of the message.
+        :param styles: mapping of template field name to its ``Style``, merged
+            over ``default_styles``. Pass ``None`` as a value to clear a
+            field's default style. Keys must be members of ``template_fields``.
 
-        :param module_style: style of ``{module}``.
-        :param module_name_style: style of ``{module_name}``.
-        :param module_file_style: style of ``{module_file}``.
-        :param module_version_style: style of ``{module_version}``.
-        :param package_name_style: style of ``{package_name}``.
-        :param package_version_style: style of ``{package_version}``.
-        :param author_style: style of ``{author}``.
-        :param license_style: style of ``{license}``.
-        :param exec_name_style: style of ``{exec_name}``.
-        :param version_style: style of ``{version}``.
-        :param git_repo_path_style: style of ``{git_repo_path}``.
-        :param git_branch_style: style of ``{git_branch}``.
-        :param git_long_hash_style: style of ``{git_long_hash}``.
-        :param git_short_hash_style: style of ``{git_short_hash}``.
-        :param git_date_style: style of ``{git_date}``.
-        :param git_tag_style: style of ``{git_tag}``.
-        :param git_tag_sha_style: style of ``{git_tag_sha}``.
-        :param prog_name_style: style of ``{prog_name}``.
-        :param env_info_style: style of ``{env_info}``.
+        :param message_style: fallback style for the message literals and for
+            any field that has no style of its own.
         """
         if not param_decls:
             param_decls = ("--version",)
 
         if message is not None:
             self.message = message
-
         self.message_style = message_style
 
-        # Overrides default field's value and style with user-provided parameters.
-        for field_id in self.template_fields:
-            # Override field value.
-            user_value = locals().get(field_id)
-            if user_value is not None:
-                setattr(self, field_id, user_value)
+        field_overrides = dict(fields) if fields else {}
+        style_overrides = dict(styles) if styles else {}
 
-            # Set field style.
-            style_id = f"{field_id}_style"
-            setattr(self, style_id, locals()[style_id])
+        # Reject unknown field names early to catch typos.
+        valid_fields = set(self.template_fields)
+        for label, mapping in (
+            ("fields", field_overrides),
+            ("styles", style_overrides),
+        ):
+            unknown = set(mapping) - valid_fields
+            if unknown:
+                msg = (
+                    f"Unknown {label}: {sorted(unknown)}. "
+                    f"Must be among {self.template_fields}."
+                )
+                raise ValueError(msg)
+
+        # A field value override shadows the cached_property of the same name.
+        for field_id, field_value in field_overrides.items():
+            setattr(self, field_id, field_value)
+
+        # Per-field styles: class defaults overridden by user-provided styles.
+        self.styles: dict[str, IStyle | None] = {
+            **self.default_styles,
+            **style_overrides,
+        }
 
         kwargs.setdefault("callback", self.print_and_exit)
 
@@ -629,7 +600,7 @@ class VersionOption(ExtraOption):
 
     @cached_property
     def module_name(self) -> str:
-        """Returns the full module name or ``__main__`."""
+        """Returns the full module name or ``__main__``."""
         return self.module.__name__
 
     @cached_property
@@ -1059,7 +1030,7 @@ class VersionOption(ExtraOption):
         # Associate each field with its own style.
         field_styles = {}
         for field_id in self.template_fields:
-            field_style = getattr(self, f"{field_id}_style")
+            field_style = self.styles.get(field_id)
             # If no style is defined for this field, use the default style of the
             # message.
             if not field_style:

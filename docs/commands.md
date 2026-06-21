@@ -193,7 +193,7 @@ If you try to add option decorators to a command which already have them by defa
 from click_extra import command, version_option
 
 @command
-@version_option(version="0.1")
+@version_option(fields={"version": "0.1"})
 def cli():
     pass
 ```
