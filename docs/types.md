@@ -606,6 +606,7 @@ The maintainers' position has been roughly: `multiple=True` already does the job
    :strict:
 
 .. automodule:: click_extra.types
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

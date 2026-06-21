@@ -36,7 +36,7 @@ class MultiChoice(click.ParamType):
     against ``choices`` when that set is non-empty.
 
     The rendered metavar is ``[a,b,c]`` (separator-joined, parallel to
-    ``Choice``'s ``[a|b|c]``): :class:`click_extra.highlight._HelpColorsMixin`
+    ``Choice``'s ``[a|b|c]``): ``click_extra.highlight._HelpColorsMixin``
     auto-detects the separator and highlights each individual value the same way
     it does for ``Choice``.
 
@@ -74,7 +74,7 @@ class MultiChoice(click.ParamType):
         """Initialize the type.
 
         :param choices: the accepted values. When non-empty, ``convert()``
-            rejects unknown tokens with :meth:`fail`. When empty, the type
+            rejects unknown tokens with ``fail``. When empty, the type
             behaves as a pure separator-aware parser and leaves validation to
             the consumer.
         :param separator: the token boundary. Use any single character; this

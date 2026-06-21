@@ -795,7 +795,7 @@ def test_bracket_field_full_combination_styling():
     ``env var: `` / ``default: `` labels, and the ``; `` separators, while
     the value tokens (``NAME``, ``VAL``) and the ``required`` label get
     their own slot styling layered on top. This is the contract referenced
-    in :attr:`HelpTheme.bracket`'s docstring.
+    in :attr:`~click_extra.HelpTheme.bracket`'s docstring.
     """
     opt = ExtraOption(
         ["--threshold"],

@@ -715,6 +715,7 @@ There is a miriad of possibilities. If you have some other examples in the same 
    :strict:
 
 .. automodule:: click_extra.commands
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1419,7 +1419,7 @@ class NoConfigOption(ExtraOption):
         expose_value=False,
         **kwargs,
     ) -> None:
-        """``flag_value=NO_CONFIG`` is the :class:`Sentinel` enum member that
+        """``flag_value=NO_CONFIG`` is the ``Sentinel`` enum member that
         signals "skip configuration loading" to :class:`ConfigOption`. Click
         ``8.4.0`` (PR `pallets/click#3363
         <https://github.com/pallets/click/pull/3363>`_) auto-detects
@@ -1607,7 +1607,7 @@ class ClickExtraConfig:
 
     Wired as the ``config_schema`` of the top-level ``click-extra`` group, so
     every subcommand reads the same section and pulls its own sub-table through
-    :func:`get_tool_config`.
+    :func:`~click_extra.config.schema.get_tool_config`.
     """
 
     test_plan: TestPlanConfig = field(

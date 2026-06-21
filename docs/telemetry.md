@@ -11,6 +11,7 @@ It does nothing else.
    :strict:
 
 .. automodule:: click_extra.telemetry
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

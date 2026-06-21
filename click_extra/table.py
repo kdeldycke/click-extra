@@ -722,12 +722,13 @@ def serialize_data(
     function accepts any JSON-compatible data structure (dicts, lists, nested
     combinations) and serializes it to the requested format.
 
-    Only formats in :py:data:`SERIALIZATION_FORMATS` are supported.
+    Only formats in :py:data:`~click_extra.table.SERIALIZATION_FORMATS` are
+    supported.
 
     :param data: Arbitrary data to serialize (dicts, lists, scalars).
     :param table_format: Target serialization format.
     :param default: Fallback serializer for types not natively supported. Defaults
-        to :py:func:`str`, so :py:class:`~pathlib.Path` and similar types are
+        to :py:class:`str`, so :py:class:`~pathlib.Path` and similar types are
         stringified automatically. Set to a custom callable for different behavior.
     :param root_element: Root element name for XML output.
     :param kwargs: Extra keyword arguments forwarded to the underlying serializer
@@ -792,7 +793,7 @@ def print_data(
 
     :param data: Arbitrary data to serialize.
     :param table_format: Target serialization format.
-    :param default: Fallback serializer for custom types. Defaults to :py:func:`str`.
+    :param default: Fallback serializer for custom types. Defaults to :py:class:`str`.
     :param root_element: Root element name for XML output.
     :param package: Package name for install instructions in error messages.
     :param kwargs: Extra keyword arguments forwarded to the underlying serializer.
@@ -1094,7 +1095,8 @@ class ColumnsOption(ExtraOption):
         """Store the selected column IDs on the context for later projection.
 
         Validation of the IDs against the registry happens inside
-        :meth:`MultiChoice.convert`, before this callback runs, so this just
+        :meth:`~click_extra.types.MultiChoice.convert`, before this callback runs,
+        so this just
         threads the parsed selection onto the context.
         """
         if ctx.resilient_parsing:

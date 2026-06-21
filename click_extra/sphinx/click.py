@@ -83,7 +83,7 @@ Absent in earlier releases, where the runner's capture behavior is fixed.
 
 
 class TerminatedEchoingStdin(EchoingStdin):
-    """Like :class:`click.testing.EchoingStdin` but adds a visible
+    """Like ``click.testing.EchoingStdin`` but adds a visible
     ``^D`` in place of the EOT character (``\x04``).
 
     :meth:`ClickRunner.invoke` adds ``\x04`` when ``terminate_input=True``.
@@ -208,7 +208,7 @@ class ClickRunner(CliRunner):
         _output_lines=None,
         **extra,
     ) -> click.testing.Result:
-        """Like :meth:`CliRunner.invoke` but displays what the user
+        """Like ``CliRunner.invoke`` but displays what the user
         would enter in the terminal for env vars, command arguments, and
         prompts.
 
@@ -274,7 +274,7 @@ class ClickRunner(CliRunner):
         functions in the provided ``source_code``:
 
         - :meth:`invoke()`: which is the same as :meth:`ClickRunner.invoke`
-        - :meth:`isolated_filesystem()`: A context manager that changes to a temporary
+        - ``isolated_filesystem()``: A context manager that changes to a temporary
           directory while executing the block.
 
         If any local variable in the provided ``source_code`` conflicts with these
@@ -373,7 +373,7 @@ class ClickDirective(SphinxDirective):
 
     Support the `same options
     <https://github.com/sphinx-doc/sphinx/blob/cc7c6f4/sphinx/directives/code.py#L108-L117>`_
-    as :class:`sphinx.directives.code.CodeBlock`, and some specific to Click
+    as ``sphinx.directives.code.CodeBlock``, and some specific to Click
     directives.
 
     The standard ``emphasize-lines`` option applies to the source block only. Use
@@ -399,7 +399,7 @@ class ClickDirective(SphinxDirective):
     runner_attr: ClassVar[str] = "click_runner"
     """Name of the attribute holding the runner on the doctree.
 
-    Subclasses (like :class:`~click_extra.sphinx.python.PythonDirective`)
+    Subclasses (like ``PythonDirective``)
     override this so the Click and Python runners don't collide on the same
     document.
     """

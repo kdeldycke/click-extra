@@ -463,6 +463,7 @@ Run `uvx click-extra styles` in your terminal to see the real rendering with you
    :strict:
 
 .. automodule:: click_extra.color
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

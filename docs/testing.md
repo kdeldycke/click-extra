@@ -11,6 +11,7 @@ Write example and tutorial.
    :strict:
 
 .. automodule:: click_extra.testing
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

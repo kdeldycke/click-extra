@@ -855,7 +855,7 @@ class AnsiHtmlFormatter(HtmlFormatter):
 
         Overriding ``get_token_style_defs`` (rather than ``get_style_defs``) ensures
         that Furo's dark-mode CSS generator, which calls this method directly, also
-        picks up the extra rules built by :meth:`_extra_ansi_css_lines`.
+        picks up the extra rules built by ``_extra_ansi_css_lines``.
         """
         return super().get_token_style_defs(arg) + self._extra_ansi_css_lines(arg)
 
@@ -866,7 +866,7 @@ class AnsiHtmlFormatter(HtmlFormatter):
         The MkDocs plugin layers these over a theme's own syntax highlighting, so
         it must not pull in the standard token rules (those would override the
         theme). Keeps the ``-Ansi-*`` token rules plus everything
-        :meth:`_extra_ansi_css_lines` adds. Owning this selection here, next to
+        ``_extra_ansi_css_lines`` adds. Owning this selection here, next to
         the rules it returns, keeps the MkDocs plugin from hard-coding this
         formatter's class names and CSS internals.
         """

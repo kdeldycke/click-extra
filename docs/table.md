@@ -581,6 +581,7 @@ assert result.stdout.index("Apple") < result.stdout.index("Cherry")
    :strict:
 
 .. automodule:: click_extra.table
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

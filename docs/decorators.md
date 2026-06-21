@@ -203,6 +203,7 @@ This pattern is how click-extra builds every `*_option` decorator listed above, 
 
 ```{eval-rst}
 .. automodule:: click_extra.decorators
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

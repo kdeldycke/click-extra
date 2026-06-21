@@ -221,9 +221,9 @@ def inject_slot_example_docstring(
     """Sphinx ``autodoc-process-docstring`` hook injecting per-slot colored examples.
 
     For every :class:`~click_extra.theme.HelpTheme` slot that has an entry in
-    :data:`_PALETTE_EXAMPLES`, append an ``ansi-color`` code block to the
+    ``_PALETTE_EXAMPLES``, append an ``ansi-color`` code block to the
     slot's autodoc lines. The example is rendered through
-    :func:`_render_slot_ansi`, which calls ``BUILTIN_THEMES["dark"].<slot>(text)``
+    ``_render_slot_ansi``, which calls ``BUILTIN_THEMES["dark"].<slot>(text)``
     to obtain the actual ANSI escapes click-extra would emit at runtime.
 
     Wire this up from a Sphinx ``conf.py`` with:
@@ -323,10 +323,10 @@ def palette_html(theme: HelpTheme) -> str:
         ```
 
     Slots that hold ``identity`` (no styling applied), the boolean
-    :attr:`cross_ref_highlight` toggle, the internal ``_style_kwargs``
-    cache, and a handful of inherited cloup slots that built-ins never
-    style are skipped: every emitted row corresponds to a real palette
-    choice in the theme.
+    :attr:`~click_extra.theme.HelpTheme.cross_ref_highlight` toggle, the
+    internal ``_style_kwargs`` cache, and a handful of inherited cloup slots
+    that built-ins never style are skipped: every emitted row corresponds to
+    a real palette choice in the theme.
     """
     rows: list[str] = []
     for f in dataclasses.fields(theme):

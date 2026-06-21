@@ -466,6 +466,7 @@ This package's own CLI ships several other demo subcommands (`colors`, `styles`,
    :strict:
 
 .. automodule:: click_extra.pygments
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

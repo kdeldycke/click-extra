@@ -16,7 +16,7 @@
 """Help-screen keyword highlighting and the colorized help formatter.
 
 Hosts the engine that collects highlightable keywords from a Click context
-(:class:`HelpKeywords`, :class:`_HelpColorsMixin`) and renders them with the
+(:class:`HelpKeywords`, ``_HelpColorsMixin``) and renders them with the
 active theme: :class:`HelpFormatter` styles ``--help`` output and
 :func:`highlight` applies a styling function to arbitrary matches. Split out of
 :mod:`click_extra.color`, which now focuses on ``--color``/``--no-color``
@@ -381,9 +381,9 @@ class HelpFormatter(cloup.HelpFormatter):
         args: str = "",
         prefix: str | None = None,
     ) -> None:
-        """ANSI-aware override of :meth:`cloup.HelpFormatter.write_usage`.
+        """ANSI-aware override of ``cloup.HelpFormatter.write_usage``.
 
-        On Click ``8.3.x``, :func:`click.formatting.wrap_text` measures line length
+        On Click ``8.3.x``, ``click.formatting.wrap_text`` measures line length
         with raw :func:`len`, counting every byte of the ANSI escape sequences
         embedded in ``initial_indent`` (the styled ``Usage:`` heading +
         invoked-command name). With 24-bit RGB themes (like Solarized Dark,
@@ -403,7 +403,7 @@ class HelpFormatter(cloup.HelpFormatter):
         .. note::
             Click ``8.4.0`` (PR `pallets/click#3420
             <https://github.com/pallets/click/pull/3420>`_) made
-            :class:`click.formatting.TextWrapper` ANSI-aware by counting
+            ``click.formatting.TextWrapper`` ANSI-aware by counting
             visible width instead of raw bytes, so this override is a no-op
             fast path on Click ``>= 8.4.0`` and only fixes wrapping on the
             Click ``8.3.x`` releases click-extra still supports.

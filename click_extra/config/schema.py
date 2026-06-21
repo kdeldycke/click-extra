@@ -94,7 +94,7 @@ Schema authors set ``metadata={EXTENSION_METADATA_KEY: True}`` on a field when
 its sub-tree should pass through click-extra's CLI-parameter strict check and
 be validated by app-specific logic instead. Equivalent to typing the field as
 ``dict[str, X]``: both forms are recognized by
-:py:func:`_collect_opaque_paths_from_schema` (the internal pipeline still calls
+``_collect_opaque_paths_from_schema`` (the internal pipeline still calls
 these paths "opaque" since they're skipped by the normalize/flatten/strict
 machinery). The metadata form is useful when the underlying Python type is
 something other than a ``dict`` (for example, a nested dataclass that
@@ -108,8 +108,8 @@ Used by :class:`~click_extra.config.option.ConfigOption` to find ``[tool.<cli>.t
 build them via :meth:`HelpTheme.from_dict
 <click_extra.theme.HelpTheme.from_dict>`, and stash the result on
 ``ctx.meta[click_extra.context.THEME_OVERRIDES]``. The constant is the
-single source of truth shared by :func:`_builtin_config_validators`,
-:meth:`~click_extra.config.option.ConfigOption._apply_theme_overrides`, and
+single source of truth shared by ``_builtin_config_validators``,
+``ConfigOption._apply_theme_overrides``, and
 :func:`click_extra.theme.themes_from_config`.
 """
 

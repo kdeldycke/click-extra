@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Drop-in replacement for :class:`cloup.Style` with extra features.
+"""Drop-in replacement for ``cloup.Style`` with extra features.
 
-The module name mirrors :mod:`cloup.styling`, the upstream module that hosts
+The module name mirrors ``cloup.styling``, the upstream module that hosts
 the original ``Style`` class. Click Extra's :class:`Style` is a subclass that
 keeps cloup's runtime contract (calling, equality, hashing, ``with_()``)
 intact and adds:
@@ -397,11 +397,11 @@ def _quantize_color(
 
 @dataclass(frozen=True, repr=False)
 class Style(cloup.Style):
-    """:class:`cloup.Style` with extra ergonomics.
+    """``cloup.Style`` with extra ergonomics.
 
     See the module docstring for the full list of additions. The runtime
     contract (calling the instance to apply styling, equality, hashing,
-    ``with_()``) is otherwise identical to :class:`cloup.Style`.
+    ``with_()``) is otherwise identical to ``cloup.Style``.
     """
 
     fg: str | tuple[int, int, int] | int | None = None  # type: ignore[assignment]

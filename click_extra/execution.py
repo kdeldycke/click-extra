@@ -97,7 +97,7 @@ class JobCount(click.ParamType):
     #: Exposed as ``choices`` so the help colorizer highlights them like
     #: ``click.Choice`` values: the keyword collector duck-types on this
     #: attribute (see the ``getattr(param.type, "choices", ...)`` branch in
-    #: :meth:`click_extra.highlight._HelpColorsMixin._collect_params`). It is
+    #: ``_HelpColorsMixin._collect_params``). It is
     #: also the single source of truth reused by :meth:`get_metavar` and
     #: :meth:`convert`, so the metavar and the parser never drift apart.
     choices = ("auto", "max")
@@ -176,16 +176,18 @@ class JobCount(click.ParamType):
 class JobsOption(ExtraOption):
     """A pre-configured ``--jobs`` option to control parallel execution.
 
-    Accepts an integer or one of two keywords resolved by :class:`JobCount`:
-    ``auto`` (the default: one fewer than the available logical CPU cores,
-    leaving a core free for the main process and system tasks) and ``max``
-    (every available logical CPU core). A value of ``0`` disables parallelism
-    and runs sequentially.
+    Accepts an integer or one of two keywords resolved by
+    :class:`~click_extra.execution.JobCount`: ``auto`` (the default: one fewer
+    than the available logical CPU cores, leaving a core free for the main
+    process and system tasks) and ``max`` (every available logical CPU core). A
+    value of ``0`` disables parallelism and runs sequentially.
 
     The core count is the number of *logical* CPUs (hardware threads) reported
-    by :func:`os.cpu_count`, not physical cores: see :data:`CPU_COUNT`. On a
-    host with too few logical CPUs, ``auto``/``max`` resolve to a single job
-    and :class:`JobCount` logs a warning that execution will be sequential.
+    by :func:`os.cpu_count`, not physical cores: see
+    :data:`~click_extra.execution.CPU_COUNT`. On a host with too few logical
+    CPUs, ``auto``/``max`` resolve to a single job and
+    :class:`~click_extra.execution.JobCount` logs a warning that execution will
+    be sequential.
 
     The resolved value is stored as an :class:`int` in
     ``ctx.meta[click_extra.context.JOBS]``.
@@ -205,14 +207,14 @@ class JobsOption(ExtraOption):
     ) -> None:
         """Validate the resolved job count and store it in context metadata.
 
-        :class:`JobCount` has already resolved any ``auto``/``max`` keyword to
-        an integer by the time this runs. A value of ``0`` disables
-        parallelism: it is rounded up to ``1`` (sequential execution) with a
-        warning. Negative values are likewise clamped to ``1``, and a count
-        above the available cores is honored but warned about. The resolved
-        count is then logged at info level next to the host's logical CPU count
-        (:data:`CPU_COUNT`), so a CLI's parallelism is visible under
-        ``--verbosity INFO``.
+        :class:`~click_extra.execution.JobCount` has already resolved any
+        ``auto``/``max`` keyword to an integer by the time this runs. A value of
+        ``0`` disables parallelism: it is rounded up to ``1`` (sequential
+        execution) with a warning. Negative values are likewise clamped to
+        ``1``, and a count above the available cores is honored but warned
+        about. The resolved count is then logged at info level next to the
+        host's logical CPU count (:data:`~click_extra.execution.CPU_COUNT`), so a
+        CLI's parallelism is visible under ``--verbosity INFO``.
         """
         if ctx.resilient_parsing:
             return
@@ -294,7 +296,7 @@ def run_jobs(
 
     The pool is thread-based, which suits the I/O- and subprocess-bound work CLI
     tools usually parallelize (each child releases the GIL). The count is a
-    number of logical CPUs: see :data:`CPU_COUNT`.
+    number of logical CPUs: see :data:`~click_extra.execution.CPU_COUNT`.
 
     :param func: Called once per item; its return value is yielded.
     :param items: The work items. Materialized up front to size the pool.

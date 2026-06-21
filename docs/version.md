@@ -700,6 +700,7 @@ Other internal methods to build-up and render the version string are [available 
    :strict:
 
 .. automodule:: click_extra.version
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

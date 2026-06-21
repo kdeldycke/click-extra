@@ -125,8 +125,10 @@ class Spinner:
             bare ``@Spinner`` decorator passes the wrapped function here instead;
             it is detected and the label defaults to empty.
         :param frames: the animation frames, cycled in order. Defaults to
-            :data:`SPINNER_FRAMES`, or the ``spinner`` preset's frames when given.
-        :param spinner: a :class:`SpinnerPreset` from the :data:`SPINNERS` catalog
+            :data:`~click_extra.spinner_presets.SPINNER_FRAMES`, or the ``spinner``
+            preset's frames when given.
+        :param spinner: a :class:`~click_extra.spinner_presets.SpinnerPreset` from
+            the :data:`~click_extra.spinner_presets.SPINNERS` catalog
             (``spinner=SPINNERS["moon"]``), supplying both frames and a tuned
             interval. An explicit ``frames`` or ``interval`` still overrides it.
         :param reverse: cycle the frames backwards, spinning the animation the
@@ -624,7 +626,7 @@ class ProgressOption(ExtraOption):
         The spinner is therefore silenced by two things only, neither of them color:
 
         - **non-interactive output** -- a pipe, file, CI log, or ``TERM=dumb``
-          terminal that cannot move the cursor (see :meth:`Spinner._resolve_enabled`);
+          terminal that cannot move the cursor (see ``Spinner._resolve_enabled``);
         - **explicit intent** -- ``--no-progress`` or ``--accessible``.
 
     This option is eager. It no longer reads ``ctx.color``, so its position relative

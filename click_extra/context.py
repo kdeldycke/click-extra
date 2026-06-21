@@ -91,7 +91,7 @@ class Context(cloup.Context):
     When the ``POSIXLY_CORRECT`` environment variable is set, this context forces
     ``allow_interspersed_args`` to ``False`` so option parsing stops at the first
     positional argument, as GNU getopt-based tools do. See
-    :data:`POSIXLY_CORRECT_ENVVAR`.
+    :data:`~click_extra.context.POSIXLY_CORRECT_ENVVAR`.
 
     .. todo::
         Propose addition of ``meta`` keyword upstream to Click.
@@ -278,7 +278,7 @@ Written by :class:`~click_extra.config.option.ConfigOption`'s
 VERBOSITY_LEVEL: Final[str] = "click_extra.verbosity_level"
 """The reconciled :class:`~click_extra.logging.LogLevel` chosen for the run.
 
-Written by :meth:`click_extra.logging._VerbosityOption.apply_verbosity`, which
+Written by ``_VerbosityOption.apply_verbosity``, which
 reconciles every verbosity-related option (``--verbosity``, ``--verbose``/``-v``
 and ``--quiet``/``-q``) into a single level. Read by the same method to detect
 whether the reconciled level changed since a sibling option last fired.
@@ -297,7 +297,7 @@ VERBOSE: Final[str] = "click_extra.verbose"
 
 Written by :meth:`click_extra.logging.VerboseOption.set_level`. Combined with
 :data:`QUIET` into the signed ``verbose - quiet`` counter that
-:meth:`click_extra.logging._VerbosityOption.resolve_level` shifts the base level by.
+``_VerbosityOption.resolve_level`` shifts the base level by.
 """
 
 QUIET: Final[str] = "click_extra.quiet"
@@ -412,11 +412,11 @@ intent (``--no-progress`` / ``--accessible``), never on ``--no-color`` /
 ACCESSIBLE: Final[str] = "click_extra.accessible"
 """``True`` when the user requested screen-reader-friendly output.
 
-Written by :class:`click_extra.accessibility.AccessibleOption.set_accessible`
+Written by :meth:`~click_extra.AccessibleOption.set_accessible`
 after reconciling the ``--accessible`` flag with the ``ACCESSIBLE`` environment
 variable. Read by output helpers that must degrade a cursor-driven element to a
-linear stream: :func:`click_extra.accessibility.clear` becomes a no-op and
-:func:`click_extra.accessibility.echo_via_pager` writes its text straight to
+linear stream: :func:`~click_extra.clear` becomes a no-op and
+:func:`~click_extra.echo_via_pager` writes its text straight to
 stdout instead of spawning a pager.
 
 This is the *readable* counterpart to the ``--color`` / ``--progress`` /

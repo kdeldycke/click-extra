@@ -42,10 +42,10 @@ Ten frames give a smooth rotation in any UTF-8 terminal. Fall back to
 class SpinnerPreset(NamedTuple):
     """A named spinner animation: its frames and the interval they look best at.
 
-    The :data:`SPINNERS` catalog is ported from `cli-spinners
-    <https://github.com/sindresorhus/cli-spinners>`_, with intervals converted
-    from milliseconds to seconds. Pass one to :class:`~click_extra.spinner.Spinner` via its
-    ``spinner`` argument.
+    The :data:`~click_extra.spinner_presets.SPINNERS` catalog is ported from
+    `cli-spinners <https://github.com/sindresorhus/cli-spinners>`_, with intervals
+    converted from milliseconds to seconds. Pass one to
+    :class:`~click_extra.spinner.Spinner` via its ``spinner`` argument.
     """
 
     frames: tuple[str, ...]

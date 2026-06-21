@@ -136,6 +136,7 @@ Pair it with `subprocess.run(..., env=env_copy({"MYAPP_TOKEN": secret}))` when y
 
 ```{eval-rst}
 .. automodule:: click_extra.envvar
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

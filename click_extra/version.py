@@ -807,7 +807,7 @@ class VersionOption(ExtraOption):
         """Returns the package version if installed.
 
         Resolved from the distribution name (see
-        :attr:`_distribution_name`) via :func:`importlib.metadata.version`.
+        ``_distribution_name``) via :func:`importlib.metadata.version`.
         Returns ``None`` if the package is not installed or cannot be
         resolved.
         """
@@ -821,7 +821,7 @@ class VersionOption(ExtraOption):
         Reads the `core metadata
         <https://packaging.python.org/en/latest/specifications/core-metadata/>`_
         (``Author``, ``License-Expression``, classifiers, ...) of the
-        resolved distribution (see :attr:`_distribution_name`). Returns
+        resolved distribution (see ``_distribution_name``). Returns
         ``None`` when the package is not installed or cannot be resolved.
         """
         name = self._distribution_name
@@ -831,7 +831,8 @@ class VersionOption(ExtraOption):
     def author(self) -> str | None:
         """Returns the package author(s) from its core metadata.
 
-        Delegates to :func:`resolve_author`: prefers the ``Author`` field,
+        Delegates to :func:`~click_extra.version.resolve_author`: prefers the
+        ``Author`` field,
         then the ``Maintainer`` field, then the display name parsed out of the
         ``Author-email`` / ``Maintainer-email`` fields (``Name <email>``).
         Returns ``None`` if no author can be determined.
@@ -842,7 +843,7 @@ class VersionOption(ExtraOption):
     def license(self) -> str | None:
         """Returns the package license from its core metadata.
 
-        Delegates to :func:`resolve_license`: prefers the SPDX
+        Delegates to :func:`~click_extra.version.resolve_license`: prefers the SPDX
         ``License-Expression`` field, falls back to the human-readable name of
         the first ``License ::`` trove classifier, then to the free-form
         ``License`` field. Returns ``None`` if no license can be determined.

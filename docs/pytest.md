@@ -27,6 +27,7 @@ Write example and tutorial.
    :strict:
 
 .. automodule:: click_extra.pytest
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

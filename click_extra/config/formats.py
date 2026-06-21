@@ -59,7 +59,7 @@ used in the disabled-support debug message."""
 PARSER_SUPPORT: dict[str, bool] = {}
 """Availability of each optional parser, keyed by ``click-extra[extra]`` name.
 
-Populated once at import time by probing each module in :data:`_OPTIONAL_PARSERS`
+Populated once at import time by probing each module in ``_OPTIONAL_PARSERS``
 with :func:`importlib.util.find_spec`. Read by :class:`ConfigFormat` to mark the
 matching format as enabled or disabled. The probe does not import the module, so
 the actual parser is loaded lazily by :func:`parse_content` only when used."""

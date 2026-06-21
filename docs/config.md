@@ -1967,6 +1967,7 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
    :strict:
 
 .. automodule:: click_extra.config.formats
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:
@@ -1975,6 +1976,7 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
    :strict:
 
 .. automodule:: click_extra.config.option
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:
@@ -1983,6 +1985,7 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
    :strict:
 
 .. automodule:: click_extra.config.schema
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

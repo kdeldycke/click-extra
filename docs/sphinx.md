@@ -1304,6 +1304,7 @@ NameError: name 'yo_cli' is not defined
    :strict:
 
 .. automodule:: click_extra.sphinx
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

@@ -683,6 +683,7 @@ Click Extra has its own logger, named `click_extra`, which is used to print debu
    :strict:
 
 .. automodule:: click_extra.logging
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

@@ -233,16 +233,17 @@ class ParamStructure:
     """Fully-qualified IDs of the parameters to block from the structure.
 
     Set by subclasses: :class:`ShowParamsOption` freezes an empty set, while
-    :class:`~click_extra.config.ConfigOption` resolves a dynamic default (or the
-    user-provided list) within the active context. The two filters are mutually
-    exclusive, a constraint each subclass enforces in its own constructor.
+    ``ConfigOption`` resolves a dynamic default (or the user-provided list) within
+    the active context. The two filters are mutually exclusive, a constraint each
+    subclass enforces in its own constructor.
     """
 
     included_params: frozenset[str] | None
     """Allowlist of parameter IDs, mutually exclusive with ``excluded_params``.
 
     ``None`` disables the allowlist. It is resolved into ``excluded_params`` by
-    :meth:`build_param_trees`, once every parameter ID is known.
+    :meth:`~click_extra.parameters.ParamStructure.build_param_trees`, once every
+    parameter ID is known.
     """
 
     @staticmethod
@@ -275,9 +276,9 @@ class ParamStructure:
             - a tuple of keys leading to the parameter;
             - the parameter object itself.
 
-        Thin adapter over :func:`walk_command_params`: it resolves the root CLI
-        from the active context and drops the per-parameter context that the free
-        function also yields.
+        Thin adapter over :func:`~click_extra.parameters.walk_command_params`: it
+        resolves the root CLI from the active context and drops the per-parameter
+        context that the free function also yields.
         """
         ctx = get_current_context()
         cli = ctx.find_root().command
@@ -442,7 +443,8 @@ def format_param_row(
     For visual formats, values are themed strings matching help-screen styling.
 
     The remaining table columns (``allowed_in_conf``, ``value``, ``source``)
-    require live context and are filled in by :func:`render_params_table`.
+    require live context and are filled in by
+    :func:`~click_extra.parameters.render_params_table`.
     """
     param_spec = get_param_spec(param, ctx)
     param_class = param.__class__
@@ -587,8 +589,9 @@ def render_params_table(
     otherwise they fall back to the parameter defaults.
 
     This is the shared rendering core behind both
-    :meth:`ShowParamsOption.print_params` (introspecting the live CLI) and the
-    ``click-extra wrap --show-params`` path (introspecting a foreign target).
+    :meth:`~click_extra.parameters.ShowParamsOption.print_params` (introspecting
+    the live CLI) and the ``click-extra wrap --show-params`` path (introspecting a
+    foreign target).
     The caller is responsible for exiting the context afterwards.
 
     .. important::
@@ -994,7 +997,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
     @classmethod
     def find_column(cls, column_id: str):
-        """Return the :class:`ColumnSpec` matching ``column_id``.
+        """Return the :class:`~click_extra.table.ColumnSpec` matching ``column_id``.
 
         Raises ``KeyError`` if no column has this ID; callers should convert
         the error into a :class:`click.UsageError` when surfaced to a user.
@@ -1057,7 +1060,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
     ) -> None:
         """Introspect the current CLI and print its parameter metadata table.
 
-        Thin wrapper over :func:`render_params_table`, the shared rendering core
+        Thin wrapper over
+        :func:`~click_extra.parameters.render_params_table`, the shared rendering core
         also driving ``click-extra wrap --show-params`` for foreign CLIs. The
         live invocation context carries everything the core needs: the captured
         :data:`~click_extra.context.RAW_ARGS` (attached by

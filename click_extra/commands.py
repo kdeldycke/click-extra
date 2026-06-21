@@ -479,7 +479,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
 
         Also settles the color options before delegating, so ``--color`` /
         ``--no-color`` colorize the eager help and version screens regardless of their
-        position on the command line. See :meth:`_resolve_color_eagerly`.
+        position on the command line. See ``_resolve_color_eagerly``.
         """
         original_args = args.copy()
         self._resolve_color_eagerly(ctx, args)
@@ -566,9 +566,9 @@ def _enhance_short_option_error(
 class ColorizedCommand(_HelpColorsMixin, click.Command):  # type: ignore[misc]
     """Click Command with help colorization but no extra params.
 
-    Mixes in :class:`~click_extra.highlight._HelpColorsMixin` for keyword
-    highlighting and uses :class:`Context` for the colorized formatter,
-    without inheriting from ``Command`` (which would inject
+    Mixes in ``_HelpColorsMixin`` for keyword
+    highlighting and uses :class:`~click_extra.context.Context` for the colorized
+    formatter, without inheriting from ``Command`` (which would inject
     ``default_params``).
 
     Use this as a base for lightweight subcommands (like ``help``) or for

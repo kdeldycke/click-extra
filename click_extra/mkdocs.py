@@ -24,7 +24,7 @@ Decomposing tokens into classes only strips the raw escape codes: the classes ca
 color until a matching stylesheet is present. Unlike Sphinx's ``PygmentsBridge``, which
 regenerates ``pygments.css`` from the active formatter on every build, MkDocs never emits
 one for these classes. The plugin therefore writes the ANSI rules to a dedicated
-stylesheet (:func:`_ansi_stylesheet`) and registers it in ``extra_css`` so every page
+stylesheet (``_ansi_stylesheet``) and registers it in ``extra_css`` so every page
 links it.
 
 When `mkdocs-click <https://pypi.org/project/mkdocs-click/>`_ is installed, the plugin

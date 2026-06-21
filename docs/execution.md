@@ -201,6 +201,7 @@ The resolved flag is published on `ctx.meta` as `ZERO_EXIT` for downstream code 
    :strict:
 
 .. automodule:: click_extra.execution
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

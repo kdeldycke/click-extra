@@ -82,10 +82,9 @@ COLOR_DISABLING_TERMS = frozenset({"dumb", "unknown"})
 
 A ``dumb`` or ``unknown`` terminal advertises neither SGR color nor the
 cursor-control codes (carriage return, clear-line) an animation relies on, so both
-Click Extra's color resolution (:func:`resolve_color_env`) and the spinner's
-animation gating (:meth:`click_extra.spinner.Spinner._resolve_enabled`) treat these
-two values as a hard opt-out. Sharing the set keeps the color and animation axes from
-drifting apart.
+Click Extra's color resolution (:func:`~click_extra.color.resolve_color_env`) and the
+spinner's animation gating (``Spinner._resolve_enabled``) treat these two values as a
+hard opt-out. Sharing the set keeps the color and animation axes from drifting apart.
 
 An *unset* ``TERM`` is deliberately excluded: it is common on legitimately
 color-capable streams (subprocesses, some IDEs) where defaulting to off would be a
@@ -245,11 +244,11 @@ class ColorWhenChoice(click.Choice):
     synonyms (:data:`COLOR_WHEN_ALIASES`) and native configuration booleans, folding
     them to a canonical value before validation.
 
-    Only the three canonical :data:`COLOR_WHEN` values reach ``--help``, error
-    messages and shell completion, because the public ``choices`` stay canonical.
-    Synonyms and booleans are accepted silently and normalized, so downstream code
-    (:meth:`ColorOption.set_color`, :data:`_WHEN_TO_TRISTATE`) only ever sees
-    ``auto``, ``always`` or ``never``.
+    Only the three canonical :data:`~click_extra.color.COLOR_WHEN` values reach
+    ``--help``, error messages and shell completion, because the public ``choices``
+    stay canonical. Synonyms and booleans are accepted silently and normalized, so
+    downstream code (:meth:`ColorOption.set_color`, ``_WHEN_TO_TRISTATE``) only ever
+    sees ``auto``, ``always`` or ``never``.
 
     Matching is case-insensitive and whitespace-tolerant, which also makes the
     canonical values forgiving, such as ``--color=ALWAYS``.
@@ -289,8 +288,9 @@ class ColorOption(ExtraOption):
 
     Mirrors the `GNU convention
     <https://www.gnu.org/prep/standards/html_node/_002d_002dcolor.html>`_: ``WHEN`` is
-    one of :data:`COLOR_WHEN` (``auto``, ``always`` or ``never``), and a bare
-    ``--color`` (no value) means ``always``. The negative alias ``--no-color`` is
+    one of :data:`~click_extra.color.COLOR_WHEN` (``auto``, ``always`` or ``never``),
+    and a bare ``--color`` (no value) means ``always``. The negative alias
+    ``--no-color`` is
     carried by the separate :class:`NoColorOption`, because Click forbids attaching
     ``/--no-x`` secondary flags to a value option.
 
@@ -305,9 +305,9 @@ class ColorOption(ExtraOption):
     .. note::
         ``--color`` is deliberately not wired to an ``envvar``. The color environment
         variables (``NO_COLOR``, ``FORCE_COLOR``, …) are read manually through
-        :func:`resolve_color_env`. Letting Click manage them would dump the whole
-        :data:`color_envvars` set into the ``--show-params`` env-var column, and only
-        bind one variable per option anyway.
+        :func:`~click_extra.color.resolve_color_env`. Letting Click manage them would
+        dump the whole :data:`~click_extra.color.color_envvars` set into the
+        ``--show-params`` env-var column, and only bind one variable per option anyway.
     """
 
     _gnu_optional_value: ClassVar[bool] = True
@@ -328,7 +328,7 @@ class ColorOption(ExtraOption):
         This wraps the parser's long-option matcher so a bare ``--color``
         replays as ``--color=<flag_value>`` (``always``) and leaves the following
         argument untouched, while ``--color=<when>`` keeps working. The wrapper stays
-        inert for every option that does not carry :attr:`_gnu_optional_value`, so it
+        inert for every option that does not carry ``_gnu_optional_value``, so it
         is safe to install on the shared parser.
         """
         super().add_to_parser(parser, ctx)

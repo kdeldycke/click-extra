@@ -274,7 +274,7 @@ def basicConfig(
         :py:class:`StreamHandler`.
     :param file_handler_class: A :py:class:`logging.Handler` class that will be used in
         :func:`logging.basicConfig` to create a default file-based handler. Defaults to
-        :py:class:`FileHandler`.
+        :class:`logging.FileHandler`.
     :param formatter_class: A :py:class:`logging.Formatter` class of the formatter that
         will be used in :func:`logging.basicConfig` to setup the default formatter. Defaults to
         :py:class:`Formatter`.
@@ -628,7 +628,7 @@ class _VerbosityOption(ExtraOption):
 
 
 class VerbosityOption(_VerbosityOption):
-    """``--verbosity LEVEL`` option to set the log level of :class:`_VerbosityOption`."""
+    """``--verbosity LEVEL`` option to set the log level of ``_VerbosityOption``."""
 
     def set_level(
         self, ctx: click.Context, param: click.Parameter, value: LogLevel
@@ -666,14 +666,14 @@ class VerbosityOption(_VerbosityOption):
 
 
 class VerboseOption(_VerbosityOption):
-    """``--verbose``/``-v`` option to raise the log level of :class:`_VerbosityOption` by
+    """``--verbose``/``-v`` option to raise the log level of ``_VerbosityOption`` by
     one step per repetition.
 
     Each ``-v`` raises the verbosity by one :class:`LogLevel` step. The option can be
     repeated, so ``-vv`` (or ``-v -v``) raises it by two steps.
 
     The base level the counter starts from is sourced from
-    :attr:`VerbosityOption.default`. So with ``--verbosity``'s default left at
+    ``VerbosityOption.default``. So with ``--verbosity``'s default left at
     ``WARNING``:
 
     - ``-v`` raises the level to ``INFO``,
@@ -683,7 +683,7 @@ class VerboseOption(_VerbosityOption):
 
     ``-v`` shares a single signed counter with :class:`QuietOption`'s ``-q``, so the two
     cancel out: ``-v -q`` leaves the level unchanged. See
-    :meth:`_VerbosityOption.resolve_level` for the full reconciliation rule with
+    ``_VerbosityOption.resolve_level`` for the full reconciliation rule with
     ``--verbosity``.
     """
 
@@ -694,7 +694,7 @@ class VerboseOption(_VerbosityOption):
 
         The number of repetitions is saved in
         ``ctx.meta[click_extra.context.VERBOSE]`` and folded into the verbosity
-        counter by :meth:`_VerbosityOption.resolve_level`.
+        counter by ``_VerbosityOption.resolve_level``.
         """
         context.set(ctx, context.VERBOSE, value)
         self.apply_verbosity(ctx)
@@ -731,12 +731,12 @@ class VerboseOption(_VerbosityOption):
 
 
 class QuietOption(_VerbosityOption):
-    """``--quiet``/``-q`` option to lower the log level of :class:`_VerbosityOption` by
+    """``--quiet``/``-q`` option to lower the log level of ``_VerbosityOption`` by
     one step per repetition.
 
     The symmetric counterpart of :class:`VerboseOption`: where ``-v`` raises the
     verbosity one :class:`LogLevel` step at a time, ``-q`` lowers it. Starting from
-    :attr:`VerbosityOption.default` (``WARNING`` by default):
+    ``VerbosityOption.default`` (``WARNING`` by default):
 
     - ``-q`` lowers the level to ``ERROR``,
     - ``-qq`` lowers the level to ``CRITICAL``,
@@ -745,7 +745,7 @@ class QuietOption(_VerbosityOption):
 
     ``-q`` shares a single signed counter with :class:`VerboseOption`'s ``-v``, so the
     two cancel out: ``-v -q`` leaves the level unchanged. See
-    :meth:`_VerbosityOption.resolve_level` for the full reconciliation rule with
+    ``_VerbosityOption.resolve_level`` for the full reconciliation rule with
     ``--verbosity``.
     """
 
@@ -756,7 +756,7 @@ class QuietOption(_VerbosityOption):
 
         The number of repetitions is saved in
         ``ctx.meta[click_extra.context.QUIET]`` and folded into the verbosity counter
-        by :meth:`_VerbosityOption.resolve_level`.
+        by ``_VerbosityOption.resolve_level``.
         """
         context.set(ctx, context.QUIET, value)
         self.apply_verbosity(ctx)

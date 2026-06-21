@@ -105,6 +105,70 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 nitpicky = True
 
+# Cosmetic or unavoidable warning categories, suppressed wholesale. Mirrors the
+# kdeldycke/extra-platforms Sphinx configuration.
+suppress_warnings = [
+    # Names used only in (lazily-evaluated, PEP 563) type annotations are not
+    # bound at build time, so sphinx_autodoc_typehints cannot resolve the forward
+    # reference. Cosmetic: the rendered signature is unaffected.
+    "sphinx_autodoc_typehints.forward_reference",
+    # The click-extra Sphinx domain does not implement resolve_any_xref.
+    "myst.domains",
+    # ``~~text~~`` strikethrough (used to mark incorrect spellings in prose) only
+    # renders in HTML, which is the only builder in use.
+    "myst.strikethrough",
+    # A few docstring code examples trip docutils' indentation heuristics.
+    "docutils",
+    # index.md opens at H2 (octicon card layout) and a couple of pages skip a
+    # heading level; cosmetic, the rendered table of contents is unaffected.
+    "myst.header",
+    # Links to explicit raw-HTML anchors (``<a name="...">``), which MyST cannot
+    # see at build time though they render and resolve correctly in HTML.
+    "myst.xref_missing",
+]
+
+# Cross-reference targets that legitimately have nothing to link to, so nitpicky
+# mode would otherwise flood the build with "reference target not found". These
+# are NOT broken refs in click-extra's own docstrings (those are fully qualified).
+# click-extra re-exports click's and cloup's public classes as a drop-in
+# replacement, so autodoc renders their upstream docstrings and type annotations
+# here, which reference upstream-internal names and private types absent from any
+# intersphinx inventory.
+nitpick_ignore_regex = [
+    # External packages without an intersphinx inventory, plus click/cloup
+    # internals not exposed in their public docs.
+    (
+        r"py:.*",
+        r"(boltons|cloup|docutils|extra_platforms|mkdocs|pygments|sphinx|_pytest)\..*",
+    ),
+    (r"py:.*", r"click\.(testing|types|_\w+)\..*"),
+    # Private (underscore-prefixed) symbols, in click-extra or upstream.
+    (r"py:.*", r"(.*\.)?_[A-Za-z]\w*(\..*)?"),
+]
+
+# Bare names inherited from re-exported click/cloup docstrings: they resolve in
+# their own upstream docs through the module context, which is lost when autodoc
+# re-renders them under click-extra.
+nitpick_ignore = [
+    ("py:func", "object_type"),
+    ("py:attr", "Context.obj"),
+    ("py:attr", "Context.default_map"),
+    ("py:meth", "Context.lookup_default"),
+    ("py:meth", "Context.token_normalize_func"),
+    ("py:attr", "multiple"),
+    ("py:attr", "nargs"),
+    ("py:meth", "fail"),
+    ("py:class", "Constraint"),
+    ("py:class", "click.MultiCommand"),
+    ("py:meth", "click.types.ParamType[t.Any].shell_complete"),
+    # pygments' inherited ``aliases`` attribute docstring.
+    ("py:func", "get_formatter_by_name"),
+    # sphinx exception raised by the (deprecated) GitHub-alerts converter.
+    ("py:exc", "ConfigError"),
+    # click ParameterSource enum members are absent from click's inventory.
+    ("py:attr", "click.ParameterSource.DEFAULT_MAP"),
+]
+
 # Concatenates the docstrings of the class and the __init__ method.
 autoclass_content = "both"
 # Keep the same ordering as in original source code.
