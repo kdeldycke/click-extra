@@ -60,7 +60,7 @@ import click
 from wcwidth import wcswidth
 
 from . import context
-from .colorize import COLOR_DISABLING_TERMS
+from .color import COLOR_DISABLING_TERMS
 from .parameters import ExtraOption
 from .spinner_presets import (
     SPINNER_FRAMES,
@@ -252,7 +252,7 @@ class Spinner:
         ``--no-color`` and the ``NO_COLOR`` / ``FORCE_COLOR`` family have already
         been honored. Outside a CLI it falls back to those two environment variables
         and a dumb/unknown ``TERM`` (see
-        :data:`~click_extra.colorize.COLOR_DISABLING_TERMS`), then to TTY detection.
+        :data:`~click_extra.color.COLOR_DISABLING_TERMS`), then to TTY detection.
         This is independent of :meth:`_resolve_enabled`: a spinner can spin in plain
         text (a TTY under ``NO_COLOR``), which is exactly the decoupling
         :class:`ProgressOption` documents.
@@ -628,7 +628,7 @@ class ProgressOption(ExtraOption):
         - **explicit intent** -- ``--no-progress`` or ``--accessible``.
 
     This option is eager. It no longer reads ``ctx.color``, so its position relative
-    to :class:`~click_extra.colorize.ColorOption` is not load-bearing.
+    to :class:`~click_extra.color.ColorOption` is not load-bearing.
     """
 
     def set_progress(

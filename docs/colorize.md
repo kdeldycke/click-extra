@@ -456,13 +456,13 @@ The rendering of colors and styles in this HTML documentation is not complete, a
 Run `uvx click-extra styles` in your terminal to see the real rendering with your color scheme.
 ```
 
-## `click_extra.colorize` API
+## `click_extra.color` API
 
 ```{eval-rst}
-.. autoclasstree:: click_extra.colorize
+.. autoclasstree:: click_extra.color
    :strict:
 
-.. automodule:: click_extra.colorize
+.. automodule:: click_extra.color
    :members:
    :undoc-members:
    :show-inheritance:
@@ -470,7 +470,7 @@ Run `uvx click-extra styles` in your terminal to see the real rendering with you
 
 ## `click_extra.highlight` API
 
-The help-screen keyword highlighting engine (`HelpKeywords`, `HelpFormatter`, `highlight`) lives in its own module, split out of `click_extra.colorize`.
+The help-screen keyword highlighting engine (`HelpKeywords`, `HelpFormatter`, `highlight`) lives in its own module, split out of `click_extra.color`.
 
 ```{eval-rst}
 .. autoclasstree:: click_extra.highlight

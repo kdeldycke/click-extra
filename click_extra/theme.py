@@ -563,7 +563,7 @@ class ThemeChoice(click.ParamType):
     """A :class:`click.ParamType` whose ``choices`` track the live theme registry.
 
     Implements the ``click.Choice``-shaped duck interface (``choices``,
-    ``case_sensitive``, ``normalize_choice``) so :mod:`click_extra.colorize`
+    ``case_sensitive``, ``normalize_choice``) so :mod:`click_extra.highlight`
     can collect theme names for per-token highlighting through the same
     code path it uses for Click's own ``Choice``. The ``choices`` attribute
     is a property that queries :func:`get_theme_registry` at every lookup,
@@ -601,7 +601,7 @@ class ThemeChoice(click.ParamType):
         return value if self.case_sensitive else value.casefold()
 
     def normalize_choice(self, choice: Any, ctx: click.Context | None) -> str:
-        """Mirrors :meth:`click.Choice.normalize_choice` for colorize compatibility."""
+        """Mirrors :meth:`click.Choice.normalize_choice` for highlight compatibility."""
         normed = str(choice)
         if ctx is not None and ctx.token_normalize_func is not None:
             normed = ctx.token_normalize_func(normed)

@@ -63,8 +63,8 @@ if True:
 
 # Override cloup.Style with our own version. The override must happen after
 # ``from cloup import *`` (which would otherwise re-shadow our subclass) and
-# before any module that does ``from . import Style`` is loaded (colorize,
-# theme, parameters, version, testing all do).
+# before any module that does ``from . import Style`` is loaded (parameters,
+# version, testing all do).
 from . import styling as _styling_module
 
 Style = _styling_module.Style  # type: ignore[misc]
@@ -72,7 +72,7 @@ del _styling_module
 
 from . import context
 from .accessibility import AccessibleOption, clear, echo_via_pager
-from .colorize import (
+from .color import (
     ColorOption,
     NoColorOption,
 )

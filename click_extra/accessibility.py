@@ -110,7 +110,7 @@ class AccessibleOption(ExtraOption):
             alongside the auto-generated ``<CLI>_ACCESSIBLE`` variable in the
             ``--show-params`` table, making the combined string the widest cell of
             the env-var column and pushing every other row's padding out. This
-            mirrors how :class:`~click_extra.colorize.ColorOption` reads
+            mirrors how :class:`~click_extra.color.ColorOption` reads
             ``NO_COLOR`` and friends.
         """
         if not value:

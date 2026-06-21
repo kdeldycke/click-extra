@@ -19,7 +19,7 @@ Hosts the engine that collects highlightable keywords from a Click context
 (:class:`HelpKeywords`, :class:`_HelpColorsMixin`) and renders them with the
 active theme: :class:`HelpFormatter` styles ``--help`` output and
 :func:`highlight` applies a styling function to arbitrary matches. Split out of
-:mod:`click_extra.colorize`, which now focuses on ``--color``/``--no-color``
+:mod:`click_extra.color`, which now focuses on ``--color``/``--no-color``
 resolution.
 """
 

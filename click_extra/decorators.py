@@ -23,7 +23,7 @@ import click
 import cloup
 
 from .accessibility import AccessibleOption
-from .colorize import ColorOption, NoColorOption
+from .color import ColorOption, NoColorOption
 from .commands import (
     DEFAULT_HELP_NAMES,
     Command,

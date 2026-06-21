@@ -30,7 +30,7 @@ from click_extra import (
     secho,
     style,
 )
-from click_extra.colorize import color_envvars
+from click_extra.color import color_envvars
 
 
 def test_real_fs():

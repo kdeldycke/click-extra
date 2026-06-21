@@ -22,7 +22,7 @@ import os
 import pytest
 from extra_platforms.pytest import skip_windows
 
-from click_extra.colorize import color_envvars
+from click_extra.color import color_envvars
 from click_extra.pytest import (  # noqa: F401
     assert_output_regex,
     create_config,

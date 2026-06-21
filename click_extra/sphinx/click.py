@@ -51,7 +51,7 @@ from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.util import logging
 
-from ..colorize import forced_color
+from ..color import forced_color
 from ._base import (
     StatelessDomain,
     compile_directive,
@@ -149,7 +149,7 @@ class ClickRunner(CliRunner):
     render colors in the HTML output. Because Click Extra executes the documented
     command here, :meth:`invoke` forces color across both color systems a CLI might use:
     ``color=True`` covers Click's (``should_strip_ansi``), and
-    :func:`~click_extra.colorize.forced_color` sets ``FORCE_COLOR`` for Rich's (which
+    :func:`~click_extra.color.forced_color` sets ``FORCE_COLOR`` for Rich's (which
     ``rich-click`` uses and ``color=True`` never reaches). The MkDocs plugin shares the
     latter lever but cannot pass ``color=True``, since it patches a renderer it never
     executes.

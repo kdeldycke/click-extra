@@ -133,7 +133,7 @@ _PALETTE_EXAMPLES: dict[str, str] = {
     # ``default``, ``required``, ``range_label``) when those slots are left
     # at ``identity``.  A theme that only sets ``bracket`` therefore colours
     # the whole field — structural tokens and value tokens alike — with the
-    # same style.  See ``_bracket_or`` in ``colorize.py`` and
+    # same style.  See ``_bracket_or`` in ``highlight.py`` and
     # ``test_bracket_field_inner_slot_fallback_to_bracket`` in the test suite.
     "bracket": "--port INTEGER    «[env var: PORT; default: 8080; required]»",
     "envvar": (

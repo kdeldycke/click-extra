@@ -52,7 +52,7 @@ except ImportError:
 
 import pymdownx.highlight
 
-from .colorize import forced_color
+from .color import forced_color
 from .pygments import AnsiHtmlFormatter
 
 ANSI_OUTPUT_FENCE = "```ansi-output"
@@ -87,7 +87,7 @@ def _patch_mkdocs_click() -> None:
     use the ANSI-aware lexer instead of plain ``text``, and so that the help they
     capture is rendered with color forced on. ``mkdocs-click`` builds help from
     ``ctx.make_formatter()`` rather than executing the command, so the environment
-    override (:func:`~click_extra.colorize.forced_color`) is the only lever available
+    override (:func:`~click_extra.color.forced_color`) is the only lever available
     here, and the capture is materialized inside it: the wrapped generators read their
     formatter eagerly so the escape codes are produced while the override is active, not
     lazily once the caller iterates and the environment has been restored. The patch is

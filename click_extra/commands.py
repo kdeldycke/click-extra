@@ -32,7 +32,7 @@ from click.core import iter_params_for_processing
 
 from . import context
 from .accessibility import AccessibleOption
-from .colorize import ColorOption, NoColorOption
+from .color import ColorOption, NoColorOption
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
@@ -425,8 +425,8 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         ``--no-color`` placed *after* ``--help`` or ``--version`` would pin
         ``ctx.color`` too late: the help or version screen renders and exits first,
         ignoring it. This pre-pass resolves the
-        :class:`~click_extra.colorize.ColorOption` and
-        :class:`~click_extra.colorize.NoColorOption` ahead of the regular parameter
+        :class:`~click_extra.color.ColorOption` and
+        :class:`~click_extra.color.NoColorOption` ahead of the regular parameter
         loop, so an explicit color choice colorizes those eager screens whatever its
         position on the command line.
 
@@ -566,7 +566,7 @@ def _enhance_short_option_error(
 class ColorizedCommand(_HelpColorsMixin, click.Command):  # type: ignore[misc]
     """Click Command with help colorization but no extra params.
 
-    Mixes in :class:`~click_extra.colorize._HelpColorsMixin` for keyword
+    Mixes in :class:`~click_extra.highlight._HelpColorsMixin` for keyword
     highlighting and uses :class:`Context` for the colorized formatter,
     without inheriting from ``Command`` (which would inject
     ``default_params``).

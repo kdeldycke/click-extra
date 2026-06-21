@@ -13,7 +13,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Helpers and utilities to apply ANSI coloring to terminal content."""
+"""Resolve whether terminal output should be colored.
+
+Owns the ``--color[=WHEN]`` and ``--no-color`` options, the color environment
+variables (``NO_COLOR``, ``FORCE_COLOR``, ``CLICOLOR``, and friends), and the
+tri-state WHEN resolution. The actual styling lives elsewhere:
+:mod:`click_extra.styling` (the ``Style`` primitive), :mod:`click_extra.theme`
+(palettes), and :mod:`click_extra.highlight` (help-screen rendering).
+"""
 
 from __future__ import annotations
 

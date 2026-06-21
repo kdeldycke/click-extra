@@ -371,7 +371,7 @@ def supports_truecolor() -> bool:
 
     A ``dumb`` / ``unknown`` ``TERM`` never reaches this decision for CLI output:
     it has already disabled color upstream through
-    :func:`~click_extra.colorize.resolve_color_env`.
+    :func:`~click_extra.color.resolve_color_env`.
     """
     colorterm = os.environ.get("COLORTERM", "").strip().lower()
     if colorterm:

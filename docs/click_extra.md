@@ -25,10 +25,10 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.colorize module
+## click_extra.color module
 
 ```{eval-rst}
-.. automodule:: click_extra.colorize
+.. automodule:: click_extra.color
    :members:
    :show-inheritance:
    :undoc-members:

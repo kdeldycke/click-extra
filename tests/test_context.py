@@ -32,7 +32,7 @@ import pytest
 from click.testing import CliRunner
 
 from click_extra import context
-from click_extra.colorize import color_envvars
+from click_extra.color import color_envvars
 from click_extra.commands import Command
 from click_extra.context import (
     META_NAMESPACE,

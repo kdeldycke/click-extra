@@ -55,7 +55,7 @@ from click_extra import (
     style,
     verbosity_option,
 )
-from click_extra.colorize import (
+from click_extra.color import (
     COLOR_DISABLING_TERMS,
     color_envvars,
     forced_color,
@@ -2303,7 +2303,7 @@ def test_resolve_color_env_force_color_beats_dumb_term(monkeypatch, term):
 # ``--color`` accepts the GNU coreutils synonyms (yes/force, no/none, tty/if-tty)
 # as hidden aliases for always/never/auto, case-insensitively. Configuration files
 # additionally accept native booleans (true -> always, false -> never), including
-# YAML's coercion of yes/no/on/off. See click_extra.colorize.ColorWhenChoice.
+# YAML's coercion of yes/no/on/off. See click_extra.color.ColorWhenChoice.
 
 
 def _no_color_env():
