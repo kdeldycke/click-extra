@@ -27,7 +27,6 @@ except ImportError:
 
 import click
 import cloup
-import pytest
 from _pytest.assertion.util import assertrepr_compare
 from extra_platforms import is_windows
 

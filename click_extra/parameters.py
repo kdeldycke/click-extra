@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import MutableMapping
 from contextlib import nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
@@ -279,28 +278,6 @@ class ParamStructure:
         Raises ``KeyError`` if no item is found at the provided ``path``.
         """
         return reduce(getitem, path, tree_dict)
-
-    def _flatten_tree_dict_gen(
-        self, tree_dict: MutableMapping, parent_key: str | None = None
-    ) -> Iterable[tuple[str, Any]]:
-        """`Source of this snippet
-        <https://www.freecodecamp.org/news/how-to-flatten-a-dictionary-in-python-in-4-different-ways/>`_.
-        """
-        for k, v in tree_dict.items():
-            new_key = f"{parent_key}{self.SEP}{k}" if parent_key else k
-            if isinstance(v, MutableMapping):
-                yield from self.flatten_tree_dict(v, new_key).items()
-            else:
-                yield new_key, v
-
-    def flatten_tree_dict(
-        self,
-        tree_dict: MutableMapping,
-        parent_key: str | None = None,
-    ) -> dict[str, Any]:
-        """Recursively traverse the tree-like ``dict`` and produce a flat ``dict`` whose
-        keys are path and values are the leaf's content."""
-        return dict(self._flatten_tree_dict_gen(tree_dict, parent_key))
 
     def _recurse_cmd(
         self,
