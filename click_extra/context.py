@@ -266,8 +266,8 @@ wrapped CLIs).
 TOOL_CONFIG: Final[str] = "click_extra.tool_config"
 """The app-specific config section, deserialised through ``config_schema``.
 
-Written by :class:`click_extra.config.option.ConfigOption._apply_config_schema` only
-when a schema callable is configured. Read via
+Written by :class:`~click_extra.config.option.ConfigOption`'s
+``_apply_config_schema`` method only when a schema callable is configured. Read via
 :func:`click_extra.config.schema.get_tool_config`.
 """
 
