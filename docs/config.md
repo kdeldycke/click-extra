@@ -465,7 +465,7 @@ The exit codes are:
 
 `--validate-config` and the runtime strict check both speak the language of CLI parameters: every recognized key must correspond to a flag on the command tree. That works for configurations that mirror the CLI one-to-one, but breaks the moment your app declares its own sub-tables whose keys are *data*, not flag names. The user-defined IDs under `[my-cli.managers.<id>]`, the matrix axes in `[my-cli.test-matrix.<axis>]`, the plugin names in `[my-cli.plugins.<plugin>]` — none of these are CLI options, so click-extra's strict mode rightfully refuses to accept them.
 
-Click-extra's answer is to declare such sub-tables as **extension points**. Each extension point names a dotted path in the app's configuration section and pairs with a {py:class}`~click_extra.config.ConfigValidator` that owns the validation logic for it. Click-extra's machinery treats the path as a passthrough: the strict check skips it, the dataclass schema doesn't descend into it, and the contents arrive at the app's validator verbatim. The result is one validation surface that covers both halves — click-extra checks the CLI-flag-bound keys, the app checks its own extension content, and `--validate-config` reports every failure with the same path-rooted error type.
+Click-extra's answer is to declare such sub-tables as **extension points**. Each extension point names a dotted path in the app's configuration section and pairs with a {py:class}`~click_extra.config_schema.ConfigValidator` that owns the validation logic for it. Click-extra's machinery treats the path as a passthrough: the strict check skips it, the dataclass schema doesn't descend into it, and the contents arrive at the app's validator verbatim. The result is one validation surface that covers both halves — click-extra checks the CLI-flag-bound keys, the app checks its own extension content, and `--validate-config` reports every failure with the same path-rooted error type.
 
 ```{tip}
 Three terms describe the same mechanism from three angles, and you'll see all of them in this documentation and in the click-extra source:
@@ -507,7 +507,7 @@ timeout = 600
 
 passes through both the CLI-flag strict check (which sees `verbose` and ignores everything under `managers`) and the schema's typed instantiation (which receives `managers` as a single dict, not flattened into `managers_winget_search_path` etc.).
 
-When the underlying Python type isn't a mapping — for example, a nested dataclass that still represents extension content — mark the field explicitly with {py:data}`~click_extra.config.EXTENSION_METADATA_KEY`:
+When the underlying Python type isn't a mapping — for example, a nested dataclass that still represents extension content — mark the field explicitly with {py:data}`~click_extra.config_schema.EXTENSION_METADATA_KEY`:
 
 ```{code-block} python
 :emphasize-lines: 1,7
@@ -525,7 +525,7 @@ The metadata flag and the `dict[str, X]` type hint are interchangeable for decla
 
 ### Registering a validator
 
-A {py:class}`~click_extra.config.ConfigValidator` binds an `extension_path` to a callable that inspects the sub-tree and raises {py:class}`~click_extra.config.ValidationError` on failure. Pass a tuple of validators through the `config_validators=` kwarg on `@group` or `@config_option`:
+A {py:class}`~click_extra.config_schema.ConfigValidator` binds an `extension_path` to a callable that inspects the sub-tree and raises {py:class}`~click_extra.config_schema.ValidationError` on failure. Pass a tuple of validators through the `config_validators=` kwarg on `@group` or `@config_option`:
 
 ```{code-block} python
 :emphasize-lines: 14-19,29-34
@@ -625,7 +625,7 @@ The internal name for an extension path is `opaque_path`. You'll see it in click
 
 ### Validating programmatically
 
-Both `--validate-config` and the runtime strict check are built on top of a single primitive, {py:func}`~click_extra.config.run_config_validation`. It runs all three stages (the CLI-parameter strict check, the typed schema build, and every registered `ConfigValidator`) in one pass and returns a {py:class}`~click_extra.config.ValidationReport`. Reach for it when I want to validate a parsed configuration document outside Click's option callbacks: a pre-flight check in a deployment script, a custom subcommand that lints config files, or a test harness.
+Both `--validate-config` and the runtime strict check are built on top of a single primitive, {py:func}`~click_extra.config_schema.run_config_validation`. It runs all three stages (the CLI-parameter strict check, the typed schema build, and every registered `ConfigValidator`) in one pass and returns a {py:class}`~click_extra.config_schema.ValidationReport`. Reach for it when I want to validate a parsed configuration document outside Click's option callbacks: a pre-flight check in a deployment script, a custom subcommand that lints config files, or a test harness.
 
 ```{code-block} python
 from dataclasses import dataclass, field
@@ -650,7 +650,7 @@ The report exposes the typed instance, the extracted extension sub-trees, and ev
 - `report.ok` is `True` when no error was detected.
 - `report.schema_instance` holds the built `Forecast(city="Oslo", stations={"north": {"altitude": 12}})`, or `None` when no schema is configured.
 - `report.opaque_subtrees` maps each extension path to its sub-tree, here `{"stations": {"north": {"altitude": 12}}}`.
-- `report.errors` is a tuple of {py:class}`~click_extra.config.ValidationError`, empty on success.
+- `report.errors` is a tuple of {py:class}`~click_extra.config_schema.ValidationError`, empty on success.
 
 Pass `params_template=None` to skip the CLI-parameter strict check (useful for a schema-only validation), or the command's template to enable it. `collect_all=True` (the default) gathers every error so a single run yields the full punch list; `collect_all=False` stops at the first failure.
 
@@ -727,7 +727,7 @@ Set `included_params=()` (empty tuple) to disable `merge_default_map` entirely. 
 ```python
 from dataclasses import dataclass
 from click_extra import group, pass_context
-from click_extra.config import get_tool_config
+from click_extra.config_schema import get_tool_config
 
 
 @dataclass
@@ -1605,7 +1605,7 @@ The most common pattern is a Python dataclass. Click Extra auto-detects dataclas
 ```{click:source}
 from dataclasses import dataclass, field
 from click_extra import command, echo, group, option, pass_context
-from click_extra.config import get_tool_config
+from click_extra.config_schema import get_tool_config
 
 @dataclass
 class AppConfig:
@@ -1658,7 +1658,7 @@ Any callable that accepts a `dict` and returns an object can be used as `config_
 ```{click:source}
 from types import SimpleNamespace
 from click_extra import echo, group, pass_context
-from click_extra.config import get_tool_config, normalize_config_keys
+from click_extra.config_schema import get_tool_config, normalize_config_keys
 
 def parse_config(raw):
     """Custom config parser that normalizes keys."""
@@ -1689,7 +1689,7 @@ The typed configuration is stored in `ctx.meta["click_extra.tool_config"]` and c
 
 ```python
 # Via the convenience helper (uses current context by default):
-from click_extra.config import get_tool_config
+from click_extra.config_schema import get_tool_config
 
 config = get_tool_config()
 
@@ -1731,7 +1731,7 @@ Or JSON:
 Configuration formats commonly use kebab-case (`extra-categories`), while Python identifiers use snake_case (`extra_categories`). The `normalize_config_keys` utility handles this conversion recursively:
 
 ```python
-from click_extra.config import normalize_config_keys
+from click_extra.config_schema import normalize_config_keys
 
 raw = {"extra-categories": ["a", "b"], "nested-section": {"sub-key": 1}}
 normalized = normalize_config_keys(raw)
@@ -1745,7 +1745,7 @@ For dataclass schemas, this normalization is applied automatically. For callable
 TOML and YAML configurations often group related settings under sub-tables (e.g. `[tool.myapp.dependency-graph]`{l=toml}). When using a dataclass schema, Click Extra automatically flattens these nested sections by joining parent and child keys with `_`, so they map directly to flat dataclass fields:
 
 ```python
-from click_extra.config import flatten_config_keys, normalize_config_keys
+from click_extra.config_schema import flatten_config_keys, normalize_config_keys
 
 raw = {"dependency-graph": {"all-groups": True, "output": "deps.mmd"}}
 flatten_config_keys(normalize_config_keys(raw))
@@ -1796,7 +1796,7 @@ Here `matrix_axes` receives `{"python_version": ["3.12", "3.13"], "os": ["ubuntu
 Both helpers accept an `opaque_keys` parameter for manual control, useful when working with raw config dicts outside the schema pipeline:
 
 ```python
-from click_extra.config import flatten_config_keys
+from click_extra.config_schema import flatten_config_keys
 
 conf = {"matrix": {"replace": {"os": {"old": "new"}}, "count": 3}}
 flatten_config_keys(conf, opaque_keys=frozenset({"matrix_replace"}))
@@ -1811,7 +1811,7 @@ Dataclass fields can carry metadata to control how their values are extracted fr
 
 - **`click_extra.normalize_keys`**: Set to `False` to skip key normalization on the extracted value. Useful when the value contains keys that are external identifiers (e.g. GitHub Actions axis names like `python-version`) that must not be converted to `python_version`.
 
-- **`click_extra.extension`** (alias: {py:data}`~click_extra.config.EXTENSION_METADATA_KEY`): Set to `True` to declare the field as an [extension point](#extending-validation). The sub-tree at that field becomes a passthrough — strict-check skips it, the flatten pipeline treats it as opaque, and a registered `ConfigValidator` (or your own code) takes over its validation. Equivalent to typing the field as `dict[str, X]`; use the metadata form when the field's runtime type isn't a mapping.
+- **`click_extra.extension`** (alias: {py:data}`~click_extra.config_schema.EXTENSION_METADATA_KEY`): Set to `True` to declare the field as an [extension point](#extending-validation). The sub-tree at that field becomes a passthrough — strict-check skips it, the flatten pipeline treats it as opaque, and a registered `ConfigValidator` (or your own code) takes over its validation. Equivalent to typing the field as `dict[str, X]`; use the metadata form when the field's runtime type isn't a mapping.
 
 ```python
 from dataclasses import dataclass, field
@@ -1914,7 +1914,7 @@ When a CLI tool is renamed, existing configuration files may still use the old s
 ```{click:source}
 from dataclasses import dataclass
 from click_extra import echo, group, pass_context
-from click_extra.config import get_tool_config
+from click_extra.config_schema import get_tool_config
 
 @dataclass
 class ToolConfig:
@@ -1967,6 +1967,14 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
    :strict:
 
 .. automodule:: click_extra.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclasstree:: click_extra.config_schema
+   :strict:
+
+.. automodule:: click_extra.config_schema
    :members:
    :undoc-members:
    :show-inheritance:

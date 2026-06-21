@@ -46,7 +46,7 @@ Configuration shape::
         },
     ]
 
-* ``script`` is resolved by :func:`click_extra.wrap.resolve_target_command`
+* ``script`` is resolved by :func:`click_extra.cli_wrapper.resolve_target_command`
   exactly as it would be from the ``click-extra man`` CLI: a
   ``console_scripts`` entry-point name, a ``module:function`` path, a
   ``.py`` file, or a plain module name.
@@ -90,13 +90,13 @@ from docutils import nodes
 from sphinx.directives import SphinxDirective
 from sphinx.util import logging
 
+from ..cli_wrapper import resolve_target_command
 from ..man_page import (
     full_short_help,
     iter_command_contexts,
     iter_inline_literals,
     write_manpages,
 )
-from ..wrap import resolve_target_command
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

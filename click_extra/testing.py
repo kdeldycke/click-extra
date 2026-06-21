@@ -40,9 +40,17 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from contextlib import AbstractContextManager
+    from pathlib import Path
     from typing import IO, Any, Literal
 
-    from ._types import TArg, TEnvVars, TNestedArgs
+    from .envvar import TEnvVars
+
+    TArg = str | Path | None
+    TNestedArgs = Iterable[TArg | Iterable["TNestedArgs"]]
+    """Type for arbitrary nested CLI arguments.
+
+    Arguments can be ``str``, :py:class:`pathlib.Path` objects or ``None`` values.
+    """
 
 
 PROMPT = (">" if is_windows() else "$") + " "
@@ -232,10 +240,6 @@ class CliRunner(click.testing.CliRunner):
         :param **extra: same as ``click.testing.CliRunner.invoke()``, but colliding
             parameters are allowed and properly passed on to the invoked CLI.
         """
-        # Initialize ``extra`` if not provided.
-        if not extra:
-            extra = {}
-
         # Pop out the ``args`` parameter from ``extra`` and append it to the positional
         # arguments. This handles the case where ``args`` is passed as a keyword
         # argument, as in vanilla Click's ``CliRunner.invoke()`` API.

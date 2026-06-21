@@ -265,14 +265,8 @@ class ManOptionItem:
     metavar: str | None
     """The rendered metavar, or ``None`` for boolean flags (which take no value)."""
 
-    is_choice: bool
-    """Whether the option's type is a :class:`click.Choice`."""
-
     help: str | None
     """The option's help text, possibly carrying a ``\\b`` no-rewrap marker."""
-
-    envvars: tuple[str, ...]
-    """Environment variables read by the option, auto-generated one included."""
 
     required: bool
     """Whether the option is mandatory."""
@@ -571,9 +565,7 @@ def _option_item(param: Parameter, ctx: Context) -> ManOptionItem:
     return ManOptionItem(
         names=tuple(param.opts) + tuple(param.secondary_opts),
         metavar=None if is_flag else param.make_metavar(ctx=ctx),
-        is_choice=isinstance(param.type, click.Choice),
         help=getattr(param, "help", None),
-        envvars=param_envvar_ids(param, ctx),
         required=param.required,
     )
 

@@ -26,8 +26,8 @@ def test_sphinx_extension_setup(sphinx_app):
 
     # Check that our directives are registered.
     assert "source" in sphinx_app.env.get_domain("click").directives
-    assert "example" in sphinx_app.env.get_domain("click").directives
     assert "run" in sphinx_app.env.get_domain("click").directives
+    assert "tree" in sphinx_app.env.get_domain("click").directives
 
 
 def test_resolve_any_xref(sphinx_app):

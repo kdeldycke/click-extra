@@ -36,9 +36,15 @@ from click_extra import (
     echo,
     pass_context,
 )
-from click_extra.cli import _TOUR_CAP, _TOUR_CYCLES, _TOUR_MIN, _tour_duration, demo
+from click_extra.cli import demo
 from click_extra.context import PROGRESS
-from click_extra.spinner import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
+from click_extra.spinner import (
+    _TOUR_CAP,
+    _TOUR_CYCLES,
+    _TOUR_MIN,
+    _tour_duration,
+)
+from click_extra.spinner_presets import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
 from click_extra.theme import KO_GLYPH, OK_GLYPH
 
 # Cursor and line control codes the spinner emits, named for readable asserts.

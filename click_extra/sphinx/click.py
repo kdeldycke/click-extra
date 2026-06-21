@@ -607,24 +607,6 @@ class RunDirective(ClickDirective):
     runner_method = "run_cli"
 
 
-class DeprecatedExampleDirective(SourceDirective):
-    """Deprecated alias for SourceDirective.
-
-    .. deprecated:: 7.3.0
-        Use ``click:source`` instead of ``click:example``.
-    """
-
-    def run(self) -> list[nodes.Node]:
-        logger.warning(
-            "The 'click:example' directive is deprecated and will be remove in "
-            "Click Extra 8.0.0. Use 'click:source' instead.",
-            type="click",
-            subtype="deprecated",
-            location=self.get_location(),
-        )
-        return super().run()
-
-
 ClickDirective.runner_factory = ClickRunner
 
 
@@ -882,7 +864,6 @@ class ClickDomain(StatelessDomain):
     """Setup new directives under the same ``click`` namespace:
 
     - ``click:source`` which renders a Click CLI source code
-    - ``click:example``, an alias to ``click:source`` (deprecated)
     - ``click:run`` which renders the results of running a Click CLI
     - ``click:tree`` which walks a Click command tree and renders the full
       ``--help`` reference for every subcommand, with a summary table on top
@@ -892,7 +873,6 @@ class ClickDomain(StatelessDomain):
     label = "Click"
     directives: ClassVar[dict] = {
         "source": SourceDirective,
-        "example": DeprecatedExampleDirective,
         "run": RunDirective,
         "tree": TreeDirective,
     }

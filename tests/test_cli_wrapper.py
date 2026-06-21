@@ -23,17 +23,17 @@ import click
 import pytest
 
 from click_extra.cli import demo
-from click_extra.colorize import _HelpColorsMixin
-from click_extra.commands import ColorizedCommand, ColorizedGroup
-from click_extra.context import Context
-from click_extra.testing import CliRunner
-from click_extra.wrap import (
+from click_extra.cli_wrapper import (
     _config_args_for_target,
     resolve_target,
     resolve_target_command,
     unpatch_click,
     wrap,
 )
+from click_extra.colorize import _HelpColorsMixin
+from click_extra.commands import ColorizedCommand, ColorizedGroup
+from click_extra.context import Context
+from click_extra.testing import CliRunner
 
 GREET_SCRIPT = (
     "import click\n"

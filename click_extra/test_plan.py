@@ -54,13 +54,15 @@ from .execution import run_jobs
 from .spinner import Spinner
 from .testing import args_cleanup, regex_fullmatch_line_by_line, render_cli_run
 
+logger = logging.getLogger(__name__)
+
 # Optional YAML support, mirroring the per-format extra pattern in config.py.
 yaml_support = True
 try:
     import yaml
 except ImportError:
     yaml_support = False
-    logging.getLogger("click_extra").debug(
+    logger.debug(
         "YAML support disabled: install click-extra[yaml] to enable it."
     )
 
@@ -76,7 +78,7 @@ class SkippedTest(Exception):
 
 
 def _split_args(cli: str) -> list[str]:
-    """Split a string or sequence of strings into a tuple of arguments.
+    """Split a command-line string into a list of arguments.
 
     ```{todo}
     Evaluate better Windows CLI parsing with:
@@ -132,23 +134,11 @@ class CLITestCase:
     strip_ansi: bool = False
     """Strip ANSI escape sequences from the captured output before matching."""
 
-    output_contains: tuple[str, ...] | str = field(default_factory=tuple)
-    """Reserved: combined stdout/stderr matching is not implemented yet.
-
-    Setting any `output_*` directive raises at runtime; use the `stdout_*` and
-    `stderr_*` variants instead.
-    """
-
     stdout_contains: tuple[str, ...] | str = field(default_factory=tuple)
     """Substrings that must all be present in stdout."""
 
     stderr_contains: tuple[str, ...] | str = field(default_factory=tuple)
     """Substrings that must all be present in stderr."""
-
-    output_regex_matches: tuple[re.Pattern | str, ...] | str = field(
-        default_factory=tuple
-    )
-    """Reserved: see `output_contains`."""
 
     stdout_regex_matches: tuple[re.Pattern | str, ...] | str = field(
         default_factory=tuple
@@ -159,9 +149,6 @@ class CLITestCase:
         default_factory=tuple
     )
     """Regexes that must each match somewhere in stderr (searched, `re.DOTALL`)."""
-
-    output_regex_fullmatch: re.Pattern | str | None = None
-    """Reserved: see `output_contains`."""
 
     stdout_regex_fullmatch: re.Pattern | str | None = None
     """Regex that must fully match stdout, line by line."""
@@ -352,19 +339,13 @@ class CLITestCase:
                 continue
 
             # Ignore non-output fields, and empty test cases.
-            elif not (
-                field_id.startswith(("output_", "stdout_", "stderr_")) and field_data
-            ):
+            elif not (field_id.startswith(("stdout_", "stderr_")) and field_data):
                 continue
 
             # Prepare output and name for comparison.
             output = ""
             name = ""
-            if field_id.startswith("output_"):
-                raise NotImplementedError("<stdout>/<stderr> output mix")
-                # output = result.output
-                # name = "output"
-            elif field_id.startswith("stdout_"):
+            if field_id.startswith("stdout_"):
                 output = result.stdout
                 name = "<stdout>"
             elif field_id.startswith("stderr_"):
@@ -408,6 +389,15 @@ DEFAULT_TEST_PLAN: list[CLITestCase] = [
 
 
 def parse_test_plan(plan_string: str | None) -> Generator[CLITestCase, None, None]:
+    """Parse a YAML test plan into :class:`CLITestCase` instances.
+
+    The plan must be a YAML list of mappings, each keyed by ``CLITestCase``
+    directive names. Requires the ``yaml`` extra.
+
+    :raises ValueError: the plan is empty or a case uses unknown directives.
+    :raises TypeError: the plan is not a list, or a case is not a mapping.
+    :raises ImportError: YAML support is not installed.
+    """
     if not plan_string:
         raise ValueError("Empty test plan")
 
@@ -437,44 +427,6 @@ def parse_test_plan(plan_string: str | None) -> Generator[CLITestCase, None, Non
             )
 
         yield CLITestCase(**test_case)
-
-
-@dataclass
-class TestPlanConfig:
-    """Config schema for a project's test plan, read from ``[tool.<cli>.test-plan]``.
-
-    The ``test-plan`` CLI command resolves its cases from this config when no
-    plan is given on the command line. Map it onto an app's config section with
-    a field carrying ``metadata={"click_extra.config_path": "test-plan"}``.
-    """
-
-    file: str = "./tests/cli-test-plan.yaml"
-    """Path to a YAML test plan file, resolved relative to the project root."""
-
-    inline: str | None = None
-    """Inline YAML test plan, an alternative to :attr:`file`. Takes precedence."""
-
-    timeout: int | None = None
-    """Default timeout (seconds) for each case that does not set its own.
-
-    ``None`` leaves cases unbounded unless ``--timeout`` is passed.
-    """
-
-
-@dataclass
-class ClickExtraConfig:
-    """Schema for the ``[tool.click-extra]`` configuration section.
-
-    Currently carries only the ``test-plan`` sub-table, letting a project point
-    ``click-extra test-plan`` at its own plan without repeating it on the
-    command line. It is the ``config_schema`` of the ``test-plan`` CLI command.
-    """
-
-    test_plan: TestPlanConfig = field(
-        default_factory=TestPlanConfig,
-        metadata={"click_extra.config_path": "test-plan"},
-    )
-    """The ``[tool.click-extra.test-plan]`` sub-table (file/inline/timeout)."""
 
 
 def run_test_plan(

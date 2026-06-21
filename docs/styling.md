@@ -161,7 +161,7 @@ solarized_bg = Style(fg="#002b36")
 print(f"{solarized_blue.contrast_ratio(solarized_bg):.2f}")
 ```
 
-Click Extra uses this internally to gate the [WCAG legibility floor and AA Large compliance for branded themes](https://github.com/kdeldycke/click-extra/blob/main/tests/test_themes.py).
+Click Extra uses this internally to gate the [WCAG legibility floor and AA Large compliance for branded themes](https://github.com/kdeldycke/click-extra/blob/main/tests/test_theme.py).
 
 ## Equality and hash
 

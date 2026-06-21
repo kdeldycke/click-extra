@@ -20,8 +20,11 @@ import logging
 import os
 import re
 import sys
+import unittest.mock
+from dataclasses import dataclass, field
 from pathlib import Path
 from textwrap import dedent
+from types import SimpleNamespace
 
 import click
 import pytest
@@ -33,6 +36,7 @@ from extra_platforms import (
     is_windows,
 )
 from extra_platforms.pytest import unless_unix_not_macos
+from wcmatch import fnmatch, glob
 
 from click_extra import (
     NO_CONFIG,
@@ -51,13 +55,34 @@ from click_extra import (
     validate_config_option,
 )
 from click_extra.colorize import _escape_for_help_screen
-from click_extra.config import _expand_dotted_keys
+from click_extra.config_schema import (
+    _collect_opaque_paths_from_schema,
+    _expand_dotted_keys,
+    flatten_config_keys,
+    get_tool_config,
+    normalize_config_keys,
+)
 from click_extra.pytest import (
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
     default_debug_uncolored_logging,
     default_debug_uncolored_version_details,
 )
+
+# The complete set of glob search flags ``ConfigOption`` enforces by default.
+FULL_SEARCH_FLAGS = (
+    glob.GLOBSTAR
+    | glob.FOLLOW
+    | glob.DOTGLOB
+    | glob.BRACE
+    | glob.SPLIT
+    | glob.GLOBTILDE
+    | glob.NODIR
+)
+"""All search flags ``ConfigOption`` forces on, used as the baseline in tests."""
+
+NO_DOTGLOB_FLAGS = FULL_SEARCH_FLAGS & ~glob.DOTGLOB
+"""``FULL_SEARCH_FLAGS`` minus ``DOTGLOB``, to exercise the dotfile warnings."""
 
 TOML_FILE, TOML_DATA = (
     dedent(
@@ -1625,8 +1650,6 @@ def test_parent_patterns_inaccessible_directory(tmp_path):
     def test_cli():
         pass
 
-    from unittest.mock import patch
-
     original_access = os.access
 
     def fake_access(path, mode, **kwargs):
@@ -1637,7 +1660,9 @@ def test_parent_patterns_inaccessible_directory(tmp_path):
     with click.Context(test_cli, info_name="test-cli"):
         config_opt = search_params(test_cli.params, ConfigOption)
         assert isinstance(config_opt, ConfigOption)
-        with patch("click_extra.config.os.access", side_effect=fake_access):
+        with unittest.mock.patch(
+            "click_extra.config.os.access", side_effect=fake_access
+        ):
             patterns = list(config_opt.parent_patterns(str(config_file)))
 
     # First yield: (parent_of_file, filename).
@@ -1867,8 +1892,6 @@ def test_multiple_files_matching_glob(invoke, create_config, tmp_path):
 
 def test_forced_flags_warnings(caplog):
     """Warnings fire when SPLIT, BRACE or NODIR flags are missing."""
-    from wcmatch import fnmatch, glob
-
     with caplog.at_level(logging.WARNING, logger="click_extra"):
         ConfigOption(
             file_pattern_flags=fnmatch.NEGATE,  # missing SPLIT
@@ -1949,8 +1972,6 @@ def test_root_dir_parent_search_finds_non_toml(invoke, tmp_path):
 
 def test_no_enabled_formats_raises():
     """ValueError raised when all formats are disabled."""
-    import unittest.mock
-
     with (
         unittest.mock.patch.object(
             ConfigFormat, "enabled", new_callable=lambda: property(lambda self: False)
@@ -2811,243 +2832,120 @@ def test_prepend_subcommand_multiple(invoke, create_config):
 
 # --- _check_pattern_sanity tests ---
 
-
-def test_sanity_broad_glob_narrow_format(caplog):
-    """Broad glob + all-literal format patterns triggers a debug log."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            default="~/*",
-            file_format_patterns={ConfigFormat.YAML: ".commandrc"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.DOTGLOB
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "Broad search pattern" in caplog.text
-    assert "literal format patterns" in caplog.text
+# Sentinel for sanity cases that omit the ``default`` keyword entirely, exercising
+# the code paths that skip the default-dependent checks.
+_NO_DEFAULT = object()
 
 
-def test_sanity_broad_glob_wildcard_format(caplog):
-    """Broad glob + wildcard format patterns does NOT trigger the warning."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            default="~/*",
-            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.DOTGLOB
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "Broad search pattern" not in caplog.text
-
-
-def test_sanity_disjoint_patterns(caplog):
-    """Literal default not matching any format pattern triggers a debug log."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            default="/etc/myapp/config.conf",
-            file_format_patterns={ConfigFormat.TOML: "*.toml"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.DOTGLOB
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "does not match any format pattern" in caplog.text
-
-
-def test_sanity_disjoint_matching_literal(caplog):
-    """Literal default matching a format pattern does NOT trigger the warning."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            default="/etc/myapp/config.toml",
-            file_format_patterns={ConfigFormat.TOML: "*.toml"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.DOTGLOB
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "does not match any format pattern" not in caplog.text
-
-
-def test_sanity_format_extension_mismatch(caplog):
-    """Format pattern extension mismatching its format triggers a debug log."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            file_format_patterns={ConfigFormat.YAML: "*.toml"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.DOTGLOB
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "canonically associated" in caplog.text
-
-
-def test_sanity_format_extension_correct(caplog):
-    """Correctly-matched format extension does NOT trigger the warning."""
-    from wcmatch import glob
+@pytest.mark.parametrize(
+    ("default", "file_format_patterns", "flags", "present", "absent"),
+    (
+        pytest.param(
+            "~/*",
+            {ConfigFormat.YAML: ".commandrc"},
+            FULL_SEARCH_FLAGS,
+            ("Broad search pattern", "literal format patterns"),
+            (),
+            id="broad_glob_narrow_format",
+        ),
+        pytest.param(
+            "~/*",
+            {ConfigFormat.YAML: "*.yaml"},
+            FULL_SEARCH_FLAGS,
+            (),
+            ("Broad search pattern",),
+            id="broad_glob_wildcard_format",
+        ),
+        pytest.param(
+            "/etc/myapp/config.conf",
+            {ConfigFormat.TOML: "*.toml"},
+            FULL_SEARCH_FLAGS,
+            ("does not match any format pattern",),
+            (),
+            id="disjoint_patterns",
+        ),
+        pytest.param(
+            "/etc/myapp/config.toml",
+            {ConfigFormat.TOML: "*.toml"},
+            FULL_SEARCH_FLAGS,
+            (),
+            ("does not match any format pattern",),
+            id="disjoint_matching_literal",
+        ),
+        pytest.param(
+            _NO_DEFAULT,
+            {ConfigFormat.YAML: "*.toml"},
+            FULL_SEARCH_FLAGS,
+            ("canonically associated",),
+            (),
+            id="format_extension_mismatch",
+        ),
+        pytest.param(
+            _NO_DEFAULT,
+            {ConfigFormat.YAML: "*.yaml"},
+            FULL_SEARCH_FLAGS,
+            (),
+            ("canonically associated",),
+            id="format_extension_correct",
+        ),
+        pytest.param(
+            "~/.myapprc",
+            {ConfigFormat.YAML: "*.yaml"},
+            NO_DOTGLOB_FLAGS,
+            ("DOTGLOB is not set",),
+            (),
+            id="dotfile_without_dotglob",
+        ),
+        pytest.param(
+            "~/configs/*",
+            {ConfigFormat.YAML: ".myapprc"},
+            NO_DOTGLOB_FLAGS,
+            ("DOTGLOB is not set",),
+            (),
+            id="dotfile_format_without_dotglob",
+        ),
+        pytest.param(
+            "~/.myapprc",
+            {ConfigFormat.YAML: "*.yaml"},
+            FULL_SEARCH_FLAGS,
+            (),
+            ("DOTGLOB is not set",),
+            id="dotfile_with_dotglob",
+        ),
+        pytest.param(
+            _NO_DEFAULT,
+            {ConfigFormat.YAML: "*.yaml"},
+            FULL_SEARCH_FLAGS,
+            (),
+            ("Broad search pattern", "does not match"),
+            id="no_explicit_default",
+        ),
+        pytest.param(
+            _NO_DEFAULT,
+            {ConfigFormat.YAML: "*.toml"},
+            FULL_SEARCH_FLAGS,
+            ("canonically associated",),
+            (),
+            id="format_mismatch_without_explicit_default",
+        ),
+    ),
+)
+def test_sanity_checks(caplog, default, file_format_patterns, flags, present, absent):
+    """``_check_pattern_sanity`` emits (or suppresses) debug logs per pattern config."""
+    kwargs = {
+        "file_format_patterns": file_format_patterns,
+        "search_pattern_flags": flags,
+    }
+    if default is not _NO_DEFAULT:
+        kwargs["default"] = default
 
     with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.DOTGLOB
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
+        ConfigOption(**kwargs)
 
-    assert "canonically associated" not in caplog.text
-
-
-def test_sanity_dotfile_without_dotglob(caplog):
-    """Dotfile in default without DOTGLOB triggers a debug log."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            default="~/.myapprc",
-            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "DOTGLOB is not set" in caplog.text
-
-
-def test_sanity_dotfile_format_without_dotglob(caplog):
-    """Dotfile in format patterns without DOTGLOB triggers a debug log."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            default="~/configs/*",
-            file_format_patterns={ConfigFormat.YAML: ".myapprc"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "DOTGLOB is not set" in caplog.text
-
-
-def test_sanity_dotfile_with_dotglob(caplog):
-    """Dotfile with DOTGLOB does NOT trigger the warning."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            default="~/.myapprc",
-            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.DOTGLOB
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "DOTGLOB is not set" not in caplog.text
-
-
-def test_sanity_no_explicit_default(caplog):
-    """Without an explicit string default, checks 1/2/4 are skipped."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            file_format_patterns={ConfigFormat.YAML: "*.yaml"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.DOTGLOB
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "Broad search pattern" not in caplog.text
-    assert "does not match" not in caplog.text
-
-
-def test_sanity_format_mismatch_without_explicit_default(caplog):
-    """Check 3 (format mismatch) runs even without explicit default."""
-    from wcmatch import glob
-
-    with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(
-            file_format_patterns={ConfigFormat.YAML: "*.toml"},
-            search_pattern_flags=(
-                glob.GLOBSTAR
-                | glob.FOLLOW
-                | glob.DOTGLOB
-                | glob.BRACE
-                | glob.SPLIT
-                | glob.GLOBTILDE
-                | glob.NODIR
-            ),
-        )
-
-    assert "canonically associated" in caplog.text
+    for fragment in present:
+        assert fragment in caplog.text
+    for fragment in absent:
+        assert fragment not in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -3450,8 +3348,6 @@ def test_strict_conf_dotted_key_conflict(invoke, create_config):
 
 
 def test_normalize_config_keys():
-    from click_extra.config import normalize_config_keys
-
     assert normalize_config_keys({}) == {}
     assert normalize_config_keys({"foo-bar": 1}) == {"foo_bar": 1}
     assert normalize_config_keys({"a-b": {"c-d": 2}}) == {"a_b": {"c_d": 2}}
@@ -3461,9 +3357,6 @@ def test_normalize_config_keys():
 
 def test_config_schema_dataclass(invoke, create_config):
     """Dataclass schemas are auto-detected and instantiated with normalized keys."""
-    from dataclasses import dataclass, field
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3509,9 +3402,6 @@ def test_config_schema_dataclass(invoke, create_config):
 
 def test_config_schema_callable(invoke, create_config):
     """A plain callable can be used as config_schema."""
-    from types import SimpleNamespace
-
-    from click_extra.config import get_tool_config, normalize_config_keys
 
     def my_schema(raw):
         return SimpleNamespace(**normalize_config_keys(raw))
@@ -3542,9 +3432,6 @@ def test_config_schema_callable(invoke, create_config):
 
 def test_config_schema_no_config_file(invoke):
     """When no config file is found, schema defaults are used."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3567,9 +3454,6 @@ def test_config_schema_no_config_file(invoke):
 
 def test_config_schema_dataclass_defaults(invoke, create_config):
     """Dataclass defaults are used for fields not present in the config file."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3603,9 +3487,6 @@ def test_config_schema_dataclass_defaults(invoke, create_config):
 
 def test_fallback_sections(invoke, create_config):
     """Legacy section names are recognized with a deprecation warning."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3638,9 +3519,6 @@ def test_fallback_sections(invoke, create_config):
 
 def test_fallback_sections_prefers_current(invoke, create_config):
     """When both current and legacy sections exist, current wins."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3701,9 +3579,6 @@ def test_fallback_sections_prefers_current(invoke, create_config):
 )
 def test_config_schema_multiple_formats(invoke, create_config, conf_name, conf_text):
     """Config schema works with YAML and JSON, not just TOML."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3731,11 +3606,8 @@ def test_config_schema_multiple_formats(invoke, create_config, conf_name, conf_t
 
 def test_config_schema_on_config_option_directly(invoke, create_config):
     """Config schema can be set directly on ConfigOption via the decorator."""
-    from dataclasses import dataclass
 
     from click import group as click_group
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3767,9 +3639,6 @@ def test_config_schema_on_config_option_directly(invoke, create_config):
 
 def test_get_tool_config_defaults_to_current_context(invoke, create_config):
     """get_tool_config() works without passing ctx explicitly."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3799,8 +3668,6 @@ def test_get_tool_config_defaults_to_current_context(invoke, create_config):
 
 
 def test_flatten_config_keys():
-    from click_extra.config import flatten_config_keys
-
     # Empty dict.
     assert flatten_config_keys({}) == {}
 
@@ -3831,7 +3698,6 @@ def test_flatten_config_keys():
 
 def test_flatten_config_keys_with_normalize():
     """flatten + normalize maps nested kebab-case config to flat snake_case fields."""
-    from click_extra.config import flatten_config_keys, normalize_config_keys
 
     raw = {
         "dependency-graph": {"all-groups": True, "output": "deps.mmd"},
@@ -3847,9 +3713,6 @@ def test_flatten_config_keys_with_normalize():
 
 def test_config_schema_nested_toml(invoke, create_config):
     """Nested TOML sub-tables map to flat dataclass fields via flattening."""
-    from dataclasses import dataclass, field
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3896,9 +3759,6 @@ def test_config_schema_nested_toml(invoke, create_config):
 
 def test_config_schema_strict_rejects_unknown(invoke, create_config):
     """schema_strict=True raises ValueError on unrecognized config keys."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3932,9 +3792,6 @@ def test_config_schema_strict_rejects_unknown(invoke, create_config):
 
 def test_config_schema_strict_passes_when_valid(invoke, create_config):
     """schema_strict=True does not raise when all config keys are known."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -3971,9 +3828,6 @@ def test_config_schema_strict_passes_when_valid(invoke, create_config):
 
 def test_config_schema_strict_with_nested(invoke, create_config):
     """schema_strict=True validates flattened keys from nested sub-tables."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4011,9 +3865,6 @@ def test_config_schema_strict_with_nested(invoke, create_config):
 
 def test_pyproject_toml_cwd_discovery(invoke, tmp_path, monkeypatch):
     """pyproject.toml in CWD is discovered automatically without --config."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4051,9 +3902,6 @@ def test_pyproject_toml_cwd_discovery(invoke, tmp_path, monkeypatch):
 
 def test_pyproject_toml_cwd_discovery_walks_up(invoke, tmp_path, monkeypatch):
     """pyproject.toml discovery walks up from CWD to parent directories."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4093,9 +3941,6 @@ def test_pyproject_toml_explicit_config_skips_cwd(
     invoke, create_config, tmp_path, monkeypatch
 ):
     """Explicit --config skips CWD pyproject.toml discovery."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4153,9 +3998,6 @@ def test_pyproject_toml_cwd_skips_unrelated_tool_section(invoke, tmp_path, monke
     config. It must now be ignored so the CLI falls back to its defaults
     instead of inheriting an unrelated project's settings.
     """
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4199,9 +4041,6 @@ def test_pyproject_toml_cwd_walks_past_unrelated_tool_section(
     must not stop the upward walk: a parent pyproject.toml with a matching
     [tool.<cli_name>] section should still be discovered.
     """
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4245,9 +4084,6 @@ def test_pyproject_toml_cwd_walks_past_unrelated_tool_section(
 
 def test_pyproject_toml_cwd_mixed_tool_sections(invoke, tmp_path, monkeypatch):
     """[tool.<cli_name>] is picked from a pyproject.toml that also has others."""
-    from dataclasses import dataclass
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4293,10 +4129,8 @@ def test_pyproject_toml_cwd_unrelated_does_not_shadow_app_dir(
     walk must give up so the standard app-dir search can find the user's
     actual config and apply it.
     """
-    from dataclasses import dataclass
 
     import click_extra.config as config_module
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4347,7 +4181,6 @@ def test_pyproject_toml_cwd_unrelated_does_not_shadow_app_dir(
 
 def test_flatten_config_keys_opaque():
     """opaque_keys stops flattening at matching key boundaries."""
-    from click_extra.config import flatten_config_keys
 
     conf = {
         "test_matrix": {
@@ -4378,7 +4211,6 @@ def test_flatten_config_keys_opaque():
 
 def test_flatten_config_keys_opaque_nested():
     """opaque_keys works at deeper nesting levels."""
-    from click_extra.config import flatten_config_keys
 
     conf = {"a": {"b": {"c": 1, "d": 2}, "e": 3}}
 
@@ -4388,9 +4220,6 @@ def test_flatten_config_keys_opaque_nested():
 
 def test_schema_type_aware_flattening(invoke, create_config):
     """dict-typed dataclass fields stop flattening automatically."""
-    from dataclasses import dataclass, field
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4436,9 +4265,6 @@ def test_schema_type_aware_flattening(invoke, create_config):
 
 def test_schema_field_metadata_config_path(invoke, create_config):
     """click_extra.config_path extracts a value at a dotted TOML path."""
-    from dataclasses import dataclass, field
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4490,9 +4316,6 @@ def test_schema_field_metadata_config_path(invoke, create_config):
 
 def test_schema_field_metadata_normalize_keys_true(invoke, create_config):
     """click_extra.normalize_keys defaults to True: keys are normalized."""
-    from dataclasses import dataclass, field
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -4533,9 +4356,6 @@ def test_schema_field_metadata_normalize_keys_true(invoke, create_config):
 
 def test_schema_nested_dataclass(invoke, create_config):
     """Nested dataclass fields are recursively instantiated."""
-    from dataclasses import dataclass, field
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class SubConfig:
@@ -4588,9 +4408,6 @@ def test_schema_nested_dataclass(invoke, create_config):
 
 def test_schema_nested_dataclass_with_opaque_fields(invoke, create_config):
     """Nested dataclass with dict-typed fields preserves opaque keys."""
-    from dataclasses import dataclass, field
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class MatrixConfig:
@@ -4655,9 +4472,6 @@ def test_schema_nested_dataclass_with_opaque_fields(invoke, create_config):
 
 def test_schema_nested_dataclass_defaults(invoke, create_config):
     """Nested dataclass uses defaults when config section is absent."""
-    from dataclasses import dataclass, field
-
-    from click_extra.config import get_tool_config
 
     @dataclass
     class SubConfig:
@@ -4715,7 +4529,6 @@ def test_strict_skips_opaque_dict_field(invoke, create_config):
     not CLI flag names. Click-extra strips that sub-tree before running its
     unknown-key check so app extensions don't trip strict mode.
     """
-    from dataclasses import dataclass, field
 
     @dataclass
     class AppConfig:
@@ -4750,7 +4563,6 @@ def test_strict_skips_opaque_dict_field(invoke, create_config):
 def test_strict_skips_opaque_metadata_field(invoke, create_config):
     """Strict mode also honors the ``EXTENSION_METADATA_KEY`` marker on a field
     whose Python type is not a mapping."""
-    from dataclasses import dataclass, field
 
     from click_extra import EXTENSION_METADATA_KEY
 
@@ -4797,7 +4609,6 @@ def test_strict_skips_opaque_metadata_field(invoke, create_config):
 def test_validate_config_skips_opaque_field(invoke, create_config):
     """--validate-config also skips opaque sub-trees, so a config that the
     runtime accepts also passes validation."""
-    from dataclasses import dataclass, field
 
     @dataclass
     class AppConfig:
@@ -4842,7 +4653,6 @@ def test_validate_config_skips_opaque_field(invoke, create_config):
 def test_config_validator_runs_and_fails_under_validate_config(invoke, create_config):
     """A registered ``ConfigValidator`` runs during ``--validate-config`` and
     surfaces its ``ValidationError`` with a path rooted at the config file."""
-    from dataclasses import dataclass, field
 
     from click_extra import ConfigValidator, ValidationError
 
@@ -4918,7 +4728,6 @@ def test_config_validator_runs_and_fails_under_validate_config(invoke, create_co
 def test_config_validator_runs_during_normal_load(invoke, create_config):
     """A misconfigured opaque sub-tree fails fast during normal config loading,
     not only under ``--validate-config``."""
-    from dataclasses import dataclass, field
 
     from click_extra import ConfigValidator, ValidationError
 
@@ -5000,7 +4809,6 @@ def test_config_validator_collects_all_errors(invoke, create_config):
     should surface both messages before the run exits non-zero, so the user
     sees the full punch list.
     """
-    from dataclasses import dataclass, field
 
     from click_extra import ConfigValidator, ValidationError
 
@@ -5054,10 +4862,8 @@ def test_config_validator_collects_all_errors(invoke, create_config):
 def test_collect_opaque_paths_from_schema():
     """Schema introspection picks up dict-typed fields, metadata-marked
     fields, and nested-dataclass opaque fields with dotted prefixes."""
-    from dataclasses import dataclass, field
 
     from click_extra import EXTENSION_METADATA_KEY
-    from click_extra.config import _collect_opaque_paths_from_schema
 
     # Use ``dict`` (the builtin) instead of typing.Any inside ``dict[str, X]``
     # so type-hint resolution doesn't depend on a module-level Any import.
@@ -5096,10 +4902,8 @@ def test_schema_strict_honors_extension_metadata_on_non_mapping_field(
     the dataclass adapter's own flatten boundary inspected only the type hint, so
     the marked sub-tree was flattened into dotted keys and rejected as unknown.
     """
-    from dataclasses import dataclass, field
 
     from click_extra import EXTENSION_METADATA_KEY
-    from click_extra.config import get_tool_config
 
     @dataclass
     class AppConfig:
@@ -5146,7 +4950,6 @@ def test_schema_strict_honors_extension_metadata_on_non_mapping_field(
 def test_run_config_validation_valid_document():
     """A clean document yields an ok report with the schema instance built and
     every opaque sub-tree extracted."""
-    from dataclasses import dataclass, field
 
     from click_extra import ConfigValidator, run_config_validation
 
@@ -5179,7 +4982,6 @@ def test_run_config_validation_valid_document():
 def test_run_config_validation_collects_all_then_short_circuits():
     """collect_all=True gathers errors from every stage in order; collect_all=False
     stops after the first."""
-    from dataclasses import dataclass, field
 
     from click_extra import ConfigValidator, run_config_validation
 
@@ -5236,7 +5038,6 @@ def test_run_config_validation_collects_all_then_short_circuits():
 def test_run_config_validation_wraps_schema_errors():
     """A schema_strict failure is recorded as a ValidationError with the
     schema_error code, and the message is preserved verbatim."""
-    from dataclasses import dataclass
 
     from click_extra import run_config_validation
 
@@ -5279,7 +5080,6 @@ def test_run_config_validation_no_schema_no_template():
 
 def test_make_schema_callable_coerces_dict_to_dataclass():
     """The public make_schema_callable turns a raw config dict into a dataclass."""
-    from dataclasses import dataclass
 
     from click_extra import make_schema_callable
 

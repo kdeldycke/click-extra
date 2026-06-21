@@ -37,14 +37,13 @@ from .colorize import (
     HelpKeywords,
     NoColorOption,
     _HelpColorsMixin,
+    highlight,
 )
-from .config import (
+from .config import ConfigOption, NoConfigOption, ValidateConfigOption
+from .config_schema import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
-    ConfigOption,
     ConfigValidator,
-    NoConfigOption,
-    ValidateConfigOption,
     _collect_opaque_paths_from_schema,
     make_schema_callable,
 )
@@ -56,7 +55,7 @@ from .man_page import ManOption
 from .parameters import ExtraOption, ShowParamsOption
 from .spinner import ProgressOption
 from .table import TableFormatOption
-from .theme import ThemeOption
+from .theme import ThemeOption, get_current_theme
 from .version import VersionOption
 
 TYPE_CHECKING = False
@@ -64,18 +63,20 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from typing import Any, NoReturn
 
+logger = logging.getLogger(__name__)
+
 
 def default_params() -> list[click.Option]:
     """Default additional options added to ``@command`` and ``@group``.
 
     .. caution::
         The order of options has been carefully crafted to handle subtle edge-cases and
-        avoid leaky states in unittests.
+        avoid leaky states in unit tests.
 
-        You can still override this hard-coded order for easthetic reasons and it
+        You can still override this hard-coded order for aesthetic reasons and it
         should be fine. Your end-users are unlikely to be affected by these sneaky
-        bugs, as the CLI context is going to be naturraly reset after each
-        invocation (which is not the case in unitests).
+        bugs, as the CLI context is going to be naturally reset after each
+        invocation (which is not the case in unit tests).
 
     #. ``--time`` / ``--no-time``
         .. hint::
@@ -146,7 +147,6 @@ def default_params() -> list[click.Option]:
         QuietOption(),
         ManOption(),
         VersionOption(),
-        # @click.decorators.help_option(),
     ]
 
 
@@ -194,7 +194,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             The original order of the options is preserved among themselves.
         :param populate_auto_envvars: forces all parameters to have their auto-generated
             environment variables registered. This address the shortcoming of ``click``
-            which only evaluates them dynamiccaly. By forcing their registration, the
+            which only evaluates them dynamically. By forcing their registration, the
             auto-generated environment variables gets displayed in the help screen,
             fixing `click#2483 issue <https://github.com/pallets/click/issues/2483>`_.
             On Windows, environment variable names are case-insensitive, so we normalize
@@ -293,7 +293,6 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
 
         default_ctx_settings: dict[str, Any] = {
             # Click settings:
-            # "default_map": {"verbosity": "DEBUG"},
             "help_option_names": DEFAULT_HELP_NAMES,
             "show_default": True,
             # Cloup settings:
@@ -318,7 +317,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                 for param in self.params:
                     # These attributes are specific to options.
                     if isinstance(param, click.Option):
-                        param.show_envvar = default_ctx_settings[setting]
+                        setattr(param, setting, default_ctx_settings[setting])
 
         # Remove Click Extra-specific settings, before passing it to Cloup and Click.
         for setting in extra_option_settings:
@@ -504,12 +503,6 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         except click.NoSuchOption as exc:
             _enhance_short_option_error(exc, original_args, ctx)
 
-    def invoke(self, ctx: click.Context) -> Any:
-        """Main execution of the command, just after the context has been instantiated
-        in ``main()``.
-        """
-        return super().invoke(ctx)
-
 
 def _enhance_short_option_error(
     exc: click.NoSuchOption,
@@ -594,7 +587,7 @@ class ColorizedCommand(_HelpColorsMixin, click.Command):  # type: ignore[misc]
     ``default_params``).
 
     Use this as a base for lightweight subcommands (like ``help``) or for
-    monkey-patching third-party CLIs (via :func:`~click_extra.wrap.patch_click`).
+    monkey-patching third-party CLIs (via :func:`~click_extra.cli_wrapper.patch_click`).
     """
 
     context_class: type[cloup.Context] = Context
@@ -677,9 +670,6 @@ class HelpCommand(ColorizedCommand):
         term: str,
     ) -> None:
         """Search all subcommands for options or descriptions matching *term*."""
-        from .colorize import highlight
-        from .theme import get_current_theme
-
         term_lower = term.lower()
         results: list[tuple[str, str]] = []
 
@@ -757,13 +747,68 @@ def _make_help_command() -> HelpCommand:
     )
 
 
+def _descend_to_group_config(ctx: click.Context) -> dict[str, Any] | None:
+    """Return the loaded config section for the current group's command path.
+
+    Reads the full configuration document from ``ctx.meta``, descends into the
+    root command's section, then walks from the root context down to ``ctx``
+    following each group name. Returns the resolved mapping, or ``None`` when no
+    configuration was loaded or any segment along the path is missing.
+    """
+    full_config = context.get(ctx, context.CONF_FULL)
+    if not full_config:
+        return None
+
+    root_ctx = ctx.find_root()
+    config_branch = full_config.get(root_ctx.command.name)
+    if not isinstance(config_branch, dict):
+        return None
+
+    # Walk from root context down to the current group.
+    path: list[str] = []
+    current: click.Context | None = ctx
+    while current is not None and current is not root_ctx:
+        if current.command.name is not None:
+            path.append(current.command.name)
+        current = current.parent
+    path.reverse()
+
+    for segment in path:
+        config_branch = config_branch.get(segment)
+        if not isinstance(config_branch, dict):
+            return None
+
+    return config_branch
+
+
+def _dedupe_subcommands(raw: list[str], key: str) -> list[str]:
+    """Drop duplicate subcommand names, keeping the first occurrence.
+
+    Warns when duplicates are dropped, naming the configuration ``key`` they
+    came from.
+    """
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for name in raw:
+        if name in seen:
+            continue
+        seen.add(name)
+        deduped.append(name)
+    if len(deduped) < len(raw):
+        logger.warning(
+            f"Duplicate entries in {key}: {raw!r}. "
+            f"Keeping first occurrences: {deduped!r}."
+        )
+    return deduped
+
+
 class Group(Command, cloup.Group):  # type: ignore[misc]
     """Like ``cloup.Group``, with sane defaults and extra help screen colorization."""
 
     command_class = Command
-    """Makes commands of an ``Group`` be instances of ``Command``.
+    """Makes commands of a ``Group`` be instances of ``Command``.
 
-    That way all subcommands created from an ``Group`` benefits from the same
+    That way all subcommands created from a ``Group`` benefits from the same
     defaults and extra help screen colorization.
 
     See: https://click.palletsprojects.com/en/stable/api/#click.Group.command_class
@@ -836,7 +881,6 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
             # CLI subcommands were given explicitly; log if config defaults exist.
             default_subcmds = self._get_default_subcommands(ctx)
             if default_subcmds is not None:
-                logger = logging.getLogger("click_extra")
                 logger.debug(
                     f"CLI subcommands provided; ignoring {DEFAULT_SUBCOMMANDS_KEY}"
                     f" config: {default_subcmds!r}."
@@ -845,7 +889,6 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         # Always prepend _prepend_subcommands, regardless of CLI args.
         prepend_subcmds = self._get_prepend_subcommands(ctx)
         if prepend_subcmds is not None:
-            logger = logging.getLogger("click_extra")
             logger.info(
                 f"Prepending {PREPEND_SUBCOMMANDS_KEY} config: {prepend_subcmds!r}."
             )
@@ -855,28 +898,9 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
 
     def _get_default_subcommands(self, ctx: click.Context) -> list[str] | None:
         """Read and validate ``_default_subcommands`` from the loaded configuration."""
-        full_config = context.get(ctx, context.CONF_FULL)
-        if not full_config:
+        config_branch = _descend_to_group_config(ctx)
+        if config_branch is None:
             return None
-
-        root_ctx = ctx.find_root()
-        config_branch = full_config.get(root_ctx.command.name)
-        if not isinstance(config_branch, dict):
-            return None
-
-        # Walk from root context down to the current group.
-        path: list[str] = []
-        current: click.Context | None = ctx
-        while current is not None and current is not root_ctx:
-            if current.command.name is not None:
-                path.append(current.command.name)
-            current = current.parent
-        path.reverse()
-
-        for segment in path:
-            config_branch = config_branch.get(segment)
-            if not isinstance(config_branch, dict):
-                return None
 
         raw = config_branch.get(DEFAULT_SUBCOMMANDS_KEY)
         if raw is None:
@@ -891,21 +915,7 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         if not raw:
             return None
 
-        # Deduplicate, keeping first occurrence, and warn on duplicates.
-        seen: set[str] = set()
-        deduped: list[str] = []
-        for name in raw:
-            if name in seen:
-                continue
-            seen.add(name)
-            deduped.append(name)
-        if len(deduped) < len(raw):
-            logger = logging.getLogger("click_extra")
-            logger.warning(
-                f"Duplicate entries in {DEFAULT_SUBCOMMANDS_KEY}: {raw!r}. "
-                f"Keeping first occurrences: {deduped!r}."
-            )
-        raw = deduped
+        raw = _dedupe_subcommands(raw, DEFAULT_SUBCOMMANDS_KEY)
 
         # Non-chained groups can only have one default subcommand.
         if not self.chain and len(raw) > 1:
@@ -925,28 +935,9 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
 
     def _get_prepend_subcommands(self, ctx: click.Context) -> list[str] | None:
         """Read and validate ``_prepend_subcommands`` from the loaded configuration."""
-        full_config = context.get(ctx, context.CONF_FULL)
-        if not full_config:
+        config_branch = _descend_to_group_config(ctx)
+        if config_branch is None:
             return None
-
-        root_ctx = ctx.find_root()
-        config_branch = full_config.get(root_ctx.command.name)
-        if not isinstance(config_branch, dict):
-            return None
-
-        # Walk from root context down to the current group.
-        path: list[str] = []
-        current: click.Context | None = ctx
-        while current is not None and current is not root_ctx:
-            if current.command.name is not None:
-                path.append(current.command.name)
-            current = current.parent
-        path.reverse()
-
-        for segment in path:
-            config_branch = config_branch.get(segment)
-            if not isinstance(config_branch, dict):
-                return None
 
         raw = config_branch.get(PREPEND_SUBCOMMANDS_KEY)
         if raw is None:
@@ -967,21 +958,7 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
                 f"{PREPEND_SUBCOMMANDS_KEY} requires chain=True on group {self.name!r}."
             )
 
-        # Deduplicate, keeping first occurrence, and warn on duplicates.
-        seen: set[str] = set()
-        deduped: list[str] = []
-        for name in raw:
-            if name in seen:
-                continue
-            seen.add(name)
-            deduped.append(name)
-        if len(deduped) < len(raw):
-            logger = logging.getLogger("click_extra")
-            logger.warning(
-                f"Duplicate entries in {PREPEND_SUBCOMMANDS_KEY}: {raw!r}. "
-                f"Keeping first occurrences: {deduped!r}."
-            )
-        raw = deduped
+        raw = _dedupe_subcommands(raw, PREPEND_SUBCOMMANDS_KEY)
 
         # Validate that all subcommands exist.
         for name in raw:
@@ -994,7 +971,7 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
 
 
 class LazyGroup(Group):
-    """An ``Group`` that supports lazy loading of subcommands.
+    """A ``Group`` that supports lazy loading of subcommands.
 
     .. hint::
         This implementation is based on the snippet from Click's documentation:
@@ -1101,30 +1078,9 @@ class LazyGroup(Group):
         Click will then pass that dict as the ``default_map`` of the command's own
         context.
         """
-        full_config = context.get(ctx, context.CONF_FULL)
-        if not full_config:
+        config_branch = _descend_to_group_config(ctx)
+        if config_branch is None:
             return
-
-        # Descend into the root command's config section.
-        root_ctx = ctx.find_root()
-        config_branch = full_config.get(root_ctx.command.name)
-        if not isinstance(config_branch, dict):
-            return
-
-        # For nested lazy groups, walk from the current context up to the root
-        # to collect intermediate group names, then descend through the config.
-        path: list[str] = []
-        current: click.Context | None = ctx
-        while current is not None and current is not root_ctx:
-            if current.command.name is not None:
-                path.append(current.command.name)
-            current = current.parent
-        path.reverse()
-
-        for segment in path:
-            config_branch = config_branch.get(segment)
-            if not isinstance(config_branch, dict):
-                return
 
         # Extract the lazy command's config section.
         cmd_config = config_branch.get(cmd_name)
@@ -1135,6 +1091,4 @@ class LazyGroup(Group):
             ctx.default_map = {}
         ctx.default_map.setdefault(cmd_name, {}).update(cmd_config)
 
-        logging.getLogger("click_extra").debug(
-            f"Lazy config for {cmd_name!r}: {cmd_config}"
-        )
+        logger.debug(f"Lazy config for {cmd_name!r}: {cmd_config}")

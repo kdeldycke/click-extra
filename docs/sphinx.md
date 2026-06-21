@@ -75,10 +75,6 @@ Thanks to these, you can directly demonstrate the usage of your CLI in your docu
 
 These directives supports both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax.
 
-```{hint}
-`click:source` directive has an alias called `click:example`. Both behaves exactly the same way, but `click:example` is deprecated and will be removed in a future major release.
-```
-
 ### Usage
 
 Here is how to define a simple Click-based CLI with the `click:source` directive:

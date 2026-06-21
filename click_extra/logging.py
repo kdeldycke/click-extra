@@ -44,6 +44,8 @@ if TYPE_CHECKING:
     from logging import LogRecord
     from typing import IO, Any, Literal
 
+logger = getLogger(__name__)
+
 
 class LogLevel(IntEnum):
     """Mapping of :ref:`canonical log level names <levels>` to their integer level.
@@ -291,7 +293,7 @@ def basicConfig(
             kwargs[arg_id] = locals()[arg_id]
 
     call_str = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
-    getLogger("click_extra").debug(f"Call basicConfig({call_str})")
+    logger.debug(f"Call basicConfig({call_str})")
 
     # Consume along the way each kwargs' parameter not recognized by basicConfig.
     with (
@@ -432,10 +434,9 @@ class _VerbosityOption(ExtraOption):
             global, loggers have tendency to leak and pollute their state between
             multiple test calls.
         """
-        for logger in list(self.all_loggers)[::-1]:
-            getLogger("click_extra").debug(f"Reset {logger} to {DEFAULT_LEVEL}.")
-            logger.setLevel(DEFAULT_LEVEL.value)
-            # new_logger(name=logger.name)
+        for managed_logger in list(self.all_loggers)[::-1]:
+            logger.debug(f"Reset {managed_logger} to {DEFAULT_LEVEL}.")
+            managed_logger.setLevel(DEFAULT_LEVEL.value)
 
     def handle_parse_result(self, ctx, opts, args):
         """Pre-resolve the ``-v``/``-q`` counter before any level is applied.
@@ -535,9 +536,9 @@ class _VerbosityOption(ExtraOption):
 
         context.set(ctx, context.VERBOSITY_LEVEL, new_level)
 
-        for logger in self.all_loggers:
-            logger.setLevel(new_level.value)
-            getLogger("click_extra").debug(f"Set {logger} to {new_level}.")
+        for managed_logger in self.all_loggers:
+            managed_logger.setLevel(new_level.value)
+            logger.debug(f"Set {managed_logger} to {new_level}.")
 
         # Register the close callback at most once per ctx. All verbosity options flow
         # through this method, so without a guard the same ``reset_loggers`` would be
@@ -686,7 +687,7 @@ class VerboseOption(_VerbosityOption):
         # Report the net effect after the level has been applied, so the message has a
         # chance to be seen at DEBUG level.
         if value and not ctx.resilient_parsing:
-            getLogger("click_extra").debug(
+            logger.debug(
                 f"Increased log verbosity by {value} levels: "
                 f"from {self.get_base_level(ctx)} "
                 f"to {context.get(ctx, context.VERBOSITY_LEVEL)}."
@@ -766,7 +767,7 @@ class QuietOption(_VerbosityOption):
         # Report the net effect after the level has been applied, so the message has a
         # chance to be seen at DEBUG level.
         if value and not ctx.resilient_parsing:
-            getLogger("click_extra").debug(
+            logger.debug(
                 f"Decreased log verbosity by {value} levels: "
                 f"from {self.get_base_level(ctx)} "
                 f"to {context.get(ctx, context.VERBOSITY_LEVEL)}."

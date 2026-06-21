@@ -13,11 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Wrap any Click CLI with Click Extra's help colorization.
+"""The ``click-extra wrap`` command and the machinery to wrap a foreign Click CLI.
 
-Monkey-patches Click's decorator functions before importing the target module
-so ``@click.command()`` and ``@click.group()`` produce colorized variants with
-keyword highlighting and themed styling.
+Monkey-patches Click's decorator functions before importing (or running) a
+target module so its ``@click.command()`` / ``@click.group()`` produce
+colorized, keyword-highlighted, themed variants. Also resolves and invokes the
+target, and introspects it for ``--show-params`` and ``--man`` without firing
+its callbacks.
+
+Not to be confused with text wrapping: that is :func:`click.wrap_text`, exposed
+at the package root as ``click_extra.wrap_text``.
 """
 
 from __future__ import annotations
@@ -45,7 +50,7 @@ from .parameters import ShowParamsOption, render_params_table
 from .table import DEFAULT_FORMAT, TableFormat
 from .theme import BUILTIN_THEMES, HelpTheme, nocolor_theme, set_default_theme
 
-logger = logging.getLogger("click_extra")
+logger = logging.getLogger(__name__)
 
 # Save pristine references before any patching occurs.
 _original_click_command = click.decorators.command

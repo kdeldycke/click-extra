@@ -623,6 +623,35 @@ def test_show_envvar_parameter(invoke, cmd_decorator, ctx_settings, expected_hel
     assert result.exit_code == 0
 
 
+@pytest.mark.parametrize(
+    ("ctx_settings", "expected"),
+    (
+        # Click Extra leaves each option's show_choices untouched by default.
+        ({}, (True, True, False)),
+        ({"show_choices": None}, (True, True, False)),
+        # Click Extra forces the show_choices value on all options when set.
+        ({"show_choices": True}, (True, True, True)),
+        ({"show_choices": False}, (False, False, False)),
+    ),
+)
+def test_show_choices_parameter(ctx_settings, expected):
+    """The show_choices context setting is forced on every option when set."""
+
+    @command(context_settings=ctx_settings)
+    @option("--opt1", prompt=True, type=click.Choice(["a", "b"]))
+    @option("--opt2", prompt=True, type=click.Choice(["a", "b"]), show_choices=True)
+    @option("--opt3", prompt=True, type=click.Choice(["a", "b"]), show_choices=False)
+    def cli():
+        pass
+
+    resolved = {
+        param.name: param.show_choices
+        for param in cli.params
+        if isinstance(param, click.Option)
+    }
+    assert (resolved["opt1"], resolved["opt2"], resolved["opt3"]) == expected
+
+
 def test_raw_args(invoke):
     """Raw args are expected to be scoped in subcommands."""
 
@@ -943,185 +972,193 @@ def test_decorator_cls_parameter(klass, should_raise):
         command(cls=Custom)
 
 
-class TestHelpSubcommand:
-    """Tests for the auto-injected ``help`` subcommand."""
+def test_help_shows_group_help(invoke):
+    """``mycli help`` produces the same output as ``mycli --help``."""
 
-    def test_help_shows_group_help(self, invoke):
-        """``mycli help`` produces the same output as ``mycli --help``."""
+    @group
+    def cli():
+        """My CLI."""
 
-        @group
-        def cli():
-            """My CLI."""
+    @cli.command()
+    @option("--name", help="Who to greet.")
+    def greet(name):
+        """Greet someone."""
 
-        @cli.command()
-        @option("--name", help="Who to greet.")
-        def greet(name):
-            """Greet someone."""
+    result_help = invoke(cli, "help", color=False)
+    result_flag = invoke(cli, "--help", color=False)
 
-        result_help = invoke(cli, "help", color=False)
-        result_flag = invoke(cli, "--help", color=False)
+    assert result_help.exit_code == 0
+    assert result_flag.exit_code == 0
+    assert result_help.stdout == result_flag.stdout
 
-        assert result_help.exit_code == 0
-        assert result_flag.exit_code == 0
-        assert result_help.stdout == result_flag.stdout
 
-    def test_help_shows_subcommand_help(self, invoke):
-        """``mycli help greet`` matches ``mycli greet --help``."""
+def test_help_shows_subcommand_help(invoke):
+    """``mycli help greet`` matches ``mycli greet --help``."""
 
-        @group
-        def cli():
-            pass
+    @group
+    def cli():
+        pass
 
-        @cli.command()
-        @option("--name", help="Who to greet.")
-        def greet(name):
-            """Greet someone."""
+    @cli.command()
+    @option("--name", help="Who to greet.")
+    def greet(name):
+        """Greet someone."""
 
-        result_help = invoke(cli, "help", "greet", color=False)
-        result_flag = invoke(cli, "greet", "--help", color=False)
+    result_help = invoke(cli, "help", "greet", color=False)
+    result_flag = invoke(cli, "greet", "--help", color=False)
 
-        assert result_help.exit_code == 0
-        assert result_flag.exit_code == 0
-        assert result_help.stdout == result_flag.stdout
+    assert result_help.exit_code == 0
+    assert result_flag.exit_code == 0
+    assert result_help.stdout == result_flag.stdout
 
-    def test_help_nested_group(self, invoke):
-        """``mycli help sub leaf`` resolves through nested groups."""
 
-        @group
-        def cli():
-            pass
+def test_help_nested_group(invoke):
+    """``mycli help sub leaf`` resolves through nested groups."""
 
-        @cli.group()
-        def sub():
-            """A sub-group."""
+    @group
+    def cli():
+        pass
 
-        @sub.command()
-        @option("--count", type=int, help="Number of items.")
-        def leaf(count):
-            """A leaf command."""
+    @cli.group()
+    def sub():
+        """A sub-group."""
 
-        result = invoke(cli, "help", "sub", "leaf", color=False)
-        assert result.exit_code == 0
-        assert "A leaf command." in result.stdout
-        assert "--count" in result.stdout
+    @sub.command()
+    @option("--count", type=int, help="Number of items.")
+    def leaf(count):
+        """A leaf command."""
 
-    def test_help_nonexistent_subcommand(self, invoke):
-        """``mycli help nosuch`` reports an error."""
+    result = invoke(cli, "help", "sub", "leaf", color=False)
+    assert result.exit_code == 0
+    assert "A leaf command." in result.stdout
+    assert "--count" in result.stdout
 
-        @group
-        def cli():
-            pass
 
-        result = invoke(cli, "help", "nosuch", color=False)
-        assert result.exit_code == 2
-        assert "No such command" in result.output
+def test_help_nonexistent_subcommand(invoke):
+    """``mycli help nosuch`` reports an error."""
 
-    def test_help_subcommand_of_non_group(self, invoke):
-        """``mycli help leaf deeper`` errors when leaf is not a group."""
+    @group
+    def cli():
+        pass
 
-        @group
-        def cli():
-            pass
+    result = invoke(cli, "help", "nosuch", color=False)
+    assert result.exit_code == 2
+    assert "No such command" in result.output
 
-        @cli.command()
-        def leaf():
-            pass
 
-        result = invoke(cli, "help", "leaf", "deeper", color=False)
-        assert result.exit_code == 2
-        assert "has no subcommands" in result.output
+def test_help_subcommand_of_non_group(invoke):
+    """``mycli help leaf deeper`` errors when leaf is not a group."""
 
-    def test_help_disabled(self, invoke):
-        """``help_command=False`` suppresses auto-injection."""
+    @group
+    def cli():
+        pass
 
-        @group(help_command=False)
-        def cli():
-            pass
+    @cli.command()
+    def leaf():
+        pass
 
-        @cli.command()
-        def sub():
-            pass
+    result = invoke(cli, "help", "leaf", "deeper", color=False)
+    assert result.exit_code == 2
+    assert "has no subcommands" in result.output
 
-        assert "help" not in cli.commands
-        result = invoke(cli, "help", color=False)
-        assert result.exit_code == 2
 
-    def test_help_user_override(self, invoke):
-        """User-defined ``help`` subcommand replaces the auto-injected one."""
+def test_help_disabled(invoke):
+    """``help_command=False`` suppresses auto-injection."""
 
-        @group
-        def cli():
-            pass
+    @group(help_command=False)
+    def cli():
+        pass
 
-        @cli.command(name="help")
-        def custom_help():
-            """Custom help."""
-            echo("Custom help output")
+    @cli.command()
+    def sub():
+        pass
 
-        assert not isinstance(cli.commands["help"], HelpCommand)
-        result = invoke(cli, "help", color=False)
-        assert "Custom help output" in result.stdout
+    assert "help" not in cli.commands
+    result = invoke(cli, "help", color=False)
+    assert result.exit_code == 2
 
-    def test_help_appears_in_listing(self, invoke):
-        """The ``help`` subcommand is visible in the group's command list."""
 
-        @group
-        def cli():
-            pass
+def test_help_user_override(invoke):
+    """User-defined ``help`` subcommand replaces the auto-injected one."""
 
-        @cli.command()
-        def greet():
-            pass
+    @group
+    def cli():
+        pass
 
-        result = invoke(cli, "--help", color=False)
-        assert "help" in result.stdout
-        assert "Show help for a command." in result.stdout
+    @cli.command(name="help")
+    def custom_help():
+        """Custom help."""
+        echo("Custom help output")
 
-    def test_help_search(self, invoke):
-        """``mycli help --search term`` finds matching subcommands."""
+    assert not isinstance(cli.commands["help"], HelpCommand)
+    result = invoke(cli, "help", color=False)
+    assert "Custom help output" in result.stdout
 
-        @group
-        def cli():
-            pass
 
-        @cli.command()
-        @option("--output", help="Output file path.")
-        def export(output):
-            """Export data to a file."""
+def test_help_appears_in_listing(invoke):
+    """The ``help`` subcommand is visible in the group's command list."""
 
-        @cli.command()
-        @option("--format")
-        def render(format):
-            """Render the visualization."""
+    @group
+    def cli():
+        pass
 
-        result = invoke(cli, "help", "--search", "file", color=False)
-        assert result.exit_code == 0
-        assert "export" in result.stdout
-        assert "render" not in result.stdout
+    @cli.command()
+    def greet():
+        pass
 
-    def test_help_search_no_match(self, invoke):
-        """``mycli help --search term`` with no matches."""
+    result = invoke(cli, "--help", color=False)
+    assert "help" in result.stdout
+    assert "Show help for a command." in result.stdout
 
-        @group
-        def cli():
-            pass
 
-        @cli.command()
-        def sub():
-            pass
+def test_help_search(invoke):
+    """``mycli help --search term`` finds matching subcommands."""
 
-        result = invoke(cli, "help", "--search", "zzzzz", color=False)
-        assert result.exit_code == 0
-        assert "No commands matching" in result.stdout
+    @group
+    def cli():
+        pass
 
-    def test_help_in_all_command_cli(self, invoke, all_command_cli):
-        """The help subcommand works on the fixture CLI."""
-        result = invoke(all_command_cli, "help", color=False)
-        assert result.exit_code == 0
-        assert "command-cli1" in result.stdout
+    @cli.command()
+    @option("--output", help="Output file path.")
+    def export(output):
+        """Export data to a file."""
 
-    def test_help_for_subcommand_in_all_command_cli(self, invoke, all_command_cli):
-        """``help default-subcommand`` works on the fixture CLI."""
-        result = invoke(all_command_cli, "help", "default-subcommand", color=False)
-        assert result.exit_code == 0
-        assert "default-subcommand" in result.stdout
+    @cli.command()
+    @option("--format")
+    def render(format):
+        """Render the visualization."""
+
+    result = invoke(cli, "help", "--search", "file", color=False)
+    assert result.exit_code == 0
+    assert "export" in result.stdout
+    assert "render" not in result.stdout
+
+
+def test_help_search_no_match(invoke):
+    """``mycli help --search term`` with no matches."""
+
+    @group
+    def cli():
+        pass
+
+    @cli.command()
+    def sub():
+        pass
+
+    result = invoke(cli, "help", "--search", "zzzzz", color=False)
+    assert result.exit_code == 0
+    assert "No commands matching" in result.stdout
+
+
+def test_help_in_all_command_cli(invoke, all_command_cli):
+    """The help subcommand works on the fixture CLI."""
+    result = invoke(all_command_cli, "help", color=False)
+    assert result.exit_code == 0
+    assert "command-cli1" in result.stdout
+
+
+def test_help_for_subcommand_in_all_command_cli(invoke, all_command_cli):
+    """``help default-subcommand`` works on the fixture CLI."""
+    result = invoke(all_command_cli, "help", "default-subcommand", color=False)
+    assert result.exit_code == 0
+    assert "default-subcommand" in result.stdout

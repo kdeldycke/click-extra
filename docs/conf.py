@@ -200,6 +200,6 @@ def setup(app):
     the rendered output cannot drift from the actual Theme code path —
     tweak ``themes.toml`` and the next build picks up the new colors.
     """
-    from click_extra.theme import inject_slot_example_docstring
+    from click_extra.theme_docs import inject_slot_example_docstring
 
     app.connect("autodoc-process-docstring", inject_slot_example_docstring)

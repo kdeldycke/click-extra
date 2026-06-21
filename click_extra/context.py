@@ -259,7 +259,8 @@ CONF_FULL: Final[str] = "click_extra.conf_full"
 
 Written by :class:`click_extra.config.ConfigOption.load_conf`. Read by
 :class:`click_extra.commands.Group` (for subcommand inheritance) and by
-:func:`click_extra.wrap.run` (to forward the loaded config to wrapped CLIs).
+:func:`click_extra.cli_wrapper.invoke_target` (to forward the loaded config to
+wrapped CLIs).
 """
 
 TOOL_CONFIG: Final[str] = "click_extra.tool_config"
@@ -267,7 +268,7 @@ TOOL_CONFIG: Final[str] = "click_extra.tool_config"
 
 Written by :class:`click_extra.config.ConfigOption._apply_config_schema` only
 when a schema callable is configured. Read via
-:func:`click_extra.config.get_tool_config`.
+:func:`click_extra.config_schema.get_tool_config`.
 """
 
 

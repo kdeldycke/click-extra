@@ -869,15 +869,3 @@ def test_prebaked_non_string_ignored():
     opt = VersionOption()
     opt.__dict__["module"] = mod
     assert opt.git_branch is None
-
-
-def __test_inplace_context():
-    @click.command
-    @version_option  # type: ignore[arg-type]
-    def cli():
-        pass
-
-    with cli.make_context("foo", []) as ctx:
-        for field in VersionOption.template_fields:
-            value = ctx.meta[f"click_extra.{field}"]
-            assert value is not None

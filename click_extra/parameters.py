@@ -37,6 +37,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence
     from typing import Any, ClassVar
 
+logger = logging.getLogger(__name__)
+
 
 def search_params(
     params: Iterable[click.Parameter],
@@ -146,6 +148,23 @@ class ExtraOption(Option):
         Styling is instead applied post-wrapping in
         ``HelpFormatter._style_bracket_fields()``, which uses the structured data
         from ``Option.get_help_extra()`` to identify each field by its label.
+
+    .. note::
+        Built-in option subclasses share a common shape: their ``__init__``
+        defaults ``param_decls`` to the option's canonical flags and wires an
+        eager callback via ``kwargs.setdefault("callback", self.<callback>)``. The
+        callback name encodes its role, a convention all built-in options follow:
+
+        - ``set_<key>`` publishes a resolved value to ``ctx.meta`` (``set_color``,
+          ``set_theme``, ``set_telemetry``, ``set_progress``, ``set_accessible``,
+          ``set_zero_exit``, the verbosity options' ``set_level``);
+        - ``init_<system>`` additionally installs a ``ctx`` helper or records a
+          snapshot (``init_timer``, ``init_formatter``, ``init_columns``,
+          ``init_sort``);
+        - ``validate_<thing>`` coerces and validates the raw input
+          (``validate_jobs``, ``validate_config``);
+        - ``print_*`` renders output and exits (``print_params``,
+          ``print_and_exit``).
     """
 
     def handle_parse_result(self, ctx, opts, args):
@@ -197,11 +216,6 @@ class ParamStructure:
 
     Access to a node is available using a serialized path string composed of the keys to
     descend to that node, separated by a dot ``.``.
-
-    .. todo::
-        Evaluates the possibility of replacing all key-based access to the tree-like
-        structure by a `Box <https://github.com/cdgriffith/Box>`_ object, as it
-        provides lots of utilities to merge its content.
     """
 
     SEP: str = "."
@@ -295,7 +309,7 @@ class ParamStructure:
                     # Subcommand name shadows a top-level parameter (e.g. the
                     # auto-injected ``help`` subcommand vs Click's ``--help``
                     # option).  Skip it: the config tree cannot represent both.
-                    logging.getLogger("click_extra").debug(
+                    logger.debug(
                         f"{cmd.name}{self.SEP}{subcmd_id} subcommand shadows a "
                         f"top-level parameter; excluded from parameter tree."
                     )
@@ -613,7 +627,7 @@ def walk_command_params(
     if isinstance(cmd, click.Group):
         for subcmd_name in sorted(cmd.list_commands(ctx)):
             if subcmd_name in level_param_names:
-                logging.getLogger("click_extra").debug(
+                logger.debug(
                     f"{cmd.name}{PARAM_PATH_SEP}{subcmd_name} subcommand shadows a "
                     f"top-level parameter; excluded from parameter tree.",
                 )
@@ -677,7 +691,6 @@ def render_params_table(
     ko_styled = active_theme.error(KO_GLYPH)
 
     cmd = subject_ctx.command
-    logger = logging.getLogger("click_extra")
 
     # Resolve the value getter. When the original arguments are available we
     # replay them through the command parser to recover each value and its
@@ -1132,7 +1145,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         # Warn when the live command is not a Command: without the captured
         # raw arguments, the value/source columns fall back to defaults.
         if context.get(ctx, context.RAW_ARGS) is None:
-            logging.getLogger("click_extra").warning(
+            logger.warning(
                 f"Cannot extract parameters values: "
                 f"{ctx.command} does not inherits from Command.",
             )

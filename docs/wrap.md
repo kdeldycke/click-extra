@@ -13,7 +13,7 @@ $ click-extra flask --help
 
 ```{click:source}
 :hide-source:
-from click_extra.wrap import wrap
+from click_extra.cli_wrapper import wrap
 ```
 
 ```{click:run}
@@ -205,7 +205,7 @@ The `--show-params` flag turns `wrap` into a read-only inspector: it loads any C
 
 ```{click:source}
 :hide-source:
-from click_extra.wrap import wrap
+from click_extra.cli_wrapper import wrap
 ```
 
 ```{click:run}
@@ -283,13 +283,13 @@ When the resolved entry point is a wrapper function (not a Click command), the m
 $ click-extra wrap --show-params -- flask.cli:cli
 ```
 
-### `click_extra.wrap` API
+### `click_extra.cli_wrapper` API
 
 ```{eval-rst}
-.. autoclasstree:: click_extra.wrap
+.. autoclasstree:: click_extra.cli_wrapper
    :strict:
 
-.. automodule:: click_extra.wrap
+.. automodule:: click_extra.cli_wrapper
    :members:
    :undoc-members:
    :show-inheritance:

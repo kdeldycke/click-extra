@@ -30,9 +30,17 @@ from boltons.iterutils import flatten_iter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
     from typing import Any
 
-    from ._types import TEnvVarID, TEnvVars, TNestedEnvVarIDs
+    TEnvVarID = str | None
+    """Type of environment variable names."""
+
+    TNestedEnvVarIDs = Iterable[TEnvVarID | Iterable["TNestedEnvVarIDs"]]
+    """Type for arbitrary nested environment variable names."""
+
+    TEnvVars = Mapping[str, str | None]
+    """Type for ``dict``-like environment variables."""
 
 
 def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ...]:

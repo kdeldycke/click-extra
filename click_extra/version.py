@@ -75,6 +75,8 @@ if TYPE_CHECKING:
 
     from cloup.styling import IStyle
 
+logger = logging.getLogger(__name__)
+
 
 GIT_FIELDS: dict[str, tuple[str, ...]] = {
     "git_branch": ("rev-parse", "--abbrev-ref", "HEAD"),
@@ -548,7 +550,6 @@ class VersionOption(ExtraOption):
         # binaries where the entry point module's ``__name__`` may be a
         # submodule of the Click ecosystem package (e.g.
         # ``click_extra.__main__``) and all frames get skipped.
-        logger = logging.getLogger("click_extra")
         count_size = len(str(len(frame_chain)))
         for counter, (p_name, f_name) in enumerate(frame_chain):
             logger.debug(f"Frame {counter:<{count_size}} # {p_name}:{f_name}")
@@ -712,8 +713,6 @@ class VersionOption(ExtraOption):
         mappings (one import name to several distributions) return
         ``None``: pass ``package_name`` explicitly to disambiguate.
         """
-        logger = logging.getLogger("click_extra")
-
         if not self.package_name:
             logger.debug("No package name provided.")
             return None
@@ -1122,7 +1121,6 @@ class VersionOption(ExtraOption):
         .. todo::
             Pretty print JSON output (easier to read in bug reports)?
         """
-        logger = logging.getLogger("click_extra")
         if logger.getEffectiveLevel() == logging.DEBUG:
             all_fields = {
                 f"{{{{{field_id}}}}}": f"{{{field_id}}}"

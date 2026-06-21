@@ -120,7 +120,8 @@ Some standalone-binary builders (Nuitka, PyInstaller) and trimmed downstream pac
 Every styled slot of each built-in theme, with the swatch and attribute decorations rendered live from the shipped `themes.toml` at Sphinx build time. The block below iterates `BUILTIN_THEMES` and calls `palette_html()` for each: downstream projects with their own custom themes can drop the same loop into their own docs to get matching swatch listings.
 
 ```{python:render}
-from click_extra.theme import BUILTIN_THEMES, palette_html
+from click_extra.theme import BUILTIN_THEMES
+from click_extra.theme_docs import palette_html
 
 for name, theme in BUILTIN_THEMES.items():
     print(f"#### `{name}`")
@@ -134,7 +135,7 @@ for name, theme in BUILTIN_THEMES.items():
 `click_extra.theme` exposes two themes and a pair of accessor helpers:
 
 - `nocolor_theme`: an all-`identity` theme used when ANSI rendering is suppressed.
-- `get_default_theme()` / `set_default_theme(theme)`: read or override the process-wide fallback. The default is the built-in `dark` palette. `ThemeOption` does *not* call `set_default_theme`: per-invocation choices live on `ctx.meta` instead. `click_extra.wrap.patch_click()` calls `set_default_theme()` to override the fallback for the entire patched session.
+- `get_default_theme()` / `set_default_theme(theme)`: read or override the process-wide fallback. The default is the built-in `dark` palette. `ThemeOption` does *not* call `set_default_theme`: per-invocation choices live on `ctx.meta` instead. `click_extra.cli_wrapper.patch_click()` calls `set_default_theme()` to override the fallback for the entire patched session.
 
 Use `click_extra.theme.get_current_theme()` to read the theme that applies to the current invocation: it consults the active Click context first and falls back to `get_default_theme()`.
 
@@ -154,7 +155,7 @@ option = { fg = "#8cd0d3" }
 # ... fill in the rest of the slots
 ```
 
-Tables are kept in alphabetical order; `tests/test_themes.py` enforces this. The slot mapping is the work: generic colour-scheme catalogs (base16, pygments, iTerm palettes) don't expose the semantic roles Click Extra needs (option, metavar, choice, deprecated, envvar, ...), so each theme is hand-curated. Use the existing `solarized_dark`, `dracula`, `nord`, and `monokai` tables as templates.
+Tables are kept in alphabetical order; `tests/test_theme.py` enforces this. The slot mapping is the work: generic colour-scheme catalogs (base16, pygments, iTerm palettes) don't expose the semantic roles Click Extra needs (option, metavar, choice, deprecated, envvar, ...), so each theme is hand-curated. Use the existing `solarized_dark`, `dracula`, `nord`, and `monokai` tables as templates.
 
 ## Registering a custom theme
 
@@ -373,6 +374,11 @@ The `--color` callback inspects the standard set of color environment variables 
    :strict:
 
 .. automodule:: click_extra.theme
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: click_extra.theme_docs
    :members:
    :undoc-members:
    :show-inheritance:

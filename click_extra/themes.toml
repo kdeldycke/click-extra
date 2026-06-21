@@ -4,7 +4,7 @@
 # Slot values are inline tables matching Style.from_dict: { fg = "<color>",
 # bold = true, ... }. Omitted slots default to identity (no styling).
 #
-# Themes are kept in alphabetical order; tests/test_themes.py enforces this.
+# Themes are kept in alphabetical order; tests/test_theme.py enforces this.
 
 
 [dark]

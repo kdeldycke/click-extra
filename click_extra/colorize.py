@@ -467,7 +467,7 @@ class HelpKeywords:
             getattr(self, f.name).difference_update(getattr(other, f.name))
 
 
-class _HelpColorsMixin:  # (Command)??
+class _HelpColorsMixin:
     """Adds extra-keywords highlighting to Click commands.
 
     This mixin for ``click.Command``-like classes intercepts the top-level helper-

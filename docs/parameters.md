@@ -169,7 +169,7 @@ The `--show-params` option works on your own Click Extra CLIs. To inspect a thir
 
 ```{click:source}
 :hide-source:
-from click_extra.wrap import wrap
+from click_extra.cli_wrapper import wrap
 ```
 
 ```{click:run}
