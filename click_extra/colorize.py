@@ -40,7 +40,7 @@ from .theme import HelpTheme, ThemeChoice
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
-    from typing import ClassVar
+    from typing import Any, ClassVar
 
     from click.parser import _OptionParser
     from cloup.styling import IStyle
@@ -202,6 +202,38 @@ _WHEN_TO_TRISTATE: dict[str, bool | None] = {
 """
 
 
+COLOR_WHEN_ALIASES: dict[str, str] = {
+    # ``always`` synonyms.
+    "yes": "always",
+    "force": "always",
+    # ``never`` synonyms.
+    "no": "never",
+    "none": "never",
+    # ``auto`` synonyms.
+    "tty": "auto",
+    "if-tty": "auto",
+}
+"""GNU coreutils synonyms accepted as hidden aliases for each :data:`COLOR_WHEN`
+value.
+
+GNU ``ls`` accepts ``yes``/``force`` for ``always``, ``no``/``none`` for ``never``
+and ``tty``/``if-tty`` for ``auto``, alongside the three canonical spellings (see
+:data:`COLOR_WHEN`). Click Extra mirrors that leniency but keeps the synonyms out of
+``--help`` output, error messages and shell completion, which only ever advertise
+:data:`COLOR_WHEN`.
+"""
+
+
+_COLOR_WHEN_LOOKUP = {**{when: when for when in COLOR_WHEN}, **COLOR_WHEN_ALIASES}
+"""Lowercase-keyed map folding every accepted spelling to its canonical
+:data:`COLOR_WHEN` value.
+
+Combines the identity mapping of the canonical values with
+:data:`COLOR_WHEN_ALIASES`, for the case-insensitive lookup in
+:meth:`ColorWhenChoice.convert`.
+"""
+
+
 _COLOR_CLI_OVERRIDE_KEY = "click_extra.color_cli_override"
 """Context meta key flagging an explicit ``--no-color`` on the command line.
 
@@ -209,6 +241,50 @@ Set by :meth:`NoColorOption.set_no_color` and read by :meth:`ColorOption.set_col
 an explicit negative alias outranks the color environment variables, which may only
 override the built-in default.
 """
+
+
+class ColorWhenChoice(click.Choice):
+    """:class:`click.Choice` over :data:`COLOR_WHEN` that also accepts the hidden GNU
+    synonyms (:data:`COLOR_WHEN_ALIASES`) and native configuration booleans, folding
+    them to a canonical value before validation.
+
+    Only the three canonical :data:`COLOR_WHEN` values reach ``--help``, error
+    messages and shell completion, because the public ``choices`` stay canonical.
+    Synonyms and booleans are accepted silently and normalized, so downstream code
+    (:meth:`ColorOption.set_color`, :data:`_WHEN_TO_TRISTATE`) only ever sees
+    ``auto``, ``always`` or ``never``.
+
+    Matching is case-insensitive and whitespace-tolerant, which also makes the
+    canonical values forgiving, such as ``--color=ALWAYS``.
+    """
+
+    def convert(
+        self,
+        value: Any,
+        param: click.Parameter | None,
+        ctx: click.Context | None,
+    ) -> Any:
+        """Fold synonyms and booleans to canonical, then defer to ``click.Choice``.
+
+        A native :class:`bool` only reaches this method from a structured
+        configuration file: TOML or JSON booleans, or YAML's coercion of
+        ``yes``/``no``/``on``/``off``/``true``/``false``. ``True`` maps to
+        ``always`` and ``False`` to ``never``, consistent with a bare ``--color``
+        and ``--no-color``. The command line always delivers strings, so this never
+        turns ``--color=true`` into a valid CLI spelling.
+
+        .. caution::
+            A configuration boolean therefore diverges from git's `color.ui
+            <https://git-scm.com/docs/git-config>`_, where ``true`` means ``auto``.
+            Click Extra keeps ``true`` equal to ``always`` so the ``yes`` string
+            synonym and YAML's coercion of ``yes`` to ``True`` resolve identically
+            across file formats.
+        """
+        if isinstance(value, bool):
+            value = "always" if value else "never"
+        elif isinstance(value, str):
+            value = _COLOR_WHEN_LOOKUP.get(value.strip().lower(), value)
+        return super().convert(value, param, ctx)
 
 
 class ColorOption(ExtraOption):
@@ -344,7 +420,7 @@ class ColorOption(ExtraOption):
             param_decls = ("--color",)
 
         kwargs.setdefault("callback", self.set_color)
-        kwargs.setdefault("type", click.Choice(COLOR_WHEN))
+        kwargs.setdefault("type", ColorWhenChoice(COLOR_WHEN))
 
         super().__init__(
             param_decls=param_decls,

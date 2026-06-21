@@ -2268,7 +2268,232 @@ def test_resolve_color_env_force_color_beats_dumb_term(monkeypatch, term):
     assert resolve_color_env() is True
 
 
-# TODO: test with  configuration file
+# --- GNU --color synonyms, hidden aliases, and forgiving configuration ---
+#
+# ``--color`` accepts the GNU coreutils synonyms (yes/force, no/none, tty/if-tty)
+# as hidden aliases for always/never/auto, case-insensitively. Configuration files
+# additionally accept native booleans (true -> always, false -> never), including
+# YAML's coercion of yes/no/on/off. See click_extra.colorize.ColorWhenChoice.
+
+
+def _no_color_env():
+    """Unset every recognized color env var so auto/tty resolve to None and the
+    outer environment cannot leak into the synonym resolution."""
+    return {var: None for var in color_envvars if var in os.environ}
+
+
+@skip_windows_colors
+@pytest.mark.parametrize(
+    ("when", "ctx_color"),
+    (
+        # Canonical values.
+        ("auto", "None"),
+        ("always", "True"),
+        ("never", "False"),
+        # Canonical values are case-insensitive too.
+        ("AUTO", "None"),
+        ("Always", "True"),
+        ("NEVER", "False"),
+        # GNU "always" synonyms.
+        ("yes", "True"),
+        ("force", "True"),
+        ("YES", "True"),
+        ("Force", "True"),
+        # GNU "never" synonyms.
+        ("no", "False"),
+        ("none", "False"),
+        ("NO", "False"),
+        ("None", "False"),
+        # GNU "auto" synonyms.
+        ("tty", "None"),
+        ("if-tty", "None"),
+        ("TTY", "None"),
+        ("IF-TTY", "None"),
+    ),
+)
+def test_color_synonym_cli_resolution(invoke, when, ctx_color):
+    """Every canonical value and GNU synonym resolves --color to the right state."""
+
+    @click.command
+    @color_option
+    @no_color_option
+    @pass_context
+    def color_synonym_cli(ctx):
+        echo(f"ctx.color={ctx.color}")
+
+    result = invoke(color_synonym_cli, f"--color={when}", env=_no_color_env())
+    assert result.exit_code == 0
+    assert result.stdout == f"ctx.color={ctx_color}\n"
+
+
+@skip_windows_colors
+@pytest.mark.parametrize("when", ("purple", "true", "false", "1", "0", ""))
+def test_color_synonym_invalid_value(invoke, when):
+    """Unknown values, including the git-style true/false, still error. The message
+    lists only the canonical choices, never the hidden synonyms."""
+
+    @click.command
+    @color_option
+    @no_color_option
+    def color_invalid_cli():
+        echo("unreached")
+
+    result = invoke(color_invalid_cli, f"--color={when}", env=_no_color_env())
+    assert result.exit_code == 2
+    assert "'auto', 'always', 'never'" in result.stderr
+    # The synonyms stay out of the error message.
+    for hidden in ("force", "none", "if-tty"):
+        assert hidden not in result.stderr
+
+
+@skip_windows_colors
+def test_color_synonym_hidden_in_help(invoke):
+    """The GNU synonyms are accepted but never advertised: --help shows only the
+    canonical metavar."""
+
+    @click.command
+    @color_option
+    @no_color_option
+    def color_help_cli():
+        echo("unreached")
+
+    result = invoke(color_help_cli, "--help", env=_no_color_env())
+    assert result.exit_code == 0
+    assert "[auto|always|never]" in result.stdout
+    for hidden in ("force", "if-tty"):
+        assert hidden not in result.stdout
+
+
+@skip_windows_colors
+@pytest.mark.parametrize(
+    ("when", "env_var", "ctx_color"),
+    (
+        # An explicit CLI synonym outranks the color env vars, like its canonical twin.
+        ("yes", "NO_COLOR", "True"),
+        ("force", "NO_COLOR", "True"),
+        ("no", "FORCE_COLOR", "False"),
+        ("none", "FORCE_COLOR", "False"),
+    ),
+)
+def test_color_synonym_cli_beats_env(invoke, when, env_var, ctx_color):
+    """A synonym on the command line keeps the same env precedence as its canonical
+    twin: a command-line choice outranks the color environment variables."""
+
+    @click.command
+    @color_option
+    @no_color_option
+    @pass_context
+    def color_env_cli(ctx):
+        echo(f"ctx.color={ctx.color}")
+
+    env = _no_color_env()
+    env[env_var] = "1"
+    result = invoke(color_env_cli, f"--color={when}", env=env)
+    assert result.exit_code == 0
+    assert result.stdout == f"ctx.color={ctx_color}\n"
+
+
+@skip_windows_colors
+@pytest.mark.parametrize(
+    ("when", "ctx_color"),
+    (
+        ("always", "True"),
+        ("yes", "True"),
+        ("force", "True"),
+        ("never", "False"),
+        ("no", "False"),
+        ("none", "False"),
+        ("auto", "None"),
+        ("tty", "None"),
+        ("if-tty", "None"),
+        # Case-insensitive in configuration too.
+        ("Force", "True"),
+    ),
+)
+def test_color_synonym_config_string(invoke, create_config, when, ctx_color):
+    """A configuration file accepts the GNU synonyms as strings, normalized exactly
+    like on the command line."""
+    conf_path = create_config("color.toml", f'[color-cfg-cli]\ncolor = "{when}"\n')
+
+    @command
+    @pass_context
+    def color_cfg_cli(ctx):
+        echo(f"ctx.color={ctx.color}")
+
+    result = invoke(color_cfg_cli, "--config", str(conf_path), env=_no_color_env())
+    assert result.exit_code == 0
+    assert f"ctx.color={ctx_color}\n" in result.stdout
+
+
+@skip_windows_colors
+@pytest.mark.parametrize(
+    ("filename", "raw", "ctx_color"),
+    (
+        # Native booleans in TOML and JSON.
+        ("color.toml", "true", "True"),
+        ("color.toml", "false", "False"),
+        ("color.json", "true", "True"),
+        ("color.json", "false", "False"),
+        # YAML's own true/false booleans.
+        ("color.yaml", "true", "True"),
+        ("color.yaml", "false", "False"),
+        # YAML 1.1 coerces these to booleans; they must agree with the string
+        # synonyms (yes == always, no == never).
+        ("color.yaml", "yes", "True"),
+        ("color.yaml", "no", "False"),
+        ("color.yaml", "on", "True"),
+        ("color.yaml", "off", "False"),
+    ),
+)
+def test_color_synonym_config_boolean(invoke, create_config, filename, raw, ctx_color):
+    """A configuration boolean maps true -> always and false -> never, including
+    YAML's coercion of yes/no/on/off, so a value means the same across formats."""
+    ext = filename.rsplit(".", 1)[1]
+    if ext == "json":
+        content = '{"color-cfg-cli": {"color": ' + raw + "}}"
+    elif ext == "yaml":
+        content = f"color-cfg-cli:\n  color: {raw}\n"
+    else:
+        content = f"[color-cfg-cli]\ncolor = {raw}\n"
+    conf_path = create_config(filename, content)
+
+    @command
+    @pass_context
+    def color_cfg_cli(ctx):
+        echo(f"ctx.color={ctx.color}")
+
+    result = invoke(color_cfg_cli, "--config", str(conf_path), env=_no_color_env())
+    assert result.exit_code == 0
+    assert f"ctx.color={ctx_color}\n" in result.stdout
+
+
+@skip_windows_colors
+@pytest.mark.parametrize(
+    ("rhs", "env_var", "ctx_color"),
+    (
+        # A config value (string synonym or boolean) inherits the precedence of any
+        # DEFAULT_MAP value: it outranks the color environment variables.
+        ('"yes"', "NO_COLOR", "True"),
+        ("true", "NO_COLOR", "True"),
+        ('"no"', "FORCE_COLOR", "False"),
+        ("false", "FORCE_COLOR", "False"),
+    ),
+)
+def test_color_synonym_config_beats_env(invoke, create_config, rhs, env_var, ctx_color):
+    """A config synonym or boolean beats the color environment variables, matching
+    the documented precedence of canonical config values."""
+    conf_path = create_config("color.toml", f"[color-cfg-cli]\ncolor = {rhs}\n")
+
+    @command
+    @pass_context
+    def color_cfg_cli(ctx):
+        echo(f"ctx.color={ctx.color}")
+
+    env = _no_color_env()
+    env[env_var] = "1"
+    result = invoke(color_cfg_cli, "--config", str(conf_path), env=env)
+    assert result.exit_code == 0
+    assert f"ctx.color={ctx_color}\n" in result.stdout
 
 
 @pytest.mark.parametrize(
@@ -2374,6 +2599,10 @@ def test_integrated_color_option(
         pytest.param(
             ("--help", "--color=always", "--no-color"), False, id="last-wins-off"
         ),
+        # GNU synonyms colorize the eager screens exactly like their canonical twin.
+        pytest.param(("--color=force", "--help"), True, id="force-synonym-before-help"),
+        pytest.param(("--help", "--color=yes"), True, id="yes-synonym-after-help"),
+        pytest.param(("--version", "--color=no"), False, id="no-synonym-after-version"),
     ),
 )
 def test_color_settles_before_eager_help_and_version(invoke, args, expecting_colors):

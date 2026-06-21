@@ -260,6 +260,30 @@ assert result.exit_code == 0
 assert "Hello without color." in result.output
 ```
 
+### Synonyms and configuration
+
+For convenience, `WHEN` also accepts the [GNU coreutils](https://www.gnu.org/software/coreutils/) synonyms as hidden aliases, matched case-insensitively:
+
+| Canonical | Synonyms        |
+| :-------- | :-------------- |
+| `auto`    | `tty`, `if-tty` |
+| `always`  | `yes`, `force`  |
+| `never`   | `no`, `none`    |
+
+```{click:run}
+result = invoke(greet, args=["--color=yes"])
+assert result.exit_code == 0
+assert "\x1b[32mHello in green!\x1b[0m" in result.output
+```
+
+These synonyms stay out of `--help`, shell completion and error messages, which only ever advertise `auto`, `always` and `never`. An unknown value, including a bare `true` or `false`, is still rejected.
+
+In a [configuration file](config.md) the same string synonyms apply, and a native boolean is accepted too: `true` maps to `always` and `false` to `never`, mirroring a bare `--color` and `--no-color`. Because YAML coerces `yes`, `no`, `on` and `off` to booleans, a value resolves identically whether it arrives as a string or a boolean.
+
+:::{caution}
+A configuration boolean diverges from [git's `color.ui`](https://git-scm.com/docs/git-config), where `true` means `auto`. Click Extra keeps `true` equal to `always` so the `yes` synonym and YAML's coercion of `yes` to `True` agree across file formats.
+:::
+
 <a name="accessible-flag"></a>
 
 ## `--accessible` flag
