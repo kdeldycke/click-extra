@@ -250,14 +250,14 @@ matching what ``click.Command.parse_args`` does for ``ctx.params``.
 CONF_SOURCE: Final[str] = "click_extra.conf_source"
 """Resolved path or URL of the configuration file that was loaded.
 
-Written by :class:`click_extra.config.ConfigOption.load_conf` after a
+Written by :class:`click_extra.config.option.ConfigOption.load_conf` after a
 configuration file is found and parsed. ``None`` if no file matched.
 """
 
 CONF_FULL: Final[str] = "click_extra.conf_full"
 """Full parsed configuration document (the whole file, every section).
 
-Written by :class:`click_extra.config.ConfigOption.load_conf`. Read by
+Written by :class:`click_extra.config.option.ConfigOption.load_conf`. Read by
 :class:`click_extra.commands.Group` (for subcommand inheritance) and by
 :func:`click_extra.cli_wrapper.invoke_target` (to forward the loaded config to
 wrapped CLIs).
@@ -266,9 +266,9 @@ wrapped CLIs).
 TOOL_CONFIG: Final[str] = "click_extra.tool_config"
 """The app-specific config section, deserialised through ``config_schema``.
 
-Written by :class:`click_extra.config.ConfigOption._apply_config_schema` only
+Written by :class:`click_extra.config.option.ConfigOption._apply_config_schema` only
 when a schema callable is configured. Read via
-:func:`click_extra.config_schema.get_tool_config`.
+:func:`click_extra.config.schema.get_tool_config`.
 """
 
 
@@ -367,7 +367,7 @@ Written by :class:`click_extra.theme.ThemeOption.set_theme`. Read via
 THEME_OVERRIDES: Final[str] = "click_extra.theme.overrides"
 """Per-invocation theme registry overlay loaded from the user's config file.
 
-Written by :class:`click_extra.config.ConfigOption` when it sees
+Written by :class:`click_extra.config.option.ConfigOption` when it sees
 ``[tool.<cli>.themes.<name>]`` tables: each table is built into a
 :class:`~click_extra.theme.HelpTheme` (cascading on top of an existing
 theme when *name* matches one already in :data:`~click_extra.theme.theme_registry`).

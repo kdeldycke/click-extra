@@ -46,8 +46,7 @@ from . import (
     style,
 )
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
-from .config import ClickExtraConfig, TestPlanConfig
-from .config_schema import get_tool_config
+from .config import ClickExtraConfig, TestPlanConfig, get_tool_config
 from .envvar import merge_envvar_ids
 from .spinner import (
     _DEFAULT_SHOWCASE,

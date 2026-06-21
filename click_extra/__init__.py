@@ -85,21 +85,19 @@ from .commands import (
     LazyGroup,
 )
 from .config import (
+    DEFAULT_SUBCOMMANDS_KEY,
+    EXTENSION_METADATA_KEY,
     NO_CONFIG,
+    PREPEND_SUBCOMMANDS_KEY,
     VCS,
     ClickExtraConfig,
     ConfigFormat,
     ConfigOption,
+    ConfigValidator,
     NoConfigOption,
     PrebakeConfig,
     TestPlanConfig,
     ValidateConfigOption,
-)
-from .config_schema import (
-    DEFAULT_SUBCOMMANDS_KEY,
-    EXTENSION_METADATA_KEY,
-    PREPEND_SUBCOMMANDS_KEY,
-    ConfigValidator,
     ValidationError,
     ValidationReport,
     flatten_config_keys,

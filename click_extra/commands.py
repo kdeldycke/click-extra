@@ -39,11 +39,13 @@ from .colorize import (
     _HelpColorsMixin,
     highlight,
 )
-from .config import ConfigOption, NoConfigOption, ValidateConfigOption
-from .config_schema import (
+from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
+    ConfigOption,
     ConfigValidator,
+    NoConfigOption,
+    ValidateConfigOption,
     _collect_opaque_paths_from_schema,
     make_schema_callable,
 )

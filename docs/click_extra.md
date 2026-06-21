@@ -43,10 +43,34 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.config module
+## click_extra.config package
+
+The `click_extra.config` package re-exports every public symbol from its
+submodules, so consumers can keep importing from `click_extra.config`. Each
+symbol is documented below under the submodule where it is defined.
+
+### click_extra.config.formats module
 
 ```{eval-rst}
-.. automodule:: click_extra.config
+.. automodule:: click_extra.config.formats
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+### click_extra.config.option module
+
+```{eval-rst}
+.. automodule:: click_extra.config.option
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+### click_extra.config.schema module
+
+```{eval-rst}
+.. automodule:: click_extra.config.schema
    :members:
    :show-inheritance:
    :undoc-members:

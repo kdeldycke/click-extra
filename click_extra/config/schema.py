@@ -34,8 +34,8 @@ from typing import get_origin, get_type_hints
 from deepmerge import always_merger
 from extra_platforms._utils import _recursive_update
 
-from . import context, get_current_context
-from .parameters import ParamStructure
+from .. import context, get_current_context
+from ..parameters import ParamStructure
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -104,12 +104,12 @@ nonetheless represents user-extensible content)."""
 THEMES_CONFIG_KEY: str = "themes"
 """Sub-key under ``[tool.<cli>]`` where user-defined themes live in config.
 
-Used by :class:`~click_extra.config.ConfigOption` to find ``[tool.<cli>.themes.<name>]`` tables,
+Used by :class:`~click_extra.config.option.ConfigOption` to find ``[tool.<cli>.themes.<name>]`` tables,
 build them via :meth:`HelpTheme.from_dict
 <click_extra.theme.HelpTheme.from_dict>`, and stash the result on
 ``ctx.meta[click_extra.context.THEME_OVERRIDES]``. The constant is the
 single source of truth shared by :func:`_builtin_config_validators`,
-:meth:`~click_extra.config.ConfigOption._apply_theme_overrides`, and
+:meth:`~click_extra.config.option.ConfigOption._apply_theme_overrides`, and
 :func:`click_extra.theme.themes_from_config`.
 """
 
@@ -152,7 +152,7 @@ class ConfigValidator:
     configuration file.
 
     Apps register validators via the ``config_validators=`` kwarg on
-    :class:`~click_extra.config.ConfigOption` (or the matching decorator) to extend click-extra's
+    :class:`~click_extra.config.option.ConfigOption` (or the matching decorator) to extend click-extra's
     built-in CLI-parameter strict check with custom validation logic. Each
     validator targets a single dotted ``extension_path`` relative to the app's
     configuration section. Click-extra passes the matching sub-tree straight
@@ -181,14 +181,14 @@ class ConfigValidator:
 
 
 def _builtin_config_validators() -> tuple[ConfigValidator, ...]:
-    """Return the validators click-extra registers on every :class:`~click_extra.config.ConfigOption`.
+    """Return the validators click-extra registers on every :class:`~click_extra.config.option.ConfigOption`.
 
     Currently a single validator for ``[tool.<cli>.themes.<name>]`` tables.
     Lazy-imports :func:`~click_extra.theme.validate_themes_config` to avoid
     a load-time cycle: :mod:`click_extra.theme` is imported after
     :mod:`click_extra.config` from the package ``__init__``.
     """
-    from .theme import validate_themes_config
+    from ..theme import validate_themes_config
 
     return (
         ConfigValidator(
@@ -350,7 +350,7 @@ def flatten_config_keys(
     `normalize_config_keys`, the flattened keys match dataclass field names
     directly::
 
-        >>> from click_extra.config_schema import (
+        >>> from click_extra.config import (
         ...     flatten_config_keys,
         ...     normalize_config_keys,
         ... )
@@ -757,7 +757,7 @@ def _select_app_section(
     name in ``fallback_sections`` in order, logging a deprecation warning on
     match. Works identically for all configuration formats.
 
-    Free-function form of :py:meth:`~click_extra.config.ConfigOption._resolve_app_section`, shared
+    Free-function form of :py:meth:`~click_extra.config.option.ConfigOption._resolve_app_section`, shared
     with :py:func:`run_config_validation` so both resolve the section (and warn
     about leftover legacy sections) the exact same way.
     """
@@ -870,7 +870,7 @@ def run_config_validation(
     and app-registered :class:`ConfigValidator` hooks) behind a single function
     yielding a single error type. It is deliberately *not* named
     ``validate_config``: that name belongs to
-    :py:meth:`~click_extra.config.ValidateConfigOption.validate_config`, the callback powering the
+    :py:meth:`~click_extra.config.option.ValidateConfigOption.validate_config`, the callback powering the
     ``--validate-config`` flag.
 
     Stages, in order:

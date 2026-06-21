@@ -49,7 +49,6 @@ import copy
 import json
 import logging
 import os
-import sys
 from collections import ChainMap
 from collections.abc import Iterable
 from configparser import ConfigParser, ExtendedInterpolation
@@ -68,7 +67,7 @@ from extra_platforms import is_windows
 from extra_platforms._utils import _recursive_update, _remove_blanks
 from wcmatch import fnmatch, glob
 
-from . import (
+from .. import (
     UNPROCESSED,
     ParameterSource,
     Path as ClickPath,
@@ -77,7 +76,9 @@ from . import (
     get_app_dir,
     get_current_context,
 )
-from .config_schema import (
+from ..parameters import ExtraOption, ParamStructure, search_params
+from .formats import ConfigFormat, parse_content
+from .schema import (
     THEMES_CONFIG_KEY,
     ConfigValidator,
     _builtin_config_validators,
@@ -89,13 +90,6 @@ from .config_schema import (
     make_schema_callable,
     run_config_validation,
 )
-from .parameters import ExtraOption, ParamStructure, search_params
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
-
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -105,56 +99,6 @@ if TYPE_CHECKING:
     import click
 
 logger = logging.getLogger(__name__)
-
-
-yaml_support = True
-try:
-    import yaml
-except ImportError:
-    yaml_support = False
-    logger.debug(
-        "YAML support disabled: install click-extra[yaml] to enable it."
-    )
-
-
-json5_support = True
-try:
-    import json5
-except ImportError:
-    json5_support = False
-    logger.debug(
-        "JSON5 support disabled: install click-extra[json5] to enable it."
-    )
-
-
-jsonc_support = True
-try:
-    import jsonc
-except ImportError:
-    jsonc_support = False
-    logger.debug(
-        "JSONC support disabled: install click-extra[jsonc] to enable it."
-    )
-
-
-hjson_support = True
-try:
-    import hjson
-except ImportError:
-    hjson_support = False
-    logger.debug(
-        "HJSON support disabled: install click-extra[hjson] to enable it."
-    )
-
-
-xml_support = True
-try:
-    import xmltodict
-except ImportError:
-    xml_support = False
-    logger.debug(
-        "XML support disabled: install click-extra[xml] to enable it."
-    )
 
 
 VCS_DIRS = (".git", ".hg", ".svn", ".bzr", "CVS", ".darcs")
@@ -168,56 +112,6 @@ Includes:
 - ``CVS`` — CVS (note: uppercase, no leading dot)
 - ``.darcs`` — Darcs
 """
-
-
-class ConfigFormat(Enum):
-    """All configuration formats, associated to their support status.
-
-    The first element of the tuple is a sequence of file extensions associated to the
-    format. Patterns are fed to ``wcmatch.glob`` for matching, and are influenced by the
-    flags set on the ``ConfigOption`` instance.
-
-    The second element indicates whether the format is supported or not, depending on
-    the availability of the required third-party packages. This evaluation is performed
-    at runtime when this module is imported.
-
-    .. caution::
-        The order is important for both format members and file patterns. It defines the
-        priority order in which formats are tried when multiple candidate files are found.
-
-    .. todo::
-        Add support for `JWCC
-        <https://nigeltao.github.io/blog/2021/json-with-commas-comments.html>`_
-        / `hujson <https://github.com/tailscale/hujson>`_ format?
-    """
-
-    TOML = (("*.toml",), True, "TOML")
-    YAML = (("*.yaml", "*.yml"), yaml_support, "YAML")
-    JSON = (("*.json",), True, "JSON")
-    JSON5 = (("*.json5",), json5_support, "JSON5")
-    JSONC = (("*.jsonc",), jsonc_support, "JSONC")
-    HJSON = (("*.hjson",), hjson_support, "Hjson")
-    INI = (("*.ini",), True, "INI")
-    XML = (("*.xml",), xml_support, "XML")
-    PYPROJECT_TOML = (("pyproject.toml",), True, "pyproject.toml")
-
-    def __str__(self) -> str:
-        return self.label
-
-    @property
-    def label(self) -> str:
-        """Human-friendly name of the format for display in messages."""
-        return self.value[2]  # type: ignore[no-any-return]
-
-    @property
-    def enabled(self) -> bool:
-        """Returns ``True`` if the format is supported, ``False`` otherwise."""
-        return self.value[1]  # type: ignore[no-any-return]
-
-    @property
-    def patterns(self) -> tuple[str, ...]:
-        """Returns the default file patterns associated to the format."""
-        return self.value[0]  # type: ignore[no-any-return]
 
 
 CONFIG_OPTION_NAME = "config"
@@ -536,7 +430,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         )
         """Extension validators for sub-trees of the configuration file.
 
-        Each :class:`~click_extra.config_schema.ConfigValidator` targets a dotted ``extension_path`` relative
+        Each :class:`~click_extra.config.schema.ConfigValidator` targets a dotted ``extension_path`` relative
         to the app section. Validators run after click-extra's built-in
         CLI-parameter strict check (during ``--validate-config``) and after the
         schema callable produces the typed configuration object (during normal
@@ -566,7 +460,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         validation must skip.
 
         Union of schema-inferred extension fields and explicit
-        :class:`~click_extra.config_schema.ConfigValidator` registrations. Used by
+        :class:`~click_extra.config.schema.ConfigValidator` registrations. Used by
         :py:meth:`merge_default_map` and
         :py:meth:`ValidateConfigOption.validate_config`.
         """
@@ -957,26 +851,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         conf = None
         for fmt in formats:
             try:
-                match fmt:
-                    case ConfigFormat.TOML:
-                        conf = tomllib.loads(content)
-                    case ConfigFormat.YAML:
-                        conf = yaml.full_load(content)
-                    case ConfigFormat.JSON:
-                        conf = json.loads(content)
-                    case ConfigFormat.JSON5:
-                        conf = json5.loads(content)
-                    case ConfigFormat.JSONC:
-                        conf = jsonc.loads(content)
-                    case ConfigFormat.HJSON:
-                        conf = hjson.loads(content)
-                    case ConfigFormat.INI:
-                        conf = self.load_ini_config(content)
-                    case ConfigFormat.XML:
-                        conf = xmltodict.parse(content)
-                    case ConfigFormat.PYPROJECT_TOML:
-                        full_conf = tomllib.loads(content)
-                        conf = full_conf.get("tool", {})
+                conf = (
+                    self.load_ini_config(content)
+                    if fmt is ConfigFormat.INI
+                    else parse_content(fmt, content)
+                )
 
             except Exception as ex:  # noqa: BLE001
                 logger.debug(f"{fmt} parsing failed: {ex}")
@@ -1276,7 +1155,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         :func:`~click_extra.theme.validate_themes_config` validator, so failures
         below this point would be a click-extra bug rather than user error.
         """
-        from .theme import themes_from_config
+        from ..theme import themes_from_config
 
         _, app_section = self._app_section(ctx, user_conf)
         themes_subtree = app_section.get(THEMES_CONFIG_KEY)
@@ -1298,7 +1177,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         explicit and future-proofs for multi-file config loading.
 
         Opaque sub-trees declared by the schema or by registered
-        :class:`~click_extra.config_schema.ConfigValidator` instances are stripped from the conf before the
+        :class:`~click_extra.config.schema.ConfigValidator` instances are stripped from the conf before the
         CLI-parameter strict check, so user-controlled keys (e.g. mappings whose
         keys are data, not flag names) don't trip ``strict=True``.
         """
@@ -1599,13 +1478,13 @@ class ValidateConfigOption(ExtraOption):
         """Load, parse, and validate the configuration file, then exit.
 
         Validation runs three checks in order, every one of them under the same
-        :class:`~click_extra.config_schema.ValidationError` shape so the reported path is always rooted at
+        :class:`~click_extra.config.schema.ValidationError` shape so the reported path is always rooted at
         the configuration file:
 
         1. CLI-parameter strict check on the non-opaque part of the document.
         2. Schema processing, if a ``config_schema`` is configured: catches
            type errors and unknown keys inside the dataclass-described section.
-        3. Each registered :class:`~click_extra.config_schema.ConfigValidator` runs against its declared
+        3. Each registered :class:`~click_extra.config.schema.ConfigValidator` runs against its declared
            opaque sub-tree.
 
         Every detected error is emitted before exiting, so a single

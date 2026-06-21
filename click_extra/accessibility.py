@@ -84,7 +84,7 @@ class AccessibleOption(ExtraOption):
     .. note::
         The values are injected with :meth:`dict.setdefault`, so they never clobber
         a colorization or table format already requested by the user. Combined with
-        the ``ChainMap`` that :class:`~click_extra.config.ConfigOption` layers on top
+        the ``ChainMap`` that :class:`~click_extra.config.option.ConfigOption` layers on top
         of ``default_map``, this yields the precedence:
         command line > configuration file > ``--accessible`` > built-in defaults.
     """

@@ -55,7 +55,7 @@ from click_extra import (
     validate_config_option,
 )
 from click_extra.colorize import _escape_for_help_screen
-from click_extra.config_schema import (
+from click_extra.config import (
     _collect_opaque_paths_from_schema,
     _expand_dotted_keys,
     flatten_config_keys,
@@ -1661,7 +1661,7 @@ def test_parent_patterns_inaccessible_directory(tmp_path):
         config_opt = search_params(test_cli.params, ConfigOption)
         assert isinstance(config_opt, ConfigOption)
         with unittest.mock.patch(
-            "click_extra.config.os.access", side_effect=fake_access
+            "click_extra.config.option.os.access", side_effect=fake_access
         ):
             patterns = list(config_opt.parent_patterns(str(config_file)))
 
@@ -4130,7 +4130,7 @@ def test_pyproject_toml_cwd_unrelated_does_not_shadow_app_dir(
     actual config and apply it.
     """
 
-    import click_extra.config as config_module
+    import click_extra.config.option as config_module
 
     @dataclass
     class AppConfig:

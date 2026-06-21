@@ -467,7 +467,7 @@ Built-in themes are seeded here at module load time from
 
 Use :func:`register_theme` to add your own at import time, *or* declare
 them in your CLI's config file under ``[tool.<cli>.themes.<name>]`` — the
-latter goes through :class:`ConfigOption <click_extra.config.ConfigOption>`,
+latter goes through :class:`ConfigOption <click_extra.config.option.ConfigOption>`,
 lands on ``ctx.meta`` (see :data:`click_extra.context.THEME_OVERRIDES`),
 and never mutates this module-level dict, so per-invocation choices don't
 leak between sibling invocations sharing the same process.
@@ -531,14 +531,14 @@ def themes_from_config(
 def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
     """Validate a ``[tool.<cli>.themes]`` sub-tree.
 
-    Registered as a built-in :class:`ConfigValidator <click_extra.config_schema.ConfigValidator>`
-    by :class:`ConfigOption <click_extra.config.ConfigOption>` so malformed
-    theme tables surface as :class:`~click_extra.config_schema.ValidationError` with
+    Registered as a built-in :class:`ConfigValidator <click_extra.config.schema.ConfigValidator>`
+    by :class:`ConfigOption <click_extra.config.option.ConfigOption>` so malformed
+    theme tables surface as :class:`~click_extra.config.schema.ValidationError` with
     a rooted path (``my-cli.themes.<name>``) rather than a deep
     :class:`TypeError` from :meth:`HelpTheme.from_dict`.
     """
-    # Lazy-imported to avoid a load-time cycle with config_schema.py.
-    from .config_schema import ValidationError
+    # Lazy-imported to avoid a load-time cycle with the config package.
+    from .config import ValidationError
 
     for name, slots in themes_subtree.items():
         if not isinstance(slots, dict):
@@ -568,7 +568,7 @@ class ThemeChoice(click.ParamType):
     code path it uses for Click's own ``Choice``. The ``choices`` attribute
     is a property that queries :func:`get_theme_registry` at every lookup,
     so themes registered late — typically by
-    :class:`ConfigOption <click_extra.config.ConfigOption>` parsing
+    :class:`ConfigOption <click_extra.config.option.ConfigOption>` parsing
     ``[tool.<cli>.themes.<name>]`` tables before ``--theme`` is processed —
     are valid choices and appear in the ``--help`` metavar.
 
@@ -664,7 +664,7 @@ class ThemeOption(ExtraOption):
 
     Accepts any name registered in :data:`theme_registry` *or* in the
     per-invocation overrides loaded by
-    :class:`ConfigOption <click_extra.config.ConfigOption>` from
+    :class:`ConfigOption <click_extra.config.option.ConfigOption>` from
     ``[tool.<cli>.themes.<name>]``. Validation goes through
     :class:`ThemeChoice`, which reads the live registry at parse time, so
     config-defined themes appear as valid choices and in the ``--help``
