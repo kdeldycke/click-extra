@@ -38,7 +38,7 @@
 - Speed up `import click_extra` by deferring the `tabulate`, PyYAML and `boltons.ecoutils` imports until first use and dropping the runtime `unittest.mock` dependency, cutting startup time by roughly a third.
 - Drop `requests` as a runtime dependency; the configuration-from-URL loader now uses the standard-library `urllib.request`.
 - `click-extra wrap` honors the tri-state color resolution, colorizing the wrapped CLI under `auto` only when the output is a terminal.
-- `--color` and `--no-color` colorize the eager `--help` and `--version` screens regardless of where they sit on the command line, so `mycli --help --color=always` matches `mycli --color=always --help`.
+- `--color` and `--no-color` colorize the eager `--help` and `--version` screens regardless of where they sit on the command line, so `mycli --help --color=always` matches `mycli --color=always --help`. Closes [`click-extra#137`](https://github.com/kdeldycke/click-extra/issues/137).
 - `--color[=WHEN]` accepts the GNU coreutils synonyms `yes`/`force`, `no`/`none` and `tty`/`if-tty` as hidden, case-insensitive aliases; configuration files accept the same synonyms plus a native boolean (`true`/`false`).
 - Under `auto`, a `dumb` or `unknown` `TERM` now strips ANSI color even on a terminal, matching the spinner and aligning with Rich; an explicit `--color`/`FORCE_COLOR` still wins.
 - Branded 24-bit themes (`dracula`, `monokai`, `nord`, `solarized_dark`) downsample to the nearest 256-color index when the terminal does not advertise truecolor, instead of always emitting 24-bit.

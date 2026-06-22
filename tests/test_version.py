@@ -508,17 +508,21 @@ def test_version_fields_rejects_unknown(invoke):
 
 @skip_windows_colors
 def test_color_option_precedence(invoke):
-    """--no-color has an effect on --version, if placed in the right order.
+    """A plain ``click.command`` only decolors ``--version`` when ``--no-color``
+    precedes it on the command line.
 
-    Eager parameters are evaluated in the order as they were provided on the command
-    line by the user as expleined in:
-    https://click.palletsprojects.com/en/stable/click-concepts/#callback-evaluation-order
+    Click evaluates eager parameters in the order the user typed them (`callback
+    evaluation order
+    <https://click.palletsprojects.com/en/stable/click-concepts/#callback-evaluation-order>`_),
+    so a ``--no-color`` placed after ``--version`` lands too late: the version screen
+    has already rendered in color and exited.
 
-    .. todo::
-
-        Maybe have the possibility to tweak CLI callback evaluation order so we can
-        let the user to have the NO_COLOR env set to allow for color-less ``--version``
-        output.
+    click-extra's own ``@command`` settles the color options in a pre-pass before any
+    eager screen renders, so the color choice is honored whatever its position. See
+    ``Command._resolve_color_eagerly`` and the order-independent
+    ``test_color_settles_before_eager_help_and_version`` in ``test_color.py``. This
+    test pins the residual behavior of the plain-Click path, which that pre-pass does
+    not reach.
     """
 
     @click.command
