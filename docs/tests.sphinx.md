@@ -44,3 +44,30 @@
    :show-inheritance:
    :undoc-members:
 ```
+
+## `tests.sphinx.test_sphinx_click_tree` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_click_tree
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.sphinx.test_sphinx_manpages` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_manpages
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.sphinx.test_sphinx_python` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_python
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```

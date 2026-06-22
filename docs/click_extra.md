@@ -11,6 +11,7 @@
 
 ```{toctree}
 :maxdepth: 4
+click_extra.config
 click_extra.sphinx
 ```
 
@@ -20,6 +21,15 @@ click_extra.sphinx
 
 ```{eval-rst}
 .. automodule:: click_extra.cli
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.cli_wrapper module
+
+```{eval-rst}
+.. automodule:: click_extra.cli_wrapper
    :members:
    :show-inheritance:
    :undoc-members:
@@ -38,39 +48,6 @@ click_extra.sphinx
 
 ```{eval-rst}
 .. automodule:: click_extra.commands
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## click_extra.config package
-
-The `click_extra.config` package re-exports every public symbol from its
-submodules, so consumers can keep importing from `click_extra.config`. Each
-symbol is documented below under the submodule where it is defined.
-
-### click_extra.config.formats module
-
-```{eval-rst}
-.. automodule:: click_extra.config.formats
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-### click_extra.config.option module
-
-```{eval-rst}
-.. automodule:: click_extra.config.option
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-### click_extra.config.schema module
-
-```{eval-rst}
-.. automodule:: click_extra.config.schema
    :members:
    :show-inheritance:
    :undoc-members:
@@ -103,6 +80,15 @@ symbol is documented below under the submodule where it is defined.
    :undoc-members:
 ```
 
+## click_extra.highlight module
+
+```{eval-rst}
+.. automodule:: click_extra.highlight
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.logging module
 
 ```{eval-rst}
@@ -116,6 +102,15 @@ symbol is documented below under the submodule where it is defined.
 
 ```{eval-rst}
 .. automodule:: click_extra.parameters
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.prebake module
+
+```{eval-rst}
+.. automodule:: click_extra.prebake
    :members:
    :show-inheritance:
    :undoc-members:
@@ -139,6 +134,24 @@ symbol is documented below under the submodule where it is defined.
    :undoc-members:
 ```
 
+## click_extra.spinner module
+
+```{eval-rst}
+.. automodule:: click_extra.spinner
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.spinner_presets module
+
+```{eval-rst}
+.. automodule:: click_extra.spinner_presets
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.table module
 
 ```{eval-rst}
@@ -157,10 +170,28 @@ symbol is documented below under the submodule where it is defined.
    :undoc-members:
 ```
 
+## click_extra.test_plan module
+
+```{eval-rst}
+.. automodule:: click_extra.test_plan
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.testing module
 
 ```{eval-rst}
 .. automodule:: click_extra.testing
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.theme_docs module
+
+```{eval-rst}
+.. automodule:: click_extra.theme_docs
    :members:
    :show-inheritance:
    :undoc-members:

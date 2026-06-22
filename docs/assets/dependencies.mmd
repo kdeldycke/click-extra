@@ -3,12 +3,12 @@ flowchart LR
 
     subgraph primary-deps [Primary dependencies]
         extra_platforms{{"`extra-platforms`"}}
-        requests{{"`requests`"}}
         cloup{{"`cloup`"}}
         click_0{{"`click`"}}
         tabulate{{"`tabulate`"}}
         wcmatch{{"`wcmatch`"}}
         tomli{{"`tomli`"}}
+        wcwidth{{"`wcwidth`"}}
         boltons{{"`boltons`"}}
         deepmerge{{"`deepmerge`"}}
     end
@@ -16,11 +16,6 @@ flowchart LR
     colorama(["`colorama`"])
     typing_extensions(["`typing-extensions`"])
     bracex(["`bracex`"])
-    certifi(["`certifi`"])
-    charset_normalizer(["`charset-normalizer`"])
-    idna(["`idna`"])
-    urllib3(["`urllib3`"])
-    wcwidth(["`wcwidth`"])
 
     subgraph ext_hjson [--extra hjson]
         hjson{{"`hjson >=3.1`"}}
@@ -63,9 +58,13 @@ flowchart LR
 
     subgraph ext_sphinx [--extra sphinx]
         sphinx{{"`sphinx >=8`"}}
+        requests{{"`requests`"}}
         alabaster(["`alabaster`"])
         babel(["`babel`"])
+        certifi(["`certifi`"])
+        charset_normalizer(["`charset-normalizer`"])
         docutils{{"`docutils >=0.20`"}}
+        idna(["`idna`"])
         imagesize(["`imagesize`"])
         roman_numerals(["`roman-numerals`"])
         snowballstemmer(["`snowballstemmer`"])
@@ -75,6 +74,7 @@ flowchart LR
         sphinxcontrib_jsmath(["`sphinxcontrib-jsmath`"])
         sphinxcontrib_qthelp(["`sphinxcontrib-qthelp`"])
         sphinxcontrib_serializinghtml(["`sphinxcontrib-serializinghtml`"])
+        urllib3(["`urllib3`"])
     end
 
     subgraph ext_toml [--extra toml]
@@ -85,13 +85,13 @@ flowchart LR
         xmltodict{{"`xmltodict >=1`"}}
     end
 
-    click_extra ==>|" >=2.34 "| requests
     click_extra ==>|" >=8.3.1 "| click_0
     click_extra ==>|" >=3.0.7 "| cloup
     click_extra ==>|" >=2 "| tomli
     click_extra ==>|" >=8 "| extra_platforms
     click_extra ==>|" >=0.9 "| tabulate
     click_extra ==>|" >=10 "| wcmatch
+    click_extra ==>|" >=0.2 "| wcwidth
     click_extra ==>|" >=20 "| boltons
     click_extra ==>|" >=1.0.1 "| deepmerge
     sphinx ==> requests
@@ -150,7 +150,7 @@ flowchart LR
     python_dateutil --> six
     pyyaml_env_tag ==> pyyaml
     extra_platforms ==> pytest
-    tabulate --> wcwidth
+    tabulate ==> wcwidth
     wcmatch --> bracex
     click_extra -.-> ext_hjson
     click_extra -.-> ext_json5
@@ -240,6 +240,7 @@ flowchart LR
     style tomli stroke-width:3px
     style tomlkit stroke-width:3px
     style wcmatch stroke-width:3px
+    style wcwidth stroke-width:3px
     style xmltodict stroke-width:3px
 
     style primary-deps fill:#1565C020,stroke:#42A5F5

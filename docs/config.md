@@ -693,7 +693,7 @@ If you have difficulties identifying your options and their IDs, run your CLI wi
 
 ## Including parameters
 
-The {py:attr}`included_params <click_extra.config.option.ConfigOption.included_params>` argument is the inverse of `excluded_params`: only the listed parameters will be loaded from the configuration file. All other parameters found in the configuration will be ignored.
+The `included_params` argument is the inverse of `excluded_params`: only the listed parameters will be loaded from the configuration file. All other parameters found in the configuration will be ignored.
 
 ```{code-block} python
 :emphasize-lines: 6,8

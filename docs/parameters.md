@@ -36,7 +36,7 @@ Every command built with `@command` or `@group` captures the pre-parsed `argv` s
 ```
 
 ```{hint}
-`--show-params` always displays all parameters, even those marked as not *allowed in conf*. In effect bypassing [its own `excluded_params` argument](#click_extra.parameters.ParamStructure.excluded_params). So you can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
+`--show-params` always displays all parameters, even those marked as not *allowed in conf*. In effect bypassing [the `excluded_params` argument](#click_extra.config.option.ConfigOption.excluded_params). So you can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
 ```
 
 ### Available columns

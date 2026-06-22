@@ -853,9 +853,7 @@ def test_merge_default_map_standalone(invoke):
     @no_config_option
     @pass_context
     def merge_map_cli(ctx, flag_a):
-        config_opt = next(
-            p for p in ctx.command.params if isinstance(p, ConfigOption)
-        )
+        config_opt = next(p for p in ctx.command.params if isinstance(p, ConfigOption))
         config_opt.merge_default_map(
             ctx, {"merge-map-cli": {"flag_a": True, "unknown": "dropped"}}
         )

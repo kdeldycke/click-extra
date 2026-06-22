@@ -710,6 +710,7 @@ Other internal methods to build-up and render the version string are [available 
 
 ```{eval-rst}
 .. automodule:: click_extra.prebake
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

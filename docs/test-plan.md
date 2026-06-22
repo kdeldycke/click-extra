@@ -100,6 +100,7 @@ run_test_plan("weather", cases)
    :strict:
 
 .. automodule:: click_extra.test_plan
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

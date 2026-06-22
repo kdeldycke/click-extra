@@ -290,6 +290,7 @@ $ click-extra wrap --show-params -- flask.cli:cli
    :strict:
 
 .. automodule:: click_extra.cli_wrapper
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

@@ -7,12 +7,38 @@
    :undoc-members:
 ```
 
+## Subpackages
+
+```{toctree}
+:maxdepth: 4
+tests.mkdocs
+tests.sphinx
+```
+
 ## Submodules
 
 ## tests.conftest module
 
 ```{eval-rst}
 .. automodule:: tests.conftest
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## tests.test_accessibility module
+
+```{eval-rst}
+.. automodule:: tests.test_accessibility
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## tests.test_cli_wrapper module
+
+```{eval-rst}
+.. automodule:: tests.test_cli_wrapper
    :members:
    :show-inheritance:
    :undoc-members:
@@ -45,10 +71,37 @@
    :undoc-members:
 ```
 
+## tests.test_config_schema module
+
+```{eval-rst}
+.. automodule:: tests.test_config_schema
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## tests.test_context module
+
+```{eval-rst}
+.. automodule:: tests.test_context
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## tests.test_envvar module
 
 ```{eval-rst}
 .. automodule:: tests.test_envvar
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## tests.test_execution module
+
+```{eval-rst}
+.. automodule:: tests.test_execution
    :members:
    :show-inheritance:
    :undoc-members:
@@ -72,6 +125,15 @@
    :undoc-members:
 ```
 
+## tests.test_man_page module
+
+```{eval-rst}
+.. automodule:: tests.test_man_page
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## tests.test_parameters module
 
 ```{eval-rst}
@@ -90,6 +152,15 @@
    :undoc-members:
 ```
 
+## tests.test_pyproject module
+
+```{eval-rst}
+.. automodule:: tests.test_pyproject
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## tests.test_pytest module
 
 ```{eval-rst}
@@ -99,28 +170,19 @@
    :undoc-members:
 ```
 
-## tests.test_sphinx module
+## tests.test_spinner module
 
 ```{eval-rst}
-.. automodule:: tests.test_sphinx
+.. automodule:: tests.test_spinner
    :members:
    :show-inheritance:
    :undoc-members:
 ```
 
-## tests.test_sphinx_alerts module
+## tests.test_styling module
 
 ```{eval-rst}
-.. automodule:: tests.test_sphinx_alerts
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## tests.test_sphinx_click module
-
-```{eval-rst}
-.. automodule:: tests.test_sphinx_click
+.. automodule:: tests.test_styling
    :members:
    :show-inheritance:
    :undoc-members:
@@ -144,6 +206,15 @@
    :undoc-members:
 ```
 
+## tests.test_test_plan module
+
+```{eval-rst}
+.. automodule:: tests.test_test_plan
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## tests.test_testing module
 
 ```{eval-rst}
@@ -153,10 +224,10 @@
    :undoc-members:
 ```
 
-## tests.test_timer module
+## tests.test_theme module
 
 ```{eval-rst}
-.. automodule:: tests.test_timer
+.. automodule:: tests.test_theme
    :members:
    :show-inheritance:
    :undoc-members:

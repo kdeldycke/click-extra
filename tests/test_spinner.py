@@ -522,36 +522,29 @@ def test_invalid_style_raises():
         Spinner(style=Style(fg="notacolor"))
 
 
-def test_ok_leaves_persistent_success_line(monkeypatch):
+@pytest.mark.parametrize(
+    ("outcome", "glyph", "color"),
+    (
+        # Default theme paints the success glyph green, the error glyph red.
+        ("ok", OK_GLYPH, GREEN),
+        ("fail", KO_GLYPH, RED),
+    ),
+)
+def test_outcome_leaves_persistent_line(monkeypatch, outcome, glyph, color):
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.delenv("FORCE_COLOR", raising=False)
     stream = TTYStringIO()
     spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
     spinner.start()
     assert wait_until(lambda: spinner._drawn)
-    spinner.ok()
+    getattr(spinner, outcome)()
 
     output = stream.getvalue()
-    # The success line is kept (not erased) with the themed success glyph.
+    # The outcome line is kept (not erased) with the themed glyph and color.
     assert output.endswith(" Brewing tea\n")
-    assert OK_GLYPH in output
-    assert GREEN in output  # Default theme paints the success glyph green.
+    assert glyph in output
+    assert color in output
     assert spinner._thread is None
-
-
-def test_fail_leaves_persistent_failure_line(monkeypatch):
-    monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.delenv("FORCE_COLOR", raising=False)
-    stream = TTYStringIO()
-    spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
-    spinner.start()
-    assert wait_until(lambda: spinner._drawn)
-    spinner.fail()
-
-    output = stream.getvalue()
-    assert output.endswith(" Brewing tea\n")
-    assert KO_GLYPH in output
-    assert RED in output  # Default theme paints the error glyph red.
 
 
 def test_ok_degrades_to_plain_line_when_disabled(monkeypatch):

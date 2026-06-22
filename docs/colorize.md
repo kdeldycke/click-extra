@@ -478,6 +478,7 @@ The help-screen keyword highlighting engine (`HelpKeywords`, `HelpFormatter`, `h
    :strict:
 
 .. automodule:: click_extra.highlight
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

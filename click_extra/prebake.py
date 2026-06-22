@@ -51,6 +51,8 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib  # type: ignore[import-not-found]
 
+logger = logging.getLogger(__name__)
+
 
 def _find_dunder_str(source: str, name: str) -> ast.Constant | None:
     """Find a top-level dunder string constant in parsed source.
@@ -123,14 +125,14 @@ def prebake_version(
     source = file_path.read_text(encoding="utf-8")
     node = _find_dunder_str(source, "__version__")
     if node is None:
-        logging.warning("No __version__ found in %s", file_path)
+        logger.warning("No __version__ found in %s", file_path)
         return None
 
     version = node.value
     assert isinstance(version, str)
 
     if ".dev" not in version:
-        logging.info(
+        logger.info(
             "Release version %r in %s — skipping.",
             version,
             file_path,
@@ -138,7 +140,7 @@ def prebake_version(
         return None
 
     if "+" in version:
-        logging.info(
+        logger.info(
             "Version %r in %s already has a local identifier — skipping.",
             version,
             file_path,
@@ -148,7 +150,7 @@ def prebake_version(
     new_version = f"{version}+{local_version}"
     _rewrite_str_literal(file_path, source, node, new_version)
 
-    logging.info(
+    logger.info(
         "Pre-baked %s: %r → %r",
         file_path,
         version,
@@ -185,13 +187,13 @@ def prebake_dunder(
     source = file_path.read_text(encoding="utf-8")
     node = _find_dunder_str(source, name)
     if node is None:
-        logging.warning("No %s found in %s", name, file_path)
+        logger.warning("No %s found in %s", name, file_path)
         return None
 
     current = node.value
 
     if current:
-        logging.info(
+        logger.info(
             "%s in %s already has value %r — skipping.",
             name,
             file_path,
@@ -201,7 +203,7 @@ def prebake_dunder(
 
     _rewrite_str_literal(file_path, source, node, value)
 
-    logging.info(
+    logger.info(
         "Pre-baked %s in %s: %r → %r",
         name,
         file_path,
@@ -223,13 +225,13 @@ def discover_package_init_files() -> list[Path]:
     """
     pyproject_path = Path("pyproject.toml")
     if not pyproject_path.exists():
-        logging.warning("No pyproject.toml found in current directory.")
+        logger.warning("No pyproject.toml found in current directory.")
         return []
 
     data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
     scripts = data.get("project", {}).get("scripts", {})
     if not scripts:
-        logging.warning("No [project.scripts] entries found in pyproject.toml.")
+        logger.warning("No [project.scripts] entries found in pyproject.toml.")
         return []
 
     seen: set[Path] = set()
@@ -245,5 +247,5 @@ def discover_package_init_files() -> list[Path]:
         if init_path.exists():
             paths.append(init_path)
         else:
-            logging.warning("Package init not found: %s", init_path)
+            logger.warning("Package init not found: %s", init_path)
     return paths

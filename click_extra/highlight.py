@@ -149,7 +149,7 @@ class _HelpColorsMixin:
         options: set[str] = set(ctx.help_option_names)
         # Static methods are qualified with the class name (not ``self``) so
         # ``collect_keywords`` can be called on commands that don't inherit the
-        # mixin (used by ``wrap.patch_click`` for third-party CLIs).
+        # mixin (used by ``cli_wrapper.patch_click`` for third-party CLIs).
         _HelpColorsMixin._collect_params(
             command.get_params(ctx),
             ctx,

@@ -260,11 +260,13 @@ The `hidden` argument stays authoritative: pass an explicit `hidden=True` or `hi
    :strict:
 
 .. automodule:: click_extra.spinner
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:
 
 .. automodule:: click_extra.spinner_presets
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:
