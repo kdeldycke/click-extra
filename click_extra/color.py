@@ -180,9 +180,9 @@ COLOR_WHEN = ("auto", "always", "never")
 """GNU-canonical tri-state values accepted by ``--color=<WHEN>``.
 
 ``auto`` defers to terminal detection, ``always`` forces ANSI on, ``never`` strips
-it. See the `GNU coding standards
-<https://www.gnu.org/prep/standards/html_node/_002d_002dcolor.html>`_ and `this
-discussion <https://news.ycombinator.com/item?id=36102377>`_.
+it. See `GNU coreutils
+<https://www.gnu.org/software/coreutils/manual/html_node/General-output-formatting.html>`_
+and `this discussion <https://news.ycombinator.com/item?id=36102377>`_.
 """
 
 
@@ -286,13 +286,13 @@ class ColorWhenChoice(click.Choice):
 class ColorOption(ExtraOption):
     """A pre-configured ``--color[=WHEN]`` tri-state option.
 
-    Mirrors the `GNU convention
-    <https://www.gnu.org/prep/standards/html_node/_002d_002dcolor.html>`_: ``WHEN`` is
-    one of :data:`~click_extra.color.COLOR_WHEN` (``auto``, ``always`` or ``never``),
-    and a bare ``--color`` (no value) means ``always``. The negative alias
-    ``--no-color`` is
-    carried by the separate :class:`NoColorOption`, because Click forbids attaching
-    ``/--no-x`` secondary flags to a value option.
+    Mirrors the `GNU coreutils convention
+    <https://www.gnu.org/software/coreutils/manual/html_node/General-output-formatting.html>`_:
+    ``WHEN`` is one of :data:`~click_extra.color.COLOR_WHEN`
+    (``auto``, ``always`` or ``never``), and a bare ``--color`` (no value) means
+    ``always``. The negative alias ``--no-color`` is carried by the separate
+    :class:`NoColorOption`, because Click forbids attaching ``/--no-x`` secondary
+    flags to a value option.
 
     The resolved tri-state lands on ``ctx.color``, the Click-standard attribute that
     ``echo()`` reads through its ``resolve_color_default()`` → ``should_strip_ansi()``

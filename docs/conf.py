@@ -234,6 +234,11 @@ linkcheck_ignore = [
     # These sites return 403 to bots but are valid.
     r"https://docutils\.sourceforge\.io",
     r"https://guix\.gnu\.org",
+    # asciinema.org and no-color.org are valid but intermittently fail DNS
+    # resolution or time out from CI runners. Also excluded from the lychee run
+    # (see [tool.lychee] in pyproject.toml).
+    r"https://asciinema\.org",
+    r"https://no-color\.org",
     # crates.io blocks automated link checkers.
     r"https://crates\.io/crates/.*",
     # star-history uses client-side hash routing; fragments are not real HTML anchors.
@@ -243,6 +248,11 @@ linkcheck_ignore = [
     # Hacker News rate-limits automated checkers with HTTP 429. Already excluded
     # from the lychee run (see [tool.lychee] in pyproject.toml).
     r"https://news\.ycombinator\.com/.*",
+    # The HTML man pages these relative links point at are emitted only by the
+    # html builder (see click_extra/sphinx/manpages.py); the linkcheck builder
+    # skips that step, so the siblings are absent when linkcheck runs. They
+    # resolve correctly in the published site.
+    r"man/.+\.html",
 ]
 
 # Footer content.

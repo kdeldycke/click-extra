@@ -531,6 +531,11 @@ exclude = [
   "^https://star-history.com/#.*$",
   # crates.io blocks automated link checkers.
   "^https://crates.io/crates/.*$",
+  # asciinema.org and no-color.org are valid but intermittently fail DNS
+  # resolution or time out from CI runners. Also excluded from the Sphinx
+  # linkcheck run (see linkcheck_ignore in docs/conf.py).
+  "^https://asciinema.org.*$",
+  "^https://no-color.org.*$",
   # The theme palette anchors (#dark, #light, …) sit under the "Palettes"
   # section of docs/theme.md, where a {python:render} loop over BUILTIN_THEMES
   # emits one heading per theme at Sphinx build time. Lychee only scans the raw

@@ -197,7 +197,7 @@ When choices are `Enum` members, Click Extra colorizes their `name` attribute (n
 
 ## `--color` flag
 
-Click Extra adds a tri-state `--color[=WHEN]` option that follows the [GNU convention](https://www.gnu.org/prep/standards/html_node/_002d_002dcolor.html): `WHEN` is one of `auto`, `always` or `never`, and a bare `--color` (no value) means `always`. The option is eager, so it takes effect before other eager options like `--version`.
+Click Extra adds a tri-state `--color[=WHEN]` option that follows the [GNU coreutils convention](https://www.gnu.org/software/coreutils/manual/html_node/General-output-formatting.html): `WHEN` is one of `auto`, `always` or `never`, and a bare `--color` (no value) means `always`. The option is eager, so it takes effect before other eager options like `--version`.
 
 `--no-color` is an alias of `--color=never`.
 

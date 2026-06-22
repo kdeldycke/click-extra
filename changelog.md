@@ -53,6 +53,7 @@
 - Fix the `show_choices` context setting being ignored: `context_settings={"show_choices": True}` on a `Command` or `Group` now forces that value on every option instead of silently overwriting each option's `show_envvar`.
 - `click-extra man` and `write_manpages` resolve the package author and version through the same metadata logic as `--version`, fixing author parsing and distribution-name resolution when the import name differs from the installed distribution.
 - `--validate-config` now raises `RuntimeError` instead of `TypeError` when used on a command with no sibling `--config` option, matching `--no-config`.
+- Fix broken documentation links: the GNU `--color` reference now points to the GNU coreutils manual, the `click.Parameter` reference in the parameters table resolves to a valid API anchor, and the parameters page cross-references resolve to their Python API targets.
 
 ## [`7.20.1` (2026-06-18)](https://github.com/kdeldycke/click-extra/compare/v7.20.0...v7.20.1)
 
