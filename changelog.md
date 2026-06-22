@@ -5,55 +5,51 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- **Breaking:** Drop the `Extra` prefix from public classes so the bare name resolves to click-extra's enhanced version: `ExtraCommand` to `Command`, `ExtraGroup` to `Group`, `ExtraContext` to `Context`, `ExtraVersionOption` to `VersionOption`, `HelpExtraFormatter` to `HelpFormatter`, `HelpExtraTheme` to `HelpTheme`, `ExtraFormatter` to `Formatter`, `ExtraStreamHandler` to `StreamHandler`, `extraBasicConfig` to `basicConfig`, `new_extra_logger` to `new_logger`, `default_extra_params` to `default_params`, and `ExtraCliRunner` to `CliRunner` (its result exposed as `Result`). `ExtraOption` keeps its prefix on purpose.
+- **Breaking:** Drop the `Extra` prefix from public classes (`ExtraCommand` to `Command`, `ExtraGroup` to `Group`, `ExtraContext` to `Context`, `ExtraVersionOption` to `VersionOption`, and eight more); `ExtraOption` keeps its prefix.
 - **Breaking:** Remove the deprecated `extra_command`, `extra_group` and `extra_version_option` aliases; use `command`, `group` and `version_option` instead.
-- **Breaking:** `VersionOption` and `@version_option` replace their per-field value and `*_style` parameters with two mappings, `fields={...}` and `styles={...}`; default per-field styles move to the `VersionOption.default_styles` class attribute, while `message`/`message_style` are unchanged.
-- **Breaking:** Replace the `--color`/`--no-color` boolean with the GNU-canonical tri-state `--color[=WHEN]` (`auto`, `always`, `never`), defaulting to `auto`: colored on a terminal, stripped when piped. A bare `--color` means `always` and no longer swallows the following argument.
+- **Breaking:** `VersionOption` and `@version_option` now take `fields={...}` and `styles={...}` mappings instead of per-field value and `*_style` parameters; `message`/`message_style` are unchanged.
+- **Breaking:** Replace the `--color`/`--no-color` boolean with the GNU tri-state `--color[=WHEN]` (`auto`, `always`, `never`), defaulting to `auto`; a bare `--color` means `always`.
 - **Breaking:** Remove the `--ansi`/`--no-ansi` aliases of `--color`/`--no-color`.
 - **Breaking:** Remove the `show-params` and `man` subcommands; use `click-extra wrap --show-params` and `click-extra wrap --man` instead.
-- **Breaking:** Rename the `click_extra.wrap` module to `click_extra.cli_wrapper` (the `wrap`/`run` command and foreign-CLI patching, not text wrapping); update any `from click_extra.wrap import ...` accordingly.
-- **Breaking:** Reorganize the configuration subsystem into a `click_extra.config` package split into `click_extra.config.schema`, `click_extra.config.formats` and `click_extra.config.option`. Public symbols stay importable from `click_extra.config`; the private underscore-prefixed helpers now live in `click_extra.config.schema`.
-- **Breaking:** Split `click_extra.colorize` into `click_extra.highlight` (help-screen highlighting: `HelpFormatter`, `HelpKeywords`, `highlight`) and `click_extra.color` (color-mode resolution: `ColorOption`, `NoColorOption`, the `--color[=WHEN]` logic). Root re-exports are unchanged; update deeper imports.
-- **Breaking:** Split the theme palette and HTML renderer into `click_extra.theme_docs` (`palette_html`, `inject_slot_example_docstring`) and the spinner preset catalog into `click_extra.spinner_presets` (`SPINNERS`, `SpinnerPreset`). Root re-exports are unchanged; update deeper imports.
-- **Breaking:** Remove `print_sorted_table`; `SortByOption` now bakes the resolved row sort key into `ctx.print_table`, so the same `ctx.print_table(table_data, headers)` call works with or without a `--sort-by` option.
+- **Breaking:** Rename the `click_extra.wrap` module to `click_extra.cli_wrapper`; update any `from click_extra.wrap import ...` accordingly.
+- **Breaking:** Reorganize the configuration subsystem into a `click_extra.config` package with `schema`, `formats`, and `option` submodules; public symbols stay importable from `click_extra.config`.
+- **Breaking:** Split `click_extra.colorize` into `click_extra.highlight` (help-screen highlighting) and `click_extra.color` (color-mode resolution); root re-exports unchanged, update deeper imports.
+- **Breaking:** Split the theme palette and HTML renderer into `click_extra.theme_docs` and the spinner preset catalog into `click_extra.spinner_presets`; root re-exports unchanged, update deeper imports.
+- **Breaking:** Remove `print_sorted_table`; `SortByOption` now bakes the sort key into `ctx.print_table` for use with or without `--sort-by`.
 - **Breaking:** Remove dead `ParamStructure` internals: the unused `flatten_tree_dict`/`_flatten_tree_dict_gen` methods, the `__init__`, and the redundant `SEP` attribute (use the module-level `click_extra.parameters.PARAM_PATH_SEP`).
 - **Breaking:** Remove the unused `click_extra.styling.cascade_fields` helper.
-- Add a `Spinner` widget: a thread-animated, indeterminate terminal spinner for long blocking work, usable as a context manager or decorator, with a 90-entry `SPINNERS` preset catalog and auto-disabled off a TTY.
-- Add a `spinner` demo subcommand to the `click-extra` CLI touring the preset catalog; `--table` prints them as a reference table, and `--all`, `--random N` and `--select` choose what to show.
-- Add a declarative CLI test-plan engine (`click_extra.test_plan`): `CLITestCase`, `parse_test_plan` and `run_test_plan` run a YAML plan of invocations against any command or binary as subprocesses, the black-box complement to the in-process `CliRunner`.
-- Add a `click-extra test-plan` subcommand (`--plan-file`, `--plan-envvar`, `--select-test`, `--skip-platform`, `--jobs`, `--exit-on-error`) that also resolves its plan from `[tool.click-extra.test-plan]` config; YAML parsing needs the `yaml` extra.
-- Add a `--progress`/`--no-progress` option (`ProgressOption`) publishing at `ctx.meta["click_extra.progress"]` whether progress indicators may display; silenced by non-interactive output, `--no-progress` or `--accessible`.
-- Add a `-q`/`--quiet` option (`QuietOption`), the counterpart to `-v`/`--verbose`: each `-q` lowers the log level toward `CRITICAL` while `-v` raises it toward `DEBUG`, the two cancelling out and reconciling with `--verbosity LEVEL`.
-- Add `click_extra.progressbar`, a drop-in for `click.progressbar` that hides the determinate bar under `--no-progress` or `--accessible`; an explicit `hidden=` argument still forces it either way.
-- Under `--accessible`, `click_extra.clear` becomes a no-op and `click_extra.echo_via_pager` streams straight to stdout instead of spawning a pager, both off the new `ctx.meta["click_extra.accessible"]` flag.
-- Add `no_color_option`/`NoColorOption`, the standalone `--no-color` flag for plain `click.command` CLIs, shown on its own line directly below `--color` like `--no-config` below `--config`.
-- Add the `{author}`, `{license}`, `{git_distance}` and `{git_dirty}` version-string template variables; the git ones (commits since the last tag, and whether the tree is dirty) support pre-baking via dunders and `click-extra prebake all`.
-- `VersionOption` git fields fall back to a `.git_archival.json` file (the setuptools-scm and Dunamai schema) when a CLI runs from a `git archive` export with no `.git` directory, such as a GitHub source tarball.
-- `--jobs` (`JobsOption`) now accepts the keywords `auto` (one fewer than logical CPUs) and `max` on top of an integer, offers shell completion for them, logs the resolved count, and warns when too few CPUs collapse it to sequential execution.
-- Add `run_jobs(func, items)`, a parallel-execution driver keyed on the `--jobs` count: sequential and lazy at one worker, thread-pooled otherwise, with results in submission order.
-- Add `make_schema_callable(schema)` (the public form of the former private helper): builds a callable that coerces a raw config dict into a validated dataclass.
-- Add the `require_sibling_param` and `last_param` parameter-lookup helpers to `click_extra.parameters`, the public form of two former private helpers: `require_sibling_param` returns a required sibling option (raising a uniform error when it is missing), and `last_param` returns the last parameter of an exact class on a command.
-- Re-type `pass_context` for the enhanced `Context`, so `@pass_context def cmd(ctx: Context)` type-checks; handlers typed for the base `click.Context` still work.
-- Add a `click_extra.prebake` module hosting the build-time version pre-baking helpers (`prebake_version`, `prebake_dunder`, `discover_package_init_files`), still importable from `click_extra.version`.
-- Speed up `import click_extra` by deferring the `tabulate`, PyYAML and `boltons.ecoutils` imports until first use and dropping the runtime `unittest.mock` dependency, cutting startup time by roughly a third.
-- Drop `requests` as a runtime dependency; the configuration-from-URL loader now uses the standard-library `urllib.request`.
+- Add a `Spinner` widget for long blocking work as a context manager or decorator, with 90 presets in `SPINNERS` and TTY auto-disable; includes a `spinner` demo subcommand on the `click-extra` CLI.
+- Add `click_extra.test_plan` and a `click-extra test-plan` subcommand for YAML-driven black-box subprocess testing of any CLI; YAML parsing needs the `yaml` extra.
+- Add `--progress`/`--no-progress` (`ProgressOption`) and `click_extra.progressbar`, a drop-in for `click.progressbar` that hides under `--no-progress` or `--accessible`.
+- Add `-q`/`--quiet` (`QuietOption`), the counterpart to `-v`/`--verbose`: each `-q` lowers the log level toward `CRITICAL`, the two cancelling out.
+- Under `--accessible`, `click_extra.clear` is a no-op and `click_extra.echo_via_pager` streams to stdout instead of spawning a pager.
+- Add `no_color_option`/`NoColorOption`, a standalone `--no-color` flag for plain `click.command` CLIs.
+- Add `{author}`, `{license}`, `{git_distance}`, and `{git_dirty}` version-string template variables; git ones support pre-baking via `click-extra prebake all`.
+- `VersionOption` git fields fall back to `.git_archival.json` when running from a `git archive` export without a `.git` directory.
+- `--jobs` (`JobsOption`) now accepts `auto` and `max` keywords in addition to an integer, with shell completion; `run_jobs(func, items)` executes items against the resolved count.
+- Add `make_schema_callable(schema)`, a callable that coerces a raw config dict into a validated dataclass.
+- Add `require_sibling_param` and `last_param` helpers to `click_extra.parameters` for locating sibling and typed parameters at call time.
+- Re-type `pass_context` for the enhanced `Context`, so `@pass_context def cmd(ctx: Context)` type-checks.
+- Add `click_extra.prebake` hosting build-time version pre-baking helpers (`prebake_version`, `prebake_dunder`, `discover_package_init_files`); still importable from `click_extra.version`.
+- Speed up `import click_extra` by deferring heavy imports, cutting startup time by roughly a third.
+- Drop `requests` as a runtime dependency; the configuration-from-URL loader now uses `urllib.request`.
 - `click-extra wrap` honors the tri-state color resolution, colorizing the wrapped CLI under `auto` only when the output is a terminal.
-- `--color` and `--no-color` colorize the eager `--help` and `--version` screens regardless of where they sit on the command line, so `mycli --help --color=always` matches `mycli --color=always --help`. Closes [`click-extra#137`](https://github.com/kdeldycke/click-extra/issues/137).
-- `--color[=WHEN]` accepts the GNU coreutils synonyms `yes`/`force`, `no`/`none` and `tty`/`if-tty` as hidden, case-insensitive aliases; configuration files accept the same synonyms plus a native boolean (`true`/`false`).
-- Under `auto`, a `dumb` or `unknown` `TERM` now strips ANSI color even on a terminal, matching the spinner and aligning with Rich; an explicit `--color`/`FORCE_COLOR` still wins.
-- Branded 24-bit themes (`dracula`, `monokai`, `nord`, `solarized_dark`) downsample to the nearest 256-color index when the terminal does not advertise truecolor, instead of always emitting 24-bit.
-- `click-extra wrap --show-params` now reports the target's environment variables and resolves parameter values and their source from any arguments passed after SCRIPT.
-- Lower the Click floor from `8.4.1` to `8.3.1`, restoring support for the full range of Click releases from `8.3.1` onward; compatibility shims cover the APIs introduced in Click `8.4.0`.
-- The `click:run` and `click:tree` Sphinx directives now capture executed CLIs at the file-descriptor level by default (Click `8.4`+), rendering commands that write through `sys.stdout.fileno()`; set `click_extra_run_capture` to `"sys"` to opt out.
-- Tolerate a missing `click_extra/themes.toml` data file instead of aborting at import: log a warning, fall back to the no-color theme, and make `--theme` inert when no themes are available.
-- Fix `from click_extra import *`, which raised `AttributeError` because `VersionOption` was listed in `__all__` without being bound.
-- Fix the dim bracket styling of an `IntRange` option's `[x>=N]` range constraint leaking across the next option in colored help screens.
-- Fix inconsistent highlighting of the `--jobs [auto|max|INTEGER]` metavar in colored help: `auto`/`max` now highlight as choices and `INTEGER` as a metavar.
-- Fix the `assert_output_regex` testing fixture raising a `TypeError` on a failed match under pytest 9; the mismatch diff is now built with the standard-library `difflib`.
-- Fix the `show_choices` context setting being ignored: `context_settings={"show_choices": True}` on a `Command` or `Group` now forces that value on every option instead of silently overwriting each option's `show_envvar`.
-- `click-extra man` and `write_manpages` resolve the package author and version through the same metadata logic as `--version`, fixing author parsing and distribution-name resolution when the import name differs from the installed distribution.
+- `--color` and `--no-color` colorize eager `--help` and `--version` screens regardless of their position on the command line. Closes [`click-extra#137`](https://github.com/kdeldycke/click-extra/issues/137).
+- `--color[=WHEN]` accepts `yes`/`force`, `no`/`none`, and `tty`/`if-tty` as hidden aliases; configuration files also accept native booleans (`true`/`false`).
+- Under `auto`, a `dumb` or `unknown` `TERM` strips ANSI color even on a terminal; an explicit `--color` or `FORCE_COLOR` overrides.
+- Branded 24-bit themes (`dracula`, `monokai`, `nord`, `solarized_dark`) downsample to 256 colors when the terminal does not advertise truecolor.
+- `click-extra wrap --show-params` now reports the target's environment variables and resolves parameter values and their source from arguments passed after SCRIPT.
+- Lower the Click floor from `8.4.1` to `8.3.1`, restoring support for Click `8.3.1` and later.
+- The `click:run` and `click:tree` Sphinx directives now capture at the file-descriptor level by default (Click `8.4`+); set `click_extra_run_capture = "sys"` to opt out.
+- Tolerate a missing `click_extra/themes.toml` data file: log a warning and fall back to the no-color theme.
+- Fix `from click_extra import *` raising `AttributeError` due to `VersionOption` missing from the bound namespace.
+- Fix the dim bracket styling of an `IntRange` option's `[x>=N]` constraint leaking across the next option in colored help.
+- Fix inconsistent highlighting of the `--jobs [auto|max|INTEGER]` metavar in colored help.
+- Fix the `assert_output_regex` testing fixture raising `TypeError` on a failed match under pytest 9.
+- Fix `context_settings={"show_choices": True}` being ignored on a `Command` or `Group`.
+- Fix `click-extra man` and `write_manpages` author and version resolution when the import name differs from the installed distribution name.
 - `--validate-config` now raises `RuntimeError` instead of `TypeError` when used on a command with no sibling `--config` option, matching `--no-config`.
-- Fix broken documentation links: the GNU `--color` reference now points to the GNU coreutils manual, the `click.Parameter` reference in the parameters table resolves to a valid API anchor, and the parameters page cross-references resolve to their Python API targets.
+- Fix broken documentation links for the GNU `--color` reference, `click.Parameter` API anchor, and parameters page cross-references.
 
 ## [`7.20.1` (2026-06-18)](https://github.com/kdeldycke/click-extra/compare/v7.20.0...v7.20.1)
 
