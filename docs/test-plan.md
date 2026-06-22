@@ -2,7 +2,7 @@
 
 A *test plan* is a declarative list of CLI invocations and the results each one should produce. Click Extra runs the plan against any command or binary as separate subprocesses, checking exit codes and output. It is the black-box, subprocess-level complement to [`CliRunner`](testing.md), which drives a CLI in-process: a test plan never imports the target, so it works just as well against a compiled binary, a shell command, or a CLI written in another language.
 
-```{important}
+````{important}
 Parsing a plan from YAML needs the optional `pyyaml` dependency. Install it with the `yaml` extra:
 
 ​```{code-block} shell-session
@@ -10,7 +10,7 @@ $ pip install click-extra[yaml]
 ​```
 
 The engine itself (building `CLITestCase` objects and running them) has no such requirement: only `parse_test_plan` does.
-```
+````
 
 ## Writing a plan
 

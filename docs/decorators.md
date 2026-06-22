@@ -133,27 +133,27 @@ c()
 
 Every default option ships with a matching decorator built via `decorator_factory`:
 
-| Decorator                | Wraps                                                          |
-| ------------------------ | -------------------------------------------------------------- |
+| Decorator                | Wraps                                               |
+| ------------------------ | --------------------------------------------------- |
 | `command`                | `cloup.command(cls=Command, params=default_params)` |
 | `group`                  | `cloup.group(cls=Group, params=default_params)`     |
-| `lazy_group`             | `group(cls=LazyGroup)`                                         |
-| `option`                 | `cloup.option(cls=Option)`                                     |
-| `argument`               | `cloup.argument(cls=Argument)`                                 |
-| `help_option`            | `click.decorators.help_option(*DEFAULT_HELP_NAMES)`            |
-| `version_option`         | `option(cls=VersionOption)`                               |
-| `color_option`           | `option(cls=ColorOption)`                                      |
-| `config_option`          | `option(cls=ConfigOption)`                                     |
-| `no_config_option`       | `option(cls=NoConfigOption)`                                   |
-| `validate_config_option` | `option(cls=ValidateConfigOption)`                             |
-| `jobs_option`            | `option(cls=JobsOption)`                                       |
-| `show_params_option`     | `option(cls=ShowParamsOption)`                                 |
-| `table_format_option`    | `option(cls=TableFormatOption)`                                |
-| `telemetry_option`       | `option(cls=TelemetryOption)`                                  |
-| `theme_option`           | `option(cls=ThemeOption)`                                      |
-| `timer_option`           | `option(cls=TimerOption)`                                      |
-| `verbose_option`         | `option(cls=VerboseOption)`                                    |
-| `verbosity_option`       | `option(cls=VerbosityOption)`                                  |
+| `lazy_group`             | `group(cls=LazyGroup)`                              |
+| `option`                 | `cloup.option(cls=Option)`                          |
+| `argument`               | `cloup.argument(cls=Argument)`                      |
+| `help_option`            | `click.decorators.help_option(*DEFAULT_HELP_NAMES)` |
+| `version_option`         | `option(cls=VersionOption)`                         |
+| `color_option`           | `option(cls=ColorOption)`                           |
+| `config_option`          | `option(cls=ConfigOption)`                          |
+| `no_config_option`       | `option(cls=NoConfigOption)`                        |
+| `validate_config_option` | `option(cls=ValidateConfigOption)`                  |
+| `jobs_option`            | `option(cls=JobsOption)`                            |
+| `show_params_option`     | `option(cls=ShowParamsOption)`                      |
+| `table_format_option`    | `option(cls=TableFormatOption)`                     |
+| `telemetry_option`       | `option(cls=TelemetryOption)`                       |
+| `theme_option`           | `option(cls=ThemeOption)`                           |
+| `timer_option`           | `option(cls=TimerOption)`                           |
+| `verbose_option`         | `option(cls=VerboseOption)`                         |
+| `verbosity_option`       | `option(cls=VerbosityOption)`                       |
 
 Every entry in this list is an `allow_missing_parenthesis`-wrapped factory, so `@theme_option` and `@theme_option()` are both legal, and `@theme_option(default="light")` overrides the default while keeping the click-extra subclass guarantee.
 
