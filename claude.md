@@ -6,6 +6,8 @@ This project reuses workflows from [`kdeldycke/repomatic`](https://github.com/kd
 
 **Contributing upstream:** If you spot inefficiencies, potential improvements, or opportunities for better adaptability in the reusable workflows, `repomatic` CLI, or its `claude.md`, propose changes upstream via a pull request or issue at [`kdeldycke/repomatic`](https://github.com/kdeldycke/repomatic/issues). This benefits all downstream repositories.
 
+**Release coupling:** click-extra dogfoods repomatic in its own release pipeline, while repomatic depends on click-extra. Before releasing a change that renames or removes any symbol repomatic imports (the `click_extra.config` surface, or the CLI framework it builds on), release the fixed repomatic and bump the pin first. Otherwise the release publishes to PyPI but dies in repomatic's `metadata` step, leaving the version untagged with no GitHub release. See repomatic's `claude.md` ("click_extra is both a dependency and a release consumer") for the upstream side of this rule.
+
 ## Commands
 
 ### Testing
