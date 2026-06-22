@@ -329,7 +329,11 @@ lint.future-annotations = true
 [tool.typos]
 default.extend-identifiers = { Github = "GitHub", IOS = "iOS", Javascript = "JavaScript", MacOS = "macOS", PyPi = "PyPI", Typescript = "TypeScript" }
 # Skip content between <!-- typos:off --> and <!-- typos:on --> markers.
-default.extend-ignore-re = [ "(?s)<!-- typos:off -->.*?<!-- typos:on -->" ]
+# chalk.ist is a legitimate domain name; `ist` is its TLD, not a typo.
+default.extend-ignore-re = [
+  "(?s)<!-- typos:off -->.*?<!-- typos:on -->",
+  "chalk\\.ist",
+]
 default.extend-ignore-identifiers-re = [
   # error: `valu` should be `value`
   #     ╭▸ ./tests/test_types.py:127:11
