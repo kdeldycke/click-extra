@@ -24,7 +24,7 @@ $ uv run pytest tests/test_colorize.py::test_function_name
 ### Building documentation
 
 ```shell-session
-$ uv run sphinx-build -b html docs docs/html
+$ uv run sphinx-build -b html docs docs/_build
 ```
 
 ### Running the CLI
