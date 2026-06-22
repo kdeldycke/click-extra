@@ -34,7 +34,7 @@ import click
 from click.types import IntRange
 
 from . import EnumChoice, context
-from .parameters import ExtraOption, patch_attr, search_params
+from .parameters import ExtraOption, last_param, patch_attr
 from .theme import get_current_theme
 
 TYPE_CHECKING = False
@@ -103,22 +103,6 @@ way the option that fires first already reconciles the full counter and never
 applies an intermediate, louder level that a later ``-q`` would have to lower
 (which would leak its ``Set ... DEBUG`` debug trace).
 """
-
-
-def _last_param(
-    ctx: click.Context, klass: type[click.Parameter]
-) -> click.Parameter | None:
-    """Return the last parameter of exactly ``klass`` on the command, or ``None``.
-
-    Tolerates duplicates: when an option is declared more than once (like an explicit
-    ``@verbosity_option`` stacked on a Click Extra command that already ships one),
-    Click keeps the last occurrence, so we mirror that here instead of erroring out on
-    the ambiguity.
-    """
-    options = search_params(
-        ctx.command.params, klass, include_subclasses=False, unique=False
-    )
-    return options[-1] if options else None  # type: ignore[index]
 
 
 class StreamHandler(logging.StreamHandler):
@@ -487,7 +471,7 @@ class _VerbosityOption(ExtraOption):
                 (VerboseOption, context.VERBOSE),
                 (QuietOption, context.QUIET),
             ):
-                option = _last_param(ctx, klass)
+                option = last_param(ctx.command.params, klass)
                 if option is not None:
                     value, _ = option.consume_value(ctx, opts)
                     context.set(ctx, key, value)
@@ -502,7 +486,7 @@ class _VerbosityOption(ExtraOption):
         ``-v``/``-q`` options are used standalone (no ``--verbosity``), it defaults to
         :const:`DEFAULT_LEVEL`.
         """
-        verbosity_option = _last_param(ctx, VerbosityOption)
+        verbosity_option = last_param(ctx.command.params, VerbosityOption)
         if verbosity_option is None:
             return DEFAULT_LEVEL
         return verbosity_option.default  # type: ignore[return-value]

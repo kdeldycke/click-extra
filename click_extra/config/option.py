@@ -79,7 +79,7 @@ from ..parameters import (
     PARAM_PATH_SEP,
     ExtraOption,
     ParamStructure,
-    search_params,
+    require_sibling_param,
 )
 from .formats import ConfigFormat, parse_content
 from .schema import (
@@ -1400,34 +1400,6 @@ class ConfigOption(ExtraOption, ParamStructure):
         context.set(ctx, context.CONF_FULL, user_conf)
 
 
-def _require_sibling_config_option(
-    params: Sequence[click.Parameter],
-    requester: click.Parameter,
-) -> ConfigOption:
-    """Return the sibling :class:`ConfigOption` declared on the same command.
-
-    Both ``--no-config`` and ``--validate-config`` are inert on their own: they
-    drive the parsing machinery owned by ``--config``. This helper centralizes
-    the lookup so both raise the same ``RuntimeError`` (rather than the historic
-    mix of ``RuntimeError`` and ``TypeError``) when no ``ConfigOption`` is found
-    on the command, naming the offending flag in the message.
-
-    :param params: The command's parameter list to scan.
-    :param requester: The option requiring the sibling, used to build the error
-        message from its flag names and class.
-    """
-    config_option = search_params(params, ConfigOption)
-    if not isinstance(config_option, ConfigOption):
-        # RuntimeError (not the type-implied TypeError) is intentional: it keeps
-        # the historical --no-config contract and unifies both call sites on one
-        # exception type for a missing-or-wrong-type sibling.
-        raise RuntimeError(  # noqa: TRY004
-            f"{'/'.join(requester.opts)} {type(requester).__name__} must be used "
-            f"alongside {ConfigOption.__name__}."
-        )
-    return config_option
-
-
 class NoConfigOption(ExtraOption):
     """A pre-configured option adding ``--no-config``.
 
@@ -1489,7 +1461,7 @@ class NoConfigOption(ExtraOption):
         self, ctx: click.Context, param: click.Parameter, value: int
     ) -> None:
         """Ensure that this option is used alongside a ``ConfigOption`` instance."""
-        _require_sibling_config_option(ctx.command.params, param)
+        require_sibling_param(ctx.command.params, param, ConfigOption)
 
 
 class ValidateConfigOption(ExtraOption):
@@ -1554,7 +1526,7 @@ class ValidateConfigOption(ExtraOption):
         info_msg: Callable[..., None] = partial(echo, err=True)
 
         # Find the sibling ConfigOption to reuse its parsing machinery.
-        config_option = _require_sibling_config_option(ctx.command.params, param)
+        config_option = require_sibling_param(ctx.command.params, param, ConfigOption)
 
         # Read and parse the config file.
         try:

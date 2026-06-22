@@ -169,6 +169,8 @@ from .parameters import (
     ShowParamsOption,
     format_param_row,
     get_param_spec,
+    last_param,
+    require_sibling_param,
     search_params,
 )
 from .spinner import (  # type: ignore[no-redef]
@@ -350,6 +352,7 @@ __all__ = [
     "group",
     "help_option",
     "jobs_option",
+    "last_param",
     "launch",
     "lazy_group",
     "make_pass_decorator",
@@ -378,6 +381,7 @@ __all__ = [
     "render_manpage",
     "render_manpages",
     "render_table",
+    "require_sibling_param",
     "run_config_validation",
     "run_jobs",
     "run_test_plan",

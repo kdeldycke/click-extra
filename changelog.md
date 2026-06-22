@@ -32,6 +32,7 @@
 - `--jobs` (`JobsOption`) now accepts the keywords `auto` (one fewer than logical CPUs) and `max` on top of an integer, offers shell completion for them, logs the resolved count, and warns when too few CPUs collapse it to sequential execution.
 - Add `run_jobs(func, items)`, a parallel-execution driver keyed on the `--jobs` count: sequential and lazy at one worker, thread-pooled otherwise, with results in submission order.
 - Add `make_schema_callable(schema)` (the public form of the former private helper): builds a callable that coerces a raw config dict into a validated dataclass.
+- Add the `require_sibling_param` and `last_param` parameter-lookup helpers to `click_extra.parameters`, the public form of two former private helpers: `require_sibling_param` returns a required sibling option (raising a uniform error when it is missing), and `last_param` returns the last parameter of an exact class on a command.
 - Re-type `pass_context` for the enhanced `Context`, so `@pass_context def cmd(ctx: Context)` type-checks; handlers typed for the base `click.Context` still work.
 - Add a `click_extra.prebake` module hosting the build-time version pre-baking helpers (`prebake_version`, `prebake_dunder`, `discover_package_init_files`), still importable from `click_extra.version`.
 - Speed up `import click_extra` by deferring the `tabulate`, PyYAML and `boltons.ecoutils` imports until first use and dropping the runtime `unittest.mock` dependency, cutting startup time by roughly a third.

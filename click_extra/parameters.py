@@ -22,6 +22,7 @@ from contextlib import contextmanager, nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
 from operator import getitem
+from typing import TypeVar
 
 import click
 import cloup
@@ -36,6 +37,10 @@ if TYPE_CHECKING:
     from typing import Any, ClassVar
 
 logger = logging.getLogger(__name__)
+
+P = TypeVar("P", bound=click.Parameter)
+"""Type variable bound to :class:`click.Parameter`, letting
+:func:`require_sibling_param` return the exact subclass it was asked to find."""
 
 #: Separator joining the keys of a parameter's fully-qualified path
 #: (``cli.subcommand.param``).
@@ -100,6 +105,55 @@ def search_params(
             )
         return param_list.pop()
     return param_list
+
+
+def last_param(
+    params: Iterable[click.Parameter],
+    klass: type[click.Parameter],
+) -> click.Parameter | None:
+    """Return the last parameter of exactly ``klass`` in *params*, or ``None``.
+
+    Unlike :func:`search_params`, this matches the exact ``klass`` (no subclasses)
+    and tolerates duplicates: when an option is declared more than once (like an
+    explicit ``@verbosity_option`` stacked on a Click Extra command that already
+    ships one), Click keeps the last occurrence, so this mirrors that here instead
+    of erroring out on the ambiguity.
+
+    :param params: the command's parameter list to scan.
+    :param klass: the exact parameter class to look for.
+    """
+    options = search_params(params, klass, include_subclasses=False, unique=False)
+    return options[-1] if options else None  # type: ignore[index]
+
+
+def require_sibling_param(
+    params: Iterable[click.Parameter],
+    requester: click.Parameter,
+    klass: type[P],
+) -> P:
+    """Return the sibling *klass* parameter declared on the same command, or raise.
+
+    Some options are inert on their own: they drive machinery owned by a sibling
+    option. ``--no-config`` and ``--validate-config``, for instance, both depend on
+    the ``--config`` option (:class:`~click_extra.config.option.ConfigOption`). This
+    helper centralizes the lookup so every such option raises the same
+    ``RuntimeError`` when its required sibling is missing, naming the offending flag.
+
+    :param params: the command's parameter list to scan.
+    :param requester: the parameter requiring the sibling, used to build the error
+        message from its flag names and class.
+    :param klass: the sibling parameter class to look for.
+    """
+    sibling = search_params(params, klass)
+    if not isinstance(sibling, klass):
+        # RuntimeError (not the type-implied TypeError) is intentional: it keeps
+        # the historical --no-config contract and unifies all call sites on one
+        # exception type for a missing-or-wrong-type sibling.
+        raise RuntimeError(  # noqa: TRY004
+            f"{'/'.join(requester.opts)} {type(requester).__name__} must be used "
+            f"alongside {klass.__name__}."
+        )
+    return sibling
 
 
 class _ParameterMixin:
@@ -800,7 +854,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "Option/argument specification string (like `-v, --verbose`) "
                 "extracted from [`click.Parameter.get_help_record()`]"
                 "(https://click.palletsprojects.com/en/stable/api/"
-                "#click.Parameter.get_help_record)."
+                "#click.Parameter)."
             ),
         ),
         _ColumnSpec(
