@@ -62,8 +62,8 @@ Click Extra uses [modern format string syntax](https://docs.python.org/3/library
 
 You can customize the message template with the following variables:
 
-| Variable                                                                              | Description                                                                                                                                                                            |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variable                                                                         | Description                                                                                                                                                                            |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | {py:attr}`{module} <click_extra.version.VersionOption.module>`                   | The [module object](https://docs.python.org/3/glossary.html#term-module) in which the command is implemented.                                                                          |
 | {py:attr}`{module_name} <click_extra.version.VersionOption.module_name>`         | The [`__name__` of the module](https://docs.python.org/3/reference/datamodel.html#module.__name__) in which the command is implemented.                                                |
 | {py:attr}`{module_file} <click_extra.version.VersionOption.module_file>`         | The [full path of the file](https://docs.python.org/3/reference/datamodel.html#module.__file__) in which the command is implemented.                                                   |
@@ -81,8 +81,8 @@ You can customize the message template with the following variables:
 | {py:attr}`{git_date} <click_extra.version.VersionOption.git_date>`               | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
 | {py:attr}`{git_tag} <click_extra.version.VersionOption.git_tag>`                 | The Git tag pointing at `HEAD`, or `None` if `HEAD` is not at a tagged commit.                                                                                                         |
 | {py:attr}`{git_tag_sha} <click_extra.version.VersionOption.git_tag_sha>`         | The full commit SHA that the current tag points at, or `None` if `HEAD` is not at a tagged commit.                                                                                     |
-| {py:attr}`{git_distance} <click_extra.version.VersionOption.git_distance>`       | The number of commits since the most recent tag, or `None` if no tag is reachable or Git is not available.                                                                            |
-| {py:attr}`{git_dirty} <click_extra.version.VersionOption.git_dirty>`             | The work-tree state: `dirty` for uncommitted changes, `clean` otherwise, or `None` if not in a Git repository or Git is not available.                                                |
+| {py:attr}`{git_distance} <click_extra.version.VersionOption.git_distance>`       | The number of commits since the most recent tag, or `None` if no tag is reachable or Git is not available.                                                                             |
+| {py:attr}`{git_dirty} <click_extra.version.VersionOption.git_dirty>`             | The work-tree state: `dirty` for uncommitted changes, `clean` otherwise, or `None` if not in a Git repository or Git is not available.                                                 |
 | {py:attr}`{prog_name} <click_extra.version.VersionOption.prog_name>`             | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#version-fields).                        |
 | {py:attr}`{env_info} <click_extra.version.VersionOption.env_info>`               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
@@ -346,14 +346,14 @@ All `git_*` template fields support pre-baking. If the CLI module defines a `__<
 
 The supported dunders are:
 
-| Dunder variable      | Template field     | Subprocess fallback                               |
-| -------------------- | ------------------ | ------------------------------------------------- |
-| `__git_branch__`     | `{git_branch}`     | `git rev-parse --abbrev-ref HEAD`                 |
-| `__git_long_hash__`  | `{git_long_hash}`  | `git rev-parse HEAD`                              |
-| `__git_short_hash__` | `{git_short_hash}` | `git rev-parse --short HEAD`                      |
-| `__git_date__`       | `{git_date}`       | `git show -s --format=%ci HEAD`                   |
-| `__git_tag__`        | `{git_tag}`        | `git describe --tags --exact-match HEAD`          |
-| `__git_tag_sha__`    | `{git_tag_sha}`    | `git rev-list -1 <tag>` (if `{git_tag}` resolves) |
+| Dunder variable      | Template field     | Subprocess fallback                                |
+| -------------------- | ------------------ | -------------------------------------------------- |
+| `__git_branch__`     | `{git_branch}`     | `git rev-parse --abbrev-ref HEAD`                  |
+| `__git_long_hash__`  | `{git_long_hash}`  | `git rev-parse HEAD`                               |
+| `__git_short_hash__` | `{git_short_hash}` | `git rev-parse --short HEAD`                       |
+| `__git_date__`       | `{git_date}`       | `git show -s --format=%ci HEAD`                    |
+| `__git_tag__`        | `{git_tag}`        | `git describe --tags --exact-match HEAD`           |
+| `__git_tag_sha__`    | `{git_tag_sha}`    | `git rev-list -1 <tag>` (if `{git_tag}` resolves)  |
 | `__git_distance__`   | `{git_distance}`   | `git describe --tags --long` (commit count parsed) |
 | `__git_dirty__`      | `{git_dirty}`      | `git status --porcelain` (mapped to dirty/clean)   |
 
@@ -447,25 +447,25 @@ The `message_style` parameter sets the style of the message literals (the text a
 
 Fields not listed in `styles` keep the defaults below, taken from {py:attr}`VersionOption.default_styles <click_extra.version.VersionOption.default_styles>`. Fields absent from this table have no style of their own and fall back to `message_style`:
 
-| Field                                | Default style                                      |
-| ------------------------------------ | -------------------------------------------------- |
-| `exec_name`                          | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `git_branch`                         | `Style(fg="cyan")`{l=python}                       |
-| `git_date`                           | `Style(fg="bright_black")`{l=python}               |
-| `git_distance`                       | `Style(fg="green")`{l=python}                      |
-| `git_dirty`                          | `Style(fg="red")`{l=python}                        |
-| `git_long_hash`                      | `Style(fg="yellow")`{l=python}                     |
-| `git_repo_path`                      | `Style(fg="bright_black")`{l=python}               |
-| `git_short_hash`                     | `Style(fg="yellow")`{l=python}                     |
-| `git_tag`                            | `Style(fg="cyan")`{l=python}                       |
-| `git_tag_sha`                        | `Style(fg="yellow")`{l=python}                     |
-| `module_name`                        | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `module_version`                     | `Style(fg="green")`{l=python}                      |
-| `package_name`                       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `package_version`                    | `Style(fg="green")`{l=python}                      |
-| `prog_name`                          | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `version`                            | `Style(fg="green")`{l=python}                      |
-| `env_info`                           | `Style(fg="bright_black")`{l=python}               |
+| Field             | Default style                                      |
+| ----------------- | -------------------------------------------------- |
+| `exec_name`       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `git_branch`      | `Style(fg="cyan")`{l=python}                       |
+| `git_date`        | `Style(fg="bright_black")`{l=python}               |
+| `git_distance`    | `Style(fg="green")`{l=python}                      |
+| `git_dirty`       | `Style(fg="red")`{l=python}                        |
+| `git_long_hash`   | `Style(fg="yellow")`{l=python}                     |
+| `git_repo_path`   | `Style(fg="bright_black")`{l=python}               |
+| `git_short_hash`  | `Style(fg="yellow")`{l=python}                     |
+| `git_tag`         | `Style(fg="cyan")`{l=python}                       |
+| `git_tag_sha`     | `Style(fg="yellow")`{l=python}                     |
+| `module_name`     | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `module_version`  | `Style(fg="green")`{l=python}                      |
+| `package_name`    | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `package_version` | `Style(fg="green")`{l=python}                      |
+| `prog_name`       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `version`         | `Style(fg="green")`{l=python}                      |
+| `env_info`        | `Style(fg="bright_black")`{l=python}               |
 
 The remaining fields (`module`, `module_file`, `author`, `license`) have no default style and fall back to `message_style`.
 
