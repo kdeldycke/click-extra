@@ -172,8 +172,6 @@ VCS = Sentinel.VCS
 class ConfigOption(ExtraOption, ParamStructure):
     """A pre-configured option adding ``--config CONFIG_PATH``."""
 
-    # excluded_params: frozenset[str]
-
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
@@ -1247,7 +1245,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         respected. Direct CLI parameters, environment variables or interactive prompts
         take precedence over any values from the config file.
 
-        ..hint::
+        .. hint::
             Once loading is complete, the resolved file path and its full parsed content
             are stored in ``ctx.meta[click_extra.context.CONF_SOURCE]`` and
             ``ctx.meta[click_extra.context.CONF_FULL]`` respectively. This is the

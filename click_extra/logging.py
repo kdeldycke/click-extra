@@ -39,7 +39,7 @@ from .theme import get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Sequence
+    from collections.abc import Generator, Iterable, Mapping, Sequence
     from logging import LogRecord
     from typing import IO, Any, Literal
 
@@ -454,7 +454,12 @@ class _VerbosityOption(ExtraOption):
             logger.debug(f"Reset {managed_logger} to {DEFAULT_LEVEL}.")
             managed_logger.setLevel(DEFAULT_LEVEL.value)
 
-    def handle_parse_result(self, ctx, opts, args):
+    def handle_parse_result(
+        self,
+        ctx: click.Context,
+        opts: Mapping[str, Any],
+        args: list[str],
+    ) -> tuple[Any, list[str]]:
         """Pre-resolve the ``-v``/``-q`` counter before any level is applied.
 
         The first verbosity option to be processed reads the raw ``--verbose`` and
@@ -476,7 +481,9 @@ class _VerbosityOption(ExtraOption):
                     value, _ = option.consume_value(ctx, opts)
                     context.set(ctx, key, value)
 
-        return super().handle_parse_result(ctx, opts, args)
+        return super().handle_parse_result(  # type: ignore[no-any-return]
+            ctx, opts, args
+        )
 
     def get_base_level(self, ctx: click.Context) -> LogLevel:
         """Returns the base level the ``-v``/``-q`` counter is anchored at.

@@ -141,7 +141,7 @@ Click Extra wraps Click, so the two are tightly coupled and the matrix of suppor
 
 | `click-extra`       | Released   | Spec      | `8.1` | `8.2` | `8.3.0` | `8.3.1` | `8.3.3` | `8.4.0` | `8.4.1` |
 | :------------------ | :--------- | :-------- | :---: | :---: | :-----: | :-----: | :-----: | :-----: | :-----: |
-| `7.21.x`            | upcoming   | `>=8.3.1` |  ❌   |  ❌   |   ❌    |   ✅    |   ✅    |   ✅    |   ✅    |
+| `8.0.x`             | upcoming   | `>=8.3.1` |  ❌   |  ❌   |   ❌    |   ✅    |   ✅    |   ✅    |   ✅    |
 | `7.17.x` → `7.20.x` | 2026-05-25 | `>=8.4.1` |  ❌   |  ❌   |   ❌    |   ❌    |   ❌    |   ❌    |   ✅    |
 | `7.15.x` → `7.16.x` | 2026-05-03 | `>=8.3.1` |  ❌   |  ❌   |   ❌    |   ✅    |   ✅    |   ✅    |   ✅    |
 | `7.14.1`            | 2026-04-26 | `>=8.1`   |  ✅   |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |
@@ -154,7 +154,7 @@ Click Extra wraps Click, so the two are tightly coupled and the matrix of suppor
 <!-- click-compat-end -->
 
 ```{note}
-`7.14.1` is the only release with relaxed Click bounds (`>=8.1`): it temporarily widened compatibility to ease pinning across downstreams that hadn't yet bumped to Click `8.3`. `7.15.0` re-tightened the floor to `8.3.1` once Click `8.3` adoption stabilized. `7.14.0` is the strictest floor on record (`>=8.3.3`), pulled in to match a specific Click parameter-name fix; `7.14.1` immediately relaxed it. `7.17.0` raised the floor to `8.4.1`, needed for correct parameter-source detection in eager callbacks (`--color` precedence, config-option branching, the `--show-params` source column). `7.21.0` lowers it back to `8.3.1` by carrying compatibility shims for the Click `8.4.0` APIs, restoring support for the full `>=8.3.1` range.
+`7.14.1` is the only release with relaxed Click bounds (`>=8.1`): it temporarily widened compatibility to ease pinning across downstreams that hadn't yet bumped to Click `8.3`. `7.15.0` re-tightened the floor to `8.3.1` once Click `8.3` adoption stabilized. `7.14.0` is the strictest floor on record (`>=8.3.3`), pulled in to match a specific Click parameter-name fix; `7.14.1` immediately relaxed it. `7.17.0` raised the floor to `8.4.1`, needed for correct parameter-source detection in eager callbacks (`--color` precedence, config-option branching, the `--show-params` source column). `8.0.0` lowers it back to `8.3.1` by carrying compatibility shims for the Click `8.4.0` APIs, restoring support for the full `>=8.3.1` range.
 ```
 
 ## Default dependencies

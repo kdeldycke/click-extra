@@ -498,6 +498,20 @@ def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
         return help_record[0] if help_record else None
 
 
+def _structured_value(value: Any) -> Any:
+    """Coerce a value to a natively serializable form for structured output.
+
+    Scalars and lists (``str``, ``int``, ``float``, ``bool``, ``list``, ``None``)
+    pass through unchanged so JSON, YAML and TOML renderers keep their native
+    types. Anything else (a Click ``ParamType``, a ``Path``, an arbitrary
+    object) is rendered with :func:`repr` so it survives serialization as a
+    readable string.
+    """
+    if isinstance(value, (str, int, float, bool, list, type(None))):
+        return value
+    return repr(value)
+
+
 def format_param_row(
     param: click.Parameter,
     ctx: click.Context,
@@ -547,10 +561,8 @@ def format_param_row(
         default_val = None
 
     if is_structured:
-        if not isinstance(default_val, (str, int, float, bool, list, type(None))):
-            default_val = repr(default_val)
-        if not isinstance(flag_value, (str, int, float, bool, list, type(None))):
-            flag_value = repr(flag_value)
+        default_val = _structured_value(default_val)
+        flag_value = _structured_value(flag_value)
         return {
             "id": path,
             "spec": param_spec,
@@ -789,8 +801,7 @@ def render_params_table(
         row = format_param_row(param, owning_ctx, path, is_structured)
 
         if is_structured:
-            if not isinstance(param_value, (str, int, float, bool, list, type(None))):
-                param_value = repr(param_value)
+            param_value = _structured_value(param_value)
             row["allowed_in_conf"] = allowed_in_conf_bool
             row["value"] = param_value
             row["source"] = source.name if source else None

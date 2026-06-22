@@ -488,7 +488,7 @@ def parse_test_plan(plan_string: str | None) -> Generator[CLITestCase, None, Non
             raise TypeError(f"Test case #{index + 1} is not a dict: {test_case}")
         if not directives.issuperset(test_case):
             raise ValueError(
-                f"Test case #{index + 1} contains invalid directives:"
+                f"Test case #{index + 1} contains invalid directives: "
                 f"{set(test_case) - directives}"
             )
 
