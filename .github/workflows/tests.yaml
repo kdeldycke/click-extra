@@ -211,10 +211,10 @@ jobs:
         shell: bash
         run: |
           with_args=()
-          if [[ "${CLICK_VERSION}" != "released" ]]; then
+          if [[ "${CLICK_VERSION}" != "released" && -n "${CLICK_VERSION}" ]]; then
             with_args+=(--with "git+https://github.com/pallets/click.git@${CLICK_VERSION}")
           fi
-          if [[ "${CLOUP_VERSION}" != "released" ]]; then
+          if [[ "${CLOUP_VERSION}" != "released" && -n "${CLOUP_VERSION}" ]]; then
             with_args+=(--with "git+https://github.com/janluke/cloup.git@${CLOUP_VERSION}")
           fi
           uv --no-progress run --frozen "${with_args[@]}" -- \
