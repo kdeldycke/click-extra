@@ -7,6 +7,12 @@
 
 ## [`8.0.0` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v7.20.1...v8.0.0)
 
+> [!NOTE]
+> `8.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.0.0/).
+
+> [!WARNING]
+> `8.0.0` is **not available** on 🐙 GitHub.
+
 - **Breaking:** Drop the `Extra` prefix from public classes (`ExtraCommand` to `Command`, `ExtraGroup` to `Group`, `ExtraContext` to `Context`, `ExtraVersionOption` to `VersionOption`, and eight more); `ExtraOption` keeps its prefix.
 - **Breaking:** Remove the deprecated `extra_command`, `extra_group` and `extra_version_option` aliases; use `command`, `group` and `version_option` instead.
 - **Breaking:** `VersionOption` and `@version_option` now take `fields={...}` and `styles={...}` mappings instead of per-field value and `*_style` parameters; `message`/`message_style` are unchanged.
