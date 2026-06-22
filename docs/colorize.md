@@ -280,9 +280,9 @@ These synonyms stay out of `--help`, shell completion and error messages, which 
 
 In a [configuration file](config.md) the same string synonyms apply, and a native boolean is accepted too: `true` maps to `always` and `false` to `never`, mirroring a bare `--color` and `--no-color`. Because YAML coerces `yes`, `no`, `on` and `off` to booleans, a value resolves identically whether it arrives as a string or a boolean.
 
-:::{caution}
+```{caution}
 A configuration boolean diverges from [git's `color.ui`](https://git-scm.com/docs/git-config), where `true` means `auto`. Click Extra keeps `true` equal to `always` so the `yes` synonym and YAML's coercion of `yes` to `True` agree across file formats.
-:::
+```
 
 <a name="accessible-flag"></a>
 
