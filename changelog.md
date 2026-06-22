@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Redo a proper release.
+
 ## [`8.0.0` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v7.20.1...v8.0.0)
 
 > [!NOTE]
