@@ -37,6 +37,7 @@ from click_extra import (
     DEFAULT_TEST_PLAN,
     CLITestCase,
     ConfigFormat,
+    cases_from_data,
     load_test_plan,
     parse_test_plan,
     run_test_plan,
@@ -141,6 +142,30 @@ def test_load_rejects_unknown_extension(tmp_path):
     path.write_text("- cli_parameters: --version\n")
     with pytest.raises(ValueError, match="Unsupported file extension"):
         list(load_test_plan(path))
+
+
+# --- cases_from_data ---------------------------------------------------------
+
+
+def test_cases_from_data_builds_cases():
+    """A list of directive mappings becomes CLITestCase instances."""
+    cases = list(
+        cases_from_data(
+            [
+                {"cli_parameters": "--version", "exit_code": 0},
+                {"cli_parameters": "--help"},
+            ]
+        )
+    )
+    assert len(cases) == 2
+    assert all(isinstance(c, CLITestCase) for c in cases)
+    assert cases[0].exit_code == 0
+
+
+def test_cases_from_data_rejects_unknown_directive():
+    """An unknown directive in a mapping is rejected."""
+    with pytest.raises(ValueError, match="invalid directives"):
+        list(cases_from_data([{"not_a_real_directive": 1}]))
 
 
 # --- CLITestCase normalization -----------------------------------------------
@@ -380,3 +405,23 @@ def test_cli_resolves_plan_from_config(invoke, tmp_path, monkeypatch):
     # The configured plan has 1 case; the built-in default has 3, so Total: 1
     # proves the [tool.click-extra.test-plan] file was read.
     assert "Total: 1" in result.output
+
+
+def test_cli_resolves_native_cases_from_config(invoke, tmp_path, monkeypatch):
+    """Cases can be declared natively under [[tool.click-extra.test-plan.cases]]."""
+    (tmp_path / "pyproject.toml").write_text(
+        "[[tool.click-extra.test-plan.cases]]\n"
+        'cli_parameters = "--version"\n'
+        "exit_code = 0\n\n"
+        "[[tool.click-extra.test-plan.cases]]\n"
+        'cli_parameters = "--help"\n'
+        "exit_code = 0\n",
+        encoding="UTF-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    result = invoke(demo, ["test-plan", "--command", sys.executable])
+    assert result.exit_code == 0
+    # The two native [[...cases]] entries run (not the 3-case built-in default).
+    assert "Total: 2" in result.output
+    assert "Failed: 0" in result.output

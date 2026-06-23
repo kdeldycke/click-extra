@@ -32,7 +32,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .schema import CONFIG_PATH_METADATA_KEY, ConfigValidator
+from .schema import (
+    CONFIG_PATH_METADATA_KEY,
+    EXTENSION_METADATA_KEY,
+    ConfigValidator,
+)
 
 THEMES_CONFIG_KEY: str = "themes"
 """Sub-key under ``[tool.<cli>]`` where user-defined themes live in config.
@@ -65,6 +69,20 @@ class TestPlanConfig:
 
     inline: str | None = None
     """Inline YAML test plan, an alternative to :attr:`file`. Takes precedence."""
+
+    cases: list[dict] = field(
+        default_factory=list,
+        metadata={EXTENSION_METADATA_KEY: True},
+    )
+    """Test cases written natively in the config format, an alternative to a
+    :attr:`file` or :attr:`inline` plan.
+
+    Each entry is a mapping of ``CLITestCase`` directive names, equivalent to one
+    item of a plan list. In TOML this reads as a ``[[tool.<cli>.test-plan.cases]]``
+    array of tables. Declared as an extension point so the configuration engine
+    passes the raw mappings through unprocessed; the ``test-plan`` command turns
+    them into :class:`~click_extra.test_plan.CLITestCase` instances.
+    """
 
     timeout: int | None = None
     """Default timeout (seconds) for each case that does not set its own.

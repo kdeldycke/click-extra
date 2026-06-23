@@ -65,6 +65,7 @@ from .table import print_table
 from .test_plan import (
     DEFAULT_TEST_PLAN,
     CLITestCase,
+    cases_from_data,
     load_test_plan,
     parse_test_plan,
     run_test_plan,
@@ -242,14 +243,16 @@ def test_plan_cmd(
     config = get_tool_config(ctx)
     test_plan_config = config.test_plan if config else TestPlanConfig()
 
-    # Collect cases by precedence: CLI sources (--plan-file, --plan-envvar),
-    # then the configured inline plan, then the configured plan file, then a
-    # built-in default.
+    # Collect cases by precedence: CLI sources (--plan-file, --plan-envvar), then
+    # the configured native cases, then the inline plan, then the plan file, then
+    # a built-in default.
     cases: list[CLITestCase] = []
     for plan in plan_file:
         cases.extend(load_test_plan(plan))
     for envvar_id in merge_envvar_ids(plan_envvar):
         cases.extend(parse_test_plan(os.getenv(envvar_id)))
+    if not cases and test_plan_config.cases:
+        cases.extend(cases_from_data(test_plan_config.cases))
     if not cases and test_plan_config.inline:
         cases.extend(parse_test_plan(test_plan_config.inline))
     if not cases and test_plan_config.file:

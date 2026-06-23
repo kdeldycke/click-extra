@@ -182,7 +182,19 @@ file = "tests/cli-test-plan.toml"  # default; format taken from the extension
 # timeout = 30  # default per-case timeout in seconds
 ```
 
-The resolution precedence is: `--plan-file`/`--plan-envvar`, then `[tool.click-extra.test-plan]` `inline`, then its `file`, then a built-in default plan that exercises `--version` and `--help`. The config maps onto the {class}`~click_extra.config.builtin.TestPlanConfig` schema (wrapped by {class}`~click_extra.config.builtin.ClickExtraConfig`).
+Or write the cases natively in the config file itself, under a `cases` array of tables — no separate plan file needed:
+
+```{code-block} toml
+[[tool.click-extra.test-plan.cases]]
+cli_parameters = "--version"
+exit_code = 0
+
+[[tool.click-extra.test-plan.cases]]
+cli_parameters = "forecast --city paris"
+stdout_contains = "Sunny"
+```
+
+The resolution precedence is: `--plan-file`/`--plan-envvar`, then `[tool.click-extra.test-plan]` `cases`, then `inline`, then `file`, then a built-in default plan that exercises `--version` and `--help`. The config maps onto the {class}`~click_extra.config.builtin.TestPlanConfig` schema (wrapped by {class}`~click_extra.config.builtin.ClickExtraConfig`).
 
 ## Running from Python
 

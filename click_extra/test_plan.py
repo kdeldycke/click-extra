@@ -471,8 +471,13 @@ DEFAULT_TEST_PLAN: list[CLITestCase] = [
 ]
 
 
-def _cases_from_data(data: Any) -> Generator[CLITestCase, None, None]:
-    """Build :class:`CLITestCase` instances from a parsed test plan.
+def cases_from_data(data: Any) -> Generator[CLITestCase, None, None]:
+    """Build :class:`CLITestCase` instances from already-parsed plan data.
+
+    The in-memory counterpart to :func:`parse_test_plan` (which parses a string)
+    and :func:`load_test_plan` (which reads a file): feed it a plan that is
+    already a Python object, such as the native ``cases`` mappings declared in a
+    ``[tool.<cli>.test-plan]`` config section.
 
     A plan is a list of case mappings, each keyed by ``CLITestCase`` directive
     names. Formats with no bare top-level array (TOML) carry that list under a
@@ -541,7 +546,7 @@ def parse_test_plan(
             "to enable it."
         )
 
-    yield from _cases_from_data(parse_content(fmt, plan_string))
+    yield from cases_from_data(parse_content(fmt, plan_string))
 
 
 def load_test_plan(path: Path) -> Generator[CLITestCase, None, None]:
@@ -555,7 +560,7 @@ def load_test_plan(path: Path) -> Generator[CLITestCase, None, None]:
     :raises ValueError: the file extension matches no plan format.
     :raises ImportError: the matched format's optional parser is not installed.
     """
-    yield from _cases_from_data(read_file(path, PLAN_FORMATS))
+    yield from cases_from_data(read_file(path, PLAN_FORMATS))
 
 
 def run_test_plan(
