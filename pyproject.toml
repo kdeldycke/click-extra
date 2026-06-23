@@ -394,7 +394,16 @@ markers = [
 ]
 addopts = [
   "--durations=10",
+  # Import test modules via importlib instead of prepending their root dir to
+  # sys.path. Avoids "import file mismatch" collection errors when an installed
+  # copy of the package coexists with the source tree, as in distro builds.
+  "--import-mode=importlib",
 ]
+# Restrict collection to the test suite. Otherwise pytest descends into the
+# click_extra package and imports test_plan.py (its basename matches the
+# test_*.py glob), which fails in dual-copy builds where an installed copy
+# shadows the source tree.
+testpaths = [ "tests" ]
 # Make sure tests that are expected to fail do not resurect and start working all of a sudden.
 xfail_strict = true
 
