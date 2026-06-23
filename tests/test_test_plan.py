@@ -36,6 +36,8 @@ import pytest
 from click_extra import (
     DEFAULT_TEST_PLAN,
     CLITestCase,
+    ConfigFormat,
+    load_test_plan,
     parse_test_plan,
     run_test_plan,
 )
@@ -62,19 +64,83 @@ def test_parse_returns_cases():
 
 
 @pytest.mark.parametrize(
+    ("plan_string", "fmt"),
+    (
+        (
+            '[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n\n'
+            '[[cases]]\ncli_parameters = "--help"\n',
+            ConfigFormat.TOML,
+        ),
+        (
+            '[{"cli_parameters": "--version", "exit_code": 0}, '
+            '{"cli_parameters": "--help"}]',
+            ConfigFormat.JSON,
+        ),
+    ),
+)
+def test_parse_returns_cases_per_format(plan_string, fmt):
+    """TOML (cases under [[cases]]) and JSON (bare array) yield the same cases."""
+    cases = list(parse_test_plan(plan_string, fmt))
+    assert len(cases) == 2
+    assert all(isinstance(c, CLITestCase) for c in cases)
+    assert cases[0].exit_code == 0
+
+
+def test_parse_toml_requires_cases_key():
+    """A TOML mapping without a top-level 'cases' array of tables is rejected."""
+    with pytest.raises(ValueError, match="cases"):
+        list(parse_test_plan('title = "weather"\n', ConfigFormat.TOML))
+
+
+def test_parse_rejects_non_plan_format():
+    """A format that cannot represent a list of cases is rejected."""
+    with pytest.raises(ValueError, match="cannot express a test plan"):
+        list(parse_test_plan("[]", ConfigFormat.INI))
+
+
+@pytest.mark.parametrize(
     ("plan", "exception"),
     (
         ("", ValueError),
         (None, ValueError),
         ("[]", ValueError),
-        ("key: value", TypeError),
+        ("key: value", ValueError),
         ("- not-a-real-directive: 1", ValueError),
     ),
 )
 def test_parse_rejects_malformed(plan, exception):
-    """Empty, non-list, and unknown-directive plans raise."""
+    """Empty, mapping-without-cases, and unknown-directive plans raise."""
     with pytest.raises(exception):
         list(parse_test_plan(plan))
+
+
+# --- load_test_plan ----------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("filename", "content"),
+    (
+        ("plan.yaml", "- cli_parameters: --version\n  exit_code: 0\n"),
+        ("plan.yml", "- cli_parameters: --version\n  exit_code: 0\n"),
+        ("plan.toml", '[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n'),
+        ("plan.json", '[{"cli_parameters": "--version", "exit_code": 0}]'),
+    ),
+)
+def test_load_detects_format_from_extension(tmp_path, filename, content):
+    """The file extension selects the parser, so each format yields the case."""
+    path = tmp_path / filename
+    path.write_text(content)
+    cases = list(load_test_plan(path))
+    assert len(cases) == 1
+    assert cases[0].exit_code == 0
+
+
+def test_load_rejects_unknown_extension(tmp_path):
+    """An extension matching no plan format is rejected."""
+    path = tmp_path / "plan.txt"
+    path.write_text("- cli_parameters: --version\n")
+    with pytest.raises(ValueError, match="Unsupported test plan file extension"):
+        list(load_test_plan(path))
 
 
 # --- CLITestCase normalization -----------------------------------------------
@@ -85,6 +151,31 @@ def test_case_normalizes_scalars():
     case = CLITestCase(cli_parameters="--foo bar", exit_code="7")
     assert case.exit_code == 7
     assert case.cli_parameters == ("--foo", "bar")
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        (5, 5.0),
+        (5.0, 5.0),
+        ("5", 5.0),
+        (None, None),
+    ),
+)
+def test_case_normalizes_timeout(value, expected):
+    """A timeout given as int, float, or numeric string becomes a float.
+
+    Plain integers are what every config format produces for a bare number, so
+    they must be accepted (a `timeout: 5` in any plan).
+    """
+    assert CLITestCase(timeout=value).timeout == expected
+
+
+@pytest.mark.parametrize("value", (True, [5]))
+def test_case_rejects_non_numeric_timeout(value):
+    """A boolean or non-scalar timeout is rejected as not-a-float."""
+    with pytest.raises(ValueError, match="timeout is not a float"):
+        CLITestCase(timeout=value)
 
 
 # --- output_* combined-stream directives -------------------------------------
@@ -222,6 +313,19 @@ def test_cli_runs_plan_file(invoke, tmp_path):
     """A --plan-file is parsed and run against the target command."""
     plan = tmp_path / "plan.yaml"
     plan.write_text("- cli_parameters: --version\n  exit_code: 0\n")
+    result = invoke(
+        demo,
+        ["test-plan", "--command", sys.executable, "--plan-file", str(plan)],
+    )
+    assert result.exit_code == 0
+    assert "Total: 1" in result.output
+    assert "Failed: 0" in result.output
+
+
+def test_cli_runs_toml_plan_file(invoke, tmp_path):
+    """A TOML --plan-file runs without the yaml extra, since TOML is built in."""
+    plan = tmp_path / "plan.toml"
+    plan.write_text('[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n')
     result = invoke(
         demo,
         ["test-plan", "--command", sys.executable, "--plan-file", str(plan)],

@@ -65,6 +65,7 @@ from .table import print_table
 from .test_plan import (
     DEFAULT_TEST_PLAN,
     CLITestCase,
+    load_test_plan,
     parse_test_plan,
     run_test_plan,
 )
@@ -149,7 +150,8 @@ demo.add_command(wrap_cmd)
     type=file_path(exists=True, readable=True, resolve_path=True),
     multiple=True,
     metavar="FILE_PATH",
-    help="Path to a test plan file in YAML. Repeat to run multiple plans in "
+    help="Path to a test plan file; its format is taken from the extension "
+    "(YAML, TOML, JSON, JSON5, JSONC, Hjson). Repeat to run multiple plans in "
     "sequence. Without any plan source, a built-in default plan runs.",
 )
 @option(
@@ -245,7 +247,7 @@ def test_plan_cmd(
     # built-in default.
     cases: list[CLITestCase] = []
     for plan in plan_file:
-        cases.extend(parse_test_plan(plan.read_text(encoding="UTF-8")))
+        cases.extend(load_test_plan(plan))
     for envvar_id in merge_envvar_ids(plan_envvar):
         cases.extend(parse_test_plan(os.getenv(envvar_id)))
     if not cases and test_plan_config.inline:
@@ -253,7 +255,7 @@ def test_plan_cmd(
     if not cases and test_plan_config.file:
         plan_path = Path(test_plan_config.file)
         if plan_path.exists():
-            cases.extend(parse_test_plan(plan_path.read_text(encoding="UTF-8")))
+            cases.extend(load_test_plan(plan_path))
     if not cases:
         cases = DEFAULT_TEST_PLAN
 

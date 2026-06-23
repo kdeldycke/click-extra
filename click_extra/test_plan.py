@@ -22,11 +22,14 @@ parameters, then checks its exit code and ``stdout``/``stderr`` against literal,
 substring, or regex expectations. Cases carry their own platform skip/only
 rules, so one plan runs across operating systems unchanged.
 
-Plans are usually written as YAML and loaded with :func:`parse_test_plan`,
-which needs the optional ``click-extra[yaml]`` extra. :func:`run_test_plan`
-drives a list of cases against a target, parallelized per the resolved
-``--jobs`` count (see :func:`click_extra.execution.run_jobs`) and reporting
-live progress through a :class:`click_extra.spinner.Spinner`.
+Plans are written in any list-capable configuration format and loaded with
+:func:`load_test_plan` (which picks the format from the file extension) or
+:func:`parse_test_plan` (which parses a serialized string). TOML and JSON are
+built in; YAML and the other :data:`~click_extra.test_plan.PLAN_FORMATS` need their matching
+``click-extra[…]`` extra. :func:`run_test_plan` drives a list of cases against
+a target, parallelized per the resolved ``--jobs`` count (see
+:func:`click_extra.execution.run_jobs`) and reporting live progress through a
+:class:`click_extra.spinner.Spinner`.
 
 This is the black-box, subprocess-level complement to
 :class:`click_extra.testing.CliRunner`, which drives a CLI in-process.
@@ -34,7 +37,6 @@ This is the black-box, subprocess-level complement to
 
 from __future__ import annotations
 
-import importlib.util
 import logging
 import os
 import re
@@ -42,6 +44,7 @@ import shlex
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
+from fnmatch import fnmatch
 from pathlib import Path
 from shutil import which
 from subprocess import PIPE, STDOUT, TimeoutExpired, run
@@ -51,6 +54,7 @@ from boltons.strutils import strip_ansi
 from extra_platforms import current_platform, extract_members, is_windows
 
 from . import echo
+from .config.formats import ConfigFormat, parse_content
 from .execution import run_jobs
 from .spinner import Spinner
 from .testing import (
@@ -61,17 +65,30 @@ from .testing import (
     render_cli_run,
 )
 
-logger = logging.getLogger(__name__)
+PLAN_FORMATS: tuple[ConfigFormat, ...] = (
+    # Built-in, no extra dependency.
+    ConfigFormat.TOML,
+    ConfigFormat.JSON,
+    # Each needs its matching click-extra[…] extra.
+    ConfigFormat.YAML,
+    ConfigFormat.JSON5,
+    ConfigFormat.JSONC,
+    ConfigFormat.HJSON,
+)
+"""Configuration formats a test plan can be serialized in, built-in ones first.
 
-# Optional YAML support, mirroring the per-format extra pattern in config.py.
-#
-# ``yaml`` is detected without being imported: ``find_spec`` only locates the
-# module, so merely importing click_extra does not pay PyYAML's import cost on
-# every startup. The actual ``import yaml`` is deferred to run_test_plan(), the
-# single consumer. Do not replace this with a top-level ``import yaml``.
-yaml_support = importlib.util.find_spec("yaml") is not None
-if not yaml_support:
-    logger.debug("YAML support disabled: install click-extra[yaml] to enable it.")
+These are the formats able to represent a top-level list of case mappings,
+matched against a file's extension by :func:`load_test_plan`. TOML and JSON
+parse with no extra dependency; the others each need their matching
+``click-extra[…]`` extra. TOML has no bare top-level array, so a TOML plan
+lists its cases under a ``[[cases]]`` array of tables (see
+:func:`parse_test_plan`); the others use a bare list. INI (no nesting) and XML
+(no natural list representation) are excluded.
+
+Per-format availability is resolved by
+:class:`~click_extra.config.formats.ConfigFormat`, so a format whose parser is
+not installed raises an :exc:`ImportError` pointing at its extra at parse time.
+"""
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -232,7 +249,11 @@ class CLITestCase:
 
             # Validates and normalize float properties.
             elif field_id == "timeout":
+                # A numeric string or an int is coerced to float; bool is an int
+                # subclass but not a valid duration, so it is rejected below.
                 if isinstance(field_data, str):
+                    field_data = float(field_data)
+                elif isinstance(field_data, int) and not isinstance(field_data, bool):
                     field_data = float(field_data)
                 elif field_data is not None and not isinstance(field_data, float):
                     raise ValueError(f"timeout is not a float: {field_data}")
@@ -450,29 +471,52 @@ DEFAULT_TEST_PLAN: list[CLITestCase] = [
 ]
 
 
-def parse_test_plan(plan_string: str | None) -> Generator[CLITestCase, None, None]:
-    """Parse a YAML test plan into :class:`CLITestCase` instances.
+def parse_test_plan(
+    plan_string: str | None,
+    fmt: ConfigFormat = ConfigFormat.YAML,
+) -> Generator[CLITestCase, None, None]:
+    """Parse a serialized test plan into :class:`CLITestCase` instances.
 
-    The plan must be a YAML list of mappings, each keyed by ``CLITestCase``
-    directive names. Requires the ``yaml`` extra.
+    ``fmt`` selects the serialization format, one of :data:`~click_extra.test_plan.PLAN_FORMATS`; it
+    defaults to YAML for string sources with no extension to key on (an
+    environment variable, an inline config value). A plan is a list of
+    mappings, each keyed by ``CLITestCase`` directive names. Formats with no
+    bare top-level array (TOML) carry that list under a top-level ``cases``
+    key instead.
 
-    :raises ValueError: the plan is empty or a case uses unknown directives.
+    :raises ValueError: the plan is empty, ``fmt`` cannot express a plan, a
+        mapping plan omits ``cases``, or a case uses unknown directives.
     :raises TypeError: the plan is not a list, or a case is not a mapping.
-    :raises ImportError: YAML support is not installed.
+    :raises ImportError: the format's optional parser is not installed.
     """
     if not plan_string:
         raise ValueError("Empty test plan")
 
-    if not yaml_support:
-        raise ImportError(
-            "YAML support disabled: install click-extra[yaml] to enable it."
+    if fmt not in PLAN_FORMATS:
+        raise ValueError(
+            f"{fmt} cannot express a test plan; use one of: "
+            + ", ".join(map(str, PLAN_FORMATS))
         )
 
-    # Imported lazily (see the ``yaml_support`` note above) to keep PyYAML off
-    # the default import path.
-    import yaml
+    if not fmt.enabled:
+        raise ImportError(
+            f"{fmt} support disabled: install click-extra[{fmt.label.lower()}] "
+            "to enable it."
+        )
 
-    plan = yaml.full_load(plan_string)
+    data = parse_content(fmt, plan_string)
+
+    # A plan is a list of cases. Formats without a bare top-level array (TOML)
+    # carry that list under a top-level ``cases`` key, so unwrap a mapping.
+    if isinstance(data, dict):
+        if "cases" not in data:
+            raise ValueError(
+                "A mapping-style test plan must list its cases under a top-level "
+                "'cases' key (the [[cases]] array of tables in TOML)."
+            )
+        plan = data["cases"]
+    else:
+        plan = data
 
     # Validates test plan structure.
     if not plan:
@@ -493,6 +537,33 @@ def parse_test_plan(plan_string: str | None) -> Generator[CLITestCase, None, Non
             )
 
         yield CLITestCase(**test_case)
+
+
+def load_test_plan(path: Path) -> Generator[CLITestCase, None, None]:
+    """Read a test plan file and parse it by the format of its extension.
+
+    The format is matched from ``path``'s name against the file patterns of the
+    list-capable :data:`~click_extra.test_plan.PLAN_FORMATS`, so ``plan.toml`` parses as TOML,
+    ``plan.yaml`` as YAML, and so on.
+
+    :raises ValueError: the file extension matches no plan format.
+    :raises ImportError: the matched format's optional parser is not installed.
+    """
+    fmt = next(
+        (
+            candidate
+            for candidate in PLAN_FORMATS
+            for pattern in candidate.patterns
+            if fnmatch(path.name, pattern)
+        ),
+        None,
+    )
+    if fmt is None:
+        raise ValueError(
+            f"Unsupported test plan file extension: {path.name!r}. Expected one of: "
+            + ", ".join(pat for f in PLAN_FORMATS for pat in f.patterns)
+        )
+    return parse_test_plan(path.read_text(encoding="utf-8"), fmt)
 
 
 def run_test_plan(

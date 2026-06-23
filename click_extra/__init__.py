@@ -198,8 +198,10 @@ from .table import (
 from .telemetry import TelemetryOption
 from .test_plan import (
     DEFAULT_TEST_PLAN,
+    PLAN_FORMATS,
     CLITestCase,
     SkippedTest,
+    load_test_plan,
     parse_test_plan,
     run_test_plan,
 )
@@ -227,6 +229,7 @@ __all__ = [
     "FLOAT",
     "INT",
     "NO_CONFIG",
+    "PLAN_FORMATS",
     "PREPEND_SUBCOMMANDS_KEY",
     "SPINNERS",
     "STRING",
@@ -356,6 +359,7 @@ __all__ = [
     "last_param",
     "launch",
     "lazy_group",
+    "load_test_plan",
     "make_pass_decorator",
     "make_schema_callable",
     "man_option",

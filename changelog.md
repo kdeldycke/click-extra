@@ -11,6 +11,8 @@
 - `@version_option` accepts an explicit version string as its first positional argument (`@version_option("1.2.3")`), for drop-in compatibility with Click. A positional value starting with `-` is still treated as an option flag name.
 - Silence ambiguous cross-reference warnings in the Sphinx documentation build for classes (`ColumnSpec`, `ConfigFormat`, `ConfigValidator`, `LogLevel`) re-exported at the package root, by documenting each only under its defining submodule.
 - Restrict pytest collection to the `tests` folder and switch to `importlib` import mode, so the `test_plan.py` module is no longer collected as a test file. Fixes `import file mismatch` errors when building from a packaged source tree alongside an installed copy. Closes [`click-extra#1779`](https://github.com/kdeldycke/click-extra/issues/1779).
+- `test-plan --plan-file` now accepts a plan in any list-capable config format, detected from the file extension: TOML and JSON (built-in), plus YAML, JSON5, JSONC and Hjson (with their extras). A TOML plan lists its cases under a `[[cases]]` array of tables. Adds the `load_test_plan` helper and the `PLAN_FORMATS` constant.
+- Accept an integer `timeout` in a test plan case: a bare number like `timeout: 5` is coerced to a float instead of being rejected.
 
 ## [`8.0.1` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v8.0.0...v8.0.1)
 
