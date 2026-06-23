@@ -167,6 +167,14 @@ nitpick_ignore = [
     ("py:exc", "ConfigError"),
     # click ParameterSource enum members are absent from click's inventory.
     ("py:attr", "click.ParameterSource.DEFAULT_MAP"),
+    # click-extra's own classes that live in a submodule but are re-exported at the
+    # package root. They are dropped from the root ``automodule:: click_extra`` (see
+    # docs/click_extra.md) to avoid ambiguous cross-references, so their bare name
+    # has no target when autodoc re-renders a re-exported class's docstring in the
+    # root module context. The canonical entry stays under the defining submodule.
+    ("py:class", "ColumnSpec"),
+    ("py:class", "ConfigValidator"),
+    ("py:class", "LogLevel"),
 ]
 
 # Concatenates the docstrings of the class and the __init__ method.

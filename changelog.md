@@ -9,6 +9,7 @@
 - `@sort_by_option` accepts `ColumnSpec` definitions and a `columns=` registry, so the same column tuple can drive both `--columns` and `--sort-by` from a single source of truth.
 - Option decorators built by `decorator_factory` now expose their option class's constructor signature to `help()`, the REPL and Sphinx autodoc, instead of an opaque `(*args, **kwargs)`.
 - `@version_option` accepts an explicit version string as its first positional argument (`@version_option("1.2.3")`), for drop-in compatibility with Click. A positional value starting with `-` is still treated as an option flag name.
+- Silence ambiguous cross-reference warnings in the Sphinx documentation build for classes (`ColumnSpec`, `ConfigFormat`, `ConfigValidator`, `LogLevel`) re-exported at the package root, by documenting each only under its defining submodule.
 - Restrict pytest collection to the `tests` folder and switch to `importlib` import mode, so the `test_plan.py` module is no longer collected as a test file. Fixes `import file mismatch` errors when building from a packaged source tree alongside an installed copy. Closes [`click-extra#1779`](https://github.com/kdeldycke/click-extra/issues/1779).
 
 ## [`8.0.1` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v8.0.0...v8.0.1)
