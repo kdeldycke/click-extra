@@ -413,6 +413,11 @@ run.branch = true
 run.source = [ "click_extra" ]
 report.precision = 2
 
+# Dogfood click-extra's own configuration: the test-plan subcommand reads its
+# settings from this section (see tests.yaml's "Self-test the CLI" step).
+[tool.click-extra.test-plan]
+file = "tests/cli-test-plan.yaml"
+
 [tool.bumpversion]
 current_version = "8.1.0.dev0"
 # Parse versions with an optional .devN suffix (PEP 440).
