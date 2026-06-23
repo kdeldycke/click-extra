@@ -139,7 +139,7 @@ def test_load_rejects_unknown_extension(tmp_path):
     """An extension matching no plan format is rejected."""
     path = tmp_path / "plan.txt"
     path.write_text("- cli_parameters: --version\n")
-    with pytest.raises(ValueError, match="Unsupported test plan file extension"):
+    with pytest.raises(ValueError, match="Unsupported file extension"):
         list(load_test_plan(path))
 
 

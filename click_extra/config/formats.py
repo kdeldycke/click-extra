@@ -28,6 +28,7 @@ import json
 import logging
 import sys
 from enum import Enum
+from fnmatch import fnmatch
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -37,6 +38,8 @@ else:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
     from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -137,28 +140,138 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
     match fmt:
         case ConfigFormat.TOML:
             return tomllib.loads(content)
+
         case ConfigFormat.YAML:
             import yaml
 
             return yaml.full_load(content)
+
         case ConfigFormat.JSON:
             return json.loads(content)
+
         case ConfigFormat.JSON5:
             import json5
 
             return json5.loads(content)
+
         case ConfigFormat.JSONC:
             import jsonc
 
             return jsonc.loads(content)
+
         case ConfigFormat.HJSON:
             import hjson
 
             return hjson.loads(content)
+
         case ConfigFormat.XML:
             import xmltodict
 
             return xmltodict.parse(content)
+
         case ConfigFormat.PYPROJECT_TOML:
             return tomllib.loads(content).get("tool", {})
+
     raise ValueError(f"{fmt!r} is not handled by parse_content().")
+
+
+def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
+    """Serialize a Python object to a string in the given format.
+
+    The dumping counterpart to :func:`parse_content`. Per-format defaults can be
+    overridden through ``kwargs`` (forwarded to the underlying serializer). JSON5
+    and JSONC are emitted as plain JSON, a valid subset of both.
+
+    .. caution::
+        Not every format round-trips: ``TOML`` and ``XML`` have no null type, and
+        ``XML`` expects a single root mapping, so the caller is responsible for
+        shaping ``data`` accordingly. ``INI`` and ``pyproject.toml`` have no
+        serializer here.
+
+    .. note::
+        Optional third-party serializers are imported lazily, at the point of use.
+        Writing ``TOML`` uses ``tomlkit`` (the ``[toml]`` extra), unlike reading
+        which relies on the built-in ``tomllib``.
+
+    :raises ValueError: the format has no serializer.
+    """
+    match fmt:
+        case ConfigFormat.JSON | ConfigFormat.JSON5 | ConfigFormat.JSONC:
+            return (
+                json.dumps(data, **{"ensure_ascii": False, "indent": 2, **kwargs})
+                + "\n"
+            )
+        case ConfigFormat.YAML:
+            import yaml
+
+            return str(
+                yaml.dump(
+                    data,
+                    **{"allow_unicode": True, "default_flow_style": False, **kwargs},
+                )
+            )
+        case ConfigFormat.TOML:
+            import tomlkit
+
+            doc = tomlkit.document()
+            for key, value in data.items():
+                doc.add(key, value)
+            return tomlkit.dumps(doc)
+        case ConfigFormat.HJSON:
+            import hjson
+
+            return str(hjson.dumps(data, **{"ensure_ascii": False, **kwargs})) + "\n"
+        case ConfigFormat.XML:
+            import xmltodict
+
+            result: str = xmltodict.unparse(
+                data,
+                **{
+                    "pretty": True,
+                    "encoding": "unicode",
+                    "full_document": False,
+                    **kwargs,
+                },
+            )
+            return result + "\n"
+    raise ValueError(f"{fmt!r} is not handled by serialize_content().")
+
+
+def format_from_path(
+    path: Path,
+    formats: Iterable[ConfigFormat] | None = None,
+) -> ConfigFormat | None:
+    """Return the configuration format whose patterns match a file name.
+
+    The name is matched against each format's
+    :attr:`~click_extra.config.formats.ConfigFormat.patterns`, so ``app.toml``
+    resolves to ``TOML`` and ``app.yml`` to ``YAML``. ``formats`` restricts and
+    orders the candidates (the first match wins); it defaults to every
+    :class:`~click_extra.config.formats.ConfigFormat`.
+    """
+    candidates = tuple(ConfigFormat) if formats is None else formats
+    for fmt in candidates:
+        if any(fnmatch(path.name, pattern) for pattern in fmt.patterns):
+            return fmt
+    return None
+
+
+def read_file(path: Path, formats: Iterable[ConfigFormat] | None = None) -> Any:
+    """Read a file and parse it, picking the format from its name.
+
+    The format is resolved with :func:`format_from_path` over ``formats`` (every
+    :class:`~click_extra.config.formats.ConfigFormat` by default), then the
+    content is parsed with :func:`parse_content`.
+
+    :raises ValueError: the file name matches none of the candidate ``formats``.
+    :raises ImportError: the matched format's optional parser is not installed.
+    """
+    fmt = format_from_path(path, formats)
+    if fmt is None:
+        raise ValueError(f"Unsupported file extension: {path.name!r}")
+    if not fmt.enabled:
+        raise ImportError(
+            f"{fmt} support disabled: install click-extra[{fmt.label.lower()}] "
+            "to enable it."
+        )
+    return parse_content(fmt, path.read_text(encoding="utf-8"))

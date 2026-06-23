@@ -44,7 +44,6 @@ import shlex
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
-from fnmatch import fnmatch
 from pathlib import Path
 from shutil import which
 from subprocess import PIPE, STDOUT, TimeoutExpired, run
@@ -54,7 +53,7 @@ from boltons.strutils import strip_ansi
 from extra_platforms import current_platform, extract_members, is_windows
 
 from . import echo
-from .config.formats import ConfigFormat, parse_content
+from .config.formats import ConfigFormat, parse_content, read_file
 from .execution import run_jobs
 from .spinner import Spinner
 from .testing import (
@@ -93,6 +92,7 @@ not installed raises an :exc:`ImportError` pointing at its extra at parse time.
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from typing import Any
 
     from extra_platforms._types import _TNestedReferences
 
@@ -471,18 +471,55 @@ DEFAULT_TEST_PLAN: list[CLITestCase] = [
 ]
 
 
+def _cases_from_data(data: Any) -> Generator[CLITestCase, None, None]:
+    """Build :class:`CLITestCase` instances from a parsed test plan.
+
+    A plan is a list of case mappings, each keyed by ``CLITestCase`` directive
+    names. Formats with no bare top-level array (TOML) carry that list under a
+    top-level ``cases`` key, so a mapping is unwrapped here.
+
+    :raises ValueError: the plan is empty, a mapping plan omits ``cases``, or a
+        case uses unknown directives.
+    :raises TypeError: the plan is not a list, or a case is not a mapping.
+    """
+    if isinstance(data, dict):
+        if "cases" not in data:
+            raise ValueError(
+                "A mapping-style test plan must list its cases under a top-level "
+                "'cases' key (the [[cases]] array of tables in TOML)."
+            )
+        plan = data["cases"]
+    else:
+        plan = data
+
+    if not plan:
+        raise ValueError("Empty test plan")
+    if not isinstance(plan, list):
+        raise TypeError(f"Test plan is not a list: {plan}")
+
+    directives = frozenset(CLITestCase.__dataclass_fields__.keys())
+
+    for index, test_case in enumerate(plan):
+        if not isinstance(test_case, dict):
+            raise TypeError(f"Test case #{index + 1} is not a dict: {test_case}")
+        if not directives.issuperset(test_case):
+            raise ValueError(
+                f"Test case #{index + 1} contains invalid directives: "
+                f"{set(test_case) - directives}"
+            )
+        yield CLITestCase(**test_case)
+
+
 def parse_test_plan(
     plan_string: str | None,
     fmt: ConfigFormat = ConfigFormat.YAML,
 ) -> Generator[CLITestCase, None, None]:
-    """Parse a serialized test plan into :class:`CLITestCase` instances.
+    """Parse a serialized test plan string into :class:`CLITestCase` instances.
 
-    ``fmt`` selects the serialization format, one of :data:`~click_extra.test_plan.PLAN_FORMATS`; it
-    defaults to YAML for string sources with no extension to key on (an
-    environment variable, an inline config value). A plan is a list of
-    mappings, each keyed by ``CLITestCase`` directive names. Formats with no
-    bare top-level array (TOML) carry that list under a top-level ``cases``
-    key instead.
+    ``fmt`` selects the serialization format, one of
+    :data:`~click_extra.test_plan.PLAN_FORMATS`; it defaults to YAML for string
+    sources with no extension to key on (an environment variable, an inline
+    config value). :func:`load_test_plan` is the file-based counterpart.
 
     :raises ValueError: the plan is empty, ``fmt`` cannot express a plan, a
         mapping plan omits ``cases``, or a case uses unknown directives.
@@ -504,66 +541,21 @@ def parse_test_plan(
             "to enable it."
         )
 
-    data = parse_content(fmt, plan_string)
-
-    # A plan is a list of cases. Formats without a bare top-level array (TOML)
-    # carry that list under a top-level ``cases`` key, so unwrap a mapping.
-    if isinstance(data, dict):
-        if "cases" not in data:
-            raise ValueError(
-                "A mapping-style test plan must list its cases under a top-level "
-                "'cases' key (the [[cases]] array of tables in TOML)."
-            )
-        plan = data["cases"]
-    else:
-        plan = data
-
-    # Validates test plan structure.
-    if not plan:
-        raise ValueError("Empty test plan")
-    if not isinstance(plan, list):
-        raise TypeError(f"Test plan is not a list: {plan}")
-
-    directives = frozenset(CLITestCase.__dataclass_fields__.keys())
-
-    for index, test_case in enumerate(plan):
-        # Validates test case structure.
-        if not isinstance(test_case, dict):
-            raise TypeError(f"Test case #{index + 1} is not a dict: {test_case}")
-        if not directives.issuperset(test_case):
-            raise ValueError(
-                f"Test case #{index + 1} contains invalid directives: "
-                f"{set(test_case) - directives}"
-            )
-
-        yield CLITestCase(**test_case)
+    yield from _cases_from_data(parse_content(fmt, plan_string))
 
 
 def load_test_plan(path: Path) -> Generator[CLITestCase, None, None]:
     """Read a test plan file and parse it by the format of its extension.
 
-    The format is matched from ``path``'s name against the file patterns of the
-    list-capable :data:`~click_extra.test_plan.PLAN_FORMATS`, so ``plan.toml`` parses as TOML,
-    ``plan.yaml`` as YAML, and so on.
+    The format is resolved from ``path``'s name over the list-capable
+    :data:`~click_extra.test_plan.PLAN_FORMATS` (so ``plan.toml`` parses as TOML,
+    ``plan.yaml`` as YAML). Reading and format detection are delegated to
+    :func:`click_extra.config.formats.read_file`.
 
     :raises ValueError: the file extension matches no plan format.
     :raises ImportError: the matched format's optional parser is not installed.
     """
-    fmt = next(
-        (
-            candidate
-            for candidate in PLAN_FORMATS
-            for pattern in candidate.patterns
-            if fnmatch(path.name, pattern)
-        ),
-        None,
-    )
-    if fmt is None:
-        raise ValueError(
-            f"Unsupported test plan file extension: {path.name!r}. Expected one of: "
-            + ", ".join(pat for f in PLAN_FORMATS for pat in f.patterns)
-        )
-    return parse_test_plan(path.read_text(encoding="utf-8"), fmt)
+    yield from _cases_from_data(read_file(path, PLAN_FORMATS))
 
 
 def run_test_plan(

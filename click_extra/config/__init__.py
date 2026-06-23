@@ -18,8 +18,8 @@
 This package gathers the three layers behind ``--config``, ``--no-config``, and
 ``--validate-config``:
 
-- :mod:`~click_extra.config.formats`: the supported file formats and their
-  stateless content parsers.
+- :mod:`~click_extra.config.formats`: the supported file formats and the
+  generic, stateless helpers to read, serialize, auto-detect, and resolve them.
 - :mod:`~click_extra.config.schema`: the schema-building and validation engine.
 - :mod:`~click_extra.config.option`: the option classes and click-extra's own
   configuration schemas.
@@ -30,7 +30,13 @@ Every public symbol is re-exported here so consumers can keep importing from
 
 from __future__ import annotations
 
-from .formats import ConfigFormat
+from .formats import (
+    ConfigFormat,
+    format_from_path,
+    parse_content,
+    read_file,
+    serialize_content,
+)
 from .option import (
     NO_CONFIG,
     VCS,
@@ -74,8 +80,12 @@ __all__ = [
     "ValidationError",
     "ValidationReport",
     "flatten_config_keys",
+    "format_from_path",
     "get_tool_config",
     "make_schema_callable",
     "normalize_config_keys",
+    "parse_content",
+    "read_file",
     "run_config_validation",
+    "serialize_content",
 ]
