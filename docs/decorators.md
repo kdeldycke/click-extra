@@ -157,6 +157,8 @@ Every default option ships with a matching decorator built via `decorator_factor
 
 Every entry in this list is an `allow_missing_parenthesis`-wrapped factory, so `@theme_option` and `@theme_option()` are both legal, and `@theme_option(default="light")` overrides the default while keeping the click-extra subclass guarantee.
 
+Each factory-built decorator also exposes the constructor signature of its option class, so editors, `help()` and the API reference below show the real parameters instead of an opaque `(*args, **kwargs)`.
+
 ## Rolling your own
 
 To plug a custom `ExtraOption` subclass into the same machinery, instantiate `decorator_factory(dec=option, cls=MyOption)`:

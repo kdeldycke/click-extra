@@ -6,6 +6,8 @@
 > This version is **not released yet** and is under active development.
 
 - Add the `@sort_by_option` decorator, so the `--sort-by` table option can be added without manually instantiating `SortByOption`, and composes with option groups and constraints. Closes [`click-extra#1777`](https://github.com/kdeldycke/click-extra/issues/1777).
+- Option decorators built by `decorator_factory` now expose their option class's constructor signature to `help()`, the REPL and Sphinx autodoc, instead of an opaque `(*args, **kwargs)`.
+- `@version_option` accepts an explicit version string as its first positional argument (`@version_option("1.2.3")`), for drop-in compatibility with Click. A positional value starting with `-` is still treated as an option flag name.
 
 ## [`8.0.1` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v8.0.0...v8.0.1)
 

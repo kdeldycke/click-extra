@@ -44,6 +44,10 @@ In the examples of this page the version is hard-coded to `1.2.3` for the sake o
 In most cases, you do not need to force it, as the version will be automatically [fetched from the package metadata](#variables) of the CLI or the [`__version__` attribute](#standalone-script) of the command.
 ```
 
+```{note}
+For drop-in compatibility with Click, the version can also be passed as the first positional argument: `@version_option("1.2.3")` is shorthand for `@version_option(fields={"version": "1.2.3"})`. A positional value starting with `-` is treated as a custom flag name instead, like every other option decorator.
+```
+
 ## Variables
 
 The message template is a [format string](https://docs.python.org/3/library/string.html#format-string-syntax), which {py:attr}`defaults to <click_extra.version.VersionOption.message>`:

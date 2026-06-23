@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import re
 from collections.abc import Sequence
@@ -73,6 +74,26 @@ class Custom(ParamType):
 
     def convert(self, value, param, ctx):
         return value
+
+
+def test_factory_decorators_expose_option_signature():
+    """Factory-built option decorators expose their option class's real signature.
+
+    Guards the signature propagation in
+    :func:`click_extra.decorators.decorator_factory`, which lets editors,
+    ``help()`` and Sphinx see the actual parameters instead of an opaque
+    ``(*args, **kwargs)``.
+    """
+    table_params = inspect.signature(table_format_option).parameters
+    assert "param_decls" in table_params
+    assert "default" in table_params
+    assert set(table_params) != {"args", "kwargs"}
+
+    # The columns registry argument is surfaced too.
+    assert "columns" in inspect.signature(columns_option).parameters
+
+    # Command/group are not parameter decorators, so they stay generic.
+    assert set(inspect.signature(command).parameters) == {"args", "kwargs"}
 
 
 @pytest.mark.parametrize("option_decorator", (show_params_option, show_params_option()))

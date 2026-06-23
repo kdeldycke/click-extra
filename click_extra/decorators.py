@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import inspect
 from functools import wraps
 
 import click
@@ -118,6 +119,22 @@ def decorator_factory(dec, *new_args, **new_defaults):
         # Return the original decorator with the new defaults.
         return dec(*args, **new_kwargs)
 
+    # Surface the parameter class's constructor signature on the produced decorator,
+    # instead of the opaque ``(*args, **kwargs)``, so editors, ``help()`` and Sphinx
+    # autodoc show the real options. Restricted to parameter decorators (``option``,
+    # ``argument`` and their subclasses): their ``cls.__init__`` mirrors what the
+    # decorator forwards, whereas ``command``/``group`` wrap a different (Cloup)
+    # signature and ``help_option`` has no ``cls``.
+    cls = new_defaults.get("cls")
+    if isinstance(cls, type) and issubclass(cls, click.Parameter):
+        try:
+            init_params = list(inspect.signature(cls.__init__).parameters.values())
+        except (TypeError, ValueError):
+            pass
+        else:
+            # Drop ``self`` and keep the rest as the decorator's public signature.
+            decorator.__signature__ = inspect.Signature(init_params[1:])
+
     return decorator
 
 
@@ -139,7 +156,57 @@ option = decorator_factory(dec=cloup.option, cls=Option)
 argument = decorator_factory(dec=cloup.argument, cls=Argument)
 
 help_option = decorator_factory(click.decorators.help_option, *DEFAULT_HELP_NAMES)
-version_option = decorator_factory(dec=option, cls=VersionOption)
+
+
+# Hand-written rather than produced by `decorator_factory` so it stays a drop-in for
+# Click's `@version_option`, whose first positional argument is the version string.
+# That conflicts with the `param_decls`-first convention the factory relies on, so the
+# two are told apart by their leading character (see the docstring below).
+@allow_missing_parenthesis
+def version_option(version=None, *param_decls, cls=VersionOption, group=None, **kwargs):
+    """Attach a :class:`~click_extra.version.VersionOption` to a command.
+
+    Drop-in compatible with Click's ``@version_option``: the first positional
+    argument may be an explicit version string. click-extra otherwise auto-detects
+    the version and treats positional arguments as option flags (like every other
+    option decorator), so the two are disambiguated by their leading character: a
+    value starting with ``-`` is a flag declaration, anything else is a Click-style
+    version string forwarded into the ``version`` template field.
+
+    .. code-block:: python
+
+        @command
+        @version_option("1.2.3")  # Click idiom: pins the displayed version.
+        def my_cmd(): ...
+
+    .. note::
+        Hand-written instead of produced by
+        :func:`~click_extra.decorators.decorator_factory` because Click's leading
+        ``version`` positional conflicts with the ``param_decls``-first convention
+        the factory relies on.
+    """
+    if version is not None and not str(version).startswith("-"):
+        # Click idiom ``@version_option("1.2.3")``: forward as a ``version`` override.
+        fields = dict(kwargs.pop("fields", None) or {})
+        if fields.get("version", version) != version:
+            raise TypeError(
+                "version supplied both positionally and via fields={'version': ...}.",
+            )
+        fields["version"] = version
+        kwargs["fields"] = fields
+    elif version is not None:
+        # Leading ``-``: a flag declaration, not a version. Restore it as a param_decl.
+        param_decls = (version, *param_decls)
+
+    def decorator(f):
+        _param_memo(f, cls(param_decls, **kwargs))
+        new_option = f.__click_params__[-1]
+        new_option.group = group
+        if group and group.hidden:
+            new_option.hidden = True
+        return f
+
+    return decorator
 
 
 # Introduce new commands decorators specific to Click Extra.

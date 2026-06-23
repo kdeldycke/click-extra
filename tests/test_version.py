@@ -130,6 +130,45 @@ def test_set_version(invoke):
 
 
 @skip_windows_colors
+def test_set_version_positional(invoke):
+    """Click drop-in: an explicit version may be the first positional argument.
+
+    ``@version_option("1.2.3.4")`` is equivalent to the
+    ``fields={"version": "1.2.3.4"}`` form used by :func:`test_set_version`.
+    """
+
+    @click.group
+    @version_option("1.2.3.4")
+    def color_cli2b():
+        echo("It works!")
+
+    result = invoke(color_cli2b, "--version", color=True)
+    assert result.stdout == (
+        "\x1b[97m\x1b[1mcolor-cli2b\x1b[0m, version \x1b[32m1.2.3.4\x1b[0m\n"
+    )
+    assert not result.stderr
+    assert result.exit_code == 0
+
+
+def test_version_option_dashed_positional_is_flag():
+    """A leading-dash positional names the option flag, not the version."""
+
+    @click.command
+    @version_option("--app-version")
+    def cli():
+        pass
+
+    opt = next(p for p in cli.params if isinstance(p, VersionOption))
+    assert opt.opts == ["--app-version"]
+
+
+def test_version_option_conflicting_version():
+    """The version cannot be supplied both positionally and via fields=."""
+    with pytest.raises(TypeError, match="both positionally and via fields"):
+        version_option("1.2.3", fields={"version": "9.9"})
+
+
+@skip_windows_colors
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 @pytest.mark.parametrize(
     "message, regex_stdout",
