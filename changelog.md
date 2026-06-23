@@ -15,6 +15,8 @@
 - Accept an integer `timeout` in a test plan case: a bare number like `timeout: 5` is coerced to a float instead of being rejected.
 - Show the same configuration across all eight supported formats (TOML, YAML, JSON, JSON5, JSONC, Hjson, INI, XML) in a tabbed block in the configuration docs, adding the previously missing JSON5, JSONC, Hjson, INI, and XML examples.
 - Centralize format reading, serialization, and detection in `click_extra.config`. New reusable helpers `serialize_content` (dump), `read_file` (read a file, picking the format from its extension), and `format_from_path` join the existing `parse_content`. The table serializers and the test-plan file loader now route through this single layer instead of handling format details themselves.
+- Move click-extra's own configuration schema (`ClickExtraConfig`, `TestPlanConfig`, `PrebakeConfig`) and its built-in validators into a new `click_extra.config.builtin` module, separating click-extra's concrete config from the generic schema engine (`click_extra.config.schema`) and the option classes (`click_extra.config.option`). These three schema dataclasses are no longer re-exported from the top-level `click_extra` namespace: import them from `click_extra.config` instead.
+- Add named constants for the schema field-metadata keys, the counterparts to the existing `EXTENSION_METADATA_KEY`: `CONFIG_PATH_METADATA_KEY` (pin a field to a config sub-path) and `NORMALIZE_KEYS_METADATA_KEY` (toggle key normalization on a field's value). Schema authors can use these instead of the bare `"click_extra.config_path"` / `"click_extra.normalize_keys"` metadata strings.
 
 ## [`8.0.1` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v8.0.0...v8.0.1)
 

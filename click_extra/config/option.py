@@ -52,7 +52,6 @@ import os
 from collections import ChainMap
 from collections.abc import Iterable
 from configparser import ConfigParser, ExtendedInterpolation
-from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property, partial
 from gettext import gettext as _
@@ -81,11 +80,10 @@ from ..parameters import (
     ParamStructure,
     require_sibling_param,
 )
+from .builtin import THEMES_CONFIG_KEY, _builtin_config_validators
 from .formats import ConfigFormat, parse_content
 from .schema import (
-    THEMES_CONFIG_KEY,
     ConfigValidator,
-    _builtin_config_validators,
     _normalize_conf,
     _opaque_paths,
     _select_app_section,
@@ -1564,64 +1562,3 @@ class ValidateConfigOption(ExtraOption):
 
         info_msg(f"Configuration file {value} is valid.")
         ctx.exit(0)
-
-
-# --- Click Extra's own configuration schema -----------------------------------
-
-
-@dataclass
-class TestPlanConfig:
-    """Config schema for a project's test plan, read from ``[tool.<cli>.test-plan]``.
-
-    The ``test-plan`` CLI command resolves its cases from this config when no
-    plan is given on the command line. Map it onto an app's config section with
-    a field carrying ``metadata={"click_extra.config_path": "test-plan"}``.
-    """
-
-    file: str = "./tests/cli-test-plan.yaml"
-    """Path to a YAML test plan file, resolved relative to the project root."""
-
-    inline: str | None = None
-    """Inline YAML test plan, an alternative to :attr:`file`. Takes precedence."""
-
-    timeout: int | None = None
-    """Default timeout (seconds) for each case that does not set its own.
-
-    ``None`` leaves cases unbounded unless ``--timeout`` is passed.
-    """
-
-
-@dataclass
-class PrebakeConfig:
-    """Config schema for the prebake commands, read from ``[tool.<cli>.prebake]``.
-
-    Lets a project pin the target ``__init__.py`` once for its build pipeline,
-    instead of passing ``--module`` to every ``click-extra prebake`` command.
-    """
-
-    module: str | None = None
-    """Path to the ``__init__.py`` to pre-bake, resolved relative to the project
-    root. Overrides the ``[project.scripts]`` auto-discovery; leave unset to keep
-    it."""
-
-
-@dataclass
-class ClickExtraConfig:
-    """Schema for the ``[tool.click-extra]`` configuration section.
-
-    Wired as the ``config_schema`` of the top-level ``click-extra`` group, so
-    every subcommand reads the same section and pulls its own sub-table through
-    :func:`~click_extra.config.schema.get_tool_config`.
-    """
-
-    test_plan: TestPlanConfig = field(
-        default_factory=TestPlanConfig,
-        metadata={"click_extra.config_path": "test-plan"},
-    )
-    """The ``[tool.click-extra.test-plan]`` sub-table (file/inline/timeout)."""
-
-    prebake: PrebakeConfig = field(
-        default_factory=PrebakeConfig,
-        metadata={"click_extra.config_path": "prebake"},
-    )
-    """The ``[tool.click-extra.prebake]`` sub-table (target module)."""

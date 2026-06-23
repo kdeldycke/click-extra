@@ -1863,9 +1863,9 @@ flatten_config_keys(conf, opaque_keys=frozenset({"matrix_replace"}))
 
 Dataclass fields can carry metadata to control how their values are extracted from the raw config:
 
-- **`click_extra.config_path`**: A dotted TOML path (like `"test-matrix.replace"`). The value is extracted directly from the raw config before normalization and flattening, bypassing the standard pipeline.
+- **`click_extra.config_path`** (alias: {py:data}`~click_extra.config.schema.CONFIG_PATH_METADATA_KEY`): A dotted TOML path (like `"test-matrix.replace"`). The value is extracted directly from the raw config before normalization and flattening, bypassing the standard pipeline.
 
-- **`click_extra.normalize_keys`**: Set to `False` to skip key normalization on the extracted value. Useful when the value contains keys that are external identifiers (for example, GitHub Actions axis names like `python-version`) that must not be converted to `python_version`.
+- **`click_extra.normalize_keys`** (alias: {py:data}`~click_extra.config.schema.NORMALIZE_KEYS_METADATA_KEY`): Set to `False` to skip key normalization on the extracted value. Useful when the value contains keys that are external identifiers (for example, GitHub Actions axis names like `python-version`) that must not be converted to `python_version`.
 
 - **`click_extra.extension`** (alias: {py:data}`~click_extra.config.schema.EXTENSION_METADATA_KEY`): Set to `True` to declare the field as an [extension point](#extending-validation). The sub-tree at that field becomes a passthrough: strict-check skips it, the flatten pipeline treats it as opaque, and a registered `ConfigValidator` (or your own code) takes over its validation. Equivalent to typing the field as `dict[str, X]`; use the metadata form when the field's runtime type isn't a mapping.
 
@@ -2019,6 +2019,15 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
 ## `click_extra.config` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.config.builtin
+   :strict:
+
+.. automodule:: click_extra.config.builtin
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. autoclasstree:: click_extra.config.formats
    :strict:
 

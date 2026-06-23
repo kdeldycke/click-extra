@@ -101,17 +101,23 @@ something other than a ``dict`` (for example, a nested dataclass that
 nonetheless represents user-extensible content)."""
 
 
-THEMES_CONFIG_KEY: str = "themes"
-"""Sub-key under ``[tool.<cli>]`` where user-defined themes live in config.
+CONFIG_PATH_METADATA_KEY = "click_extra.config_path"
+"""Dataclass field metadata key pinning a field to an explicit config sub-path.
 
-Used by :class:`~click_extra.config.option.ConfigOption` to find ``[tool.<cli>.themes.<name>]`` tables,
-build them via :meth:`HelpTheme.from_dict
-<click_extra.theme.HelpTheme.from_dict>`, and stash the result on
-``ctx.meta[click_extra.context.THEME_OVERRIDES]``. The constant is the
-single source of truth shared by ``_builtin_config_validators``,
-``ConfigOption._apply_theme_overrides``, and
-:func:`click_extra.theme.themes_from_config`.
-"""
+Schema authors set ``metadata={CONFIG_PATH_METADATA_KEY: "test-plan"}`` on a
+field so the dataclass loader (``_from_dataclass``) reads its value from that
+dotted path under the app's configuration section, rather than from a key named
+after the field. The named counterpart to ``EXTENSION_METADATA_KEY``."""
+
+
+NORMALIZE_KEYS_METADATA_KEY = "click_extra.normalize_keys"
+"""Dataclass field metadata key toggling key normalization on a field's value.
+
+Defaults to ``True``. Schema authors set
+``metadata={NORMALIZE_KEYS_METADATA_KEY: False}`` to keep a sub-tree's keys
+verbatim, so external identifiers (like ``python-version`` axis names) are not
+rewritten to Python-style names (``python_version``). Read by
+``_from_dataclass`` alongside ``CONFIG_PATH_METADATA_KEY``."""
 
 
 class ValidationError(Exception):
@@ -178,28 +184,6 @@ class ConfigValidator:
     extension_path: str
     validator: Callable[[dict[str, Any]], None]
     description: str = ""
-
-
-def _builtin_config_validators() -> tuple[ConfigValidator, ...]:
-    """Return the validators click-extra registers on every :class:`~click_extra.config.option.ConfigOption`.
-
-    Currently a single validator for ``[tool.<cli>.themes.<name>]`` tables.
-    Lazy-imports :func:`~click_extra.theme.validate_themes_config` to avoid
-    a load-time cycle: :mod:`click_extra.theme` is imported after
-    :mod:`click_extra.config` from the package ``__init__``.
-    """
-    from ..theme import validate_themes_config
-
-    return (
-        ConfigValidator(
-            extension_path=THEMES_CONFIG_KEY,
-            validator=validate_themes_config,
-            description=(
-                "Validate user-defined and override themes declared under "
-                "[tool.<cli>.themes.<name>]."
-            ),
-        ),
-    )
 
 
 def _strip_reserved_keys(conf: dict, keys: frozenset[str] | None = None) -> dict:
@@ -656,10 +640,10 @@ def _from_dataclass(
     remaining = dict(raw)
 
     for f in all_fields:
-        path = f.metadata.get("click_extra.config_path")
+        path = f.metadata.get(CONFIG_PATH_METADATA_KEY)
         if path is None:
             continue
-        do_normalize = f.metadata.get("click_extra.normalize_keys", True)
+        do_normalize = f.metadata.get(NORMALIZE_KEYS_METADATA_KEY, True)
         value, found = _extract_dotted(remaining, path)
         if not found:
             continue

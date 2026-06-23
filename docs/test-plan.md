@@ -178,7 +178,7 @@ file = "tests/cli-test-plan.yaml"  # default; format taken from the extension
 # timeout = 30  # default per-case timeout in seconds
 ```
 
-The resolution precedence is: `--plan-file`/`--plan-envvar`, then `[tool.click-extra.test-plan]` `inline`, then its `file`, then a built-in default plan that exercises `--version` and `--help`. The config maps onto the {class}`~click_extra.config.option.TestPlanConfig` schema (wrapped by {class}`~click_extra.config.option.ClickExtraConfig`).
+The resolution precedence is: `--plan-file`/`--plan-envvar`, then `[tool.click-extra.test-plan]` `inline`, then its `file`, then a built-in default plan that exercises `--version` and `--help`. The config maps onto the {class}`~click_extra.config.builtin.TestPlanConfig` schema (wrapped by {class}`~click_extra.config.builtin.ClickExtraConfig`).
 
 ## Running from Python
 
