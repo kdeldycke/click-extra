@@ -915,132 +915,186 @@ Several dialects are supported:
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#extra-dependencies) to enable them.
 
-### TOML
+Every supported format expresses the same configuration. Here is the `my-cli` section from the [example above](#standalone-option), written in each one: they all set the same defaults and produce the same result.
 
-See the [example in the top of this page](#standalone-option).
+`````{tab-set}
 
-### YAML
+````{tab-item} TOML
+```{code-block} toml
+[my-cli]
+extra_value = "is ignored too"
+dummy_flag = true
+my_list = ["item 1", "item #2", "Very Last Item!"]
 
-```{important}
-YAML support requires additional packages. You need to [install `click-extra[yaml]`](install.md#extra-dependencies) extra dependency group to enable it.
+[my-cli.subcommand]
+int_param = 3
+random_stuff = "will be ignored"
 ```
+````
 
-The example above, given for a TOML configuration file, is working as-is with YAML.
-
-Just replace the TOML file with the following configuration at
-`~/.config/my-cli/config.yaml`:
-
+````{tab-item} YAML
 ```{code-block} yaml
-:caption: `~/.config/my-cli/config.yaml`
-:emphasize-lines: 6,7-10,13
-# My default configuration file.
-top_level_param: is_ignored
-
 my-cli:
   extra_value: is ignored too
-  dummy_flag: true   # New boolean default.
+  dummy_flag: true
   my_list:
-    - point 1
-    - 'point #2'
-    - Very Last Point!
-
+    - item 1
+    - "item #2"
+    - Very Last Item!
   subcommand:
-    int_param: 77
+    int_param: 3
     random_stuff: will be ignored
-
-garbage: >
-  An empty random section that will be skipped
 ```
+````
 
-```{code-block} shell-session
-:emphasize-lines: 2-4
-$ my-cli --config "~/.config/my-cli/config.yaml" subcommand
-dummy_flag    is True
-my_list       is ('point 1', 'point #2', 'Very Last Point!')
-int_parameter is 77
-```
-
-### JSON
-
-Again, same for JSON:
-
+````{tab-item} JSON
 ```{code-block} json
-:caption: `~/.config/my-cli/config.json`
-:emphasize-lines: 5,7-11,13
 {
-  "top_level_param": "is_ignored",
-  "garbage": {},
   "my-cli": {
-    "dummy_flag": true,
     "extra_value": "is ignored too",
-    "my_list": [
-      "item 1",
-      "item #2",
-      "Very Last Item!"
-    ],
+    "dummy_flag": true,
+    "my_list": ["item 1", "item #2", "Very Last Item!"],
     "subcommand": {
-      "int_param": 65,
+      "int_param": 3,
       "random_stuff": "will be ignored"
     }
   }
 }
 ```
+````
 
-```{code-block} shell-session
-:emphasize-lines: 2-4
-$ my-cli --config "~/.config/my-cli/config.json" subcommand
-dummy_flag    is True
-my_list       is ('item 1', 'item #2', 'Very Last Item!')
-int_parameter is 65
+````{tab-item} JSON5
+```{code-block} json5
+{
+  // Unquoted keys, comments, trailing commas, single quotes.
+  'my-cli': {
+    extra_value: 'is ignored too',
+    dummy_flag: true,
+    my_list: ['item 1', 'item #2', 'Very Last Item!'],
+    subcommand: {
+      int_param: 3,
+      random_stuff: 'will be ignored',
+    },
+  },
+}
 ```
+````
+
+````{tab-item} JSONC
+```{code-block} json5
+{
+  // JSON, plus comments and trailing commas.
+  "my-cli": {
+    "extra_value": "is ignored too",
+    "dummy_flag": true,
+    "my_list": ["item 1", "item #2", "Very Last Item!"],
+    "subcommand": {
+      "int_param": 3,
+      "random_stuff": "will be ignored",
+    },
+  },
+}
+```
+````
+
+````{tab-item} HJSON
+```{code-block} text
+{
+  # No quotes, no commas.
+  my-cli:
+  {
+    extra_value: is ignored too
+    dummy_flag: true
+    my_list:
+    [
+      item 1
+      item #2
+      Very Last Item!
+    ]
+    subcommand:
+    {
+      int_param: 3
+      random_stuff: will be ignored
+    }
+  }
+}
+```
+````
+
+````{tab-item} INI
+```{code-block} ini
+[my-cli]
+extra_value = is ignored too
+dummy_flag = true
+my_list = ["item 1", "item #2", "Very Last Item!"]
+
+[my-cli.subcommand]
+int_param = 3
+random_stuff = will be ignored
+```
+````
+
+````{tab-item} XML
+```{code-block} xml
+<?xml version="1.0"?>
+<my-cli>
+  <extra_value>is ignored too</extra_value>
+  <dummy_flag>true</dummy_flag>
+  <my_list>item 1</my_list>
+  <my_list>item #2</my_list>
+  <my_list>Very Last Item!</my_list>
+  <subcommand>
+    <int_param>3</int_param>
+    <random_stuff>will be ignored</random_stuff>
+  </subcommand>
+</my-cli>
+```
+````
+`````
+
+### TOML
+
+`TOML` is enabled by default, and is the reference format used in the examples throughout this page.
+
+### YAML
+
+```{important}
+`YAML` support requires the `yaml` extra: [install `click-extra[yaml]`](install.md#extra-dependencies).
+```
+
+### JSON
+
+`JSON` is enabled by default.
 
 ### JSON5
 
 ```{important}
-JSON5 support requires additional packages. You need to [install `click-extra[json5]`](install.md#extra-dependencies) extra dependency group to enable it.
-```
-
-```{todo}
-Write example.
+`JSON5` support requires the `json5` extra: [install `click-extra[json5]`](install.md#extra-dependencies).
 ```
 
 ### JSONC
 
 ```{important}
-JSONC support requires additional packages. You need to [install `click-extra[jsonc]`](install.md#extra-dependencies) extra dependency group to enable it.
-```
-
-```{todo}
-Write example.
+`JSONC` support requires the `jsonc` extra: [install `click-extra[jsonc]`](install.md#extra-dependencies).
 ```
 
 ### HJSON
 
 ```{important}
-HJSON support requires additional packages. You need to [install `click-extra[hjson]`](install.md#extra-dependencies) extra dependency group to enable it.
-```
-
-```{todo}
-Write example.
+`HJSON` support requires the `hjson` extra: [install `click-extra[hjson]`](install.md#extra-dependencies).
 ```
 
 ### INI
 
-`INI` configuration files are allowed to use [`ExtendedInterpolation`](https://docs.python.org/3/library/configparser.html?highlight=configparser#configparser.ExtendedInterpolation) by default.
-
-```{todo}
-Write example.
-```
+`INI` files use sections, and a dot (`.`) in a section name marks a sub-level: `[my-cli.subcommand]` nests under `my-cli`. [`ExtendedInterpolation`](https://docs.python.org/3/library/configparser.html#configparser.ExtendedInterpolation) is enabled by default. Each value is typed after its matching CLI parameter; types `INI` has no native syntax for (lists, sets, …) are read as JSON-serialized strings, like `my_list` above.
 
 ### XML
 
 ```{important}
-XML support requires additional packages. You need to [install `click-extra[xml]`](install.md#extra-dependencies) extra dependency group to enable it.
+`XML` support requires the `xml` extra: [install `click-extra[xml]`](install.md#extra-dependencies).
 ```
 
-```{todo}
-Write example.
-```
+The root element is the CLI's name. A repeated element (like `my_list` above) is collected into a list, and every value is read as a string, then coerced to its matching parameter's type.
 
 <a name="pyproject-toml"></a>
 
