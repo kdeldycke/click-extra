@@ -177,7 +177,7 @@ Rather than passing `--plan-file` every time, a project can declare its plan onc
 
 ```{code-block} toml
 [tool.click-extra.test-plan]
-file = "tests/cli-test-plan.yaml"  # default; format taken from the extension
+file = "tests/cli-test-plan.toml"  # default; format taken from the extension
 # inline = "- cli_parameters: --version"  # or embed a YAML plan directly
 # timeout = 30  # default per-case timeout in seconds
 ```

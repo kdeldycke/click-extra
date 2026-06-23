@@ -416,7 +416,7 @@ report.precision = 2
 # Dogfood click-extra's own configuration: the test-plan subcommand reads its
 # settings from this section (see tests.yaml's "Self-test the CLI" step).
 [tool.click-extra.test-plan]
-file = "tests/cli-test-plan.yaml"
+file = "tests/cli-test-plan.toml"
 
 [tool.bumpversion]
 current_version = "8.1.0.dev0"

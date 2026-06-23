@@ -56,8 +56,12 @@ class TestPlanConfig:
     a field carrying ``metadata={CONFIG_PATH_METADATA_KEY: "test-plan"}``.
     """
 
-    file: str = "./tests/cli-test-plan.yaml"
-    """Path to a YAML test plan file, resolved relative to the project root."""
+    file: str = "./tests/cli-test-plan.toml"
+    """Path to a test plan file, resolved relative to the project root.
+
+    Its format is detected from the extension; the default is TOML, which (like
+    JSON) parses with no optional dependency, unlike YAML and the others.
+    """
 
     inline: str | None = None
     """Inline YAML test plan, an alternative to :attr:`file`. Takes precedence."""
