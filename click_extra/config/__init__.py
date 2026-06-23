@@ -38,7 +38,7 @@ from .builtin import (
     THEMES_CONFIG_KEY,
     ClickExtraConfig,
     PrebakeConfig,
-    TestPlanConfig,
+    TestSuiteConfig,
 )
 from .formats import (
     ConfigFormat,
@@ -85,7 +85,7 @@ __all__ = [
     "ConfigValidator",
     "NoConfigOption",
     "PrebakeConfig",
-    "TestPlanConfig",
+    "TestSuiteConfig",
     "ValidateConfigOption",
     "ValidationError",
     "ValidationReport",

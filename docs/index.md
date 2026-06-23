@@ -31,7 +31,7 @@ screenshots
 envvar
 decorators
 testing
-test-plan
+test-suite
 pytest
 wrap
 man-page

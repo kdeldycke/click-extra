@@ -400,7 +400,7 @@ addopts = [
   "--import-mode=importlib",
 ]
 # Restrict collection to the test suite. Otherwise pytest descends into the
-# click_extra package and imports test_plan.py (its basename matches the
+# click_extra package and imports test_suite.py (its basename matches the
 # test_*.py glob), which fails in dual-copy builds where an installed copy
 # shadows the source tree.
 testpaths = [ "tests" ]
@@ -413,10 +413,10 @@ run.branch = true
 run.source = [ "click_extra" ]
 report.precision = 2
 
-# Dogfood click-extra's own configuration: the test-plan subcommand reads its
+# Dogfood click-extra's own configuration: the test-suite subcommand reads its
 # settings from this section (see tests.yaml's "Self-test the CLI" step).
-[tool.click-extra.test-plan]
-file = "tests/cli-test-plan.toml"
+[tool.click-extra.test-suite]
+file = "tests/cli-test-suite.toml"
 
 [tool.bumpversion]
 current_version = "8.1.0.dev0"

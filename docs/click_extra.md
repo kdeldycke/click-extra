@@ -171,10 +171,10 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.test_plan module
+## click_extra.test_suite module
 
 ```{eval-rst}
-.. automodule:: click_extra.test_plan
+.. automodule:: click_extra.test_suite
    :members:
    :show-inheritance:
    :undoc-members:

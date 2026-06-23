@@ -20,7 +20,7 @@ the reusable engine in :mod:`~click_extra.config.schema` and the option classes
 in :mod:`~click_extra.config.option`:
 
 - the dataclasses describing click-extra's own ``[tool.click-extra]`` section
-  (:class:`ClickExtraConfig` and its ``test-plan`` and ``prebake`` sub-tables);
+  (:class:`ClickExtraConfig` and its ``test-suite`` and ``prebake`` sub-tables);
 - :func:`_builtin_config_validators`, the validators click-extra registers on
   every :class:`~click_extra.config.option.ConfigOption`.
 
@@ -52,36 +52,36 @@ single source of truth shared by ``_builtin_config_validators``,
 
 
 @dataclass
-class TestPlanConfig:
-    """Config schema for a project's test plan, read from ``[tool.<cli>.test-plan]``.
+class TestSuiteConfig:
+    """Config schema for a project's test suite, read from ``[tool.<cli>.test-suite]``.
 
-    The ``test-plan`` CLI command resolves its cases from this config when no
-    plan is given on the command line. Map it onto an app's config section with
-    a field carrying ``metadata={CONFIG_PATH_METADATA_KEY: "test-plan"}``.
+    The ``test-suite`` CLI command resolves its cases from this config when no
+    suite is given on the command line. Map it onto an app's config section with
+    a field carrying ``metadata={CONFIG_PATH_METADATA_KEY: "test-suite"}``.
     """
 
-    file: str = "./tests/cli-test-plan.toml"
-    """Path to a test plan file, resolved relative to the project root.
+    file: str = "./tests/cli-test-suite.toml"
+    """Path to a test suite file, resolved relative to the project root.
 
     Its format is detected from the extension; the default is TOML, which (like
     JSON) parses with no optional dependency, unlike YAML and the others.
     """
 
     inline: str | None = None
-    """Inline YAML test plan, an alternative to :attr:`file`. Takes precedence."""
+    """Inline YAML test suite, an alternative to :attr:`file`. Takes precedence."""
 
     cases: list[dict] = field(
         default_factory=list,
         metadata={EXTENSION_METADATA_KEY: True},
     )
     """Test cases written natively in the config format, an alternative to a
-    :attr:`file` or :attr:`inline` plan.
+    :attr:`file` or :attr:`inline` suite.
 
     Each entry is a mapping of ``CLITestCase`` directive names, equivalent to one
-    item of a plan list. In TOML this reads as a ``[[tool.<cli>.test-plan.cases]]``
+    item of a suite list. In TOML this reads as a ``[[tool.<cli>.test-suite.cases]]``
     array of tables. Declared as an extension point so the configuration engine
-    passes the raw mappings through unprocessed; the ``test-plan`` command turns
-    them into :class:`~click_extra.test_plan.CLITestCase` instances.
+    passes the raw mappings through unprocessed; the ``test-suite`` command turns
+    them into :class:`~click_extra.test_suite.CLITestCase` instances.
     """
 
     timeout: int | None = None
@@ -114,11 +114,11 @@ class ClickExtraConfig:
     :func:`~click_extra.config.schema.get_tool_config`.
     """
 
-    test_plan: TestPlanConfig = field(
-        default_factory=TestPlanConfig,
-        metadata={CONFIG_PATH_METADATA_KEY: "test-plan"},
+    test_suite: TestSuiteConfig = field(
+        default_factory=TestSuiteConfig,
+        metadata={CONFIG_PATH_METADATA_KEY: "test-suite"},
     )
-    """The ``[tool.click-extra.test-plan]`` sub-table (file/inline/timeout)."""
+    """The ``[tool.click-extra.test-suite]`` sub-table (file/inline/timeout)."""
 
     prebake: PrebakeConfig = field(
         default_factory=PrebakeConfig,

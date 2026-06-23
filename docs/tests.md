@@ -206,10 +206,10 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_test_plan module
+## tests.test_test_suite module
 
 ```{eval-rst}
-.. automodule:: tests.test_test_plan
+.. automodule:: tests.test_test_suite
    :members:
    :show-inheritance:
    :undoc-members:

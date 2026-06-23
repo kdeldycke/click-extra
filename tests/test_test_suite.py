@@ -14,14 +14,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Tests for the declarative CLI test-plan engine and its ``test-plan`` command.
+"""Tests for the declarative CLI test-suite engine and its ``test-suite`` command.
 
 Covers three surfaces:
 
-- :func:`~click_extra.test_plan.parse_test_plan` and the
-  :class:`~click_extra.test_plan.CLITestCase` normalization it feeds.
-- :func:`~click_extra.test_plan.run_test_plan`, the parallel orchestrator.
-- The ``click-extra test-plan`` subcommand wiring it to the CLI.
+- :func:`~click_extra.test_suite.parse_test_suite` and the
+  :class:`~click_extra.test_suite.CLITestCase` normalization it feeds.
+- :func:`~click_extra.test_suite.run_test_suite`, the parallel orchestrator.
+- The ``click-extra test-suite`` subcommand wiring it to the CLI.
 
 The host Python interpreter stands in for the command under test, so cases stay
 fast and platform-neutral.
@@ -34,13 +34,13 @@ import sys
 import pytest
 
 from click_extra import (
-    DEFAULT_TEST_PLAN,
+    DEFAULT_TEST_SUITE,
     CLITestCase,
     ConfigFormat,
     cases_from_data,
-    load_test_plan,
-    parse_test_plan,
-    run_test_plan,
+    load_test_suite,
+    parse_test_suite,
+    run_test_suite,
 )
 from click_extra.cli import demo
 
@@ -49,13 +49,13 @@ PASS_CASE = CLITestCase(cli_parameters="--version", exit_code=0)
 # A case that fails: --version never exits 99, so the expectation mismatches.
 FAIL_CASE = CLITestCase(cli_parameters="--version", exit_code=99)
 
-# --- parse_test_plan ---------------------------------------------------------
+# --- parse_test_suite ---------------------------------------------------------
 
 
 def test_parse_returns_cases():
-    """A well-formed YAML plan yields one CLITestCase per entry."""
+    """A well-formed YAML suite yields one CLITestCase per entry."""
     cases = list(
-        parse_test_plan(
+        parse_test_suite(
             "- cli_parameters: --version\n  exit_code: 0\n- cli_parameters: --help\n",
         )
     )
@@ -65,7 +65,7 @@ def test_parse_returns_cases():
 
 
 @pytest.mark.parametrize(
-    ("plan_string", "fmt"),
+    ("suite_string", "fmt"),
     (
         (
             '[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n\n'
@@ -79,9 +79,9 @@ def test_parse_returns_cases():
         ),
     ),
 )
-def test_parse_returns_cases_per_format(plan_string, fmt):
+def test_parse_returns_cases_per_format(suite_string, fmt):
     """TOML (cases under [[cases]]) and JSON (bare array) yield the same cases."""
-    cases = list(parse_test_plan(plan_string, fmt))
+    cases = list(parse_test_suite(suite_string, fmt))
     assert len(cases) == 2
     assert all(isinstance(c, CLITestCase) for c in cases)
     assert cases[0].exit_code == 0
@@ -90,17 +90,17 @@ def test_parse_returns_cases_per_format(plan_string, fmt):
 def test_parse_toml_requires_cases_key():
     """A TOML mapping without a top-level 'cases' array of tables is rejected."""
     with pytest.raises(ValueError, match="cases"):
-        list(parse_test_plan('title = "weather"\n', ConfigFormat.TOML))
+        list(parse_test_suite('title = "weather"\n', ConfigFormat.TOML))
 
 
-def test_parse_rejects_non_plan_format():
+def test_parse_rejects_non_suite_format():
     """A format that cannot represent a list of cases is rejected."""
-    with pytest.raises(ValueError, match="cannot express a test plan"):
-        list(parse_test_plan("[]", ConfigFormat.INI))
+    with pytest.raises(ValueError, match="cannot express a test suite"):
+        list(parse_test_suite("[]", ConfigFormat.INI))
 
 
 @pytest.mark.parametrize(
-    ("plan", "exception"),
+    ("suite", "exception"),
     (
         ("", ValueError),
         (None, ValueError),
@@ -109,39 +109,39 @@ def test_parse_rejects_non_plan_format():
         ("- not-a-real-directive: 1", ValueError),
     ),
 )
-def test_parse_rejects_malformed(plan, exception):
-    """Empty, mapping-without-cases, and unknown-directive plans raise."""
+def test_parse_rejects_malformed(suite, exception):
+    """Empty, mapping-without-cases, and unknown-directive suites raise."""
     with pytest.raises(exception):
-        list(parse_test_plan(plan))
+        list(parse_test_suite(suite))
 
 
-# --- load_test_plan ----------------------------------------------------------
+# --- load_test_suite ----------------------------------------------------------
 
 
 @pytest.mark.parametrize(
     ("filename", "content"),
     (
-        ("plan.yaml", "- cli_parameters: --version\n  exit_code: 0\n"),
-        ("plan.yml", "- cli_parameters: --version\n  exit_code: 0\n"),
-        ("plan.toml", '[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n'),
-        ("plan.json", '[{"cli_parameters": "--version", "exit_code": 0}]'),
+        ("suite.yaml", "- cli_parameters: --version\n  exit_code: 0\n"),
+        ("suite.yml", "- cli_parameters: --version\n  exit_code: 0\n"),
+        ("suite.toml", '[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n'),
+        ("suite.json", '[{"cli_parameters": "--version", "exit_code": 0}]'),
     ),
 )
 def test_load_detects_format_from_extension(tmp_path, filename, content):
     """The file extension selects the parser, so each format yields the case."""
     path = tmp_path / filename
     path.write_text(content)
-    cases = list(load_test_plan(path))
+    cases = list(load_test_suite(path))
     assert len(cases) == 1
     assert cases[0].exit_code == 0
 
 
 def test_load_rejects_unknown_extension(tmp_path):
-    """An extension matching no plan format is rejected."""
-    path = tmp_path / "plan.txt"
+    """An extension matching no suite format is rejected."""
+    path = tmp_path / "suite.txt"
     path.write_text("- cli_parameters: --version\n")
     with pytest.raises(ValueError, match="Unsupported file extension"):
-        list(load_test_plan(path))
+        list(load_test_suite(path))
 
 
 # --- cases_from_data ---------------------------------------------------------
@@ -191,7 +191,7 @@ def test_case_normalizes_timeout(value, expected):
     """A timeout given as int, float, or numeric string becomes a float.
 
     Plain integers are what every config format produces for a bare number, so
-    they must be accepted (a `timeout: 5` in any plan).
+    they must be accepted (a `timeout: 5` in any suite).
     """
     assert CLITestCase(timeout=value).timeout == expected
 
@@ -249,13 +249,13 @@ def test_output_and_stream_directives_are_mutually_exclusive():
         CLITestCase(output_contains="x", stdout_contains="y")
 
 
-# --- run_test_plan -----------------------------------------------------------
+# --- run_test_suite -----------------------------------------------------------
 
 
 @pytest.mark.parametrize("jobs", (1, 2, 3))
 def test_run_counts_pass_and_fail(jobs):
     """Pass/fail tallies match regardless of the worker count."""
-    counter = run_test_plan(
+    counter = run_test_suite(
         sys.executable,
         [PASS_CASE, FAIL_CASE, PASS_CASE],
         jobs=jobs,
@@ -269,7 +269,7 @@ def test_run_counts_pass_and_fail(jobs):
 
 def test_run_select_test_skips_others():
     """select_test runs only the chosen 1-based cases; the rest count as skipped."""
-    counter = run_test_plan(
+    counter = run_test_suite(
         sys.executable,
         [PASS_CASE, FAIL_CASE, PASS_CASE],
         select_test=(1, 3),
@@ -282,7 +282,7 @@ def test_run_select_test_skips_others():
 
 def test_run_exit_on_error_bails_sequentially():
     """With one worker, exit_on_error stops before later cases run."""
-    counter = run_test_plan(
+    counter = run_test_suite(
         sys.executable,
         [FAIL_CASE, PASS_CASE, PASS_CASE],
         jobs=1,
@@ -297,7 +297,7 @@ def test_run_exit_on_error_bails_sequentially():
 
 def test_run_stats_echoes_summary(capsys):
     """stats prints the worker line up front and the result tally at the end."""
-    run_test_plan(
+    run_test_suite(
         sys.executable,
         [PASS_CASE, PASS_CASE],
         jobs=2,
@@ -313,47 +313,47 @@ def test_run_stats_echoes_summary(capsys):
 
 def test_run_no_stats_is_quiet(capsys):
     """Without stats, neither the worker line nor the tally is printed."""
-    run_test_plan(
+    run_test_suite(
         sys.executable,
         [PASS_CASE],
         stats=False,
         show_progress=False,
     )
     out = capsys.readouterr().out
-    assert "Test plan results" not in out
+    assert "Test suite results" not in out
     assert "os.cpu_count()" not in out
 
 
-# --- click-extra test-plan subcommand ----------------------------------------
+# --- click-extra test-suite subcommand ----------------------------------------
 
 
-def test_cli_runs_default_plan(invoke):
-    """With no plan source, the subcommand runs the built-in default plan."""
-    result = invoke(demo, ["test-plan", "--command", sys.executable])
+def test_cli_runs_default_suite(invoke):
+    """With no suite source, the subcommand runs the built-in default suite."""
+    result = invoke(demo, ["test-suite", "--command", sys.executable])
     assert result.exit_code == 0
-    assert f"Total: {len(DEFAULT_TEST_PLAN)}" in result.output
+    assert f"Total: {len(DEFAULT_TEST_SUITE)}" in result.output
 
 
-def test_cli_runs_plan_file(invoke, tmp_path):
-    """A --plan-file is parsed and run against the target command."""
-    plan = tmp_path / "plan.yaml"
-    plan.write_text("- cli_parameters: --version\n  exit_code: 0\n")
+def test_cli_runs_suite_file(invoke, tmp_path):
+    """A --suite-file is parsed and run against the target command."""
+    suite = tmp_path / "suite.yaml"
+    suite.write_text("- cli_parameters: --version\n  exit_code: 0\n")
     result = invoke(
         demo,
-        ["test-plan", "--command", sys.executable, "--plan-file", str(plan)],
+        ["test-suite", "--command", sys.executable, "--suite-file", str(suite)],
     )
     assert result.exit_code == 0
     assert "Total: 1" in result.output
     assert "Failed: 0" in result.output
 
 
-def test_cli_runs_toml_plan_file(invoke, tmp_path):
-    """A TOML --plan-file runs without the yaml extra, since TOML is built in."""
-    plan = tmp_path / "plan.toml"
-    plan.write_text('[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n')
+def test_cli_runs_toml_suite_file(invoke, tmp_path):
+    """A TOML --suite-file runs without the yaml extra, since TOML is built in."""
+    suite = tmp_path / "suite.toml"
+    suite.write_text('[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n')
     result = invoke(
         demo,
-        ["test-plan", "--command", sys.executable, "--plan-file", str(plan)],
+        ["test-suite", "--command", sys.executable, "--suite-file", str(suite)],
     )
     assert result.exit_code == 0
     assert "Total: 1" in result.output
@@ -362,11 +362,11 @@ def test_cli_runs_toml_plan_file(invoke, tmp_path):
 
 def test_cli_reports_failure_exit_code(invoke, tmp_path):
     """A failing case makes the subcommand exit non-zero."""
-    plan = tmp_path / "plan.yaml"
-    plan.write_text("- cli_parameters: --version\n  exit_code: 99\n")
+    suite = tmp_path / "suite.yaml"
+    suite.write_text("- cli_parameters: --version\n  exit_code: 99\n")
     result = invoke(
         demo,
-        ["test-plan", "--command", sys.executable, "--plan-file", str(plan)],
+        ["test-suite", "--command", sys.executable, "--suite-file", str(suite)],
     )
     assert result.exit_code == 1
     assert "Failed: 1" in result.output
@@ -375,7 +375,7 @@ def test_cli_reports_failure_exit_code(invoke, tmp_path):
 def test_cli_rejects_non_integer_jobs(invoke):
     """--jobs is click-extra's JobsOption, so a non-numeric value is refused."""
     result = invoke(
-        demo, ["test-plan", "--command", sys.executable, "--jobs", "banana"]
+        demo, ["test-suite", "--command", sys.executable, "--jobs", "banana"]
     )
     assert result.exit_code == 2
     assert "banana" in result.stderr
@@ -383,15 +383,15 @@ def test_cli_rejects_non_integer_jobs(invoke):
 
 def test_cli_requires_command(invoke):
     """Without --command/--binary, the subcommand errors with a usage message."""
-    result = invoke(demo, ["test-plan"])
+    result = invoke(demo, ["test-suite"])
     assert result.exit_code == 2
     assert "Missing option '--command' / '--binary'" in result.stderr
 
 
-def test_cli_resolves_plan_from_config(invoke, tmp_path, monkeypatch):
-    """With no --plan-file, the plan comes from [tool.click-extra.test-plan]."""
+def test_cli_resolves_suite_from_config(invoke, tmp_path, monkeypatch):
+    """With no --suite-file, the suite comes from [tool.click-extra.test-suite]."""
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.click-extra.test-plan]\nfile = "configured.yaml"\n',
+        '[tool.click-extra.test-suite]\nfile = "configured.yaml"\n',
         encoding="UTF-8",
     )
     (tmp_path / "configured.yaml").write_text(
@@ -400,27 +400,27 @@ def test_cli_resolves_plan_from_config(invoke, tmp_path, monkeypatch):
     )
     monkeypatch.chdir(tmp_path)
 
-    result = invoke(demo, ["test-plan", "--command", sys.executable])
+    result = invoke(demo, ["test-suite", "--command", sys.executable])
     assert result.exit_code == 0
-    # The configured plan has 1 case; the built-in default has 3, so Total: 1
-    # proves the [tool.click-extra.test-plan] file was read.
+    # The configured suite has 1 case; the built-in default has 3, so Total: 1
+    # proves the [tool.click-extra.test-suite] file was read.
     assert "Total: 1" in result.output
 
 
 def test_cli_resolves_native_cases_from_config(invoke, tmp_path, monkeypatch):
-    """Cases can be declared natively under [[tool.click-extra.test-plan.cases]]."""
+    """Cases can be declared natively under [[tool.click-extra.test-suite.cases]]."""
     (tmp_path / "pyproject.toml").write_text(
-        "[[tool.click-extra.test-plan.cases]]\n"
+        "[[tool.click-extra.test-suite.cases]]\n"
         'cli_parameters = "--version"\n'
         "exit_code = 0\n\n"
-        "[[tool.click-extra.test-plan.cases]]\n"
+        "[[tool.click-extra.test-suite.cases]]\n"
         'cli_parameters = "--help"\n'
         "exit_code = 0\n",
         encoding="UTF-8",
     )
     monkeypatch.chdir(tmp_path)
 
-    result = invoke(demo, ["test-plan", "--command", sys.executable])
+    result = invoke(demo, ["test-suite", "--command", sys.executable])
     assert result.exit_code == 0
     # The two native [[...cases]] entries run (not the 3-case built-in default).
     assert "Total: 2" in result.output

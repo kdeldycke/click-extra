@@ -126,12 +126,12 @@ jobs:
           uv --no-progress run --frozen --with quart -- click-extra             wrap  quart --help
           uv --no-progress run --frozen --with quart -- click-extra                   quart --help
 
-      - name: Self-test the CLI against its test plan
-        # Dogfood both the test-plan engine and click-extra's own config: the
-        # plan path is resolved from the [tool.click-extra.test-plan] section in
+      - name: Self-test the CLI against its test suite
+        # Dogfood both the test-suite engine and click-extra's own config: the
+        # suite path is resolved from the [tool.click-extra.test-suite] section in
         # pyproject.toml, discovered from the repo root, then run against the
         # installed click-extra CLI.
-        run: uv --no-progress run --frozen -- click-extra test-plan --command click-extra --jobs max
+        run: uv --no-progress run --frozen -- click-extra test-suite --command click-extra --jobs max
 
       - name: Run once-only tests
         run: >

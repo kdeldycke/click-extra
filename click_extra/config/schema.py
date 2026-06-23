@@ -104,7 +104,7 @@ nonetheless represents user-extensible content)."""
 CONFIG_PATH_METADATA_KEY = "click_extra.config_path"
 """Dataclass field metadata key pinning a field to an explicit config sub-path.
 
-Schema authors set ``metadata={CONFIG_PATH_METADATA_KEY: "test-plan"}`` on a
+Schema authors set ``metadata={CONFIG_PATH_METADATA_KEY: "test-suite"}`` on a
 field so the dataclass loader (``_from_dataclass``) reads its value from that
 dotted path under the app's configuration section, rather than from a key named
 after the field. The named counterpart to ``EXTENSION_METADATA_KEY``."""

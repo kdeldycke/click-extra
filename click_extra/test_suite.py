@@ -14,19 +14,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Declarative, black-box CLI test plans.
+"""Declarative, black-box CLI test suites.
 
-A test plan is a list of :class:`CLITestCase` invocations: each runs a target
+A test suite is a list of :class:`CLITestCase` invocations: each runs a target
 command (a name, a command line, or a path to a binary) once with extra
 parameters, then checks its exit code and ``stdout``/``stderr`` against literal,
 substring, or regex expectations. Cases carry their own platform skip/only
-rules, so one plan runs across operating systems unchanged.
+rules, so one suite runs across operating systems unchanged.
 
-Plans are written in any list-capable configuration format and loaded with
-:func:`load_test_plan` (which picks the format from the file extension) or
-:func:`parse_test_plan` (which parses a serialized string). TOML and JSON are
-built in; YAML and the other :data:`~click_extra.test_plan.PLAN_FORMATS` need their matching
-``click-extra[…]`` extra. :func:`run_test_plan` drives a list of cases against
+Suites are written in any list-capable configuration format and loaded with
+:func:`load_test_suite` (which picks the format from the file extension) or
+:func:`parse_test_suite` (which parses a serialized string). TOML and JSON are
+built in; YAML and the other :data:`~click_extra.test_suite.SUITE_FORMATS` need their matching
+``click-extra[…]`` extra. :func:`run_test_suite` drives a list of cases against
 a target, parallelized per the resolved ``--jobs`` count (see
 :func:`click_extra.execution.run_jobs`) and reporting live progress through a
 :class:`click_extra.spinner.Spinner`.
@@ -64,7 +64,7 @@ from .testing import (
     render_cli_run,
 )
 
-PLAN_FORMATS: tuple[ConfigFormat, ...] = (
+SUITE_FORMATS: tuple[ConfigFormat, ...] = (
     # Built-in, no extra dependency.
     ConfigFormat.TOML,
     ConfigFormat.JSON,
@@ -74,14 +74,14 @@ PLAN_FORMATS: tuple[ConfigFormat, ...] = (
     ConfigFormat.JSONC,
     ConfigFormat.HJSON,
 )
-"""Configuration formats a test plan can be serialized in, built-in ones first.
+"""Configuration formats a test suite can be serialized in, built-in ones first.
 
 These are the formats able to represent a top-level list of case mappings,
-matched against a file's extension by :func:`load_test_plan`. TOML and JSON
+matched against a file's extension by :func:`load_test_suite`. TOML and JSON
 parse with no extra dependency; the others each need their matching
-``click-extra[…]`` extra. TOML has no bare top-level array, so a TOML plan
+``click-extra[…]`` extra. TOML has no bare top-level array, so a TOML suite
 lists its cases under a ``[[cases]]`` array of tables (see
-:func:`parse_test_plan`); the others use a bare list. INI (no nesting) and XML
+:func:`parse_test_suite`); the others use a bare list. INI (no nesting) and XML
 (no natural list representation) are excluded.
 
 Per-format availability is resolved by
@@ -207,7 +207,7 @@ class CLITestCase:
     """Rendering of the command execution and its output.
 
     Populated after the case runs, for inspection on failure; not a directive
-    you set in a test plan.
+    you set in a test suite.
     """
 
     @property
@@ -461,7 +461,7 @@ class CLITestCase:
                 regex_fullmatch_line_by_line(field_data, output)
 
 
-DEFAULT_TEST_PLAN: list[CLITestCase] = [
+DEFAULT_TEST_SUITE: list[CLITestCase] = [
     # Output the version of the CLI.
     CLITestCase(cli_parameters="--version"),
     # Test combination of version and verbosity.
@@ -472,39 +472,39 @@ DEFAULT_TEST_PLAN: list[CLITestCase] = [
 
 
 def cases_from_data(data: Any) -> Generator[CLITestCase, None, None]:
-    """Build :class:`CLITestCase` instances from already-parsed plan data.
+    """Build :class:`CLITestCase` instances from already-parsed suite data.
 
-    The in-memory counterpart to :func:`parse_test_plan` (which parses a string)
-    and :func:`load_test_plan` (which reads a file): feed it a plan that is
+    The in-memory counterpart to :func:`parse_test_suite` (which parses a string)
+    and :func:`load_test_suite` (which reads a file): feed it a suite that is
     already a Python object, such as the native ``cases`` mappings declared in a
-    ``[tool.<cli>.test-plan]`` config section.
+    ``[tool.<cli>.test-suite]`` config section.
 
-    A plan is a list of case mappings, each keyed by ``CLITestCase`` directive
+    A suite is a list of case mappings, each keyed by ``CLITestCase`` directive
     names. Formats with no bare top-level array (TOML) carry that list under a
     top-level ``cases`` key, so a mapping is unwrapped here.
 
-    :raises ValueError: the plan is empty, a mapping plan omits ``cases``, or a
+    :raises ValueError: the suite is empty, a mapping suite omits ``cases``, or a
         case uses unknown directives.
-    :raises TypeError: the plan is not a list, or a case is not a mapping.
+    :raises TypeError: the suite is not a list, or a case is not a mapping.
     """
     if isinstance(data, dict):
         if "cases" not in data:
             raise ValueError(
-                "A mapping-style test plan must list its cases under a top-level "
+                "A mapping-style test suite must list its cases under a top-level "
                 "'cases' key (the [[cases]] array of tables in TOML)."
             )
-        plan = data["cases"]
+        suite = data["cases"]
     else:
-        plan = data
+        suite = data
 
-    if not plan:
-        raise ValueError("Empty test plan")
-    if not isinstance(plan, list):
-        raise TypeError(f"Test plan is not a list: {plan}")
+    if not suite:
+        raise ValueError("Empty test suite")
+    if not isinstance(suite, list):
+        raise TypeError(f"Test suite is not a list: {suite}")
 
     directives = frozenset(CLITestCase.__dataclass_fields__.keys())
 
-    for index, test_case in enumerate(plan):
+    for index, test_case in enumerate(suite):
         if not isinstance(test_case, dict):
             raise TypeError(f"Test case #{index + 1} is not a dict: {test_case}")
         if not directives.issuperset(test_case):
@@ -515,29 +515,29 @@ def cases_from_data(data: Any) -> Generator[CLITestCase, None, None]:
         yield CLITestCase(**test_case)
 
 
-def parse_test_plan(
-    plan_string: str | None,
+def parse_test_suite(
+    suite_string: str | None,
     fmt: ConfigFormat = ConfigFormat.YAML,
 ) -> Generator[CLITestCase, None, None]:
-    """Parse a serialized test plan string into :class:`CLITestCase` instances.
+    """Parse a serialized test suite string into :class:`CLITestCase` instances.
 
     ``fmt`` selects the serialization format, one of
-    :data:`~click_extra.test_plan.PLAN_FORMATS`; it defaults to YAML for string
+    :data:`~click_extra.test_suite.SUITE_FORMATS`; it defaults to YAML for string
     sources with no extension to key on (an environment variable, an inline
-    config value). :func:`load_test_plan` is the file-based counterpart.
+    config value). :func:`load_test_suite` is the file-based counterpart.
 
-    :raises ValueError: the plan is empty, ``fmt`` cannot express a plan, a
-        mapping plan omits ``cases``, or a case uses unknown directives.
-    :raises TypeError: the plan is not a list, or a case is not a mapping.
+    :raises ValueError: the suite is empty, ``fmt`` cannot express a suite, a
+        mapping suite omits ``cases``, or a case uses unknown directives.
+    :raises TypeError: the suite is not a list, or a case is not a mapping.
     :raises ImportError: the format's optional parser is not installed.
     """
-    if not plan_string:
-        raise ValueError("Empty test plan")
+    if not suite_string:
+        raise ValueError("Empty test suite")
 
-    if fmt not in PLAN_FORMATS:
+    if fmt not in SUITE_FORMATS:
         raise ValueError(
-            f"{fmt} cannot express a test plan; use one of: "
-            + ", ".join(map(str, PLAN_FORMATS))
+            f"{fmt} cannot express a test suite; use one of: "
+            + ", ".join(map(str, SUITE_FORMATS))
         )
 
     if not fmt.enabled:
@@ -546,24 +546,24 @@ def parse_test_plan(
             "to enable it."
         )
 
-    yield from cases_from_data(parse_content(fmt, plan_string))
+    yield from cases_from_data(parse_content(fmt, suite_string))
 
 
-def load_test_plan(path: Path) -> Generator[CLITestCase, None, None]:
-    """Read a test plan file and parse it by the format of its extension.
+def load_test_suite(path: Path) -> Generator[CLITestCase, None, None]:
+    """Read a test suite file and parse it by the format of its extension.
 
     The format is resolved from ``path``'s name over the list-capable
-    :data:`~click_extra.test_plan.PLAN_FORMATS` (so ``plan.toml`` parses as TOML,
-    ``plan.yaml`` as YAML). Reading and format detection are delegated to
+    :data:`~click_extra.test_suite.SUITE_FORMATS` (so ``suite.toml`` parses as TOML,
+    ``suite.yaml`` as YAML). Reading and format detection are delegated to
     :func:`click_extra.config.formats.read_file`.
 
-    :raises ValueError: the file extension matches no plan format.
+    :raises ValueError: the file extension matches no suite format.
     :raises ImportError: the matched format's optional parser is not installed.
     """
-    yield from cases_from_data(read_file(path, PLAN_FORMATS))
+    yield from cases_from_data(read_file(path, SUITE_FORMATS))
 
 
-def run_test_plan(
+def run_test_suite(
     command: Path | str,
     cases: Sequence[CLITestCase],
     *,
@@ -690,7 +690,7 @@ def run_test_plan(
     # A bail-out skips the summary; the caller still sees the non-zero count.
     if stats and not bailed:
         echo(
-            "Test plan results - "
+            "Test suite results - "
             + ", ".join(f"{k.title()}: {v}" for k, v in counter.items())
         )
 

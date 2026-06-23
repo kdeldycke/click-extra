@@ -46,7 +46,7 @@ from . import (
     style,
 )
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
-from .config import ClickExtraConfig, TestPlanConfig, get_tool_config
+from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
 from .envvar import merge_envvar_ids
 from .prebake import (
     _find_dunder_str,
@@ -62,13 +62,13 @@ from .spinner import (
 )
 from .styling import _nearest_256
 from .table import print_table
-from .test_plan import (
-    DEFAULT_TEST_PLAN,
+from .test_suite import (
+    DEFAULT_TEST_SUITE,
     CLITestCase,
     cases_from_data,
-    load_test_plan,
-    parse_test_plan,
-    run_test_plan,
+    load_test_suite,
+    parse_test_suite,
+    run_test_suite,
 )
 from .version import (
     GIT_FIELDS,
@@ -137,7 +137,7 @@ def demo():
 demo.add_command(wrap_cmd)
 
 
-@command(name="test-plan")
+@command(name="test-suite")
 @option(
     "--command",
     "--binary",
@@ -147,21 +147,21 @@ demo.add_command(wrap_cmd)
 )
 @option(
     "-F",
-    "--plan-file",
+    "--suite-file",
     type=file_path(exists=True, readable=True, resolve_path=True),
     multiple=True,
     metavar="FILE_PATH",
-    help="Path to a test plan file; its format is taken from the extension "
-    "(YAML, TOML, JSON, JSON5, JSONC, Hjson). Repeat to run multiple plans in "
-    "sequence. Without any plan source, a built-in default plan runs.",
+    help="Path to a test suite file; its format is taken from the extension "
+    "(YAML, TOML, JSON, JSON5, JSONC, Hjson). Repeat to run multiple suites in "
+    "sequence. Without any suite source, a built-in default suite runs.",
 )
 @option(
     "-E",
-    "--plan-envvar",
+    "--suite-envvar",
     multiple=True,
     metavar="ENVVAR_NAME",
-    help="Name of an environment variable holding a test plan in YAML. Repeat "
-    "to collect multiple plans.",
+    help="Name of an environment variable holding a test suite in YAML. Repeat "
+    "to collect multiple suites.",
 )
 @option(
     "-t",
@@ -206,11 +206,11 @@ demo.add_command(wrap_cmd)
     help="Print the worker summary and the result tally.",
 )
 @pass_context
-def test_plan_cmd(
+def test_suite_cmd(
     ctx: context.Context,
     command: str,
-    plan_file: tuple[Path, ...],
-    plan_envvar: tuple[str, ...],
+    suite_file: tuple[Path, ...],
+    suite_envvar: tuple[str, ...],
     select_test: tuple[int, ...],
     skip_platform: tuple[str, ...],
     exit_on_error: bool,
@@ -220,8 +220,8 @@ def test_plan_cmd(
 ) -> None:
     """Run declarative CLI test cases against a command or binary.
 
-    Resolves the plan by precedence: --plan-file or --plan-envvar, then the
-    [tool.click-extra.test-plan] config (inline, then file), then a built-in
+    Resolves the suite by precedence: --suite-file or --suite-envvar, then the
+    [tool.click-extra.test-suite] config (inline, then file), then a built-in
     default. Each case invokes the target with its parameters and checks the
     exit code and output.
 
@@ -238,35 +238,35 @@ def test_plan_cmd(
     # context; read it and hand it to the runner.
     worker_count = context.get(ctx, context.JOBS, 1)
 
-    # The [tool.click-extra.test-plan] config, or its defaults when the section
+    # The [tool.click-extra.test-suite] config, or its defaults when the section
     # (or any config file) is absent.
     config = get_tool_config(ctx)
-    test_plan_config = config.test_plan if config else TestPlanConfig()
+    test_suite_config = config.test_suite if config else TestSuiteConfig()
 
-    # Collect cases by precedence: CLI sources (--plan-file, --plan-envvar), then
-    # the configured native cases, then the inline plan, then the plan file, then
+    # Collect cases by precedence: CLI sources (--suite-file, --suite-envvar), then
+    # the configured native cases, then the inline suite, then the suite file, then
     # a built-in default.
     cases: list[CLITestCase] = []
-    for plan in plan_file:
-        cases.extend(load_test_plan(plan))
-    for envvar_id in merge_envvar_ids(plan_envvar):
-        cases.extend(parse_test_plan(os.getenv(envvar_id)))
-    if not cases and test_plan_config.cases:
-        cases.extend(cases_from_data(test_plan_config.cases))
-    if not cases and test_plan_config.inline:
-        cases.extend(parse_test_plan(test_plan_config.inline))
-    if not cases and test_plan_config.file:
-        plan_path = Path(test_plan_config.file)
-        if plan_path.exists():
-            cases.extend(load_test_plan(plan_path))
+    for suite in suite_file:
+        cases.extend(load_test_suite(suite))
+    for envvar_id in merge_envvar_ids(suite_envvar):
+        cases.extend(parse_test_suite(os.getenv(envvar_id)))
+    if not cases and test_suite_config.cases:
+        cases.extend(cases_from_data(test_suite_config.cases))
+    if not cases and test_suite_config.inline:
+        cases.extend(parse_test_suite(test_suite_config.inline))
+    if not cases and test_suite_config.file:
+        suite_path = Path(test_suite_config.file)
+        if suite_path.exists():
+            cases.extend(load_test_suite(suite_path))
     if not cases:
-        cases = DEFAULT_TEST_PLAN
+        cases = DEFAULT_TEST_SUITE
 
     # Fall back to the configured timeout when --timeout is not given.
-    if timeout is None and test_plan_config.timeout is not None:
-        timeout = float(test_plan_config.timeout)
+    if timeout is None and test_suite_config.timeout is not None:
+        timeout = float(test_suite_config.timeout)
 
-    counter = run_test_plan(
+    counter = run_test_suite(
         command,
         cases,
         jobs=worker_count,
@@ -282,7 +282,7 @@ def test_plan_cmd(
         ctx.exit(1)
 
 
-demo.add_command(test_plan_cmd)
+demo.add_command(test_suite_cmd)
 
 
 _ALL_STYLES = (

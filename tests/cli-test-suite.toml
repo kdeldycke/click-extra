@@ -1,4 +1,4 @@
-# This test plan checks some high-level behavior of the click-extra CLI.
+# This test suite checks some high-level behavior of the click-extra CLI.
 #
 # The prog_name shown in version output is "Click Extra" (set via version_fields
 # in cli.py). The usage line shows "click-extra" (set via name= in the @group decorator).
@@ -48,7 +48,7 @@ stdout_contains = [
   "help",
   "prebake",
   "run",
-  "test-plan",
+  "test-suite",
 ]
 
 
@@ -78,27 +78,27 @@ stdout_contains = [
 ]
 
 
-# -- test-plan subcommand -----------------------------------------------------
+# -- test-suite subcommand -----------------------------------------------------
 
 
 [[cases]]
-cli_parameters = ["test-plan", "--help"]
+cli_parameters = ["test-suite", "--help"]
 exit_code = 0
 strip_ansi = true
 stdout_contains = [
-  "Usage: click-extra test-plan [OPTIONS]",
+  "Usage: click-extra test-suite [OPTIONS]",
   "Run declarative CLI test cases against a command or binary.",
 ]
 
 
 # Without a target, the required --command/--binary option errors out.
 [[cases]]
-cli_parameters = ["test-plan"]
+cli_parameters = ["test-suite"]
 exit_code = 2
 strip_ansi = true
 stderr_contains = """
-Usage: click-extra test-plan [OPTIONS]
-Try 'click-extra test-plan --help' for help.
+Usage: click-extra test-suite [OPTIONS]
+Try 'click-extra test-suite --help' for help.
 
 Error: Missing option '--command' / '--binary'.
 """

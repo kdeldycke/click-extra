@@ -88,7 +88,7 @@ STREAM_FIELDS = {
 
 ``output_*`` directives target the merged stream; ``stdout_*`` and ``stderr_*``
 target the separate streams. Both :func:`render_cli_run` and
-:meth:`click_extra.test_plan.CLITestCase.run_cli_test` read this single table so the
+:meth:`click_extra.test_suite.CLITestCase.run_cli_test` read this single table so the
 rendered trace and the assertion loop agree on labels and stream selection.
 """
 
