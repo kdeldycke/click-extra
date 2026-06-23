@@ -21,6 +21,7 @@ from functools import wraps
 
 import click
 import cloup
+from click.decorators import _param_memo
 
 from .accessibility import AccessibleOption
 from .color import ColorOption, NoColorOption
@@ -36,7 +37,7 @@ from .execution import JobsOption, TimerOption, ZeroExitOption
 from .logging import QuietOption, VerboseOption, VerbosityOption
 from .man_page import ManOption
 from .parameters import Argument, Option, ShowParamsOption
-from .table import ColumnsOption, TableFormatOption
+from .table import ColumnsOption, SortByOption, TableFormatOption
 from .telemetry import TelemetryOption
 from .theme import ThemeOption
 from .version import VersionOption
@@ -164,3 +165,38 @@ timer_option = decorator_factory(dec=option, cls=TimerOption)
 verbose_option = decorator_factory(dec=option, cls=VerboseOption)
 verbosity_option = decorator_factory(dec=option, cls=VerbosityOption)
 zero_exit_option = decorator_factory(dec=option, cls=ZeroExitOption)
+
+
+# Unlike its siblings above, `sort_by_option` is hand-written rather than built by
+# `decorator_factory`: `SortByOption` takes its column definitions as positional
+# arguments (`*header_defs`), which occupy the slot the `cloup.option` plumbing
+# reserves for `param_decls` (option-name strings). Routing through the factory
+# would force the column definitions into a keyword, breaking the positional API
+# `SortByOption` has shipped since 7.11.0. So the option is instantiated directly
+# here and registered with the same `_param_memo` primitive Cloup uses, preserving
+# that API and composing with option groups and constraints.
+def sort_by_option(*header_defs, cls=SortByOption, group=None, **kwargs):
+    """Attach a :class:`~click_extra.table.SortByOption` to a command.
+
+    Forwards the positional ``header_defs`` (``(label, column_id)`` pairs) straight
+    to the option constructor and registers a regular Cloup ``Option``, so the
+    ``--sort-by`` option composes with ``@option_group`` and ``@constraint`` like any
+    other option decorator.
+
+    .. note::
+        Hand-written instead of produced by
+        :func:`~click_extra.decorators.decorator_factory` because
+        :class:`~click_extra.table.SortByOption` accepts its column definitions as
+        positional arguments, which conflicts with the ``param_decls``-first
+        convention the factory relies on.
+    """
+
+    def decorator(f):
+        _param_memo(f, cls(*header_defs, **kwargs))
+        new_option = f.__click_params__[-1]
+        new_option.group = group
+        if group and group.hidden:
+            new_option.hidden = True
+        return f
+
+    return decorator

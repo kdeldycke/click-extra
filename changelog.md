@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add the `@sort_by_option` decorator, so the `--sort-by` table option can be added without manually instantiating `SortByOption`, and composes with option groups and constraints. Closes [`click-extra#1777`](https://github.com/kdeldycke/click-extra/issues/1777).
+
 ## [`8.0.1` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v8.0.0...v8.0.1)
 
 - Redo a proper release.

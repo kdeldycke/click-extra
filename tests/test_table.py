@@ -39,7 +39,10 @@ from click_extra import (
     Color,
     command,
     echo,
+    option,
+    option_group,
     pass_context,
+    sort_by_option,
     style,
     table_format_option,
 )
@@ -1203,3 +1206,47 @@ def test_sort_by_option_multi_column(invoke):
     assert result.exit_code == 0
     parsed = json.loads(result.stdout)
     assert [r["City"] for r in parsed] == ["SF", "NYC", "LA"]
+
+
+def test_sort_by_option_decorator(invoke):
+    """The sort_by_option decorator wires sorting like a direct SortByOption."""
+
+    @command
+    @sort_by_option(("Fruit", "fruit"), ("Count", "count"))
+    @pass_context
+    def cli(ctx):
+        headers = ("Fruit", "Count")
+        data = [["banana", "3"], ["apple", "1"], ["cherry", "2"]]
+        ctx.print_table(data, headers)
+
+    sort_opts = [p for p in cli.params if isinstance(p, SortByOption)]
+    assert len(sort_opts) == 1
+    assert sort_opts[0].opts == ["--sort-by"]
+
+    result = invoke(cli, "--table-format", "json", "--sort-by", "fruit", color=False)
+    assert result.exit_code == 0
+    parsed = json.loads(result.stdout)
+    assert [r["Fruit"] for r in parsed] == ["apple", "banana", "cherry"]
+
+
+def test_sort_by_option_decorator_in_option_group(invoke):
+    """The sort_by_option decorator composes with @option_group."""
+
+    @command
+    @option_group(
+        "Sorting",
+        sort_by_option(("Fruit", "fruit"), ("Count", "count")),
+        option("--reverse", is_flag=True),
+    )
+    @pass_context
+    def cli(ctx, reverse):
+        echo("ok")
+
+    sort_opt = next(p for p in cli.params if isinstance(p, SortByOption))
+    assert sort_opt.group is not None
+    assert sort_opt.group.title == "Sorting"
+
+    result = invoke(cli, "--help", color=False)
+    assert result.exit_code == 0
+    assert "Sorting" in result.stdout
+    assert "--sort-by" in result.stdout

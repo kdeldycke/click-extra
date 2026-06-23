@@ -492,24 +492,21 @@ print(output, end="")
 
 ### Sorted tables
 
-`SortByOption` adds a `--sort-by` CLI option whose choices are derived from column definitions. Column definitions are `(label, column_id)` tuples. Columns with `column_id=None` are displayed but not offered as sort choices.
+The `@sort_by_option` decorator adds a `--sort-by` CLI option whose choices are derived from column definitions. Column definitions are `(label, column_id)` tuples. Columns with `column_id=None` are displayed but not offered as sort choices.
 
 The option can be repeated to define a multi-column sort priority: `--sort-by name --sort-by age` sorts by name first, then breaks ties by age.
 
 When active, `SortByOption` replaces `ctx.print_table` with a sorted variant, so the command body doesn't need any sorting logic.
 
 ```{click:source}
-from click_extra import command, pass_context, table_format_option
-from click_extra.table import SortByOption
+from click_extra import command, pass_context, sort_by_option
 
-sort_opt = SortByOption(
+@command
+@sort_by_option(
     ("Fruit", "fruit"),
     ("Count", "count"),
     ("Notes", None),
 )
-
-@command(params=[sort_opt])
-@table_format_option
 @pass_context
 def inventory(ctx):
     """Sortable fruit inventory."""
