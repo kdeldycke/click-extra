@@ -1118,6 +1118,17 @@ class ColumnsOption(ExtraOption):
         context.set(ctx, context.COLUMNS, tuple(columns) if columns else ())
 
 
+def _normalize_column_def(column: ColumnSpec | tuple[str, str | None]):
+    """Coerce a column definition to a ``(label, column_id)`` tuple.
+
+    Accepts a :class:`ColumnSpec` (so a registry can be shared with ``--columns``)
+    or a raw ``(label, column_id)`` tuple.
+    """
+    if isinstance(column, ColumnSpec):
+        return (column.label, column.id)
+    return tuple(column)
+
+
 class SortByOption(ExtraOption):
     """A ``--sort-by`` option whose choices are derived from column definitions.
 
@@ -1127,25 +1138,35 @@ class SortByOption(ExtraOption):
     accepts ``multiple=True``, so users can repeat ``--sort-by`` to define a
     multi-column sort priority.
 
+    Column definitions may be ``ColumnSpec`` instances or raw
+    ``(label, column_id)`` tuples, passed positionally or via the ``columns=``
+    keyword. Passing a ``ColumnSpec`` registry via ``columns=`` lets the same
+    tuple drive both ``ColumnsOption`` (``--columns``) and ``--sort-by``, so
+    the two options stay in sync from a single source of truth.
+
     .. code-block:: python
+
+        COLUMNS = (
+            ColumnSpec("package_id", "Package ID"),
+            ColumnSpec("package_name", "Name"),
+            ColumnSpec("manager_id", "Manager"),
+        )
+
 
         @command
         @table_format_option
-        @sort_by_option(
-            ("Package ID", "package_id"),
-            ("Name", "package_name"),
-            ("Manager", "manager_id"),
-            ("Version", None),
-        )
+        @columns_option(columns=COLUMNS)
+        @sort_by_option(columns=COLUMNS)
         @pass_context
         def my_cmd(ctx):
-            ctx.print_table(rows, headers)
+            ctx.print_table(rows, [col.label for col in COLUMNS])
     """
 
     def __init__(
         self,
-        *header_defs: tuple[str, str | None],
+        *header_defs: ColumnSpec | tuple[str, str | None],
         param_decls: Sequence[str] | None = None,
+        columns: Sequence[ColumnSpec | tuple[str, str | None]] | None = None,
         default: str | Sequence[str] | None = None,
         expose_value: bool = False,
         cell_key: Callable[[str | None], Any] | None = None,
@@ -1155,9 +1176,16 @@ class SortByOption(ExtraOption):
         if not param_decls:
             param_decls = ("--sort-by",)
 
-        self.header_defs = header_defs
+        # Accept a shared ``columns=`` registry (the same ``ColumnSpec`` tuple
+        # passed to ``--columns``) or positional definitions. Each entry may be a
+        # ``ColumnSpec`` or a raw ``(label, column_id)`` tuple.
+        if columns is not None and header_defs:
+            msg = "Pass column definitions positionally or via columns=, not both."
+            raise TypeError(msg)
+        raw_defs = columns if columns is not None else header_defs
+        self.header_defs = tuple(_normalize_column_def(c) for c in raw_defs)
         self.cell_key = cell_key
-        sortable_ids = [col_id for _, col_id in header_defs if col_id]
+        sortable_ids = [col_id for _, col_id in self.header_defs if col_id]
 
         # Normalize default to a tuple for multiple mode.
         if not default:

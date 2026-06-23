@@ -492,7 +492,7 @@ print(output, end="")
 
 ### Sorted tables
 
-The `@sort_by_option` decorator adds a `--sort-by` CLI option whose choices are derived from column definitions. Column definitions are `(label, column_id)` tuples. Columns with `column_id=None` are displayed but not offered as sort choices.
+The `@sort_by_option` decorator adds a `--sort-by` CLI option whose choices are derived from column definitions. Column definitions are `(label, column_id)` tuples or `ColumnSpec` instances. Columns with `column_id=None` are displayed but not offered as sort choices.
 
 The option can be repeated to define a multi-column sort priority: `--sort-by name --sort-by age` sorts by name first, then breaks ties by age.
 
@@ -542,6 +542,40 @@ Repeating `--sort-by` sets multi-column priority. Here, rows are sorted by count
 
 ```{click:run}
 result = invoke(inventory, args=["--table-format", "rounded-outline", "--sort-by", "count", "--sort-by", "fruit"])
+assert result.exit_code == 0
+assert result.stdout.index("Apple") < result.stdout.index("Cherry")
+```
+
+To keep `--sort-by` and `--columns` in sync, pass the same `ColumnSpec` registry to both via `columns=`. A single source of truth then drives column selection, column order and sort choices:
+
+```{click:source}
+from click_extra import columns_option, command, pass_context, sort_by_option
+from click_extra.table import ColumnSpec
+
+COLUMNS = (
+    ColumnSpec("fruit", "Fruit"),
+    ColumnSpec("count", "Count"),
+)
+
+@command
+@columns_option(columns=COLUMNS)
+@sort_by_option(columns=COLUMNS)
+@pass_context
+def stock(ctx):
+    """Fruit stock, sortable and column-selectable from one registry."""
+    data = [["Cherry", "50"], ["Apple", "120"], ["Banana", "80"]]
+    ctx.print_table(data, [col.label for col in COLUMNS])
+```
+
+```{click:run}
+result = invoke(stock, args=["--help"])
+assert result.exit_code == 0
+assert "--sort-by" in result.stdout
+assert "--columns" in result.stdout
+```
+
+```{click:run}
+result = invoke(stock, args=["--table-format", "rounded-outline", "--sort-by", "fruit"])
 assert result.exit_code == 0
 assert result.stdout.index("Apple") < result.stdout.index("Cherry")
 ```

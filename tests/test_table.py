@@ -37,6 +37,7 @@ TABULATE_HAS_COLON_GRID = "colon_grid" in tabulate_formats
 
 from click_extra import (
     Color,
+    columns_option,
     command,
     echo,
     option,
@@ -49,6 +50,8 @@ from click_extra import (
 from click_extra.pytest import command_decorators
 from click_extra.table import (
     SERIALIZATION_FORMATS,
+    ColumnsOption,
+    ColumnSpec,
     SortByOption,
     TableFormat,
     _apply_default,
@@ -1250,3 +1253,50 @@ def test_sort_by_option_decorator_in_option_group(invoke):
     assert result.exit_code == 0
     assert "Sorting" in result.stdout
     assert "--sort-by" in result.stdout
+
+
+def test_sort_by_option_columns_registry(invoke):
+    """A ColumnSpec registry passed via columns= drives choices and ordering."""
+    cols = (ColumnSpec("fruit", "Fruit"), ColumnSpec("count", "Count"))
+    sort_opt = SortByOption(columns=cols)
+    assert list(sort_opt.type.choices) == ["fruit", "count"]
+    assert sort_opt.header_defs == (("Fruit", "fruit"), ("Count", "count"))
+
+    @command(params=[sort_opt])
+    @table_format_option
+    @pass_context
+    def cli(ctx):
+        ctx.print_table([["banana", "3"], ["apple", "1"]], ("Fruit", "Count"))
+
+    result = invoke(cli, "--table-format", "json", "--sort-by", "fruit", color=False)
+    assert result.exit_code == 0
+    assert [r["Fruit"] for r in json.loads(result.stdout)] == ["apple", "banana"]
+
+
+def test_sort_by_option_accepts_column_spec_varargs():
+    """ColumnSpec instances also work positionally, normalized to (label, id)."""
+    cols = (ColumnSpec("fruit", "Fruit"), ColumnSpec("count", "Count"))
+    assert SortByOption(*cols).header_defs == (("Fruit", "fruit"), ("Count", "count"))
+
+
+def test_sort_by_option_rejects_positional_and_columns():
+    """Column definitions cannot be passed both positionally and via columns=."""
+    with pytest.raises(TypeError, match="positionally or via columns="):
+        SortByOption(("Fruit", "fruit"), columns=[ColumnSpec("fruit", "Fruit")])
+
+
+def test_sort_by_and_columns_share_registry():
+    """The same ColumnSpec registry configures both --columns and --sort-by."""
+    cols = (ColumnSpec("fruit", "Fruit"), ColumnSpec("count", "Count"))
+
+    @command
+    @columns_option(columns=cols)
+    @sort_by_option(columns=cols)
+    @pass_context
+    def cli(ctx):
+        ctx.print_table([["banana", "3"]], [c.label for c in cols])
+
+    sort_opt = next(p for p in cli.params if isinstance(p, SortByOption))
+    cols_opt = next(p for p in cli.params if isinstance(p, ColumnsOption))
+    assert list(sort_opt.type.choices) == ["fruit", "count"]
+    assert [c.id for c in cols_opt.columns] == list(sort_opt.type.choices)

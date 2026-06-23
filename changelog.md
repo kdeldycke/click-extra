@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Add the `@sort_by_option` decorator, so the `--sort-by` table option can be added without manually instantiating `SortByOption`, and composes with option groups and constraints. Closes [`click-extra#1777`](https://github.com/kdeldycke/click-extra/issues/1777).
+- `@sort_by_option` accepts `ColumnSpec` definitions and a `columns=` registry, so the same column tuple can drive both `--columns` and `--sort-by` from a single source of truth.
 - Option decorators built by `decorator_factory` now expose their option class's constructor signature to `help()`, the REPL and Sphinx autodoc, instead of an opaque `(*args, **kwargs)`.
 - `@version_option` accepts an explicit version string as its first positional argument (`@version_option("1.2.3")`), for drop-in compatibility with Click. A positional value starting with `-` is still treated as an option flag name.
 - Restrict pytest collection to the `tests` folder and switch to `importlib` import mode, so the `test_plan.py` module is no longer collected as a test file. Fixes `import file mismatch` errors when building from a packaged source tree alongside an installed copy. Closes [`click-extra#1779`](https://github.com/kdeldycke/click-extra/issues/1779).
