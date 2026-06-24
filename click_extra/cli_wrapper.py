@@ -31,6 +31,7 @@ import importlib
 import importlib.util
 import logging
 import runpy
+import shlex
 import sys
 from importlib import metadata
 from pathlib import Path
@@ -567,20 +568,34 @@ def _wrap_man(
         click.echo(render_manpage(cmd, prog_name=prog_name))
 
 
-def _wrap_carapace(script: str, nav: tuple[str, ...], install: bool) -> None:
+def _wrap_carapace(
+    ctx: click.Context,
+    script: str,
+    nav: tuple[str, ...],
+    install: bool,
+) -> None:
     """Resolve a foreign target and emit its Carapace completion spec (YAML).
 
     Unlike the man page, the whole command tree serializes into a single spec, so
     there is no per-subcommand output mode: the spec is printed to stdout, or with
     ``install`` written into Carapace's user spec directory (its path is echoed).
+    The reconstructed wrap command is recorded in the spec's header comment.
     """
     cmd, _ = resolve_target_command(script, nav)
     prog_name = cmd.name or (nav[-1] if nav else script)
+    # Rebuild the wrap command from the context rather than sys.argv, so the
+    # header is correct under CliRunner (tests, Sphinx) too. command_path is
+    # split so its words are not quoted as one shell token.
+    parts = [*ctx.command_path.split(), "--carapace"]
     if install:
-        path = install_carapace_spec(cmd, prog_name=prog_name)
+        parts.append("--install")
+    parts.extend(("--", script, *nav))
+    invocation = shlex.join(parts)
+    if install:
+        path = install_carapace_spec(cmd, prog_name=prog_name, invocation=invocation)
         click.echo(str(path))
     else:
-        click.echo(dump_carapace_spec(cmd, prog_name=prog_name))
+        click.echo(dump_carapace_spec(cmd, prog_name=prog_name, invocation=invocation))
 
 
 def _config_args_for_target(
@@ -745,7 +760,7 @@ def wrap(
         if man:
             _wrap_man(script, nav, output_dir)
         elif carapace_spec:
-            _wrap_carapace(script, nav, install)
+            _wrap_carapace(ctx, script, nav, install)
         else:
             _wrap_show_params(ctx, script, nav, target_args, table_format)
         ctx.exit(0)
