@@ -801,6 +801,65 @@ def test_enum_choice_multiple_default_value(
 
 
 @pytest.mark.parametrize(
+    # XXX Reuse the same no_extra=True workaround as test_enum_choice_command and
+    # test_enum_choice_callback: click_extra.command() re-decorates the command,
+    # producing a second nargs=-1 parameter that Click's parser rejects with
+    # "Cannot have two nargs < 0".
+    "cmd_decorator",
+    command_decorators(no_groups=True, no_extra=True),
+)
+@pytest.mark.parametrize(
+    "opt_decorator",
+    option_decorators(no_options=True, with_parenthesis=False),
+)
+@pytest.mark.parametrize(
+    ("default_value", "expected"),
+    (
+        # A single-member default, the member given two equivalent ways. Unlike the
+        # multiple=True option above, a raw value-string default ("my-second-value")
+        # is not exercised here: Click re-validates an argument's default through
+        # EnumChoice.convert(), which only accepts the choice strings, not the
+        # underlying Enum values.
+        ((MyEnum.SECOND_VALUE,), (MyEnum.SECOND_VALUE,)),
+        ((str(MyEnum.SECOND_VALUE),), (MyEnum.SECOND_VALUE,)),
+        # Several members preserve their order.
+        (
+            (MyEnum.FIRST_VALUE, MyEnum.SECOND_VALUE),
+            (MyEnum.FIRST_VALUE, MyEnum.SECOND_VALUE),
+        ),
+        # An empty default stays empty.
+        ((), ()),
+    ),
+)
+def test_enum_choice_variadic_default_value(
+    invoke, cmd_decorator, opt_decorator, default_value, expected
+) -> None:
+    """A variadic (nargs=-1) EnumChoice argument resolves each member of its default.
+
+    Companion to test_enum_choice_multiple_default_value covering the other branch
+    of the get_default() override: the nargs == -1 path taken by arguments rather
+    than the multiple path taken by options. Both map get_choice_string() over the
+    members of a tuple default instead of stringifying the whole tuple.
+    """
+
+    @cmd_decorator
+    @opt_decorator(
+        "my_enum",
+        type=EnumChoice(MyEnum),
+        nargs=-1,
+        default=default_value,
+    )
+    def cli(my_enum: tuple[MyEnum, ...]) -> None:
+        echo(f"my_enum: {my_enum!r}")
+
+    # The default path (no argument supplied) must resolve to the member tuple.
+    result = invoke(cli)
+    assert result.exit_code == 0
+    assert result.stdout == f"my_enum: {expected!r}\n"
+    assert not result.stderr
+
+
+@pytest.mark.parametrize(
     # XXX Reuse the same no_extra=True workaround as test_enum_choice_command to
     # avoid the double <Option my_enum> issue with click_extra.command().
     "cmd_decorator",

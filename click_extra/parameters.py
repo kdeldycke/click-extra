@@ -268,6 +268,12 @@ class _ParameterMixin:
         - Multiple inheritance cannot be used because of MRO issues.
     """
 
+    # Attributes provided by the ``click.Parameter`` subclass this mixin is always
+    # combined with. Declared here so the methods below can reference them without
+    # mypy flagging them as undefined on the standalone mixin.
+    multiple: bool
+    nargs: int
+
     def get_default(self, ctx: click.Context, call: bool = True):
         """Override ``click.Parameter.get_default()`` to support ``EnumChoice`` types.
 
