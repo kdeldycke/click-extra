@@ -62,6 +62,7 @@ from click_extra import (
     table_format_option,
 )
 from click_extra.config import NO_CONFIG
+from click_extra.parameters import option_value_kind
 from click_extra.pytest import command_decorators
 
 from .test_highlight import HashType
@@ -1588,3 +1589,26 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     ):
         assert result.stdout == rendered_table
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("opt", "expected"),
+    [
+        (click.Option(["--foo"]), "required"),
+        (click.Option(["--inc"], multiple=True), "required"),
+        (click.Option(["--flag"], is_flag=True), "flag"),
+        (click.Option(["--shout/--no-shout"]), "flag"),
+        (click.Option(["-v", "--verbose"], count=True), "flag"),
+        # A flag with a non-bool flag_value (like NoConfigOption) reports
+        # is_bool_flag=False yet still takes no value: it must stay "flag". This is
+        # why the classifier keys off is_flag rather than is_bool_flag.
+        (click.Option(["--no-cfg"], is_flag=True, flag_value="x", default=None), "flag"),
+        # is_flag=False carrying a flag_value is Click's optional-value option.
+        (
+            click.Option(["--color"], is_flag=False, flag_value="always", default=None),
+            "optional",
+        ),
+    ],
+)
+def test_option_value_kind(opt, expected):
+    assert option_value_kind(opt) == expected

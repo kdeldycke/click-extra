@@ -66,7 +66,13 @@ from click.shell_completion import (
 from cloup.constraints import mutually_exclusive
 
 from .commands import DEFAULT_HELP_NAMES, default_params
-from .man_page import full_short_help
+from .parameters import (
+    full_short_help,
+    is_repeatable,
+    option_value_kind,
+    param_spellings,
+    short_long_opts,
+)
 
 try:
     import yaml
@@ -112,44 +118,7 @@ def _clean_description(text: str | None) -> str:
     return " ".join(paragraph.split())
 
 
-# --- parameter shape helpers ------------------------------------------------
-
-
-def _takes_value(param: Parameter) -> bool:
-    """Whether the parameter consumes a value (so it gets a ``=`` flag suffix).
-
-    An option carrying a secondary spelling (a ``--foo`` / ``--no-foo`` pair) is a
-    boolean toggle and consumes no value, even when Click did not set ``is_flag``.
-    """
-    if getattr(param, "secondary_opts", None):
-        return False
-    return not getattr(param, "is_flag", False) and not getattr(param, "count", False)
-
-
-def _is_optarg(param: Parameter) -> bool:
-    """Whether the option's value is optional (the ``?`` flag suffix).
-
-    Click models an optional-value option as ``is_flag=False`` with a
-    ``flag_value`` set: used bare it stands for ``flag_value``, or it accepts an
-    explicit value. Carapace spells this ``?``, distinct from a mandatory ``=``.
-    """
-    return (
-        not getattr(param, "is_flag", False)
-        and not getattr(param, "count", False)
-        and getattr(param, "flag_value", None) is not None
-    )
-
-
-def _is_repeatable(param: Parameter) -> bool:
-    """Whether the parameter may be given several times (the ``*`` flag suffix)."""
-    return bool(getattr(param, "multiple", False) or getattr(param, "count", False))
-
-
-def _short_long(opts: list[str]) -> tuple[str, str]:
-    """Split option spellings into the first short (``-x``) and long (``--xy``)."""
-    short = next((o for o in opts if not o.startswith("--") and o.startswith("-")), "")
-    long = next((o for o in opts if o.startswith("--")), "")
-    return short, long
+# --- flag-key construction --------------------------------------------------
 
 
 def _flag_key(
@@ -168,7 +137,7 @@ def _flag_key(
     ``--foo=``, an optional-value option ``--foo?``, a counter ``--foo*`` and a
     repeatable valued option ``--foo=*``.
     """
-    short, long = _short_long(opts)
+    short, long = short_long_opts(opts)
     key = short
     if short and long:
         key += ", "
@@ -184,7 +153,7 @@ def _flag_key(
 
 def _flag_name(opts: list[str]) -> str:
     """Carapace completion key for a flag: long spelling, else short, no dashes."""
-    short, long = _short_long(opts)
+    short, long = short_long_opts(opts)
     return (long or short).lstrip("-")
 
 
@@ -372,8 +341,7 @@ def _default_param_opts() -> frozenset[str]:
     """
     opts = set(DEFAULT_HELP_NAMES)
     for param in default_params():
-        opts.update(param.opts)
-        opts.update(param.secondary_opts)
+        opts.update(param_spellings(param))
     return frozenset(opts)
 
 
@@ -415,9 +383,10 @@ def _add_option(
     """
     flags = node.persistentflags if persistent else node.flags
     description = _clean_description(getattr(param, "help", None))
-    value = _takes_value(param)
-    optarg = _is_optarg(param)
-    repeatable = _is_repeatable(param)
+    kind = option_value_kind(param)
+    value = kind != "flag"
+    optarg = kind == "optional"
+    repeatable = is_repeatable(param)
 
     flags[_flag_key(param.opts, value=value, optarg=optarg, repeatable=repeatable)] = (
         description
@@ -478,8 +447,7 @@ def extract_carapace_command(
             # A root default option: publish it once as persistent so every
             # subcommand inherits it, and remember its spellings to skip below.
             _add_option(node, param, persistent=True, root_name=root_name)
-            persistent_spellings.update(param.opts)
-            persistent_spellings.update(param.secondary_opts)
+            persistent_spellings.update(param_spellings(param))
         elif set(param.opts) <= inherited_opts:
             # Already offered by an ancestor's persistent flags: do not repeat.
             continue

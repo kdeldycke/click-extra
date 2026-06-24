@@ -93,6 +93,35 @@ def test_choice_metavar_rendered():
     assert "\\fI[celsius|fahrenheit]\\fR" in roff
 
 
+@command
+@option(
+    "--color",
+    is_flag=False,
+    flag_value="always",
+    type=Choice(["auto", "always", "never"]),
+    default="auto",
+    help="Colorize the output.",
+)
+@option("--verbose", "-v", count=True, help="Increase verbosity.")
+def palette(color, verbose):
+    """Render a palette."""
+
+
+def test_optional_value_metavar_attached():
+    # An optional-value option (a bare --color is allowed) renders the attached
+    # [=...] form, not a space-separated mandatory metavar.
+    roff = render_manpage(palette)
+    assert "\\fB\\-\\-color\\fR\\fI[=auto|always|never]\\fR" in roff
+    assert "\\-\\-color\\fR \\fI" not in roff
+
+
+def test_count_option_has_no_metavar():
+    # A counter takes no value, so no metavar trails its names.
+    roff = render_manpage(palette)
+    assert "\\fB\\-\\-verbose\\fR / \\fB\\-v\\fR" in roff
+    assert "INTEGER" not in roff
+
+
 def test_no_rewrap_marker_becomes_no_fill():
     """Click's ``\\b`` marker must produce a roff ``.nf`` / ``.fi`` block (click-man #9)."""
     roff = render_manpage(weather)

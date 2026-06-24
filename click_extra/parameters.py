@@ -34,7 +34,7 @@ from .envvar import param_envvar_ids
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence
-    from typing import Any, ClassVar
+    from typing import Any, ClassVar, Literal
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +154,85 @@ def require_sibling_param(
             f"alongside {klass.__name__}."
         )
     return sibling
+
+
+def full_short_help(command: click.Command) -> str:
+    """Return the command's canonical one-line short help, untruncated.
+
+    Click's :meth:`click.Command.get_short_help_str` truncates to 45 characters by
+    default with a trailing ``"..."`` so subcommand listings fit a terminal column.
+    That bound is wrong for generated documentation and completion specs, where the
+    NAME / COMMANDS sections carry the full description and the renderer wraps text
+    on its own.
+
+    The lookup mirrors Click's order: an explicit ``short_help`` wins, otherwise the
+    first paragraph of ``command.help`` is joined into one line. A truthy
+    ``deprecated`` flag prepends ``(Deprecated)`` so the flag stays visible.
+    """
+    if command.short_help:
+        text = command.short_help.strip()
+    elif command.help:
+        # Click already stores ``help`` after ``inspect.cleandoc``: split on the
+        # first blank line to grab the leading paragraph, then squash internal
+        # newlines so the result is one line.
+        paragraph = command.help.split("\n\n", 1)[0]
+        text = paragraph.strip().replace("\n", " ")
+    else:
+        text = ""
+    if command.deprecated:
+        text = f"(Deprecated) {text}".strip()
+    return text
+
+
+def param_spellings(param: click.Parameter) -> tuple[str, ...]:
+    """All literal spellings of a parameter: primary ``opts`` then ``secondary_opts``.
+
+    A boolean flag pair yields both forms (``--foo``, ``--no-foo``); a plain option
+    yields just its declared names.
+    """
+    return tuple(param.opts) + tuple(param.secondary_opts)
+
+
+def short_long_opts(opts: Sequence[str]) -> tuple[str, str]:
+    """Split option spellings into the first short (``-x``) and long (``--xy``) form.
+
+    Either element is the empty string when that form is absent.
+    """
+    short = next((o for o in opts if o.startswith("-") and not o.startswith("--")), "")
+    long = next((o for o in opts if o.startswith("--")), "")
+    return short, long
+
+
+def option_value_kind(
+    param: click.Parameter,
+) -> Literal["flag", "optional", "required"]:
+    """Classify how an option consumes a value, the basis for rendering its metavar.
+
+    - ``"flag"``: takes no value. A boolean switch (``--foo``, ``--foo/--no-foo``), a
+      flag with a custom ``flag_value`` (``--no-config``), or a counter (``-v``).
+    - ``"optional"``: the value may be omitted. Click models this as
+      ``is_flag=False`` with a ``flag_value`` set, so a bare ``--color`` stands for
+      the flag value while ``--color=never`` passes an explicit one.
+    - ``"required"``: consumes a value (``--config CONFIG_PATH``).
+
+    .. note::
+        The discriminator is Click's ``is_flag`` (plus ``count``), not
+        ``is_bool_flag``: a flag carrying a custom ``flag_value`` such as
+        :class:`~click_extra.config.option.NoConfigOption` reports
+        ``is_bool_flag=False`` yet still takes no value.
+    """
+    if getattr(param, "count", False) or getattr(param, "is_flag", False):
+        return "flag"
+    if getattr(param, "secondary_opts", None):
+        return "flag"
+    if getattr(param, "flag_value", None) is not None:
+        return "optional"
+    return "required"
+
+
+def is_repeatable(param: click.Parameter) -> bool:
+    """Whether the parameter may be supplied several times (``multiple`` or ``count``)."""
+    return bool(getattr(param, "multiple", False) or getattr(param, "count", False))
 
 
 class _ParameterMixin:

@@ -92,11 +92,11 @@ from sphinx.util import logging
 
 from ..cli_wrapper import resolve_target_command
 from ..man_page import (
-    full_short_help,
     iter_command_contexts,
     iter_inline_literals,
     write_manpages,
 )
+from ..parameters import full_short_help
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
