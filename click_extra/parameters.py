@@ -295,8 +295,7 @@ class _ParameterMixin:
                 # into an empty tuple.
                 if default_value is not None:
                     default_value = tuple(
-                        self.type.get_choice_string(member)
-                        for member in default_value
+                        self.type.get_choice_string(member) for member in default_value
                     )
             else:
                 default_value = self.type.get_choice_string(default_value)
