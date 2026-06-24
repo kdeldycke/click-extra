@@ -274,6 +274,13 @@ class _ParameterMixin:
         Reuse the ``EnumChoice.get_choice_string()`` method to convert an ``Enum``
         default value to its string representation, to bypass `Click's default behavior
         of returning the Enum.name <https://github.com/pallets/click/pull/3004>`_.
+
+        .. note::
+            A ``multiple`` option or a variadic (``nargs=-1``) parameter carries a
+            *sequence* of members as its default, so each member is resolved on its
+            own. Converting the sequence as a whole would stringify the tuple itself
+            (``str((MyEnum.FOO,))``) and later trip Click's ``Value must be an
+            iterable`` check on the default-value path.
         """
         default_value = super().get_default(ctx, call)  # type: ignore[misc]
 
@@ -283,7 +290,16 @@ class _ParameterMixin:
             # Turns out UNSET is also an Enum member, so we need to ignore it.
             and default_value is not UNSET
         ):
-            default_value = self.type.get_choice_string(default_value)
+            if self.multiple or self.nargs == -1:
+                # A ``None`` default is not iterable; leave it for Click to turn
+                # into an empty tuple.
+                if default_value is not None:
+                    default_value = tuple(
+                        self.type.get_choice_string(member)
+                        for member in default_value
+                    )
+            else:
+                default_value = self.type.get_choice_string(default_value)
 
         return default_value
 

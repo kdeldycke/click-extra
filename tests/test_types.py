@@ -752,6 +752,54 @@ def test_enum_choice_default_value(
     assert result.exit_code == 0
 
 
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
+@pytest.mark.parametrize(
+    "opt_decorator",
+    option_decorators(no_arguments=True, with_parenthesis=False),
+)
+@pytest.mark.parametrize(
+    ("default_value", "expected"),
+    (
+        # A single-member default, the member given three equivalent ways.
+        ((MyEnum.SECOND_VALUE,), (MyEnum.SECOND_VALUE,)),
+        ((str(MyEnum.SECOND_VALUE),), (MyEnum.SECOND_VALUE,)),
+        (("my-second-value",), (MyEnum.SECOND_VALUE,)),
+        # Several members define a multi-column priority order.
+        (
+            (MyEnum.FIRST_VALUE, MyEnum.SECOND_VALUE),
+            (MyEnum.FIRST_VALUE, MyEnum.SECOND_VALUE),
+        ),
+        # An empty default stays empty.
+        ((), ()),
+    ),
+)
+def test_enum_choice_multiple_default_value(
+    invoke, cmd_decorator, opt_decorator, default_value, expected
+) -> None:
+    """A ``multiple=True`` EnumChoice resolves each member of its tuple default.
+
+    Regression test for the ``get_default()`` override stringifying the whole
+    default tuple (``str((MyEnum.FOO,))``) instead of mapping each member, which
+    made the default trip Click's ``Value must be an iterable`` check.
+    """
+
+    @cmd_decorator
+    @opt_decorator(
+        "--my-enum",
+        type=EnumChoice(MyEnum),
+        multiple=True,
+        default=default_value,
+    )
+    def cli(my_enum: tuple[MyEnum, ...]) -> None:
+        echo(f"my_enum: {my_enum!r}")
+
+    # The default path (option omitted) must resolve to the member tuple.
+    result = invoke(cli)
+    assert result.exit_code == 0
+    assert result.stdout == f"my_enum: {expected!r}\n"
+    assert not result.stderr
+
+
 @pytest.mark.parametrize(
     # XXX Reuse the same no_extra=True workaround as test_enum_choice_command to
     # avoid the double <Option my_enum> issue with click_extra.command().
