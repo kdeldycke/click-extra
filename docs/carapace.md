@@ -54,6 +54,73 @@ $ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace --
 /home/me/.config/carapace/specs/flask.yaml
 ```
 
+## Commands discovered from external state
+
+The spec is a point-in-time snapshot of the command tree. Most groups expose a fixed set of subcommands, but some compute theirs from external state: a loaded application, installed plugins, or a scanned directory. The exporter walks the tree through the group's own `list_commands` and `get_command`, so the spec captures exactly what those return at generation time. Anything the group cannot see at that moment is left out.
+
+A group that registers an extra command only when an optional integration is configured shows the effect. Here that integration is stood in for by the `GARDEN_PLOTS` environment variable:
+
+```{click:source}
+import os
+import click
+
+@click.command()
+def water():
+    """Water the garden."""
+
+@click.command()
+def harvest():
+    """Pick ripe produce."""
+
+class GardenGroup(click.Group):
+    """A garden that grows an extra command once its plots are configured."""
+
+    def list_commands(self, ctx):
+        names = ["water"]
+        if os.environ.get("GARDEN_PLOTS"):
+            names.append("harvest")
+        return names
+
+    def get_command(self, ctx, name):
+        return {"water": water, "harvest": harvest}.get(name)
+
+garden = GardenGroup(name="garden", help="Tend a garden.")
+```
+
+With nothing configured, only the built-in `water` reaches the spec; configuring `GARDEN_PLOTS` brings `harvest` in:
+
+```{click:run}
+@click.command()
+def emit():
+    import os
+
+    from click_extra.carapace import dump_carapace_spec
+
+    os.environ.pop("GARDEN_PLOTS", None)
+    click.echo(dump_carapace_spec(garden, prog_name="garden"))
+
+    os.environ["GARDEN_PLOTS"] = "1"
+    try:
+        full = dump_carapace_spec(garden, prog_name="garden")
+    finally:
+        os.environ.pop("GARDEN_PLOTS", None)
+    click.echo(f"harvest available once configured: {'name: harvest' in full}")
+
+result = invoke(emit)
+assert result.exit_code == 0
+assert "name: water" in result.stdout
+assert "name: harvest" not in result.stdout
+assert "harvest available once configured: True" in result.stdout
+```
+
+[Flask](https://flask.palletsprojects.com) hits this in practice. Its `flask` command lists the built-in `routes`, `run` and `shell`, then adds whatever commands the loaded application registered, so it needs to find an application to enumerate the full set. Wrap it with none in reach and the spec carries only the three built-ins, alongside the red `Could not locate a Flask application` error Flask prints to stderr. That error is Flask's own and is not fatal: Flask catches it, falls back to the built-ins and carries on, so the YAML on stdout stays valid, only incomplete. Point Flask at an application through the `FLASK_APP` environment variable (or a `wsgi.py` or `app.py` in the working directory) and the error clears and the application's own commands join the spec:
+
+```{code-block} shell-session
+$ FLASK_APP=myapp uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace flask > flask.yaml
+```
+
+The `flask --app` option cannot stand in here: the spec is built without running Flask's own argument parsing, so the application must be discoverable from the environment or the working directory.
+
 ## Static and dynamic completion
 
 Two strategies cooperate, and the generator picks per parameter:
