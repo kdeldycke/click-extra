@@ -30,6 +30,9 @@
 
 ## [`8.0.1` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v8.0.0...v8.0.1)
 
+> [!NOTE]
+> `8.0.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.0.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.0.1).
+
 - Redo a proper release.
 
 ## [`8.0.0` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v7.20.1...v8.0.0)
