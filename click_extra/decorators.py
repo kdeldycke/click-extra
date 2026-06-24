@@ -199,7 +199,31 @@ def decorator_factory(dec, *new_args, **new_defaults):
             new_kwargs["params"] = params_func()
 
         # Return the original decorator with the new defaults.
-        return dec(*args, **new_kwargs)
+        result = dec(*args, **new_kwargs)
+
+        # When the result is a decorator (not a Command), and we have a callable
+        # params function, the decorator captures the evaluated params list in its
+        # closure. Click mutates that list with params.extend() on every application
+        # to a function, so a pre-instantiated decorator (e.g. stored in a pytest
+        # parametrize list as ``command()``) would accumulate options across uses,
+        # creating duplicate parameters. Wrapping here calls params_func() freshly
+        # on each application to prevent that shared mutation.
+        if callable(params_func) and not isinstance(result, click.Command):
+            _params_func = params_func
+            _dec = dec
+            _args = args
+            _new_defaults = new_defaults
+            _extra_kwargs = kwargs
+
+            def _with_fresh_params(f):
+                _fresh_kwargs = _new_defaults.copy()
+                _fresh_kwargs.update(_extra_kwargs)
+                _fresh_kwargs["params"] = _params_func()
+                return _dec(*_args, **_fresh_kwargs)(f)
+
+            result = _with_fresh_params
+
+        return result
 
     # Surface the parameter class's constructor signature on the produced decorator,
     # instead of the opaque ``(*args, **kwargs)``, so editors, ``help()`` and Sphinx
