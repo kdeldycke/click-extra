@@ -39,10 +39,10 @@ assert result.stdout.count("$files") == 1
 
 ## The wrap `--carapace` mode
 
-`click-extra wrap --carapace SCRIPT` resolves a target, loads its Click command, and prints the whole tree's spec to stdout without running it. SCRIPT is [resolved the same way](wrap.md#script-resolution) as for `--man`, so nothing needs to be installed up front with uvx:
+`click-extra wrap --carapace -- SCRIPT` resolves a target, loads its Click command, and prints the whole tree's spec to stdout without running it. SCRIPT is [resolved the same way](wrap.md#script-resolution) as for `--man`, so nothing needs to be installed up front with uvx:
 
 ```{code-block} shell-session
-$ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace flask > flask.yaml
+$ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace -- flask > flask.yaml
 ```
 
 `--carapace` must appear *before* SCRIPT, since arguments after SCRIPT navigate into nested subcommands. It is mutually exclusive with `--man` and `--show-params`.
@@ -50,7 +50,7 @@ $ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace fl
 Pass `--install` to write the spec straight into Carapace's user spec directory (`$XDG_CONFIG_HOME/carapace/specs/`, which Carapace loads on startup) instead of printing it:
 
 ```{code-block} shell-session
-$ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace --install flask
+$ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace --install -- flask
 /home/me/.config/carapace/specs/flask.yaml
 ```
 
@@ -116,7 +116,7 @@ assert "harvest available once configured: True" in result.stdout
 [Flask](https://flask.palletsprojects.com) hits this in practice. Its `flask` command lists the built-in `routes`, `run` and `shell`, then adds whatever commands the loaded application registered, so it needs to find an application to enumerate the full set. Wrap it with none in reach and the spec carries only the three built-ins, alongside the red `Could not locate a Flask application` error Flask prints to stderr. That error is Flask's own and is not fatal: Flask catches it, falls back to the built-ins and carries on, so the YAML on stdout stays valid, only incomplete. Point Flask at an application through the `FLASK_APP` environment variable (or a `wsgi.py` or `app.py` in the working directory) and the error clears and the application's own commands join the spec:
 
 ```{code-block} shell-session
-$ FLASK_APP=myapp uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace flask > flask.yaml
+$ FLASK_APP=myapp uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace -- flask > flask.yaml
 ```
 
 The `flask --app` option cannot stand in here: the spec is built without running Flask's own argument parsing, so the application must be discoverable from the environment or the working directory.

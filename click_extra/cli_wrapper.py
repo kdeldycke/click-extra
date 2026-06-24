@@ -540,7 +540,11 @@ def resolve_target_command(
                 f"Specify the correct one with module:name notation."
             )
         else:
-            raise click.ClickException(f"No Click commands found in {module_path}.")
+            raise click.ClickException(
+                f"No Click command found in {module_path}. If its entry point "
+                f"imports the command lazily, point at the module that defines "
+                f"it with module:function notation (for example, mypackage.cli:cli)."
+            )
 
     # Navigate to the requested subcommand, if any.
     assert isinstance(cli_obj, click.Command)
@@ -737,7 +741,7 @@ def _config_args_for_target(
     """Read the ``[wrap.<script>]`` config section and convert to CLI args.
 
     Looks for a config section named after the target script under ``wrap``.
-    For example, ``click-extra wrap flask`` reads ``[tool.click-extra.wrap.flask]``
+    For example, ``click-extra wrap -- flask`` reads ``[tool.click-extra.wrap.flask]``
     in ``pyproject.toml``. All keys in that section are converted to CLI
     arguments and prepended to the target's invocation.
 

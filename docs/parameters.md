@@ -171,7 +171,7 @@ from click_extra.cli_wrapper import wrap
 ```
 
 ```{click:run}
-result = invoke(wrap, args=["--show-params", "--table-format", "vertical", "flask", "run"])
+result = invoke(wrap, args=["--show-params", "--table-format", "vertical", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "run.host" in result.output
 assert "-p, --port INTEGER" in result.output
