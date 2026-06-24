@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.1.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.1.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.1.1` (2026-06-24)](https://github.com/kdeldycke/click-extra/compare/v8.1.0...v8.1.1)
 
 - Fix `multiple` and variadic (`nargs=-1`) options typed with `EnumChoice`: their tuple default was stringified as a whole (`str((MyEnum.FOO,))`) instead of per member, so the default tripped Click's `Value must be an iterable` check when the option was left unset.
