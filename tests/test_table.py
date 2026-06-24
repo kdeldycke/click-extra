@@ -1246,8 +1246,8 @@ def test_sort_by_option_decorator_in_option_group(invoke):
         echo("ok")
 
     sort_opt = next(p for p in cli.params if isinstance(p, SortByOption))
-    assert sort_opt.group is not None
-    assert sort_opt.group.title == "Sorting"
+    assert sort_opt.group is not None  # type: ignore[attr-defined]
+    assert sort_opt.group.title == "Sorting"  # type: ignore[attr-defined]
 
     result = invoke(cli, "--help", color=False)
     assert result.exit_code == 0
@@ -1259,7 +1259,9 @@ def test_sort_by_option_columns_registry(invoke):
     """A ColumnSpec registry passed via columns= drives choices and ordering."""
     cols = (ColumnSpec("fruit", "Fruit"), ColumnSpec("count", "Count"))
     sort_opt = SortByOption(columns=cols)
-    assert list(sort_opt.type.choices) == ["fruit", "count"]
+    assert list(
+        sort_opt.type.choices  # type: ignore[attr-defined]
+    ) == ["fruit", "count"]
     assert sort_opt.header_defs == (("Fruit", "fruit"), ("Count", "count"))
 
     @command(params=[sort_opt])
@@ -1298,5 +1300,9 @@ def test_sort_by_and_columns_share_registry():
 
     sort_opt = next(p for p in cli.params if isinstance(p, SortByOption))
     cols_opt = next(p for p in cli.params if isinstance(p, ColumnsOption))
-    assert list(sort_opt.type.choices) == ["fruit", "count"]
-    assert [c.id for c in cols_opt.columns] == list(sort_opt.type.choices)
+    assert list(
+        sort_opt.type.choices  # type: ignore[attr-defined]
+    ) == ["fruit", "count"]
+    assert [c.id for c in cols_opt.columns] == list(
+        sort_opt.type.choices  # type: ignore[attr-defined]
+    )

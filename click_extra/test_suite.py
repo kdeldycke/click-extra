@@ -53,7 +53,12 @@ from boltons.strutils import strip_ansi
 from extra_platforms import current_platform, extract_members, is_windows
 
 from . import echo
-from .config.formats import ConfigFormat, parse_content, read_file
+from .config.formats import (
+    ConfigFormat,
+    disabled_format_message,
+    parse_content,
+    read_file,
+)
 from .execution import run_jobs
 from .spinner import Spinner
 from .testing import (
@@ -251,9 +256,11 @@ class CLITestCase:
             elif field_id == "timeout":
                 # A numeric string or an int is coerced to float; bool is an int
                 # subclass but not a valid duration, so it is rejected below.
-                if isinstance(field_data, str):
-                    field_data = float(field_data)
-                elif isinstance(field_data, int) and not isinstance(field_data, bool):
+                if (
+                    isinstance(field_data, str)
+                    or isinstance(field_data, int)
+                    and not isinstance(field_data, bool)
+                ):
                     field_data = float(field_data)
                 elif field_data is not None and not isinstance(field_data, float):
                     raise ValueError(f"timeout is not a float: {field_data}")
@@ -541,10 +548,7 @@ def parse_test_suite(
         )
 
     if not fmt.enabled:
-        raise ImportError(
-            f"{fmt} support disabled: install click-extra[{fmt.label.lower()}] "
-            "to enable it."
-        )
+        raise ImportError(disabled_format_message(fmt))
 
     yield from cases_from_data(parse_content(fmt, suite_string))
 

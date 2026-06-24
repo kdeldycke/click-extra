@@ -256,6 +256,21 @@ def format_from_path(
     return None
 
 
+def disabled_format_message(fmt: ConfigFormat) -> str:
+    """Build the "format support disabled, install the extra" message for a format.
+
+    The single source for the :exc:`ImportError` text raised when a format whose
+    optional parser is not installed is requested, shared by :func:`read_file` and
+    :func:`click_extra.test_suite.parse_test_suite`. A format's
+    :attr:`~click_extra.config.formats.ConfigFormat.label`, lower-cased, is its
+    ``click-extra[<extra>]`` install target.
+    """
+    return (
+        f"{fmt} support disabled: install click-extra[{fmt.label.lower()}] "
+        "to enable it."
+    )
+
+
 def read_file(path: Path, formats: Iterable[ConfigFormat] | None = None) -> Any:
     """Read a file and parse it, picking the format from its name.
 
@@ -270,8 +285,5 @@ def read_file(path: Path, formats: Iterable[ConfigFormat] | None = None) -> Any:
     if fmt is None:
         raise ValueError(f"Unsupported file extension: {path.name!r}")
     if not fmt.enabled:
-        raise ImportError(
-            f"{fmt} support disabled: install click-extra[{fmt.label.lower()}] "
-            "to enable it."
-        )
+        raise ImportError(disabled_format_message(fmt))
     return parse_content(fmt, path.read_text(encoding="utf-8"))

@@ -175,6 +175,10 @@ nitpick_ignore = [
     ("py:class", "ColumnSpec"),
     ("py:class", "ConfigValidator"),
     ("py:class", "LogLevel"),
+    # The covariant TypeVar parameterizing the command-decorator protocol in
+    # click_extra.decorators. A TYPE_CHECKING-only name that autodoc renders in
+    # decorator_factory's return annotation, with no documentable target.
+    ("py:obj", "click_extra.decorators.CommandT_co"),
 ]
 
 # Concatenates the docstrings of the class and the __init__ method.

@@ -150,12 +150,10 @@ def test_load_rejects_unknown_extension(tmp_path):
 def test_cases_from_data_builds_cases():
     """A list of directive mappings becomes CLITestCase instances."""
     cases = list(
-        cases_from_data(
-            [
-                {"cli_parameters": "--version", "exit_code": 0},
-                {"cli_parameters": "--help"},
-            ]
-        )
+        cases_from_data([
+            {"cli_parameters": "--version", "exit_code": 0},
+            {"cli_parameters": "--help"},
+        ])
     )
     assert len(cases) == 2
     assert all(isinstance(c, CLITestCase) for c in cases)

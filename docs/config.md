@@ -627,7 +627,7 @@ The internal name for an extension path is `opaque_path`. You'll see it in click
 
 ### Validating programmatically
 
-Both `--validate-config` and the runtime strict check are built on top of a single primitive, {py:func}`~click_extra.config.schema.run_config_validation`. It runs all three stages (the CLI-parameter strict check, the typed schema build, and every registered `ConfigValidator`) in one pass and returns a {py:class}`~click_extra.config.schema.ValidationReport`. Reach for it when I want to validate a parsed configuration document outside Click's option callbacks: a pre-flight check in a deployment script, a custom subcommand that lints config files, or a test harness.
+Both `--validate-config` and the runtime strict check are built on top of a single primitive, {py:func}`~click_extra.config.schema.run_config_validation`. It runs all three stages (the CLI-parameter strict check, the typed schema build, and every registered `ConfigValidator`) in one pass and returns a {py:class}`~click_extra.config.schema.ValidationReport`. Reach for it when you want to validate a parsed configuration document outside Click's option callbacks: a pre-flight check in a deployment script, a custom subcommand that lints config files, or a test harness.
 
 ```{code-block} python
 from dataclasses import dataclass, field

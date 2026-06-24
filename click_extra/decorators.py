@@ -50,12 +50,12 @@ if TYPE_CHECKING:
     from typing import Any, Protocol, TypeVar
 
     _AnyCallable = Callable[..., Any]
-    CommandT = TypeVar("CommandT", bound=click.Command, covariant=True)
+    CommandT_co = TypeVar("CommandT_co", bound=click.Command, covariant=True)
     SubCommandT = TypeVar("SubCommandT", bound=click.Command)
     ParamT = TypeVar("ParamT", bound=click.Parameter)
     FC = TypeVar("FC", bound="_AnyCallable | click.Command")
 
-    class CommandDecorator(Protocol[CommandT]):
+    class CommandDecorator(Protocol[CommandT_co]):
         """Static type of the command decorators built by `decorator_factory`.
 
         Mirrors Click's own overloads for ``@command``/``@group`` so type
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
         """
 
         @overload
-        def __call__(self, name: _AnyCallable, /) -> CommandT:
+        def __call__(self, name: _AnyCallable, /) -> CommandT_co:
             """Bare ``@command`` form: the callback is the only argument."""
 
         @overload
@@ -84,7 +84,7 @@ if TYPE_CHECKING:
             *,
             cls: None = ...,
             **attrs: Any,
-        ) -> Callable[[_AnyCallable], CommandT]:
+        ) -> Callable[[_AnyCallable], CommandT_co]:
             """Parenthesized form using the decorator's default command class."""
 
     class ParameterDecorator(Protocol):
@@ -123,8 +123,8 @@ def allow_missing_parenthesis(dec_factory):
 
 @overload
 def decorator_factory(
-    dec: Any, *new_args: Any, cls: type[CommandT], **new_defaults: Any
-) -> CommandDecorator[CommandT]: ...
+    dec: Any, *new_args: Any, cls: type[CommandT_co], **new_defaults: Any
+) -> CommandDecorator[CommandT_co]: ...
 
 
 @overload
@@ -240,6 +240,23 @@ argument = decorator_factory(dec=cloup.argument, cls=Argument)
 help_option = decorator_factory(click.decorators.help_option, *DEFAULT_HELP_NAMES)
 
 
+def _register_grouped_option(f, option, group):
+    """Memoize *option* on *f*, then wire its Cloup option-group membership.
+
+    The shared tail of the hand-written ``version_option`` and ``sort_by_option``
+    decorators (the ones the ``param_decls``-first ``decorator_factory`` cannot
+    build): both register an already-built option with the ``_param_memo``
+    primitive Cloup uses, then attach the option to *group* (hiding it when the
+    group is hidden). Returns *f* so a decorator can ``return`` it directly.
+    """
+    _param_memo(f, option)
+    new_option = f.__click_params__[-1]
+    new_option.group = group
+    if group and group.hidden:
+        new_option.hidden = True
+    return f
+
+
 # Hand-written rather than produced by `decorator_factory` so it stays a drop-in for
 # Click's `@version_option`, whose first positional argument is the version string.
 # That conflicts with the `param_decls`-first convention the factory relies on, so the
@@ -281,12 +298,7 @@ def version_option(version=None, *param_decls, cls=VersionOption, group=None, **
         param_decls = (version, *param_decls)
 
     def decorator(f):
-        _param_memo(f, cls(param_decls, **kwargs))
-        new_option = f.__click_params__[-1]
-        new_option.group = group
-        if group and group.hidden:
-            new_option.hidden = True
-        return f
+        return _register_grouped_option(f, cls(param_decls, **kwargs), group)
 
     return decorator
 
@@ -341,11 +353,6 @@ def sort_by_option(*header_defs, cls=SortByOption, group=None, **kwargs):
     """
 
     def decorator(f):
-        _param_memo(f, cls(*header_defs, **kwargs))
-        new_option = f.__click_params__[-1]
-        new_option.group = group
-        if group and group.hidden:
-            new_option.hidden = True
-        return f
+        return _register_grouped_option(f, cls(*header_defs, **kwargs), group)
 
     return decorator

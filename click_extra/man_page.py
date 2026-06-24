@@ -63,6 +63,7 @@ from .parameters import (
     iter_subcommands,
     make_resilient_context,
     option_value_kind,
+    param_spellings,
     search_params,
 )
 from .version import resolve_author, resolve_distribution
@@ -556,7 +557,7 @@ def _option_item(param: Parameter, ctx: Context) -> ManOptionItem:
     """
     kind = option_value_kind(param)
     return ManOptionItem(
-        names=tuple(param.opts) + tuple(param.secondary_opts),
+        names=param_spellings(param),
         metavar=None if kind == "flag" else param.make_metavar(ctx=ctx),
         help=getattr(param, "help", None),
         required=param.required,

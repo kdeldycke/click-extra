@@ -1607,7 +1607,10 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
         # A flag with a non-bool flag_value (like NoConfigOption) reports
         # is_bool_flag=False yet still takes no value: it must stay "flag". This is
         # why the classifier keys off is_flag rather than is_bool_flag.
-        (click.Option(["--no-cfg"], is_flag=True, flag_value="x", default=None), "flag"),
+        (
+            click.Option(["--no-cfg"], is_flag=True, flag_value="x", default=None),
+            "flag",
+        ),
         # is_flag=False carrying a flag_value is Click's optional-value option.
         (
             click.Option(["--color"], is_flag=False, flag_value="always", default=None),
