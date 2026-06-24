@@ -257,6 +257,9 @@ assert result.exit_code == 2
 ## `click_extra.man_page` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.man_page
+   :strict:
+
 .. automodule:: click_extra.man_page
    :members:
    :undoc-members:

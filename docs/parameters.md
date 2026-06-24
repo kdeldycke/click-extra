@@ -4,8 +4,6 @@ Click Extra implements tools to manipulate your CLI's parameters, options and ar
 
 The cornerstone of these tools is the magical `--show-params` option, which is a X-ray scanner for your CLI's parameters.
 
-<a name="show-params-option"></a>
-
 ## `--show-params` option
 
 Click Extra adds a `--show-params` flag to every `@command` and `@group`. It dumps a colorized table of every parameter, its current value, where that value came from, the resolved environment variable, and the default:

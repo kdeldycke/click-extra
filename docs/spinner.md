@@ -265,6 +265,9 @@ The `hidden` argument stays authoritative: pass an explicit `hidden=True` or `hi
    :undoc-members:
    :show-inheritance:
 
+.. autoclasstree:: click_extra.spinner_presets
+   :strict:
+
 .. automodule:: click_extra.spinner_presets
    :no-index:
    :members:

@@ -27,8 +27,6 @@ assert "[INFO] all systems nominal." in result.stdout
 
 You may also reach the same entry through the literal string (`ctx.meta["click_extra.verbosity_level"]`): the constants only fix the spelling in one place and document who owns each entry.
 
-(available-keys)=
-
 ## Available keys
 
 The table below lists every entry Click Extra writes, the option that triggers it, and the value's shape. Entries marked *write-only* are not read back internally: they exist so your code can inspect what the user picked.
@@ -166,6 +164,9 @@ This applies per command, so a group and each of its subcommands independently s
 ## `click_extra.context` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.context
+   :strict:
+
 .. automodule:: click_extra.context
    :members:
    :undoc-members:

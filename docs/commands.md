@@ -23,6 +23,7 @@ flowchart TB
         XCmd["Command"]
         XGrp["Group"]
         XOpt["Option"]
+        XArg["Argument"]
         XCtx["Context"]
         XSty["Style"]
     end
@@ -31,6 +32,7 @@ flowchart TB
         CCmd["cloup.Command"]
         CGrp["cloup.Group"]
         COpt["cloup.Option"]
+        CArg["cloup.Argument"]
         CCtx["cloup.Context"]
         CSty["cloup.Style"]
     end
@@ -39,12 +41,14 @@ flowchart TB
         KCmd["click.Command"]
         KGrp["click.Group"]
         KOpt["click.Option"]
+        KArg["click.Argument"]
         KCtx["click.Context"]
         KSty["click.style()"]
     end
     XCmd --> CCmd --> KCmd
     XGrp --> CGrp --> KGrp
     XOpt --> COpt --> KOpt
+    XArg --> CArg --> KArg
     XCtx --> CCtx --> KCtx
     XSty --> CSty -.->|wraps| KSty
 ```
@@ -95,7 +99,7 @@ Same for the main classes and functions, where some are re-implemented by Click 
 | `CliRunner`                | -                            | `click.testing.CliRunner` |
 | `Result`                   | -                            | `click.testing.Result`    |
 | `VersionOption`            | -                            | `click_extra.ExtraOption` |
-| `Style`                    | `cloup.Style`                |                           |
+| `Style`                    | -                            | `cloup.Style`             |
 | `echo`                     | `click.echo`                 |                           |
 | `ParameterSource`          | `click.core.ParameterSource` |                           |
 | `UNSET`                    | `click._utils.UNSET`         |                           |

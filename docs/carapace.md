@@ -37,7 +37,7 @@ assert "celsius" in result.stdout
 assert result.stdout.count("$files") == 1
 ```
 
-## The wrap --carapace mode
+## The wrap `--carapace` mode
 
 `click-extra wrap --carapace SCRIPT` resolves a target, loads its Click command, and prints the whole tree's spec to stdout without running it. SCRIPT is [resolved the same way](wrap.md#script-resolution) as for `--man`, so nothing needs to be installed up front with uvx:
 
@@ -94,6 +94,9 @@ $ pip install "click-extra[carapace]"
 ## `click_extra.carapace` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.carapace
+   :strict:
+
 .. automodule:: click_extra.carapace
    :members:
    :undoc-members:

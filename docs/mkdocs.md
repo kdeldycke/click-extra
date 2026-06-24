@@ -91,6 +91,9 @@ When the `click-extra` plugin is enabled (as shown in [Setup](#setup)) and `mkdo
 ## `click_extra.mkdocs` API
 
 ```{eval-rst}
+.. autoclasstree:: click_extra.mkdocs
+   :strict:
+
 .. automodule:: click_extra.mkdocs
    :members:
    :undoc-members:

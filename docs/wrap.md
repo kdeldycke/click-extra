@@ -283,7 +283,7 @@ When the resolved entry point is a wrapper function (not a Click command), the m
 $ click-extra wrap --show-params -- flask.cli:cli
 ```
 
-### `click_extra.cli_wrapper` API
+## `click_extra.cli_wrapper` API
 
 ```{eval-rst}
 .. autoclasstree:: click_extra.cli_wrapper

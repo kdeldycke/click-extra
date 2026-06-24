@@ -230,8 +230,6 @@ click-extra provides [ANSI-capable session lexers](pygments.md#ansi-language-lex
 - [`sphinx-contrib/ansi#9` - ANSI Codes in output](https://github.com/sphinx-contrib/ansi/issues/9)
 - [`MyST-Parser#845` - Add an extension to support GitHub alerts](https://github.com/executablebooks/MyST-Parser/issues/845)
 
-<a name="sphinx-click-source-and-click-run-directives"></a>
-
 ### Sphinx `click:source` and `click:run` directives
 
 click-extra maintains and extends the [`click:source`/`click:run` directives](sphinx.md#click-directives) originally from `pallets-sphinx-themes`:

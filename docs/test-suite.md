@@ -178,13 +178,16 @@ Rather than passing `--suite-file` every time, a project can declare its suite o
 ```{code-block} toml
 [tool.click-extra.test-suite]
 file = "tests/cli-test-suite.toml"  # default; format taken from the extension
-# inline = "- cli_parameters: --version"  # or embed a YAML suite directly
+# inline = "- cli_parameters: --version"  # a whole suite as one YAML string (parsed as YAML, not TOML)
 # timeout = 30  # default per-case timeout in seconds
 ```
 
-Or write the cases natively in the config file itself, under a `cases` array of tables — no separate suite file needed:
+Or write the cases natively in the same section, under a `cases` array of tables, so no separate suite file is needed. The cases sit under `[tool.click-extra.test-suite]`, alongside section-level keys like `timeout`:
 
 ```{code-block} toml
+[tool.click-extra.test-suite]
+timeout = 30  # section-level keys still apply
+
 [[tool.click-extra.test-suite.cases]]
 cli_parameters = "--version"
 exit_code = 0

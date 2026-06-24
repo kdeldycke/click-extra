@@ -81,7 +81,7 @@ There's another method called `render_table()` that is registered in the context
 It works the same way, but instead of printing the table to the console, it returns the rendered table as a string.
 ```
 
-### Table formats
+## Table formats
 
 Table formats are aggregated from these sources:
 
@@ -419,7 +419,7 @@ invoke(table_command, args=["--table-format", "yaml"])
 invoke(table_command, args=["--table-format", "youtrack"])
 ```
 
-### Get table format
+## Get table format
 
 You can get the ID of the current table format from the context:
 
@@ -446,7 +446,7 @@ result = invoke(vanilla_command, args=["--table-format", "fancy-outline"])
 assert "Table format: fancy-outline" in result.stdout
 ```
 
-### Data serialization
+## Data serialization
 
 `print_data()` and `serialize_data()` handle arbitrary data structures (nested dicts, lists, scalars), unlike `print_table()` which expects tabular rows and headers. They support the structured serialization formats: JSON, HJSON, YAML, TOML, and XML.
 
@@ -490,7 +490,7 @@ assert '"city": "Paris"' in output
 print(output, end="")
 ```
 
-### Sorted tables
+## Sorted tables
 
 The `@sort_by_option` decorator adds a `--sort-by` CLI option whose choices are derived from column definitions. Column definitions are `(label, column_id)` tuples or `ColumnSpec` instances. Columns with `column_id=None` are displayed but not offered as sort choices.
 

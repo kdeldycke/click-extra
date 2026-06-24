@@ -284,8 +284,6 @@ In a [configuration file](config.md) the same string synonyms apply, and a nativ
 A configuration boolean diverges from [git's `color.ui`](https://git-scm.com/docs/git-config), where `true` means `auto`. Click Extra keeps `true` equal to `always` so the `yes` synonym and YAML's coercion of `yes` to `True` agree across file formats.
 ```
 
-<a name="accessible-flag"></a>
-
 ## `--accessible` flag
 
 A screen reader consumes a terminal as a linear stream of characters. Several defaults that please sighted users work against that stream: ANSI color codes carry no meaning once flattened to text; tables drawn with Unicode box-drawing characters (`│`, `╭`, `─`, …) turn their borders and whitespace-based column alignment into noise; animated progress spinners and bars repeat frames a reader cannot watch advance; and interactive takeovers like a pager or a screen-clear trap or wipe the stream the reader is following.
@@ -479,6 +477,18 @@ The help-screen keyword highlighting engine (`HelpKeywords`, `HelpFormatter`, `h
 
 .. automodule:: click_extra.highlight
    :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.accessibility` API
+
+```{eval-rst}
+.. autoclasstree:: click_extra.accessibility
+   :strict:
+
+.. automodule:: click_extra.accessibility
    :members:
    :undoc-members:
    :show-inheritance:
