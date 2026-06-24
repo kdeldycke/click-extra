@@ -60,6 +60,8 @@ from .envvar import param_envvar_ids
 from .parameters import (
     ExtraOption,
     full_short_help,
+    iter_subcommands,
+    make_resilient_context,
     option_value_kind,
     search_params,
 )
@@ -649,13 +651,9 @@ def extract_manpage(
             seen_envvars.add(var)
             environment.append((var, getattr(param, "help", None) or ""))
 
-    subcommands: list[tuple[str, str]] = []
-    if isinstance(command, click.Group):
-        for sub_name in command.list_commands(ctx):
-            sub = command.get_command(ctx, sub_name)
-            if sub is None or getattr(sub, "hidden", False):
-                continue
-            subcommands.append((sub_name, full_short_help(sub)))
+    subcommands: list[tuple[str, str]] = [
+        (name, full_short_help(sub)) for name, sub in iter_subcommands(command, ctx)
+    ]
 
     return ManPage(
         name=ctx.command_path,
@@ -691,16 +689,12 @@ def iter_command_contexts(
     prompts, or eager-option side effects.
     """
     info_name = (prog_name or command.name or "") if not _path else (command.name or "")
-    ctx = command.make_context(info_name, [], parent=_parent, resilient_parsing=True)
+    ctx = make_resilient_context(command, info_name, parent=_parent)
     path = _path + (info_name,)
     yield path, command, ctx
 
-    if isinstance(command, click.Group):
-        for sub_name in command.list_commands(ctx):
-            sub = command.get_command(ctx, sub_name)
-            if sub is None or getattr(sub, "hidden", False):
-                continue
-            yield from iter_command_contexts(sub, _parent=ctx, _path=path)
+    for sub_name, sub in iter_subcommands(command, ctx):
+        yield from iter_command_contexts(sub, _parent=ctx, _path=path)
 
 
 def render_manpage(
@@ -717,9 +711,7 @@ def render_manpage(
     through to :func:`~click_extra.man_page.extract_manpage`.
     """
     if ctx is None:
-        ctx = command.make_context(
-            prog_name or command.name, [], resilient_parsing=True
-        )
+        ctx = make_resilient_context(command, prog_name or command.name)
     return extract_manpage(command, ctx, **overrides).to_roff()
 
 

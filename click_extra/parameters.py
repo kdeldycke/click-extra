@@ -698,6 +698,48 @@ def format_param_row(
     }
 
 
+def make_resilient_context(
+    command: click.Command,
+    info_name: str | None = None,
+    parent: click.Context | None = None,
+) -> click.Context:
+    """Build an introspection context for a command.
+
+    Parses no arguments and sets ``resilient_parsing=True`` so required-argument
+    errors, prompts and eager-option side effects stay dormant: the canonical way
+    to materialize a :class:`click.Context` purely to read a command's structure
+    (its parameters, env-var prefix and subcommands), shared by the man-page and
+    Carapace exporters.
+    """
+    return command.make_context(info_name, [], parent=parent, resilient_parsing=True)
+
+
+def iter_subcommands(
+    command: click.Command,
+    ctx: click.Context,
+    *,
+    skip_hidden: bool = True,
+) -> Iterator[tuple[str, click.Command]]:
+    """Yield a group's direct subcommands as ``(name, command)`` pairs.
+
+    Subcommands are discovered dynamically through
+    :meth:`click.Group.list_commands` / :meth:`~click.Group.get_command`, in
+    listing order, so lazily-registered commands are included. A non-group yields
+    nothing, a name resolving to ``None`` is skipped, and hidden subcommands are
+    skipped unless ``skip_hidden`` is ``False`` (completion specs keep them,
+    flagged hidden; documentation drops them).
+    """
+    if not isinstance(command, click.Group):
+        return
+    for name in command.list_commands(ctx):
+        sub = command.get_command(ctx, name)
+        if sub is None:
+            continue
+        if skip_hidden and getattr(sub, "hidden", False):
+            continue
+        yield name, sub
+
+
 def walk_command_params(
     cmd: click.Command,
     ctx: click.Context,

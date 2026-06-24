@@ -62,7 +62,11 @@ from click_extra import (
     table_format_option,
 )
 from click_extra.config import NO_CONFIG
-from click_extra.parameters import option_value_kind
+from click_extra.parameters import (
+    iter_subcommands,
+    make_resilient_context,
+    option_value_kind,
+)
 from click_extra.pytest import command_decorators
 
 from .test_highlight import HashType
@@ -1612,3 +1616,22 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
 )
 def test_option_value_kind(opt, expected):
     assert option_value_kind(opt) == expected
+
+
+def test_iter_subcommands_hidden_handling():
+    cli = click.Group("cli")
+    cli.add_command(click.Command("visible"))
+    cli.add_command(click.Command("secret", hidden=True))
+    ctx = make_resilient_context(cli, "cli")
+    # Hidden subcommands are skipped by default, kept when asked.
+    assert [name for name, _ in iter_subcommands(cli, ctx)] == ["visible"]
+    assert [name for name, _ in iter_subcommands(cli, ctx, skip_hidden=False)] == [
+        "secret",
+        "visible",
+    ]
+
+
+def test_iter_subcommands_empty_for_non_group():
+    leaf = click.Command("leaf")
+    ctx = make_resilient_context(leaf, "leaf")
+    assert list(iter_subcommands(leaf, ctx)) == []

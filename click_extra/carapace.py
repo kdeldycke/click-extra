@@ -69,6 +69,8 @@ from .commands import DEFAULT_HELP_NAMES, default_params
 from .parameters import (
     full_short_help,
     is_repeatable,
+    iter_subcommands,
+    make_resilient_context,
     option_value_kind,
     param_spellings,
     short_long_opts,
@@ -457,23 +459,19 @@ def extract_carapace_command(
     node.completion.positional = positional
     node.exclusiveflags = _exclusive_flag_groups(command)
 
-    if isinstance(command, click.Group):
-        child_inherited = frozenset(persistent_spellings)
-        for sub_name in command.list_commands(ctx):
-            sub = command.get_command(ctx, sub_name)
-            if sub is None:
-                continue
-            sub_ctx = sub.make_context(sub_name, [], parent=ctx, resilient_parsing=True)
-            node.commands.append(
-                extract_carapace_command(
-                    sub,
-                    sub_ctx,
-                    is_root=False,
-                    default_opts=default_opts,
-                    inherited_opts=child_inherited,
-                    root_name=root_name,
-                )
+    child_inherited = frozenset(persistent_spellings)
+    for sub_name, sub in iter_subcommands(command, ctx, skip_hidden=False):
+        sub_ctx = make_resilient_context(sub, sub_name, parent=ctx)
+        node.commands.append(
+            extract_carapace_command(
+                sub,
+                sub_ctx,
+                is_root=False,
+                default_opts=default_opts,
+                inherited_opts=child_inherited,
+                root_name=root_name,
             )
+        )
 
     return node
 
@@ -491,7 +489,7 @@ def to_carapace_spec(
     """
     name = prog_name or command.name or ""
     if ctx is None:
-        ctx = command.make_context(name, [], resilient_parsing=True)
+        ctx = make_resilient_context(command, name)
     node = extract_carapace_command(
         command,
         ctx,
