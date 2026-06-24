@@ -17,56 +17,37 @@ flowchart LR
     typing_extensions(["`typing-extensions`"])
     bracex(["`bracex`"])
 
-    subgraph ext_hjson [--extra hjson]
-        hjson{{"`hjson >=3.1`"}}
-    end
-
-    subgraph ext_json5 [--extra json5]
-        json5{{"`json5 >=0.12.1`"}}
-    end
-
-    subgraph ext_jsonc [--extra jsonc]
-        json_with_comments{{"`json-with-comments >=1.2.10`"}}
-    end
-
-    subgraph ext_mkdocs [--extra mkdocs]
-        mkdocs{{"`mkdocs >=1.4`"}}
+    subgraph ext_all [--extra all]
+        sphinx{{"`sphinx`"}}
+        mkdocs{{"`mkdocs`"}}
+        pytest{{"`pytest`"}}
+        requests{{"`requests`"}}
         mkdocs_get_deps(["`mkdocs-get-deps`"])
         pyyaml{{"`pyyaml`"}}
         jinja2(["`jinja2`"])
         packaging(["`packaging`"])
+        exceptiongroup(["`exceptiongroup`"])
         ghp_import(["`ghp-import`"])
         markdown(["`markdown`"])
         markupsafe(["`markupsafe`"])
         mergedeep(["`mergedeep`"])
-        pygments{{"`pygments >=2.14`"}}
-        pymdown_extensions{{"`pymdown-extensions >=10`"}}
+        pygments{{"`pygments`"}}
+        pymdown_extensions{{"`pymdown-extensions`"}}
         python_dateutil(["`python-dateutil`"])
         pyyaml_env_tag(["`pyyaml-env-tag`"])
-        pathspec(["`pathspec`"])
-        platformdirs(["`platformdirs`"])
-        six(["`six`"])
-        watchdog(["`watchdog`"])
-    end
-
-    subgraph ext_pytest [--extra pytest]
-        pytest{{"`pytest >=9`"}}
-        exceptiongroup(["`exceptiongroup`"])
-        iniconfig(["`iniconfig`"])
-        pluggy(["`pluggy`"])
-    end
-
-    subgraph ext_sphinx [--extra sphinx]
-        sphinx{{"`sphinx >=8`"}}
-        requests{{"`requests`"}}
         alabaster(["`alabaster`"])
         babel(["`babel`"])
         certifi(["`certifi`"])
         charset_normalizer(["`charset-normalizer`"])
-        docutils{{"`docutils >=0.20`"}}
+        docutils{{"`docutils`"}}
         idna(["`idna`"])
         imagesize(["`imagesize`"])
+        iniconfig(["`iniconfig`"])
+        pathspec(["`pathspec`"])
+        platformdirs(["`platformdirs`"])
+        pluggy(["`pluggy`"])
         roman_numerals(["`roman-numerals`"])
+        six(["`six`"])
         snowballstemmer(["`snowballstemmer`"])
         sphinxcontrib_applehelp(["`sphinxcontrib-applehelp`"])
         sphinxcontrib_devhelp(["`sphinxcontrib-devhelp`"])
@@ -75,14 +56,12 @@ flowchart LR
         sphinxcontrib_qthelp(["`sphinxcontrib-qthelp`"])
         sphinxcontrib_serializinghtml(["`sphinxcontrib-serializinghtml`"])
         urllib3(["`urllib3`"])
-    end
-
-    subgraph ext_toml [--extra toml]
-        tomlkit{{"`tomlkit >=0.13`"}}
-    end
-
-    subgraph ext_xml [--extra xml]
-        xmltodict{{"`xmltodict >=1`"}}
+        watchdog(["`watchdog`"])
+        hjson{{"`hjson`"}}
+        json_with_comments{{"`json-with-comments`"}}
+        json5{{"`json5`"}}
+        tomlkit{{"`tomlkit`"}}
+        xmltodict{{"`xmltodict`"}}
     end
 
     click_extra ==>|" >=8.3.1 "| click_0
@@ -152,14 +131,7 @@ flowchart LR
     extra_platforms ==> pytest
     tabulate ==> wcwidth
     wcmatch --> bracex
-    click_extra -.-> ext_hjson
-    click_extra -.-> ext_json5
-    click_extra -.-> ext_jsonc
-    click_extra -.-> ext_mkdocs
-    click_extra -.-> ext_pytest
-    click_extra -.-> ext_sphinx
-    click_extra -.-> ext_toml
-    click_extra -.-> ext_xml
+    click_extra -.-> ext_all
 
     click alabaster "https://pypi.org/project/alabaster/" _blank
     click babel "https://pypi.org/project/babel/" _blank
@@ -222,6 +194,7 @@ flowchart LR
     style click_extra stroke-width:3px
     style boltons stroke-width:3px
     style click_0 stroke-width:3px
+    style click_extra stroke-width:3px
     style cloup stroke-width:3px
     style deepmerge stroke-width:3px
     style docutils stroke-width:3px
@@ -244,11 +217,4 @@ flowchart LR
     style xmltodict stroke-width:3px
 
     style primary-deps fill:#1565C020,stroke:#42A5F5
-    style ext_hjson fill:#7B1FA220,stroke:#BA68C8
-    style ext_json5 fill:#7B1FA220,stroke:#BA68C8
-    style ext_jsonc fill:#7B1FA220,stroke:#BA68C8
-    style ext_mkdocs fill:#7B1FA220,stroke:#BA68C8
-    style ext_pytest fill:#7B1FA220,stroke:#BA68C8
-    style ext_sphinx fill:#7B1FA220,stroke:#BA68C8
-    style ext_toml fill:#7B1FA220,stroke:#BA68C8
-    style ext_xml fill:#7B1FA220,stroke:#BA68C8
+    style ext_all fill:#7B1FA220,stroke:#BA68C8
