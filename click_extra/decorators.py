@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import inspect
 from functools import wraps
+from typing import overload
 
 import click
 import cloup
@@ -43,6 +44,66 @@ from .telemetry import TelemetryOption
 from .theme import ThemeOption
 from .version import VersionOption
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any, Protocol, TypeVar
+
+    _AnyCallable = Callable[..., Any]
+    CommandT = TypeVar("CommandT", bound=click.Command, covariant=True)
+    SubCommandT = TypeVar("SubCommandT", bound=click.Command)
+    ParamT = TypeVar("ParamT", bound=click.Parameter)
+    FC = TypeVar("FC", bound="_AnyCallable | click.Command")
+
+    class CommandDecorator(Protocol[CommandT]):
+        """Static type of the command decorators built by `decorator_factory`.
+
+        Mirrors Click's own overloads for ``@command``/``@group`` so type
+        checkers infer the produced command class, while also covering the
+        no-parenthesis form enabled by `allow_missing_parenthesis`.
+        """
+
+        @overload
+        def __call__(self, name: _AnyCallable, /) -> CommandT:
+            """Bare ``@command`` form: the callback is the only argument."""
+
+        @overload
+        def __call__(
+            self,
+            name: str | None = ...,
+            *,
+            cls: type[SubCommandT],
+            **attrs: Any,
+        ) -> Callable[[_AnyCallable], SubCommandT]:
+            """Parenthesized form with an explicit ``cls`` override."""
+
+        @overload
+        def __call__(
+            self,
+            name: str | None = ...,
+            *,
+            cls: None = ...,
+            **attrs: Any,
+        ) -> Callable[[_AnyCallable], CommandT]:
+            """Parenthesized form using the decorator's default command class."""
+
+    class ParameterDecorator(Protocol):
+        """Static type of the option and argument decorators built by
+        `decorator_factory`.
+
+        These decorators attach a parameter to the callback and return it
+        unchanged, so the decorated function keeps its own type. The two
+        overloads cover the bare (no-parenthesis) and parenthesized forms.
+        """
+
+        @overload
+        def __call__(self, func: FC, /) -> FC:
+            """Bare ``@option`` form: the callback is the only argument."""
+
+        @overload
+        def __call__(self, *param_decls: str, **attrs: Any) -> Callable[[FC], FC]:
+            """Parenthesized form: option flags and attributes are forwarded."""
+
 
 def allow_missing_parenthesis(dec_factory):
     """Allow to use decorators with or without parenthesis.
@@ -60,11 +121,32 @@ def allow_missing_parenthesis(dec_factory):
     return new_factory
 
 
+@overload
+def decorator_factory(
+    dec: Any, *new_args: Any, cls: type[CommandT], **new_defaults: Any
+) -> CommandDecorator[CommandT]: ...
+
+
+@overload
+def decorator_factory(
+    dec: Any, *new_args: Any, cls: type[ParamT] | None = ..., **new_defaults: Any
+) -> ParameterDecorator: ...
+
+
 def decorator_factory(dec, *new_args, **new_defaults):
     """Clone decorator with a set of new defaults.
 
     Used to create our own collection of decorators for our custom options, based on
     Cloup's.
+
+    The two overloads give static type checkers a precise signature for the
+    decorators this factory produces: command-style decorators (``cls`` is a
+    `click.Command` subclass) report the resulting command class, while
+    parameter-style decorators (``cls`` is a `click.Parameter` subclass, or
+    absent) return the decorated callback unchanged. Both overloads model the
+    optional-parenthesis behaviour added by `allow_missing_parenthesis`, which
+    plain inference cannot recover. See `CommandDecorator` and
+    `ParameterDecorator` for the produced shapes.
 
     .. attention::
         The `cls` argument passed to the factory is used as the reference class from
