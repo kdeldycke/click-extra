@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.1.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.1.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.1.0` (2026-06-24)](https://github.com/kdeldycke/click-extra/compare/v8.0.1...v8.1.0)
 
 - **Breaking:** Rename the `test-plan` subcommand to `test-suite`, its `--plan-file`/`--plan-envvar` options to `--suite-file`/`--suite-envvar`, its `[tool.<cli>.test-plan]` config section to `[tool.<cli>.test-suite]`, the `click_extra.test_plan` module to `click_extra.test_suite`, and the `TestPlanConfig`/`parse_test_plan`/`run_test_plan`/`DEFAULT_TEST_PLAN` API to `TestSuiteConfig`/`parse_test_suite`/`run_test_suite`/`DEFAULT_TEST_SUITE`. The `CLITestCase` class and the `[[cases]]` file structure keep their names.
