@@ -25,6 +25,7 @@
 - Add named constants for the schema field-metadata keys, the counterparts to the existing `EXTENSION_METADATA_KEY`: `CONFIG_PATH_METADATA_KEY` (pin a field to a config sub-path) and `NORMALIZE_KEYS_METADATA_KEY` (toggle key normalization on a field's value). Schema authors can use these instead of the bare `"click_extra.config_path"` / `"click_extra.normalize_keys"` metadata strings.
 - Default the test-suite config file (`TestSuiteConfig.file`) to `./tests/cli-test-suite.toml`. TOML parses with the built-in `tomllib`, so the default requires no optional extra to work. Click Extra's own dogfooded test suite is written in TOML.
 - Allow declaring test-suite cases natively in the config file under `[tool.<cli>.test-suite.cases]` (an array of tables in TOML), as an alternative to a `file` path or an `inline` YAML string. Adds the `cases` field to `TestSuiteConfig` and the public `cases_from_data` helper, the in-memory counterpart to `parse_test_suite` and `load_test_suite`.
+- Add an `all` extra that pulls in every optional feature at once, so `uv pip install click-extra[all]` installs them all without enumerating each extra.
 
 ## [`8.0.1` (2026-06-22)](https://github.com/kdeldycke/click-extra/compare/v8.0.0...v8.0.1)
 

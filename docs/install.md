@@ -236,6 +236,6 @@ By default, Click Extra supports TOML [configuration files](config.md#toml) and 
 Install all extras at once with:
 
 ```{code-block} shell-session
-$ uv pip install click-extra[hjson,json5,jsonc,carapace,mkdocs,toml,xml,yaml,pygments,sphinx,pytest]
+$ uv pip install click-extra[all]
 ```
 ````

@@ -138,6 +138,11 @@ pytest11.click-extra = "click_extra.pytest"
 "mkdocs.plugins".click-extra = "click_extra.mkdocs:AnsiColorPlugin"
 
 [project.optional-dependencies]
+all = [
+  # Aggregate extra: pulls in every optional feature at once. Self-references the
+  # package so the version pins stay defined once, in the extras below.
+  "click-extra[carapace,hjson,json5,jsonc,mkdocs,pygments,pytest,sphinx,toml,xml,yaml]",
+]
 carapace = [
   # PyYAML serializes the Carapace completion spec (carapace.dump_carapace_spec).
   # Pinned like the yaml extra: < 6.0.2 fails to build on Python 3.14.
