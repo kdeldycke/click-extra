@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import click
@@ -89,6 +90,20 @@ MULTI_OPTION_SCRIPT = (
 )
 """Script with multiple options for config passthrough tests."""
 
+PACKAGE_GROUP_SRC = (
+    "import click\n"
+    "\n"
+    "@click.group()\n"
+    "def cli():\n"
+    '    """Manage a produce stand."""\n'
+    "\n"
+    "@cli.command()\n"
+    "def restock():\n"
+    '    """Restock the shelves."""\n'
+    '    click.echo("Restocked")\n'
+)
+"""Module-level Click group, exposed by a package inside a project directory."""
+
 
 @pytest.fixture(autouse=True)
 def _restore_click():
@@ -125,6 +140,47 @@ def weather_script(tmp_path):
     script = tmp_path / "weather.py"
     script.write_text(MULTI_OPTION_SCRIPT)
     return str(script)
+
+
+@pytest.fixture
+def make_project(tmp_path):
+    """Build a local project directory exposing a Click group at module level.
+
+    The returned factory writes packaging metadata (``pyproject.toml`` or
+    ``setup.cfg``) plus a package, in either the flat or src layout. On teardown
+    it undoes the ``sys.path`` and ``sys.modules`` mutations that resolving a
+    project directory triggers, keeping the tests isolated.
+    """
+    original_path = list(sys.path)
+    original_modules = set(sys.modules)
+
+    def _make(package, *, layout="flat", metadata="pyproject", scripts=None):
+        project = tmp_path / f"{package}-project"
+        root = project / "src" if layout == "src" else project
+        pkg_dir = root / package
+        pkg_dir.mkdir(parents=True)
+        (pkg_dir / "__init__.py").write_text("")
+        (pkg_dir / "cli.py").write_text(PACKAGE_GROUP_SRC)
+
+        scripts = scripts or {package: f"{package}.cli:cli"}
+        if metadata == "pyproject":
+            lines = [f'[project]\nname = "{package}"\n', "[project.scripts]"]
+            lines += [f'{name} = "{target}"' for name, target in scripts.items()]
+            (project / "pyproject.toml").write_text("\n".join(lines) + "\n")
+        else:
+            entries = "\n".join(
+                f"    {name} = {target}" for name, target in scripts.items()
+            )
+            (project / "setup.cfg").write_text(
+                f"[options.entry_points]\nconsole_scripts =\n{entries}\n"
+            )
+        return project
+
+    yield _make
+
+    sys.path[:] = original_path
+    for name in set(sys.modules) - original_modules:
+        del sys.modules[name]
 
 
 @pytest.fixture
@@ -222,6 +278,82 @@ def test_resolve_not_found(script):
     else:
         with pytest.raises(click.ClickException, match="Cannot resolve"):
             resolve_target(script)
+
+
+# -- Local project directory resolution ----------------------------------------
+
+
+def test_resolve_directory_flat_layout(make_project):
+    """A project directory resolves via its pyproject.toml entry point."""
+    project = make_project("orchard")
+    assert resolve_target(str(project)) == ("orchard.cli", "cli")
+    # The package root is prepended to sys.path so the import can succeed.
+    assert str(project.resolve()) in sys.path
+
+
+def test_resolve_directory_src_layout(make_project):
+    """A src-layout project puts its src/ directory on sys.path."""
+    project = make_project("vineyard", layout="src")
+    assert resolve_target(str(project)) == ("vineyard.cli", "cli")
+    assert str((project / "src").resolve()) in sys.path
+
+
+def test_resolve_directory_setup_cfg(make_project):
+    """console_scripts in setup.cfg resolve when no pyproject.toml is present."""
+    project = make_project("bakery", metadata="setup_cfg")
+    assert resolve_target(str(project)) == ("bakery.cli", "cli")
+
+
+def test_resolve_directory_duplicate_scripts(make_project):
+    """Multiple script names pointing to one target resolve unambiguously."""
+    project = make_project(
+        "cellar",
+        scripts={"cellar": "cellar.cli:cli", "cl": "cellar.cli:cli"},
+    )
+    assert resolve_target(str(project)) == ("cellar.cli", "cli")
+
+
+def test_resolve_directory_run(runner, make_project):
+    """The default run mode imports and executes a project directory's CLI."""
+    project = make_project("pantry")
+    result = runner.invoke(wrap, [str(project), "restock"])
+    assert result.exit_code == 0
+    assert "Restocked" in result.output
+
+
+def test_resolve_directory_introspect(make_project):
+    """Introspection discovers the command tree of a project directory."""
+    project = make_project("greenhouse")
+    cmd, _ = resolve_target_command(str(project))
+    assert isinstance(cmd, click.Group)
+    assert cmd.name == "cli"
+    assert "restock" in cmd.commands
+
+
+def test_resolve_directory_no_scripts(tmp_path):
+    """A project without console scripts raises an actionable error."""
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "empty"\n')
+    with pytest.raises(click.ClickException, match="No console-script entry point"):
+        resolve_target(str(tmp_path))
+
+
+def test_resolve_directory_multiple_scripts(make_project):
+    """Distinct entry-point targets cannot be disambiguated and raise."""
+    project = make_project(
+        "market",
+        scripts={"sell": "stall_a.cli:sell", "buy": "stall_b.cli:buy"},
+    )
+    with pytest.raises(click.ClickException, match="Multiple console scripts"):
+        resolve_target(str(project))
+
+
+def test_resolve_directory_package_not_found(tmp_path):
+    """An entry point whose package is absent on disk raises."""
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "ghost"\n[project.scripts]\nghost = "ghost.cli:main"\n'
+    )
+    with pytest.raises(click.ClickException, match="is not under"):
+        resolve_target(str(tmp_path))
 
 
 # -- wrap subcommand -----------------------------------------------------------

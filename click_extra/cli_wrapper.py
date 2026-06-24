@@ -33,6 +33,7 @@ import logging
 import runpy
 import shlex
 import sys
+from configparser import ConfigParser
 from importlib import metadata
 from pathlib import Path
 
@@ -51,6 +52,11 @@ from .man_page import render_manpage, write_manpages
 from .parameters import ShowParamsOption, render_params_table
 from .table import DEFAULT_FORMAT, TableFormat
 from .theme import BUILTIN_THEMES, HelpTheme, nocolor_theme, set_default_theme
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib  # type: ignore[import-not-found]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -233,19 +239,126 @@ def unpatch_click() -> None:
     set_default_theme(BUILTIN_THEMES.get("dark", nocolor_theme))
 
 
+def _read_project_scripts(directory: Path) -> dict[str, str]:
+    """Read the console-script entry points declared by a local project.
+
+    Inspects PEP 621 ``[project.scripts]`` in ``pyproject.toml`` first, then
+    ``console_scripts`` under ``[options.entry_points]`` in ``setup.cfg``. The
+    dynamic ``setup.py`` form cannot be parsed statically and is ignored.
+
+    :returns: a mapping of each console-script name to its ``module:function``
+        target. Empty when the project declares none.
+    """
+    pyproject = directory / "pyproject.toml"
+    if pyproject.is_file():
+        data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+        scripts = data.get("project", {}).get("scripts", {})
+        if scripts:
+            return {str(name): str(target) for name, target in scripts.items()}
+
+    setup_cfg = directory / "setup.cfg"
+    if setup_cfg.is_file():
+        parser = ConfigParser()
+        parser.read(setup_cfg, encoding="utf-8")
+        raw = parser.get("options.entry_points", "console_scripts", fallback="")
+        scripts = {}
+        for line in raw.strip().splitlines():
+            entry = line.strip()
+            if not entry or "=" not in entry:
+                continue
+            name, _, target = entry.partition("=")
+            scripts[name.strip()] = target.strip()
+        return scripts
+
+    return {}
+
+
+def _locate_package_root(directory: Path, top_package: str) -> Path | None:
+    """Find which directory must be on ``sys.path`` to import *top_package*.
+
+    Handles the two common project layouts: the flat layout (the package sits
+    directly under the project root) and the src layout (under a ``src/``
+    subdirectory).
+
+    :returns: the directory to prepend to ``sys.path``, or ``None`` when the
+        package cannot be located on disk.
+    """
+    for root in (directory, directory / "src"):
+        package = root / top_package
+        if (package / "__init__.py").is_file():
+            return root
+        if (root / f"{top_package}.py").is_file():
+            return root
+        if package.is_dir():
+            return root
+    return None
+
+
+def _resolve_project_dir(directory: Path) -> tuple[str, str, Path]:
+    """Resolve a local project directory to an importable target.
+
+    Reads the project's packaging metadata to find its console-script entry
+    point, then locates the top-level package on disk so it can be imported
+    without an install step. This lets ``wrap`` target a checked-out project by
+    its directory, the way an editable install plus its console script would.
+
+    :returns: ``(module_path, function_name, syspath_entry)``. *syspath_entry*
+        is the directory to prepend to ``sys.path`` so *module_path* resolves.
+    :raises click.ClickException: when no entry point can be determined, or the
+        package backing it cannot be found on disk.
+    """
+    scripts = _read_project_scripts(directory)
+    if not scripts:
+        raise click.ClickException(
+            f"No console-script entry point found in {directory}. Looked for "
+            f"[project.scripts] in pyproject.toml and console_scripts in "
+            f"setup.cfg. Pass the target explicitly as module:function."
+        )
+
+    targets = sorted(set(scripts.values()))
+    if len(targets) > 1:
+        listing = ", ".join(
+            f"{name} = {target}" for name, target in sorted(scripts.items())
+        )
+        raise click.ClickException(
+            f"Multiple console scripts in {directory}: {listing}. "
+            f"Pass one explicitly as module:function."
+        )
+
+    module_path, _, function_name = targets[0].partition(":")
+    top_package = module_path.split(".")[0]
+    syspath_entry = _locate_package_root(directory, top_package)
+    if syspath_entry is None:
+        raise click.ClickException(
+            f"Found entry point {targets[0]!r} in {directory}, but its top-level "
+            f"package {top_package!r} is not under {directory} or "
+            f"{directory / 'src'}."
+        )
+    return module_path, function_name, syspath_entry
+
+
 def resolve_target(script: str) -> tuple[str, str]:
     """Resolve a script name to a module path and function name.
 
     Resolution order:
 
     1. ``console_scripts`` entry points from installed packages.
-    2. Explicit ``module:function`` notation.
+    2. A local project directory: its ``console_scripts`` entry point is read
+       from ``pyproject.toml`` / ``setup.cfg`` and its package is added to
+       ``sys.path``.
     3. ``.py`` file path.
-    4. Bare Python module or package name.
+    4. Explicit ``module:function`` notation.
+    5. Bare Python module or package name.
 
     :returns: ``(module_path, function_name)`` tuple. *function_name* is
         empty when the target should be invoked as a module or script file.
     :raises click.ClickException: If the script cannot be resolved.
+
+    .. note::
+        Resolving a local project directory has a side effect: the directory
+        holding its top-level package is prepended to ``sys.path`` so the
+        subsequent import succeeds. The target's own dependencies must still be
+        importable in the current environment.
     """
     logger.debug("Resolving target %r.", script)
 
@@ -261,7 +374,26 @@ def resolve_target(script: str) -> tuple[str, str]:
             )
             return module_path, function_name
 
-    # 2. .py file path. Checked before the module:function heuristic so that
+    # 2. Local project directory: discover its console-script entry point and
+    # make its package importable. Checked before the path/module heuristics so
+    # a real directory on disk is never mistaken for module:function notation or
+    # a bare module name.
+    script_path = Path(script)
+    if script and script_path.is_dir():
+        module_path, function_name, syspath_entry = _resolve_project_dir(script_path)
+        entry_str = str(syspath_entry.resolve())
+        if entry_str not in sys.path:
+            sys.path.insert(0, entry_str)
+            logger.debug("Prepended %r to sys.path.", entry_str)
+        logger.info(
+            "Resolved %r as local project: %s:%s.",
+            script,
+            module_path,
+            function_name,
+        )
+        return module_path, function_name
+
+    # 3. .py file path. Checked before the module:function heuristic so that
     # Windows absolute paths (like ``C:\...\foo.py``) are not mistaken for
     # ``module:function`` notation: the drive-letter colon would otherwise
     # split the path at the wrong position.
@@ -273,7 +405,7 @@ def resolve_target(script: str) -> tuple[str, str]:
         # Skip the module:function check below: a .py name is never valid
         # module:function notation.
     else:
-        # 3. Explicit module:function notation.
+        # 4. Explicit module:function notation.
         if ":" in script:
             module_path, function_name = script.rsplit(":", 1)
             logger.info(
@@ -284,7 +416,7 @@ def resolve_target(script: str) -> tuple[str, str]:
             )
             return module_path, function_name
 
-    # 4. Bare module name. Check existence without importing so the module
+    # 5. Bare module name. Check existence without importing so the module
     # is not loaded before patch_click() runs.
     try:
         spec = importlib.util.find_spec(script)
@@ -735,8 +867,9 @@ def wrap(
     subcommands; for --show-params, any trailing options are replayed against the
     resolved command so the parameter table reports their value and source.
 
-    Resolution order for SCRIPT: installed console_scripts entry point,
-    module:function notation, Python file path, or Python module name.
+    Resolution order for SCRIPT: installed console_scripts entry point, a local
+    project directory (its entry point is read from pyproject.toml or setup.cfg),
+    Python file path, module:function notation, or Python module name.
     """
     if not script_and_args:
         click.echo(ctx.get_help(), color=ctx.color)

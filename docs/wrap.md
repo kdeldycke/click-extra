@@ -38,6 +38,7 @@ Pass the target CLI name (or path) as the first argument. Everything after it is
 $ click-extra flask --help
 $ click-extra black --help
 $ click-extra ./my_script.py --help
+$ click-extra ../my-project --help
 $ click-extra my_package.cli:main --help
 ```
 
@@ -153,7 +154,7 @@ Themes loaded this way live on `ctx.meta` for the current invocation only. The m
 
 ## Script resolution
 
-`SCRIPT` is accepted in four forms, tried in this order:
+`SCRIPT` is accepted in five forms, tried in this order:
 
 1. A `console_scripts` entry point exposed by an installed package, the most common case:
 
@@ -161,11 +162,13 @@ Themes loaded this way live on `ctx.meta` for the current invocation only. The m
    $ click-extra wrap flask --help
    ```
 
-2. `module:function` notation pointing straight at a Click command object. Useful when the entry point is a wrapper rather than the command itself, or when the command isn't exposed as a console script at all:
+2. A local project directory. Its console-script entry point is read from `pyproject.toml` (`[project.scripts]`) or `setup.cfg` (`console_scripts`), and the directory holding its top-level package is added to `sys.path` so it imports without an install step. This is handy for a checked-out project sitting next to your own:
 
    ```{code-block} shell-session
-   $ click-extra wrap flask.cli:cli --help
+   $ click-extra wrap ../my-project --help
    ```
+
+   Both the flat layout (the package at the project root) and the src layout (under `src/`) are detected. When several scripts point at *different* targets, pass the right one with `module:function` notation; the error lists the candidates. Adding the directory to `sys.path` makes its package importable, but it does *not* install the project's dependencies, so see [Dependencies of the wrapped CLI](#dependencies-of-the-wrapped-cli) below.
 
 3. A `.py` file path. The file is imported in place, with no install step required:
 
@@ -173,7 +176,13 @@ Themes loaded this way live on `ctx.meta` for the current invocation only. The m
    $ click-extra wrap path/to/my_cli.py --help
    ```
 
-4. A bare Python module name invocable via `python -m`. The resolver imports the module and picks up the Click command from its top-level attributes:
+4. `module:function` notation pointing straight at a Click command object. Useful when the entry point is a wrapper rather than the command itself, or when the command isn't exposed as a console script at all:
+
+   ```{code-block} shell-session
+   $ click-extra wrap flask.cli:cli --help
+   ```
+
+5. A bare Python module name invocable via `python -m`. The resolver imports the module and picks up the Click command from its top-level attributes:
 
    ```{code-block} shell-session
    $ click-extra wrap my_package.cli --help
@@ -181,13 +190,35 @@ Themes loaded this way live on `ctx.meta` for the current invocation only. The m
 
 The same resolver backs every `wrap` mode, including [`--show-params`](#introspecting-external-clis) and [`--man`](man-page.md#target-resolution).
 
+## Dependencies of the wrapped CLI
+
+`wrap` runs the target inside Click Extra's own interpreter: it imports the resolved module and calls it in-process (see [How it works](#how-it-works)). The target is never installed into a separate environment, so **every third-party package the target imports must already be importable where `wrap` runs**, exactly as if you had launched the target directly.
+
+This bites hardest when [wrapping a project directory](#script-resolution). Pointing `wrap` at a checked-out project makes its package importable by putting it on `sys.path`, but it does *not* install that project's declared dependencies. If the target's CLI imports a package that is absent, the failure surfaces from the target's own code:
+
+```{code-block} shell-session
+$ click-extra wrap ../weather-cli --help
+...
+ModuleNotFoundError: No module named 'httpx'
+```
+
+A traceback like this means resolution already succeeded and the target started running: the missing module is a dependency of the target, not of Click Extra. It is the same error a direct `python -m weather_cli` would raise.
+
+The lightest fix is to layer the missing packages onto an ephemeral run with [`uv`](https://docs.astral.sh/uv/), one `--with` per dependency:
+
+```{code-block} shell-session
+$ uv run --with httpx click-extra wrap ../weather-cli --help
+```
+
+Alternatively, run `wrap` from an environment that already has the target and its dependencies installed (the target's own virtualenv, for example).
+
 ## Ephemeral wrapping with `uvx`
 
-The wrapper is particularly useful with [`uvx`](https://docs.astral.sh/uv/guides/tools/#running-tools) for one-shot colorization of any Click CLI without permanently installing Click Extra:
+The wrapper pairs well with [`uvx`](https://docs.astral.sh/uv/guides/tools/#running-tools) for one-shot colorization of any Click CLI without permanently installing Click Extra. The ephemeral environment holds only Click Extra, so the target and anything it imports have to be pulled in with `--with` (see [Dependencies of the wrapped CLI](#dependencies-of-the-wrapped-cli) above):
 
 ```shell-session
-$ uvx click-extra -- flask --help
-$ uvx click-extra -- black --help
+$ uvx --with flask click-extra -- flask --help
+$ uvx --with black click-extra -- black --help
 ```
 
 ## How it works
@@ -275,7 +306,7 @@ $ click-extra wrap --show-params -- flask routes
 
 ### Target resolution
 
-Target resolution follows [the same order as the default mode](#script-resolution): a `console_scripts` entry point, `module:function` notation, a `.py` file path, or a bare Python module name.
+Target resolution follows [the same order as the default mode](#script-resolution): a `console_scripts` entry point, a local project directory, a `.py` file path, `module:function` notation, or a bare Python module name.
 
 When the resolved entry point is a wrapper function (not a Click command), the module is scanned for Click command instances. If a single command group is found, it is used automatically. If multiple candidates exist, the error message lists them so you can use explicit `module:name` notation:
 
