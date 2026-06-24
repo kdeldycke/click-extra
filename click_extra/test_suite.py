@@ -251,9 +251,11 @@ class CLITestCase:
             elif field_id == "timeout":
                 # A numeric string or an int is coerced to float; bool is an int
                 # subclass but not a valid duration, so it is rejected below.
-                if isinstance(field_data, str):
-                    field_data = float(field_data)
-                elif isinstance(field_data, int) and not isinstance(field_data, bool):
+                if (
+                    isinstance(field_data, str)
+                    or isinstance(field_data, int)
+                    and not isinstance(field_data, bool)
+                ):
                     field_data = float(field_data)
                 elif field_data is not None and not isinstance(field_data, float):
                     raise ValueError(f"timeout is not a float: {field_data}")
