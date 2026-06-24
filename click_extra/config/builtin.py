@@ -67,15 +67,12 @@ class TestSuiteConfig:
     JSON) parses with no optional dependency, unlike YAML and the others.
     """
 
-    inline: str | None = None
-    """Inline YAML test suite, an alternative to :attr:`file`. Takes precedence."""
-
     cases: list[dict] = field(
         default_factory=list,
         metadata={EXTENSION_METADATA_KEY: True},
     )
     """Test cases written natively in the config format, an alternative to a
-    :attr:`file` or :attr:`inline` suite.
+    :attr:`file` suite, taking precedence over it when both are set.
 
     Each entry is a mapping of ``CLITestCase`` directive names, equivalent to one
     item of a suite list. In TOML this reads as a ``[[tool.<cli>.test-suite.cases]]``
@@ -118,7 +115,7 @@ class ClickExtraConfig:
         default_factory=TestSuiteConfig,
         metadata={CONFIG_PATH_METADATA_KEY: "test-suite"},
     )
-    """The ``[tool.click-extra.test-suite]`` sub-table (file/inline/timeout)."""
+    """The ``[tool.click-extra.test-suite]`` sub-table (file/cases/timeout)."""
 
     prebake: PrebakeConfig = field(
         default_factory=PrebakeConfig,

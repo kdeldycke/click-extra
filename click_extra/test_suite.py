@@ -523,8 +523,8 @@ def parse_test_suite(
 
     ``fmt`` selects the serialization format, one of
     :data:`~click_extra.test_suite.SUITE_FORMATS`; it defaults to YAML for string
-    sources with no extension to key on (an environment variable, an inline
-    config value). :func:`load_test_suite` is the file-based counterpart.
+    sources with no extension to key on, such as an environment variable.
+    :func:`load_test_suite` is the file-based counterpart.
 
     :raises ValueError: the suite is empty, ``fmt`` cannot express a suite, a
         mapping suite omits ``cases``, or a case uses unknown directives.

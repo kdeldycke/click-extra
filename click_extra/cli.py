@@ -221,7 +221,7 @@ def test_suite_cmd(
     """Run declarative CLI test cases against a command or binary.
 
     Resolves the suite by precedence: --suite-file or --suite-envvar, then the
-    [tool.click-extra.test-suite] config (inline, then file), then a built-in
+    [tool.click-extra.test-suite] config (cases, then file), then a built-in
     default. Each case invokes the target with its parameters and checks the
     exit code and output.
 
@@ -244,8 +244,7 @@ def test_suite_cmd(
     test_suite_config = config.test_suite if config else TestSuiteConfig()
 
     # Collect cases by precedence: CLI sources (--suite-file, --suite-envvar), then
-    # the configured native cases, then the inline suite, then the suite file, then
-    # a built-in default.
+    # the configured native cases, then the suite file, then a built-in default.
     cases: list[CLITestCase] = []
     for suite in suite_file:
         cases.extend(load_test_suite(suite))
@@ -253,8 +252,6 @@ def test_suite_cmd(
         cases.extend(parse_test_suite(os.getenv(envvar_id)))
     if not cases and test_suite_config.cases:
         cases.extend(cases_from_data(test_suite_config.cases))
-    if not cases and test_suite_config.inline:
-        cases.extend(parse_test_suite(test_suite_config.inline))
     if not cases and test_suite_config.file:
         suite_path = Path(test_suite_config.file)
         if suite_path.exists():

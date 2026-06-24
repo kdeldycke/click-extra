@@ -178,7 +178,6 @@ Rather than passing `--suite-file` every time, a project can declare its suite o
 ```{code-block} toml
 [tool.click-extra.test-suite]
 file = "tests/cli-test-suite.toml"  # default; format taken from the extension
-# inline = "- cli_parameters: --version"  # a whole suite as one YAML string (parsed as YAML, not TOML)
 # timeout = 30  # default per-case timeout in seconds
 ```
 
@@ -197,7 +196,7 @@ cli_parameters = "forecast --city paris"
 stdout_contains = "Sunny"
 ```
 
-The resolution precedence is: `--suite-file`/`--suite-envvar`, then `[tool.click-extra.test-suite]` `cases`, then `inline`, then `file`, then a built-in default suite that exercises `--version` and `--help`. The config maps onto the {class}`~click_extra.config.builtin.TestSuiteConfig` schema (wrapped by {class}`~click_extra.config.builtin.ClickExtraConfig`).
+The resolution precedence is: `--suite-file`/`--suite-envvar`, then `[tool.click-extra.test-suite]` `cases`, then `file`, then a built-in default suite that exercises `--version` and `--help`. The config maps onto the {class}`~click_extra.config.builtin.TestSuiteConfig` schema (wrapped by {class}`~click_extra.config.builtin.ClickExtraConfig`).
 
 ## Running from Python
 
