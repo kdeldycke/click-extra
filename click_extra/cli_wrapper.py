@@ -41,6 +41,7 @@ from click.core import ParameterSource
 from click.utils import make_str
 
 from . import EnumChoice, context, option
+from .carapace import dump_carapace_spec, install_carapace_spec
 from .commands import ColorizedCommand, ColorizedGroup, Group
 from .context import Context
 from .decorators import columns_option
@@ -566,6 +567,22 @@ def _wrap_man(
         click.echo(render_manpage(cmd, prog_name=prog_name))
 
 
+def _wrap_carapace(script: str, nav: tuple[str, ...], install: bool) -> None:
+    """Resolve a foreign target and emit its Carapace completion spec (YAML).
+
+    Unlike the man page, the whole command tree serializes into a single spec, so
+    there is no per-subcommand output mode: the spec is printed to stdout, or with
+    ``install`` written into Carapace's user spec directory (its path is echoed).
+    """
+    cmd, _ = resolve_target_command(script, nav)
+    prog_name = cmd.name or (nav[-1] if nav else script)
+    if install:
+        path = install_carapace_spec(cmd, prog_name=prog_name)
+        click.echo(str(path))
+    else:
+        click.echo(dump_carapace_spec(cmd, prog_name=prog_name))
+
+
 def _config_args_for_target(
     ctx: click.Context,
     script: str,
@@ -647,11 +664,26 @@ def _config_args_for_target(
     help="Show the man page (roff) of the target CLI and exit, without running it.",
 )
 @option(
+    "--carapace",
+    "carapace_spec",
+    is_flag=True,
+    default=False,
+    help="Show the Carapace completion spec (YAML) of the target CLI and exit, "
+    "without running it.",
+)
+@option(
     "--output-dir",
     type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=Path),
     default=None,
     help="With --man, write one .1 file per (sub)command into this directory "
     "instead of printing a single page to stdout. Created if missing.",
+)
+@option(
+    "--install",
+    is_flag=True,
+    default=False,
+    help="With --carapace, write the spec into Carapace's user spec directory "
+    "instead of printing it, and echo the written path.",
 )
 @option(
     "--table-format",
@@ -673,7 +705,9 @@ def wrap(
     script_and_args: tuple[str, ...],
     show_params: bool,
     man: bool,
+    carapace_spec: bool,
     output_dir: Path | None,
+    install: bool,
     table_format: TableFormat,
 ) -> None:
     """Run, or introspect, any Click CLI through Click Extra.
@@ -681,10 +715,10 @@ def wrap(
     By default, runs SCRIPT with keyword highlighting and themed styling for
     its help screens. The target CLI is not modified.
 
-    With --show-params or --man, SCRIPT is loaded and described without being
-    run. Extra arguments after SCRIPT navigate into nested subcommands; for
-    --show-params, any trailing options are replayed against the resolved
-    command so the parameter table reports their value and source.
+    With --show-params, --man or --carapace, SCRIPT is loaded and described
+    without being run. Extra arguments after SCRIPT navigate into nested
+    subcommands; for --show-params, any trailing options are replayed against the
+    resolved command so the parameter table reports their value and source.
 
     Resolution order for SCRIPT: installed console_scripts entry point,
     module:function notation, Python file path, or Python module name.
@@ -693,19 +727,25 @@ def wrap(
         click.echo(ctx.get_help(), color=ctx.color)
         ctx.exit(0)
 
-    if show_params and man:
-        raise click.UsageError("--show-params and --man are mutually exclusive.")
+    if sum((show_params, man, carapace_spec)) > 1:
+        raise click.UsageError(
+            "--show-params, --man and --carapace are mutually exclusive."
+        )
     if output_dir is not None and not man:
         raise click.UsageError("--output-dir requires --man.")
+    if install and not carapace_spec:
+        raise click.UsageError("--install requires --carapace.")
 
     script = script_and_args[0]
     args = script_and_args[1:]
 
     # Introspection modes: load the target and describe it without running it.
-    if show_params or man:
+    if show_params or man or carapace_spec:
         nav, target_args = _split_navigation(args)
         if man:
             _wrap_man(script, nav, output_dir)
+        elif carapace_spec:
+            _wrap_carapace(script, nav, install)
         else:
             _wrap_show_params(ctx, script, nav, target_args, table_format)
         ctx.exit(0)

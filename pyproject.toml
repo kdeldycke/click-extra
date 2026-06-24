@@ -138,6 +138,11 @@ pytest11.click-extra = "click_extra.pytest"
 "mkdocs.plugins".click-extra = "click_extra.mkdocs:AnsiColorPlugin"
 
 [project.optional-dependencies]
+carapace = [
+  # PyYAML serializes the Carapace completion spec (carapace.dump_carapace_spec).
+  # Pinned like the yaml extra: < 6.0.2 fails to build on Python 3.14.
+  "pyyaml>=6.0.3",
+]
 hjson = [
   # hjson.loads() and hjson.dumps() for Hjson config parsing and table rendering.
   "hjson>=3.1",
@@ -207,6 +212,9 @@ test = [
   "coverage[toml]>=7.11",
   # Matches the runtime extra-platforms>=8 floor; the [pytest] extra adds fixtures.
   "extra-platforms[pytest]>=8",
+  # jsonschema validates the generated Carapace spec against the vendored
+  # carapace-spec schema in test_carapace; 4.18 added the 2020-12 dialect.
+  "jsonschema>=4.18",
   # MkDocs 1.4.0 is the first version with the on_startup plugin event.
   "mkdocs>=1.4",
   # mkdocs-click 0.8.0 stabilized the _make_usage/_make_plain_options API.
@@ -255,6 +263,8 @@ docs = [
   "pymdown-extensions>=10",
   # pytest is needed for automodule/autoclasstree of click_extra.pytest.
   "pytest>=9",
+  # PyYAML renders the Carapace spec in carapace.md {click:run} blocks.
+  "pyyaml>=6.0.3",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
   # sphinx-autodoc-typehints 2.4.0 is the first version that is aligned to our Python >= 3.10 requirement.
@@ -274,6 +284,7 @@ docs = [
 typing = [
   "types-boltons>=25.0.0.20250919",
   "types-docutils>=0.22.3.20251115",
+  "types-jsonschema>=4.18",
   "types-pygments>=2.19.0.20251121",
   "types-pyyaml>=6.0.12.9",
   "types-tabulate>=0.9.0.2",

@@ -35,6 +35,7 @@ test-suite
 pytest
 wrap
 man-page
+carapace
 benchmark
 ```
 

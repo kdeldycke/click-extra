@@ -208,6 +208,11 @@ By default, Click Extra supports TOML [configuration files](config.md#toml) and 
     ```
   - - [YAML](config.md#yaml) config files: `--config app.yaml`
     - [`yaml` table format](table.md#table-formats): `--table-format yaml`
+* - `carapace`
+  - ```{code-block} shell-session
+    $ uv pip install click-extra[carapace]
+    ```
+  - - [Carapace completion spec export](carapace.md): `wrap --carapace`
 * - `mkdocs`
   - ```{code-block} shell-session
     $ uv pip install click-extra[mkdocs]
@@ -234,6 +239,6 @@ By default, Click Extra supports TOML [configuration files](config.md#toml) and 
 Install all extras at once with:
 
 ```{code-block} shell-session
-$ uv pip install click-extra[hjson,json5,jsonc,mkdocs,toml,xml,yaml,pygments,sphinx,pytest]
+$ uv pip install click-extra[hjson,json5,jsonc,carapace,mkdocs,toml,xml,yaml,pygments,sphinx,pytest]
 ```
 ````

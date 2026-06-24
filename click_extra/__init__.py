@@ -70,7 +70,13 @@ from . import styling as _styling_module
 Style = _styling_module.Style  # type: ignore[misc]
 del _styling_module
 
-from . import context
+# Imported for its registration side effect: defining the module registers the
+# ``carapace`` shell completion class (see click_extra.carapace.CarapaceComplete),
+# so dynamic Carapace completion resolves in any CLI that imports click_extra.
+from . import (
+    carapace as carapace,
+    context,
+)
 from .accessibility import AccessibleOption, clear, echo_via_pager
 from .color import (
     ColorOption,

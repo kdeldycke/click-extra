@@ -208,6 +208,12 @@ The [`--columns` option on `--show-params`](parameters.md#columns-selection) is 
 
 - [`click#1279` - Provide access to a normalized list of args that will result in the same params](https://github.com/pallets/click/issues/1279)
 
+### Shell completion
+
+click-extra exports any Click command tree to a [Carapace completion spec](carapace.md), so a CLI gets native completion across every shell [Carapace](https://carapace.sh) supports (Bash, Zsh, Fish, Nushell, PowerShell, Elvish, and more) from a single generated file. Click's built-in completion is wired per shell and installed by hand; one spec covers them all:
+
+- [`click#3188` - Native Carapace Support](https://github.com/pallets/click/issues/3188): closed as out of scope for the core framework, with the maintainers suggesting a separately-released project. click-extra is that project.
+
 ### ANSI rendering in documentation
 
 click-extra provides [ANSI-capable session lexers](pygments.md#ansi-language-lexers), an [HTML formatter](pygments.md#ansi-html-formatter), and [Sphinx integration](sphinx.md) for rendering ANSI-colored CLI output in documentation, with [24-bit true-color rendering](pygments.md#true-color-24-bit) enabled by default:
