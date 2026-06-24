@@ -17,12 +17,12 @@
 
 from __future__ import annotations
 
+from click_extra.parameters import missing_extra_message
+
 try:
     import pytest
-except ImportError:
-    raise ImportError(
-        "You need to install click_extra[pytest] extra dependencies to use this module."
-    )
+except ImportError as err:
+    raise ImportError(missing_extra_message("pytest", subject="This module")) from err
 
 
 import difflib

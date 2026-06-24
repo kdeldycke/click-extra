@@ -43,12 +43,12 @@ from collections.abc import Iterator
 from functools import wraps
 from pathlib import Path
 
+from .parameters import missing_extra_message
+
 try:
     from mkdocs.plugins import BasePlugin
-except ImportError:
-    raise ImportError(
-        "You need to install click_extra[mkdocs] dependency group to use this module."
-    )
+except ImportError as err:
+    raise ImportError(missing_extra_message("mkdocs", subject="This module")) from err
 
 import pymdownx.highlight
 

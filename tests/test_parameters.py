@@ -65,6 +65,7 @@ from click_extra.config import NO_CONFIG
 from click_extra.parameters import (
     iter_subcommands,
     make_resilient_context,
+    missing_extra_message,
     option_value_kind,
 )
 from click_extra.pytest import command_decorators
@@ -1635,3 +1636,13 @@ def test_iter_subcommands_empty_for_non_group():
     leaf = click.Command("leaf")
     ctx = make_resilient_context(leaf, "leaf")
     assert list(iter_subcommands(leaf, ctx)) == []
+
+
+def test_missing_extra_message():
+    msg = missing_extra_message("mkdocs", subject="This module")
+    assert msg == (
+        "This module requires an optional dependency. "
+        "Install it with: pip install click-extra[mkdocs]"
+    )
+    # The canonical hyphenated distribution name, not the underscore form.
+    assert "click_extra[" not in msg

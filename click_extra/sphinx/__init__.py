@@ -22,12 +22,12 @@
 
 from __future__ import annotations
 
+from ..parameters import missing_extra_message
+
 try:
     import sphinx  # noqa: F401
-except ImportError:
-    raise ImportError(
-        "You need to install click_extra[sphinx] dependency group to use this module."
-    )
+except ImportError as err:
+    raise ImportError(missing_extra_message("sphinx", subject="This module")) from err
 
 import myst_parser
 from packaging.version import Version

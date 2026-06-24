@@ -235,6 +235,26 @@ def is_repeatable(param: click.Parameter) -> bool:
     return bool(getattr(param, "multiple", False) or getattr(param, "count", False))
 
 
+def missing_extra_message(
+    extra: str,
+    *,
+    package: str = "click-extra",
+    subject: str = "This feature",
+) -> str:
+    """Build the uniform "install the optional extra" error message.
+
+    ``subject`` names what needs the dependency, ``extra`` is the optional
+    dependency group and ``package`` its distribution name. Every feature gated
+    behind an extra (the documentation integrations, the Carapace exporter, the
+    table formatters) routes through this so they all point at the same canonical
+    ``pip install package[extra]`` target, with the hyphenated distribution name.
+    """
+    return (
+        f"{subject} requires an optional dependency. "
+        f"Install it with: pip install {package}[{extra}]"
+    )
+
+
 class _ParameterMixin:
     """Mixin providing shared functionality for Click Extra parameters.
 

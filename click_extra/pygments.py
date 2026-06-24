@@ -41,13 +41,12 @@ import itertools
 import re
 from io import StringIO
 
+from .parameters import missing_extra_message
+
 try:
     import pygments  # noqa: F401
-except ImportError:
-    raise ImportError(
-        "You need to install click_extra[pygments] extra dependencies to use this "
-        "module."
-    )
+except ImportError as err:
+    raise ImportError(missing_extra_message("pygments", subject="This module")) from err
 
 from pygments import lexers
 from pygments.filter import Filter

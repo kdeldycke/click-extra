@@ -71,6 +71,7 @@ from .parameters import (
     is_repeatable,
     iter_subcommands,
     make_resilient_context,
+    missing_extra_message,
     option_value_kind,
     param_spellings,
     short_long_opts,
@@ -102,8 +103,7 @@ def _require_yaml() -> None:
     """Raise a pointed error when the optional PyYAML dependency is missing."""
     if yaml is None:
         raise ImportError(
-            "Carapace spec serialization requires PyYAML. "
-            "Install it with: pip install click-extra[carapace]"
+            missing_extra_message("carapace", subject="Carapace spec serialization")
         )
 
 

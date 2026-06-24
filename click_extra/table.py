@@ -30,7 +30,7 @@ from boltons.strutils import strip_ansi
 
 from . import EnumChoice, context, echo
 from .config.formats import ConfigFormat, serialize_content
-from .parameters import ExtraOption
+from .parameters import ExtraOption, missing_extra_message
 from .types import MultiChoice
 
 TYPE_CHECKING = False
@@ -626,10 +626,8 @@ def _missing_extra_message(
     package: str = "click-extra",
 ) -> str:
     """Build a user-friendly error message for a missing optional dependency."""
-    extra = table_format.value
-    return (
-        f"{extra} output requires an optional dependency."
-        f" Install it with: pip install {package}[{extra}]"
+    return missing_extra_message(
+        table_format.value, package=package, subject=f"{table_format.value} output"
     )
 
 
