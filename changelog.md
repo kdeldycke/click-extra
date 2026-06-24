@@ -9,6 +9,9 @@
 
 ## [`8.1.0` (2026-06-24)](https://github.com/kdeldycke/click-extra/compare/v8.0.1...v8.1.0)
 
+> [!NOTE]
+> `8.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.1.0).
+
 - **Breaking:** Rename the `test-plan` subcommand to `test-suite`, its `--plan-file`/`--plan-envvar` options to `--suite-file`/`--suite-envvar`, its `[tool.<cli>.test-plan]` config section to `[tool.<cli>.test-suite]`, the `click_extra.test_plan` module to `click_extra.test_suite`, and the `TestPlanConfig`/`parse_test_plan`/`run_test_plan`/`DEFAULT_TEST_PLAN` API to `TestSuiteConfig`/`parse_test_suite`/`run_test_suite`/`DEFAULT_TEST_SUITE`. The `CLITestCase` class and the `[[cases]]` file structure keep their names.
 - **Breaking:** Replace the test-suite config's `inline` field with a native `cases` array under `[tool.<cli>.test-suite.cases]` (or set `file` to a suite path). Adds the `cases` field to `TestSuiteConfig` and the `cases_from_data` helper.
 - **Breaking:** `ClickExtraConfig`, `TestSuiteConfig`, and `PrebakeConfig` are no longer re-exported from the top-level `click_extra` namespace; import them from `click_extra.config`.
