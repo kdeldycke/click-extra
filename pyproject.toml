@@ -629,12 +629,13 @@ test-matrix.exclude = [
 # Cloup) and stable state. All pinned to ubuntu-24.04-arm, the fastest runner,
 # since they probe dependency behavior rather than cross-platform support.
 test-matrix.full-include = [
-  # Every Click release from the >=8.3.1 floor through the 8.4.0 param-source
-  # regression (8.4.1 ships as `released`), each on the floor Python 3.10.
+  # Every Click release from the >=8.3.1 floor through 8.4.1 (8.4.2 ships as
+  # `released`), each on the floor Python 3.10.
   { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.3.1", "cloup-version" = "released" },
   { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.3.2", "cloup-version" = "released" },
   { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.3.3", "cloup-version" = "released" },
   { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.4.0", "cloup-version" = "released" },
+  { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.4.1", "cloup-version" = "released" },
   # Click's stable and main dev branches on released Cloup, latest Pythons.
   { "os" = "ubuntu-24.04-arm", "python-version" = "3.14", "click-version" = "stable", "cloup-version" = "released" },
   { "os" = "ubuntu-24.04-arm", "python-version" = "3.14t", "click-version" = "stable", "cloup-version" = "released" },
