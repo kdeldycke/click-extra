@@ -7,6 +7,9 @@
 
 ## [`8.1.1` (2026-06-24)](https://github.com/kdeldycke/click-extra/compare/v8.1.0...v8.1.1)
 
+> [!NOTE]
+> `8.1.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.1.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.1.1).
+
 - Fix `multiple` and variadic (`nargs=-1`) options typed with `EnumChoice`: their tuple default was stringified as a whole (`str((MyEnum.FOO,))`) instead of per member, so the default tripped Click's `Value must be an iterable` check when the option was left unset.
 - Fix `decorator_factory` leaking options across reuses of a pre-instantiated decorator: applying the same `command()` or `group()` decorator to several functions accumulated duplicate parameters, because Click extended its shared `params` list in place on each use.
 
