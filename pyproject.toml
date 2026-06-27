@@ -107,60 +107,29 @@ dependencies = [
   # the spinner-catalog preview by terminal cell width.
   "wcwidth>=0.2",
 ]
-
-[project.entry-points]
-# Make additional fixtures available to pytest.
-# See: https://docs.pytest.org/en/latest/how-to/writing_plugins.html#making-your-plugin-installable-by-others
-pytest11.click-extra = "click_extra.pytest"
-# The name of the entrypoint value doesn’t really matter, Pygments extracts required metadata from the class definition.
-# Source: https://pygments.org/docs/plugins/#defining-plugins-through-entrypoints
-"pygments.filters".ansi-filter = "click_extra.pygments:AnsiFilter"
-"pygments.formatters".ansi-html-formatter = "click_extra.pygments:AnsiHtmlFormatter"
-"pygments.lexers".ansi-color = "click_extra.pygments:AnsiColorLexer"
-"pygments.lexers".ansi-bash-session = "click_extra.pygments:AnsiBashSessionLexer"
-"pygments.lexers".ansi-dylan-console = "click_extra.pygments:AnsiDylanConsoleLexer"
-"pygments.lexers".ansi-elixir-console = "click_extra.pygments:AnsiElixirConsoleLexer"
-"pygments.lexers".ansi-erlang-shell = "click_extra.pygments:AnsiErlangShellLexer"
-"pygments.lexers".ansi-gap-console = "click_extra.pygments:AnsiGAPConsoleLexer"
-"pygments.lexers".ansi-julia-console = "click_extra.pygments:AnsiJuliaConsoleLexer"
-"pygments.lexers".ansi-matlab-session = "click_extra.pygments:AnsiMatlabSessionLexer"
-"pygments.lexers".ansi-msdos-session = "click_extra.pygments:AnsiMSDOSSessionLexer"
-"pygments.lexers".ansi-output = "click_extra.pygments:AnsiOutputLexer"
-"pygments.lexers".ansi-postgres-console = "click_extra.pygments:AnsiPostgresConsoleLexer"
-"pygments.lexers".ansi-power-shell-session = "click_extra.pygments:AnsiPowerShellSessionLexer"
-"pygments.lexers".ansi-psysh-console = "click_extra.pygments:AnsiPsyshConsoleLexer"
-"pygments.lexers".ansi-python-console = "click_extra.pygments:AnsiPythonConsoleLexer"
-"pygments.lexers".ansi-r-console = "click_extra.pygments:AnsiRConsoleLexer"
-"pygments.lexers".ansi-ruby-console = "click_extra.pygments:AnsiRubyConsoleLexer"
-"pygments.lexers".ansi-sqlite-console = "click_extra.pygments:AnsiSqliteConsoleLexer"
-"pygments.lexers".ansi-tcsh-session = "click_extra.pygments:AnsiTcshSessionLexer"
-# MkDocs plugin for ANSI color rendering in code blocks.
-"mkdocs.plugins".click-extra = "click_extra.mkdocs:AnsiColorPlugin"
-
-[project.optional-dependencies]
-all = [
+optional-dependencies.all = [
   # Aggregate extra: pulls in every optional feature at once. Self-references the
   # package so the version pins stay defined once, in the extras below.
   "click-extra[carapace,hjson,json5,jsonc,mkdocs,pygments,pytest,sphinx,toml,xml,yaml]",
 ]
-carapace = [
+optional-dependencies.carapace = [
   # PyYAML serializes the Carapace completion spec (carapace.dump_carapace_spec).
   # Pinned like the yaml extra: < 6.0.2 fails to build on Python 3.14.
   "pyyaml>=6.0.3",
 ]
-hjson = [
+optional-dependencies.hjson = [
   # hjson.loads() and hjson.dumps() for Hjson config parsing and table rendering.
   "hjson>=3.1",
 ]
-json5 = [
+optional-dependencies.json5 = [
   # json5.loads() for JSON5 config parsing.
   "json5>=0.12.1",
 ]
-jsonc = [
+optional-dependencies.jsonc = [
   # jsonc.loads() for JSONC config parsing.
   "json-with-comments>=1.2.10",
 ]
-mkdocs = [
+optional-dependencies.mkdocs = [
   # MkDocs 1.4.0 is the first version with the on_startup plugin event.
   "mkdocs>=1.4",
   # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
@@ -168,15 +137,15 @@ mkdocs = [
   # pymdown-extensions 10.0 is the first version with stable highlight extension API.
   "pymdown-extensions>=10",
 ]
-pygments = [
+optional-dependencies.pygments = [
   # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
   "pygments>=2.14",
 ]
-pytest = [
+optional-dependencies.pytest = [
   # pytest 9.0.0 is the first supporting native TOML configuration files.
   "pytest>=9",
 ]
-sphinx = [
+optional-dependencies.sphinx = [
   # docutils 0.20 is the minimal version for Sphinx 8.0.0.
   "docutils>=0.20",
   # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
@@ -184,30 +153,53 @@ sphinx = [
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
 ]
-toml = [
+optional-dependencies.toml = [
   # tomlkit.document(), tomlkit.dumps() for TOML config and table rendering.
   "tomlkit>=0.13",
 ]
-xml = [
+optional-dependencies.xml = [
   # xmltodict.unparse() for XML table rendering; first major release.
   "xmltodict>=1",
 ]
-yaml = [
+optional-dependencies.yaml = [
   # PyYAML < 6.0.2 uses Cython extensions that fail to compile on Python 3.14,
   # and old releases lack requires-python metadata to prevent selection on 3.14.
   "pyyaml>=6.0.3",
 ]
-
-[project.scripts]
-click-extra = "click_extra.__main__:main"
-
-[project.urls]
-"Homepage" = "https://github.com/kdeldycke/click-extra"
-"Download" = "https://github.com/kdeldycke/click-extra/releases/tag/v8.1.4.dev0"
-"Changelog" = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md"
-"Issues" = "https://github.com/kdeldycke/click-extra/issues"
-"Repository" = "https://github.com/kdeldycke/click-extra"
-"Funding" = "https://github.com/sponsors/kdeldycke"
+urls.Changelog = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md"
+urls.Download = "https://github.com/kdeldycke/click-extra/releases/tag/v8.1.4.dev0"
+urls.Funding = "https://github.com/sponsors/kdeldycke"
+urls.Homepage = "https://github.com/kdeldycke/click-extra"
+urls.Issues = "https://github.com/kdeldycke/click-extra/issues"
+urls.Repository = "https://github.com/kdeldycke/click-extra"
+scripts.click-extra = "click_extra.__main__:main"
+# MkDocs plugin for ANSI color rendering in code blocks.
+entry-points."mkdocs.plugins".click-extra = "click_extra.mkdocs:AnsiColorPlugin"
+# The name of the entrypoint value doesn’t really matter, Pygments extracts required metadata from the class definition.
+# Source: https://pygments.org/docs/plugins/#defining-plugins-through-entrypoints
+entry-points."pygments.filters".ansi-filter = "click_extra.pygments:AnsiFilter"
+entry-points."pygments.formatters".ansi-html-formatter = "click_extra.pygments:AnsiHtmlFormatter"
+entry-points."pygments.lexers".ansi-bash-session = "click_extra.pygments:AnsiBashSessionLexer"
+entry-points."pygments.lexers".ansi-color = "click_extra.pygments:AnsiColorLexer"
+entry-points."pygments.lexers".ansi-dylan-console = "click_extra.pygments:AnsiDylanConsoleLexer"
+entry-points."pygments.lexers".ansi-elixir-console = "click_extra.pygments:AnsiElixirConsoleLexer"
+entry-points."pygments.lexers".ansi-erlang-shell = "click_extra.pygments:AnsiErlangShellLexer"
+entry-points."pygments.lexers".ansi-gap-console = "click_extra.pygments:AnsiGAPConsoleLexer"
+entry-points."pygments.lexers".ansi-julia-console = "click_extra.pygments:AnsiJuliaConsoleLexer"
+entry-points."pygments.lexers".ansi-matlab-session = "click_extra.pygments:AnsiMatlabSessionLexer"
+entry-points."pygments.lexers".ansi-msdos-session = "click_extra.pygments:AnsiMSDOSSessionLexer"
+entry-points."pygments.lexers".ansi-output = "click_extra.pygments:AnsiOutputLexer"
+entry-points."pygments.lexers".ansi-postgres-console = "click_extra.pygments:AnsiPostgresConsoleLexer"
+entry-points."pygments.lexers".ansi-power-shell-session = "click_extra.pygments:AnsiPowerShellSessionLexer"
+entry-points."pygments.lexers".ansi-psysh-console = "click_extra.pygments:AnsiPsyshConsoleLexer"
+entry-points."pygments.lexers".ansi-python-console = "click_extra.pygments:AnsiPythonConsoleLexer"
+entry-points."pygments.lexers".ansi-r-console = "click_extra.pygments:AnsiRConsoleLexer"
+entry-points."pygments.lexers".ansi-ruby-console = "click_extra.pygments:AnsiRubyConsoleLexer"
+entry-points."pygments.lexers".ansi-sqlite-console = "click_extra.pygments:AnsiSqliteConsoleLexer"
+entry-points."pygments.lexers".ansi-tcsh-session = "click_extra.pygments:AnsiTcshSessionLexer"
+# Make additional fixtures available to pytest.
+# See: https://docs.pytest.org/en/latest/how-to/writing_plugins.html#making-your-plugin-installable-by-others
+entry-points.pytest11.click-extra = "click_extra.pytest"
 
 [dependency-groups]
 test = [
@@ -297,6 +289,7 @@ typing = [
 ]
 
 [tool.uv]
+required-version = ">=0.11.23,<0.12"
 # We rely on recent Python features in some of our {click:run} directives.
 dependency-groups.docs = { requires-python = ">= 3.14" }
 # Cooldown period: 7-day buffer before using newly released packages.
@@ -305,7 +298,6 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 exclude-newer = "1 week"
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
-required-version = ">=0.11.23,<0.12"
 
 [tool.nuitka]
 # Bundle the package's data files (themes.toml) into the standalone binary.
@@ -402,18 +394,31 @@ default.extend-ignore-identifiers-re = [
   "optoin",
 ]
 
-[tool.pytest]
-# https://docs.pytest.org/en/latest/customize.html#pyproject-toml
-markers = [
-  "network: Tests that require network access (excluded with -m 'not network').",
-  "once: Tests that only need to run once, not across the full CI matrix.",
+[tool.mypy]
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+pretty = true
+warn_unused_configs = true
+overrides = [
+  { module = [ "hjson", "jsonc", "pymdownx", "pymdownx.*" ], ignore_missing_imports = true },
+  { module = [ "sphinx.*" ], ignore_missing_imports = true, follow_imports = "skip" },
 ]
+
+[tool.pytest]
 addopts = [
   "--durations=10",
   # Import test modules via importlib instead of prepending their root dir to
   # sys.path. Avoids "import file mismatch" collection errors when an installed
   # copy of the package coexists with the source tree, as in distro builds.
   "--import-mode=importlib",
+]
+# https://docs.pytest.org/en/latest/customize.html#pyproject-toml
+markers = [
+  "network: Tests that require network access (excluded with -m 'not network').",
+  "once: Tests that only need to run once, not across the full CI matrix.",
 ]
 # Restrict collection to the test suite. Otherwise pytest descends into the
 # click_extra package and imports test_suite.py (its basename matches the
@@ -428,11 +433,6 @@ xfail_strict = true
 run.branch = true
 run.source = [ "click_extra" ]
 report.precision = 2
-
-# Dogfood click-extra's own configuration: the test-suite subcommand reads its
-# settings from this section (see tests.yaml's "Self-test the CLI" step).
-[tool.click-extra.test-suite]
-file = "tests/cli-test-suite.toml"
 
 [tool.bumpversion]
 current_version = "8.1.4.dev0"
@@ -531,22 +531,6 @@ exclude_bumps = [ "dev" ]
 search = "raw.githubusercontent.com/kdeldycke/click-extra/v{current_version}/"
 replace = "raw.githubusercontent.com/kdeldycke/click-extra/main/"
 
-[tool.mypy]
-check_untyped_defs = true
-warn_unused_configs = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = true
-warn_unreachable = true
-pretty = true
-overrides = [
-  { ignore_missing_imports = true, module = [ "hjson", "jsonc", "pymdownx", "pymdownx.*" ] },
-  # Sphinx uses Python 3.12+ type statement syntax (PEP 695), which causes
-  # mypy to fail with syntax errors when checking against older Python versions.
-  # XXX This is a temporary workaround until we drop support for Python 3.10 and 3.11 for Click Extra.
-  { ignore_missing_imports = true, module = [ "sphinx.*" ], follow_imports = "skip" },
-]
-
 [tool.lychee]
 # https://lychee.cli.rs/guides/config/
 exclude = [
@@ -611,17 +595,17 @@ test-matrix.remove.os = [ "macos-26-intel", "windows-11-arm" ]
 # Defaults applied to every job. The PR matrix runs only these (released Click
 # on released Cloup); the forward-looking rows below are full-matrix only.
 test-matrix.include = [
-  { "click-version" = "released" },
-  { "cloup-version" = "released" },
+  { click-version = "released" },
+  { cloup-version = "released" },
 ]
 # Keep the prerelease Python 3.15 probe to a single early-warning cell
 # (ubuntu-24.04-arm, released Click/Cloup); hold it off every other runner. This
 # carves the 3.15 row out of the base cross-product. Applies to both matrices,
 # but the PR matrix has no 3.15 cell, so it is a no-op there.
 test-matrix.exclude = [
-  { "os" = "ubuntu-slim", "python-version" = "3.15" },
-  { "os" = "macos-26", "python-version" = "3.15" },
-  { "os" = "windows-2025", "python-version" = "3.15" },
+  { os = "ubuntu-slim", python-version = "3.15" },
+  { os = "macos-26", python-version = "3.15" },
+  { os = "windows-2025", python-version = "3.15" },
 ]
 # Forward-looking dependency coverage, appended to the full matrix only (the PR
 # matrix stays a fast released-on-released set). Each row is a standalone job;
@@ -631,21 +615,26 @@ test-matrix.exclude = [
 test-matrix.full-include = [
   # Every Click release from the >=8.3.1 floor through 8.4.1 (8.4.2 ships as
   # `released`), each on the floor Python 3.10.
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.3.1", "cloup-version" = "released" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.3.2", "cloup-version" = "released" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.3.3", "cloup-version" = "released" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.4.0", "cloup-version" = "released" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.10", "click-version" = "8.4.1", "cloup-version" = "released" },
+  { os = "ubuntu-24.04-arm", python-version = "3.10", click-version = "8.3.1", cloup-version = "released" },
+  { os = "ubuntu-24.04-arm", python-version = "3.10", click-version = "8.3.2", cloup-version = "released" },
+  { os = "ubuntu-24.04-arm", python-version = "3.10", click-version = "8.3.3", cloup-version = "released" },
+  { os = "ubuntu-24.04-arm", python-version = "3.10", click-version = "8.4.0", cloup-version = "released" },
+  { os = "ubuntu-24.04-arm", python-version = "3.10", click-version = "8.4.1", cloup-version = "released" },
   # Click's stable and main dev branches on released Cloup, latest Pythons.
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14", "click-version" = "stable", "cloup-version" = "released" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14t", "click-version" = "stable", "cloup-version" = "released" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14", "click-version" = "main", "cloup-version" = "released" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14t", "click-version" = "main", "cloup-version" = "released" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14", click-version = "stable", cloup-version = "released" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14t", click-version = "stable", cloup-version = "released" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14", click-version = "main", cloup-version = "released" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14t", click-version = "main", cloup-version = "released" },
   # Cloup's master branch on released, stable, and main Click, latest Pythons.
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14", "click-version" = "released", "cloup-version" = "master" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14t", "click-version" = "released", "cloup-version" = "master" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14", "click-version" = "stable", "cloup-version" = "master" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14t", "click-version" = "stable", "cloup-version" = "master" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14", "click-version" = "main", "cloup-version" = "master" },
-  { "os" = "ubuntu-24.04-arm", "python-version" = "3.14t", "click-version" = "main", "cloup-version" = "master" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14", click-version = "released", cloup-version = "master" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14t", click-version = "released", cloup-version = "master" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14", click-version = "stable", cloup-version = "master" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14t", click-version = "stable", cloup-version = "master" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14", click-version = "main", cloup-version = "master" },
+  { os = "ubuntu-24.04-arm", python-version = "3.14t", click-version = "main", cloup-version = "master" },
 ]
+
+[tool.click-extra]
+# Dogfood click-extra's own configuration: the test-suite subcommand reads its
+# settings from this section (see tests.yaml's "Self-test the CLI" step).
+test-suite.file = "tests/cli-test-suite.toml"
