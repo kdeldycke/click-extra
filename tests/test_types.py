@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import importlib.metadata
 import sys
 from collections.abc import Callable
 from enum import Enum, Flag, IntEnum, IntFlag, auto
@@ -573,6 +574,11 @@ def test_enum_choice_case_sensitivity(case_sensitive: bool) -> None:
         (ChoiceSource.VALUE, ("first-value", "second-value")),
         (ChoiceSource.STR, ("my-first-value", "my-second-value")),
     ),
+)
+@pytest.mark.skipif(
+    tuple(int(p) for p in importlib.metadata.version("click").split(".")[:2]) < (8, 4),
+    reason="EnumChoice completion is case-folded via Choice.normalize_choice(), added "
+    "in Click 8.4 (pallets/click#3471); Click 8.3 returns the raw enum keys.",
 )
 def test_enum_choice_shell_complete(
     source: ChoiceSource,

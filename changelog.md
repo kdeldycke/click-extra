@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Skip the `EnumChoice` shell-completion case-folding test on Click 8.3.
+
 ## [`8.1.3` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.2...v8.1.3)
 
 - Mark test as network-dependent.
