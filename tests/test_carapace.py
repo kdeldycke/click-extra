@@ -21,11 +21,15 @@ from pathlib import Path
 
 import click
 import cloup
-import jsonschema
 import pytest
 import yaml
 from click.shell_completion import CompletionItem, get_completion_class
 from cloup.constraints import mutually_exclusive
+
+# jsonschema only gates the Carapace completion-spec validation tests; skip the
+# whole module instead of failing collection when it is absent (hermetic
+# builders such as Guix and Nixpkgs do not ship it by default).
+jsonschema = pytest.importorskip("jsonschema")
 
 import click_extra
 from click_extra import carapace as carapace_module

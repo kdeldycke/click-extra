@@ -61,7 +61,7 @@ def runner():
 
     The environment is patched directly rather than through the ``monkeypatch``
     fixture on purpose: depending on ``monkeypatch`` here would tear it down
-    *after* :meth:`isolated_filesystem` removed the working directory it tries
+    *after* ``isolated_filesystem`` removed the working directory it tries
     to restore, breaking unrelated tests that ``chdir`` within the runner.
     """
     home_vars = ("HOME", "USERPROFILE", "XDG_CONFIG_HOME", "APPDATA", "LOCALAPPDATA")
