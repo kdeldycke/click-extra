@@ -73,15 +73,15 @@ flowchart LR
     click_extra ==>|" >=0.2 "| wcwidth
     click_extra ==>|" >=20 "| boltons
     click_extra ==>|" >=1.0.1 "| deepmerge
-    sphinx ==> requests
+    sphinx --> requests
     sphinx --> colorama
     sphinx --> jinja2
     sphinx --> packaging
-    sphinx ==> pygments
-    sphinx ==> tomli
+    sphinx --> pygments
+    sphinx --> tomli
     sphinx --> alabaster
     sphinx --> babel
-    sphinx ==> docutils
+    sphinx --> docutils
     sphinx --> imagesize
     sphinx --> roman_numerals
     sphinx --> snowballstemmer
@@ -92,8 +92,8 @@ flowchart LR
     sphinx --> sphinxcontrib_qthelp
     sphinx --> sphinxcontrib_serializinghtml
     mkdocs --> mkdocs_get_deps
-    mkdocs ==> pyyaml
-    mkdocs ==> click_0
+    mkdocs --> pyyaml
+    mkdocs --> click_0
     mkdocs --> colorama
     mkdocs --> jinja2
     mkdocs --> packaging
@@ -107,29 +107,29 @@ flowchart LR
     pytest --> colorama
     pytest --> packaging
     pytest --> exceptiongroup
-    pytest ==> pygments
-    pytest ==> tomli
+    pytest --> pygments
+    pytest --> tomli
     pytest --> iniconfig
     pytest --> pluggy
     requests --> certifi
     requests --> charset_normalizer
     requests --> idna
     requests --> urllib3
-    mkdocs_get_deps ==> pyyaml
+    mkdocs_get_deps --> pyyaml
     mkdocs_get_deps --> mergedeep
     mkdocs_get_deps --> platformdirs
     click_0 --> colorama
     jinja2 --> markupsafe
-    cloup ==> click_0
+    cloup --> click_0
     cloup --> typing_extensions
     exceptiongroup --> typing_extensions
     ghp_import --> python_dateutil
-    pymdown_extensions ==> pyyaml
+    pymdown_extensions --> pyyaml
     pymdown_extensions --> markdown
     python_dateutil --> six
-    pyyaml_env_tag ==> pyyaml
-    extra_platforms ==> pytest
-    tabulate ==> wcwidth
+    pyyaml_env_tag --> pyyaml
+    extra_platforms --> pytest
+    tabulate --> wcwidth
     wcmatch --> bracex
     click_extra -.-> ext_all
 
