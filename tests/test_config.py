@@ -55,7 +55,6 @@ from click_extra import (
 from click_extra.config.schema import (
     _expand_dotted_keys,
 )
-from click_extra.highlight import _escape_for_help_screen
 from click_extra.pytest import (
     default_debug_uncolored_log_end,
     default_debug_uncolored_log_start,
@@ -400,20 +399,17 @@ def test_unset_conf_debug_message(invoke, simple_config_cli, assert_output_regex
 def test_conf_default_path(invoke, simple_config_cli):
     result = invoke(simple_config_cli, "--help", color=False)
 
+    # Cloup wraps the long --config default at unpredictable columns, sometimes
+    # mid-token (e.g. "~/config-c" then "li1"), so we cannot guess the wrap points
+    # with a regex. De-wrap the option's help block by dropping all whitespace,
+    # then match the path and glob pattern against it.
+    help_screen = re.sub(r"\s+", "", result.stdout.split("--config CONFIG_PATH")[1])
+
     # Search for the OS-specific path without glob pattern.
-    default_path = _escape_for_help_screen(str(shrinkuser(get_app_dir("config-cli1"))))
+    default_path = re.sub(r"\s+", "", str(shrinkuser(get_app_dir("config-cli1"))))
+    assert f"default:{default_path}" in help_screen
 
-    assert re.search(
-        rf"\s+\[env\s+var:\s+CONFIG_CLI1_CONFIG;\s+default:\s+{default_path}",
-        result.stdout,
-    )
-
-    # Reconstruct and search for the glob pattern, as we cannot rely on regexp because
-    # we cannot predict how Cloup will wrap the help screen lines.
-    help_screen = "".join(
-        line.strip()
-        for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
-    )
+    # And the glob pattern.
     fp = ",".join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))
     assert f"{{{fp}}}]" in help_screen
 
