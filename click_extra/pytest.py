@@ -26,6 +26,7 @@ except ImportError as err:
 
 
 import difflib
+import os
 
 import click
 import cloup
@@ -49,10 +50,35 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def runner():
-    """Runner fixture for :class:`click_extra.testing.CliRunner`."""
+    """Runner fixture for :class:`click_extra.testing.CliRunner`.
+
+    Pins ``HOME`` (and its platform-specific equivalents) to a subdirectory of
+    the runner's isolated filesystem so configuration-file discovery is
+    deterministic and independent of the ambient environment. Without this, the
+    handful of tests asserting on the config-search debug output depend on the
+    caller's ``HOME``: hermetic builders set ``HOME=/homeless-shelter``, which
+    would otherwise leak into those assertions.
+
+    The environment is patched directly rather than through the ``monkeypatch``
+    fixture on purpose: depending on ``monkeypatch`` here would tear it down
+    *after* :meth:`isolated_filesystem` removed the working directory it tries
+    to restore, breaking unrelated tests that ``chdir`` within the runner.
+    """
+    home_vars = ("HOME", "USERPROFILE", "XDG_CONFIG_HOME", "APPDATA", "LOCALAPPDATA")
     runner = CliRunner()
     with runner.isolated_filesystem():
-        yield runner
+        home = os.path.join(os.getcwd(), "home")
+        os.mkdir(home)
+        saved = {var: os.environ.get(var) for var in home_vars}
+        os.environ.update(dict.fromkeys(home_vars, home))
+        try:
+            yield runner
+        finally:
+            for var, value in saved.items():
+                if value is None:
+                    os.environ.pop(var, None)
+                else:
+                    os.environ[var] = value
 
 
 @pytest.fixture

@@ -23,6 +23,7 @@ the tests in this subdirectory.  Downstream packagers can skip these tests with
 
 from __future__ import annotations
 
+import importlib.util
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -31,19 +32,30 @@ from pathlib import Path
 from textwrap import indent
 from typing import Any
 
-import myst_parser
 import pytest
-from packaging.version import Version
-from sphinx.application import Sphinx
-from sphinx.util.docutils import docutils_namespace
 
-from click_extra.sphinx import MYST_NATIVE_ALERTS_VERSION
+# The Sphinx test tree needs the documentation extras (Sphinx, MyST-Parser and
+# their ecosystem). Hermetic builders (Guix, Nixpkgs) ship none of them, so skip
+# the whole tree through ``collect_ignore_glob`` rather than failing collection
+# on the imports below. Downstream packagers therefore no longer need
+# ``--ignore=tests/sphinx``.
+if any(importlib.util.find_spec(m) is None for m in ("sphinx", "myst_parser")):
+    collect_ignore_glob = ["*.py"]
+else:
+    import myst_parser
+    from packaging.version import Version
+    from sphinx.application import Sphinx
+    from sphinx.util.docutils import docutils_namespace
 
-MYST_HAS_NATIVE_ALERTS = Version(myst_parser.__version__) >= MYST_NATIVE_ALERTS_VERSION
-"""Flip-switch reused by tests to branch between the two alert rendering
-paths: ``click_extra``'s regex converter (pre-5.1) and ``myst-parser``'s
-native ``"alert"`` extension (>=5.1). Both paths must produce the same
-admonition HTML."""
+    from click_extra.sphinx import MYST_NATIVE_ALERTS_VERSION
+
+    MYST_HAS_NATIVE_ALERTS = (
+        Version(myst_parser.__version__) >= MYST_NATIVE_ALERTS_VERSION
+    )
+    """Flip-switch reused by tests to branch between the two alert rendering
+    paths: ``click_extra``'s regex converter (pre-5.1) and ``myst-parser``'s
+    native ``"alert"`` extension (>=5.1). Both paths must produce the same
+    admonition HTML."""
 
 
 class FormatType(Enum):

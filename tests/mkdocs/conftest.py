@@ -22,3 +22,13 @@ with ``--ignore=tests/mkdocs`` without affecting the rest of the test suite.
 """
 
 from __future__ import annotations
+
+import importlib.util
+
+# The MkDocs test tree needs the documentation extras (MkDocs, mkdocs-click,
+# pymdown-extensions). Hermetic builders (Guix, Nixpkgs) ship none of them, so
+# skip the whole tree through ``collect_ignore_glob`` rather than failing
+# collection on ``test_mkdocs.py``'s imports. Downstream packagers therefore no
+# longer need ``--ignore=tests/mkdocs``.
+if any(importlib.util.find_spec(m) is None for m in ("mkdocs", "pymdownx")):
+    collect_ignore_glob = ["*.py"]
