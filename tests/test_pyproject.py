@@ -129,6 +129,7 @@ def test_click_floor_is_pinned_and_sentinels_present():
 
 
 @pytest.mark.once
+@pytest.mark.network
 def test_click_matrix_matches_authorized_releases():
     """The pinned releases match exactly the Click releases the specifier allows.
 
