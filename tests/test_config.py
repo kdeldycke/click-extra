@@ -405,8 +405,14 @@ def test_conf_default_path(invoke, simple_config_cli):
     # then match the path and glob pattern against it.
     help_screen = re.sub(r"\s+", "", result.stdout.split("--config CONFIG_PATH")[1])
 
-    # Search for the OS-specific path without glob pattern.
-    default_path = re.sub(r"\s+", "", str(shrinkuser(get_app_dir("config-cli1"))))
+    # Mirror the CLI's own path display: default_pattern() resolves the app dir
+    # before shrinkuser() collapses the home prefix to "~". The resolve() matters
+    # on Windows, where the pinned HOME is an unresolved temp path: resolving it
+    # to its canonical form defeats shrinkuser (the prefix no longer matches
+    # expanduser), so the CLI prints the full path and the test must expect it.
+    default_path = re.sub(
+        r"\s+", "", str(shrinkuser(Path(get_app_dir("config-cli1")).resolve()))
+    )
     assert f"default:{default_path}" in help_screen
 
     # And the glob pattern.
