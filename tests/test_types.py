@@ -566,6 +566,54 @@ def test_enum_choice_case_sensitivity(case_sensitive: bool) -> None:
         )
 
 
+@pytest.mark.parametrize(
+    "source, expected",
+    (
+        (ChoiceSource.KEY, ("first_value", "second_value")),
+        (ChoiceSource.VALUE, ("first-value", "second-value")),
+        (ChoiceSource.STR, ("my-first-value", "my-second-value")),
+    ),
+)
+def test_enum_choice_shell_complete(
+    source: ChoiceSource,
+    expected: tuple[str, str],
+) -> None:
+    """Completion offers normalized choice strings, never the ``Enum.member`` form.
+
+    Regression guard for pallets/click#3015, fixed upstream in pallets/click#3471:
+    completion routes through ``Choice.normalize_choice()``, so an ``EnumChoice``
+    suggests parseable strings (case-folded, as it is case-insensitive by default)
+    instead of ``MyEnum.FIRST_VALUE``.
+    """
+    enum_choice = EnumChoice(MyEnum, choice_source=source)
+
+    # A bare Context/Parameter is enough to drive completion.
+    cli = click.Command("cli", params=[click.Option(["--fmt"], type=enum_choice)])
+    ctx = click.Context(cli)
+    param = cli.params[0]
+
+    def complete(incomplete: str) -> list[str]:
+        items = enum_choice.shell_complete(ctx, param, incomplete)
+        return [item.value for item in items]
+
+    all_choices = complete("")
+
+    # Empty input lists every normalized choice, in declaration order.
+    assert all_choices == list(expected)
+
+    # No suggestion leaks the ``Enum.member`` representation.
+    assert not any("MyEnum" in choice for choice in all_choices)
+
+    # Every suggestion parses back to its member.
+    for choice in all_choices:
+        assert isinstance(enum_choice.convert(choice, param, ctx), MyEnum)
+
+    # Prefix filtering stays case-insensitive.
+    second = expected[1]
+    assert complete(second) == [second]
+    assert complete(second.upper()) == [second]
+
+
 def test_enum_choice_duplicate_string() -> None:
     class BadEnum(StrEnum):
         FIRST = auto()
