@@ -7,6 +7,8 @@
 
 ## [`8.1.3` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.2...v8.1.3)
 
+- Mark test as network-dependent.
+
 ## [`8.1.2` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.1...v8.1.2)
 
 > [!NOTE]
