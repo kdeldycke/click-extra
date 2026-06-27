@@ -1,9 +1,6 @@
 # Changelog
 
-## [`8.1.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.1.1...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`8.1.2` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.1...v8.1.2)
 
 - The `runner` pytest fixture now pins `HOME` and its platform equivalents inside its isolated filesystem, making configuration-file discovery independent of the ambient environment.
 - The Sphinx, MkDocs and Carapace tests now self-skip when their optional dependencies are missing, so downstream packagers no longer need to `--ignore` them.
