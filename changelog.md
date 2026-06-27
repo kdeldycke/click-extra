@@ -7,6 +7,9 @@
 
 ## [`8.1.2` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.1...v8.1.2)
 
+> [!NOTE]
+> `8.1.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.1.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.1.2).
+
 - The `runner` pytest fixture now pins `HOME` and its platform equivalents inside its isolated filesystem, making configuration-file discovery independent of the ambient environment.
 - The Sphinx, MkDocs and Carapace tests now self-skip when their optional dependencies are missing, so downstream packagers no longer need to `--ignore` them.
 
