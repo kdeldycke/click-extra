@@ -13,6 +13,9 @@
 
 ## [`8.1.4` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.3...v8.1.4)
 
+> [!NOTE]
+> `8.1.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.1.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.1.4).
+
 - Skip the `EnumChoice` shell-completion case-folding test on Click 8.3.
 
 ## [`8.1.3` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.2...v8.1.3)
