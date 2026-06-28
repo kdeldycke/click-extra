@@ -448,7 +448,7 @@ if not _HAS_CLICK_8_4_EXPORTS:
 del _HAS_CLICK_8_4_EXPORTS
 
 
-__version__ = "8.1.5.dev0"
+__version__ = "8.2.0.dev0"
 __git_branch__ = ""
 __git_date__ = ""
 __git_long_hash__ = ""
