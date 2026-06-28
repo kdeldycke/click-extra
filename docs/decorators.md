@@ -146,6 +146,7 @@ Every default option ships with a matching decorator built via `decorator_factor
 | `config_option`          | `option(cls=ConfigOption)`                          |
 | `no_config_option`       | `option(cls=NoConfigOption)`                        |
 | `validate_config_option` | `option(cls=ValidateConfigOption)`                  |
+| `dump_config_option`     | `option(cls=DumpConfigOption)`                      |
 | `jobs_option`            | `option(cls=JobsOption)`                            |
 | `show_params_option`     | `option(cls=ShowParamsOption)`                      |
 | `table_format_option`    | `option(cls=TableFormatOption)`                     |

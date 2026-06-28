@@ -34,7 +34,12 @@ from .commands import (
     LazyGroup,
     default_params,
 )
-from .config import ConfigOption, NoConfigOption, ValidateConfigOption
+from .config import (
+    ConfigOption,
+    DumpConfigOption,
+    NoConfigOption,
+    ValidateConfigOption,
+)
 from .execution import JobsOption, TimerOption, ZeroExitOption
 from .logging import QuietOption, VerboseOption, VerbosityOption
 from .man_page import ManOption
@@ -336,6 +341,7 @@ accessible_option = decorator_factory(dec=option, cls=AccessibleOption)
 color_option = decorator_factory(dec=option, cls=ColorOption)
 columns_option = decorator_factory(dec=option, cls=ColumnsOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
+dump_config_option = decorator_factory(dec=option, cls=DumpConfigOption)
 jobs_option = decorator_factory(dec=option, cls=JobsOption)
 man_option = decorator_factory(dec=option, cls=ManOption)
 no_color_option = decorator_factory(dec=option, cls=NoColorOption)

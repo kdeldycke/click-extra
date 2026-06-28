@@ -822,6 +822,28 @@ def walk_command_params(
             )
 
 
+def replay_raw_args(subject_ctx: click.Context) -> dict[str, Any]:
+    """Re-parse the captured raw arguments to recover per-parameter values.
+
+    Click discards the pre-parsed arguments once processing is done, so the
+    value and provenance of each parameter cannot be read back directly. When
+    :data:`~click_extra.context.RAW_ARGS` was captured on the context (by
+    ``Command``/``Group``), replaying it through a fresh parser rebuilds the
+    ``opts`` mapping that ``Parameter.consume_value`` consults, without re-firing
+    eager callbacks: ``handle_parse_result`` is never called here, only the
+    parser.
+
+    Returns an empty mapping when no raw arguments were captured, so callers can
+    fall back to parameter defaults.
+    """
+    raw_args = context.get(subject_ctx, context.RAW_ARGS)
+    if raw_args is None:
+        return {}
+    parser = subject_ctx.command.make_parser(subject_ctx)
+    opts, _, _ = parser.parse_args(args=list(raw_args))
+    return opts
+
+
 def render_params_table(
     subject_ctx: click.Context,
     *,
@@ -881,8 +903,7 @@ def render_params_table(
     raw_args = context.get(subject_ctx, context.RAW_ARGS)
     if raw_args is not None:
         logger.debug(f"{context.RAW_ARGS}: {raw_args}")
-        parser = cmd.make_parser(subject_ctx)
-        opts, _, _ = parser.parse_args(args=list(raw_args))
+        opts = replay_raw_args(subject_ctx)
 
         def get_param_value(param):
             # consume_value() can return the UNSET sentinel for a parameter with

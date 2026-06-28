@@ -31,13 +31,6 @@
 
     So yes, ``config`` is good enough.
 
-.. todo::
-    Add a ``--dump-config`` or ``--export-config`` option to write down the current
-    configuration (or a template) into a file or ``<stdout>``.
-
-    Help message would be: *you can use this option with other options or environment
-    variables to have them set in the generated configuration*.
-
 Dotted keys in configuration files (like ``"subcommand.option": value``) are
 automatically expanded into nested dicts before merging, so users can freely mix
 flat dot-notation and nested structures in any supported format.
@@ -67,6 +60,9 @@ from wcmatch import fnmatch, glob
 
 from .. import (
     UNPROCESSED,
+    UNSET,
+    Choice,
+    EnumChoice,
     ParameterSource,
     Path as ClickPath,
     context,
@@ -78,10 +74,17 @@ from ..parameters import (
     PARAM_PATH_SEP,
     ExtraOption,
     ParamStructure,
+    replay_raw_args,
     require_sibling_param,
 )
 from .builtin import THEMES_CONFIG_KEY, _builtin_config_validators
-from .formats import ConfigFormat, parse_content
+from .formats import (
+    SERIALIZABLE_FORMATS,
+    ConfigFormat,
+    disabled_format_message,
+    parse_content,
+    serialize_content,
+)
 from .schema import (
     ConfigValidator,
     _normalize_conf,
@@ -126,6 +129,7 @@ use of any configuration file at all.
 
 DEFAULT_EXCLUDED_PARAMS = (
     CONFIG_OPTION_NAME,
+    "dump_config",
     "help",
     "show_params",
     "version",
@@ -136,6 +140,8 @@ Defaults to:
 
 - ``--config`` option, which cannot be used to recursively load another configuration
   file.
+- ``--dump-config`` flag, which like ``--show-params`` introspects the CLI and exits,
+  so it has no place in the configuration it would dump.
 - ``--help``, as it makes no sense to have the configurable file always forces a CLI to
   show the help and exit.
 - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
@@ -1562,3 +1568,197 @@ class ValidateConfigOption(ExtraOption):
 
         info_msg(f"Configuration file {value} is valid.")
         ctx.exit(0)
+
+
+_DUMP_FORMAT_BY_TOKEN: dict[str, ConfigFormat] = {
+    fmt.label.lower(): fmt for fmt in SERIALIZABLE_FORMATS
+}
+"""Mapping of ``--dump-config`` choice tokens to their :class:`ConfigFormat`.
+
+Built from :data:`~click_extra.config.formats.SERIALIZABLE_FORMATS`, so the
+accepted tokens are exactly the formats
+:func:`~click_extra.config.formats.serialize_content` can write: ``toml``,
+``yaml``, ``json``, ``json5``, ``jsonc``, ``hjson`` and ``xml``.
+"""
+
+
+def _config_dump_value(param: click.Parameter, value: Any) -> Any:
+    """Coerce a resolved parameter value into a config-serializable form.
+
+    Produces what a user would write in a configuration file, so the dump
+    round-trips back through ``--config``:
+
+    - native scalars (``str``, ``int``, ``float``, ``bool``) and ``None`` pass
+      through unchanged;
+    - sequences are coerced element-wise into a ``list``;
+    - an :class:`~enum.Enum` member becomes its
+      :class:`~click_extra.types.EnumChoice` token (or its value/name otherwise);
+    - a scalar string whose parameter resolves to a numeric Python type is
+      converted to that type, so ``--count 7`` dumps as ``count = 7`` rather than
+      ``count = "7"`` (Click hands back raw strings for command-line and
+      environment values, ahead of its own type conversion);
+    - anything else (a :class:`~pathlib.Path`, a custom object) is stringified.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [_config_dump_value(param, item) for item in value]
+    # bool is an int subclass: handle it before the numeric coercion below.
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, Enum):
+        param_type = getattr(param, "type", None)
+        if isinstance(param_type, EnumChoice):
+            return param_type.get_choice_string(value)
+        member_value = value.value
+        if isinstance(member_value, (str, int, float, bool)):
+            return member_value
+        return value.name
+    if isinstance(value, str):
+        python_type = ParamStructure.get_param_type(param)
+        if python_type is int:
+            try:
+                return int(value)
+            except ValueError:
+                return value
+        if python_type is float:
+            try:
+                return float(value)
+            except ValueError:
+                return value
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    return str(value)
+
+
+class DumpConfigOption(ExtraOption):
+    """A pre-configured option adding ``--dump-config FORMAT``.
+
+    Resolves the CLI's current parameter values following Click's precedence
+    chain (command line, then environment variables, then configuration file,
+    then defaults), renders them as a configuration file in the requested format
+    on ``<stdout>``, and exits.
+
+    .. hint::
+        Combine the flag with other options or environment variables to capture
+        them in the generated configuration. For example, ``mycli --verbosity
+        DEBUG --dump-config toml`` emits a configuration whose ``verbosity`` is
+        already set to ``DEBUG``.
+
+    Like :class:`ValidateConfigOption`, it relies on a sibling
+    :class:`ConfigOption` to provide the parameter structure and the
+    ``excluded_params`` / ``included_params`` filter, so the dump contains
+    exactly the parameters that can be loaded back from a configuration file.
+
+    .. note::
+        The accepted formats are those
+        :func:`~click_extra.config.formats.serialize_content` can write
+        (:data:`~click_extra.config.formats.SERIALIZABLE_FORMATS`). ``INI`` and
+        ``pyproject.toml`` have no serializer and cannot be dumped.
+    """
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        type: click.ParamType | Any = None,
+        metavar: str = "FORMAT",
+        is_eager: bool = True,
+        expose_value: bool = False,
+        help: str = _(
+            "Dump the configuration in the selected format to <stdout>, then exit.",
+        ),
+        **kwargs: Any,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--dump-config",)
+
+        # Restrict the choice to the writable formats, addressed by their
+        # lower-case token (``toml``, ``json``, ...). A short ``FORMAT`` metavar
+        # keeps the token list out of the one-line help while the full set still
+        # surfaces in the Choice error message.
+        if type is None:
+            type = Choice(tuple(_DUMP_FORMAT_BY_TOKEN), case_sensitive=False)
+
+        kwargs.setdefault("callback", self.dump_config)
+
+        super().__init__(
+            param_decls=param_decls,
+            type=type,
+            metavar=metavar,
+            is_eager=is_eager,
+            expose_value=expose_value,
+            help=help,
+            **kwargs,
+        )
+
+    def build_config(
+        self,
+        ctx: click.Context,
+        config_option: ConfigOption,
+    ) -> dict[str, Any]:
+        """Resolve every config-eligible parameter into a dumpable tree.
+
+        Walks the sibling :class:`ConfigOption`'s parameter structure, resolves
+        each parameter's effective value by replaying
+        :data:`~click_extra.context.RAW_ARGS` (falling back to defaults when the
+        command did not capture them), drops the
+        :attr:`~click_extra.parameters.ParamStructure.excluded_params`, and
+        layers the coerced values into the ``{cli-name: {param: value, ...}}``
+        shape a configuration file uses. Blank values are removed, mirroring the
+        clean-up :meth:`ConfigOption._install_default_map` applies on load.
+        """
+        # Force the included_params -> excluded_params resolution that happens
+        # the first time the parameter tree is built.
+        config_option.params_objects  # noqa: B018
+        excluded = config_option.excluded_params
+
+        opts = replay_raw_args(ctx)
+        has_raw_args = context.get(ctx, context.RAW_ARGS) is not None
+        if not has_raw_args:
+            logger.warning(
+                f"Cannot resolve parameter values: {ctx.command} does not "
+                "inherit from Command; dumping defaults.",
+            )
+
+        tree: dict[str, Any] = {}
+        for keys, target in config_option.walk_params():
+            if PARAM_PATH_SEP.join(keys) in excluded:
+                continue
+            if has_raw_args:
+                raw, _source = target.consume_value(ctx, opts)
+                resolved = None if raw is UNSET else raw
+            else:
+                resolved = target.get_default(ctx)
+            leaf = _config_dump_value(target, resolved)
+            tree = always_merger.merge(
+                tree, ParamStructure.init_tree_dict(*keys, leaf=leaf)
+            )
+
+        return _remove_blanks(tree, remove_str=False)
+
+    def dump_config(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        value: str | None,
+    ) -> None:
+        """Render the resolved configuration to ``<stdout>`` and exit."""
+        # Stay dormant during help rendering and shell completion, like Click's
+        # own eager callbacks, so a typed ``--dump-config FORMAT`` does not dump
+        # and exit mid-completion.
+        if not value or ctx.resilient_parsing:
+            return
+
+        fmt = _DUMP_FORMAT_BY_TOKEN[value.lower()]
+        config_option = require_sibling_param(ctx.command.params, param, ConfigOption)
+        tree = self.build_config(ctx, config_option)
+
+        try:
+            output = serialize_content(fmt, tree)
+        except ImportError:
+            echo(disabled_format_message(fmt), err=True)
+            ctx.exit(1)
+
+        echo(output.rstrip("\n"))
+        ctx.exit()

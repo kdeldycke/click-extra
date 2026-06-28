@@ -175,6 +175,27 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
     raise ValueError(f"{fmt!r} is not handled by parse_content().")
 
 
+SERIALIZABLE_FORMATS: tuple[ConfigFormat, ...] = (
+    ConfigFormat.TOML,
+    ConfigFormat.YAML,
+    ConfigFormat.JSON,
+    ConfigFormat.JSON5,
+    ConfigFormat.JSONC,
+    ConfigFormat.HJSON,
+    ConfigFormat.XML,
+)
+"""Configuration formats :func:`serialize_content` can write, in priority order.
+
+Every :class:`ConfigFormat` except :attr:`~ConfigFormat.INI` and
+:attr:`~ConfigFormat.PYPROJECT_TOML`, which have no serializer. ``JSON``,
+``JSON5`` and ``JSONC`` are emitted as plain JSON through the standard library,
+so they need no optional dependency; the others require their format's extra.
+
+.. caution::
+    Keep this in sync with the ``match`` statement in :func:`serialize_content`.
+"""
+
+
 def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
     """Serialize a Python object to a string in the given format.
 

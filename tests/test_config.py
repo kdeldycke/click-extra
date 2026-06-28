@@ -42,7 +42,9 @@ from click_extra import (
     ConfigFormat,
     ConfigOption,
     LazyGroup,
+    command,
     config_option,
+    dump_config_option,
     echo,
     get_app_dir,
     group,
@@ -2276,6 +2278,141 @@ def test_validate_config_pyproject_toml(invoke, create_config):
     result = invoke(validate_cli, "--validate-config", str(conf_path), color=False)
     assert result.exit_code == 0
     assert "is valid" in result.stderr
+
+
+def test_dump_config_to_stdout(invoke):
+    """--dump-config writes the resolved configuration and exits 0."""
+
+    @command
+    @option("--name", default="Alice")
+    def dump_cli(name):
+        echo(f"name = {name!r}")
+
+    result = invoke(dump_cli, "--dump-config", "toml", color=False)
+    assert result.exit_code == 0
+    assert "[dump-cli]" in result.stdout
+    assert 'name = "Alice"' in result.stdout
+    # Action options and config plumbing are excluded from the dump.
+    assert "dump_config" not in result.stdout
+    assert "show_params" not in result.stdout
+    assert "config =" not in result.stdout
+    assert "version" not in result.stdout
+
+
+def test_dump_config_captures_overrides(invoke):
+    """Command-line values are reflected in the dump."""
+
+    @command
+    @option("--name", default="Alice")
+    @option("--tag", multiple=True)
+    def dump_cli(name, tag):
+        echo("ran")
+
+    result = invoke(
+        dump_cli,
+        "--name",
+        "Bob",
+        "--tag",
+        "x",
+        "--tag",
+        "y",
+        "--dump-config",
+        "toml",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert 'name = "Bob"' in result.stdout
+    assert 'tag = ["x", "y"]' in result.stdout
+
+
+def test_dump_config_numeric_values_keep_their_type(invoke):
+    """A command-line numeric scalar is dumped as a number, not a quoted string."""
+
+    @command
+    @option("--count", type=int, default=3)
+    def dump_cli(count):
+        echo("ran")
+
+    result = invoke(dump_cli, "--count", "7", "--dump-config", "toml", color=False)
+    assert result.exit_code == 0
+    assert "count = 7" in result.stdout
+    assert 'count = "7"' not in result.stdout
+
+
+@pytest.mark.parametrize("fmt", ["toml", "json", "yaml"])
+def test_dump_config_round_trip(invoke, tmp_path, fmt):
+    """A dumped configuration reloads to the same values through --config."""
+
+    @command
+    @option("--name", default="Alice")
+    @option("--count", type=int, default=3)
+    def dump_cli(name, count):
+        echo(f"name={name!r} count={count!r}")
+
+    result = invoke(
+        dump_cli,
+        "--name",
+        "Zoe",
+        "--count",
+        "42",
+        "--dump-config",
+        fmt,
+        color=False,
+    )
+    assert result.exit_code == 0
+
+    conf_path = tmp_path / f"dumped.{fmt}"
+    conf_path.write_text(result.stdout, encoding="utf-8")
+
+    reloaded = invoke(dump_cli, "--config", str(conf_path), color=False)
+    assert reloaded.exit_code == 0
+    assert reloaded.stdout == "name='Zoe' count=42\n"
+
+
+def test_dump_config_invalid_format(invoke):
+    """An unsupported format token is rejected by the Choice."""
+
+    @command
+    def dump_cli():
+        echo("ran")
+
+    result = invoke(dump_cli, "--dump-config", "ini", color=False)
+    assert result.exit_code == 2
+    assert "'ini' is not one of" in result.stderr
+
+
+def test_dump_config_requires_config_option(invoke):
+    """--dump-config without @config_option raises RuntimeError."""
+
+    @click.command
+    @dump_config_option
+    def missing_config():
+        echo("Hello, World!")
+
+    result = invoke(missing_config, "--dump-config", "toml")
+    assert result.exception
+    assert type(result.exception) is RuntimeError
+    assert "DumpConfigOption must be used alongside ConfigOption" in str(
+        result.exception
+    )
+    assert result.exit_code == 1
+
+
+def test_dump_config_standalone_falls_back_to_defaults(invoke):
+    """Without a captured command line (vanilla Command), defaults are dumped."""
+
+    @click.command
+    @option("--name", default="Alice")
+    @config_option
+    @dump_config_option
+    def standalone_cli(name):
+        echo("ran")
+
+    result = invoke(standalone_cli, "--name", "Bob", "--dump-config", "toml")
+    assert result.exit_code == 0
+    # No RAW_ARGS to replay: the --name Bob override cannot be recovered, so the
+    # default value is dumped instead.
+    assert 'name = "Alice"' in result.stdout
 
 
 # --- _default_subcommands tests ---

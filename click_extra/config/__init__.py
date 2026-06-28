@@ -41,6 +41,7 @@ from .builtin import (
     TestSuiteConfig,
 )
 from .formats import (
+    SERIALIZABLE_FORMATS,
     ConfigFormat,
     format_from_path,
     parse_content,
@@ -51,6 +52,7 @@ from .option import (
     NO_CONFIG,
     VCS,
     ConfigOption,
+    DumpConfigOption,
     NoConfigOption,
     ValidateConfigOption,
 )
@@ -77,12 +79,14 @@ __all__ = [
     "NORMALIZE_KEYS_METADATA_KEY",
     "NO_CONFIG",
     "PREPEND_SUBCOMMANDS_KEY",
+    "SERIALIZABLE_FORMATS",
     "THEMES_CONFIG_KEY",
     "VCS",
     "ClickExtraConfig",
     "ConfigFormat",
     "ConfigOption",
     "ConfigValidator",
+    "DumpConfigOption",
     "NoConfigOption",
     "PrebakeConfig",
     "TestSuiteConfig",

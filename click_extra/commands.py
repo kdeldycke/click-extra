@@ -38,6 +38,7 @@ from .config import (
     PREPEND_SUBCOMMANDS_KEY,
     ConfigOption,
     ConfigValidator,
+    DumpConfigOption,
     NoConfigOption,
     ValidateConfigOption,
     make_schema_callable,
@@ -85,6 +86,7 @@ def default_params() -> list[click.Option]:
             behavior and value of the other options.
     #. ``--no-config``
     #. ``--validate-config CONFIG_PATH``
+    #. ``--dump-config FORMAT``
     #. ``--accessible``
         .. hint::
             ``--accessible`` is placed before ``--color`` and ``--table-format`` so it
@@ -127,6 +129,7 @@ def default_params() -> list[click.Option]:
         ConfigOption(),
         NoConfigOption(),
         ValidateConfigOption(),
+        DumpConfigOption(),
         AccessibleOption(),
         ColorOption(),
         NoColorOption(),
