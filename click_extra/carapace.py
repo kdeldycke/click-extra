@@ -171,7 +171,7 @@ def _env_var(prog_name: str) -> str:
     return f"_{prog_name}_COMPLETE".replace("-", "_").upper()
 
 
-def _dynamic_action(command_path: tuple[str, ...]) -> str:
+def _dynamic_action(command_path: tuple[str, ...], option: str | None = None) -> str:
     """A Carapace shell-macro action that calls back into the CLI for completion.
 
     Carapace's default ``$(...)`` macro runs ``sh -c '<script>' -- <words>``,
@@ -181,27 +181,37 @@ def _dynamic_action(command_path: tuple[str, ...]) -> str:
     shell), which prints exactly that. Carapace prefix-filters the result, so the
     callback returns the full candidate set.
 
-    ``command_path`` is the chain of command names from the root program down to
-    the command owning the completed parameter, like ``("weather", "forecast")``.
-    It is baked into ``COMP_WORDS`` so :class:`CarapaceComplete` can rebuild the
-    command line Click needs to resolve the subcommand.
+    ``COMP_WORDS`` is rebuilt so :class:`CarapaceComplete` hands Click the command
+    line it needs to resolve the completed parameter. Two pieces must be baked in,
+    because Carapace withholds them from ``$*``:
 
-    .. note::
-        Baking the whole path is required, not cosmetic. Carapace's ``traverse``
-        descends into each subcommand with only the remaining words, stripping the
-        parent command names from the ``c.Args`` it hands the macro. So ``$*``
-        carries only the leaf command's own words: for ``weather forecast --city``
-        Carapace passes just ``--city``. Without the baked ``weather forecast``
-        prefix, the callback would reconstruct ``weather --city`` and resolve
-        against the root command, completing the wrong thing. The env var and the
-        invoked binary stay rooted at ``command_path[0]``, the executable Carapace
-        dispatches and the name Click derives its completion variable from.
+    - ``command_path``: the chain of command names from the root program down to
+      the command owning the parameter, like ``("weather", "forecast")``.
+      Carapace's ``traverse`` descends into each subcommand with only the remaining
+      words, so ``$*`` never carries the parent command names. Without the baked
+      prefix the callback would reconstruct ``weather --city`` and resolve against
+      the root command.
+
+    - ``option``: the spelling of the flag whose value is being completed, for an
+      option (not an argument). Carapace routes a flag's value completion to this
+      per-flag action and keeps the flag in its own ``inFlag`` state rather than
+      ``c.Args``, so ``$*`` does not contain it; Click would not know which value
+      to resolve. It is appended after ``$*`` so it stays the trailing token Click
+      reads as the option awaiting a value.
+
+    So a subcommand option ``--city`` yields ``COMP_WORDS=weather forecast $*
+    --city``, while a subcommand argument yields ``COMP_WORDS=weather forecast
+    $*``. The env var and the invoked binary stay rooted at ``command_path[0]``,
+    the executable Carapace dispatches and the name Click derives its completion
+    variable from.
     """
     root = command_path[0]
-    words = " ".join(command_path)
+    comp_words = " ".join(command_path) + " $*"
+    if option:
+        comp_words += f" {option}"
     return (
         f'$(env "{_env_var(root)}=carapace_complete" '
-        f'"COMP_WORDS={words} $*" {root} 2>/dev/null)'
+        f'"COMP_WORDS={comp_words}" {root} 2>/dev/null)'
     )
 
 
@@ -234,21 +244,26 @@ def _overrides_shell_complete(param_type: click.ParamType) -> bool:
     return type(param_type).shell_complete is not click.ParamType.shell_complete
 
 
-def _param_action(param: Parameter, command_path: tuple[str, ...]) -> list[str]:
+def _param_action(
+    param: Parameter, command_path: tuple[str, ...], option: str | None = None
+) -> list[str]:
     """Resolve the Carapace completion action for one parameter.
 
     An explicit ``shell_complete=`` callback always routes to the dynamic macro;
     otherwise a statically-knowable type is inlined; otherwise a type that
     overrides ``shell_complete`` falls back to the dynamic macro. Anything else
-    yields an empty action (no completion offered).
+    yields an empty action (no completion offered). ``option`` carries the flag
+    spelling when the parameter is an option, so the dynamic macro can name the
+    flag whose value is being completed (see :func:`_dynamic_action`); arguments
+    leave it ``None``.
     """
     if getattr(param, "_custom_shell_complete", None) is not None:
-        return [_dynamic_action(command_path)]
+        return [_dynamic_action(command_path, option)]
     static = _static_action(param.type)
     if static is not None:
         return static
     if _overrides_shell_complete(param.type):
-        return [_dynamic_action(command_path)]
+        return [_dynamic_action(command_path, option)]
     return []
 
 
@@ -398,8 +413,9 @@ def _add_option(
     A boolean flag with a secondary spelling (``--foo`` / ``--no-foo``) is split
     into two independent Carapace flags, since the spec has no negation primitive.
     Only value-taking options contribute a ``completion.flag`` action. Dynamic
-    actions reference ``command_path``, the chain of command names down to this
-    command (see :func:`_dynamic_action`).
+    actions reference ``command_path`` (the chain of command names down to this
+    command) and the option's own spelling, both baked into the callback so Click
+    can resolve the right flag's value (see :func:`_dynamic_action`).
     """
     flags = node.persistentflags if persistent else node.flags
     description = _clean_description(getattr(param, "help", None))
@@ -418,7 +434,8 @@ def _add_option(
         )
 
     if value:
-        action = _param_action(param, command_path)
+        short, long = short_long_opts(param.opts)
+        action = _param_action(param, command_path, option=long or short)
         if action:
             node.completion.flag[_flag_name(param.opts)] = action
 

@@ -5,7 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Fix Carapace dynamic completion for subcommand parameters, which resolved against the root command and returned the wrong candidates.
+- Fix Carapace dynamic completion: an option's value or a subcommand argument with a custom `shell_complete` now resolves through the generated spec, instead of returning empty or root-level candidates.
+- Verify generated Carapace specs against the real `carapace-spec` engine in the test suite.
 
 ## [`8.1.4` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.3...v8.1.4)
 
