@@ -33,6 +33,7 @@ from cloup._util import identity
 import click_extra
 from click_extra import (
     Style,
+    color,
     command,
     context,
     echo,
@@ -40,12 +41,15 @@ from click_extra import (
     theme as _theme,
 )
 from click_extra.theme import (
+    AUTO_THEME,
     BUILTIN_THEMES,
     LITERAL_STYLES,
     REPLACEABLE_STYLES,
     HelpTheme,
     ThemeChoice,
+    ThemeOption,
     get_theme_registry,
+    resolve_auto_theme,
     theme_registry,
     themes_from_config,
 )
@@ -674,3 +678,80 @@ def test_validate_config_catches_bad_theme(invoke, create_config):
     result = invoke(cli, "--validate-config", str(config_path))
     assert result.exit_code != 0
     assert "midnight" in result.stderr
+
+
+# --- Background auto-detection ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("env", "expected_name"),
+    (
+        ({"COLORFGBG": "0;15"}, "light"),
+        ({"COLORFGBG": "15;0"}, "dark"),
+        ({"CLITHEME": "light"}, "light"),
+        ({"CLITHEME": "dark"}, "dark"),
+        # No detectable signal falls back to the dark default.
+        ({}, "dark"),
+    ),
+)
+def test_theme_auto_resolves_to_detected_palette(
+    invoke, monkeypatch, env, expected_name
+):
+    """``--theme=auto`` picks the built-in palette implied by the terminal background."""
+    for var in ("CLITHEME", "COLORFGBG"):
+        monkeypatch.delenv(var, raising=False)
+    for var, value in env.items():
+        monkeypatch.setenv(var, value)
+    captured: dict = {}
+    cli = _palette_cli(captured)
+
+    result = invoke(cli, "--theme", "auto")
+    assert result.exit_code == 0, result.stderr
+    assert captured["theme"] is BUILTIN_THEMES[expected_name]
+
+
+def test_theme_auto_from_config(invoke, create_config, monkeypatch):
+    """``theme = "auto"`` in the config file makes detection the effective default."""
+    for var in ("CLITHEME", "COLORFGBG"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("CLITHEME", "light")
+    captured: dict = {}
+    cli = _palette_cli(captured)
+
+    config_path = create_config("palette.toml", '[palette]\ntheme = "auto"\n')
+    result = invoke(cli, "--config", str(config_path))
+    assert result.exit_code == 0, result.stderr
+    assert captured["theme"] is BUILTIN_THEMES["light"]
+
+
+def test_theme_auto_absent_from_help_metavar(invoke):
+    """The reserved 'auto' directive is not advertised in the --theme metavar."""
+    result = invoke(greet, "--help", color=False)
+    assert result.exit_code == 0
+    # The metavar lists only registered palettes; 'auto' is accepted but hidden.
+    assert "[dark|dracula|light|manpage|monokai|nord|solarized_dark]" in result.stdout
+
+
+def test_themechoice_accepts_auto_directive():
+    """'auto' converts to itself though it is not a registered palette."""
+    assert ThemeChoice().convert("auto", None, None) == AUTO_THEME
+    assert ThemeChoice().convert("AUTO", None, None) == AUTO_THEME
+    assert "auto" not in ThemeChoice().choices
+
+
+def test_theme_option_query_background_opt_in():
+    """The live OSC 11 query is off unless a CLI explicitly opts in."""
+    assert ThemeOption().query_background is False
+    assert ThemeOption(query_background=True).query_background is True
+
+
+def test_resolve_auto_theme_forwards_query_flag(monkeypatch):
+    """``query_background`` gates the live query that env-var detection ignores."""
+    for var in ("CLITHEME", "COLORFGBG"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(color, "query_osc_background", lambda: (255, 255, 255))
+
+    # With the query allowed, the live light background wins.
+    assert resolve_auto_theme(query_background=True) is BUILTIN_THEMES["light"]
+    # Without it, no signal resolves and the dark fallback applies.
+    assert resolve_auto_theme(query_background=False) is BUILTIN_THEMES["dark"]

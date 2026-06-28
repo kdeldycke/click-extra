@@ -10,6 +10,9 @@
 - Fix Carapace dynamic completion: an option's value or a subcommand argument with a custom `shell_complete` now resolves through the generated spec, instead of returning empty or root-level candidates.
 - Verify generated Carapace specs against the real `carapace-spec` engine in the test suite.
 - Add a documentation page on Typer compatibility, explaining why click-extra cannot be combined with Typer and how to get the same options natively.
+- Add a `--theme=auto` value that selects the `dark` or `light` palette from the detected terminal background. Accepted on every `@command` and `@group`; the `--theme` default stays `dark`.
+- Detect the terminal background from the `CLITHEME` and `COLORFGBG` environment variables, and, when a `ThemeOption` is built with `query_background=True`, from a live xterm OSC 11 terminal query.
+- Add `resolve_background` and `query_osc_background` to `click_extra.color`, and `resolve_auto_theme` and the `AUTO_THEME` constant to `click_extra.theme`.
 
 ## [`8.1.4` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.3...v8.1.4)
 

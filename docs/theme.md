@@ -23,6 +23,75 @@ assert "--theme" in result.stdout
 
 The flag is eager, so it is processed before any other option and before help is rendered. The picked theme is stored on the active Click context's `meta` dict under `click_extra.context.THEME` and inherits down to subcommands, so a parent group's `--theme` applies to every child. See the [available keys](context.md#available-keys) table for the full inventory you can read from your own callbacks.
 
+## Automatic background detection
+
+Pass `--theme=auto` to pick between the built-in `dark` and `light` palettes from the terminal's background, mirroring `--color=auto`. Every Click Extra CLI accepts it, no extra wiring required:
+
+```{click:run}
+import os
+
+# Pretend the terminal advertises a light background.
+os.environ["COLORFGBG"] = "0;15"
+try:
+    result = invoke(weather, args=["--theme", "auto", "--help"])
+    assert result.exit_code == 0
+    assert "--theme" in result.stdout
+finally:
+    os.environ.pop("COLORFGBG", None)
+```
+
+Detection reads two environment variables and uses the first that resolves:
+
+1. **`CLITHEME`** follows the [cli-theme](https://wiki.tau.garden/cli-theme) convention. A `dark` or `light` value (optionally a `mode:variant` like `dark:solarized`) is a deliberate override and wins outright; `auto` falls through.
+2. **`COLORFGBG`** is set by a few terminals (rxvt, Konsole) and cached by [shell-term-background](https://github.com/rocky/shell-term-background) at shell startup; the background is the last `;`-separated field. It is read last because it is frequently stale: it reflects the value when the terminal launched and is not refreshed when you switch themes.
+
+When none of them resolves, `auto` falls back to `dark`, so Click Extra's default is preserved. The `--theme` default itself stays `dark`: a CLI that never asks for `auto` renders exactly as before, and `auto` is accepted but kept out of the `--help` metavar.
+
+To make detection the effective default for your CLI, set `theme = "auto"` in your [config file](#configuration-file) the same way you would pin any other palette:
+
+```toml
+[weather]
+theme = "auto"
+```
+
+### Querying the terminal directly
+
+The environment variables above only help if something already populated them. To detect the background on terminals that set none of them, Click Extra can ask the terminal directly with an [xterm OSC 11 query](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands): it writes an escape sequence and reads the background color back. This is **opt-in** because it reads stdin (which can interfere with a CLI that consumes stdin itself) and only works on POSIX terminals.
+
+Enable it by swapping the default `--theme` option for a `ThemeOption` built with `query_background=True`:
+
+```{click:source}
+from click_extra import command, echo
+from click_extra.commands import default_params
+from click_extra.theme import ThemeOption
+
+forecast_params = [
+    ThemeOption(default="auto", query_background=True)
+    if isinstance(param, ThemeOption)
+    else param
+    for param in default_params()
+]
+
+@command(params=forecast_params)
+def forecast():
+    """Show the weekly forecast."""
+    echo("Rain on Thursday.")
+```
+
+```{click:run}
+result = invoke(forecast, args=["--help"])
+assert result.exit_code == 0
+assert "--theme" in result.stdout
+```
+
+`forecast` now defaults to the detected theme and, when no environment variable settles the question, runs the live query before falling back to `dark`. The query is a no-op when stdin or stdout is not a terminal (a pipe, a file, a captured test stream), so non-interactive runs are unaffected.
+
+```{caution}
+Background detection through `COLORFGBG` or the live query is best-effort. `COLORFGBG` is often missing or stale; terminal multiplexers (tmux, screen) cache or mangle the OSC 11 reply; and the query reads stdin. When the choice has to be deterministic, set `--theme` explicitly (on the command line or in your config file), or export `CLITHEME`.
+```
+
+The same dark-or-light question turns up across the ecosystem, split along the same environment-variable-versus-live-query line. [shell-term-background](https://github.com/rocky/shell-term-background) (POSIX shell) and its Python reader [term-background](https://pypi.org/project/term-background/) cache the answer into `COLORFGBG`, while the Rust crates [terminal-light](https://github.com/Canop/terminal-light), [termbg](https://github.com/dalance/termbg) and [terminal-colorsaurus](https://github.com/bash/terminal-colorsaurus) query OSC 10/11 directly (the last two also read the Windows console).
+
 ## Configuration file
 
 Like every other [default option](config.md), `--theme` reads its value from `pyproject.toml`:

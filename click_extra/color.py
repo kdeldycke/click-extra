@@ -25,20 +25,35 @@ tri-state WHEN resolution. The actual styling lives elsewhere:
 from __future__ import annotations
 
 import os
+import re
+import select
+import sys
 from collections.abc import Iterator
 from configparser import RawConfigParser
 from contextlib import contextmanager
 from gettext import gettext as _
 
 import click
+from extra_platforms import is_unix
 
 from . import ParameterSource
 from .parameters import ExtraOption
+from .styling import _relative_luminance
+
+# termios and tty are POSIX-only and absent on Windows. The live OSC 11
+# background query (query_osc_background) degrades to a no-op when they cannot
+# be imported.
+try:
+    import termios
+    import tty
+except ImportError:  # pragma: no cover
+    termios = None  # type: ignore[assignment]
+    tty = None  # type: ignore[assignment]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from typing import Any, ClassVar
+    from typing import Any, ClassVar, Literal
 
     from click.parser import _OptionParser
 
@@ -174,6 +189,226 @@ def forced_color() -> Iterator[None]:
                 os.environ.pop(var, None)
             else:
                 os.environ[var] = value
+
+
+# --- Terminal background detection -------------------------------------------
+
+_DARK_COLORFGBG_INDICES: frozenset[int] = frozenset({0, 1, 2, 3, 4, 5, 6, 8})
+"""ANSI palette indices that mark a *dark* ``COLORFGBG`` background field.
+
+``COLORFGBG`` carries ``foreground;background`` (sometimes
+``foreground;default;background``) ANSI color indices, the background being the
+last field. Indices 0–6 and 8 are the dim half of the standard 16-color palette
+(black, the dim primaries, and bright black), so a background painted with one
+of them reads as dark; every other index (7, 9–15: the light grays and bright
+colors) reads as light.
+"""
+
+
+_OSC_BG_PATTERN = re.compile(
+    rb"\]11;rgba?:([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})",
+)
+"""Match an xterm OSC 11 background reply, capturing the R, G and B channels.
+
+A terminal answers an OSC 11 query with ``ESC ] 11 ; rgb:RRRR/GGGG/BBBB ST``
+(some emit ``rgba:``, 1–4 hex digits per channel, and either a BEL or ``ESC \\``
+terminator). The pattern is anchored on ``]11;`` and ignores the surrounding
+escape bytes so a :meth:`~re.Pattern.search` skips any leading type-ahead the
+terminal echoed ahead of the reply.
+"""
+
+
+_PERCEIVED_LIGHTNESS_MIDPOINT: float = 50.0
+"""CIE L* value splitting *dark* from *light* backgrounds, on a 0–100 scale.
+
+A background whose perceived lightness (L*, derived from the WCAG relative
+luminance returned by :func:`~click_extra.styling._relative_luminance`) falls
+below this midpoint is classified as dark. L* is perceptually uniform, so the
+midpoint sits at the visual middle gray (L* 50 ≈ ``#777777``) rather than the
+much lighter photometric midpoint a raw-luminance threshold would land on.
+"""
+
+
+_OSC_QUERY_TIMEOUT: float = 0.2
+"""Seconds to wait for an OSC 11 reply before giving up.
+
+Long enough to absorb an SSH round-trip, short enough that a terminal which
+never answers (no OSC 11 support) does not noticeably stall startup. See
+:func:`query_osc_background`.
+"""
+
+
+def _colorfgbg_background(value: str) -> Literal["dark", "light"] | None:
+    """Classify a ``COLORFGBG`` value as a dark or light background.
+
+    Reads the background index (the last ``;``-separated field) and looks it up
+    in :data:`_DARK_COLORFGBG_INDICES`. Returns ``None`` when that field is not
+    an integer.
+    """
+    try:
+        background_index = int(value.split(";")[-1])
+    except ValueError:
+        return None
+    if background_index in _DARK_COLORFGBG_INDICES:
+        return "dark"
+    return "light"
+
+
+def _parse_osc_rgb(response: bytes) -> tuple[int, int, int] | None:
+    """Extract an ``(r, g, b)`` 8-bit tuple from a raw OSC 11 reply.
+
+    Each channel carries 1–4 hex digits at an arbitrary bit depth
+    (``rgb:1c1c/1c1c/1c1c`` is 16-bit, ``rgb:1c/1c/1c`` 8-bit), so every channel
+    is normalized to ``[0, 255]`` by its own width and mixed depths still
+    resolve correctly. Returns ``None`` when the reply holds no recognizable
+    color.
+    """
+    match = _OSC_BG_PATTERN.search(response)
+    if match is None:
+        return None
+    r, g, b = (
+        round(int(raw, 16) / (16 ** len(raw) - 1) * 255) for raw in match.groups()
+    )
+    return r, g, b
+
+
+def _is_dark_rgb(rgb: tuple[int, int, int]) -> bool:
+    """Whether an ``(r, g, b)`` background color reads as dark.
+
+    Converts the WCAG relative luminance to CIE L* perceived lightness and
+    compares it against :data:`_PERCEIVED_LIGHTNESS_MIDPOINT`.
+    """
+    luminance = _relative_luminance(rgb)
+    # CIE L* from relative luminance Y on a 0–100 scale; the cube-root branch
+    # holds above the small linear toe near black.
+    lightness = (
+        116 * luminance ** (1 / 3) - 16 if luminance > 0.008856 else 903.3 * luminance
+    )
+    return lightness < _PERCEIVED_LIGHTNESS_MIDPOINT
+
+
+def query_osc_background(
+    timeout: float = _OSC_QUERY_TIMEOUT,
+) -> tuple[int, int, int] | None:
+    """Ask the terminal for its background color with an xterm OSC 11 query.
+
+    Writes ``ESC ] 11 ; ? BEL`` to the terminal and reads back its
+    ``rgb:RRRR/GGGG/BBBB`` reply, returning the color as an 8-bit ``(r, g, b)``
+    tuple. Returns ``None`` whenever the query cannot run or the terminal stays
+    silent:
+
+    - on non-POSIX platforms, or when :mod:`termios` / :mod:`tty` are missing;
+    - when stdin or stdout is not a terminal (piped, redirected, captured);
+    - when no reply arrives within *timeout* seconds.
+
+    .. caution::
+        The query reads stdin in cbreak mode. If the user has typed ahead, or
+        another reader competes for stdin, those bytes may be consumed here or
+        interleave with the reply (a leading run is harmless: the reply is
+        located with a :meth:`~re.Pattern.search`). The terminal mode is always
+        restored through :func:`termios.tcsetattr`. Because of this contention,
+        the query is *opt-in*: it runs only when a caller explicitly allows it
+        (see :func:`resolve_background` and
+        :class:`~click_extra.theme.ThemeOption`'s ``query_background``).
+    """
+    if not is_unix() or termios is None or tty is None:
+        return None
+
+    stdin = sys.__stdin__
+    stdout = sys.__stdout__
+    if stdin is None or stdout is None:
+        return None
+    try:
+        if not stdin.isatty() or not stdout.isatty():
+            return None
+        fd = stdin.fileno()
+        old_attributes = termios.tcgetattr(fd)
+    except (OSError, ValueError, termios.error):
+        return None
+
+    response = b""
+    try:
+        # TCSANOW, not setcbreak's TCSAFLUSH default, so a reply that already
+        # landed (or harmless type-ahead) is not discarded before the read.
+        tty.setcbreak(fd, termios.TCSANOW)
+        stdout.write("\033]11;?\007")
+        stdout.flush()
+        while len(response) < 64:
+            ready, _, _ = select.select([fd], [], [], timeout)
+            if not ready:
+                break
+            chunk = os.read(fd, 32)
+            if not chunk:
+                break
+            response += chunk
+            if chunk.endswith(b"\007") or response.endswith(b"\033\\"):
+                break
+    except (OSError, termios.error):
+        return None
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_attributes)
+
+    return _parse_osc_rgb(response)
+
+
+def resolve_background(
+    allow_query: bool = False,
+) -> Literal["dark", "light"] | None:
+    """Detect whether the terminal has a dark or light background.
+
+    Consults each signal in turn and returns the first that resolves, or
+    ``None`` when none does (callers then keep their own default). Precedence,
+    highest first:
+
+    #. ``CLITHEME`` — the `cli-theme <https://wiki.tau.garden/cli-theme>`_
+       convention. A ``dark`` or ``light`` value (optionally suffixed with a
+       ``:variant``) is a deliberate override and wins outright; ``auto`` and
+       anything unrecognized fall through.
+    #. The live OSC 11 query (:func:`query_osc_background`), but only when
+       *allow_query* is true. It is the most accurate and the only real-time
+       signal, yet it reads stdin, so it stays opt-in.
+    #. ``COLORFGBG`` — set by a handful of terminals (rxvt, Konsole) and cached
+       by `shell-term-background <https://github.com/rocky/shell-term-background>`_
+       at shell startup. Read last because it is frequently stale: it reflects
+       the value at terminal launch and is not refreshed when the user switches
+       themes.
+
+    :param allow_query: permit the stdin-reading OSC 11 query. Off by default.
+
+    .. seealso::
+        "Is this terminal dark or light?" has a small ecosystem of prior art,
+        mixing the same two strategies this function does (a cached environment
+        variable versus a live OSC query):
+
+        - `shell-term-background <https://github.com/rocky/shell-term-background>`_
+          (POSIX shell) runs the OSC query once at shell startup and caches the
+          answer into ``COLORFGBG``, with `term-background
+          <https://pypi.org/project/term-background/>`_ as its Python reader.
+        - `terminal-light <https://github.com/Canop/terminal-light>`_,
+          `termbg <https://github.com/dalance/termbg>`_ and `terminal-colorsaurus
+          <https://github.com/bash/terminal-colorsaurus>`_ (Rust) query OSC 10/11
+          live, like :func:`query_osc_background`; the latter two also read the
+          Windows console.
+    """
+    clitheme = os.environ.get("CLITHEME", "").strip().lower()
+    mode = clitheme.split(":", 1)[0]
+    if mode == "dark":
+        return "dark"
+    if mode == "light":
+        return "light"
+
+    if allow_query:
+        rgb = query_osc_background()
+        if rgb is not None:
+            return "dark" if _is_dark_rgb(rgb) else "light"
+
+    colorfgbg = os.environ.get("COLORFGBG", "").strip()
+    if colorfgbg:
+        background = _colorfgbg_background(colorfgbg)
+        if background is not None:
+            return background
+
+    return None
 
 
 COLOR_WHEN = ("auto", "always", "never")

@@ -27,6 +27,7 @@ import re
 
 import click
 from boltons.iterutils import flatten_iter
+from extra_platforms import is_windows
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -63,7 +64,7 @@ def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ..
     ids = []
     for envvar in flatten_iter(envvar_ids):
         if envvar:
-            if os.name == "nt":
+            if is_windows():
                 envvar = envvar.upper()
             # Deduplicate names.
             if envvar not in ids:

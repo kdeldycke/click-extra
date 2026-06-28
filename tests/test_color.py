@@ -18,12 +18,14 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 
 import click
 import pytest
 
 from click_extra import (
     Style,
+    color,
     color_option,
     command,
     echo,
@@ -36,8 +38,12 @@ from click_extra import (
 )
 from click_extra.color import (
     COLOR_DISABLING_TERMS,
+    _is_dark_rgb,
+    _parse_osc_rgb,
     color_envvars,
     forced_color,
+    query_osc_background,
+    resolve_background,
     resolve_color_env,
 )
 from click_extra.pytest import (
@@ -599,3 +605,160 @@ def test_forced_color_sets_and_restores_env(monkeypatch):
     assert "FORCE_COLOR" not in os.environ
     assert os.environ["NO_COLOR"] == "1"
     assert os.environ["LLM"] == "1"
+
+
+# --- Terminal background detection -------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("env", "expected"),
+    (
+        # CLITHEME explicit override, case- and variant-tolerant.
+        ({"CLITHEME": "light"}, "light"),
+        ({"CLITHEME": "dark"}, "dark"),
+        ({"CLITHEME": "LIGHT"}, "light"),
+        ({"CLITHEME": "dark:solarized"}, "dark"),
+        # Unrecognized / auto CLITHEME falls through to the next signal.
+        ({"CLITHEME": "auto", "COLORFGBG": "0;15"}, "light"),
+        ({"CLITHEME": "bogus", "COLORFGBG": "15;0"}, "dark"),
+        # COLORFGBG: background is the last field; 0-6 and 8 are dark.
+        ({"COLORFGBG": "0;15"}, "light"),
+        ({"COLORFGBG": "15;0"}, "dark"),
+        ({"COLORFGBG": "0;default;15"}, "light"),
+        ({"COLORFGBG": "15;default;0"}, "dark"),
+        ({"COLORFGBG": "7;0"}, "dark"),
+        ({"COLORFGBG": "15;7"}, "light"),
+        ({"COLORFGBG": "garbage"}, None),
+        # No signal at all leaves the decision to the caller.
+        ({}, None),
+        # Precedence: CLITHEME > COLORFGBG.
+        ({"CLITHEME": "light", "COLORFGBG": "15;0"}, "light"),
+    ),
+)
+def test_resolve_background(monkeypatch, env, expected):
+    """Environment-variable precedence for the dark/light background decision."""
+    for var in ("CLITHEME", "COLORFGBG"):
+        monkeypatch.delenv(var, raising=False)
+    for var, value in env.items():
+        monkeypatch.setenv(var, value)
+    assert resolve_background() == expected
+
+
+def test_resolve_background_query_is_opt_in(monkeypatch):
+    """The OSC 11 query runs only when ``allow_query`` is set, below the env vars."""
+    for var in ("CLITHEME", "COLORFGBG"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(color, "query_osc_background", lambda: (255, 255, 255))
+
+    # With no env signal and the query allowed, the live color decides.
+    assert resolve_background(allow_query=True) == "light"
+    # The query is never consulted when not explicitly allowed.
+    assert resolve_background(allow_query=False) is None
+
+
+def test_resolve_background_query_below_explicit_env(monkeypatch):
+    """An explicit env signal outranks the live query even when querying is allowed."""
+    monkeypatch.delenv("COLORFGBG", raising=False)
+    monkeypatch.setenv("CLITHEME", "dark")
+    monkeypatch.setattr(color, "query_osc_background", lambda: (255, 255, 255))
+    assert resolve_background(allow_query=True) == "dark"
+
+
+@pytest.mark.parametrize(
+    ("response", "expected"),
+    (
+        (b"\x1b]11;rgb:1c1c/1c1c/1c1c\x07", (28, 28, 28)),
+        (b"\x1b]11;rgb:ffff/ffff/ffff\x1b\\", (255, 255, 255)),
+        (b"\x1b]11;rgb:00/00/00\x07", (0, 0, 0)),
+        # 8-bit channels normalize the same as their 16-bit doublings.
+        (b"\x1b]11;rgb:ff/ff/ff\x07", (255, 255, 255)),
+        # rgba: the alpha channel is ignored.
+        (b"\x1b]11;rgba:2e2e/3434/3636/ffff\x07", (46, 52, 54)),
+        # A search skips any leading type-ahead before the reply.
+        (b"typed-ahead\x1b]11;rgb:ff/ff/ff\x07", (255, 255, 255)),
+        # No recognizable color yields None.
+        (b"\x1b]11;rgb:nothex\x07", None),
+        (b"no match here", None),
+        (b"", None),
+    ),
+)
+def test_parse_osc_rgb(response, expected):
+    """An OSC 11 reply is parsed into an 8-bit RGB tuple, or None when malformed."""
+    assert _parse_osc_rgb(response) == expected
+
+
+@pytest.mark.parametrize(
+    ("rgb", "is_dark"),
+    (
+        ((0, 0, 0), True),
+        ((30, 30, 30), True),  # common dark terminal (#1e1e1e)
+        ((40, 42, 54), True),  # Dracula background
+        ((255, 255, 255), False),
+        ((253, 246, 227), False),  # Solarized light background
+        ((136, 136, 136), False),  # mid grey just above the L* 50 midpoint
+    ),
+)
+def test_is_dark_rgb(rgb, is_dark):
+    """Perceived-lightness classification of background colors."""
+    assert _is_dark_rgb(rgb) is is_dark
+
+
+class _FakeStream:
+    """Minimal stdin/stdout stand-in wrapping a raw file descriptor."""
+
+    def __init__(self, fd: int, *, tty: bool) -> None:
+        self._fd = fd
+        self._tty = tty
+
+    def fileno(self) -> int:
+        return self._fd
+
+    def isatty(self) -> bool:
+        return self._tty
+
+    def write(self, text: str) -> None:
+        os.write(self._fd, text.encode())
+
+    def flush(self) -> None:
+        pass
+
+
+def test_query_osc_background_without_tty(monkeypatch):
+    """The OSC query is a no-op when stdin or stdout is not a terminal."""
+    not_a_tty = _FakeStream(0, tty=False)
+    monkeypatch.setattr(sys, "__stdin__", not_a_tty)
+    monkeypatch.setattr(sys, "__stdout__", not_a_tty)
+    assert query_osc_background() is None
+
+
+def test_query_osc_background_without_streams(monkeypatch):
+    """A detached process (no __stdin__/__stdout__) cannot query the terminal."""
+    monkeypatch.setattr(sys, "__stdin__", None)
+    monkeypatch.setattr(sys, "__stdout__", None)
+    assert query_osc_background() is None
+
+
+@pytest.mark.skipif(os.name != "posix", reason="OSC query needs a POSIX pty")
+def test_query_osc_background_pty(monkeypatch):
+    """A full OSC 11 round-trip over a pseudo-terminal yields the parsed color."""
+    import pty
+    import termios
+    import tty
+
+    try:
+        controller, worker = pty.openpty()
+    except OSError as error:  # No pty available (sandboxed or exhausted).
+        pytest.skip(f"no pseudo-terminal available: {error}")
+    # Put the worker in cbreak before loading the reply so the bytes are
+    # readable without waiting for a (never-sent) newline.
+    tty.setcbreak(worker, termios.TCSANOW)
+    os.write(controller, b"\x1b]11;rgb:1c1c/1c1c/1c1c\x07")
+
+    stream = _FakeStream(worker, tty=True)
+    monkeypatch.setattr(sys, "__stdin__", stream)
+    monkeypatch.setattr(sys, "__stdout__", stream)
+    try:
+        assert query_osc_background(timeout=2.0) == (28, 28, 28)
+    finally:
+        os.close(controller)
+        os.close(worker)

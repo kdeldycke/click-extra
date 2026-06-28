@@ -57,7 +57,7 @@ import click
 import cloup
 from cloup._util import identity
 
-from . import context
+from . import color, context
 from .parameters import ExtraOption
 from .styling import Style, dict_to_fields, fields_to_dict
 
@@ -508,6 +508,50 @@ def get_theme_registry(
     return merged
 
 
+AUTO_THEME: str = "auto"
+"""Reserved ``--theme`` value resolving the palette from the terminal background.
+
+Unlike the named built-in palettes, ``auto`` is not a registry entry: it is a
+directive handled by :class:`ThemeOption`, which calls :func:`resolve_auto_theme`
+to pick ``dark`` or ``light`` from the detected background, mirroring
+``--color=auto``. Kept out of the ``--help`` metavar and shell completion (which
+only advertise registered palettes), so a CLI that does not opt into auto
+detection keeps an unchanged help screen, yet accepted by
+:meth:`ThemeChoice.convert` so ``--theme=auto`` works on every Click Extra CLI.
+"""
+
+
+def resolve_auto_theme(
+    ctx: click.Context | None = None,
+    query_background: bool = False,
+) -> HelpTheme | None:
+    """Pick a built-in palette from the detected terminal background.
+
+    Resolves the background mode via
+    :func:`~click_extra.color.resolve_background` and maps ``"dark"`` /
+    ``"light"`` to the same-named theme in the registry visible to *ctx*
+    (built-ins plus any ``[tool.<cli>.themes.<name>]`` config overlays). An
+    undetected background falls back to ``"dark"``, preserving Click Extra's
+    default.
+
+    :param ctx: context whose theme registry is consulted.
+    :param query_background: when true, allow the live OSC 11 terminal query
+        (:func:`~click_extra.color.query_osc_background`) on top of the
+        environment-variable signals. Off by default because the query reads
+        stdin.
+    :return: the chosen :class:`HelpTheme`, or ``None`` when neither the
+        detected palette nor the ``dark`` fallback is registered (the
+        ``themes.toml`` data file was dropped). A ``None`` leaves ``ctx.meta``
+        untouched so :func:`get_current_theme` keeps the no-color default.
+    """
+    registry = get_theme_registry(ctx)
+    mode = color.resolve_background(allow_query=query_background)
+    for name in (mode, "dark"):
+        if name is not None and name in registry:
+            return registry[name]
+    return None
+
+
 def themes_from_config(
     table: dict[str, Any],
 ) -> dict[str, HelpTheme]:
@@ -633,6 +677,10 @@ class ThemeChoice(click.ParamType):
             return None
         if not isinstance(value, str):
             self.fail(f"{value!r} is not a string.", param, ctx)
+        # "auto" is a reserved directive resolved from the terminal background by
+        # ThemeOption, not a registered palette, so it bypasses the registry lookup.
+        if self._normalize(value) == self._normalize(AUTO_THEME):
+            return AUTO_THEME
         registry = get_theme_registry(ctx)
         # No themes available at all: themes.toml was dropped by the packaging
         # step and no config themes are defined. The --theme option is inert,
@@ -683,6 +731,14 @@ class ThemeOption(ExtraOption):
     The resolved :class:`HelpTheme` lands on the Click context under
     :data:`click_extra.context.THEME` and applies for the duration of the
     current invocation only.
+
+    The reserved value :data:`AUTO_THEME` (``--theme=auto``) is also accepted on
+    every CLI: it resolves the palette from the terminal background via
+    :func:`resolve_auto_theme` instead of naming a registered theme. Background
+    detection reads environment variables by default; pass
+    ``query_background=True`` to additionally allow the live OSC 11 terminal
+    query (:func:`~click_extra.color.query_osc_background`), which is opt-in
+    because it reads stdin.
     """
 
     def set_theme(
@@ -694,10 +750,18 @@ class ThemeOption(ExtraOption):
         """Resolve the chosen theme name and store it on the Click context.
 
         :class:`~click_extra.theme.ThemeChoice` has already validated *value*
-        against the live registry by the time this fires, so the lookup is
-        unconditional.
+        against the live registry (or accepted the :data:`AUTO_THEME`
+        directive) by the time this fires. A plain palette name is looked up
+        unconditionally; ``auto`` is resolved from the terminal background via
+        :func:`resolve_auto_theme`, leaving ``ctx.meta`` untouched when no
+        palette can be resolved so :func:`get_current_theme` keeps its default.
         """
         if value is None or ctx.resilient_parsing:
+            return
+        if value == AUTO_THEME:
+            theme = resolve_auto_theme(ctx, query_background=self.query_background)
+            if theme is not None:
+                context.set(ctx, context.THEME, theme)
             return
         context.set(ctx, context.THEME, get_theme_registry(ctx)[value])
 
@@ -707,11 +771,16 @@ class ThemeOption(ExtraOption):
         default: str = "dark",
         is_eager: bool = True,
         expose_value: bool = False,
+        query_background: bool = False,
         help: str = _("Color theme used for help screens."),
         **kwargs,
     ) -> None:
         if not param_decls:
             param_decls = ("--theme",)
+
+        # Read by set_theme when resolving the "auto" directive: gates the
+        # live OSC 11 query on top of the environment-variable detection.
+        self.query_background = query_background
 
         kwargs.setdefault("callback", self.set_theme)
 
