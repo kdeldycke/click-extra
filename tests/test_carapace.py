@@ -218,7 +218,10 @@ def test_dynamic_action_emitted(flag_name):
     macro = action[0]
     assert macro.startswith("$(")
     assert "_WEATHER_COMPLETE=carapace_complete" in macro
-    assert "COMP_WORDS=weather $*" in macro
+    # The macro bakes the full command path (root + subcommand), not just the
+    # root: Carapace strips parent command names from the words it forwards to
+    # the macro, so the path must be restored here for Click to resolve forecast.
+    assert "COMP_WORDS=weather forecast $*" in macro
 
 
 # -- persistentflags ----------------------------------------------------------
@@ -316,6 +319,26 @@ def test_complete_reuses_click_machinery():
     comp = CarapaceComplete(weather, {}, "weather", "_WEATHER_COMPLETE")
     items = comp.get_completions(["forecast", "--city"], "")
     values = {item.value for item in items}
+    assert values == {"paris", "oslo"}
+
+
+def test_subcommand_dynamic_completion_resolves_end_to_end(monkeypatch):
+    """The COMP_WORDS a subcommand's generated macro builds must let the backend
+    resolve that subcommand's callback, not the root command.
+
+    Carapace strips parent command names from the words it forwards to the macro,
+    so for ``weather forecast --city`` it passes only ``--city``. The macro
+    restores the baked path; rebuilding COMP_WORDS the same way and feeding it
+    back must yield the forecast callback's values. Pinning only the root name
+    (the original behavior) would reconstruct ``weather --city``, resolve it
+    against the root, and complete the subcommand list instead.
+    """
+    macro = FORECAST["completion"]["flag"]["city"][0]
+    baked_path = macro.split("COMP_WORDS=", 1)[1].split(" $*", 1)[0]
+    monkeypatch.setenv("COMP_WORDS", f"{baked_path} --city")
+    comp = CarapaceComplete(weather, {}, "weather", "_WEATHER_COMPLETE")
+    args, incomplete = comp.get_completion_args()
+    values = {item.value for item in comp.get_completions(args, incomplete)}
     assert values == {"paris", "oslo"}
 
 

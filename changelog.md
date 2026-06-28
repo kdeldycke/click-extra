@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix Carapace dynamic completion for subcommand parameters, which resolved against the root command and returned the wrong candidates.
+
 ## [`8.1.4` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.3...v8.1.4)
 
 - Skip the `EnumChoice` shell-completion case-folding test on Click 8.3.

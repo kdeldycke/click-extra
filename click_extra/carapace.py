@@ -171,7 +171,7 @@ def _env_var(prog_name: str) -> str:
     return f"_{prog_name}_COMPLETE".replace("-", "_").upper()
 
 
-def _dynamic_action(prog_name: str) -> str:
+def _dynamic_action(command_path: tuple[str, ...]) -> str:
     """A Carapace shell-macro action that calls back into the CLI for completion.
 
     Carapace's default ``$(...)`` macro runs ``sh -c '<script>' -- <words>``,
@@ -181,14 +181,27 @@ def _dynamic_action(prog_name: str) -> str:
     shell), which prints exactly that. Carapace prefix-filters the result, so the
     callback returns the full candidate set.
 
-    .. warning::
-        The macro string is derived from ``carapace-spec``'s ``core.go`` shell
-        macro rather than a live run. It is the one part of the export that
-        warrants a smoke test against an installed ``carapace`` binary.
+    ``command_path`` is the chain of command names from the root program down to
+    the command owning the completed parameter, like ``("weather", "forecast")``.
+    It is baked into ``COMP_WORDS`` so :class:`CarapaceComplete` can rebuild the
+    command line Click needs to resolve the subcommand.
+
+    .. note::
+        Baking the whole path is required, not cosmetic. Carapace's ``traverse``
+        descends into each subcommand with only the remaining words, stripping the
+        parent command names from the ``c.Args`` it hands the macro. So ``$*``
+        carries only the leaf command's own words: for ``weather forecast --city``
+        Carapace passes just ``--city``. Without the baked ``weather forecast``
+        prefix, the callback would reconstruct ``weather --city`` and resolve
+        against the root command, completing the wrong thing. The env var and the
+        invoked binary stay rooted at ``command_path[0]``, the executable Carapace
+        dispatches and the name Click derives its completion variable from.
     """
+    root = command_path[0]
+    words = " ".join(command_path)
     return (
-        f'$(env "{_env_var(prog_name)}=carapace_complete" '
-        f'"COMP_WORDS={prog_name} $*" {prog_name} 2>/dev/null)'
+        f'$(env "{_env_var(root)}=carapace_complete" '
+        f'"COMP_WORDS={words} $*" {root} 2>/dev/null)'
     )
 
 
@@ -221,7 +234,7 @@ def _overrides_shell_complete(param_type: click.ParamType) -> bool:
     return type(param_type).shell_complete is not click.ParamType.shell_complete
 
 
-def _param_action(param: Parameter, prog_name: str) -> list[str]:
+def _param_action(param: Parameter, command_path: tuple[str, ...]) -> list[str]:
     """Resolve the Carapace completion action for one parameter.
 
     An explicit ``shell_complete=`` callback always routes to the dynamic macro;
@@ -230,12 +243,12 @@ def _param_action(param: Parameter, prog_name: str) -> list[str]:
     yields an empty action (no completion offered).
     """
     if getattr(param, "_custom_shell_complete", None) is not None:
-        return [_dynamic_action(prog_name)]
+        return [_dynamic_action(command_path)]
     static = _static_action(param.type)
     if static is not None:
         return static
     if _overrides_shell_complete(param.type):
-        return [_dynamic_action(prog_name)]
+        return [_dynamic_action(command_path)]
     return []
 
 
@@ -378,14 +391,15 @@ def _add_option(
     param: Parameter,
     *,
     persistent: bool,
-    root_name: str,
+    command_path: tuple[str, ...],
 ) -> None:
     """Encode one Click option into ``flags``/``persistentflags`` and completion.
 
     A boolean flag with a secondary spelling (``--foo`` / ``--no-foo``) is split
     into two independent Carapace flags, since the spec has no negation primitive.
     Only value-taking options contribute a ``completion.flag`` action. Dynamic
-    actions reference ``root_name``, the binary Carapace dispatches on.
+    actions reference ``command_path``, the chain of command names down to this
+    command (see :func:`_dynamic_action`).
     """
     flags = node.persistentflags if persistent else node.flags
     description = _clean_description(getattr(param, "help", None))
@@ -404,7 +418,7 @@ def _add_option(
         )
 
     if value:
-        action = _param_action(param, root_name)
+        action = _param_action(param, command_path)
         if action:
             node.completion.flag[_flag_name(param.opts)] = action
 
@@ -416,7 +430,7 @@ def extract_carapace_command(
     is_root: bool,
     default_opts: frozenset[str],
     inherited_opts: frozenset[str],
-    root_name: str,
+    command_path: tuple[str, ...],
 ) -> CarapaceCommand:
     """Build a :class:`CarapaceCommand` from a Click command and its context.
 
@@ -428,8 +442,10 @@ def extract_carapace_command(
     command; on the root, options drawn from it become ``persistentflags``.
     ``inherited_opts`` is what an ancestor actually published as persistent, so a
     subcommand drops exactly those (Carapace already offers them) and keeps the
-    rest, including a same-named option the root never carried. ``root_name`` is
-    the binary Carapace dispatches on, used to build dynamic callback macros.
+    rest, including a same-named option the root never carried. ``command_path``
+    is the chain of command names from the root down to this command, grown by one
+    name per recursion and baked into dynamic callback macros (see
+    :func:`_dynamic_action`).
     """
     node = CarapaceCommand(
         name=ctx.info_name or command.name or "",
@@ -442,7 +458,7 @@ def extract_carapace_command(
     persistent_spellings = set(inherited_opts)
     for param in command.get_params(ctx):
         if isinstance(param, click.Argument):
-            action = _param_action(param, root_name)
+            action = _param_action(param, command_path)
             if param.nargs == -1:
                 node.completion.positionalany = action
             else:
@@ -452,13 +468,13 @@ def extract_carapace_command(
         if is_root and set(param.opts) <= default_opts:
             # A root default option: publish it once as persistent so every
             # subcommand inherits it, and remember its spellings to skip below.
-            _add_option(node, param, persistent=True, root_name=root_name)
+            _add_option(node, param, persistent=True, command_path=command_path)
             persistent_spellings.update(param_spellings(param))
         elif set(param.opts) <= inherited_opts:
             # Already offered by an ancestor's persistent flags: do not repeat.
             continue
         else:
-            _add_option(node, param, persistent=False, root_name=root_name)
+            _add_option(node, param, persistent=False, command_path=command_path)
 
     node.completion.positional = positional
     node.exclusiveflags = _exclusive_flag_groups(command)
@@ -473,7 +489,7 @@ def extract_carapace_command(
                 is_root=False,
                 default_opts=default_opts,
                 inherited_opts=child_inherited,
-                root_name=root_name,
+                command_path=command_path + (sub_name,),
             )
         )
 
@@ -500,7 +516,7 @@ def to_carapace_spec(
         is_root=True,
         default_opts=_default_param_opts(),
         inherited_opts=frozenset(),
-        root_name=name,
+        command_path=(name,),
     )
     # The root node's name follows the program name, not the context's.
     node.name = name
