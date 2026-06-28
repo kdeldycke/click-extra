@@ -2325,6 +2325,31 @@ def test_dump_config_captures_overrides(invoke):
     assert 'tag = ["x", "y"]' in result.stdout
 
 
+def test_dump_config_captures_environment(invoke):
+    """Values resolved from environment variables are reflected in the dump."""
+
+    @command
+    @option("--city", default="Lisbon")
+    @option("--limit", type=int, default=5)
+    def dump_cli(city, limit):
+        echo("ran")
+
+    result = invoke(
+        dump_cli,
+        "--city",
+        "Berlin",
+        "--dump-config",
+        "toml",
+        color=False,
+        env={"DUMP_CLI_CITY": "Tokyo", "DUMP_CLI_LIMIT": "30"},
+    )
+    assert result.exit_code == 0
+    # The command line wins over the environment...
+    assert 'city = "Berlin"' in result.stdout
+    # ...but an environment-only value is still captured, keeping its type.
+    assert "limit = 30" in result.stdout
+
+
 def test_dump_config_numeric_values_keep_their_type(invoke):
     """A command-line numeric scalar is dumped as a number, not a quoted string."""
 
