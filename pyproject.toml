@@ -578,6 +578,10 @@ exclude = [
 [tool.repomatic]
 dependency-graph.all-extras = true
 dependency-graph.all-groups = false
+# Skip the aggregate `all` extra: its closure is the union of every other
+# extra, so left in the graph it greedily claims all optional packages into a
+# single `--extra all` box and the per-extra subgraphs render empty.
+dependency-graph.no-extras = [ "all" ]
 exclude = [ "skills", "workflows/debug.yaml" ]
 # Render the Click command tree as roff `.1` files and attach a
 # `click-extra-manpages.tar.gz` asset to every GitHub release. The script
