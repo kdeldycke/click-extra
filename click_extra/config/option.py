@@ -129,7 +129,7 @@ use of any configuration file at all.
 
 DEFAULT_EXCLUDED_PARAMS = (
     CONFIG_OPTION_NAME,
-    "dump_config",
+    "export_config",
     "help",
     "show_params",
     "version",
@@ -140,8 +140,8 @@ Defaults to:
 
 - ``--config`` option, which cannot be used to recursively load another configuration
   file.
-- ``--dump-config`` flag, which like ``--show-params`` introspects the CLI and exits,
-  so it has no place in the configuration it would dump.
+- ``--export-config`` flag, which like ``--show-params`` introspects the CLI and exits,
+  so it has no place in the configuration it would export.
 - ``--help``, as it makes no sense to have the configurable file always forces a CLI to
   show the help and exit.
 - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
@@ -1570,10 +1570,10 @@ class ValidateConfigOption(ExtraOption):
         ctx.exit(0)
 
 
-_DUMP_FORMAT_BY_TOKEN: dict[str, ConfigFormat] = {
+_EXPORT_FORMAT_BY_TOKEN: dict[str, ConfigFormat] = {
     fmt.label.lower(): fmt for fmt in SERIALIZABLE_FORMATS
 }
-"""Mapping of ``--dump-config`` choice tokens to their :class:`ConfigFormat`.
+"""Mapping of ``--export-config`` choice tokens to their :class:`ConfigFormat`.
 
 Built from :data:`~click_extra.config.formats.SERIALIZABLE_FORMATS`, so the
 accepted tokens are exactly the formats
@@ -1632,8 +1632,8 @@ def _config_dump_value(param: click.Parameter, value: Any) -> Any:
     return str(value)
 
 
-class DumpConfigOption(ExtraOption):
-    """A pre-configured option adding ``--dump-config FORMAT``.
+class ExportConfigOption(ExtraOption):
+    """A pre-configured option adding ``--export-config FORMAT``.
 
     Resolves the CLI's current parameter values following Click's precedence
     chain (command line, then environment variables, then configuration file,
@@ -1643,12 +1643,12 @@ class DumpConfigOption(ExtraOption):
     .. hint::
         Combine the flag with other options or environment variables to capture
         them in the generated configuration. For example, ``mycli --verbosity
-        DEBUG --dump-config toml`` emits a configuration whose ``verbosity`` is
+        DEBUG --export-config toml`` emits a configuration whose ``verbosity`` is
         already set to ``DEBUG``.
 
     Like :class:`ValidateConfigOption`, it relies on a sibling
     :class:`ConfigOption` to provide the parameter structure and the
-    ``excluded_params`` / ``included_params`` filter, so the dump contains
+    ``excluded_params`` / ``included_params`` filter, so the export contains
     exactly the parameters that can be loaded back from a configuration file.
 
     .. note::
@@ -1666,21 +1666,21 @@ class DumpConfigOption(ExtraOption):
         is_eager: bool = True,
         expose_value: bool = False,
         help: str = _(
-            "Dump the configuration in the selected format to <stdout>, then exit.",
+            "Export the configuration in the selected format to <stdout>, then exit.",
         ),
         **kwargs: Any,
     ) -> None:
         if not param_decls:
-            param_decls = ("--dump-config",)
+            param_decls = ("--export-config",)
 
         # Restrict the choice to the writable formats, addressed by their
         # lower-case token (``toml``, ``json``, ...). A short ``FORMAT`` metavar
         # keeps the token list out of the one-line help while the full set still
         # surfaces in the Choice error message.
         if type is None:
-            type = Choice(tuple(_DUMP_FORMAT_BY_TOKEN), case_sensitive=False)
+            type = Choice(tuple(_EXPORT_FORMAT_BY_TOKEN), case_sensitive=False)
 
-        kwargs.setdefault("callback", self.dump_config)
+        kwargs.setdefault("callback", self.export_config)
 
         super().__init__(
             param_decls=param_decls,
@@ -1737,7 +1737,7 @@ class DumpConfigOption(ExtraOption):
 
         return _remove_blanks(tree, remove_str=False)
 
-    def dump_config(
+    def export_config(
         self,
         ctx: click.Context,
         param: click.Parameter,
@@ -1745,12 +1745,12 @@ class DumpConfigOption(ExtraOption):
     ) -> None:
         """Render the resolved configuration to ``<stdout>`` and exit."""
         # Stay dormant during help rendering and shell completion, like Click's
-        # own eager callbacks, so a typed ``--dump-config FORMAT`` does not dump
-        # and exit mid-completion.
+        # own eager callbacks, so a typed ``--export-config FORMAT`` does not
+        # export and exit mid-completion.
         if not value or ctx.resilient_parsing:
             return
 
-        fmt = _DUMP_FORMAT_BY_TOKEN[value.lower()]
+        fmt = _EXPORT_FORMAT_BY_TOKEN[value.lower()]
         config_option = require_sibling_param(ctx.command.params, param, ConfigOption)
         tree = self.build_config(ctx, config_option)
 

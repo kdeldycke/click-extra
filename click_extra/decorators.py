@@ -36,7 +36,7 @@ from .commands import (
 )
 from .config import (
     ConfigOption,
-    DumpConfigOption,
+    ExportConfigOption,
     NoConfigOption,
     ValidateConfigOption,
 )
@@ -341,7 +341,7 @@ accessible_option = decorator_factory(dec=option, cls=AccessibleOption)
 color_option = decorator_factory(dec=option, cls=ColorOption)
 columns_option = decorator_factory(dec=option, cls=ColumnsOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
-dump_config_option = decorator_factory(dec=option, cls=DumpConfigOption)
+export_config_option = decorator_factory(dec=option, cls=ExportConfigOption)
 jobs_option = decorator_factory(dec=option, cls=JobsOption)
 man_option = decorator_factory(dec=option, cls=ManOption)
 no_color_option = decorator_factory(dec=option, cls=NoColorOption)

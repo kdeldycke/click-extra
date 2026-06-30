@@ -5,8 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Add a `--dump-config FORMAT` option that renders the CLI's resolved configuration on `<stdout>` in any writable format (`toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson`, `xml`), then exits. Added to the default option set of every `@command` and `@group`, and available as the `@dump_config_option` decorator.
-- Add the `DumpConfigOption` class and the `SERIALIZABLE_FORMATS` constant to the public API.
+- Add a `--export-config FORMAT` option that renders the CLI's resolved configuration on `<stdout>` in any writable format (`toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson`, `xml`), then exits. Added to the default option set of every `@command` and `@group`, and available as the `@export_config_option` decorator.
+- Add the `ExportConfigOption` class and the `SERIALIZABLE_FORMATS` constant to the public API.
 - Fix Carapace dynamic completion: an option's value or a subcommand argument with a custom `shell_complete` now resolves through the generated spec, instead of returning empty or root-level candidates.
 - Verify generated Carapace specs against the real `carapace-spec` engine in the test suite.
 - Add a documentation page on Typer compatibility, explaining why click-extra cannot be combined with Typer and how to get the same options natively.

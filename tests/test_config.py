@@ -44,8 +44,8 @@ from click_extra import (
     LazyGroup,
     command,
     config_option,
-    dump_config_option,
     echo,
+    export_config_option,
     get_app_dir,
     group,
     no_config_option,
@@ -2280,26 +2280,26 @@ def test_validate_config_pyproject_toml(invoke, create_config):
     assert "is valid" in result.stderr
 
 
-def test_dump_config_to_stdout(invoke):
-    """--dump-config writes the resolved configuration and exits 0."""
+def test_export_config_to_stdout(invoke):
+    """--export-config writes the resolved configuration and exits 0."""
 
     @command
     @option("--name", default="Alice")
     def dump_cli(name):
         echo(f"name = {name!r}")
 
-    result = invoke(dump_cli, "--dump-config", "toml", color=False)
+    result = invoke(dump_cli, "--export-config", "toml", color=False)
     assert result.exit_code == 0
     assert "[dump-cli]" in result.stdout
     assert 'name = "Alice"' in result.stdout
     # Action options and config plumbing are excluded from the dump.
-    assert "dump_config" not in result.stdout
+    assert "export_config" not in result.stdout
     assert "show_params" not in result.stdout
     assert "config =" not in result.stdout
     assert "version" not in result.stdout
 
 
-def test_dump_config_captures_overrides(invoke):
+def test_export_config_captures_overrides(invoke):
     """Command-line values are reflected in the dump."""
 
     @command
@@ -2316,7 +2316,7 @@ def test_dump_config_captures_overrides(invoke):
         "x",
         "--tag",
         "y",
-        "--dump-config",
+        "--export-config",
         "toml",
         color=False,
     )
@@ -2325,7 +2325,7 @@ def test_dump_config_captures_overrides(invoke):
     assert 'tag = ["x", "y"]' in result.stdout
 
 
-def test_dump_config_captures_environment(invoke):
+def test_export_config_captures_environment(invoke):
     """Values resolved from environment variables are reflected in the dump."""
 
     @command
@@ -2338,7 +2338,7 @@ def test_dump_config_captures_environment(invoke):
         dump_cli,
         "--city",
         "Berlin",
-        "--dump-config",
+        "--export-config",
         "toml",
         color=False,
         env={"DUMP_CLI_CITY": "Tokyo", "DUMP_CLI_LIMIT": "30"},
@@ -2350,7 +2350,7 @@ def test_dump_config_captures_environment(invoke):
     assert "limit = 30" in result.stdout
 
 
-def test_dump_config_numeric_values_keep_their_type(invoke):
+def test_export_config_numeric_values_keep_their_type(invoke):
     """A command-line numeric scalar is dumped as a number, not a quoted string."""
 
     @command
@@ -2358,14 +2358,14 @@ def test_dump_config_numeric_values_keep_their_type(invoke):
     def dump_cli(count):
         echo("ran")
 
-    result = invoke(dump_cli, "--count", "7", "--dump-config", "toml", color=False)
+    result = invoke(dump_cli, "--count", "7", "--export-config", "toml", color=False)
     assert result.exit_code == 0
     assert "count = 7" in result.stdout
     assert 'count = "7"' not in result.stdout
 
 
 @pytest.mark.parametrize("fmt", ["toml", "json", "yaml"])
-def test_dump_config_round_trip(invoke, tmp_path, fmt):
+def test_export_config_round_trip(invoke, tmp_path, fmt):
     """A dumped configuration reloads to the same values through --config."""
 
     @command
@@ -2380,7 +2380,7 @@ def test_dump_config_round_trip(invoke, tmp_path, fmt):
         "Zoe",
         "--count",
         "42",
-        "--dump-config",
+        "--export-config",
         fmt,
         color=False,
     )
@@ -2394,46 +2394,46 @@ def test_dump_config_round_trip(invoke, tmp_path, fmt):
     assert reloaded.stdout == "name='Zoe' count=42\n"
 
 
-def test_dump_config_invalid_format(invoke):
+def test_export_config_invalid_format(invoke):
     """An unsupported format token is rejected by the Choice."""
 
     @command
     def dump_cli():
         echo("ran")
 
-    result = invoke(dump_cli, "--dump-config", "ini", color=False)
+    result = invoke(dump_cli, "--export-config", "ini", color=False)
     assert result.exit_code == 2
     assert "'ini' is not one of" in result.stderr
 
 
-def test_dump_config_requires_config_option(invoke):
-    """--dump-config without @config_option raises RuntimeError."""
+def test_export_config_requires_config_option(invoke):
+    """--export-config without @config_option raises RuntimeError."""
 
     @click.command
-    @dump_config_option
+    @export_config_option
     def missing_config():
         echo("Hello, World!")
 
-    result = invoke(missing_config, "--dump-config", "toml")
+    result = invoke(missing_config, "--export-config", "toml")
     assert result.exception
     assert type(result.exception) is RuntimeError
-    assert "DumpConfigOption must be used alongside ConfigOption" in str(
+    assert "ExportConfigOption must be used alongside ConfigOption" in str(
         result.exception
     )
     assert result.exit_code == 1
 
 
-def test_dump_config_standalone_falls_back_to_defaults(invoke):
+def test_export_config_standalone_falls_back_to_defaults(invoke):
     """Without a captured command line (vanilla Command), defaults are dumped."""
 
     @click.command
     @option("--name", default="Alice")
     @config_option
-    @dump_config_option
+    @export_config_option
     def standalone_cli(name):
         echo("ran")
 
-    result = invoke(standalone_cli, "--name", "Bob", "--dump-config", "toml")
+    result = invoke(standalone_cli, "--name", "Bob", "--export-config", "toml")
     assert result.exit_code == 0
     # No RAW_ARGS to replay: the --name Bob override cannot be recovered, so the
     # default value is dumped instead.

@@ -52,7 +52,7 @@ from .option import (
     NO_CONFIG,
     VCS,
     ConfigOption,
-    DumpConfigOption,
+    ExportConfigOption,
     NoConfigOption,
     ValidateConfigOption,
 )
@@ -86,7 +86,7 @@ __all__ = [
     "ConfigFormat",
     "ConfigOption",
     "ConfigValidator",
-    "DumpConfigOption",
+    "ExportConfigOption",
     "NoConfigOption",
     "PrebakeConfig",
     "TestSuiteConfig",

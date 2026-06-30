@@ -463,11 +463,11 @@ The exit codes are:
 `--validate-config` always validates in [strict mode](#strictness), regardless of the `strict` setting on `@config_option`. It requires a sibling `@config_option` decorator to be present on the same command.
 ```
 
-## Dumping the configuration
+## Exporting the configuration
 
-The `@dump_config_option` decorator adds a `--dump-config FORMAT` option that resolves the CLI's current configuration and writes it to `<stdout>` as a ready-to-use configuration file, then exits. It is part of the [default options](commands.md#default-options) of every `@command` and `@group`, so click-extra CLIs ship with it out of the box.
+The `@export_config_option` decorator adds a `--export-config FORMAT` option that resolves the CLI's current configuration and writes it to `<stdout>` as a ready-to-use configuration file, then exits. It is part of the [default options](commands.md#default-options) of every `@command` and `@group`, so click-extra CLIs ship with it out of the box.
 
-The values are resolved through the usual [precedence chain](#precedence): command-line parameters override environment variables, which override an autodiscovered configuration file, which overrides the defaults. So combining `--dump-config` with other options or environment variables captures them in the generated configuration, which makes it a convenient way to freeze the current invocation into a file or to produce a starting-point template.
+The values are resolved through the usual [precedence chain](#precedence): command-line parameters override environment variables, which override an autodiscovered configuration file, which overrides the defaults. So combining `--export-config` with other options or environment variables captures them in the generated configuration, which makes it a convenient way to freeze the current invocation into a file or to produce a starting-point template.
 
 ```{click:source}
 from click_extra import command, echo, option
@@ -480,22 +480,22 @@ def weather(city, temperature, tags):
     echo(f"{city}: {temperature}C {tags!r}")
 ```
 
-A bare dump renders every configurable parameter, including click-extra's own built-in options:
+A bare export renders every configurable parameter, including click-extra's own built-in options:
 
 ```{click:run}
-result = invoke(weather, args=["--dump-config", "toml"])
+result = invoke(weather, args=["--export-config", "toml"])
 assert result.exit_code == 0
 assert "[weather]" in result.stdout
 assert 'city = "Lisbon"' in result.stdout
 assert "temperature = 18" in result.stdout
 ```
 
-Any value set on the command line (or via an environment variable) is reflected in the dump, so the output can be saved straight into a configuration file:
+Any value set on the command line (or via an environment variable) is reflected in the export, so the output can be saved straight into a configuration file:
 
 ```{click:run}
 result = invoke(
     weather,
-    args=["--city", "Oslo", "--temperature", "4", "--dump-config", "toml"],
+    args=["--city", "Oslo", "--temperature", "4", "--export-config", "toml"],
 )
 assert result.exit_code == 0
 assert 'city = "Oslo"' in result.stdout
@@ -505,13 +505,13 @@ assert "temperature = 4" in result.stdout
 Redirect the output to your configuration file to persist it:
 
 ```{code-block} shell-session
-$ weather --city Oslo --dump-config toml > ~/.config/weather/config.toml
+$ weather --city Oslo --export-config toml > ~/.config/weather/config.toml
 ```
 
-The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini` and `pyproject.toml` have no serializer and cannot be dumped. A format whose optional dependency is missing exits with code 1 and an install hint.
+The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
 
 ```{note}
-`--dump-config` is itself excluded from the dump, like the other [introspection options](#excluding-parameters) (`--help`, `--version`, `--show-params`). It requires a sibling `@config_option` decorator to be present on the same command.
+`--export-config` is itself excluded from the export, like the other [introspection options](#excluding-parameters) (`--help`, `--version`, `--show-params`). It requires a sibling `@config_option` decorator to be present on the same command.
 ```
 
 ## Extending validation

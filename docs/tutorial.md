@@ -227,7 +227,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@config_option`](config.md#standalone-option)                       | `--config CONFIG_PATH`          | ✅      |
 | [`@no_config_option`](config.md#)                                     | `--no-config`                   | ✅      |
 | [`@validate_config_option`](config.md#validating-configuration-files) | `--validate-config FILE`        | ✅      |
-| [`@dump_config_option`](config.md#dumping-the-configuration)          | `--dump-config FORMAT`          | ✅      |
+| [`@export_config_option`](config.md#exporting-the-configuration)      | `--export-config FORMAT`        | ✅      |
 | [`@show_params_option`](parameters.md#show-params-option)             | `--show-params`                 | ✅      |
 | [`@table_format_option`](table.md)                                    | `--table-format FORMAT`         | ✅      |
 | [`@verbosity_option`](logging.md#colored-verbosity)                   | `--verbosity LEVEL`             | ✅      |
