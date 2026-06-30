@@ -13,6 +13,7 @@
 - Add `resolve_jobs(ctx, count)` to `click_extra.execution`, exposing the worker-count policy shared by `run_jobs` and `run_lanes` for callers that need the resolved count before fanning out. Both helpers gain a `serial_at_debug` keyword that collapses to sequential at `DEBUG` verbosity.
 - Publish `format_cli_prompt` in `click_extra.testing` (was the private `_format_cli_prompt`): render a themed, copy-pasteable prompt simulating a CLI invocation.
 - Fix Carapace dynamic completion: an option's value or a subcommand argument with a custom `shell_complete` now resolves through the generated spec, instead of returning empty or root-level candidates.
+- Fix `EnumChoice` shell completion on Click 8.4.0: completion candidates are now normalized, so they match the option's accepted values instead of appearing as raw uppercase enum names.
 - Add a documentation page on Typer compatibility, explaining why click-extra cannot be combined with Typer and how to get the same options natively.
 
 ## [`8.1.4` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.3...v8.1.4)
