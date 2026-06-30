@@ -5,17 +5,15 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Add a `--export-config FORMAT` option that renders the CLI's resolved configuration on `<stdout>` in any writable format (`toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson`, `xml`), then exits. Added to the default option set of every `@command` and `@group`, and available as the `@export_config_option` decorator.
-- Add the `ExportConfigOption` class and the `SERIALIZABLE_FORMATS` constant to the public API.
-- Fix Carapace dynamic completion: an option's value or a subcommand argument with a custom `shell_complete` now resolves through the generated spec, instead of returning empty or root-level candidates.
-- Verify generated Carapace specs against the real `carapace-spec` engine in the test suite.
-- Add a documentation page on Typer compatibility, explaining why click-extra cannot be combined with Typer and how to get the same options natively.
-- Add a `--theme=auto` value that selects the `dark` or `light` palette from the detected terminal background. Accepted on every `@command` and `@group`; the `--theme` default stays `dark`.
-- Detect the terminal background from the `CLITHEME` and `COLORFGBG` environment variables, and, when a `ThemeOption` is built with `query_background=True`, from a live xterm OSC 11 terminal query.
+- Add a `--export-config FORMAT` option that renders the CLI's resolved configuration on `<stdout>` in any writable format (`toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson`, `xml`), then exits. Added to the default option set of every `@command` and `@group`.
+- Add the `ExportConfigOption` class, the `@export_config_option` decorator, and the `SERIALIZABLE_FORMATS` constant to the public API.
+- Add a `--theme=auto` value that selects the `dark` or `light` palette from the terminal background, detected from the `CLITHEME` and `COLORFGBG` environment variables or a live OSC 11 query; the `--theme` default stays `dark`.
 - Add `resolve_background` and `query_osc_background` to `click_extra.color`, and `resolve_auto_theme` and the `AUTO_THEME` constant to `click_extra.theme`.
 - Add `run_lanes(func, lanes)` to `click_extra.execution`: a fan-out that runs each lane's items serially while running distinct lanes concurrently, sized by the resolved `--jobs` count. `run_jobs` is its single-item-per-lane special case.
 - Add `resolve_jobs(ctx, count)` to `click_extra.execution`, exposing the worker-count policy shared by `run_jobs` and `run_lanes` for callers that need the resolved count before fanning out. Both helpers gain a `serial_at_debug` keyword that collapses to sequential at `DEBUG` verbosity.
 - Publish `format_cli_prompt` in `click_extra.testing` (was the private `_format_cli_prompt`): render a themed, copy-pasteable prompt simulating a CLI invocation.
+- Fix Carapace dynamic completion: an option's value or a subcommand argument with a custom `shell_complete` now resolves through the generated spec, instead of returning empty or root-level candidates.
+- Add a documentation page on Typer compatibility, explaining why click-extra cannot be combined with Typer and how to get the same options natively.
 
 ## [`8.1.4` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.3...v8.1.4)
 

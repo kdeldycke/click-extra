@@ -578,6 +578,7 @@ def test_spec_drives_real_carapace_engine(tmp_path):
             [str(binary), str(spec_file), "export", "weather", *words],
             capture_output=True,
             text=True,
+            check=False,
             env=env,
         )
         assert result.returncode == 0, result.stderr
