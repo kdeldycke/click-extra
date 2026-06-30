@@ -415,7 +415,7 @@
 > [!NOTE]
 > `7.6.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.3).
 
-- Fix `test_default_pattern_roaming_force_posix` test failures when `XDG_CONFIG_HOME` is set. Closes {issue}`1541`.
+- Fix `test_default_pattern_roaming_force_posix` test failures when `XDG_CONFIG_HOME` is set. Closes [#1541](https://github.com/kdeldycke/click-extra/issues/1541).
 
 ## [`7.6.2` (2026-02-27)](https://github.com/kdeldycke/click-extra/compare/v7.6.1...v7.6.2)
 
@@ -429,22 +429,22 @@
 > [!NOTE]
 > `7.6.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.1).
 
-- Fix test failures when optional config format dependencies are not installed. Closes {issue}`1538`.
+- Fix test failures when optional config format dependencies are not installed. Closes [#1538](https://github.com/kdeldycke/click-extra/issues/1538).
 
 ## [`7.6.0` (2026-02-26)](https://github.com/kdeldycke/click-extra/compare/v7.5.3...v7.6.0)
 
 > [!NOTE]
 > `7.6.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.6.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.6.0).
 
-- Add `_default_subcommands` reserved configuration key to auto-invoke subcommands when none are provided on the CLI. Closes {issue}`1405`.
-- Add `_prepend_subcommands` reserved configuration key to always prepend subcommands to every invocation (requires `chain=True`). Closes {issue}`1405`.
+- Add `_default_subcommands` reserved configuration key to auto-invoke subcommands when none are provided on the CLI. Closes [#1405](https://github.com/kdeldycke/click-extra/issues/1405).
+- Add `_prepend_subcommands` reserved configuration key to always prepend subcommands to every invocation (requires `chain=True`). Closes [#1405](https://github.com/kdeldycke/click-extra/issues/1405).
 - Add `--validate-config` option to validate configuration files.
-- Add `ConfigFormat.PYPROJECT_TOML` format for `[tool.*]` section support in `pyproject.toml`. Closes {issue}`1524`.
+- Add `ConfigFormat.PYPROJECT_TOML` format for `[tool.*]` section support in `pyproject.toml`. Closes [#1524](https://github.com/kdeldycke/click-extra/issues/1524).
 - Stop parent directory walk on inaccessible directories.
-- Add `stop_at` parameter to `@config_option` to limit parent directory walking. Defaults to `VCS`. Closes {issue}`651`.
+- Add `stop_at` parameter to `@config_option` to limit parent directory walking. Defaults to `VCS`. Closes [#651](https://github.com/kdeldycke/click-extra/issues/651).
 - Add `VCS` sentinel and `VCS_DIRS` constant for VCS root detection.
 - Resolve relative paths to absolute in `parent_patterns` before yielding.
-- Add `included_params` allowlist to `ConfigOption` and `@config_option`, the inverse of `excluded_params`. Closes {issue}`1362`.
+- Add `included_params` allowlist to `ConfigOption` and `@config_option`, the inverse of `excluded_params`. Closes [#1362](https://github.com/kdeldycke/click-extra/issues/1362).
 - Add human-friendly display labels to `ConfigFormat`.
 - Switch back from `SPLIT` to `BRACE` flag for multi-format config file patterns. Fixes a bug where only the first format received the directory prefix with `SPLIT`.
 - Hard code icon workaround for Sphinx index entries.
@@ -457,16 +457,16 @@
 > [!NOTE]
 > `7.5.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.5.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.5.3).
 
-- Allow disabling of autodiscovery of configuration files by setting `default=NO_CONFIG` on `@config_option`. Closes {issue}`1495`.
-- Implement `resolve_any_xref` in `ClickDomain` to prevent MyST-Parser warning. Closes {issue}`1502`.
-- Fix subcommand conflict detection checking against root-level params instead of parent params. Closes {pr}`1286`.
+- Allow disabling of autodiscovery of configuration files by setting `default=NO_CONFIG` on `@config_option`. Closes [#1495](https://github.com/kdeldycke/click-extra/issues/1495).
+- Implement `resolve_any_xref` in `ClickDomain` to prevent MyST-Parser warning. Closes [#1502](https://github.com/kdeldycke/click-extra/issues/1502).
+- Fix subcommand conflict detection checking against root-level params instead of parent params. Closes [#1286](https://github.com/kdeldycke/click-extra/pull/1286).
 
 ## [`7.5.2` (2026-02-12)](https://github.com/kdeldycke/click-extra/compare/v7.5.1...v7.5.2)
 
 > [!NOTE]
 > `7.5.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.5.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.5.2).
 
-- Fix GitHub alerts converter mangling `list-table` directive content. Closes {issue}`1490`.
+- Fix GitHub alerts converter mangling `list-table` directive content. Closes [#1490](https://github.com/kdeldycke/click-extra/issues/1490).
 - Replace Dependabot by Renovate.
 - Move `click_extra/docs_update.py` to `docs/docs_update.py`.
 - Add `pygments-ansi-color` to `docs` dependency group for lexer table generation.
@@ -477,7 +477,7 @@
 > `7.5.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.5.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.5.1).
 
 - Add new `aligned` table format with single-space column separators and no borders.
-- Fix parallel mode support in Sphinx extension. Closes {issue}`1482`.
+- Fix parallel mode support in Sphinx extension. Closes [#1482](https://github.com/kdeldycke/click-extra/issues/1482).
 
 ## [`7.5.0` (2026-02-03)](https://github.com/kdeldycke/click-extra/compare/v7.4.0...v7.5.0)
 
@@ -544,7 +544,7 @@
 > [!NOTE]
 > `7.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/7.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v7.0.0).
 
-- Allow parent directories search for configuration files. Adds `search_parents` argument on `@config_file`. Closes {issue}`651`.
+- Allow parent directories search for configuration files. Adds `search_parents` argument on `@config_file`. Closes [#651](https://github.com/kdeldycke/click-extra/issues/651).
 - Allow fine-tuning of configuration file format pattern matching. Replaces `formats` argument on `@config_file` by `file_format_patterns`.
 - Adds `search_pattern_flags` and `file_pattern_flags` arguments on `@config_file` to allow user to tweak pattern matching behavior.
 - Use `|` as separator for multiple file patterns instead of `{,}` syntax. Replace `glob.BRACE` by `glob.SPLIT` for search pattern flags. Force `glob.SPLIT` for file pattern flags.
@@ -573,7 +573,7 @@
 > `6.2.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.2.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.2.0).
 
 - Add new `EnumChoice` type for fine-tunable Enum-based choices. Expose `EnumChoice` and `ChoiceSource` at the root `click_extra` module.
-- Relax dependencies to support Python 3.10. Closes {issue}`1385`.
+- Relax dependencies to support Python 3.10. Closes [#1385](https://github.com/kdeldycke/click-extra/issues/1385).
 - Re-introduce `tomli` dependency for Python 3.10 users.
 - Skip tests on intermediate Python versions (`3.11`, `3.12` and `3.13`) to reduce CI load.
 
@@ -584,7 +584,7 @@
 
 - Add support for JSON5, JSONC and HJSON configuration files.
 - YAML and XML configuration support is now optional. You need to install the `click_extra[yaml]` and `click_extra[xml]` extra dependency groups to enable it.
-- Add new `@lazy_group` decorator and `LazyGroup` class to create groups that only load their subcommands when invoked. Closes {issue}`1332`.
+- Add new `@lazy_group` decorator and `LazyGroup` class to create groups that only load their subcommands when invoked. Closes [#1332](https://github.com/kdeldycke/click-extra/issues/1332).
 - Move all custom types to `click_extra._types` module.
 - Avoid importing all types at runtime to reduce startup time.
 - Upgrade tests runs from `macos-13` to `macos-15-intel`, and from `macos-15` to `macos-26`.
@@ -609,7 +609,7 @@
 > [!NOTE]
 > `6.0.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.0.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.0.1).
 
-- Fix `@config_option` to accept `Path` objects as default value. Closes {issue}`1356`.
+- Fix `@config_option` to accept `Path` objects as default value. Closes [#1356](https://github.com/kdeldycke/click-extra/issues/1356).
 - Add official support of Python 3.14.
 - Run tests on Python 3.15-dev.
 
@@ -619,7 +619,7 @@
 > `6.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/6.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v6.0.0).
 
 - Add new variables for version string template: `{git_repo_path}`, `{git_branch}`, `{git_long_hash}`, `{git_short_hash}` and `{git_date}`.
-- Add a new `--no-config` option on `@extra_command` and `@extra_group` to disable configuration files. Closes {issue}`750`.
+- Add a new `--no-config` option on `@extra_command` and `@extra_group` to disable configuration files. Closes [#750](https://github.com/kdeldycke/click-extra/issues/750).
 - Add `--table-format` option by default on `@extra_command` and `@extra_group`.
 - Let `--table-format` and `--no-color` affect the rendering of `--show-params` table.
 - Swap `Class` and `Spec.` columns in `--show-params` output.
@@ -656,7 +656,7 @@
 > [!NOTE]
 > `5.1.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/5.1.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v5.1.1).
 
-- Relax Click dependency to account for yanked release. Closes {issue}`1307`.
+- Relax Click dependency to account for yanked release. Closes [#1307](https://github.com/kdeldycke/click-extra/issues/1307).
 
 ## [`5.1.0` (2025-08-03)](https://github.com/kdeldycke/click-extra/compare/v5.0.2...v5.1.0)
 
@@ -665,8 +665,8 @@
 
 - Add support for MyST Markdown syntax for `click:example` and `click:run` Sphinx directives.
 - Add support for all `code-block` options to `click:example` and `click:run`: `:linenos:`, `:lineno-start:`, `:emphasize-lines:`, `:force:`, `:caption:`, `:name:`, `:class:` and `:dedent:`.
-- Add new `:show-source:`/`:hide-source:`, `:show-results:`/`:hide-results:` and `:language:` options to `click:example` and `click:run`. Closes {issue}`719`.
-- Support non-string choices in colored help screens. Closes {issue}`1284`.
+- Add new `:show-source:`/`:hide-source:`, `:show-results:`/`:hide-results:` and `:language:` options to `click:example` and `click:run`. Closes [#719](https://github.com/kdeldycke/click-extra/issues/719).
+- Support non-string choices in colored help screens. Closes [#1284](https://github.com/kdeldycke/click-extra/issues/1284).
 - Replace `LOG_LEVELS` mapping with `LogLevel` enum.
 - Remove `DEFAULT_LEVEL_NAME` constants.
 - Fix rendering of default values in `--show-params` output.
@@ -775,7 +775,7 @@
 - Replace `ExtraLogFormatter` with `ExtraFormatter`.
 - Replace `ExtraLogHandler` with `ExtraStreamHandler`.
 - Add new `new_extra_logger` helper.
-- Rewrite the logging documentation with all use-cases and custom configuration examples. Closes {issue}`989`.
+- Rewrite the logging documentation with all use-cases and custom configuration examples. Closes [#989](https://github.com/kdeldycke/click-extra/issues/989).
 - Removes old platforms page from documentation.
 
 ## [`4.12.0` (2025-01-20)](https://github.com/kdeldycke/click-extra/compare/v4.11.7...v4.12.0)
@@ -899,7 +899,7 @@
 
 - Slim down package by moving unit tests out of the main package.
 - Allow reuse of Pytest fixures and marks by other packages.
-- Move dependencies extending `pygments`, `sphinx` and `pytest` into optional extra dependencies. Closes {issue}`836`.
+- Move dependencies extending `pygments`, `sphinx` and `pytest` into optional extra dependencies. Closes [#836](https://github.com/kdeldycke/click-extra/issues/836).
 - Split `dev` dependency groups into optional `test`, `typing` and `docs` groups.
 - Remove direct dependency on `mypy`.
 - Allow running tests with Python 3.8 and 3.9 on `macos-14` runners.
@@ -940,7 +940,7 @@
 > `4.7.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.7.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.7.1).
 
 - Distinguish between parameter type and Python type in `--show-params` output.
-- Recognize custom parameter type as string-based. Closes {issue}`721`.
+- Recognize custom parameter type as string-based. Closes [#721](https://github.com/kdeldycke/click-extra/issues/721).
 - Rely on `bump-my-version` to update citation file metadata.
 
 ## [`4.7.0` (2023-09-04)](https://github.com/kdeldycke/click-extra/compare/v4.6.5...v4.7.0)
@@ -958,15 +958,15 @@
 > [!NOTE]
 > `4.6.5` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.6.5/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.6.5).
 
-- Highlight required label and value range in option description. Closes {issue}`748`.
+- Highlight required label and value range in option description. Closes [#748](https://github.com/kdeldycke/click-extra/issues/748).
 
 ## [`4.6.4` (2023-08-23)](https://github.com/kdeldycke/click-extra/compare/v4.6.3...v4.6.4)
 
 > [!NOTE]
 > `4.6.4` is available on [🐍 PyPI](https://pypi.org/project/click-extra/4.6.4/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v4.6.4).
 
-- Fix collection of subcommand parameters in `--show-params` output. Closes {issue}`725`.
-- Set `%(package_name)` in `--version` to file name for CLI that are standalone scripts and not packaged. Fix {issue}`729`.
+- Fix collection of subcommand parameters in `--show-params` output. Closes [#725](https://github.com/kdeldycke/click-extra/issues/725).
+- Set `%(package_name)` in `--version` to file name for CLI that are standalone scripts and not packaged. Fix [#729](https://github.com/kdeldycke/click-extra/issues/729).
 - Allow standalone scripts to define a local `__version__` variable to set the `%(version)` element in `--version` output.
 - Allow building of documentation with Sphinx 7.
 - Run tests on `macos-13`. Remove tests on `macos-11`.
@@ -1001,11 +1001,11 @@
 
 - Keep the promise of drop-in replacement for `@version_option` which is now a proxy to Click's original.
 - Rename the colored, enhanced `--version` option to `@extra_version_option` for its decorator, and `ExtraVersionOption` for its class.
-- Activate colors on `@extra_command` and `@extra_group` by default, even if stripped of all their default parameters. Closes {issue}`534` and {pr}`543`.
-- Expose location and content of user's configuration file in the Context's `meta` property. Closes {issue}`673`.
-- Render specs of hidden parameters in `--show-params` output. Fixes {issue}`689`.
+- Activate colors on `@extra_command` and `@extra_group` by default, even if stripped of all their default parameters. Closes [#534](https://github.com/kdeldycke/click-extra/issues/534) and [#543](https://github.com/kdeldycke/click-extra/pull/543).
+- Expose location and content of user's configuration file in the Context's `meta` property. Closes [#673](https://github.com/kdeldycke/click-extra/issues/673).
+- Render specs of hidden parameters in `--show-params` output. Fixes [#689](https://github.com/kdeldycke/click-extra/issues/689).
 - Swap `Exposed` and `Allowed in conf?` columns in `--show-params` output.
-- Add a `hidden` column to `--show-params` output. Refs {issue}`689`.
+- Add a `hidden` column to `--show-params` output. Refs [#689](https://github.com/kdeldycke/click-extra/issues/689).
 
 ## [`4.5.0` (2023-07-06)](https://github.com/kdeldycke/click-extra/compare/v4.4.0...v4.5.0)
 
@@ -1014,7 +1014,7 @@
 
 - Expose verbosity level name, table format ID and CLI start timestamp in the Context's `meta` property.
 - Refactor `VersionOption`. Introduce internal caching.
-- Expose version string elements in the Context's `meta` property. Closes {issue}`325`.
+- Expose version string elements in the Context's `meta` property. Closes [#325](https://github.com/kdeldycke/click-extra/issues/325).
 - Remove `print_env_info` option from `VersionOption` class and `version_option` decorators.
 - Add new `%(env_info)` element. Default value is the same as what the removed `print_env_info` produced (i.e. a JSON dump of the environment).
 - Allow `%(env_info)` value to be set by user on `--version`.
@@ -1079,7 +1079,7 @@
 - Populate the `Allowed in conf?` column in `--show-params` output if there is a `--config` option in the command.
 - Print all modified loggers and their levels in `DEBUG` mode.
 - Directly download Pygments source code from GitHub to check for candidates for ANSI-coloring in unittests.
-- Test continuously against Click and Cloup development version. Closes {issue}`525`.
+- Test continuously against Click and Cloup development version. Closes [#525](https://github.com/kdeldycke/click-extra/issues/525).
 - Move `click_extra.commands.TimerOption` to `click_extra.timer.TimerOption`.
 
 ## [`4.0.0` (2023-05-08)](https://github.com/kdeldycke/click-extra/compare/v3.10.0...v4.0.0)
@@ -1096,11 +1096,11 @@
 - Force resetting of log level on `--verbosity`'s context closing to the hard-coded default.
 - Use a dedicated `click_extra` logger for all internal messages, instead of sending them to the user-defined one.
 - Aligns `click_extra` logger level to `--verbosity` option level.
-- Set default logger of `--verbosity` to Python's global `root` logger, instead a local wrapped logger. Closes {issue}`318`.
-- Allow user to provide a string as the default logger to `--verbosity` that will be used to fetch the global logger singleton of that name. Closes {issue}`318`.
+- Set default logger of `--verbosity` to Python's global `root` logger, instead a local wrapped logger. Closes [#318](https://github.com/kdeldycke/click-extra/issues/318).
+- Allow user to provide a string as the default logger to `--verbosity` that will be used to fetch the global logger singleton of that name. Closes [#318](https://github.com/kdeldycke/click-extra/issues/318).
 - Only colorize the `%(levelname)s` field during log record formatting, not the `:` message separator.
 - Prefix `INFO`-level log message with `info: ` prefix by default.
-- Raise an error if multiple `--version` options are defined in the same command. Closes {issue}`317`.
+- Raise an error if multiple `--version` options are defined in the same command. Closes [#317](https://github.com/kdeldycke/click-extra/issues/317).
 - Remove dependency on `click-log`.
 - Remove supports for `Pallets-Sphinx-Themes < 2.1.0`.
 - Force closing of the context before stopping the execution flow, to make sure all callbacks are called.
@@ -1111,7 +1111,7 @@
 > [!NOTE]
 > `3.10.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.10.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.10.0).
 
-- Colorize help screens of subcommands spawned out of an `@extra_group`. Closes {issue}`479`.
+- Colorize help screens of subcommands spawned out of an `@extra_group`. Closes [#479](https://github.com/kdeldycke/click-extra/issues/479).
 - Remove deprecated `click_extra.platform`.
 
 ## [`3.9.0` (2023-04-01)](https://github.com/kdeldycke/click-extra/compare/v3.8.3...v3.9.0)
@@ -1120,7 +1120,7 @@
 > `3.9.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.9.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.9.0).
 
 - Allow `@color_option`, `@command`, `@config_option`, `@extra_command`, `@extra_group`, `@group`, `@help_option`, `@show_params_option`, `@table_format_option`, `@timer_option`, `@verbosity_option` and `@version_option` decorators to be used without parenthesis.
-- Fix wrapping of Cloup decorators by `@extra_group`/`@extra_command` decorators. Closes {issue}`489`.
+- Fix wrapping of Cloup decorators by `@extra_group`/`@extra_command` decorators. Closes [#489](https://github.com/kdeldycke/click-extra/issues/489).
 - Add main dependency on `furo` which is referenced in ANSI-aware Pygment styles.
 - Move all documentation assets to `assets` subfolder.
 
@@ -1197,9 +1197,9 @@
 > [!NOTE]
 > `3.4.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.4.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.4.1).
 
-- Fix highlighting of `+`-prefixed options in help screens. Closes {issue}`316`.
+- Fix highlighting of `+`-prefixed options in help screens. Closes [#316](https://github.com/kdeldycke/click-extra/issues/316).
 - Fix highlighting of hard-coded deprecated labels in option help.
-- Document parameter introspection. Closes {issue}`319`.
+- Document parameter introspection. Closes [#319](https://github.com/kdeldycke/click-extra/issues/319).
 
 ## [`3.4.0` (2022-12-01)](https://github.com/kdeldycke/click-extra/compare/v3.3.4...v3.4.0)
 
@@ -1313,14 +1313,14 @@
 > `3.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.1.0).
 
 - Add support for pattern matching to search for configuration file.
-- Add a new `formats` option to specify which dialects the configuration file is written in, regardless of its name or file extension. Closes {issue}`197`.
-- Set default configuration folder according each OS preferred location. Closes {issue}`211`.
+- Add a new `formats` option to specify which dialects the configuration file is written in, regardless of its name or file extension. Closes [#197](https://github.com/kdeldycke/click-extra/issues/197).
+- Set default configuration folder according each OS preferred location. Closes [#211](https://github.com/kdeldycke/click-extra/issues/211).
 - Add `roaming` and `force_posix` option to influence default application directory of configuration file.
 - Add a `ignored_options` parameter to the configuration file instead of hard-coding them.
 - Add dependency on `wcmatch`.
 - Remove tests on deprecated `ubuntu-18.04`.
-- Document preset options overriding. Closes {issue}`232`.
-- Document configuration option pattern matching and default folder. Closes {issue}`197` and {issue}`211`.
+- Document preset options overriding. Closes [#232](https://github.com/kdeldycke/click-extra/issues/232).
+- Document configuration option pattern matching and default folder. Closes [#197](https://github.com/kdeldycke/click-extra/issues/197) and [#211](https://github.com/kdeldycke/click-extra/issues/211).
 
 ## [`3.0.1` (2022-08-07)](https://github.com/kdeldycke/click-extra/compare/v3.0.0...v3.0.1)
 
@@ -1334,14 +1334,14 @@
 > [!NOTE]
 > `3.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/3.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v3.0.0).
 
-- Make default extra features optional, so `click_extra` can act as a drop-in replacement for `click` and `cloup` (closes {issue}`173`):
+- Make default extra features optional, so `click_extra` can act as a drop-in replacement for `click` and `cloup` (closes [#173](https://github.com/kdeldycke/click-extra/issues/173)):
   - Rename `click_extra.group` to `click_extra.extra_group`.
   - Rename `click_extra.command` to `click_extra.extra_command`.
   - Alias `click_extra.group` to `cloup.group`.
   - Alias `click_extra.command` to `cloup.group`.
 - Use declarative `params=` argument to set defaults options on `extra_command` and `extra_group`.
 - Move the implementation of options to classes.
-- Hard-copy `version_option` code from `click` to allow for more flexibility. Addresses {issue}`176`.
+- Hard-copy `version_option` code from `click` to allow for more flexibility. Addresses [#176](https://github.com/kdeldycke/click-extra/issues/176).
 - All custom options inherits from `ExtraOption` class.
 - New `extra_option_at_end` to `extra_command` to force position of all extra options (on by default).
 - Replace theme styles inherited from `click-log` by Python standard `logging` module. Adds `info` and removes `exception` styles.
@@ -1370,7 +1370,7 @@
 > [!NOTE]
 > `2.1.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/2.1.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v2.1.2).
 
-- Fix auto-mapping and recognition of all missing Click option types in config module. Closes {issue}`170`.
+- Fix auto-mapping and recognition of all missing Click option types in config module. Closes [#170](https://github.com/kdeldycke/click-extra/issues/170).
 - Fix CI workflow grouping.
 
 ## [`2.1.1` (2022-05-22)](https://github.com/kdeldycke/click-extra/compare/v2.1.0...v2.1.1)
@@ -1416,7 +1416,7 @@
 > [!NOTE]
 > `2.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/2.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v2.0.0).
 
-- Add support for XML configuration file. Closes {issue}`122`.
+- Add support for XML configuration file. Closes [#122](https://github.com/kdeldycke/click-extra/issues/122).
 - Add strict mode to fail on unrecognized configuration options.
 - Support the `NO_COLOR` environment variable convention from
   [`no-color.org`](https://no-color.org).
@@ -1564,7 +1564,7 @@
 
 - Extend `cli-helper.TabularOutputFormatter` with new formats: `simple_grid`,
   `rounded_grid`, `double_grid`, `outline`, `simple_outline`, `rounded_outline`
-  and `double_outline`. Address {issue}`astanin/python-tabulate#151`.
+  and `double_outline`. Address <https://github.com/astanin/python-tabulate/issues/151>.
 - Add a new `--table-format`/`-t` option to select table format rendering mode.
 - Add new dependency on `cli-helper` and `tabulate`.
 - Automate post-release version bump.
