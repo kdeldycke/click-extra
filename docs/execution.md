@@ -147,6 +147,35 @@ assert "Baked APPLE" in result.stdout
 
 The pool is thread-based, which fits the I/O- and subprocess-bound work CLIs usually parallelize (each child releases the GIL). With a single worker the run stays lazy, so a caller can stop on the first result, for example to abort on the first failure.
 
+## Running lanes in parallel
+
+Sometimes work cannot all run concurrently: a subset must be serialized relative to itself (a shared lock, a rate limit, one mailbox file read at a time, one package-manager backend) while still overlapping with unrelated subsets. `run_lanes(func, lanes)` groups items into *lanes*: a lane's own items run serially and in order on a single worker, while distinct lanes run concurrently up to the resolved `--jobs` count. `run_jobs` is the degenerate case where every lane holds a single item.
+
+```{click:source}
+from click import command, echo
+from click_extra import jobs_option, run_lanes
+
+@command
+@jobs_option
+def bake():
+    """Bake several trays: items on a tray bake in order, trays bake in parallel."""
+    trays = (("apple", "banana"), ("cherry",))
+    for baked in run_lanes(str.upper, trays):
+        echo(f"Baked {baked}")
+```
+
+```{click:run}
+result = invoke(bake, args=["--jobs", "2"])
+assert result.exit_code == 0
+assert "Baked APPLE" in result.stdout
+```
+
+Concurrency is sized by the number of lanes (one worker per lane), and results are yielded in lane-submission order. Because a lane runs entirely on one worker, a stateful resource bound to that lane (a per-lane cache, a connection) is touched by only one thread and needs no lock.
+
+## Resolving the job count
+
+`run_jobs` and `run_lanes` decide their worker count internally, but a caller that must know it *before* fanning out (for example to pick a progress-rendering mode) can call `resolve_jobs(ctx, count)` directly. It returns the same number those helpers use: `1` (sequential) when there is no context, a single item, or `--jobs 1`, otherwise the resolved count capped at `count`. Passing `serial_at_debug=True` also collapses to sequential at `DEBUG` verbosity, where coherent per-worker log narration matters more than the speed-up; both helpers forward this flag.
+
 ## Zero exit code
 
 A pre-configured `-0`/`--zero-exit` option flag, following the convention popularized by linters and static analysers: they exit with a non-zero code whenever they report findings, so automation can gate on it. Setting this flag flips that behavior, so the CLI returns `0` as long as it ran to completion, reserving non-zero codes for actual execution failures.

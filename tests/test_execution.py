@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import re
+import threading
 from textwrap import dedent
 from time import sleep
 from unittest.mock import patch
@@ -36,11 +37,14 @@ from click_extra import (
     group,
     jobs_option,
     pass_context,
+    resolve_jobs,
     run_jobs,
+    run_lanes,
     timer_option,
     zero_exit_option,
 )
 from click_extra.execution import CPU_COUNT
+from click_extra.logging import LogLevel
 from click_extra.pytest import command_decorators
 
 # --- Jobs -------------------------------------------------------------------
@@ -241,6 +245,135 @@ def test_run_jobs_reads_jobs_from_context(invoke):
 def test_run_jobs_without_context_runs_sequential():
     """Outside any Click context and with no count, run_jobs falls back to 1."""
     assert list(run_jobs(str, [1, 2, 3])) == ["1", "2", "3"]
+
+
+def test_resolve_jobs_without_context_is_sequential():
+    """No context means nothing to read a job count from: stay sequential."""
+    assert resolve_jobs(None, 5) == 1
+
+
+def test_resolve_jobs_single_item_is_sequential():
+    """A single item has nothing to parallelize."""
+    ctx = click.Context(click.Command("cli"))
+    context.set(ctx, context.JOBS, 4)
+    assert resolve_jobs(ctx, 1) == 1
+
+
+@pytest.mark.parametrize(
+    ("jobs", "count", "expected"),
+    (
+        (4, 5, 4),  # The job count wins when below the item count.
+        (8, 3, 3),  # Capped at the item count.
+        (1, 5, 1),  # An explicit single job is sequential.
+    ),
+)
+def test_resolve_jobs_reads_context(jobs, count, expected):
+    """The resolved --jobs value drives the count, capped at the item count."""
+    ctx = click.Context(click.Command("cli"))
+    context.set(ctx, context.JOBS, jobs)
+    assert resolve_jobs(ctx, count) == expected
+
+
+def test_resolve_jobs_serial_at_debug():
+    """serial_at_debug collapses to sequential only at DEBUG verbosity."""
+    ctx = click.Context(click.Command("cli"))
+    context.set(ctx, context.JOBS, 4)
+    context.set(ctx, context.VERBOSITY_LEVEL, LogLevel.DEBUG)
+    # The flag is opt-in: DEBUG is ignored without it.
+    assert resolve_jobs(ctx, 5) == 4
+    assert resolve_jobs(ctx, 5, serial_at_debug=True) == 1
+
+
+@pytest.mark.parametrize("jobs", (1, 2, 5))
+def test_run_lanes_preserves_order(jobs):
+    """Results come back in lane-submission order, items within a lane in order."""
+    lanes = ([0, 1], [2], [3, 4])
+    assert list(run_lanes(lambda n: n * n, lanes, jobs=jobs)) == [0, 1, 4, 9, 16]
+
+
+def test_run_lanes_is_run_jobs_with_singleton_lanes():
+    """run_jobs is the degenerate case of run_lanes: one item per lane."""
+    items = range(5)
+    singleton_lanes = ([n] for n in items)
+    assert list(run_lanes(str, singleton_lanes, jobs=3)) == list(
+        run_jobs(str, items, jobs=3)
+    )
+
+
+def test_run_lanes_serializes_within_a_lane():
+    """Within a lane, items run one at a time even when lanes run in parallel."""
+    lock = threading.Lock()
+    active: dict[str, int] = {}
+    overlap = []
+
+    def work(item):
+        lane_id, n = item
+        with lock:
+            if lane_id in active:
+                overlap.append((lane_id, active[lane_id], n))
+            active[lane_id] = n
+        sleep(0.01)
+        with lock:
+            del active[lane_id]
+        return n
+
+    lanes = (
+        [("a", 1), ("a", 2), ("a", 3)],
+        [("b", 1), ("b", 2), ("b", 3)],
+    )
+    list(run_lanes(work, lanes, jobs=2))
+    assert overlap == []
+
+
+def test_run_lanes_runs_lanes_concurrently():
+    """Distinct lanes overlap: a barrier only releases if all lanes run at once."""
+    barrier = threading.Barrier(3, timeout=5)
+
+    def work(n):
+        barrier.wait()
+        return n
+
+    assert sorted(run_lanes(work, ([0], [1], [2]), jobs=3)) == [0, 1, 2]
+
+
+def test_run_lanes_sequential_is_lazy():
+    """With one worker, items run lazily so a caller can stop early."""
+    seen = []
+
+    def record(n):
+        seen.append(n)
+        return n
+
+    for result in run_lanes(record, [[1, 2], [3]], jobs=1):
+        if result == 1:
+            break
+    assert seen == [1]
+
+
+def test_run_lanes_reads_jobs_from_context(invoke):
+    """Without an explicit count, run_lanes reads the resolved --jobs value."""
+
+    @command
+    @jobs_option
+    @pass_context
+    def cli(ctx):
+        lanes = ([1, 2], [3, 4])
+        echo(",".join(str(n) for n in run_lanes(lambda n: n + 1, lanes)))
+
+    result = invoke(cli, "--jobs", "2")
+    assert result.stdout == "2,3,4,5\n"
+    assert result.exit_code == 0
+
+
+def test_run_lanes_without_context_runs_sequential():
+    """Outside any Click context and with no count, run_lanes falls back to 1."""
+    assert list(run_lanes(str, [[1, 2], [3]])) == ["1", "2", "3"]
+
+
+def test_run_lanes_empty_yields_nothing():
+    """No lanes, or only empty lanes, yields nothing and raises nothing."""
+    assert list(run_lanes(str, [])) == []
+    assert list(run_lanes(str, [[], []], jobs=2)) == []
 
 
 def test_invalid_value(invoke):

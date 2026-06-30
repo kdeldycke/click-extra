@@ -13,6 +13,9 @@
 - Add a `--theme=auto` value that selects the `dark` or `light` palette from the detected terminal background. Accepted on every `@command` and `@group`; the `--theme` default stays `dark`.
 - Detect the terminal background from the `CLITHEME` and `COLORFGBG` environment variables, and, when a `ThemeOption` is built with `query_background=True`, from a live xterm OSC 11 terminal query.
 - Add `resolve_background` and `query_osc_background` to `click_extra.color`, and `resolve_auto_theme` and the `AUTO_THEME` constant to `click_extra.theme`.
+- Add `run_lanes(func, lanes)` to `click_extra.execution`: a fan-out that runs each lane's items serially while running distinct lanes concurrently, sized by the resolved `--jobs` count. `run_jobs` is its single-item-per-lane special case.
+- Add `resolve_jobs(ctx, count)` to `click_extra.execution`, exposing the worker-count policy shared by `run_jobs` and `run_lanes` for callers that need the resolved count before fanning out. Both helpers gain a `serial_at_debug` keyword that collapses to sequential at `DEBUG` verbosity.
+- Publish `format_cli_prompt` in `click_extra.testing` (was the private `_format_cli_prompt`): render a themed, copy-pasteable prompt simulating a CLI invocation.
 
 ## [`8.1.4` (2026-06-27)](https://github.com/kdeldycke/click-extra/compare/v8.1.3...v8.1.4)
 

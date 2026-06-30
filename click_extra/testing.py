@@ -162,11 +162,17 @@ def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
 
-def _format_cli_prompt(
+def format_cli_prompt(
     cmd_args: Iterable[str],
     extra_env: TEnvVars | None = None,
 ) -> str:
-    """Simulate the console prompt used to invoke the CLI."""
+    """Render the shell prompt simulating a CLI invocation, for logs and dry-runs.
+
+    Prefixes :data:`PROMPT` to any ``extra_env`` assignments and the command line,
+    each styled through the active theme
+    (:func:`~click_extra.theme.get_current_theme`). Useful to print a
+    copy-pasteable command trace in debug logs, dry-runs and test output.
+    """
     active_theme = get_current_theme()
     extra_env_string = ""
     if extra_env:
@@ -188,7 +194,7 @@ def render_cli_run(
 
     Mostly used to print debug traces to user or in test results.
     """
-    prompt = _format_cli_prompt(args, env)
+    prompt = format_cli_prompt(args, env)
 
     if isinstance(result, click.testing.Result):
         view = StreamView.from_result(result)

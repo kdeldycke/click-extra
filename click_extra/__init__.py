@@ -150,7 +150,9 @@ from .execution import (
     JobsOption,
     TimerOption,
     ZeroExitOption,
+    resolve_jobs,
     run_jobs,
+    run_lanes,
 )
 from .highlight import (
     HelpFormatter,
@@ -217,7 +219,7 @@ from .test_suite import (
     parse_test_suite,
     run_test_suite,
 )
-from .testing import CliRunner, Result
+from .testing import CliRunner, Result, format_cli_prompt
 from .theme import (
     BUILTIN_THEMES,
     HelpTheme,
@@ -355,6 +357,7 @@ __all__ = [
     "edit",
     "file_path",
     "flatten_config_keys",
+    "format_cli_prompt",
     "format_filename",
     "format_from_path",
     "format_param_row",
@@ -404,8 +407,10 @@ __all__ = [
     "render_manpages",
     "render_table",
     "require_sibling_param",
+    "resolve_jobs",
     "run_config_validation",
     "run_jobs",
+    "run_lanes",
     "run_test_suite",
     "search_params",
     "secho",
