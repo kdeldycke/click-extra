@@ -128,7 +128,7 @@ def synthetic_repo(tmp_path: Path) -> Path:
 
     # Tag v1.0.0: Poetry-style declaration, no classifiers.
     (repo / "pyproject.toml").write_text(
-        "[tool.poetry.dependencies]\npython = \"^3.10\"\n"
+        '[tool.poetry.dependencies]\npython = "^3.10"\n'
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v1.0.0", "--quiet")
@@ -137,10 +137,10 @@ def synthetic_repo(tmp_path: Path) -> Path:
     # Tag v2.0.0: PEP 621 + classifiers.
     (repo / "pyproject.toml").write_text(
         '[project]\nrequires-python = ">=3.11"\n'
-        'classifiers = [\n'
+        "classifiers = [\n"
         '  "Programming Language :: Python :: 3.11",\n'
         '  "Programming Language :: Python :: 3.12",\n'
-        ']\n'
+        "]\n"
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v2.0.0", "--quiet")
@@ -472,9 +472,7 @@ def synthetic_dep_repo(tmp_path: Path) -> Path:
     run("git", "config", "user.name", "T")
     run("git", "config", "commit.gpgsign", "false")
 
-    (repo / "pyproject.toml").write_text(
-        '[project]\ndependencies = ["widget>=1.0"]\n'
-    )
+    (repo / "pyproject.toml").write_text('[project]\ndependencies = ["widget>=1.0"]\n')
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v1.0.0", "--quiet")
     run("git", "tag", "v1.0.0")
@@ -496,7 +494,9 @@ def test_dependency_matrix_groups(synthetic_dep_repo: Path) -> None:
 
 
 def test_dependency_matrix_table_columns_and_cells(synthetic_dep_repo: Path) -> None:
-    table = dependency_matrix_table(synthetic_dep_repo, "proj", "widget", show_spec=True)
+    table = dependency_matrix_table(
+        synthetic_dep_repo, "proj", "widget", show_spec=True
+    )
     # Minor 1.0 stays grouped; the open >=2.1.3 floor splits 2.1 into .0 / .3.
     assert "`1.0`" in table
     assert "`2.1.0`" in table

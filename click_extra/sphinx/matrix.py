@@ -381,7 +381,9 @@ def python_matrix_groups(
     return [PythonMatrixGroup(f, l, d, v) for f, l, d, v in merged]
 
 
-def _spans_full_major(first_tag: str, last_tag: str, next_first_tag: str | None) -> bool:
+def _spans_full_major(
+    first_tag: str, last_tag: str, next_first_tag: str | None
+) -> bool:
     """Whether a group covers an entire major series (so it labels as ``X.x``).
 
     True when the group stays within one major, starts at that major's ``.0``
@@ -658,9 +660,14 @@ def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bo
             continue
         patches = {Version(f"{major}.{minor}.0")}
         patches.update(
-            floor for floor, is_open in floors if is_open and (floor.major, floor.minor) == key
+            floor
+            for floor, is_open in floors
+            if is_open and (floor.major, floor.minor) == key
         )
-        if latest_version is not None and (latest_version.major, latest_version.minor) == key:
+        if (
+            latest_version is not None
+            and (latest_version.major, latest_version.minor) == key
+        ):
             patches.add(latest_version)
         columns.extend((patch, False) for patch in sorted(patches))
     return columns
