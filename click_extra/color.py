@@ -346,7 +346,11 @@ def query_osc_background(
     except (OSError, termios.error):
         return None
     finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_attributes)
+        # TCSANOW, not TCSADRAIN: draining waits for the terminal's output
+        # buffer to flush, which blocks forever on a PTY whose master side is
+        # not being read (it hung the suite on the macOS CI runner). Restoring
+        # the saved attributes does not need to wait for that drain.
+        termios.tcsetattr(fd, termios.TCSANOW, old_attributes)
 
     return _parse_osc_rgb(response)
 
