@@ -855,7 +855,12 @@ The `matrix` directive renders a package's release compatibility matrix for a gi
 - `{matrix} python` renders the interpreter matrix (release ranges × Python versions).
 - `{matrix} <distribution>` (like `{matrix} click`) renders a dependency matrix (release ranges × that dependency's versions).
 
-The table lives **inside** the directive block as its content, kept current by the offline updater described below. Rendering that embedded copy needs no git access, so the matrix is visible in the raw Markdown source (and in pull-request diffs), and the HTML build works on a shallow clone. An empty block falls back to generating from the working tree's git tags, so a freshly authored block still renders before its first refresh.
+The generated table lives **in the source**, kept current by the offline updater described below, so it shows up in the raw Markdown (and in pull-request diffs) and the HTML build needs no git access (it works on a shallow clone). There are two ways to write it, both refreshed by the same `refresh-directives` command:
+
+- **A directive fence**, `` ```{matrix} python `` … `` ``` ``, rendered by Sphinx. Simplest on a docs-only page, but GitHub shows the fenced block as a code block. An empty fence falls back to generating from the git tags at build time, so a freshly authored block renders before its first refresh.
+- **A comment marker region**, `<!-- matrix python -->` … `<!-- matrix-end -->`, with the raw table between the markers. Being plain Markdown, it renders as a real table on **GitHub** and PyPI as well as in Sphinx. Options go in the start comment as `key=value` pairs and bare flags: `<!-- matrix click show-spec -->`. `install.md`'s tables use this form so they render everywhere.
+
+The examples below use the directive fence; the marker form takes the same axis and options.
 
 ### The `python` axis
 
@@ -911,7 +916,7 @@ The embedded tables are refreshed offline, formatter-style, by the `refresh-dire
 $ click-extra refresh-directives docs/
 ```
 
-It walks the given Markdown files or directories, regenerates each `{matrix}` block's table from that block's axis, options, and the project's git tags, and rewrites the block in place. Only blocks that already exist are refreshed: nothing is added. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching data) is left untouched, so a transient failure never wipes a good table.
+It walks the given Markdown files or directories, regenerates each matrix block's table (both the `{matrix}` directive fences and the `<!-- matrix … -->` marker regions) from that block's axis, options, and the project's git tags, and rewrites the block in place. Only blocks that already exist are refreshed: nothing is added. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching data) is left untouched, so a transient failure never wipes a good table.
 
 ```{note}
 Only the updater (and the empty-block fallback) needs the release tags, since it is the part that shells out to `git`. Run it wherever the full tag history is available. The HTML build renders the embedded table verbatim and needs no git access, so shallow clones and read-only build hosts render the matrix fine.

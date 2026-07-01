@@ -807,7 +807,10 @@ def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
     Markdown file's parent for the offline updater. An absolute ``path_opt``
     is used verbatim.
     """
-    git_root = _find_git_root(base_dir)
+    # Resolve to an absolute path so a relative ``base_dir`` (like the ``docs``
+    # the CLI passes) yields a git root whose ``.name`` is the real repo folder,
+    # not an empty string from ``Path(".")``.
+    git_root = _find_git_root(base_dir.resolve())
     if not path_opt:
         return git_root
     candidate = Path(path_opt)
@@ -959,77 +962,149 @@ _FENCE_CLOSE_RE = re.compile(r"^(?P<indent>[ \t]*)(?P<fence>`{3,})[ \t]*$")
 _OPTION_RE = re.compile(r"^[ \t]*:(?P<key>[\w-]+):[ \t]*(?P<value>.*?)[ \t]*$")
 """A ``:key: value`` directive option line (value optional for flags)."""
 
+_MARKER_OPEN_RE = re.compile(
+    r"^(?P<indent>[ \t]*)<!--\s*matrix\s+(?P<axis>\S+)\s*(?P<opts>.*?)\s*-->[ \t]*$",
+)
+"""Opening HTML-comment marker of a ``<!-- matrix <axis> [opts] -->`` region.
+
+Unlike the directive fence (which GitHub shows as a code block), this marker
+form renders as a real table on GitHub and natively in Sphinx. ``opts`` is
+whitespace-separated ``key=value`` pairs and bare flags (like ``show-spec``).
+"""
+
+_MARKER_CLOSE_RE = re.compile(r"^(?P<indent>[ \t]*)<!--\s*matrix-end\s*-->[ \t]*$")
+"""Closing marker of a ``<!-- matrix ... -->`` region."""
+
+
+def _parse_marker_options(opts: str) -> dict[str, str]:
+    """Parse a marker's ``key=value`` / bare-flag option string into a mapping."""
+    options: dict[str, str] = {}
+    for token in opts.split():
+        key, _, value = token.partition("=")
+        options[key] = value
+    return options
+
+
+def _regenerate(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
+    """Render a block, returning ``""`` on any git/OS failure (non-destructive)."""
+    try:
+        return _render_block(axis, options, base_dir)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def _refresh_fence_block(
+    match: re.Match[str],
+    lines: list[str],
+    index: int,
+    base_dir: Path,
+) -> tuple[list[str], int]:
+    """Regenerate one ``{matrix} <axis>`` directive fence starting at ``index``.
+
+    Returns the replacement lines and the index just past the block. Keeps the
+    block verbatim when the closing fence is missing or generation fails.
+    """
+    indent = match.group("indent")
+    fence = match.group("fence")
+    axis = match.group("axis")
+    total = len(lines)
+
+    options: dict[str, str] = {}
+    cursor = index + 1
+    while cursor < total:
+        option_match = _OPTION_RE.match(lines[cursor])
+        if not option_match:
+            break
+        options[option_match.group("key")] = option_match.group("value")
+        cursor += 1
+
+    close = None
+    for probe in range(cursor, total):
+        close_match = _FENCE_CLOSE_RE.match(lines[probe])
+        if (
+            close_match
+            and close_match.group("indent") == indent
+            and len(close_match.group("fence")) >= len(fence)
+        ):
+            close = probe
+            break
+    if close is None:
+        return [lines[index]], index + 1
+
+    table = _regenerate(axis, options, base_dir)
+    if not table:
+        return lines[index : close + 1], close + 1
+
+    out = [f"{indent}{fence}{{matrix}} {axis}"]
+    for key, value in options.items():
+        out.append(f"{indent}:{key}: {value}" if value else f"{indent}:{key}:")
+    out.append("")
+    out.extend(f"{indent}{row}" if row else row for row in table.splitlines())
+    out.append(f"{indent}{fence}")
+    return out, close + 1
+
+
+def _refresh_marker_region(
+    match: re.Match[str],
+    lines: list[str],
+    index: int,
+    base_dir: Path,
+) -> tuple[list[str], int]:
+    """Regenerate one ``<!-- matrix <axis> -->`` region starting at ``index``.
+
+    The start marker is kept verbatim; the raw table between the markers is
+    replaced, blank-line padded so ``mdformat`` does not ping-pong on the
+    surrounding HTML comments. Kept verbatim when unterminated or on failure.
+    """
+    indent = match.group("indent")
+    axis = match.group("axis")
+    options = _parse_marker_options(match.group("opts"))
+
+    close = None
+    for probe in range(index + 1, len(lines)):
+        close_match = _MARKER_CLOSE_RE.match(lines[probe])
+        if close_match and close_match.group("indent") == indent:
+            close = probe
+            break
+    if close is None:
+        return [lines[index]], index + 1
+
+    table = _regenerate(axis, options, base_dir)
+    if not table:
+        return lines[index : close + 1], close + 1
+
+    out = [lines[index], ""]
+    out.extend(f"{indent}{row}" if row else row for row in table.splitlines())
+    out.extend(["", f"{indent}<!-- matrix-end -->"])
+    return out, close + 1
+
 
 def _rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
-    """Return ``text`` with every ``{matrix}`` block's table regenerated.
+    """Return ``text`` with every ``matrix`` block's table regenerated.
 
-    Each block keeps its axis argument and options verbatim; only the body (the
-    embedded table) is replaced with a freshly generated one, separated from the
-    options by a blank line. A block whose generation fails (non-repository path,
-    missing git, no data) is left byte-for-byte untouched, so a transient failure
-    never wipes a good table.
+    Handles both forms: the ``{matrix} <axis>`` directive fence (rendered by
+    Sphinx) and the ``<!-- matrix <axis> -->`` comment region (which renders as a
+    real table on GitHub too). Each keeps its axis and options; only the embedded
+    table is replaced. A block whose generation fails (non-repository path,
+    missing git, no data) is left byte-for-byte untouched.
     """
     lines = text.splitlines()
     out: list[str] = []
     index = 0
     total = len(lines)
     while index < total:
-        open_match = _FENCE_OPEN_RE.match(lines[index])
-        if not open_match:
-            out.append(lines[index])
-            index += 1
+        fence_match = _FENCE_OPEN_RE.match(lines[index])
+        if fence_match:
+            chunk, index = _refresh_fence_block(fence_match, lines, index, base_dir)
+            out.extend(chunk)
             continue
-
-        indent = open_match.group("indent")
-        fence = open_match.group("fence")
-        axis = open_match.group("axis")
-
-        # Collect the leading option lines.
-        options: dict[str, str] = {}
-        cursor = index + 1
-        while cursor < total:
-            option_match = _OPTION_RE.match(lines[cursor])
-            if not option_match:
-                break
-            options[option_match.group("key")] = option_match.group("value")
-            cursor += 1
-
-        # Find the closing fence: same indent, at least as many backticks.
-        close = None
-        for probe in range(cursor, total):
-            close_match = _FENCE_CLOSE_RE.match(lines[probe])
-            if (
-                close_match
-                and close_match.group("indent") == indent
-                and len(close_match.group("fence")) >= len(fence)
-            ):
-                close = probe
-                break
-
-        if close is None:
-            # Unterminated block: leave the opening line as-is and move on.
-            out.append(lines[index])
-            index += 1
+        marker_match = _MARKER_OPEN_RE.match(lines[index])
+        if marker_match:
+            chunk, index = _refresh_marker_region(marker_match, lines, index, base_dir)
+            out.extend(chunk)
             continue
-
-        try:
-            table = _render_block(axis, options, base_dir)
-        except (OSError, subprocess.SubprocessError):
-            table = ""
-
-        if not table:
-            # Non-destructive: keep the original block verbatim on failure.
-            out.extend(lines[index : close + 1])
-            index = close + 1
-            continue
-
-        out.append(f"{indent}{fence}{{matrix}} {axis}")
-        for key, value in options.items():
-            out.append(f"{indent}:{key}: {value}" if value else f"{indent}:{key}:")
-        out.append("")
-        out.extend(f"{indent}{row}" if row else row for row in table.splitlines())
-        out.append(f"{indent}{fence}")
-        index = close + 1
+        out.append(lines[index])
+        index += 1
 
     result = "\n".join(out)
     if text.endswith("\n"):

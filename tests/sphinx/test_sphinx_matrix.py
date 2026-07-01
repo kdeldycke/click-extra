@@ -38,6 +38,7 @@ from click_extra.sphinx.matrix import (
     DependencyMatrixGroup,
     PythonMatrixGroup,
     _render_block,
+    _resolve_root,
     _to_specifier_set,
     dependency_matrix_groups,
     dependency_matrix_table,
@@ -530,6 +531,53 @@ def test_matrix_dependency_directive_renders(sphinx_app_myst, synthetic_dep_repo
     assert "<table" in html
     assert "Spec" in html
     assert "2.1.3" in html
+
+
+def test_update_matrix_blocks_marker_form(synthetic_repo, tmp_path) -> None:
+    """The `<!-- matrix AXIS opts -->` comment form refreshes to a raw table."""
+    doc = tmp_path / "page.md"
+    doc.write_text(
+        f"# T\n\n<!-- matrix python package=my-project path={synthetic_repo} -->\n"
+        "<!-- matrix-end -->\n\nafter\n"
+    )
+    assert update_matrix_blocks([doc]) == [doc]
+    text = doc.read_text()
+    # Start/end markers preserved; a raw GFM table sits between them.
+    assert "<!-- matrix python package=my-project" in text
+    assert "<!-- matrix-end -->" in text
+    assert "| `my-project`" in text
+    assert "✅" in text
+    # No directive fence: the table is plain Markdown (renders on GitHub).
+    assert "```{matrix}" not in text
+    # Idempotent.
+    assert update_matrix_blocks([doc]) == []
+
+
+def test_marker_form_renders_natively_in_sphinx(sphinx_app_myst) -> None:
+    """A marker region's raw table renders as a real ``<table>`` with no
+    directive involved (so it renders on GitHub the same way)."""
+    content = dedent("""
+        <!-- matrix python -->
+
+        | `demo`  | `3.14` |
+        | :------ | :----: |
+        | `1.0.x` |   ✅   |
+
+        <!-- matrix-end -->
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    assert "<table" in html
+    assert "demo" in html
+
+
+def test_resolve_root_relative_base_dir(synthetic_repo, monkeypatch) -> None:
+    """A relative ``base_dir`` still resolves to the real repo folder, so the
+    default package label is never the empty ``Path(".").name``."""
+    monkeypatch.chdir(synthetic_repo)
+    root = _resolve_root(None, Path("."))
+    assert root == synthetic_repo.resolve()
+    assert root.name == synthetic_repo.name != ""
 
 
 def test_render_block_raises_without_git(tmp_path, monkeypatch) -> None:
