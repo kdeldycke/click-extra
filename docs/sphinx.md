@@ -846,24 +846,31 @@ Some related projects for build-time Python execution:
 - [`sphinx-jinja`](https://github.com/tardyp/sphinx-jinja): Jinja2 templates with Python context, output parsed as reST/MyST. Closest analogue for the docs-as-code pattern without `exec`.
 ```
 
-## `matrix:*` directives
+(matrix-directives)=
 
-The `matrix` domain provides one always-on directive, `matrix:python`, which renders a package's Python-version compatibility grid. Unlike the `click:*` and `python:*` families, it runs a fixed generator rather than user-supplied Python, so it carries no execution surface and is registered without the `click_extra_enable_exec_directives` opt-in.
+## The `matrix` directive
 
-The table lives **inside** the directive block as its content, kept current by the offline updater described below. Rendering that embedded copy needs no git access, so the matrix is visible in the raw Markdown source (and in pull-request diffs), and the HTML build works on a shallow clone. When the block is empty, the directive falls back to generating the table from the working tree's git tags, so a freshly authored block still renders before its first refresh.
+The `matrix` directive renders a package's release compatibility matrix for a given axis. Unlike the `click:*` and `python:*` families, it runs a fixed generator rather than user-supplied Python, so it carries no execution surface and is registered without the `click_extra_enable_exec_directives` opt-in. Two axes are built in:
 
-This project uses it for the [Python compatibility table in `install.md`](install.md#python-compatibility). You write the block with just its options:
+- `{matrix} python` renders the interpreter matrix (release ranges × Python versions).
+- `{matrix} <distribution>` (like `{matrix} click`) renders a dependency matrix (release ranges × that dependency's versions).
+
+The table lives **inside** the directive block as its content, kept current by the offline updater described below. Rendering that embedded copy needs no git access, so the matrix is visible in the raw Markdown source (and in pull-request diffs), and the HTML build works on a shallow clone. An empty block falls back to generating from the working tree's git tags, so a freshly authored block still renders before its first refresh.
+
+### The `python` axis
+
+This project uses it for the [Python compatibility table in `install.md`](install.md#python-compatibility). You write the block with just its axis and options:
 
 ````{code-block} markdown
-```{matrix:python}
+```{matrix} python
 :package: click-extra
 ```
 ````
 
-and the updater fills in the table below the options, regenerated from every `vMAJOR.MINOR.PATCH` tag (reading the declared Python support from the `Programming Language :: Python :: X.Y` classifiers in `pyproject.toml`, falling back to `requires-python`, Poetry's `python = "..."`, then `setup.py`'s `python_requires`). Consecutive releases that agree are grouped into one row, and a floor-only declaration is capped at the latest Python released while the range was current, so a range never claims support for a Python that did not yet exist:
+and the updater fills in the table below the options, regenerated from every `vMAJOR.MINOR.PATCH` tag (reading the declared Python support from the `Programming Language :: Python :: X.Y` classifiers in `pyproject.toml`, falling back to `requires-python`, Poetry's `python = "..."`, then `setup.py`'s `python_requires`). Consecutive releases that agree are grouped into one row, and a floor-only declaration is capped at the latest Python released while the range was current:
 
 ````{code-block} markdown
-```{matrix:python}
+```{matrix} python
 :package: click-extra
 
 | `click-extra`   | Released   | `3.13` | `3.14` |
@@ -872,28 +879,31 @@ and the updater fills in the table below the options, regenerated from every `vM
 ```
 ````
 
-### Options
+### A dependency axis
 
-| Option            | Effect                                                                            | Default                |
-| ----------------- | --------------------------------------------------------------------------------- | ---------------------- |
-| `:package:`       | Header column label, rendered in backticks.                                       | repository folder name |
-| `:path:`          | Git working tree to walk, absolute or relative to the documented project's root.  | project's git root     |
-| `:python-floor:`  | Drop Python `X.Y` columns below this version.                                     | none (all columns)     |
-| `:version-floor:` | Drop release rows below this package version.                                     | none (all tags)        |
-| `:tag-pattern:`   | Regex selecting release tags.                                                     | `^v\d+\.\d+\.\d+$`     |
-
-The `:path:` option makes the directive reusable across repositories: point it at a sibling checkout to render another package's matrix, and combine the two floors to trim the historical noise.
+`{matrix} <distribution>` tracks a runtime dependency instead. For each release range it reads that distribution's requirement specifier (PEP 621, Poetry, or `setup.py`) and marks ✅ / ❌ for each column version with [`packaging`](https://packaging.pypa.io). Columns are auto-derived: a minor series stays a single `X.Y` column unless an open (`>=`) floor pins a specific patch, in which case it splits into `X.Y.0` plus that floor; the right edge is the version resolved in `uv.lock`. Add `:show-spec:` for a `Spec` column with each range's raw specifier. This project uses it for the [Click compatibility table](install.md#click-compatibility):
 
 ````{code-block} markdown
-```{matrix:python}
-:package: repomatic
-:path: ../repomatic
-:python-floor: 3.11
-:version-floor: 5.0.0
+```{matrix} click
+:package: click-extra
+:show-spec:
 ```
 ````
 
-### Keeping the table current
+### Options
+
+| Option            | Effect                                                                           | Default                |
+| ----------------- | -------------------------------------------------------------------------------- | ---------------------- |
+| `:package:`       | Header column label, rendered in backticks.                                      | repository folder name |
+| `:path:`          | Git working tree to walk, absolute or relative to the documented project's root. | project's git root     |
+| `:version-floor:` | Drop release rows below this package version.                                    | none (all tags)        |
+| `:tag-pattern:`   | Regex selecting release tags.                                                    | `^v\d+\.\d+\.\d+$`     |
+| `:python-floor:`  | (`python` axis) Drop Python `X.Y` columns below this version.                    | none (all columns)     |
+| `:show-spec:`     | (dependency axis) Add a `Spec` column with each range's raw specifier.           | off                    |
+
+The `:path:` option makes the directive reusable across repositories: point it at a sibling checkout to render another package's matrix.
+
+### Keeping the tables current
 
 The embedded tables are refreshed offline, formatter-style, by the `refresh-directives` command (which needs the sphinx extra):
 
@@ -901,7 +911,7 @@ The embedded tables are refreshed offline, formatter-style, by the `refresh-dire
 $ click-extra refresh-directives docs/
 ```
 
-It walks the given Markdown files or directories, regenerates each `matrix:python` block's table from that block's own options and the project's git tags, and rewrites the block in place. Only blocks that already exist are refreshed: nothing is added. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching tags) is left untouched, so a transient failure never wipes a good table.
+It walks the given Markdown files or directories, regenerates each `{matrix}` block's table from that block's axis, options, and the project's git tags, and rewrites the block in place. Only blocks that already exist are refreshed: nothing is added. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching data) is left untouched, so a transient failure never wipes a good table.
 
 ```{note}
 Only the updater (and the empty-block fallback) needs the release tags, since it is the part that shells out to `git`. Run it wherever the full tag history is available. The HTML build renders the embedded table verbatim and needs no git access, so shallow clones and read-only build hosts render the matrix fine.

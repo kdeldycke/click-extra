@@ -140,10 +140,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       the converter is skipped and a one-shot info message points users
       at ``myst-parser``'s native ``"alert"`` extension. See
       :mod:`click_extra.sphinx.alerts` for the deprecation plan.
-    - The ``matrix:python`` directive, which renders a package's
-      Python-version compatibility grid from its git tag history. It runs a
-      canned generator rather than user-supplied Python, so it carries no
-      execution surface and needs no opt-in. See
+    - The ``matrix`` directive, which renders a package's compatibility grid
+      (``{matrix} python`` or ``{matrix} <distribution>``) from its git tag
+      history. It runs a canned generator rather than user-supplied Python, so
+      it carries no execution surface and needs no opt-in. See
       :mod:`click_extra.sphinx.matrix`.
 
     Opt-in features (gated behind ``click_extra_enable_exec_directives``):

@@ -16,8 +16,8 @@
 """Tests for :mod:`click_extra.sphinx.matrix`.
 
 Split in two halves: the dependency-light matrix-generation logic (git tag
-walking, spec parsing, floor filtering) and the ``matrix:python`` Sphinx
-directive that surfaces it. Both live under ``tests/sphinx/`` because importing
+walking, spec parsing, floor filtering) and the ``matrix`` Sphinx directive
+that surfaces it. Both live under ``tests/sphinx/`` because importing
 :mod:`click_extra.sphinx.matrix` pulls in the Sphinx package; the sibling
 ``conftest.py`` skips the whole tree when Sphinx or MyST-Parser is absent.
 """
@@ -35,7 +35,12 @@ from click.testing import CliRunner
 from click_extra.cli import refresh_directives_cmd
 from click_extra.sphinx.matrix import (
     PYTHON_RELEASE_DATES,
+    DependencyMatrixGroup,
     PythonMatrixGroup,
+    _render_block,
+    _to_specifier_set,
+    dependency_matrix_groups,
+    dependency_matrix_table,
     parse_python_spec,
     python_matrix_groups,
     python_matrix_table,
@@ -246,9 +251,9 @@ def test_python_matrix_table_empty(tmp_path: Path) -> None:
 
 
 def test_matrix_python_directive_renders_table(sphinx_app_myst, synthetic_repo) -> None:
-    """``matrix:python`` renders the generated table as a real ``<table>``."""
+    """``{matrix} python`` renders the generated table as a real ``<table>``."""
     content = dedent(f"""
-        ```{{matrix:python}}
+        ```{{matrix}} python
         :package: my-project
         :path: {synthetic_repo}
         ```
@@ -265,7 +270,7 @@ def test_matrix_python_directive_renders_table(sphinx_app_myst, synthetic_repo) 
 def test_matrix_python_directive_respects_floors(sphinx_app_myst, synthetic_repo):
     """The hyphenated directive options map to the floor parameters."""
     content = dedent(f"""
-        ```{{matrix:python}}
+        ```{{matrix}} python
         :package: my-project
         :path: {synthetic_repo}
         :python-floor: 3.12
@@ -288,7 +293,7 @@ def test_matrix_python_directive_no_tags_renders_nothing(sphinx_app_myst, tmp_pa
         ["git", "init", "--initial-branch=main", "--quiet"], cwd=repo, check=True
     )
     content = dedent(f"""
-        ```{{matrix:python}}
+        ```{{matrix}} python
         :package: my-project
         :path: {repo}
         ```
@@ -305,7 +310,7 @@ def test_matrix_python_directive_renders_embedded_table(sphinx_app_myst) -> None
     table in the source, and the build renders that copy verbatim.
     """
     content = dedent("""
-        ```{matrix:python}
+        ```{matrix} python
         :package: demo
 
         | `demo`  | `3.11` | `3.12` |
@@ -329,7 +334,7 @@ def test_update_matrix_blocks_populates_empty_block(synthetic_repo, tmp_path) ->
 
             Intro paragraph.
 
-            ```{{matrix:python}}
+            ```{{matrix}} python
             :package: my-project
             :path: {synthetic_repo}
             ```
@@ -354,7 +359,7 @@ def test_update_matrix_blocks_idempotent(synthetic_repo, tmp_path) -> None:
     doc = tmp_path / "page.md"
     doc.write_text(
         dedent(f"""
-            ```{{matrix:python}}
+            ```{{matrix}} python
             :package: my-project
             :path: {synthetic_repo}
             ```
@@ -368,7 +373,7 @@ def test_update_matrix_blocks_check_mode(synthetic_repo, tmp_path) -> None:
     """``check=True`` flags a stale block without writing to disk."""
     doc = tmp_path / "page.md"
     original = dedent(f"""
-        ```{{matrix:python}}
+        ```{{matrix}} python
         :package: my-project
         :path: {synthetic_repo}
         ```
@@ -382,7 +387,7 @@ def test_update_matrix_blocks_leaves_bad_path_untouched(tmp_path) -> None:
     """A block whose git generation fails is left byte-for-byte unchanged."""
     doc = tmp_path / "page.md"
     original = dedent("""
-        ```{matrix:python}
+        ```{matrix} python
         :package: nope
         :path: /nonexistent/not-a-repo
         ```
@@ -397,7 +402,7 @@ def test_refresh_directives_cli(synthetic_repo, tmp_path) -> None:
     doc = tmp_path / "page.md"
     doc.write_text(
         dedent(f"""
-            ```{{matrix:python}}
+            ```{{matrix}} python
             :package: my-project
             :path: {synthetic_repo}
             ```
@@ -421,10 +426,151 @@ def test_refresh_directives_cli(synthetic_repo, tmp_path) -> None:
 def test_refresh_directives_cli_without_sphinx(tmp_path, monkeypatch) -> None:
     """The command fails gracefully (not a traceback) when sphinx is absent."""
     doc = tmp_path / "page.md"
-    doc.write_text("```{matrix:python}\n:package: x\n```\n")
+    doc.write_text("```{matrix} python\n:package: x\n```\n")
     # Simulate the optional sphinx extra being uninstalled: a ``None`` entry in
     # ``sys.modules`` makes the lazy ``import`` raise ImportError.
     monkeypatch.setitem(sys.modules, "click_extra.sphinx.matrix", None)
     result = CliRunner().invoke(refresh_directives_cmd, [str(doc)])
     assert result.exit_code != 0
     assert "sphinx" in result.output.lower()
+
+
+@pytest.mark.parametrize(
+    ("spec", "member", "nonmember"),
+    [
+        (">=8.3.1", "8.4.0", "8.3.0"),
+        (">= 8.3.0", "8.3.0", "8.2.9"),
+        # Compatible-release caps at the next minor.
+        ("~= 8.1.4", "8.1.9", "8.2.0"),
+        # Poetry caret caps at the next major.
+        ("^8.1", "8.9.0", "9.0.0"),
+        # Poetry tilde caps at the next minor.
+        ("~8.1", "8.1.9", "8.2.0"),
+    ],
+)
+def test_to_specifier_set(spec: str, member: str, nonmember: str) -> None:
+    spec_set = _to_specifier_set(spec)
+    assert spec_set is not None
+    assert spec_set.contains(member, prereleases=True)
+    assert not spec_set.contains(nonmember, prereleases=True)
+
+
+@pytest.fixture
+def synthetic_dep_repo(tmp_path: Path) -> Path:
+    """A git repo whose ``widget`` dependency floor evolves across two tags,
+    exercising both minor-grouped and patch-split column derivation.
+    """
+    repo = tmp_path / "deprepo"
+    repo.mkdir()
+
+    def run(*args: str) -> None:
+        subprocess.run(args, cwd=repo, check=True, capture_output=True)
+
+    run("git", "init", "--initial-branch=main", "--quiet")
+    run("git", "config", "user.email", "t@e.com")
+    run("git", "config", "user.name", "T")
+    run("git", "config", "commit.gpgsign", "false")
+
+    (repo / "pyproject.toml").write_text(
+        '[project]\ndependencies = ["widget>=1.0"]\n'
+    )
+    run("git", "add", "pyproject.toml")
+    run("git", "commit", "-m", "v1.0.0", "--quiet")
+    run("git", "tag", "v1.0.0")
+
+    (repo / "pyproject.toml").write_text(
+        '[project]\ndependencies = ["widget>=2.1.3"]\n'
+    )
+    run("git", "add", "pyproject.toml")
+    run("git", "commit", "-m", "v2.0.0", "--quiet")
+    run("git", "tag", "v2.0.0")
+
+    return repo
+
+
+def test_dependency_matrix_groups(synthetic_dep_repo: Path) -> None:
+    groups = dependency_matrix_groups(synthetic_dep_repo, "widget")
+    assert all(isinstance(g, DependencyMatrixGroup) for g in groups)
+    assert [g.spec for g in groups] == [">=1.0", ">=2.1.3"]
+
+
+def test_dependency_matrix_table_columns_and_cells(synthetic_dep_repo: Path) -> None:
+    table = dependency_matrix_table(synthetic_dep_repo, "proj", "widget", show_spec=True)
+    # Minor 1.0 stays grouped; the open >=2.1.3 floor splits 2.1 into .0 / .3.
+    assert "`1.0`" in table
+    assert "`2.1.0`" in table
+    assert "`2.1.3`" in table
+    # The Spec column carries each range's raw specifier.
+    assert "Spec" in table
+    assert "`>=1.0`" in table
+    assert "`>=2.1.3`" in table
+    assert "✅" in table and "❌" in table
+
+
+def test_dependency_matrix_table_empty(tmp_path: Path) -> None:
+    repo = tmp_path / "empty"
+    repo.mkdir()
+    subprocess.run(
+        ["git", "init", "--initial-branch=main", "--quiet"], cwd=repo, check=True
+    )
+    assert dependency_matrix_table(repo, "proj", "widget") == ""
+
+
+def test_matrix_dependency_directive_renders(sphinx_app_myst, synthetic_dep_repo):
+    """``{matrix} <dep>`` renders the dependency matrix as a real ``<table>``."""
+    content = dedent(f"""
+        ```{{matrix}} widget
+        :package: proj
+        :path: {synthetic_dep_repo}
+        :show-spec:
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    assert "<table" in html
+    assert "Spec" in html
+    assert "2.1.3" in html
+
+
+def test_render_block_raises_without_git(tmp_path, monkeypatch) -> None:
+    """With git absent from PATH, generation raises an error the callers catch."""
+    monkeypatch.setenv("PATH", "")
+    with pytest.raises((OSError, subprocess.SubprocessError)):
+        _render_block("python", {"path": str(tmp_path)}, tmp_path)
+
+
+def test_update_matrix_blocks_preserves_table_without_git(tmp_path, monkeypatch):
+    """Refreshing is non-destructive when git is unavailable: an embedded table
+    stays put rather than being wiped by a failed regeneration."""
+    doc = tmp_path / "page.md"
+    doc.write_text(
+        "```{matrix} python\n"
+        ":package: p\n\n"
+        "| `p`     | `3.14` |\n"
+        "| :------ | :----: |\n"
+        "| `1.0.0` |   ✅   |\n"
+        "```\n"
+    )
+    monkeypatch.setenv("PATH", "")
+    assert update_matrix_blocks([doc]) == []
+    assert "| `p`" in doc.read_text()
+    assert "✅" in doc.read_text()
+
+
+def test_matrix_directive_renders_embedded_without_git(sphinx_app_myst, monkeypatch):
+    """A populated block renders at build time with no git on PATH: the
+    shallow-clone / no-git CI case the embedded copy is designed for."""
+    monkeypatch.setenv("PATH", "")
+    content = dedent("""
+        ```{matrix} python
+        :package: demo
+
+        | `demo`  | `3.14` |
+        | :------ | :----: |
+        | `1.0.x` |   ✅   |
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    assert "<table" in html
+    assert "demo" in html
