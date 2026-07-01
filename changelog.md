@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.2.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.2.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.2.1` (2026-07-01)](https://github.com/kdeldycke/click-extra/compare/v8.2.0...v8.2.1)
 
 ## [`8.2.0` (2026-07-01)](https://github.com/kdeldycke/click-extra/compare/v8.1.4...v8.2.0)
