@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 import threading
 from textwrap import dedent
-from time import sleep
+from time import monotonic, sleep
 from unittest.mock import patch
 
 import click
@@ -247,6 +247,38 @@ def test_run_jobs_without_context_runs_sequential():
     assert list(run_jobs(str, [1, 2, 3])) == ["1", "2", "3"]
 
 
+def test_run_jobs_interrupt_aborts_without_blocking():
+    """A KeyboardInterrupt returns at once, without waiting on in-flight tasks.
+
+    Results yield in submission order, so the interrupting item (index 0) is
+    pulled first: the abort fires while a second, still-running item is parked on
+    an event that stays unset for the run. The old ``with``-block teardown would
+    ``shutdown(wait=True)`` and hang on that parked task; the hardened path drops
+    queued work and returns immediately.
+    """
+    blocker_started = threading.Event()
+    release = threading.Event()
+
+    def work(n):
+        if n == 0:
+            # Only interrupt once the blocker is actually running.
+            blocker_started.wait(timeout=5)
+            raise KeyboardInterrupt
+        blocker_started.set()
+        release.wait(timeout=10)
+        return n
+
+    start = monotonic()
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            # jobs=2 so the interrupter and the blocker run at once.
+            list(run_jobs(work, [0, 1], jobs=2))
+        # Far below the blocker's 10s park: proves we did not wait on it.
+        assert monotonic() - start < 4
+    finally:
+        release.set()
+
+
 def test_resolve_jobs_without_context_is_sequential():
     """No context means nothing to read a job count from: stay sequential."""
     assert resolve_jobs(None, 5) == 1
@@ -374,6 +406,32 @@ def test_run_lanes_empty_yields_nothing():
     """No lanes, or only empty lanes, yields nothing and raises nothing."""
     assert list(run_lanes(str, [])) == []
     assert list(run_lanes(str, [[], []], jobs=2)) == []
+
+
+def test_run_lanes_interrupt_aborts_without_blocking():
+    """A KeyboardInterrupt returns at once, without waiting on in-flight lanes.
+
+    Mirror of :func:`test_run_jobs_interrupt_aborts_without_blocking`: see it for
+    the rationale.
+    """
+    blocker_started = threading.Event()
+    release = threading.Event()
+
+    def work(n):
+        if n == 0:
+            blocker_started.wait(timeout=5)
+            raise KeyboardInterrupt
+        blocker_started.set()
+        release.wait(timeout=10)
+        return n
+
+    start = monotonic()
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            list(run_lanes(work, ([0], [1]), jobs=2))
+        assert monotonic() - start < 4
+    finally:
+        release.set()
 
 
 def test_invalid_value(invoke):

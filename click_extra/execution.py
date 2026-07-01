@@ -362,9 +362,27 @@ def run_jobs(
             yield func(item)
     else:
         # Parallel: every item is submitted up front and results are yielded in
-        # submission order. Breaking early does not cancel running work.
-        with ThreadPoolExecutor(max_workers=min(jobs, len(work))) as executor:
+        # submission order.
+        executor = ThreadPoolExecutor(max_workers=min(jobs, len(work)))
+        try:
             yield from executor.map(func, work)
+        except (KeyboardInterrupt, GeneratorExit):
+            # Prompt abort (Ctrl+C, or the caller closing us early): drop the
+            # queued items and return at once, without blocking on the tasks
+            # already in flight. A running thread cannot be cancelled, so those
+            # keep going until they return; a caller that needs them to stop
+            # sooner (killing a subprocess, say) must arrange that itself. This
+            # is why a plain ``with`` block is not used: its
+            # ``shutdown(wait=True)`` teardown would block until every in-flight
+            # task finished, defeating the interrupt.
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+        except BaseException:
+            # A task raised: keep the drain-then-propagate semantics of ``with``.
+            executor.shutdown(wait=True)
+            raise
+        else:
+            executor.shutdown(wait=True)
 
 
 def run_lanes(
@@ -421,9 +439,21 @@ def run_lanes(
         def run_chain(lane: list[T]) -> list[R]:
             return [func(item) for item in lane]
 
-        with ThreadPoolExecutor(max_workers=jobs) as executor:
+        executor = ThreadPoolExecutor(max_workers=jobs)
+        try:
             for chain_results in executor.map(run_chain, lane_list):
                 yield from chain_results
+        except (KeyboardInterrupt, GeneratorExit):
+            # Prompt abort: drop queued lanes and return without blocking on the
+            # in-flight ones. See :func:`run_jobs` for the full rationale.
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+        except BaseException:
+            # A task raised: keep the drain-then-propagate semantics of ``with``.
+            executor.shutdown(wait=True)
+            raise
+        else:
+            executor.shutdown(wait=True)
 
 
 class TimerOption(ExtraOption):
