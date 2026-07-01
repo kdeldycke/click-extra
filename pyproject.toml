@@ -420,10 +420,6 @@ addopts = [
 testpaths = [ "tests" ]
 # Make sure tests that are expected to fail do not resurect and start working all of a sudden.
 xfail_strict = true
-# Dump every thread's traceback if a single test runs longer than this many
-# seconds, turning a silent hang (a blocking call with no timeout) into a
-# diagnosable dump in the log instead of stalling until the CI job's limit.
-faulthandler_timeout = "90"
 
 [tool.coverage]
 # https://coverage.readthedocs.io/en/latest/config.html
