@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.2.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.2.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.2.0` (2026-07-01)](https://github.com/kdeldycke/click-extra/compare/v8.1.4...v8.2.0)
 
 - Add a `--export-config FORMAT` option to every `@command` and `@group`: it renders the resolved configuration on `<stdout>` in any writable format (`toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson`, `xml`), then exits. Adds `ExportConfigOption`, `@export_config_option` and `SERIALIZABLE_FORMATS` to the public API.
