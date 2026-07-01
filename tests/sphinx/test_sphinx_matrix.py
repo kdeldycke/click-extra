@@ -1,0 +1,430 @@
+# Copyright Kevin Deldycke <kevin@deldycke.com> and contributors.
+#
+# This program is Free Software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+"""Tests for :mod:`click_extra.sphinx.matrix`.
+
+Split in two halves: the dependency-light matrix-generation logic (git tag
+walking, spec parsing, floor filtering) and the ``matrix:python`` Sphinx
+directive that surfaces it. Both live under ``tests/sphinx/`` because importing
+:mod:`click_extra.sphinx.matrix` pulls in the Sphinx package; the sibling
+``conftest.py`` skips the whole tree when Sphinx or MyST-Parser is absent.
+"""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+from textwrap import dedent
+
+import pytest
+from click.testing import CliRunner
+
+from click_extra.cli import refresh_directives_cmd
+from click_extra.sphinx.matrix import (
+    PYTHON_RELEASE_DATES,
+    PythonMatrixGroup,
+    parse_python_spec,
+    python_matrix_groups,
+    python_matrix_table,
+    python_versions_released_by,
+    update_matrix_blocks,
+)
+
+
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        # PEP 440.
+        (">=3.10", ("3.10", "", set())),
+        (">= 3.10", ("3.10", "", set())),
+        (">=3.10,<3.14", ("3.10", "3.14", set())),
+        (">=3.10, <3.14", ("3.10", "3.14", set())),
+        (
+            ">= 2.7, != 3.0.*, != 3.1.*, != 3.2.*",
+            ("2.7", "", {"3.0", "3.1", "3.2"}),
+        ),
+        # setup.py's older non-wildcard syntax.
+        (">= 2.7, != 3.0, != 3.1, != 3.2", ("2.7", "", {"3.0", "3.1", "3.2"})),
+        # Poetry caret expands to major-bump ceiling.
+        ("^3.7", ("3.7", "4.0", set())),
+        ("^3.10", ("3.10", "4.0", set())),
+        # Poetry tilde expands to minor-bump ceiling.
+        ("~3.7", ("3.7", "3.8", set())),
+        # Empty / whitespace.
+        ("", ("", "", set())),
+        ("   ", ("", "", set())),
+    ],
+)
+def test_parse_python_spec(spec: str, expected: tuple[str, str, set[str]]) -> None:
+    assert parse_python_spec(spec) == expected
+
+
+def test_python_versions_released_by_default_table() -> None:
+    # Python 3.10 released 2021-10-04, 3.11 released 2022-10-24.
+    assert "3.10" in python_versions_released_by("2022-01-01")
+    assert "3.11" not in python_versions_released_by("2022-01-01")
+    assert "3.11" in python_versions_released_by("2023-01-01")
+
+
+def test_python_versions_released_by_sorted_ascending() -> None:
+    result = python_versions_released_by("2020-01-01")
+    assert result == sorted(result, key=lambda v: tuple(int(p) for p in v.split(".")))
+
+
+def test_python_versions_released_by_custom_table() -> None:
+    custom = {"3.99": "2099-01-01", "3.5": "2010-01-01"}
+    assert python_versions_released_by("2020-01-01", release_dates=custom) == ["3.5"]
+    assert python_versions_released_by("2099-06-01", release_dates=custom) == [
+        "3.5",
+        "3.99",
+    ]
+
+
+def test_python_release_dates_shape() -> None:
+    """Every entry must be ``X.Y`` → ISO date string."""
+    for version, iso_date in PYTHON_RELEASE_DATES.items():
+        assert version.count(".") == 1
+        major, minor = version.split(".")
+        assert major.isdigit()
+        assert minor.isdigit()
+        assert len(iso_date) == 10
+        assert iso_date[4] == "-" and iso_date[7] == "-"
+
+
+@pytest.fixture
+def synthetic_repo(tmp_path: Path) -> Path:
+    """Build a tiny git repo with two tagged commits declaring different
+    Python support sets, so ``python_matrix_groups`` sees an evolution.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def run(*args: str) -> None:
+        subprocess.run(args, cwd=repo, check=True, capture_output=True)
+
+    run("git", "init", "--initial-branch=main", "--quiet")
+    run("git", "config", "user.email", "test@example.com")
+    run("git", "config", "user.name", "Test")
+    run("git", "config", "commit.gpgsign", "false")
+
+    # Tag v1.0.0: Poetry-style declaration, no classifiers.
+    (repo / "pyproject.toml").write_text(
+        "[tool.poetry.dependencies]\npython = \"^3.10\"\n"
+    )
+    run("git", "add", "pyproject.toml")
+    run("git", "commit", "-m", "v1.0.0", "--quiet")
+    run("git", "tag", "v1.0.0")
+
+    # Tag v2.0.0: PEP 621 + classifiers.
+    (repo / "pyproject.toml").write_text(
+        '[project]\nrequires-python = ">=3.11"\n'
+        'classifiers = [\n'
+        '  "Programming Language :: Python :: 3.11",\n'
+        '  "Programming Language :: Python :: 3.12",\n'
+        ']\n'
+    )
+    run("git", "add", "pyproject.toml")
+    run("git", "commit", "-m", "v2.0.0", "--quiet")
+    run("git", "tag", "v2.0.0")
+
+    return repo
+
+
+def test_python_matrix_groups_synthetic(synthetic_repo: Path) -> None:
+    groups = python_matrix_groups(synthetic_repo)
+    assert len(groups) == 2
+    # v1.0.0: Poetry ``^3.10`` capped at next-group-start = v2.0.0's date.
+    # v2.0.0 commits are all on the same day, so the cap barely stretches
+    # past v1.0.0; the exact set depends on when Python versions had shipped
+    # relative to that day. The floor is what we can assert deterministically.
+    assert groups[0].first_tag == "v1.0.0"
+    assert "3.10" in groups[0].python_versions
+    # v2.0.0: classifiers drive the set.
+    assert groups[1].first_tag == "v2.0.0"
+    assert groups[1].python_versions == ("3.11", "3.12")
+
+
+def test_python_matrix_groups_returns_named_tuple(synthetic_repo: Path) -> None:
+    groups = python_matrix_groups(synthetic_repo)
+    assert all(isinstance(g, PythonMatrixGroup) for g in groups)
+    assert groups[0].first_tag == groups[0][0]
+    assert groups[0].python_versions == groups[0][3]
+
+
+def test_python_matrix_groups_no_tags(tmp_path: Path) -> None:
+    """A repo with no matching tags returns an empty list."""
+    repo = tmp_path / "empty"
+    repo.mkdir()
+    subprocess.run(
+        ["git", "init", "--initial-branch=main", "--quiet"], cwd=repo, check=True
+    )
+    assert python_matrix_groups(repo) == []
+
+
+def test_python_matrix_groups_version_floor(synthetic_repo: Path) -> None:
+    """``version_floor`` drops release tags below the bare version."""
+    # Floor at 2.0.0 keeps only v2.0.0, so the v1.0.0 group disappears.
+    groups = python_matrix_groups(synthetic_repo, version_floor="2.0.0")
+    assert len(groups) == 1
+    assert groups[0].first_tag == "v2.0.0"
+    assert groups[0].python_versions == ("3.11", "3.12")
+    # A floor above every tag yields no group at all.
+    assert python_matrix_groups(synthetic_repo, version_floor="99.0.0") == []
+
+
+def test_python_matrix_groups_ceiling_honored(tmp_path: Path) -> None:
+    """A declared ``<X.Y`` ceiling excludes those versions from ``✅``."""
+    repo = tmp_path / "ceiling"
+    repo.mkdir()
+
+    def run(*args: str) -> None:
+        subprocess.run(args, cwd=repo, check=True, capture_output=True)
+
+    run("git", "init", "--initial-branch=main", "--quiet")
+    run("git", "config", "user.email", "t@e.com")
+    run("git", "config", "user.name", "T")
+    run("git", "config", "commit.gpgsign", "false")
+    (repo / "pyproject.toml").write_text(
+        '[project]\nrequires-python = ">=3.10,<3.13"\n'
+    )
+    run("git", "add", "pyproject.toml")
+    run("git", "commit", "-m", "v1.0.0", "--quiet")
+    run("git", "tag", "v1.0.0")
+
+    groups = python_matrix_groups(repo)
+    assert len(groups) == 1
+    assert "3.10" in groups[0].python_versions
+    assert "3.11" in groups[0].python_versions
+    assert "3.12" in groups[0].python_versions
+    # 3.13 is above the explicit ceiling.
+    assert "3.13" not in groups[0].python_versions
+
+
+def test_python_matrix_table_synthetic(synthetic_repo: Path) -> None:
+    table = python_matrix_table(synthetic_repo, "my-project")
+    # Header row must carry the label in backticks and the version columns.
+    assert "`my-project`" in table
+    assert "Released" in table
+    assert "`3.11`" in table
+    assert "`3.12`" in table
+    # The table body contains ✅ / ❌ glyphs.
+    assert "✅" in table
+    assert "❌" in table
+
+
+def test_python_matrix_table_python_floor(synthetic_repo: Path) -> None:
+    """``python_floor`` trims the low Python columns from the header."""
+    table = python_matrix_table(synthetic_repo, "my-project", python_floor="3.12")
+    assert "`3.12`" in table
+    # Columns below the floor are gone.
+    assert "`3.10`" not in table
+    assert "`3.11`" not in table
+
+
+def test_python_matrix_table_empty(tmp_path: Path) -> None:
+    """An empty repo produces the empty string, matching the ``if not
+    groups: return ""`` early exit."""
+    repo = tmp_path / "empty"
+    repo.mkdir()
+    subprocess.run(
+        ["git", "init", "--initial-branch=main", "--quiet"], cwd=repo, check=True
+    )
+    assert python_matrix_table(repo, "proj") == ""
+
+
+def test_matrix_python_directive_renders_table(sphinx_app_myst, synthetic_repo) -> None:
+    """``matrix:python`` renders the generated table as a real ``<table>``."""
+    content = dedent(f"""
+        ```{{matrix:python}}
+        :package: my-project
+        :path: {synthetic_repo}
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    # The GitHub-flavored table is parsed by the host MyST parser into HTML.
+    assert "<table" in html
+    assert "my-project" in html
+    assert "3.11" in html
+    assert "3.12" in html
+
+
+def test_matrix_python_directive_respects_floors(sphinx_app_myst, synthetic_repo):
+    """The hyphenated directive options map to the floor parameters."""
+    content = dedent(f"""
+        ```{{matrix:python}}
+        :package: my-project
+        :path: {synthetic_repo}
+        :python-floor: 3.12
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    assert "<table" in html
+    # 3.12 column survives the floor; 3.10 / 3.11 header cells are dropped.
+    assert ">3.12<" in html
+    assert ">3.10<" not in html
+    assert ">3.11<" not in html
+
+
+def test_matrix_python_directive_no_tags_renders_nothing(sphinx_app_myst, tmp_path):
+    """A repository with no release tags yields no table (a build warning)."""
+    repo = tmp_path / "untagged"
+    repo.mkdir()
+    subprocess.run(
+        ["git", "init", "--initial-branch=main", "--quiet"], cwd=repo, check=True
+    )
+    content = dedent(f"""
+        ```{{matrix:python}}
+        :package: my-project
+        :path: {repo}
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    assert "<table" not in html
+
+
+def test_matrix_python_directive_renders_embedded_table(sphinx_app_myst) -> None:
+    """An embedded table renders as a real ``<table>`` without any git access.
+
+    This is the self-updating steady state: the offline updater keeps the
+    table in the source, and the build renders that copy verbatim.
+    """
+    content = dedent("""
+        ```{matrix:python}
+        :package: demo
+
+        | `demo`  | `3.11` | `3.12` |
+        | :------ | :----: | :----: |
+        | `1.0.x` |   ✅   |   ❌   |
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    assert "<table" in html
+    assert "demo" in html
+    assert "✅" in html and "❌" in html
+
+
+def test_update_matrix_blocks_populates_empty_block(synthetic_repo, tmp_path) -> None:
+    """The updater fills an empty block, keeping options and surrounding text."""
+    doc = tmp_path / "page.md"
+    doc.write_text(
+        dedent(f"""
+            # Doc
+
+            Intro paragraph.
+
+            ```{{matrix:python}}
+            :package: my-project
+            :path: {synthetic_repo}
+            ```
+
+            Outro paragraph.
+        """)
+    )
+    assert update_matrix_blocks([doc]) == [doc]
+    text = doc.read_text()
+    assert "| `my-project`" in text
+    assert "✅" in text
+    # Options preserved verbatim.
+    assert ":package: my-project" in text
+    assert f":path: {synthetic_repo}" in text
+    # Prose around the block is untouched.
+    assert "Intro paragraph." in text
+    assert "Outro paragraph." in text
+
+
+def test_update_matrix_blocks_idempotent(synthetic_repo, tmp_path) -> None:
+    """A second run over freshly written blocks reports no change."""
+    doc = tmp_path / "page.md"
+    doc.write_text(
+        dedent(f"""
+            ```{{matrix:python}}
+            :package: my-project
+            :path: {synthetic_repo}
+            ```
+        """)
+    )
+    assert update_matrix_blocks([doc]) == [doc]
+    assert update_matrix_blocks([doc]) == []
+
+
+def test_update_matrix_blocks_check_mode(synthetic_repo, tmp_path) -> None:
+    """``check=True`` flags a stale block without writing to disk."""
+    doc = tmp_path / "page.md"
+    original = dedent(f"""
+        ```{{matrix:python}}
+        :package: my-project
+        :path: {synthetic_repo}
+        ```
+    """)
+    doc.write_text(original)
+    assert update_matrix_blocks([doc], check=True) == [doc]
+    assert doc.read_text() == original
+
+
+def test_update_matrix_blocks_leaves_bad_path_untouched(tmp_path) -> None:
+    """A block whose git generation fails is left byte-for-byte unchanged."""
+    doc = tmp_path / "page.md"
+    original = dedent("""
+        ```{matrix:python}
+        :package: nope
+        :path: /nonexistent/not-a-repo
+        ```
+    """)
+    doc.write_text(original)
+    assert update_matrix_blocks([doc]) == []
+    assert doc.read_text() == original
+
+
+def test_refresh_directives_cli(synthetic_repo, tmp_path) -> None:
+    """`click-extra refresh-directives` refreshes in place; --check gates CI."""
+    doc = tmp_path / "page.md"
+    doc.write_text(
+        dedent(f"""
+            ```{{matrix:python}}
+            :package: my-project
+            :path: {synthetic_repo}
+            ```
+        """)
+    )
+    runner = CliRunner()
+    # A stale block exits non-zero under --check, without writing.
+    result = runner.invoke(refresh_directives_cmd, ["--check", str(doc)])
+    assert result.exit_code == 1
+    assert "| `my-project`" not in doc.read_text()
+    # Write mode refreshes the block and names the file.
+    result = runner.invoke(refresh_directives_cmd, [str(doc)])
+    assert result.exit_code == 0
+    assert "refreshed" in result.output
+    assert "| `my-project`" in doc.read_text()
+    # A freshly refreshed block is clean.
+    result = runner.invoke(refresh_directives_cmd, ["--check", str(doc)])
+    assert result.exit_code == 0
+
+
+def test_refresh_directives_cli_without_sphinx(tmp_path, monkeypatch) -> None:
+    """The command fails gracefully (not a traceback) when sphinx is absent."""
+    doc = tmp_path / "page.md"
+    doc.write_text("```{matrix:python}\n:package: x\n```\n")
+    # Simulate the optional sphinx extra being uninstalled: a ``None`` entry in
+    # ``sys.modules`` makes the lazy ``import`` raise ImportError.
+    monkeypatch.setitem(sys.modules, "click_extra.sphinx.matrix", None)
+    result = CliRunner().invoke(refresh_directives_cmd, [str(doc)])
+    assert result.exit_code != 0
+    assert "sphinx" in result.output.lower()

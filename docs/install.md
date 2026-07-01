@@ -119,21 +119,21 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ## Python compatibility
 
-The table below shows which Python versions each `click-extra` release range supports. For `4.9.0` and later, support comes from the `Programming Language :: Python :: 3.X` classifiers in `pyproject.toml`. For earlier releases, the floor comes from the `requires-python` declaration (Poetry `python = "..."` for older tags), capped at the latest Python released within the range.
+The table below shows which Python versions each `click-extra` release range supports. For `4.9.0` and later, support comes from the `Programming Language :: Python :: 3.X` classifiers in `pyproject.toml`. For earlier releases, the floor comes from the `requires-python` declaration (Poetry `python = "..."` for older tags), capped at the latest Python released within the range. It is regenerated from the release tags on every documentation build by the [`matrix:python`](sphinx.md#matrix-directives) directive:
 
-<!-- python-compat-start -->
+```{matrix:python}
+:package: click-extra
 
 | `click-extra`       | Released   | `3.7` | `3.8` | `3.9` | `3.10` | `3.11` | `3.12` | `3.13` | `3.14` |
 | :------------------ | :--------- | :---: | :---: | :---: | :----: | :----: | :----: | :----: | :----: |
 | `6.2.x` → `8.x`     | 2025-11-04 |  ❌   |  ❌   |  ❌   |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |
-| `6.0.1` → `6.1.x`   | 2025-10-08 |  ❌   |  ❌   |  ❌   |   ❌   |   ✅   |   ✅   |   ✅   |   ✅   |
-| `5.x` → `6.0.0`     | 2025-05-13 |  ❌   |  ❌   |  ❌   |   ❌   |   ✅   |   ✅   |   ✅   |   ❌   |
+| `6.0.x` → `6.1.x`   | 2025-10-08 |  ❌   |  ❌   |  ❌   |   ❌   |   ✅   |   ✅   |   ✅   |   ✅   |
+| `5.0.x` → `6.0.x`   | 2025-05-13 |  ❌   |  ❌   |  ❌   |   ❌   |   ✅   |   ✅   |   ✅   |   ❌   |
 | `4.11.x` → `4.15.x` | 2024-10-08 |  ❌   |  ❌   |  ❌   |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |
 | `4.9.x` → `4.10.x`  | 2024-07-25 |  ❌   |  ❌   |  ✅   |   ✅   |   ✅   |   ✅   |   ❌   |   ❌   |
-| `4.0.0` → `4.8.x`   | 2023-05-08 |  ❌   |  ✅   |  ✅   |   ✅   |   ✅   |   ✅   |   ❌   |   ❌   |
-| `0.0.1` → `3.10.x`  | 2021-10-18 |  ✅   |  ✅   |  ✅   |   ✅   |   ✅   |   ❌   |   ❌   |   ❌   |
-
-<!-- python-compat-end -->
+| `4.0.x` → `4.8.x`   | 2023-05-08 |  ❌   |  ✅   |  ✅   |   ✅   |   ✅   |   ✅   |   ❌   |   ❌   |
+| `0.0.x` → `3.10.x`  | 2021-10-18 |  ✅   |  ✅   |  ✅   |   ✅   |   ✅   |   ❌   |   ❌   |   ❌   |
+```
 
 ## Click compatibility
 

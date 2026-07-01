@@ -48,6 +48,7 @@ from . import (
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
 from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
 from .envvar import merge_envvar_ids
+from .parameters import missing_extra_message
 from .prebake import (
     _find_dunder_str,
     discover_package_init_files,
@@ -280,6 +281,59 @@ def test_suite_cmd(
 
 
 demo.add_command(test_suite_cmd)
+
+
+@command(name="refresh-directives")
+@argument(
+    "paths",
+    nargs=-1,
+    required=True,
+    type=click.Path(exists=True, path_type=Path),
+)
+@option(
+    "--check",
+    is_flag=True,
+    default=False,
+    help="Do not write; exit with a non-zero status if any block is stale.",
+)
+@pass_context
+def refresh_directives_cmd(
+    ctx: context.Context,
+    paths: tuple[Path, ...],
+    check: bool,
+) -> None:
+    """Refresh the self-updating directive blocks embedded in Markdown files.
+
+    Walks each PATH (a Markdown file, or a directory scanned recursively for
+    Markdown sources) and regenerates the content of every supported
+    self-updating directive from its own options, rewriting the block in place.
+    Only blocks that already exist are refreshed: nothing is added or removed.
+
+    Pass --check to report stale blocks without writing; the command then exits
+    with a non-zero status, so a continuous-integration job can fail on
+    out-of-date documentation.
+
+    Refreshing reads the project git history and needs the sphinx extra:
+    install it with click-extra[sphinx].
+    """
+    # Imported lazily so the sphinx extra stays optional: this is the only CLI
+    # command that needs it. Importing it eagerly would break the rest of the
+    # CLI when sphinx is absent, and slow every invocation with a heavy import.
+    try:
+        from .sphinx.matrix import update_matrix_blocks
+    except ImportError as error:
+        raise ClickException(
+            missing_extra_message("sphinx", subject="Refreshing directives"),
+        ) from error
+
+    changed = update_matrix_blocks(paths, check=check)
+    for path in changed:
+        echo(f"{'would refresh' if check else 'refreshed'}: {path}")
+    if check and changed:
+        ctx.exit(1)
+
+
+demo.add_command(refresh_directives_cmd)
 
 
 _ALL_STYLES = (

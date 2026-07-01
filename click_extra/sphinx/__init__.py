@@ -36,7 +36,7 @@ from sphinx.util import logging
 
 from .. import __version__
 from ..pygments import AnsiHtmlFormatter
-from . import manpages
+from . import manpages, matrix
 from .alerts import convert_github_alerts
 from .click import ClickDomain, cleanup_runner
 from .python import PythonDomain, cleanup_python_runner
@@ -140,6 +140,11 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       the converter is skipped and a one-shot info message points users
       at ``myst-parser``'s native ``"alert"`` extension. See
       :mod:`click_extra.sphinx.alerts` for the deprecation plan.
+    - The ``matrix:python`` directive, which renders a package's
+      Python-version compatibility grid from its git tag history. It runs a
+      canned generator rather than user-supplied Python, so it carries no
+      execution surface and needs no opt-in. See
+      :mod:`click_extra.sphinx.matrix`.
 
     Opt-in features (gated behind ``click_extra_enable_exec_directives``):
 
@@ -176,6 +181,12 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # Wire the man-page emit hook (see manpages.py). No-op until a project
     # declares one or more entries in `click_extra_manpages`.
     manpages.setup(app)
+
+    # Register the always-on `matrix:*` compatibility-matrix directives (see
+    # matrix.py). Unlike the `click:*` / `python:*` families, these run a
+    # canned generator against the documented project's git history rather
+    # than user-supplied Python, so they need no exec opt-in.
+    matrix.setup(app)
 
     # Register GitHub alerts converter only when myst-parser predates
     # the native "alert" syntax extension (added in 5.1.0). On newer
