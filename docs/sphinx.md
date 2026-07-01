@@ -857,7 +857,7 @@ The `matrix` directive renders a package's release compatibility matrix for a gi
 
 The generated table lives **in the source**, kept current by the offline updater described below, so it shows up in the raw Markdown (and in pull-request diffs) and the HTML build needs no git access (it works on a shallow clone). There are two ways to write it, both refreshed by the same `refresh-directives` command:
 
-- **A directive fence**, `` ```{matrix} python `` … `` ``` ``, rendered by Sphinx. Simplest on a docs-only page, but GitHub shows the fenced block as a code block. An empty fence falls back to generating from the git tags at build time, so a freshly authored block renders before its first refresh.
+- **A directive fence**, ```` ```{matrix} python ```` … ```` ``` ````, rendered by Sphinx. Simplest on a docs-only page, but GitHub shows the fenced block as a code block. An empty fence falls back to generating from the git tags at build time, so a freshly authored block renders before its first refresh.
 - **A comment marker region**, `<!-- matrix python -->` … `<!-- matrix-end -->`, with the raw table between the markers. Being plain Markdown, it renders as a real table on **GitHub** and PyPI as well as in Sphinx. Options go in the start comment as `key=value` pairs and bare flags: `<!-- matrix click show-spec -->`. `install.md`'s tables use this form so they render everywhere.
 
 The examples below use the directive fence; the marker form takes the same axis and options.
