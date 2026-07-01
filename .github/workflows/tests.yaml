@@ -206,9 +206,11 @@ jobs:
 
       - name: Unittests
         # Produce XML artifacts for Codecov integration (coverage + test analytics).
-        # Fail fast on a hung test instead of running to GitHub's 6h default; the
-        # pytest faulthandler_timeout dumps the offending traceback first.
-        timeout-minutes: 12
+        # Bound a hung job well under GitHub's 6h default (the pytest
+        # faulthandler_timeout dumps the offending traceback first). Kept
+        # generous because py3.14 on the macOS runner walks the suite far
+        # slower than the other cells.
+        timeout-minutes: 30
         env:
           CLICK_VERSION: ${{ matrix.click-version }}
           CLOUP_VERSION: ${{ matrix.cloup-version }}
