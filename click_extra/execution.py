@@ -27,6 +27,7 @@ from __future__ import annotations
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from gettext import gettext as _
 from time import perf_counter
 from typing import TypeVar
@@ -318,6 +319,41 @@ def resolve_jobs(
     return min(jobs, count) if jobs > 1 else 1
 
 
+@contextmanager
+def _interruptible_pool(max_workers: int) -> Iterator[ThreadPoolExecutor]:
+    """Yield a thread pool whose teardown honors a prompt interrupt.
+
+    Wraps a :class:`~concurrent.futures.ThreadPoolExecutor` for a ``with`` body
+    that submits and drains work. On a normal exit, or when a task raises, the
+    pool shuts down with ``wait=True``, keeping the drain-then-propagate
+    semantics of a plain ``with ThreadPoolExecutor(...)`` block. But on a prompt
+    abort (a :class:`KeyboardInterrupt` from Ctrl+C, or a :class:`GeneratorExit`
+    from a caller closing the generator early) it shuts down with
+    ``wait=False, cancel_futures=True``: queued items are dropped and control
+    returns at once, without blocking on the tasks already in flight.
+
+    A running thread cannot be cancelled, so those in-flight tasks keep going
+    until they return; a caller that needs them to stop sooner (killing a
+    subprocess, say) must arrange that itself. This is why a plain ``with`` block
+    is not used: its ``shutdown(wait=True)`` teardown would block until every
+    in-flight task finished, defeating the interrupt.
+
+    Shared by :func:`run_jobs` and :func:`run_lanes`, the two parallel drivers.
+    """
+    executor = ThreadPoolExecutor(max_workers=max_workers)
+    try:
+        yield executor
+    except (KeyboardInterrupt, GeneratorExit):
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise
+    except BaseException:
+        # A task raised: keep the drain-then-propagate semantics of ``with``.
+        executor.shutdown(wait=True)
+        raise
+    else:
+        executor.shutdown(wait=True)
+
+
 def run_jobs(
     func: Callable[[T], R],
     items: Iterable[T],
@@ -362,27 +398,10 @@ def run_jobs(
             yield func(item)
     else:
         # Parallel: every item is submitted up front and results are yielded in
-        # submission order.
-        executor = ThreadPoolExecutor(max_workers=min(jobs, len(work)))
-        try:
+        # submission order. The pool teardown drops queued work on a prompt
+        # interrupt instead of blocking on it (see :func:`_interruptible_pool`).
+        with _interruptible_pool(min(jobs, len(work))) as executor:
             yield from executor.map(func, work)
-        except (KeyboardInterrupt, GeneratorExit):
-            # Prompt abort (Ctrl+C, or the caller closing us early): drop the
-            # queued items and return at once, without blocking on the tasks
-            # already in flight. A running thread cannot be cancelled, so those
-            # keep going until they return; a caller that needs them to stop
-            # sooner (killing a subprocess, say) must arrange that itself. This
-            # is why a plain ``with`` block is not used: its
-            # ``shutdown(wait=True)`` teardown would block until every in-flight
-            # task finished, defeating the interrupt.
-            executor.shutdown(wait=False, cancel_futures=True)
-            raise
-        except BaseException:
-            # A task raised: keep the drain-then-propagate semantics of ``with``.
-            executor.shutdown(wait=True)
-            raise
-        else:
-            executor.shutdown(wait=True)
 
 
 def run_lanes(
@@ -439,21 +458,11 @@ def run_lanes(
         def run_chain(lane: list[T]) -> list[R]:
             return [func(item) for item in lane]
 
-        executor = ThreadPoolExecutor(max_workers=jobs)
-        try:
+        # The pool teardown drops queued lanes on a prompt interrupt instead of
+        # blocking on the in-flight ones (see :func:`_interruptible_pool`).
+        with _interruptible_pool(jobs) as executor:
             for chain_results in executor.map(run_chain, lane_list):
                 yield from chain_results
-        except (KeyboardInterrupt, GeneratorExit):
-            # Prompt abort: drop queued lanes and return without blocking on the
-            # in-flight ones. See :func:`run_jobs` for the full rationale.
-            executor.shutdown(wait=False, cancel_futures=True)
-            raise
-        except BaseException:
-            # A task raised: keep the drain-then-propagate semantics of ``with``.
-            executor.shutdown(wait=True)
-            raise
-        else:
-            executor.shutdown(wait=True)
 
 
 class TimerOption(ExtraOption):

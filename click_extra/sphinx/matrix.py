@@ -200,16 +200,31 @@ def parse_python_spec(spec: str) -> tuple[str, str, set[str]]:
     return floor, ceiling, excluded
 
 
-def _tag_date(project_root: Path, tag: str) -> str:
-    """Return the ISO date of a tag's commit."""
-    proc = subprocess.run(
-        ["git", "log", "-1", "--format=%as", tag],
+def _git(project_root: Path, *args: str, check: bool = True) -> str:
+    """Run a ``git`` command in ``project_root`` and return its captured stdout.
+
+    The single place the module shells out to git, so every history read uses
+    the same working tree and text decoding. ``check`` defaults to raising on a
+    non-zero exit; the ``git show`` blob lookups pass ``check=False`` so a tag
+    that lacks the file yields an empty string instead of an error.
+
+    A missing git binary or a non-repository path surfaces as an
+    :class:`OSError` / :class:`subprocess.SubprocessError`, which callers let
+    propagate: :class:`MatrixDirective` turns it into a build warning, and
+    :func:`_regenerate` swallows it to leave a block untouched.
+    """
+    return subprocess.run(
+        ["git", *args],
         capture_output=True,
         encoding="utf-8",
-        check=True,
+        check=check,
         cwd=project_root,
-    )
-    return proc.stdout.strip()
+    ).stdout
+
+
+def _tag_date(project_root: Path, tag: str) -> str:
+    """Return the ISO date of a tag's commit."""
+    return _git(project_root, "log", "-1", "--format=%as", tag).strip()
 
 
 def _walk_tags(
@@ -228,35 +243,16 @@ def _walk_tags(
     """
     tag_re = re.compile(tag_pattern)
     floor_key = _version_sort_key(version_floor) if version_floor else None
-    proc = subprocess.run(
-        ["git", "tag", f"--sort={tags_sort}"],
-        capture_output=True,
-        encoding="utf-8",
-        check=True,
-        cwd=project_root,
-    )
     walked: list[tuple[str, str, str, str]] = []
-    for tag in proc.stdout.split():
+    for tag in _git(project_root, "tag", f"--sort={tags_sort}").split():
         if not tag_re.match(tag):
             continue
         # Drop tags below the package-version floor before any git show / date
         # lookup: no point paying that cost for excluded releases.
         if floor_key is not None and _version_sort_key(tag) < floor_key:
             continue
-        pyproject = subprocess.run(
-            ["git", "show", f"{tag}:pyproject.toml"],
-            capture_output=True,
-            encoding="utf-8",
-            check=False,
-            cwd=project_root,
-        ).stdout
-        setup_py = subprocess.run(
-            ["git", "show", f"{tag}:setup.py"],
-            capture_output=True,
-            encoding="utf-8",
-            check=False,
-            cwd=project_root,
-        ).stdout
+        pyproject = _git(project_root, "show", f"{tag}:pyproject.toml", check=False)
+        setup_py = _git(project_root, "show", f"{tag}:setup.py", check=False)
         walked.append((tag, _tag_date(project_root, tag), pyproject, setup_py))
     return walked
 
@@ -381,7 +377,9 @@ def python_matrix_groups(
     return [PythonMatrixGroup(f, l, d, v) for f, l, d, v in merged]
 
 
-def _spans_full_major(first_tag: str, last_tag: str, next_first_tag: str | None) -> bool:
+def _spans_full_major(
+    first_tag: str, last_tag: str, next_first_tag: str | None
+) -> bool:
     """Whether a group covers an entire major series (so it labels as ``X.x``).
 
     True when the group stays within one major, starts at that major's ``.0``
@@ -563,7 +561,7 @@ def _to_specifier_set(spec: str) -> SpecifierSet | None:
 
     Poetry ``^X.Y`` expands to ``>=X.Y,<(X+1).0.0`` and ``~X.Y`` to
     ``>=X.Y,<X.(Y+1).0``. PEP 440 specifiers (``>=``, ``~=``, ``==``, commas)
-    pass through. Returns ``None`` for an unparseable specifier.
+    pass through. Returns ``None`` for an unparsable specifier.
     """
     spec = spec.strip()
     caret = re.match(r"^\^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$", spec)
@@ -658,9 +656,14 @@ def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bo
             continue
         patches = {Version(f"{major}.{minor}.0")}
         patches.update(
-            floor for floor, is_open in floors if is_open and (floor.major, floor.minor) == key
+            floor
+            for floor, is_open in floors
+            if is_open and (floor.major, floor.minor) == key
         )
-        if latest_version is not None and (latest_version.major, latest_version.minor) == key:
+        if (
+            latest_version is not None
+            and (latest_version.major, latest_version.minor) == key
+        ):
             patches.add(latest_version)
         columns.extend((patch, False) for patch in sorted(patches))
     return columns

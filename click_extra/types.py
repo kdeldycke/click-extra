@@ -287,12 +287,11 @@ class EnumChoice(click.Choice):
         self._check_choice_str(member, choice)
         return choice
 
-    def normalize_choice(
-        self, choice: enum.Enum | str, ctx: click.Context | None
-    ) -> str:
+    def normalize_choice(self, choice: object, ctx: click.Context | None) -> str:
         """Expand the parent's ``normalize_choice()`` to accept ``Enum`` members as input.
 
-        Parent method expects a string, but here we allow passing ``Enum`` members too.
+        An ``Enum`` member is mapped to its choice string first; any other value
+        is passed to the parent untouched.
         """
         if isinstance(choice, enum.Enum):
             choice = self.get_choice_string(choice)

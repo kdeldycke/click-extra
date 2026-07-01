@@ -168,8 +168,8 @@ def format_cli_prompt(
 ) -> str:
     """Render the shell prompt simulating a CLI invocation, for logs and dry-runs.
 
-    Prefixes :data:`PROMPT` to any ``extra_env`` assignments and the command line,
-    each styled through the active theme
+    Prefixes :data:`~click_extra.testing.PROMPT` to any ``extra_env`` assignments
+    and the command line, each styled through the active theme
     (:func:`~click_extra.theme.get_current_theme`). Useful to print a
     copy-pasteable command trace in debug logs, dry-runs and test output.
     """

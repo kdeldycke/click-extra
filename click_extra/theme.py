@@ -732,13 +732,13 @@ class ThemeOption(ExtraOption):
     :data:`click_extra.context.THEME` and applies for the duration of the
     current invocation only.
 
-    The reserved value :data:`AUTO_THEME` (``--theme=auto``) is also accepted on
-    every CLI: it resolves the palette from the terminal background via
-    :func:`resolve_auto_theme` instead of naming a registered theme. Background
-    detection reads environment variables by default; pass
-    ``query_background=True`` to additionally allow the live OSC 11 terminal
-    query (:func:`~click_extra.color.query_osc_background`), which is opt-in
-    because it reads stdin.
+    The reserved value :data:`~click_extra.theme.AUTO_THEME` (``--theme=auto``)
+    is also accepted on every CLI: it resolves the palette from the terminal
+    background via :func:`~click_extra.theme.resolve_auto_theme` instead of
+    naming a registered theme. Background detection reads environment variables
+    by default; pass ``query_background=True`` to additionally allow the live
+    OSC 11 terminal query (:func:`~click_extra.color.query_osc_background`),
+    which is opt-in because it reads stdin.
     """
 
     def set_theme(
@@ -750,11 +750,13 @@ class ThemeOption(ExtraOption):
         """Resolve the chosen theme name and store it on the Click context.
 
         :class:`~click_extra.theme.ThemeChoice` has already validated *value*
-        against the live registry (or accepted the :data:`AUTO_THEME`
-        directive) by the time this fires. A plain palette name is looked up
-        unconditionally; ``auto`` is resolved from the terminal background via
-        :func:`resolve_auto_theme`, leaving ``ctx.meta`` untouched when no
-        palette can be resolved so :func:`get_current_theme` keeps its default.
+        against the live registry (or accepted the
+        :data:`~click_extra.theme.AUTO_THEME` directive) by the time this fires.
+        A plain palette name is looked up unconditionally; ``auto`` is resolved
+        from the terminal background via
+        :func:`~click_extra.theme.resolve_auto_theme`, leaving ``ctx.meta``
+        untouched when no palette can be resolved so :func:`get_current_theme`
+        keeps its default.
         """
         if value is None or ctx.resilient_parsing:
             return

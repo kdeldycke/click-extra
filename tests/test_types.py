@@ -77,14 +77,14 @@ def test_click_choice_behavior() -> None:
     )
 
     # Normalization works for both choice strings and Enum members.
-    assert enum_choice.normalize_choice("FIRST_VALUE", None) == "FIRST_VALUE"  # type: ignore[arg-type]
-    assert enum_choice.normalize_choice("SECOND_VALUE", None) == "SECOND_VALUE"  # type: ignore[arg-type]
+    assert enum_choice.normalize_choice("FIRST_VALUE", None) == "FIRST_VALUE"
+    assert enum_choice.normalize_choice("SECOND_VALUE", None) == "SECOND_VALUE"
     assert enum_choice.normalize_choice(SimpleEnum.FIRST_VALUE, None) == "FIRST_VALUE"
     assert enum_choice.normalize_choice(SimpleEnum.SECOND_VALUE, None) == "SECOND_VALUE"
 
     # Normalization leave stings unchanged (case-sensitive).
-    assert enum_choice.normalize_choice("first_value", None) == "first_value"  # type: ignore[arg-type]
-    assert enum_choice.normalize_choice("Second_Value", None) == "Second_Value"  # type: ignore[arg-type]
+    assert enum_choice.normalize_choice("first_value", None) == "first_value"
+    assert enum_choice.normalize_choice("Second_Value", None) == "Second_Value"
 
     # Test case-insensitive behavior.
     enum_choice_ci = Choice(SimpleEnum, case_sensitive=False)
@@ -92,8 +92,8 @@ def test_click_choice_behavior() -> None:
     assert enum_choice_ci.convert("SECOND_value", None, None) == (
         SimpleEnum.SECOND_VALUE
     )
-    assert enum_choice_ci.normalize_choice("first_value", None) == "first_value"  # type: ignore[arg-type]
-    assert enum_choice_ci.normalize_choice("SECOND_value", None) == "second_value"  # type: ignore[arg-type]
+    assert enum_choice_ci.normalize_choice("first_value", None) == "first_value"
+    assert enum_choice_ci.normalize_choice("SECOND_value", None) == "second_value"
 
 
 @pytest.mark.parametrize(

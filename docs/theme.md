@@ -84,7 +84,7 @@ assert result.exit_code == 0
 assert "--theme" in result.stdout
 ```
 
-`forecast` now defaults to the detected theme and, when no environment variable settles the question, runs the live query before falling back to `dark`. The query is a no-op when stdin or stdout is not a terminal (a pipe, a file, a captured test stream), so non-interactive runs are unaffected.
+`forecast` now defaults to the detected theme: absent a `CLITHEME` override, it runs the live query, which outranks the possibly-stale `COLORFGBG`, and only falls back to `dark` when neither settles the question. The query is a no-op when stdin or stdout is not a terminal (a pipe, a file, a captured test stream), so non-interactive runs are unaffected.
 
 ```{caution}
 Background detection through `COLORFGBG` or the live query is best-effort. `COLORFGBG` is often missing or stale; terminal multiplexers (tmux, screen) cache or mangle the OSC 11 reply; and the query reads stdin. When the choice has to be deterministic, set `--theme` explicitly (on the command line or in your config file), or export `CLITHEME`.

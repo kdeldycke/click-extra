@@ -120,7 +120,7 @@ class SphinxAppWrapper:
 
         # Write the conf.py file.
         config_content = "\n".join(f"{key} = {value!r}" for key, value in conf.items())
-        (srcdir / "conf.py").write_text(config_content)
+        (srcdir / "conf.py").write_text(config_content, encoding="utf-8")
 
         with docutils_namespace():
             app = Sphinx(
@@ -145,7 +145,7 @@ class SphinxAppWrapper:
         file_extension = self.format_type.value
 
         index_file = Path(self.app.srcdir) / f"index{file_extension}"
-        index_file.write_text(content)
+        index_file.write_text(content, encoding="utf-8")
 
         # Build the documentation.
         self.app.build()
@@ -153,7 +153,7 @@ class SphinxAppWrapper:
         # Read the generated HTML.
         output_file = Path(self.app.outdir) / "index.html"
         if output_file.exists():
-            html_output = output_file.read_text()
+            html_output = output_file.read_text(encoding="utf-8")
             assert html_output
             return html_output
 
