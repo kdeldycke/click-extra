@@ -563,7 +563,7 @@ def _to_specifier_set(spec: str) -> SpecifierSet | None:
 
     Poetry ``^X.Y`` expands to ``>=X.Y,<(X+1).0.0`` and ``~X.Y`` to
     ``>=X.Y,<X.(Y+1).0``. PEP 440 specifiers (``>=``, ``~=``, ``==``, commas)
-    pass through. Returns ``None`` for an unparseable specifier.
+    pass through. Returns ``None`` for an unparsable specifier.
     """
     spec = spec.strip()
     caret = re.match(r"^\^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$", spec)
