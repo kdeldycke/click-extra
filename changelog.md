@@ -7,6 +7,9 @@
 
 ## [`8.2.0` (2026-07-01)](https://github.com/kdeldycke/click-extra/compare/v8.1.4...v8.2.0)
 
+> [!NOTE]
+> `8.2.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.2.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.2.0).
+
 - Add a `--export-config FORMAT` option to every `@command` and `@group`: it renders the resolved configuration on `<stdout>` in any writable format (`toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson`, `xml`), then exits. Adds `ExportConfigOption`, `@export_config_option` and `SERIALIZABLE_FORMATS` to the public API.
 - Add `--theme=auto`: it selects the `dark` or `light` palette from the terminal background, detected from `CLITHEME`, `COLORFGBG` or a live OSC 11 query; the default stays `dark`. Adds `resolve_background` and `query_osc_background` to `click_extra.color`, `resolve_auto_theme` and `AUTO_THEME` to `click_extra.theme`.
 - Add `run_lanes(func, lanes)` and `resolve_jobs(ctx, count)` to `click_extra.execution`: run each lane serially while distinct lanes run concurrently, sized by `--jobs`; expose the worker-count policy shared with `run_jobs`. A `serial_at_debug` keyword collapses both fan-outs to sequential at `DEBUG` verbosity.
