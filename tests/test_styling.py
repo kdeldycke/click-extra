@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import importlib.metadata
 
+import click
 import cloup
 import pytest
 
@@ -34,6 +35,26 @@ Click ``8.5.0`` started validating ``fg`` / ``bg`` color arguments: the 256-colo
 index ``0`` is no longer dropped, and falsy non-``None`` values raise ``TypeError``
 instead of being silently ignored. See `pallets/click#3666
 <https://github.com/pallets/click/pull/3666>`_.
+"""
+
+CLICK_HAS_PALETTE_ZERO_FIX = "\x1b[38;5;0m" in click.style("X", fg=0)
+"""True when Click emits the 256-color escape sequence for palette index ``0``.
+
+Click ``8.5.0`` fixed a bug where ``fg=0`` / ``bg=0`` were silently dropped
+because the integer ``0`` is falsy. Development snapshots with version numbers
+>= ``8.5`` may not yet carry this fix, so a version comparison alone is
+unreliable.
+"""
+
+try:
+    click.style("X", fg="")
+    CLICK_REJECTS_EMPTY_COLOR = False
+except TypeError:
+    CLICK_REJECTS_EMPTY_COLOR = True
+"""True when Click raises ``TypeError`` for empty-string ``fg`` / ``bg`` arguments.
+
+Click ``8.5.0`` started rejecting falsy non-``None`` color values.  Development
+snapshots with version numbers >= ``8.5`` may not yet enforce this validation.
 """
 
 # --- 1. Hex string color shorthand ------------------------------------------
@@ -427,8 +448,8 @@ def test_style_call_cache_survives_depth_flip(monkeypatch):
 
 
 @pytest.mark.xfail(
-    CLICK_VERSION < (8, 5),
-    reason="Click < 8.5 drops the 256-color index 0: pallets/click#3666.",
+    not CLICK_HAS_PALETTE_ZERO_FIX,
+    reason="This Click build drops the 256-color index 0: pallets/click#3666.",
     strict=True,
 )
 @pytest.mark.parametrize(
@@ -444,8 +465,8 @@ def test_style_call_palette_index_zero(style, expected):
 
 
 @pytest.mark.skipif(
-    CLICK_VERSION >= (8, 5),
-    reason="Click >= 8.5 rejects empty-string colors.",
+    CLICK_REJECTS_EMPTY_COLOR,
+    reason="This Click build rejects empty-string colors.",
 )
 @pytest.mark.parametrize("style", [Style(fg=""), Style(bg="")])
 def test_style_call_empty_string_color_ignored(style):
@@ -454,8 +475,8 @@ def test_style_call_empty_string_color_ignored(style):
 
 
 @pytest.mark.skipif(
-    CLICK_VERSION < (8, 5),
-    reason="Click < 8.5 silently ignores empty-string colors.",
+    not CLICK_REJECTS_EMPTY_COLOR,
+    reason="This Click build silently ignores empty-string colors.",
 )
 @pytest.mark.parametrize("style", [Style(fg=""), Style(bg="")])
 def test_style_call_empty_string_color_rejected(style):
