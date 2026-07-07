@@ -34,9 +34,12 @@ from click_extra import (
     validate_config_option,
 )
 from click_extra.config import (
+    CONFIG_PATH_METADATA_KEY,
+    field_docstrings,
     flatten_config_keys,
     get_tool_config,
     normalize_config_keys,
+    schema_field_infos,
 )
 from click_extra.config.schema import _collect_opaque_paths_from_schema
 
@@ -1813,3 +1816,132 @@ def test_make_schema_callable_coerces_dict_to_dataclass():
     # A non-dataclass callable is returned as-is; None passes through.
     assert make_schema_callable(str) is str
     assert make_schema_callable(None) is None
+
+
+# --- schema introspection tests ---
+
+
+def test_field_docstrings_returns_full_text():
+    """Attribute docstrings are recovered whole, paragraph breaks preserved."""
+
+    @dataclass
+    class Orchard:
+        rows: int = 4
+        """Number of tree rows.
+
+        Rows are planted north to south so every tree gets morning sun.
+        """
+
+        undocumented: str = "bare"
+
+    docs = field_docstrings(Orchard)
+    assert docs["rows"] == (
+        "Number of tree rows.\n\n"
+        "Rows are planted north to south so every tree gets morning sun."
+    )
+    # A field without an attribute docstring produces no entry at all.
+    assert "undocumented" not in docs
+
+
+def test_field_docstrings_degrades_without_source():
+    """A class defined through exec has no source: the mapping is empty."""
+    namespace: dict = {}
+    exec(  # noqa: S102
+        dedent("""
+            from dataclasses import dataclass
+
+            @dataclass
+            class Ghost:
+                size: int = 1
+                \"\"\"Docstring lost to exec.\"\"\"
+        """),
+        namespace,
+    )
+    assert field_docstrings(namespace["Ghost"]) == {}
+
+
+def test_schema_field_infos_flat_schema():
+    """Keys are kebab-cased and sorted; defaults, types, and summaries surface."""
+
+    @dataclass
+    class Stand:
+        opening_hour: int = 8
+        """Hour the stand opens.
+
+        Deliveries start one hour earlier.
+        """
+
+        city: str = "Lisbon"
+        """City where the stand operates."""
+
+    infos = schema_field_infos(Stand)
+    assert [info.key for info in infos] == ["city", "opening-hour"]
+
+    by_key = {info.key: info for info in infos}
+    assert by_key["opening-hour"].type_hint == "int"
+    assert by_key["opening-hour"].default == 8
+    assert by_key["opening-hour"].summary == "Hour the stand opens."
+    assert by_key["opening-hour"].description == (
+        "Hour the stand opens.\n\nDeliveries start one hour earlier."
+    )
+    assert by_key["city"].default == "Lisbon"
+
+
+def test_schema_field_infos_nested_and_config_path():
+    """Nested dataclasses expand to dotted keys; config_path metadata wins."""
+
+    @dataclass
+    class Basket:
+        apples: int = 3
+        """How many apples fit in the basket."""
+
+    @dataclass
+    class Market:
+        basket: Basket = field(
+            default_factory=Basket,
+            metadata={CONFIG_PATH_METADATA_KEY: "hand-basket"},
+        )
+        """Parent docstring: nested tables document their leaves only."""
+
+        city: str = "Porto"
+
+    infos = schema_field_infos(Market)
+    assert [info.key for info in infos] == ["city", "hand-basket.apples"]
+    # Only leaf fields produce records: the parent table has no row of its own.
+    nested = infos[1]
+    assert nested.default == 3
+    assert nested.summary == "How many apples fit in the basket."
+
+
+def test_schema_field_infos_sorts_segment_wise():
+    """A sub-table's options stay contiguous when a sibling shares their prefix.
+
+    Plain string sort would interleave `pear-cellar` between `pear.crates`
+    and `pear.pickers` (in ASCII `-` sorts before `.`); segment-wise sort
+    keeps the `pear` table's options together.
+    """
+
+    @dataclass
+    class Pear:
+        crates: int = 2
+        pickers: int = 5
+
+    @dataclass
+    class Harvest:
+        pear: Pear = field(default_factory=Pear)
+        pear_cellar: bool = False
+
+    infos = schema_field_infos(Harvest)
+    assert [info.key for info in infos] == [
+        "pear.crates",
+        "pear.pickers",
+        "pear-cellar",
+    ]
+
+
+def test_schema_field_infos_rejects_non_dataclass():
+    """A non-dataclass schema is refused with a clear error."""
+    with pytest.raises(TypeError, match="must be a dataclass type"):
+        schema_field_infos(str)
+    with pytest.raises(TypeError, match="must be a dataclass type"):
+        schema_field_infos(42)  # type: ignore[arg-type]

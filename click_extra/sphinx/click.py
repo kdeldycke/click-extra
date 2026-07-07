@@ -41,6 +41,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from dataclasses import is_dataclass
 from functools import cached_property, partial
 
 import click
@@ -501,6 +502,32 @@ class ClickDirective(SphinxDirective):
         """Check if the current directive is written with MyST syntax."""
         return bool(self.state.__module__.split(".", 1)[0] == "myst_parser")
 
+    @staticmethod
+    def _slug(value: str) -> str:
+        """Lower-case + non-alphanumeric → ``-``, mirroring docutils' ``make_id``."""
+        return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+
+    def _surrounding_section_depth(self) -> int:
+        """Return the heading level of the section wrapping this directive.
+
+        Drives the default ``heading-offset`` of the scaffolding directives
+        (``click:tree``, ``click:config``) so generated headings nest
+        correctly under the surrounding section, regardless of how deep in
+        the document the directive is placed. A value of ``1`` means the
+        directive sits inside the document's top-level ``h1`` section (the
+        next legal heading is ``h2``); ``3`` means it sits inside an ``h3``
+        section (next legal heading is ``h4``).
+
+        Read from ``state.memo.section_level``, which docutils' ``RSTState``
+        and MyST's ``MockState`` both populate. Falls back to ``1`` if the
+        attribute is unavailable (preserves the historical default).
+        """
+        try:
+            level = self.state.memo.section_level
+        except AttributeError:
+            return 1
+        return max(int(level), 1)
+
     def render_code_block(
         self,
         lines: Iterable[str],
@@ -664,36 +691,11 @@ class TreeDirective(ClickDirective):
     ``no-root`` skips the root ``--help`` block.
     """
 
-    # The runner_attr, runner property and is_myst_syntax cached-property are
-    # inherited unchanged from ClickDirective. Sharing the "click_runner"
-    # attribute means a click:source that ran earlier on the same document has
-    # already populated the namespace with the CLI variable this directive
-    # resolves.
-
-    @staticmethod
-    def _slug(value: str) -> str:
-        """Lower-case + non-alphanumeric → ``-``, mirroring docutils' ``make_id``."""
-        return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-
-    def _surrounding_section_depth(self) -> int:
-        """Return the heading level of the section wrapping this directive.
-
-        Drives the default :attr:`heading-offset` so generated headings nest
-        correctly under the surrounding section, regardless of how deep in
-        the document the directive is placed. A value of ``1`` means the
-        directive sits inside the document's top-level ``h1`` section (the
-        next legal heading is ``h2``); ``3`` means it sits inside an ``h3``
-        section (next legal heading is ``h4``).
-
-        Read from ``state.memo.section_level``, which docutils' ``RSTState``
-        and MyST's ``MockState`` both populate. Falls back to ``1`` if the
-        attribute is unavailable (preserves the historical default).
-        """
-        try:
-            level = self.state.memo.section_level
-        except AttributeError:
-            return 1
-        return max(int(level), 1)
+    # The runner_attr, runner property, is_myst_syntax cached-property, and
+    # the _slug/_surrounding_section_depth helpers are inherited unchanged
+    # from ClickDirective. Sharing the "click_runner" attribute means a
+    # click:source that ran earlier on the same document has already
+    # populated the namespace with the CLI variable this directive resolves.
 
     def _walk(
         self,
@@ -835,6 +837,260 @@ class TreeDirective(ClickDirective):
         return section.children
 
 
+def _format_default(value: object) -> str:
+    """Format a schema field default as a Markdown fragment.
+
+    Used in both the summary table cells and the per-option ``**Default:**``
+    lines of ``click:config``. Multi-line strings are elided to a pointer,
+    since the TOML example block below renders them in full.
+    """
+    if value is None:
+        return "*(none)*"
+    if isinstance(value, bool):
+        return f"`{str(value).lower()}`"
+    if isinstance(value, int):
+        return f"`{value}`"
+    if isinstance(value, str):
+        if "\n" in value:
+            return "*(see example)*"
+        return f'`"{value}"`'
+    if isinstance(value, list):
+        if not value:
+            return "`[]`"
+        return f"`{value!r}`"
+    return str(value)
+
+
+def _toml_value(value: object) -> str | None:
+    """Format a Python value as a TOML literal.
+
+    Returns ``None`` when no sensible literal exists (``None`` defaults,
+    opaque objects), which suppresses the option's example block in
+    ``click:config``.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, str):
+        if "\n" in value:
+            return "'''\n" + value + "\n'''"
+        return f'"{value}"'
+    if isinstance(value, list):
+        if not value:
+            return "[]"
+        items = [_toml_value(v) for v in value]
+        if any(v is None for v in items):
+            return None
+        return "[" + ", ".join(items) + "]"  # type: ignore[arg-type]
+    return None
+
+
+class ConfigDirective(ClickDirective):
+    """Render the configuration reference of a CLI's ``config_schema``.
+
+    Introspects a configuration schema dataclass at build time and expands,
+    in MyST syntax:
+
+    - A GFM summary table linking each option to its section anchor, with its
+      one-line summary and default value.
+    - One heading per option, with its docstring, type, default, and a TOML
+      example pinned to the default value.
+
+    Option metadata comes from
+    :func:`~click_extra.config.schema.schema_field_infos`: dotted kebab-case
+    keys, type annotations, defaults from a pristine schema instance, and
+    attribute docstrings (which are parsed as the host document's markup).
+    Designed to replace per-project hand-rolled generators (like repomatic's
+    ``docs_update.py::config_deflist()``) with a single declarative directive
+    that documents the live schema on every build.
+
+    The required argument is a Python expression evaluated in the per-document
+    runner namespace; it must yield either a :class:`click.Command` whose
+    ``config_schema`` is set (the schema is pulled off its
+    :class:`~click_extra.config.option.ConfigOption`), or a schema dataclass
+    directly. The optional directive body is Python preamble exec'd in the
+    same namespace before evaluation, so authors may either import the CLI in
+    a prior ``click:source`` ``:hide-source:`` block or inline the import
+    here.
+
+    .. caution::
+        Attribute docstrings are recovered from the schema's source file, so
+        a schema defined inside an exec'd ``click:source`` block documents
+        its options without descriptions. Import the schema from a real
+        module instead (see
+        :func:`~click_extra.config.schema.field_docstrings`).
+
+    .. note::
+        Currently MyST-only. Use the directive in a ``.md`` document with
+        ``myst_parser`` enabled.
+    """
+
+    has_content = True
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = False
+
+    option_spec: ClassVar[OptionSpec] = {
+        "heading-offset": directives.nonnegative_int,
+        "section": directives.unchanged,
+        "no-table": directives.flag,
+        "no-examples": directives.flag,
+    }
+    """Recognized directive options.
+
+    ``heading-offset`` shifts all generated headings down by N levels; when
+    unset, the surrounding section depth is used (same behavior as
+    ``click:tree``). ``section`` overrides the TOML table header shown in the
+    per-option examples: it defaults to ``tool.{cli-name}`` when the argument
+    is a CLI (matching how click-extra and its downstream CLIs read their
+    section from ``pyproject.toml``), and to no header at all for a bare
+    schema; an explicitly empty ``:section:`` suppresses the header.
+    ``no-table`` skips the summary table; ``no-examples`` skips the TOML
+    example blocks.
+    """
+
+    def run(self) -> list[nodes.Node]:
+        # Hard errors (RuntimeError, not self.error()) so the build fails
+        # fast: a partially rendered reference page hides bugs in the schema
+        # the directive was meant to document.
+        if not self.is_myst_syntax:
+            raise RuntimeError(
+                "click:config currently only supports MyST syntax. "
+                "Place the directive in a .md document with myst_parser enabled.",
+            )
+
+        # Execute the optional body in the runner namespace so callers can
+        # inline `from mypkg.cli import mycli` instead of seeding the
+        # namespace with a separate `click:source :hide-source:` block.
+        if self.content:
+            self.runner.execute_source(self)
+
+        target_expr = self.arguments[0].strip()
+        try:
+            target = eval(target_expr, self.runner.namespace)
+        except Exception as exc:
+            raise RuntimeError(
+                f"click:config: failed to evaluate {target_expr!r}: {exc}",
+            ) from exc
+
+        # Local import to avoid a circular import: click_extra.config is part
+        # of the same package and is imported after click_extra.sphinx from
+        # the package __init__.
+        from ..config.option import ConfigOption
+        from ..config.schema import schema_field_infos
+
+        section = self.options.get("section")
+        if isinstance(target, click.Command):
+            schema = None
+            for param in target.params:
+                if isinstance(param, ConfigOption) and param.config_schema:
+                    schema = param.config_schema
+                    break
+            if schema is None:
+                raise RuntimeError(
+                    f"click:config: {target_expr!r} has no config_schema wired "
+                    "to its ConfigOption.",
+                )
+            if section is None and target.name:
+                section = f"tool.{target.name}"
+        else:
+            schema = target
+
+        # Also narrows the ConfigOption union (its config_schema may be a bare
+        # callable) down to the dataclass type schema_field_infos expects.
+        if not (isinstance(schema, type) and is_dataclass(schema)):
+            raise TypeError(
+                f"click:config: {target_expr!r} did not yield a dataclass "
+                f"schema (got {schema!r}).",
+            )
+
+        infos = schema_field_infos(schema)
+
+        heading_offset = self.options.get(
+            "heading-offset",
+            self._surrounding_section_depth(),
+        )
+        include_table = "no-table" not in self.options
+        include_examples = "no-examples" not in self.options
+
+        # Local import to avoid a circular import: click_extra.table is part
+        # of the same package and pulls in optional rendering deps.
+        from ..table import TableFormat, render_table
+
+        lines: list[str] = []
+
+        # Summary table. Each option links to the natural anchor docutils
+        # derives from its heading below, so the same slugs keep working when
+        # a page migrates from a hand-generated reference to this directive.
+        if include_table and infos:
+            rows = [
+                [
+                    f"[`{info.key}`](#{self._slug(info.key)})",
+                    info.summary.replace("|", "\\|"),
+                    _format_default(info.default),
+                ]
+                for info in infos
+            ]
+            lines.append(
+                render_table(
+                    rows,
+                    headers=["Option", "Description", "Default"],
+                    table_format=TableFormat.GITHUB,
+                ),
+            )
+            lines.append("")
+
+        # Per-option sections: lead with the summary, then type and default,
+        # then the rest of the docstring, and finally a TOML example pinned
+        # to the field's default value.
+        heading = "#" * (heading_offset + 1)
+        for info in infos:
+            # Strip the summary (already shown first) from the full docstring.
+            _head, _sep, tail = info.description.partition("\n\n")
+            rest = tail.strip()
+
+            lines.append(f"{heading} `{info.key}`")
+            lines.append("")
+            if info.summary:
+                lines.append(info.summary)
+                lines.append("")
+            # The "| None" half of an optional type is noise here: the
+            # Default line right next to it already says whether the option
+            # defaults to nothing.
+            type_hint = info.type_hint.replace(" | None", "")
+            lines.append(
+                f"**Type:** `{type_hint}` | **Default:** "
+                f"{_format_default(info.default)}",
+            )
+            lines.append("")
+            if rest:
+                lines.extend(rest.splitlines())
+                lines.append("")
+            example = _toml_value(info.default) if include_examples else None
+            if example is not None:
+                lines.append("**Example:**")
+                lines.append("")
+                lines.append("```toml")
+                if section:
+                    lines.append(f"[{section}]")
+                lines.extend(f"{info.key} = {example}".splitlines())
+                lines.append("```")
+                lines.append("")
+
+        # Hand the generated MyST source back to the parser, like click:tree.
+        section_node = nodes.section()
+        source_file, _ = self.get_source_info()
+        self.state.nested_parse(
+            StringList(lines, source_file),
+            self.content_offset,
+            section_node,
+        )
+        return section_node.children
+
+
 class ClickDomain(StatelessDomain):
     """Setup new directives under the same ``click`` namespace:
 
@@ -842,6 +1098,9 @@ class ClickDomain(StatelessDomain):
     - ``click:run`` which renders the results of running a Click CLI
     - ``click:tree`` which walks a Click command tree and renders the full
       ``--help`` reference for every subcommand, with a summary table on top
+    - ``click:config`` which documents a CLI's ``config_schema``: a summary
+      table plus one section per option, with types, defaults, and TOML
+      examples
     """
 
     name = "click"
@@ -850,6 +1109,7 @@ class ClickDomain(StatelessDomain):
         "source": SourceDirective,
         "run": RunDirective,
         "tree": TreeDirective,
+        "config": ConfigDirective,
     }
 
 

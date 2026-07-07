@@ -715,6 +715,41 @@ The rendered output is identical to the kitchen example above: a summary table a
 `click:tree` is currently MyST-only because the expanded scaffolding uses MyST's `(label)=` anchor syntax and pipe tables. An rST equivalent would emit `.. _label:` targets and `list-table::` directives instead; it has not been implemented yet.
 ```
 
+### Configuration reference
+
+The `click:config` directive documents a CLI's [`config_schema`](config.md) at build time: a summary table linking each option to its section, then one heading per option with its docstring, type, default, and a TOML example pinned to the default value. Like `click:tree`, it replaces per-project hand-rolled generators that produce the same reference from the schema dataclass by hand.
+
+The required argument is a Python expression evaluated in the per-document runner namespace. It accepts either a {py:class}`click.Command` whose `config_schema` is wired (the schema is pulled off its `ConfigOption`), or a schema dataclass directly. The optional body is Python preamble, same as `click:tree`.
+
+Click Extra's own CLI declares a `config_schema`, so a single invocation documents its `[tool.click-extra]` section:
+
+````{code-block} markdown
+```{click:config} demo
+from click_extra.cli import demo
+```
+````
+
+Which renders as:
+
+```{click:config} demo
+from click_extra.cli import demo
+```
+
+#### Config options
+
+| Option             | Description                                                                                                        | Default                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `:heading-offset:` | Shift all generated headings down by N levels. Override when the auto-detected depth is wrong for the page layout. | Surrounding section depth (options nested one level below the enclosing section). |
+| `:section:`        | TOML table header shown in the per-option examples. An explicitly empty value suppresses the header.               | `tool.{cli-name}` when the argument is a CLI; no header for a bare schema.        |
+| `:no-table:`       | Skip the summary table.                                                                                            | Table is rendered.                                                                |
+| `:no-examples:`    | Skip the TOML example blocks.                                                                                      | Examples are rendered.                                                            |
+
+Option metadata comes from the `schema_field_infos()` introspection helper, which is also part of the public API for CLIs that render their own configuration reference (a `show-config` table, say): dotted kebab-case keys, type annotations, defaults from a pristine schema instance, and attribute docstrings. Docstrings are parsed as the host document's markup, and their first paragraph doubles as the option's summary in the table.
+
+```{caution}
+Attribute docstrings are recovered from the schema's source file. A schema defined inline in a `click:source` block was born in an `exec` call, has no source file, and therefore documents its options without descriptions. Import the schema from a real module instead, as in the example above.
+```
+
 ## `python:*` directives
 
 Click Extra also adds five general-purpose Python execution directives, registered under a separate `python` domain (distinct from Sphinx's built-in `py` domain for documenting API objects):

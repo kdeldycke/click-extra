@@ -17,9 +17,12 @@
 
 from __future__ import annotations
 
+import ast
 import copy
+import inspect
 import logging
 import sys
+import textwrap
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import (
     MISSING,
@@ -29,7 +32,7 @@ from dataclasses import (
     is_dataclass,
 )
 from functools import partial
-from typing import get_origin, get_type_hints
+from typing import NamedTuple, get_origin, get_type_hints
 
 from deepmerge import always_merger
 from extra_platforms._utils import _recursive_update
@@ -395,6 +398,176 @@ def get_tool_config(ctx: click.Context | None = None) -> Any:
     if ctx is None:
         ctx = get_current_context()
     return context.get(ctx, context.TOOL_CONFIG)
+
+
+class SchemaFieldInfo(NamedTuple):
+    """Documentation record for one option of a configuration schema.
+
+    Produced by :func:`schema_field_infos`. Consumed by the ``click:config``
+    Sphinx directive, and by CLIs building their own configuration reference
+    (a ``show-config`` table, say) from the same introspection.
+    """
+
+    key: str
+    """Dotted configuration path of the option.
+
+    Field names are kebab-cased (``setup_guide`` → ``setup-guide``) unless the
+    field pins an explicit path through :data:`CONFIG_PATH_METADATA_KEY`.
+    Nested dataclass fields contribute one segment per nesting level
+    (``test-suite.timeout``).
+    """
+
+    type_hint: str
+    """The field's type annotation, as written in the schema source."""
+
+    default: Any
+    """The field's default value, taken from a pristine schema instance."""
+
+    summary: str
+    """First paragraph of the field's attribute docstring, collapsed onto a
+    single line. Empty when the field has no docstring or the class source is
+    unavailable (see :func:`field_docstrings`)."""
+
+    description: str
+    """Full attribute docstring of the field, paragraph breaks preserved."""
+
+
+def field_docstrings(cls: type) -> dict[str, str]:
+    """Extract attribute docstrings from a class body, keyed by field name.
+
+    Attribute docstrings are string literals immediately following an
+    annotated assignment in a class body (the PEP 257 convention used by
+    Sphinx's autodoc). Python discards them at runtime, so they are recovered
+    by parsing the class source with :mod:`ast`. Each docstring is cleaned up
+    with :func:`inspect.cleandoc`, preserving paragraph breaks.
+
+    .. caution::
+        Returns an empty mapping when the class source is unavailable, as for
+        classes defined in an ``exec``-ed code block (an interactive session,
+        or the body of a ``click:source`` Sphinx directive). Import the schema
+        from a real module to get its docstrings documented.
+    """
+    try:
+        source = inspect.getsource(cls)
+    except (OSError, TypeError):
+        return {}
+    tree = ast.parse(textwrap.dedent(source))
+    cls_node = tree.body[0]
+    if not isinstance(cls_node, ast.ClassDef):
+        return {}
+
+    docstrings: dict[str, str] = {}
+    current_field = None
+    for node in cls_node.body:
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            current_field = node.target.id
+        elif (
+            isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            if current_field:
+                # cleandoc trims the first line and dedents the rest based on
+                # the common indent of subsequent lines (PEP 257), unlike
+                # textwrap.dedent which fails when the first line has no
+                # leading whitespace but subsequent lines do.
+                docstrings[current_field] = inspect.cleandoc(node.value.value)
+                current_field = None
+        else:
+            current_field = None
+
+    return docstrings
+
+
+def _first_paragraph(text: str) -> str:
+    """Collapse the first paragraph of ``text`` onto a single line."""
+    return " ".join(text.split("\n\n")[0].split())
+
+
+def _field_config_key(field: Field) -> str:
+    """Return the config key of a dataclass field.
+
+    The :data:`CONFIG_PATH_METADATA_KEY` metadata wins when set; otherwise the
+    field name is kebab-cased (``setup_guide`` → ``setup-guide``).
+    """
+    path = field.metadata.get(CONFIG_PATH_METADATA_KEY)
+    if path:
+        return str(path)
+    return field.name.replace("_", "-")
+
+
+def _type_hint_str(field: Field) -> str:
+    """Render a dataclass field's type annotation as a string.
+
+    Under PEP 563 (``from __future__ import annotations``) the annotation is
+    already the source string. Without it, the annotation is a live object:
+    plain classes render as their name, typing generics as their ``str()``
+    form (``list[str]``).
+    """
+    hint = field.type
+    if isinstance(hint, str):
+        return hint
+    return getattr(hint, "__name__", None) or str(hint)
+
+
+def _collect_field_infos(
+    cls: type,
+    instance: Any,
+    prefix: str,
+    infos: list[SchemaFieldInfo],
+) -> None:
+    """Accumulate :class:`SchemaFieldInfo` records for ``cls``, recursively.
+
+    Nested dataclass defaults recurse with their key appended to ``prefix``;
+    only leaf fields produce records, matching how the options surface in the
+    configuration file.
+    """
+    docstrings = field_docstrings(cls)
+    for f in dc_fields(cls):
+        key = _field_config_key(f)
+        full_key = f"{prefix}.{key}" if prefix else key
+        value = getattr(instance, f.name)
+        if is_dataclass(value) and not isinstance(value, type):
+            _collect_field_infos(type(value), value, full_key, infos)
+            continue
+        description = docstrings.get(f.name, "")
+        infos.append(
+            SchemaFieldInfo(
+                key=full_key,
+                type_hint=_type_hint_str(f),
+                default=value,
+                summary=_first_paragraph(description),
+                description=description,
+            ),
+        )
+
+
+def schema_field_infos(schema: type) -> list[SchemaFieldInfo]:
+    """Walk a configuration schema dataclass into per-option records.
+
+    Introspects the dataclass fields, their type annotations, defaults, and
+    attribute docstrings. Nested dataclass fields expand recursively into
+    dotted keys (``test-suite.timeout``), honoring
+    :data:`CONFIG_PATH_METADATA_KEY` at every level. Records are sorted by
+    key, segment-wise, so a sub-table's options stay contiguous even when
+    another table's name shares their prefix (``workflow.sync`` sorts before
+    ``workflow-pins.sync``).
+
+    Defaults are read off a pristine ``schema()`` instance, so every field
+    must carry a default: configuration schemas are default-complete by
+    construction, since :func:`make_schema_callable` instantiates them from
+    partial user data.
+
+    :raises TypeError: when ``schema`` is not a dataclass type.
+    """
+    if not (isinstance(schema, type) and is_dataclass(schema)):
+        raise TypeError(
+            f"Config schema must be a dataclass type, got {schema!r}.",
+        )
+    instance = schema()
+    infos: list[SchemaFieldInfo] = []
+    _collect_field_infos(schema, instance, "", infos)
+    return sorted(infos, key=lambda info: info.key.split("."))
 
 
 def _safe_get_type_hints(cls: type) -> dict[str, Any]:

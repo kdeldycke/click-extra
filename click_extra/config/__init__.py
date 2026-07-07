@@ -63,13 +63,16 @@ from .schema import (
     NORMALIZE_KEYS_METADATA_KEY,
     PREPEND_SUBCOMMANDS_KEY,
     ConfigValidator,
+    SchemaFieldInfo,
     ValidationError,
     ValidationReport,
+    field_docstrings,
     flatten_config_keys,
     get_tool_config,
     make_schema_callable,
     normalize_config_keys,
     run_config_validation,
+    schema_field_infos,
 )
 
 __all__ = [
@@ -89,10 +92,12 @@ __all__ = [
     "ExportConfigOption",
     "NoConfigOption",
     "PrebakeConfig",
+    "SchemaFieldInfo",
     "TestSuiteConfig",
     "ValidateConfigOption",
     "ValidationError",
     "ValidationReport",
+    "field_docstrings",
     "flatten_config_keys",
     "format_from_path",
     "get_tool_config",
@@ -101,5 +106,6 @@ __all__ = [
     "parse_content",
     "read_file",
     "run_config_validation",
+    "schema_field_infos",
     "serialize_content",
 ]
