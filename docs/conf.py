@@ -3,7 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import tomllib  # type: ignore[import-not-found]  # stdlib >=3.11; docs require >=3.14.
-from docutils.nodes import make_id
+from docutils.nodes import container, make_id
+from sphinxcontrib.mermaid import MermaidClassDiagram
 
 project_path = Path(__file__).parent.parent.resolve()
 
@@ -98,6 +99,26 @@ myst_heading_slug_func = make_id
 myst_fence_as_directive = ["mermaid"]
 
 mermaid_d3_zoom = True
+
+
+class NoZoomClassDiagram(MermaidClassDiagram):
+    """``autoclasstree`` with its diagram opted out of inline d3 zoom.
+
+    ``mermaid_d3_zoom`` is all-or-nothing: it attaches wheel and drag handlers
+    to every diagram's ``<svg>``, and sphinxcontrib-mermaid has no per-diagram
+    opt-out while its fullscreen feature is active. On the tall class
+    inheritance trees of the API sections, the wheel handler hijacks page
+    scrolling. So this subclass wraps each tree in a marked container that
+    ``custom.css`` targets to disable pointer events on the inline SVG: events
+    then never reach the ``<svg>``, d3's handlers stay quiet, and the page
+    scrolls normally. The fullscreen viewer clones the diagram outside the
+    container, so its button and zoom still work there. Registered in
+    :func:`setup` as an override of the upstream directive.
+    """
+
+    def run(self):
+        return [container("", *super().run(), classes=["autoclasstree"])]
+
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
@@ -279,7 +300,13 @@ def setup(app):
     ``_PALETTE_EXAMPLES`` through the active dark theme's slot styling, so
     the rendered output cannot drift from the actual Theme code path —
     tweak ``themes.toml`` and the next build picks up the new colors.
+
+    Also swaps sphinxcontrib-mermaid's ``autoclasstree`` directive for
+    :class:`NoZoomClassDiagram`: conf.py is loaded as the last extension,
+    so this registration wins.
     """
     from click_extra.theme_docs import inject_slot_example_docstring
 
     app.connect("autodoc-process-docstring", inject_slot_example_docstring)
+
+    app.add_directive("autoclasstree", NoZoomClassDiagram, override=True)

@@ -80,3 +80,15 @@
  * CSS generator from injecting `color: #D0D0D0` fallbacks that conflict with
  * foreground color tokens.
  */
+
+/* Neutralize inline d3 zoom on class inheritance trees (mermaid_d3_zoom wires
+ * wheel/drag handlers on every diagram's <svg>, hijacking page scrolling over
+ * these tall diagrams). The .autoclasstree wrapper is injected by the
+ * NoZoomClassDiagram directive override in conf.py. With pointer events off,
+ * the <svg> never becomes an event target, so d3's handlers never fire and the
+ * wheel scrolls the page. The fullscreen viewer clones the diagram outside the
+ * wrapper, so its button and in-modal zoom are unaffected.
+ */
+.autoclasstree pre.mermaid svg {
+  pointer-events: none;
+}
