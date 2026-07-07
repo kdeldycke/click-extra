@@ -17,11 +17,24 @@
 
 from __future__ import annotations
 
+import importlib.metadata
+
 import cloup
 import pytest
 
 from click_extra import Style
 from click_extra.styling import _nearest_256, supports_truecolor
+
+CLICK_VERSION = tuple(
+    int(part) for part in importlib.metadata.version("click").split(".")[:2]
+)
+"""Major and minor version of the installed Click package.
+
+Click ``8.5.0`` started validating ``fg`` / ``bg`` color arguments: the 256-color
+index ``0`` is no longer dropped, and falsy non-``None`` values raise ``TypeError``
+instead of being silently ignored. See `pallets/click#3666
+<https://github.com/pallets/click/pull/3666>`_.
+"""
 
 # --- 1. Hex string color shorthand ------------------------------------------
 
@@ -184,6 +197,11 @@ def test_repr_compact_rgb_to_hex():
     assert repr(Style(fg=(0xF1, 0xFA, 0x8C), bold=True)) == "Style(fg=#f1fa8c, bold)"
 
 
+def test_repr_palette_index_zero():
+    """Index ``0`` is falsy but set: it must survive the ``is not None`` guards."""
+    assert repr(Style(fg=0)) == "Style(fg=0)"
+
+
 def test_repr_empty_style():
     assert repr(Style()) == "Style()"
 
@@ -206,6 +224,11 @@ def test_to_css_basic():
 def test_to_css_named_color_passes_through():
     css = Style(fg="red").to_css()
     assert css == "color: red"
+
+
+def test_to_css_palette_index_zero():
+    """Palette index ``0`` is falsy but set, and resolves to ANSI black."""
+    assert Style(fg=0).to_css() == "color: #000000"
 
 
 def test_to_css_bright_named_color_resolves_to_rgb():
@@ -246,6 +269,9 @@ def test_to_css_empty_style_returns_empty_string():
         # 256-color extension.
         ("\x1b[38;5;42m", Style(fg=42)),
         ("\x1b[48;5;200m", Style(bg=200)),
+        # Index 0 is falsy but a valid color (black).
+        ("\x1b[38;5;0m", Style(fg=0)),
+        ("\x1b[48;5;0m", Style(bg=0)),
         # 24-bit RGB extension.
         ("\x1b[38;2;241;250;140m", Style(fg=(241, 250, 140))),
         ("\x1b[38;2;241;250;140;1m", Style(fg=(241, 250, 140), bold=True)),
@@ -395,3 +421,44 @@ def test_style_call_cache_survives_depth_flip(monkeypatch):
 
     monkeypatch.setenv("COLORTERM", "truecolor")
     assert style("X") == "\x1b[38;2;255;0;0mX\x1b[0m"
+
+
+# --- 12. Upstream Click color handling ---------------------------------------
+
+
+@pytest.mark.xfail(
+    CLICK_VERSION < (8, 5),
+    reason="Click < 8.5 drops the 256-color index 0: pallets/click#3666.",
+    strict=True,
+)
+@pytest.mark.parametrize(
+    ("style", "expected"),
+    [
+        (Style(fg=0), "\x1b[38;5;0mX\x1b[0m"),
+        (Style(bg=0), "\x1b[48;5;0mX\x1b[0m"),
+    ],
+)
+def test_style_call_palette_index_zero(style, expected):
+    """Rendering palette index ``0`` must emit its escape code, not drop it."""
+    assert style("X") == expected
+
+
+@pytest.mark.skipif(
+    CLICK_VERSION >= (8, 5),
+    reason="Click >= 8.5 rejects empty-string colors.",
+)
+@pytest.mark.parametrize("param", ["fg", "bg"])
+def test_style_call_empty_string_color_ignored(param):
+    """Click < 8.5 silently ignores falsy colors at render time."""
+    assert Style(**{param: ""})("X") == "X\x1b[0m"
+
+
+@pytest.mark.skipif(
+    CLICK_VERSION < (8, 5),
+    reason="Click < 8.5 silently ignores empty-string colors.",
+)
+@pytest.mark.parametrize("param", ["fg", "bg"])
+def test_style_call_empty_string_color_rejected(param):
+    """Click >= 8.5 validates colors at render time and rejects empty strings."""
+    with pytest.raises(TypeError, match="Unknown color"):
+        Style(**{param: ""})("X")
