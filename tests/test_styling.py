@@ -447,18 +447,18 @@ def test_style_call_palette_index_zero(style, expected):
     CLICK_VERSION >= (8, 5),
     reason="Click >= 8.5 rejects empty-string colors.",
 )
-@pytest.mark.parametrize("param", ["fg", "bg"])
-def test_style_call_empty_string_color_ignored(param):
+@pytest.mark.parametrize("style", [Style(fg=""), Style(bg="")])
+def test_style_call_empty_string_color_ignored(style):
     """Click < 8.5 silently ignores falsy colors at render time."""
-    assert Style(**{param: ""})("X") == "X\x1b[0m"
+    assert style("X") == "X\x1b[0m"
 
 
 @pytest.mark.skipif(
     CLICK_VERSION < (8, 5),
     reason="Click < 8.5 silently ignores empty-string colors.",
 )
-@pytest.mark.parametrize("param", ["fg", "bg"])
-def test_style_call_empty_string_color_rejected(param):
+@pytest.mark.parametrize("style", [Style(fg=""), Style(bg="")])
+def test_style_call_empty_string_color_rejected(style):
     """Click >= 8.5 validates colors at render time and rejects empty strings."""
     with pytest.raises(TypeError, match="Unknown color"):
-        Style(**{param: ""})("X")
+        style("X")

@@ -412,9 +412,9 @@ class SchemaFieldInfo(NamedTuple):
     """Dotted configuration path of the option.
 
     Field names are kebab-cased (``setup_guide`` → ``setup-guide``) unless the
-    field pins an explicit path through :data:`CONFIG_PATH_METADATA_KEY`.
-    Nested dataclass fields contribute one segment per nesting level
-    (``test-suite.timeout``).
+    field pins an explicit path through
+    :data:`click_extra.config.schema.CONFIG_PATH_METADATA_KEY`. Nested dataclass
+    fields contribute one segment per nesting level (``test-suite.timeout``).
     """
 
     type_hint: str
@@ -487,8 +487,9 @@ def _first_paragraph(text: str) -> str:
 def _field_config_key(field: Field) -> str:
     """Return the config key of a dataclass field.
 
-    The :data:`CONFIG_PATH_METADATA_KEY` metadata wins when set; otherwise the
-    field name is kebab-cased (``setup_guide`` → ``setup-guide``).
+    The :data:`click_extra.config.schema.CONFIG_PATH_METADATA_KEY` metadata wins
+    when set; otherwise the field name is kebab-cased
+    (``setup_guide`` → ``setup-guide``).
     """
     path = field.metadata.get(CONFIG_PATH_METADATA_KEY)
     if path:
@@ -548,10 +549,10 @@ def schema_field_infos(schema: type) -> list[SchemaFieldInfo]:
     Introspects the dataclass fields, their type annotations, defaults, and
     attribute docstrings. Nested dataclass fields expand recursively into
     dotted keys (``test-suite.timeout``), honoring
-    :data:`CONFIG_PATH_METADATA_KEY` at every level. Records are sorted by
-    key, segment-wise, so a sub-table's options stay contiguous even when
-    another table's name shares their prefix (``workflow.sync`` sorts before
-    ``workflow-pins.sync``).
+    :data:`click_extra.config.schema.CONFIG_PATH_METADATA_KEY` at every level.
+    Records are sorted by key, segment-wise, so a sub-table's options stay
+    contiguous even when another table's name shares their prefix
+    (``workflow.sync`` sorts before ``workflow-pins.sync``).
 
     Defaults are read off a pristine ``schema()`` instance, so every field
     must carry a default: configuration schemas are default-complete by
