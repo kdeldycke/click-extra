@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.3.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.3.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.3.0` (2026-07-08)](https://github.com/kdeldycke/click-extra/compare/v8.2.0...v8.3.0)
 
 - Add a `click:config` Sphinx directive documenting a CLI's `config_schema`: a summary table plus one section per option, with docstring, type, default, and a TOML example. Adds `schema_field_infos()`, `field_docstrings()` and `SchemaFieldInfo` to the public API.
