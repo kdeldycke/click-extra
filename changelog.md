@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- The `--jobs` sequential-execution warning now fires only for an explicit `auto`/`max` request; the option's own default logs it at info level, so bare invocations on 1-CPU hosts stay quiet.
 - `test-suite` no longer crashes on non-UTF-8 binary output: undecodable bytes are escaped into the captured stream, and the subprocess inherits `PYTHONIOENCODING=utf8` so CPython-based binaries emit UTF-8 on Windows pipes.
 
 ## [`8.3.0` (2026-07-08)](https://github.com/kdeldycke/click-extra/compare/v8.2.0...v8.3.0)

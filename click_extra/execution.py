@@ -33,6 +33,7 @@ from time import perf_counter
 from typing import TypeVar
 
 import click
+from click.core import ParameterSource
 from click.shell_completion import CompletionItem
 
 from . import context, echo
@@ -70,8 +71,9 @@ to ``1`` (sequential) when the count cannot be determined.
 .. caution::
     This resolves to ``1`` not only on single-core hosts but also on **two-core
     hosts**, since it reserves one core. There, the default silently runs
-    sequentially. :meth:`JobCount.convert` logs a warning whenever a
-    parallel-intent keyword collapses to a single job this way.
+    sequentially. :meth:`JobCount.convert` logs whenever a parallel-intent
+    keyword collapses to a single job this way: as a warning for an explicit
+    request, at info level for the option's own default.
 """
 
 
@@ -117,9 +119,14 @@ class JobCount(click.ParamType):
 
         An already-resolved integer is returned untouched, so option defaults
         and re-validation can flow back through conversion unharmed. When a
-        parallel-intent keyword (``auto``/``max``) resolves to a single job, a
-        warning is logged: the request reads as "use several cores", but the
-        host has too few logical CPUs, so execution is silently sequential.
+        parallel-intent keyword (``auto``/``max``) resolves to a single job,
+        the collapse is logged: the request reads as "use several cores", but
+        the host has too few logical CPUs, so execution is silently sequential.
+        An explicit request (command line, environment variable, config file)
+        logs a warning; the option's own default only logs at info level, else
+        every bare invocation on a 1-CPU host would emit a warning the user
+        never asked for, polluting captured runner streams and the CLI output
+        rendered in Sphinx docs.
         """
         if isinstance(value, int):
             return value
@@ -128,7 +135,8 @@ class JobCount(click.ParamType):
         if normalized in self.choices:
             resolved = DEFAULT_JOBS if normalized == "auto" else (CPU_COUNT or 1)
             # A parallel-intent keyword that collapses to a single job runs
-            # sequentially: warn so it is not mistaken for parallel execution.
+            # sequentially: surface it so it is not mistaken for parallel
+            # execution. See the docstring for the warning-vs-info split.
             if resolved <= 1 and not (ctx is not None and ctx.resilient_parsing):
                 if CPU_COUNT is None:
                     cpu_desc = "the number of logical CPUs could not be determined"
@@ -136,7 +144,14 @@ class JobCount(click.ParamType):
                     cpu_desc = "only 1 logical CPU is available"
                 else:
                     cpu_desc = f"only {CPU_COUNT} logical CPUs are available"
-                logger.warning(
+                implicit_default = (
+                    ctx is not None
+                    and param is not None
+                    and param.name is not None
+                    and ctx.get_parameter_source(param.name) is ParameterSource.DEFAULT
+                )
+                log = logger.info if implicit_default else logger.warning
+                log(
                     "'--jobs %s' resolved to a single job: %s, so execution "
                     "will be sequential, not parallel.",
                     normalized,
@@ -187,8 +202,9 @@ class JobsOption(ExtraOption):
     by :func:`os.cpu_count`, not physical cores: see
     :data:`~click_extra.execution.CPU_COUNT`. On a host with too few logical
     CPUs, ``auto``/``max`` resolve to a single job and
-    :class:`~click_extra.execution.JobCount` logs a warning that execution will
-    be sequential.
+    :class:`~click_extra.execution.JobCount` logs that execution will be
+    sequential: as a warning when the keyword was requested explicitly, at info
+    level when it came from the option's own default.
 
     The resolved value is stored as an :class:`int` in
     ``ctx.meta[click_extra.context.JOBS]``.

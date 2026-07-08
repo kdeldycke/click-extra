@@ -168,11 +168,12 @@ def test_explicit_single_job_is_silent(invoke):
     assert not result.stderr
 
 
-def test_default_collapses_to_sequential_warns(invoke):
-    """The bare default ('auto') also warns when it collapses to a single job.
+def test_default_collapse_to_sequential_is_quiet(invoke):
+    """The bare default ('auto') collapsing to a single job does not warn.
 
-    This is the silent trap on a two-core host: no flag is passed, yet the
-    default reserves one core and runs sequentially.
+    The user never asked for parallelism: warning on the option's own default
+    would fire on every bare invocation on a 1-CPU host, polluting captured
+    runner streams and the CLI output rendered in Sphinx docs.
     """
 
     @command
@@ -183,6 +184,29 @@ def test_default_collapses_to_sequential_warns(invoke):
 
     with patch.multiple("click_extra.execution", CPU_COUNT=2, DEFAULT_JOBS=1):
         result = invoke(cli)  # No --jobs: exercise the default value.
+
+    assert result.stdout == "Jobs: 1\n"
+    assert result.exit_code == 0
+    assert not result.stderr
+
+
+def test_default_collapse_to_sequential_logged_at_info(invoke):
+    """The default's collapse to a single job stays discoverable at info level.
+
+    This is the silent trap on a two-core host: no flag is passed, yet the
+    default reserves one core and runs sequentially. The trace lives at info
+    level, next to the resolved-jobs line, instead of a default-verbosity
+    warning.
+    """
+
+    @command
+    @jobs_option
+    @pass_context
+    def cli(ctx):
+        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
+
+    with patch.multiple("click_extra.execution", CPU_COUNT=2, DEFAULT_JOBS=1):
+        result = invoke(cli, "--verbosity", "INFO", color=False)
 
     assert result.stdout == "Jobs: 1\n"
     assert result.exit_code == 0
