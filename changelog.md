@@ -7,7 +7,7 @@
 
 - Add a `click:config` Sphinx directive documenting a CLI's `config_schema`: a summary table plus one section per option, with docstring, type, default, and a TOML example. Adds `schema_field_infos()`, `field_docstrings()` and `SchemaFieldInfo` to the public API.
 - Disable mouse zoom on the class inheritance diagrams of the documentation's API sections, so they no longer hijack page scrolling; the fullscreen viewer keeps zoom.
-- Add version-gated tests covering 256-color palette index `0` and empty-string colors in `Style`, anticipating Click `8.5.0` color validation.
+- Add tests covering 256-color palette index `0` and empty-string colors in `Style`, gated on runtime probes of Click `8.5.0`'s color validation.
 
 ## [`8.2.0` (2026-07-01)](https://github.com/kdeldycke/click-extra/compare/v8.1.4...v8.2.0)
 
