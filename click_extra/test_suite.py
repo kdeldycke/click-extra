@@ -397,6 +397,17 @@ class CLITestCase:
                 # behavior. Without this, Windows defaults to cp1252, causing
                 # UnicodeDecodeError on non-ASCII output (like contributor names).
                 encoding="utf-8",
+                # The child-side half of the same contract: a CPython-based binary
+                # (including Nuitka builds) honors PYTHONIOENCODING and emits UTF-8
+                # on piped stdout, where Windows would default to cp1252. An
+                # explicitly exported PYTHONIOENCODING wins over ours.
+                env={"PYTHONIOENCODING": "utf8", **os.environ},
+                # Last-resort guard for binaries that emit non-UTF-8 bytes anyway:
+                # escape them instead of raising UnicodeDecodeError from the reader
+                # thread, which surfaced as a bare "expected string or bytes-like
+                # object, got 'NoneType'" case failure with no hint of the cause.
+                # Escaped bytes show up visibly in the assertion diff instead.
+                errors="backslashreplace",
             )
         except TimeoutExpired:
             raise TimeoutError(

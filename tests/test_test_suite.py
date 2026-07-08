@@ -241,6 +241,41 @@ def test_output_directive_mismatch_fails():
         case.run_cli_test(sys.executable, None, None)
 
 
+def test_non_utf8_output_does_not_crash_the_harness():
+    """Bytes that are not valid UTF-8 are escaped, not a reader-thread crash.
+
+    A binary emitting its platform's legacy encoding (cp1252 on Windows) used
+    to kill the capture with a bare UnicodeDecodeError, surfacing as a
+    "got 'NoneType'" case failure with no hint of the cause. The escaped bytes
+    now flow into the captured stream where assertions can see them.
+    """
+    case = CLITestCase(
+        cli_parameters=(
+            "-c",
+            # 0x82 is not valid UTF-8: written raw, bypassing text encoding.
+            r"import sys; sys.stdout.buffer.write(b'caf\x82-end\n')",
+        ),
+        exit_code=0,
+        stdout_contains=("-end",),
+    )
+    case.run_cli_test(sys.executable, None, None)
+
+
+def test_child_inherits_utf8_io_encoding():
+    """The subprocess emits UTF-8 regardless of the platform's default.
+
+    PYTHONIOENCODING is injected into the child environment so CPython-based
+    binaries write UTF-8 on piped stdout, where Windows would pick cp1252 and
+    desynchronize from the harness's UTF-8 decoding.
+    """
+    case = CLITestCase(
+        cli_parameters=("-c", "import sys; print(sys.stdout.encoding.lower())"),
+        exit_code=0,
+        stdout_contains=("utf",),
+    )
+    case.run_cli_test(sys.executable, None, None)
+
+
 def test_output_and_stream_directives_are_mutually_exclusive():
     """Combining output_* with stdout_*/stderr_* is rejected at construction."""
     with pytest.raises(ValueError, match="cannot be mixed"):
