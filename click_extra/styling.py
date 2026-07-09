@@ -38,6 +38,12 @@ intact and adds:
   a ``Style`` instance.
 - :meth:`Style.contrast_ratio` returning the WCAG contrast ratio between
   two foreground colors. Useful for theme designers checking accessibility.
+- :func:`split_ansi` and :func:`render_ansi` for tokenizing a string mixing
+  text and ANSI escapes into styled runs, and re-rendering those runs through
+  a markup emitter.
+- The :func:`ansi_to_html`, :func:`ansi_to_jira`, :func:`ansi_to_latex` and
+  :func:`ansi_to_textile` converters, translating ANSI styling to markup
+  languages with native styling support.
 """
 
 from __future__ import annotations
@@ -48,10 +54,11 @@ from dataclasses import dataclass, fields, replace
 from functools import lru_cache
 
 import cloup
+from boltons.strutils import strip_ansi
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator, Sequence
     from typing import Any
 
 
@@ -117,8 +124,9 @@ _ATTR_CSS: dict[str, tuple[str, str]] = {
 # Boolean style attributes processed in repr/css/from_ansi, in palette order.
 _BOOL_ATTRS: tuple[str, ...] = tuple(_ATTR_CSS)
 
-# Match a single ANSI SGR escape: ``\x1b[...m``.
-_ANSI_SGR_RE: re.Pattern[str] = re.compile(r"\x1b\[(\d+(?:;\d+)*)m")
+# Match a single ANSI SGR escape: ``\x1b[...m``. The parameter substring may be
+# empty: ``\x1b[m`` is a valid, parameter-less full reset.
+_ANSI_SGR_RE: re.Pattern[str] = re.compile(r"\x1b\[([0-9;]*)m")
 
 
 # --- Shared dict round-trip helpers ------------------------------------------
@@ -607,57 +615,24 @@ class Style(cloup.Style):
 
         Supports the standard 8/16-color codes (30–37, 40–47, 90–97,
         100–107), the ``38;5;n`` / ``48;5;n`` 256-color extension, and the
-        ``38;2;r;g;b`` / ``48;2;r;g;b`` 24-bit extension. Reset codes (``0``)
-        are ignored. Multiple back-to-back escapes (as click emits when
-        combining colors with attributes: ``\\x1b[31m\\x1b[1m``) are merged
-        into a single :class:`Style`.
+        ``38;2;r;g;b`` / ``48;2;r;g;b`` 24-bit extension. Reset codes (the
+        full ``0`` reset, its parameter-less ``\\x1b[m`` form included, and
+        selective resets like ``22``, ``39`` or ``49``) are ignored, so
+        parsing the full output of a style call (trailing reset included)
+        recovers that style. Multiple back-to-back escapes (as click emits
+        when combining colors with attributes: ``\\x1b[31m\\x1b[1m``) are
+        merged into a single :class:`Style`.
+
+        To tokenize a string mixing text and escapes, with resets honored,
+        see :func:`split_ansi`.
         """
         matches = list(_ANSI_SGR_RE.finditer(escape))
         if not matches:
             raise ValueError(f"Not an ANSI SGR escape: {escape!r}")
-        codes: list[int] = []
+        state: dict[str, Any] = {}
         for m in matches:
-            codes.extend(int(c) for c in m.group(1).split(";"))
-        kwargs: dict[str, Any] = {}
-        i = 0
-        while i < len(codes):
-            c = codes[i]
-            if c == 0:
-                pass  # reset, skip.
-            elif c == 1:
-                kwargs["bold"] = True
-            elif c == 2:
-                kwargs["dim"] = True
-            elif c == 3:
-                kwargs["italic"] = True
-            elif c == 4:
-                kwargs["underline"] = True
-            elif c == 5:
-                kwargs["blink"] = True
-            elif c == 7:
-                kwargs["reverse"] = True
-            elif c == 9:
-                kwargs["strikethrough"] = True
-            elif c == 53:
-                kwargs["overline"] = True
-            elif 30 <= c <= 37:
-                kwargs["fg"] = _ANSI_NAMES[c - 30]
-            elif 40 <= c <= 47:
-                kwargs["bg"] = _ANSI_NAMES[c - 40]
-            elif 90 <= c <= 97:
-                kwargs["fg"] = "bright_" + _ANSI_NAMES[c - 90]
-            elif 100 <= c <= 107:
-                kwargs["bg"] = "bright_" + _ANSI_NAMES[c - 100]
-            elif c in (38, 48):
-                key = "fg" if c == 38 else "bg"
-                if i + 2 < len(codes) and codes[i + 1] == 5:
-                    kwargs[key] = codes[i + 2]
-                    i += 2
-                elif i + 4 < len(codes) and codes[i + 1] == 2:
-                    kwargs[key] = (codes[i + 2], codes[i + 3], codes[i + 4])
-                    i += 4
-            i += 1
-        return cls(**kwargs)
+            _apply_sgr_codes(_sgr_params(m.group(1)), state, resets=False)
+        return cls(**state)
 
     def contrast_ratio(self, other: cloup.Style) -> float:
         """Return the WCAG 2.x contrast ratio between this fg and *other*'s fg.
@@ -675,3 +650,307 @@ class Style(cloup.Style):
         if a < b:
             a, b = b, a
         return (a + 0.05) / (b + 0.05)
+
+
+# --- ANSI stream parsing and markup rendering ---------------------------------
+
+_OSC_HYPERLINK_RE: re.Pattern[str] = re.compile(r"\x1b\]8;[^\x1b\x07]*(?:\x07|\x1b\\)")
+"""Match one boundary marker of an OSC 8 terminal hyperlink.
+
+Both the opening marker (which carries the URI) and the closing one (empty URI)
+match, leaving the display text between them untouched. Consumed by
+:func:`_strip_unsupported_ansi` so hyperlinked text survives with its link
+dropped, instead of leaking the URI as visible garbage.
+"""
+
+_JIRA_ATTR_MARKUP: dict[str, str] = {
+    "bold": "*",
+    "italic": "_",
+    "underline": "+",
+    "strikethrough": "-",
+}
+"""Jira wiki markup markers for the text attributes it can express."""
+
+
+def _sgr_params(params: str) -> tuple[int, ...]:
+    """Decode an SGR parameter substring into a sequence of integer codes.
+
+    Per ECMA-48, an empty parameter defaults to ``0``: ``\\x1b[m`` is a full
+    reset, and ``\\x1b[;31m`` carries a reset followed by a red foreground.
+    """
+    return tuple(int(code) if code else 0 for code in params.split(";"))
+
+
+def _apply_sgr_codes(
+    codes: Sequence[int],
+    state: dict[str, Any],
+    *,
+    resets: bool = True,
+) -> None:
+    """Apply SGR parameter *codes* to the mutable style *state*, in place.
+
+    The single source of truth for SGR semantics, shared by :func:`split_ansi`
+    (with the default ``resets=True``) and :meth:`Style.from_ansi` (with
+    ``resets=False``).
+
+    Style-setting codes add entries to *state*, keyed by :class:`Style` field
+    names. When *resets* is true, the full ``0`` reset clears the state, and
+    selective resets drop their attribute: ``22`` (bold and dim), ``23``
+    (italic), ``24`` (underline), ``25`` (blink), ``27`` (reverse), ``29``
+    (strikethrough), ``39`` (foreground), ``49`` (background) and ``55``
+    (overline). When *resets* is false all of them are ignored, letting
+    :meth:`Style.from_ansi` merge escapes without wiping already-parsed codes.
+
+    Unknown codes are silently skipped, like terminals do.
+    """
+    i = 0
+    total = len(codes)
+    while i < total:
+        code = codes[i]
+        if code == 1:
+            state["bold"] = True
+        elif code == 2:
+            state["dim"] = True
+        elif code == 3:
+            state["italic"] = True
+        elif code == 4:
+            state["underline"] = True
+        elif code == 5:
+            state["blink"] = True
+        elif code == 7:
+            state["reverse"] = True
+        elif code == 9:
+            state["strikethrough"] = True
+        elif code == 53:
+            state["overline"] = True
+        elif 30 <= code <= 37:
+            state["fg"] = _ANSI_NAMES[code - 30]
+        elif 40 <= code <= 47:
+            state["bg"] = _ANSI_NAMES[code - 40]
+        elif 90 <= code <= 97:
+            state["fg"] = "bright_" + _ANSI_NAMES[code - 90]
+        elif 100 <= code <= 107:
+            state["bg"] = "bright_" + _ANSI_NAMES[code - 100]
+        elif code in (38, 48):
+            key = "fg" if code == 38 else "bg"
+            if i + 2 < total and codes[i + 1] == 5:
+                state[key] = codes[i + 2]
+                i += 2
+            elif i + 4 < total and codes[i + 1] == 2:
+                state[key] = (codes[i + 2], codes[i + 3], codes[i + 4])
+                i += 4
+        elif resets:
+            if code == 0:
+                state.clear()
+            elif code == 22:
+                state.pop("bold", None)
+                state.pop("dim", None)
+            elif code == 23:
+                state.pop("italic", None)
+            elif code == 24:
+                state.pop("underline", None)
+            elif code == 25:
+                state.pop("blink", None)
+            elif code == 27:
+                state.pop("reverse", None)
+            elif code == 29:
+                state.pop("strikethrough", None)
+            elif code == 39:
+                state.pop("fg", None)
+            elif code == 49:
+                state.pop("bg", None)
+            elif code == 55:
+                state.pop("overline", None)
+        i += 1
+
+
+def _strip_unsupported_ansi(text: str) -> str:
+    """Remove non-SGR ANSI escapes, keeping OSC 8 hyperlinks' display text.
+
+    OSC 8 boundary markers are removed first, so the display text between them
+    survives the broader :func:`boltons.strutils.strip_ansi` pass (whose CSI
+    pattern would otherwise leave the URI behind as visible garbage). Every
+    other escape (cursor movements, screen clearing, other OSC commands) has
+    no markup equivalent and is dropped.
+    """
+    return strip_ansi(_OSC_HYPERLINK_RE.sub("", text))
+
+
+def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
+    """Split *text* into ``(style, text)`` runs at ANSI SGR escape boundaries.
+
+    A stateful SGR stream parser: each escape updates the current style state
+    (with full and selective resets honored, unlike :meth:`Style.from_ansi`),
+    and every maximal run of text sharing the same state is yielded with its
+    :class:`Style`. Unstyled text is yielded with an empty :class:`Style`.
+    Consecutive runs with equal styles are merged and empty runs are dropped,
+    so wrapping each yielded run produces minimal markup.
+
+    Non-SGR escapes carry no style information and are removed from the
+    yielded text, per :func:`_strip_unsupported_ansi`.
+    """
+    state: dict[str, Any] = {}
+    current = Style()
+    buffer: list[str] = []
+    pos = 0
+    for match in _ANSI_SGR_RE.finditer(text):
+        segment = _strip_unsupported_ansi(text[pos : match.start()])
+        pos = match.end()
+        if segment:
+            buffer.append(segment)
+        _apply_sgr_codes(_sgr_params(match.group(1)), state)
+        new_style = Style(**state)
+        if new_style != current:
+            if buffer:
+                yield current, "".join(buffer)
+                buffer = []
+            current = new_style
+    tail = _strip_unsupported_ansi(text[pos:])
+    if tail:
+        buffer.append(tail)
+    if buffer:
+        yield current, "".join(buffer)
+
+
+def render_ansi(text: str, emitter: Callable[[Style, str], str]) -> str:
+    """Rebuild *text*, replacing each ANSI-styled run by *emitter*'s markup.
+
+    Unstyled runs pass through verbatim, so any markup surrounding the styled
+    runs (table borders, tags produced by another renderer) is preserved byte
+    for byte. Styled runs are handed to *emitter* one line at a time: runs are
+    split on newlines so no markup wrapper ever crosses a line boundary, which
+    keeps line-oriented markup (LaTeX rows, wiki tables) well-formed even when
+    a style spans multiple lines.
+    """
+    plain = Style()
+    chunks: list[str] = []
+    for style, run in split_ansi(text):
+        if style == plain:
+            chunks.append(run)
+            continue
+        for index, line in enumerate(run.split("\n")):
+            if index:
+                chunks.append("\n")
+            if line:
+                chunks.append(emitter(style, line))
+    return "".join(chunks)
+
+
+def _html_emitter(style: Style, text: str) -> str:
+    """Wrap *text* in an HTML ``<span>`` carrying the style as inline CSS.
+
+    Relies on :meth:`Style.to_css` for the declarations. A style with no CSS
+    equivalent (like a bare ``blink``) leaves the text unwrapped.
+    """
+    css = style.to_css()
+    if not css:
+        return text
+    return f'<span style="{css}">{text}</span>'
+
+
+def ansi_to_html(text: str) -> str:
+    """Translate ANSI styling in *text* to inline-styled HTML ``<span>`` tags.
+
+    ``\\x1b[34mSummer\\x1b[0m`` becomes
+    ``<span style="color: blue">Summer</span>``. The spans are self-contained
+    (no stylesheet needed) and also valid in markups accepting inline HTML,
+    like MediaWiki.
+    """
+    return render_ansi(text, _html_emitter)
+
+
+def _jira_emitter(style: Style, text: str) -> str:
+    """Wrap *text* in Jira wiki markup.
+
+    Foreground colors render as ``{color:...}`` macros: named for the 8 base
+    ANSI colors, ``#rrggbb`` hex otherwise. Text attributes use the markers
+    from :data:`_JIRA_ATTR_MARKUP`. Jira markup has no equivalent for
+    background colors, dim, overline, reverse or blink: those are dropped.
+    """
+    prefix = ""
+    suffix = ""
+    for attr, marker in _JIRA_ATTR_MARKUP.items():
+        if getattr(style, attr):
+            prefix = prefix + marker
+            suffix = marker + suffix
+    if style.fg is not None:
+        prefix = f"{{color:{_color_to_css(style.fg)}}}{prefix}"
+        suffix = f"{suffix}{{color}}"
+    return f"{prefix}{text}{suffix}"
+
+
+def ansi_to_jira(text: str) -> str:
+    """Translate ANSI styling in *text* to Jira wiki markup.
+
+    ``\\x1b[34;1mSummer\\x1b[0m`` becomes ``{color:blue}*Summer*{color}``.
+    """
+    return render_ansi(text, _jira_emitter)
+
+
+def _latex_color(color: object) -> str:
+    """Render a color as ``\\textcolor`` / ``\\colorbox`` arguments.
+
+    The 8 base ANSI color names are `predefined by xcolor
+    <https://ctan.org/pkg/xcolor>`_ and pass through as ``{name}``. Everything
+    else (bright variants, 256-color indices, 24-bit values) resolves to an
+    ``[HTML]{RRGGBB}`` model specification.
+    """
+    css = _color_to_css(color)
+    if css.startswith("#"):
+        return f"[HTML]{{{css[1:].upper()}}}"
+    return f"{{{css}}}"
+
+
+def _latex_emitter(style: Style, text: str) -> str:
+    """Wrap *text* in LaTeX styling macros.
+
+    Colors require the `xcolor package <https://ctan.org/pkg/xcolor>`_ in the
+    document preamble (``\\usepackage{xcolor}``); bold, italic and underline
+    use core LaTeX macros. Dim, overline, reverse, blink and strikethrough
+    have no core-LaTeX equivalent and are dropped (strikethrough alone would
+    pull in the ``ulem`` package).
+    """
+    result = text
+    if style.bold:
+        result = f"\\textbf{{{result}}}"
+    if style.italic:
+        result = f"\\textit{{{result}}}"
+    if style.underline:
+        result = f"\\underline{{{result}}}"
+    if style.fg is not None:
+        result = f"\\textcolor{_latex_color(style.fg)}{{{result}}}"
+    if style.bg is not None:
+        result = f"\\colorbox{_latex_color(style.bg)}{{{result}}}"
+    return result
+
+
+def ansi_to_latex(text: str) -> str:
+    """Translate ANSI styling in *text* to LaTeX macros.
+
+    ``\\x1b[34;1mSummer\\x1b[0m`` becomes
+    ``\\textcolor{blue}{\\textbf{Summer}}``. The colored macros require
+    ``\\usepackage{xcolor}`` in the document preamble.
+    """
+    return render_ansi(text, _latex_emitter)
+
+
+def _textile_emitter(style: Style, text: str) -> str:
+    """Wrap *text* in a Textile span carrying the style as inline CSS.
+
+    Textile accepts arbitrary CSS declarations in curly braces:
+    ``%{color:red}text%``. Relies on :meth:`Style.to_css` for the
+    declarations, like the HTML emitter.
+    """
+    css = style.to_css()
+    if not css:
+        return text
+    return f"%{{{css}}}{text}%"
+
+
+def ansi_to_textile(text: str) -> str:
+    """Translate ANSI styling in *text* to Textile spans.
+
+    ``\\x1b[34;1mSummer\\x1b[0m`` becomes
+    ``%{color: blue; font-weight: bold}Summer%``.
+    """
+    return render_ansi(text, _textile_emitter)

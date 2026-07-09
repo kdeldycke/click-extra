@@ -22,9 +22,19 @@ import importlib.metadata
 import click
 import cloup
 import pytest
+from boltons.strutils import strip_ansi
 
 from click_extra import Style
-from click_extra.styling import _nearest_256, supports_truecolor
+from click_extra.styling import (
+    _nearest_256,
+    ansi_to_html,
+    ansi_to_jira,
+    ansi_to_latex,
+    ansi_to_textile,
+    render_ansi,
+    split_ansi,
+    supports_truecolor,
+)
 
 CLICK_VERSION = tuple(
     int(part) for part in importlib.metadata.version("click").split(".")[:2]
@@ -296,12 +306,25 @@ def test_to_css_empty_style_returns_empty_string():
         # 24-bit RGB extension.
         ("\x1b[38;2;241;250;140m", Style(fg=(241, 250, 140))),
         ("\x1b[38;2;241;250;140;1m", Style(fg=(241, 250, 140), bold=True)),
-        # Reset code is ignored.
+        # Overline is carried by SGR 53.
+        ("\x1b[53m", Style(overline=True)),
+        # Reset codes are ignored, wherever they sit.
         ("\x1b[0;31m", Style(fg="red")),
+        ("\x1b[31m\x1b[0m", Style(fg="red")),
+        ("\x1b[31;39m", Style(fg="red")),
+        ("\x1b[1m\x1b[22m", Style(bold=True)),
+        # The parameter-less escape is a bare reset, so it parses to no style.
+        ("\x1b[m", Style()),
     ],
 )
 def test_from_ansi_parses_codes(escape, expected):
     assert Style.from_ansi(escape) == expected
+
+
+def test_from_ansi_full_styled_string_round_trip():
+    """Parsing a style's complete output (trailing reset included) recovers it."""
+    original = Style(fg="red", bold=True)
+    assert Style.from_ansi(original("text")) == original
 
 
 def test_from_ansi_round_trip_through_call():
@@ -483,3 +506,255 @@ def test_style_call_empty_string_color_rejected(style):
     """Click >= 8.5 validates colors at render time and rejects empty strings."""
     with pytest.raises(TypeError, match="Unknown color"):
         style("X")
+
+
+# --- 13. split_ansi() --------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param("plain text", [(Style(), "plain text")], id="no-escapes"),
+        pytest.param(
+            "\x1b[31mred\x1b[0m",
+            [(Style(fg="red"), "red")],
+            id="single-styled-run",
+        ),
+        pytest.param(
+            "\x1b[34mFriday\x1b[0m and \x1b[31m\x1b[1mHot\x1b[0m",
+            [
+                (Style(fg="blue"), "Friday"),
+                (Style(), " and "),
+                (Style(fg="red", bold=True), "Hot"),
+            ],
+            id="interleaved-runs",
+        ),
+        pytest.param(
+            "\x1b[31mred\x1b[1mred bold\x1b[0mplain",
+            [
+                (Style(fg="red"), "red"),
+                (Style(fg="red", bold=True), "red bold"),
+                (Style(), "plain"),
+            ],
+            id="state-accumulates",
+        ),
+        pytest.param(
+            "\x1b[31;1mX\x1b[22mY\x1b[39mZ",
+            [
+                (Style(fg="red", bold=True), "X"),
+                (Style(fg="red"), "Y"),
+                (Style(), "Z"),
+            ],
+            id="selective-resets",
+        ),
+        pytest.param("\x1b[mplain", [(Style(), "plain")], id="empty-reset"),
+        pytest.param(
+            "\x1b[31ma\x1b[31mb",
+            [(Style(fg="red"), "ab")],
+            id="identical-styles-merge",
+        ),
+        pytest.param("a\x1b[0mb", [(Style(), "ab")], id="noop-reset-merges"),
+        pytest.param(
+            "\x1b[38;5;196mflame\x1b[0m",
+            [(Style(fg=196), "flame")],
+            id="256-color",
+        ),
+        pytest.param(
+            "\x1b[38;2;241;250;140mlemon\x1b[0m",
+            [(Style(fg=(241, 250, 140)), "lemon")],
+            id="24bit-color",
+        ),
+        pytest.param(
+            "\x1b[41mtomato\x1b[49m plain",
+            [(Style(bg="red"), "tomato"), (Style(), " plain")],
+            id="background",
+        ),
+        pytest.param(
+            "\x1b[31munterminated",
+            [(Style(fg="red"), "unterminated")],
+            id="unterminated-style",
+        ),
+        pytest.param("ab\x1b[2Kcd", [(Style(), "abcd")], id="non-sgr-csi-dropped"),
+        pytest.param(
+            "\x1b]8;;https://example.com\x1b\\Berlin\x1b]8;;\x1b\\",
+            [(Style(), "Berlin")],
+            id="osc8-hyperlink-keeps-text",
+        ),
+    ],
+)
+def test_split_ansi(text, expected):
+    assert list(split_ansi(text)) == expected
+
+
+def test_split_ansi_empty_string():
+    assert list(split_ansi("")) == []
+
+
+def test_split_ansi_preserves_text():
+    """Concatenated run texts equal the ANSI-stripped input."""
+    text = (
+        "plain \x1b[31mred\x1b[0m mid \x1b[1;4mbold+underline\x1b[0m"
+        " \x1b[38;5;42mgreenish\x1b[m end"
+    )
+    assert "".join(run for _, run in split_ansi(text)) == strip_ansi(text)
+
+
+# --- 14. render_ansi() -------------------------------------------------------
+
+
+def test_render_ansi_passthrough_unstyled():
+    text = "no escapes | at all"
+    assert render_ansi(text, lambda style, run: f"<{run}>") == text
+
+
+def test_render_ansi_wraps_styled_runs():
+    result = render_ansi("a \x1b[31mred\x1b[0m z", lambda style, run: f"<{run}>")
+    assert result == "a <red> z"
+
+
+def test_render_ansi_splits_runs_at_newlines():
+    """No markup wrapper ever crosses a line boundary."""
+    result = render_ansi("\x1b[31mtwo\nlines\x1b[0m", lambda style, run: f"<{run}>")
+    assert result == "<two>\n<lines>"
+
+
+# --- 15. ANSI-to-markup converters -------------------------------------------
+
+BLUE = "\x1b[34mSummer\x1b[0m"
+BLUE_BOLD = "\x1b[34m\x1b[1mSummer\x1b[0m"
+
+
+@pytest.mark.parametrize(
+    ("converter", "text", "expected"),
+    [
+        # HTML: inline-CSS spans, straight from Style.to_css().
+        pytest.param(
+            ansi_to_html,
+            BLUE,
+            '<span style="color: blue">Summer</span>',
+            id="html-named-color",
+        ),
+        pytest.param(
+            ansi_to_html,
+            BLUE_BOLD,
+            '<span style="color: blue; font-weight: bold">Summer</span>',
+            id="html-bold",
+        ),
+        pytest.param(
+            ansi_to_html,
+            "\x1b[94mSummer\x1b[0m",
+            '<span style="color: #5555ff">Summer</span>',
+            id="html-bright-color-resolves-to-hex",
+        ),
+        pytest.param(
+            ansi_to_html,
+            "\x1b[38;5;196mSummer\x1b[0m",
+            '<span style="color: #ff0000">Summer</span>',
+            id="html-256-color",
+        ),
+        pytest.param(
+            ansi_to_html,
+            "\x1b[38;2;241;250;140mSummer\x1b[0m",
+            '<span style="color: #f1fa8c">Summer</span>',
+            id="html-24bit-color",
+        ),
+        pytest.param(
+            ansi_to_html,
+            "\x1b[41mSummer\x1b[0m",
+            '<span style="background-color: red">Summer</span>',
+            id="html-background",
+        ),
+        pytest.param(
+            ansi_to_html,
+            "\x1b[2mSummer\x1b[0m",
+            '<span style="opacity: 0.6">Summer</span>',
+            id="html-dim",
+        ),
+        pytest.param(
+            ansi_to_html,
+            "\x1b[9mSummer\x1b[0m",
+            '<span style="text-decoration: line-through">Summer</span>',
+            id="html-strikethrough",
+        ),
+        # Blink has no CSS equivalent: the run is left unwrapped.
+        pytest.param(ansi_to_html, "\x1b[5mSummer\x1b[0m", "Summer", id="html-blink"),
+        pytest.param(ansi_to_html, "Summer", "Summer", id="html-plain-text"),
+        # Jira: {color} macros and wiki emphasis markers.
+        pytest.param(
+            ansi_to_jira,
+            BLUE,
+            "{color:blue}Summer{color}",
+            id="jira-named-color",
+        ),
+        pytest.param(
+            ansi_to_jira,
+            BLUE_BOLD,
+            "{color:blue}*Summer*{color}",
+            id="jira-bold",
+        ),
+        pytest.param(
+            ansi_to_jira,
+            "\x1b[94mSummer\x1b[0m",
+            "{color:#5555ff}Summer{color}",
+            id="jira-bright-color-resolves-to-hex",
+        ),
+        pytest.param(
+            ansi_to_jira,
+            "\x1b[3;4;9mSummer\x1b[0m",
+            "_+-Summer-+_",
+            id="jira-attribute-markers",
+        ),
+        # Jira has no equivalent for backgrounds or dim: dropped.
+        pytest.param(
+            ansi_to_jira, "\x1b[41;2mSummer\x1b[0m", "Summer", id="jira-drops"
+        ),
+        # LaTeX: xcolor macros for colors, core macros for attributes.
+        pytest.param(
+            ansi_to_latex,
+            BLUE,
+            "\\textcolor{blue}{Summer}",
+            id="latex-named-color",
+        ),
+        pytest.param(
+            ansi_to_latex,
+            BLUE_BOLD,
+            "\\textcolor{blue}{\\textbf{Summer}}",
+            id="latex-bold",
+        ),
+        pytest.param(
+            ansi_to_latex,
+            "\x1b[94mSummer\x1b[0m",
+            "\\textcolor[HTML]{5555FF}{Summer}",
+            id="latex-bright-color-resolves-to-hex",
+        ),
+        pytest.param(
+            ansi_to_latex,
+            "\x1b[41mSummer\x1b[0m",
+            "\\colorbox{red}{Summer}",
+            id="latex-background",
+        ),
+        pytest.param(
+            ansi_to_latex,
+            "\x1b[34;1;3;4mSummer\x1b[0m",
+            "\\textcolor{blue}{\\underline{\\textit{\\textbf{Summer}}}}",
+            id="latex-nested-macros",
+        ),
+        # LaTeX has no core equivalent for dim: dropped.
+        pytest.param(ansi_to_latex, "\x1b[2mSummer\x1b[0m", "Summer", id="latex-drops"),
+        # Textile: CSS spans, straight from Style.to_css().
+        pytest.param(
+            ansi_to_textile,
+            BLUE,
+            "%{color: blue}Summer%",
+            id="textile-named-color",
+        ),
+        pytest.param(
+            ansi_to_textile,
+            BLUE_BOLD,
+            "%{color: blue; font-weight: bold}Summer%",
+            id="textile-bold",
+        ),
+    ],
+)
+def test_ansi_converters(converter, text, expected):
+    assert converter(text) == expected

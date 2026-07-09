@@ -157,21 +157,67 @@ For a screen-reader-friendly rendering, use `--table-format plain`: it keeps the
 | `yaml`            | [YAML](https://yaml.org) sequence of mappings                                                                                                                                                                             | [`PyYAML`](install.md#extra-dependencies)    | ✅     |
 | `youtrack`        | [YouTrack markup](https://www.jetbrains.com/help/youtrack/server/youtrack-markdown-syntax-issues.html#tables)                                                                                                             | `python-tabulate`                            | ✅     |
 
-```{attention}
-By default, markup formats strip ANSI color codes from the output, to avoid injecting escape sequences into structured content like HTML, LaTeX, or CSV.
+### Colors and styles
 
-If you want to keep them, force the `--color` option when invoking the command.
+Cells and headers can carry ANSI styles, produced by `click_extra.style()` or a theme. What happens to these codes depends on the format family:
+
+- **Plain-text formats** keep them raw. The final `echo()` call then honors the global colorization settings, so styles show on a capable terminal and are stripped when piped or under `--no-color`.
+- **Markup formats able to express styles natively** translate them to the format's own styling markup. This is the default: pass `--no-color` (or set `NO_COLOR`) to get plain markup instead.
+- **All other markup formats** strip them from cell values before rendering, to avoid leaking escape sequences into structured content. Force `--color` to keep the raw ANSI codes anyway.
+
+The formats translating ANSI codes to native styling, and the markup they produce:
+
+| Format ID                                                    | Native styling markup                                                                                                            |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `html`, `unsafehtml`                                          | Inline-CSS `<span style="…">` tags, self-contained (no stylesheet needed)                                                          |
+| `jira`                                                        | `{color:…}` macros, plus `*bold*`, `_italic_`, `+underline+` and `-strikethrough-` markers                                          |
+| `latex`, `latex-booktabs`, `latex-longtable`, `latex-raw`     | `\textcolor` / `\colorbox` (requires [`xcolor`](https://ctan.org/pkg/xcolor) in the preamble), `\textbf`, `\textit`, `\underline` |
+| `mediawiki`                                                   | Inline-CSS `<span style="…">` tags (MediaWiki accepts embedded HTML)                                                               |
+| `textile`                                                     | `%{…}` spans carrying the style as inline CSS                                                                                       |
+
+Every other markup format keeps stripping ANSI codes. The verdict, format by format:
+
+| Format ID                                            | Why ANSI codes are stripped                                                                                                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `asciidoc`                                           | No portable inline styling: color roles need a custom stylesheet, and `+++` passthrough blocks are tied to the HTML backend                                        |
+| `csv`, `csv-excel`, `csv-excel-tab`, `csv-unix`, `tsv` | Data interchange formats, with no concept of styling                                                                                                              |
+| `github`, `pipe`                                     | GitHub sanitizes inline `style` attributes from rendered Markdown, so translated HTML spans would display no color there                                           |
+| `hjson`, `json`, `json5`, `jsonc`, `toml`, `xml`, `yaml` | Structured serialization formats meant for programmatic consumption: styling is presentation, not data                                                          |
+| `moinmoin`                                           | MoinMoin wiki markup has no standard inline color syntax, and embedded HTML is disabled by default                                                                 |
+| `orgtbl`                                             | Org-mode has emphasis markers but no inline color markup                                                                                                           |
+| `rst`                                                | reStructuredText needs custom roles backed by a stylesheet for inline color; there is no standard inline syntax                                                    |
+| `youtrack`                                           | Undocumented by JetBrains, and [scheduled for removal in python-tabulate `0.11`](https://github.com/astanin/python-tabulate/issues/375)                            |
+
+Here is the translation at work: the blue `Friday` and bold red `Hot 🥵` cells of the example command come out as self-contained HTML:
+
+```{click:run}
+result = invoke(table_command, args=["--table-format", "unsafehtml"])
+assert '<td><span style="color: blue">Friday</span></td>' in result.stdout
+assert '<span style="color: red; font-weight: bold">Hot 🥵</span>' in result.stdout
+assert "\x1b" not in result.stdout
+```
+
+While the same cells are stripped down to plain text in a format without styling support:
+
+```{click:run}
+result = invoke(table_command, args=["--table-format", "github"])
+assert "| Friday | Hot 🥵      |" in result.stdout
+assert "\x1b" not in result.stdout
+```
+
+```{hint}
+The translation maps each ANSI attribute to its closest equivalent, and drops those the target cannot express (like `blink` in CSS, or backgrounds in Jira markup). Colors keep their terminal semantics: a `white` cell on a white page renders invisible, as it would on a white terminal. The underlying converters are also available as standalone functions: see [`ansi_to_html()` and friends](styling.md#ansi-markup-converters).
 ```
 
 ````{tip}
 Use the built-in demo subcommands to verify how ANSI codes are handled by each format:
 
 ```shell-session
-$ uvx click-extra --table-format github styles
+$ uvx click-extra --table-format unsafehtml styles
 $ uvx click-extra --table-format json colors
 ```
 
-Plain-text formats preserve ANSI styling. Markup formats strip it unless `--color` is passed explicitly.
+The first command renders the whole style matrix as a colored HTML page you can redirect to a file and open in a browser.
 ````
 
 ```{click:run}

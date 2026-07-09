@@ -203,6 +203,14 @@ from .spinner import (  # type: ignore[no-redef]
     SpinnerPreset,
     progressbar,
 )
+from .styling import (
+    ansi_to_html,
+    ansi_to_jira,
+    ansi_to_latex,
+    ansi_to_textile,
+    render_ansi,
+    split_ansi,
+)
 from .table import (
     ColumnsOption,
     ColumnSpec,
@@ -347,6 +355,10 @@ __all__ = [
     "ZeroExitOption",
     "accessible_option",
     "annotations",
+    "ansi_to_html",
+    "ansi_to_jira",
+    "ansi_to_latex",
+    "ansi_to_textile",
     "args_cleanup",
     "argument",
     "basicConfig",
@@ -416,6 +428,7 @@ __all__ = [
     "quiet_option",
     "read_file",
     "register_theme",
+    "render_ansi",
     "render_columns_markdown_table",
     "render_manpage",
     "render_manpages",
@@ -437,6 +450,7 @@ __all__ = [
     "set_default_theme",
     "show_params_option",
     "sort_by_option",
+    "split_ansi",
     "style",
     "table_format_option",
     "telemetry_option",

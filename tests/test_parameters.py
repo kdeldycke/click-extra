@@ -46,6 +46,7 @@ from click_extra import (
     IntRange,
     ParamType,
     ShowParamsOption,
+    Style,
     TableFormat,
     Tuple,
     argument,
@@ -69,6 +70,8 @@ from click_extra.parameters import (
     option_value_kind,
 )
 from click_extra.pytest import command_decorators
+from click_extra.table import SERIALIZATION_FORMATS, STYLED_FORMATS
+from click_extra.theme import get_current_theme
 
 from .test_highlight import HashType
 
@@ -1317,8 +1320,6 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
     expected_table[2][18] = "COMMANDLINE"
 
     # Serialization formats emit native types instead of styled glyphs.
-    from click_extra.table import SERIALIZATION_FORMATS
-
     if table_format in SERIALIZATION_FORMATS:
         for row in expected_table:
             for i, cell in enumerate(row):
@@ -1361,11 +1362,45 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
         show_params, "--table-format", table_format, "--show-params", color=False
     )
 
+    styler = STYLED_FORMATS.get(table_format)
+    if styler is None:
+        render_data = expected_table
+        headers: tuple[str, ...] = ShowParamsOption.column_labels()
+    else:
+        # Styled formats translate the theme styling of cells and headers to
+        # native markup instead of stripping it: reproduce the styling applied
+        # by format_param_row() and render_params_table() on the expected data.
+        theme = get_current_theme()
+        glyphs = {"✓": theme.success("✓"), "✘": theme.error("✘")}
+        column_styles = {
+            0: theme.invoked_command,  # ID.
+            1: theme.option,  # Spec.
+            4: theme.metavar,  # Python type.
+            9: theme.default,  # Default.
+            11: theme.default,  # Flag value.
+        }
+        render_data = []
+        for row in expected_table:
+            styled_row = []
+            for i, cell in enumerate(row):
+                text = str(cell)
+                if text in glyphs:
+                    styled_row.append(glyphs[text])
+                elif text and i in column_styles:
+                    styled_row.append(column_styles[i](text))
+                else:
+                    styled_row.append(cell)
+            render_data.append(styled_row)
+        bold = Style(bold=True)
+        headers = tuple(bold(label) for label in ShowParamsOption.column_labels())
+
     rendered = render_table(
-        expected_table,
-        headers=ShowParamsOption.column_labels(),
+        render_data,
+        headers=headers,
         table_format=table_format,
     )
+    if styler is not None:
+        rendered = styler(rendered)
     rendered_table = rendered if rendered.endswith("\n") else rendered + "\n"
 
     # Compare content line by line to simplify reporting of differences.

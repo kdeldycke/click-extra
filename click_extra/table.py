@@ -31,6 +31,7 @@ from boltons.strutils import strip_ansi
 from . import EnumChoice, context, echo
 from .config.formats import ConfigFormat, serialize_content
 from .parameters import ExtraOption, missing_extra_message
+from .styling import ansi_to_html, ansi_to_jira, ansi_to_latex, ansi_to_textile
 from .types import MultiChoice
 
 TYPE_CHECKING = False
@@ -159,10 +160,21 @@ class TableFormat(Enum):
     def is_markup(self) -> bool:
         """Whether this format is a markup rendering.
 
-        Markup formats have ANSI color codes stripped from their output by default.
-        Use the ``--color`` flag to preserve them.
+        ANSI codes never reach a markup rendering raw: they are either
+        translated to the format's native styling (see :attr:`supports_styling`)
+        or stripped from cell values. Forcing ``--color`` on the command line
+        preserves them as-is in the markup formats without styling support.
         """
         return self in MARKUP_FORMATS
+
+    @property
+    def supports_styling(self) -> bool:
+        """Whether ANSI codes are translated to this format's native styling.
+
+        See :data:`~click_extra.table.STYLED_FORMATS` for the registry, and
+        the rationale behind each excluded markup format.
+        """
+        return self in STYLED_FORMATS
 
 
 MARKUP_FORMATS = frozenset(
@@ -198,6 +210,62 @@ MARKUP_FORMATS = frozenset(
     },
 )
 """Subset of table formats that are considered as markup rendering."""
+
+
+STYLED_FORMATS: dict[TableFormat, Callable[[str], str]] = {
+    TableFormat.HTML: ansi_to_html,
+    TableFormat.JIRA: ansi_to_jira,
+    TableFormat.LATEX: ansi_to_latex,
+    TableFormat.LATEX_BOOKTABS: ansi_to_latex,
+    TableFormat.LATEX_LONGTABLE: ansi_to_latex,
+    TableFormat.LATEX_RAW: ansi_to_latex,
+    TableFormat.MEDIAWIKI: ansi_to_html,
+    TableFormat.TEXTILE: ansi_to_textile,
+    TableFormat.UNSAFEHTML: ansi_to_html,
+}
+"""Markup formats able to express styles natively, mapped to their ANSI translator.
+
+:func:`print_table` runs the rendered output of these formats through their
+translator, converting the ANSI codes carried by cells and headers into the
+format's own styling markup: inline-CSS HTML ``<span>``\\ s for the HTML pair
+and MediaWiki (which accepts embedded HTML), Textile ``%{...}`` spans, Jira
+``{color:...}`` macros, and xcolor-based LaTeX macros.
+
+.. note::
+    Translation happens on the rendered output, not on cell values, on
+    purpose. tabulate escapes cell content for some formats (``html``
+    escapes HTML entities, non-raw ``latex`` variants escape TeX specials)
+    while ANSI sequences pass through unscathed, so pre-render translation
+    would get its markup mangled by those escaping rules. Post-render
+    injection also keeps column-width computation on the ANSI text, which
+    tabulate measures correctly.
+
+.. important::
+    Every markup format absent from this registry keeps the historical
+    behavior: ANSI codes are stripped from cells before rendering. The
+    verdict, format by format:
+
+    - ``asciidoc``: no portable inline styling. Colors require
+      stylesheet-defined roles or ``+++`` passthrough blocks tied to the
+      HTML backend, both lossy and non-standard.
+    - ``csv``, ``csv-excel``, ``csv-excel-tab``, ``csv-unix``, ``tsv``:
+      data interchange formats, with no concept of styling.
+    - ``github``, ``pipe``: GitHub sanitizes inline ``style`` attributes
+      from rendered Markdown, so translated HTML spans would not display any
+      color there. Raw ANSI can still be forced with ``--color`` for
+      terminal Markdown viewers which support escape sequences.
+    - ``hjson``, ``json``, ``json5``, ``jsonc``, ``toml``, ``xml``,
+      ``yaml``: structured serialization formats meant for programmatic
+      consumption. Styling is presentation, not data.
+    - ``moinmoin``: MoinMoin wiki markup has no standard inline color
+      syntax, and embedded HTML is disabled by default.
+    - ``orgtbl``: Org-mode has emphasis markers but no inline color markup.
+    - ``rst``: reStructuredText needs custom roles backed by a stylesheet
+      for inline color; there is no standard inline syntax.
+    - ``youtrack``: undocumented by JetBrains and `scheduled for removal in
+      python-tabulate 0.11
+      <https://github.com/astanin/python-tabulate/issues/375>`_.
+"""
 
 
 DEFAULT_FORMAT = TableFormat.ROUNDED_OUTLINE
@@ -579,6 +647,35 @@ def _strip_ansi_cells(
     return cleaned_data, cleaned_headers
 
 
+def _color_disabled() -> bool:
+    """Whether color output is disabled for the current invocation.
+
+    Reads the resolved ``ctx.color`` tri-state, which subcommand contexts
+    inherit from their parents. Only an explicit ``False`` (``--no-color``,
+    ``NO_COLOR``, ``--color=never``) disables styling: the ``None`` (auto)
+    default keeps it, as a markup document carries its own rendering and no
+    TTY is involved.
+    """
+    ctx = click.get_current_context(silent=True)
+    return ctx is not None and ctx.color is False
+
+
+def _color_forced() -> bool:
+    """Whether ``--color`` was explicitly forced on the command line.
+
+    Walks up the context chain, so a color option declared on a parent group is
+    honored from the subcommand doing the printing. The default set by a
+    :class:`~click_extra.color.ColorOption` does not count as forced: only an
+    explicit command line flag does.
+    """
+    ctx: click.Context | None = click.get_current_context(silent=True)
+    while ctx is not None:
+        if ctx.get_parameter_source("color") == click.core.ParameterSource.COMMANDLINE:
+            return ctx.color is True
+        ctx = ctx.parent
+    return False
+
+
 def print_table(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
@@ -588,37 +685,45 @@ def print_table(
 ) -> None:
     """Render a table and print it to the console.
 
-    For markup formats, ANSI color codes are stripped from cell values before
-    rendering unless ``--color`` is explicitly set.
+    ANSI codes carried by cell values and headers depend on the format:
+
+    - Markup formats with native styling support (see
+      :data:`~click_extra.table.STYLED_FORMATS`) get them translated to the
+      format's own styling markup, unless color output is disabled
+      (``--no-color``, ``NO_COLOR``, ...).
+    - Other markup formats get them stripped from cell values before
+      rendering, unless ``--color`` is explicitly forced on the command line.
+    - Plain-text formats keep them raw, and defer to ``echo()``'s sensitivity
+      to the global colorization settings.
 
     :param sort_key: Optional callable passed to :py:func:`sorted` as the ``key``
         argument. When provided, rows are sorted before rendering.
     """
     if sort_key is not None:
         table_data = sorted(table_data, key=sort_key)
-    # Strip ANSI codes from cell data before rendering for markup formats.
-    # Pre-render stripping is necessary because some renderers (JSON, YAML) escape
-    # raw ESC bytes, making post-render strip_ansi() ineffective.
-    if table_format and table_format.is_markup:
-        ctx = click.get_current_context(silent=True)
-        # Only preserve ANSI codes when --color was explicitly passed on the
-        # command line. The default True from ColorOption should not prevent
-        # stripping.
-        color_explicit = False
-        if ctx is not None:
-            source = ctx.get_parameter_source("color")
-            color_explicit = (
-                ctx.color is True and source == click.core.ParameterSource.COMMANDLINE
-            )
-        if not color_explicit:
+
+    ansi_translator: Callable[[str], str] | None = None
+    if table_format:
+        if table_format.supports_styling and not _color_disabled():
+            # Translation to native styling runs on the rendered output, not
+            # on cells: see the STYLED_FORMATS docstring for the rationale.
+            ansi_translator = STYLED_FORMATS[table_format]
+        elif table_format.is_markup and not _color_forced():
+            # Strip ANSI codes from cell data before rendering. Pre-render
+            # stripping is necessary because some renderers (JSON, YAML)
+            # escape raw ESC bytes, making post-render strip_ansi()
+            # ineffective.
             table_data, headers = _strip_ansi_cells(table_data, headers)
 
     render_func, print_func = _select_table_funcs(table_format)
     try:
-        print_func(render_func(table_data, headers, **kwargs))
+        output = render_func(table_data, headers, **kwargs)
     except ImportError:
         assert table_format is not None
         raise SystemExit(f"Error: {_missing_extra_message(table_format)}") from None
+    if ansi_translator is not None:
+        output = ansi_translator(output)
+    print_func(output)
 
 
 def _missing_extra_message(

@@ -122,7 +122,7 @@ The mapping is:
 
 ## `from_ansi()`: parse ANSI SGR escapes
 
-Given one or more consecutive ANSI SGR escapes (the `\x1b[...m` sequences Click emits), rebuild a `Style` instance. Supports the standard 8/16-color codes (30–37, 40–47, 90–97, 100–107), the `38;5;n` / `48;5;n` 256-color extension, and the `38;2;r;g;b` / `48;2;r;g;b` 24-bit extension. Reset codes (`0`) are ignored. Multiple back-to-back escapes (as Click emits when combining colors with attributes) are merged into a single `Style`:
+Given one or more consecutive ANSI SGR escapes (the `\x1b[...m` sequences Click emits), rebuild a `Style` instance. Supports the standard 8/16-color codes (30–37, 40–47, 90–97, 100–107), the `38;5;n` / `48;5;n` 256-color extension, and the `38;2;r;g;b` / `48;2;r;g;b` 24-bit extension. Reset codes (the full `0` reset, its parameter-less `\x1b[m` form included, and selective resets like `22`, `39` or `49`) are ignored, so parsing the full output of a style call recovers that style. Multiple back-to-back escapes (as Click emits when combining colors with attributes) are merged into a single `Style`:
 
 ```{python:run}
 from click_extra import Style
@@ -141,6 +141,61 @@ print(repr(Style.from_ansi("\x1b[38;5;226m")))
 ```
 
 `from_ansi` is the inverse of calling the style: parsing the output of `Style(fg="red", bold=True)("text")` recovers the same style.
+
+## `split_ansi()` and `render_ansi()`: tokenize ANSI streams
+
+While `from_ansi()` parses bare escapes, `split_ansi()` tokenizes a whole string mixing text and escapes. It is a stateful SGR stream parser: each escape updates the current style (full and selective resets honored), and every maximal run of text sharing the same style is yielded as a `(Style, text)` tuple. Non-SGR escapes (cursor movements, OSC hyperlink wrappers) carry no style information and are removed from the yielded text:
+
+```{python:run}
+from click_extra import Style, split_ansi, style
+
+runs = list(split_ansi(style("Monday", fg="blue") + " was " + style("sunny", fg="yellow", bold=True)))
+assert runs == [
+    (Style(fg="blue"), "Monday"),
+    (Style(), " was "),
+    (Style(fg="yellow", bold=True), "sunny"),
+]
+for run_style, text in runs:
+    print(f"{run_style!r} -> {text!r}")
+```
+
+`render_ansi(text, emitter)` builds on it to rewrite a string: unstyled runs pass through verbatim, and each styled run is replaced by whatever markup the `emitter` callable produces. Styled runs are split at newlines, so no markup wrapper ever crosses a line boundary:
+
+```{python:run}
+from click_extra import render_ansi, style
+
+def brackets(run_style, text):
+    return f"[{text}]"
+
+result = render_ansi("a " + style("styled", fg="red") + " word", brackets)
+assert result == "a [styled] word"
+print(result)
+```
+
+## ANSI markup converters
+
+Four ready-made converters translate ANSI styling to markup languages with native styling support. They power the [table styles translation](table.md#colors-and-styles), and are just as useful standalone, to export any styled CLI output:
+
+- `ansi_to_html()` produces self-contained, inline-CSS `<span>` tags (also valid in markups accepting embedded HTML, like MediaWiki).
+- `ansi_to_jira()` produces `{color:…}` macros and Jira wiki emphasis markers.
+- `ansi_to_latex()` produces [`xcolor`](https://ctan.org/pkg/xcolor)-based color macros and core LaTeX text macros.
+- `ansi_to_textile()` produces `%{…}` spans carrying the style as inline CSS.
+
+```{python:run}
+from click_extra import ansi_to_html, ansi_to_jira, ansi_to_latex, ansi_to_textile, style
+
+sample = style("Summer", fg="blue", bold=True)
+
+assert ansi_to_html(sample) == '<span style="color: blue; font-weight: bold">Summer</span>'
+assert ansi_to_jira(sample) == "{color:blue}*Summer*{color}"
+assert ansi_to_latex(sample) == "\\textcolor{blue}{\\textbf{Summer}}"
+assert ansi_to_textile(sample) == "%{color: blue; font-weight: bold}Summer%"
+
+for converter in (ansi_to_html, ansi_to_jira, ansi_to_latex, ansi_to_textile):
+    print(converter(sample))
+```
+
+Each converter maps ANSI attributes to their closest equivalent in the target markup, and silently drops those the target cannot express (like `blink` in CSS, backgrounds in Jira markup, or `dim` in LaTeX). Colors named after the 8 base ANSI colors pass through as color keywords; bright variants, 256-color indices and 24-bit values resolve to hex.
 
 ## `contrast_ratio(other)`: WCAG accessibility check
 

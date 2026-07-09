@@ -40,6 +40,7 @@ from click_extra import (
     columns_option,
     command,
     echo,
+    group,
     option,
     option_group,
     pass_context,
@@ -50,6 +51,7 @@ from click_extra import (
 from click_extra.pytest import command_decorators
 from click_extra.table import (
     SERIALIZATION_FORMATS,
+    STYLED_FORMATS,
     ColumnsOption,
     ColumnSpec,
     SortByOption,
@@ -320,7 +322,8 @@ html_table = """\
 <tbody>
 <tr><td>1     </td><td>42.9       </td></tr>
 <tr><td>2     </td><td>           </td></tr>
-<tr><td>Friday</td><td>Hot 🥵     </td></tr>
+<tr><td><span style="color: blue">Friday</span></td>\
+<td><span style="color: red; font-weight: bold">Hot 🥵</span>     </td></tr>
 </tbody>
 </table>
 """
@@ -350,7 +353,7 @@ jira_table = """\
 || Day    || Temperature ||
 | 1      | 42.9        |
 | 2      |             |
-| Friday | Hot 🥵      |
+| {color:blue}Friday{color} | {color:red}*Hot 🥵*{color}      |
 """
 
 latex_table = """\
@@ -360,7 +363,7 @@ latex_table = """\
 \\hline
  1      & 42.9        \\\\
  2      &             \\\\
- Friday & Hot 🥵      \\\\
+ \\textcolor{blue}{Friday} & \\textcolor{red}{\\textbf{Hot 🥵}}      \\\\
 \\hline
 \\end{tabular}
 """
@@ -372,7 +375,7 @@ latex_booktabs_table = """\
 \\midrule
  1      & 42.9        \\\\
  2      &             \\\\
- Friday & Hot 🥵      \\\\
+ \\textcolor{blue}{Friday} & \\textcolor{red}{\\textbf{Hot 🥵}}      \\\\
 \\bottomrule
 \\end{tabular}
 """
@@ -385,7 +388,7 @@ latex_longtable_table = """\
 \\endhead
  1      & 42.9        \\\\
  2      &             \\\\
- Friday & Hot 🥵      \\\\
+ \\textcolor{blue}{Friday} & \\textcolor{red}{\\textbf{Hot 🥵}}      \\\\
 \\hline
 \\end{longtable}
 """
@@ -397,7 +400,7 @@ latex_raw_table = """\
 \\hline
  1      & 42.9        \\\\
  2      &             \\\\
- Friday & Hot 🥵      \\\\
+ \\textcolor{blue}{Friday} & \\textcolor{red}{\\textbf{Hot 🥵}}      \\\\
 \\hline
 \\end{tabular}
 """
@@ -412,7 +415,8 @@ mediawiki_table = """\
 |-
 | 2      ||
 |-
-| Friday || Hot 🥵
+| <span style="color: blue">Friday</span> || \
+<span style="color: red; font-weight: bold">Hot 🥵</span>
 |}
 """
 
@@ -572,7 +576,7 @@ textile_table = """\
 |_.  Day    |_. Temperature |
 |<. 1       |<. 42.9        |
 |<. 2       |<.             |
-|<. Friday  |<. Hot 🥵      |
+|<. %{color: blue}Friday%  |<. %{color: red; font-weight: bold}Hot 🥵%      |
 """
 
 toml_table = """\
@@ -598,7 +602,8 @@ unsafehtml_table = """\
 <tbody>
 <tr><td>1     </td><td>42.9       </td></tr>
 <tr><td>2     </td><td>           </td></tr>
-<tr><td>Friday</td><td>Hot 🥵     </td></tr>
+<tr><td><span style="color: blue">Friday</span></td>\
+<td><span style="color: red; font-weight: bold">Hot 🥵</span>     </td></tr>
 </tbody>
 </table>
 """
@@ -760,10 +765,14 @@ def test_all_table_rendering(
 
 @pytest.mark.parametrize(
     "format_id",
-    (pytest.param(f, id=str(f)) for f in TableFormat if f.is_markup),
+    (
+        pytest.param(f, id=str(f))
+        for f in TableFormat
+        if f.is_markup and not f.supports_styling
+    ),
 )
 def test_markup_strips_ansi_by_default(invoke, format_id):
-    """Markup formats strip ANSI codes when ``--color`` is not forced."""
+    """Markup formats without native styling strip ANSI codes by default."""
 
     @command
     @table_format_option
@@ -784,11 +793,11 @@ def test_markup_strips_ansi_by_default(invoke, format_id):
     (
         pytest.param(f, id=str(f))
         for f in TableFormat
-        if f.is_markup and f not in SERIALIZATION_FORMATS
+        if f.is_markup and not f.supports_styling and f not in SERIALIZATION_FORMATS
     ),
 )
 def test_markup_preserves_ansi_with_color_flag(invoke, format_id):
-    """``--color`` overrides ANSI stripping for markup formats."""
+    """``--color`` overrides ANSI stripping for non-styled markup formats."""
 
     @command
     @table_format_option
@@ -800,6 +809,93 @@ def test_markup_preserves_ansi_with_color_flag(invoke, format_id):
     result = invoke(table_cli, "--color", "--table-format", format_id, color=True)
     assert result.exit_code == 0
     assert result.stdout != strip_ansi(result.stdout)
+
+
+def test_color_flag_from_parent_group_preserves_ansi(invoke):
+    """A ``--color`` forced on a parent group reaches the subcommand's table.
+
+    Mirrors the layout of the ``click-extra`` demo CLI: the color and table
+    options live on the group, while the table is printed from a subcommand
+    whose context does not own those parameters.
+    """
+
+    @group
+    def cli():
+        pass
+
+    @cli.command()
+    @pass_context
+    def sub(ctx):
+        data = ((style("hello", fg=Color.red),),)
+        assert ctx.parent is not None
+        ctx.parent.print_table(data, headers=("greeting",))
+
+    result = invoke(cli, "--color", "--table-format", "github", "sub", color=True)
+    assert result.exit_code == 0
+    assert result.stdout != strip_ansi(result.stdout)
+
+
+STYLED_MARKUP_SAMPLES = {
+    TableFormat.HTML: '<span style="color: red">hello</span>',
+    TableFormat.JIRA: "{color:red}hello{color}",
+    TableFormat.LATEX: "\\textcolor{red}{hello}",
+    TableFormat.LATEX_BOOKTABS: "\\textcolor{red}{hello}",
+    TableFormat.LATEX_LONGTABLE: "\\textcolor{red}{hello}",
+    TableFormat.LATEX_RAW: "\\textcolor{red}{hello}",
+    TableFormat.MEDIAWIKI: '<span style="color: red">hello</span>',
+    TableFormat.TEXTILE: "%{color: red}hello%",
+    TableFormat.UNSAFEHTML: '<span style="color: red">hello</span>',
+}
+"""Expected native styling of a red ``hello`` cell, per styled format."""
+
+
+def test_styled_formats_all_have_samples():
+    assert set(STYLED_MARKUP_SAMPLES) == set(STYLED_FORMATS)
+
+
+@pytest.mark.parametrize("flags", ((), ("--color",)), ids=("default", "forced-color"))
+@pytest.mark.parametrize(
+    ("format_id", "styled_cell"),
+    (pytest.param(k, v, id=str(k)) for k, v in STYLED_MARKUP_SAMPLES.items()),
+)
+def test_styled_formats_translate_ansi(invoke, format_id, styled_cell, flags):
+    """Styled formats translate ANSI codes to native markup, by default and
+    under a forced ``--color`` alike."""
+
+    @command
+    @table_format_option
+    @pass_context
+    def table_cli(ctx):
+        data = ((style("hello", fg=Color.red),),)
+        ctx.print_table(data, headers=("greeting",))
+
+    result = invoke(table_cli, *flags, "--table-format", format_id, color=True)
+    assert result.exit_code == 0
+    assert styled_cell in result.stdout
+    # Raw ANSI codes never leak into the translated markup.
+    assert "\x1b" not in result.stdout
+
+
+@pytest.mark.parametrize(
+    "format_id",
+    (pytest.param(f, id=str(f)) for f in STYLED_FORMATS),
+)
+def test_styled_formats_strip_ansi_with_no_color(invoke, format_id):
+    """Disabling colors renders styled formats plain, with no translation."""
+
+    @command
+    @table_format_option
+    @pass_context
+    def table_cli(ctx):
+        data = ((style("hello", fg=Color.red),),)
+        ctx.print_table(data, headers=("greeting",))
+
+    result = invoke(table_cli, "--no-color", "--table-format", format_id, color=True)
+    assert result.exit_code == 0
+    assert "hello" in result.stdout
+    assert "\x1b" not in result.stdout
+    for marker in ("<span", "{color:", "\\textcolor", "%{"):
+        assert marker not in result.stdout
 
 
 @pytest.mark.parametrize(
