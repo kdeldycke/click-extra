@@ -478,6 +478,65 @@ override the built-in default.
 """
 
 
+_COLOR_PUBLISHED_KEY = "click_extra.color_published"
+"""Context meta key marking that the reset of :data:`_invocation_color` was queued.
+
+Set by :func:`publish_invocation_color` so the reset-on-close callback is registered
+at most once per invocation, however many color callbacks fire.
+"""
+
+
+_invocation_color: bool | None = None
+"""Process-wide mirror of the current invocation's resolved ``ctx.color`` tri-state.
+
+``ctx.color`` lives on the Click context, which is *thread-local*: a background
+thread (a subprocess stream reader, a fan-out worker) has no reachable context and
+therefore no way to honor ``--color``/``--no-color`` when it produces output. The
+color callbacks mirror their settled resolution here so :func:`invocation_color`
+can serve any thread; the mirror is reset to ``None`` (auto) when the invocation's
+context closes.
+"""
+
+
+def publish_invocation_color(ctx: click.Context) -> None:
+    """Mirror ``ctx.color`` into :data:`_invocation_color` for cross-thread readers.
+
+    Called by every color callback after it settled its part of the resolution:
+    whichever fires last leaves the final tri-state in the mirror. The first call
+    queues a context-close callback resetting the mirror, so the value never leaks
+    into a later invocation in the same process.
+    """
+    global _invocation_color
+    _invocation_color = ctx.color
+    if not ctx.meta.get(_COLOR_PUBLISHED_KEY):
+        ctx.meta[_COLOR_PUBLISHED_KEY] = True
+        ctx.call_on_close(_reset_invocation_color)
+
+
+def _reset_invocation_color() -> None:
+    """Reset the process-wide color mirror to the auto default."""
+    global _invocation_color
+    _invocation_color = None
+
+
+def invocation_color() -> bool | None:
+    """The invocation's resolved color tri-state, reachable from any thread.
+
+    Prefers the pinned ``ctx.color`` of the calling thread's own Click context,
+    then the process-wide mirror published by the color callbacks
+    (:func:`publish_invocation_color`). ``None`` means auto: defer to the output
+    stream's TTY status, exactly like ``ctx.color``'s own default.
+
+    This is what makes ``--no-color`` reach output produced outside the main
+    thread, like the subprocess lines :func:`click_extra.execution.run_cli`
+    streams through :class:`click_extra.logging.StreamHandler`.
+    """
+    ctx = click.get_current_context(silent=True)
+    if ctx is not None and ctx.color is not None:
+        return ctx.color
+    return _invocation_color
+
+
 class ColorWhenChoice(click.Choice):
     """:class:`click.Choice` over :data:`COLOR_WHEN` that also accepts the hidden GNU
     synonyms (:data:`COLOR_WHEN_ALIASES`) and native configuration booleans, folding
@@ -608,35 +667,42 @@ class ColorOption(ExtraOption):
            test runner, or an explicit ``Context(color=...)``: preserved when this
            option only resolves to ``auto`` from its default.
         #. The ``auto`` default, leaving ``ctx.color`` at ``None`` for TTY detection.
-        """
-        when = value
-        source = ctx.get_parameter_source("color")
 
-        # The environment can only override a pure built-in default, never a value
-        # coming from the command line, a configuration file or --accessible. An
-        # explicit --no-color (recorded by NoColorOption) is a
-        # command-line choice and therefore outranks the environment too.
-        if source == ParameterSource.DEFAULT and not ctx.meta.get(
-            _COLOR_CLI_OVERRIDE_KEY,
-        ):
-            env_color = resolve_color_env()
-            if env_color is not None:
-                ctx.color = env_color
+        Whatever branch settles it, the resolution is mirrored process-wide by
+        :func:`publish_invocation_color` so output produced from background
+        threads honors it too.
+        """
+        try:
+            when = value
+            source = ctx.get_parameter_source("color")
+
+            # The environment can only override a pure built-in default, never a value
+            # coming from the command line, a configuration file or --accessible. An
+            # explicit --no-color (recorded by NoColorOption) is a
+            # command-line choice and therefore outranks the environment too.
+            if source == ParameterSource.DEFAULT and not ctx.meta.get(
+                _COLOR_CLI_OVERRIDE_KEY,
+            ):
+                env_color = resolve_color_env()
+                if env_color is not None:
+                    ctx.color = env_color
+                    return
+
+            tristate = _WHEN_TO_TRISTATE[when]
+
+            # "auto" defers to TTY detection. Do not overwrite a color state already
+            # pinned upstream (--no-color, a forced runner, Context(color=...)) unless
+            # the user explicitly spelled out --color=auto on the command line.
+            if (
+                tristate is None
+                and source != ParameterSource.COMMANDLINE
+                and ctx.color is not None
+            ):
                 return
 
-        tristate = _WHEN_TO_TRISTATE[when]
-
-        # "auto" defers to TTY detection. Do not overwrite a color state already
-        # pinned upstream (--no-color, a forced runner, Context(color=...)) unless the
-        # user explicitly spelled out --color=auto on the command line.
-        if (
-            tristate is None
-            and source != ParameterSource.COMMANDLINE
-            and ctx.color is not None
-        ):
-            return
-
-        ctx.color = tristate
+            ctx.color = tristate
+        finally:
+            publish_invocation_color(ctx)
 
     def __init__(
         self,
@@ -693,6 +759,8 @@ class NoColorOption(ExtraOption):
             # Flag the explicit choice so ColorOption keeps the environment from
             # overriding it (the environment may only override the built-in default).
             ctx.meta[_COLOR_CLI_OVERRIDE_KEY] = True
+            # Mirror the pin process-wide for background-thread output.
+            publish_invocation_color(ctx)
 
     def __init__(
         self,

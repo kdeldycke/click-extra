@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import threading
 
 import click
 import pytest
@@ -42,6 +43,7 @@ from click_extra.color import (
     _parse_osc_rgb,
     color_envvars,
     forced_color,
+    invocation_color,
     query_osc_background,
     resolve_background,
     resolve_color_env,
@@ -762,3 +764,34 @@ def test_query_osc_background_pty(monkeypatch):
     finally:
         os.close(controller)
         os.close(worker)
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    (
+        (("--no-color",), False),
+        (("--color",), True),
+        ((), None),
+    ),
+)
+def test_invocation_color_reaches_background_threads(invoke, args, expected):
+    """The resolved color tri-state is mirrored process-wide, so a background
+    thread (which has no reachable Click context) can still honor it; the mirror
+    resets once the invocation closes."""
+
+    @command
+    @color_option
+    @no_color_option
+    def cli():
+        seen = []
+        worker = threading.Thread(target=lambda: seen.append(invocation_color()))
+        worker.start()
+        worker.join()
+        echo(f"thread sees: {seen[0]}")
+
+    result = invoke(cli, *args, color=True)
+    assert f"thread sees: {expected}" in result.stdout
+    assert result.exit_code == 0
+
+    # The mirror is reset to the auto default when the invocation's context closes.
+    assert invocation_color() is None

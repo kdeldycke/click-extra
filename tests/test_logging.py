@@ -18,10 +18,12 @@ from __future__ import annotations
 
 import logging
 import random
+import sys
 from textwrap import dedent
 
 import click
 import pytest
+from boltons.strutils import strip_ansi
 
 from click_extra import (
     LogLevel,
@@ -606,6 +608,61 @@ def test_logger_propagation(invoke):
         debug: Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
     assert result.exit_code == 0
+
+
+def test_stream_handler_honors_no_color_from_background_threads(capsys, monkeypatch):
+    """A record emitted with no reachable Click context (as from run_cli's stream
+    reader threads) still honors --no-color, through the process-wide mirror
+    published by the color options."""
+    from click_extra import color as color_module
+
+    handler = StreamHandler()
+    handler.setFormatter(Formatter("{levelname}: {message}", style="{"))
+    record = logging.LogRecord(
+        name="test",
+        level=logging.DEBUG,
+        pathname=__file__,
+        lineno=1,
+        msg="env: node: No such file or directory",
+        args=None,
+        exc_info=None,
+    )
+    record.label = "yarn-berry"
+
+    # Make the captured stream claim to be a TTY: the terminal where the leak
+    # showed, since click.echo's auto default keeps ANSI codes there.
+    monkeypatch.setattr(sys.stderr, "isatty", lambda: True)
+
+    # Control: under the auto default, the themed levelname and label reach the
+    # "terminal" with their ANSI codes.
+    handler.emit(record)
+    assert "\x1b[" in capsys.readouterr().err
+
+    # A --no-color invocation mirrored process-wide strips them, even though this
+    # thread has no Click context to consult.
+    monkeypatch.setattr(color_module, "_invocation_color", False)
+    handler.emit(record)
+    assert capsys.readouterr().err == (
+        "debug:yarn-berry: env: node: No such file or directory\n"
+    )
+
+
+def test_formatter_renders_label_glued_to_level_name():
+    """A record tagged with a ``label`` attribute (as run_cli's streamed output
+    lines are) renders it inside the level prefix: ``debug:mas: message``."""
+    formatter = Formatter(fmt="{levelname}: {message}", style="{")
+    record = logging.LogRecord(
+        name="test",
+        level=logging.DEBUG,
+        pathname=__file__,
+        lineno=1,
+        msg="Warning: No installed apps found",
+        args=None,
+        exc_info=None,
+    )
+    record.label = "mas"
+    rendered = strip_ansi(formatter.format(record))
+    assert rendered == "debug:mas: Warning: No installed apps found"
 
 
 def test_stream_handler_routes_through_active_spinner(capsys):

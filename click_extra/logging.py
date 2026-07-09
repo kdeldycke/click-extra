@@ -31,6 +31,7 @@ from logging import (
 )
 
 import click
+from boltons.strutils import strip_ansi
 from click.types import IntRange
 
 from . import EnumChoice, context
@@ -149,18 +150,31 @@ class StreamHandler(logging.StreamHandler):
         :meth:`~click_extra.spinner.Spinner.echo`, which erases the in-progress
         frame first, so a log line emitted mid-animation lands on its own line
         instead of garbling the spinner (and vice versa).
+
+        The color tri-state is resolved through
+        :func:`~click_extra.color.invocation_color` rather than left to
+        :func:`click.echo`'s own context lookup: a record emitted from a
+        background thread (a subprocess stream reader, a fan-out worker) has no
+        reachable Click context, and would otherwise ignore ``--no-color`` and
+        keep its ANSI codes on a TTY.
         """
         try:
-            # Imported here, not at module level: spinner.py is a leaf this
-            # logging module must not force-load (nor risk an import cycle with)
-            # just to emit a record.
+            # Imported here, not at module level: spinner.py and color.py are
+            # leaves this logging module must not force-load (nor risk an import
+            # cycle with) just to emit a record.
+            from .color import invocation_color
             from .spinner import active_spinner
 
+            message = self.format(record)
+            color = invocation_color()
             spinner = active_spinner(self._stream)
             if spinner is not None:
-                spinner.echo(self.format(record))
+                # Spinner.echo writes raw: strip what click.echo would have.
+                if color is False:
+                    message = strip_ansi(message)
+                spinner.echo(message)
             else:
-                click.echo(self.format(record), err=self._stderr_output)
+                click.echo(message, err=self._stderr_output, color=color)
         except RecursionError:
             raise
 
@@ -178,12 +192,31 @@ class Formatter(logging.Formatter):
 
         Colors are sourced from a :class:`click_extra.theme.HelpTheme`,
         resolved per-invocation via :func:`click_extra.theme.get_current_theme`.
+
+        A record carrying a ``label`` attribute (each line
+        :func:`~click_extra.execution.run_cli` streams from a subprocess is
+        tagged with its caller-provided label) renders it glued to the level
+        name, styled like an invoked command: ``debug:mas: Warning: ...``. The
+        tag stays out of the message text itself, so a foreign formatter is free
+        to render ``record.label`` its own way.
+
+        The record's ``levelname`` is restored afterwards: a record may be
+        formatted more than once (several handlers, a captured then re-rendered
+        record), and must not accumulate styling or glued labels.
         """
-        level = record.levelname.lower()
-        level_style = getattr(get_current_theme(), level, None)
-        if level_style:
-            record.levelname = level_style(level)
-        return super().formatMessage(record)
+        original_levelname = record.levelname
+        try:
+            theme = get_current_theme()
+            level = original_levelname.lower()
+            level_style = getattr(theme, level, None)
+            if level_style:
+                record.levelname = level_style(level)
+            label = getattr(record, "label", None)
+            if label:
+                record.levelname += ":" + theme.invoked_command(label)
+            return super().formatMessage(record)
+        finally:
+            record.levelname = original_levelname
 
 
 def basicConfig(

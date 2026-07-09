@@ -40,6 +40,8 @@ from click_extra import (
     command,
     context,
     echo,
+    format_cli_prompt,
+    get_current_theme,
     group,
     jobs_option,
     pass_context,
@@ -801,18 +803,57 @@ def test_run_cli_command_level_override(caplog):
 
 
 def test_run_cli_streams_output_at_debug_with_label(caplog):
-    """Every output line is forwarded to the logger, prefixed with the label."""
+    """Every output line is forwarded to the logger, tagged with the label.
+
+    The tag rides the record's ``label`` attribute, not the message text: the
+    default :class:`click_extra.logging.Formatter` renders it glued to the level
+    name (``debug:probe: line1``).
+    """
     code = "import sys; print('line1'); print('line2'); print('boom', file=sys.stderr)"
     with caplog.at_level(logging.DEBUG):
         run_cli((sys.executable, "-c", code), label="probe")
-    messages = [
+    streamed = [
         strip_ansi(record.getMessage())
         for record in caplog.records
-        if record.levelno == logging.DEBUG
+        if getattr(record, "label", None) == "probe"
     ]
-    assert "probe: line1" in messages
-    assert "probe: line2" in messages
-    assert "probe: boom" in messages
+    assert "line1" in streamed
+    assert "line2" in streamed
+    assert "boom" in streamed
+    # Only the streamed output lines carry the tag, all at the output level.
+    assert all(
+        record.levelno == logging.DEBUG
+        for record in caplog.records
+        if getattr(record, "label", None) == "probe"
+    )
+
+
+def test_format_cli_prompt_styles_token_families():
+    """Each token family gets the theme slot it holds elsewhere in a CLI's
+    output: dim sigil, envvar/default assignment pairs, the binary name as an
+    invoked command (directory plain), option-styled flags, plain arguments."""
+    theme = get_current_theme()
+    prompt = format_cli_prompt(
+        ("/opt/homebrew/bin/brew", "list", "--quiet", "--versions"),
+        extra_env={"HOMEBREW_NO_ANALYTICS": "1"},
+    )
+    # The rendered content is the exact copy-pasteable command line.
+    assert strip_ansi(prompt) == (
+        f"{PROMPT}HOMEBREW_NO_ANALYTICS=1 "
+        "/opt/homebrew/bin/brew list --quiet --versions"
+    )
+    assert prompt.startswith(theme.bracket(PROMPT.rstrip()) + " ")
+    assert f"{theme.envvar('HOMEBREW_NO_ANALYTICS')}={theme.default('1')} " in prompt
+    assert f"/opt/homebrew/bin/{theme.invoked_command('brew')} list " in prompt
+    assert prompt.endswith(f"{theme.option('--quiet')} {theme.option('--versions')}")
+
+    # A bare binary name (no directory) is styled whole.
+    prompt = format_cli_prompt(("mas",))
+    assert prompt.endswith(theme.invoked_command("mas"))
+
+    # Windows separators are recognized too.
+    prompt = format_cli_prompt(("C:\\Tools\\mas.exe", "list"))
+    assert f"C:\\Tools\\{theme.invoked_command('mas.exe')} list" in prompt
 
 
 def test_run_cli_merged_streams():

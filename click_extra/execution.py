@@ -673,6 +673,21 @@ def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
 
+def _highlight_bin_name(program: str) -> str:
+    """Style the binary's own name inside ``program``, leaving its directory plain.
+
+    ``/opt/homebrew/bin/mas`` renders with only ``mas`` in the active theme's
+    ``invoked_command`` style, so the part of the path the eye scans for stands
+    out from the noise of its location. A bare name (no separator) is styled
+    whole. Both POSIX and Windows separators are recognized, whichever comes
+    last.
+    """
+    split_at = max(program.rfind("/"), program.rfind("\\")) + 1
+    return program[:split_at] + get_current_theme().invoked_command(
+        program[split_at:],
+    )
+
+
 def format_cli_prompt(
     cmd_args: Iterable[str],
     extra_env: TEnvVars | None = None,
@@ -680,20 +695,44 @@ def format_cli_prompt(
     """Render the shell prompt simulating a CLI invocation, for logs and dry-runs.
 
     Prefixes :data:`~click_extra.execution.PROMPT` to any ``extra_env`` assignments
-    and the command line, each styled through the active theme
-    (:func:`~click_extra.theme.get_current_theme`). Useful to print a
-    copy-pasteable command trace in debug logs, dry-runs and test output.
+    and the command line. Each token family is styled with the theme slot
+    (:func:`~click_extra.theme.get_current_theme`) it holds elsewhere in a CLI's
+    output, so the line reads like the help screens do:
+
+    - the prompt sigil with ``bracket``, the structural-token style;
+    - each environment assignment as ``envvar`` name, plain ``=``, ``default``
+      value;
+    - the program's binary name with ``invoked_command``, its directory plain
+      (see :func:`_highlight_bin_name`);
+    - the ``-``/``--`` flags with ``option``; other arguments stay plain.
+
+    Useful to print a copy-pasteable command trace in debug logs, dry-runs and
+    test output.
     """
     active_theme = get_current_theme()
     extra_env_string = ""
     if extra_env:
-        extra_env_string = active_theme.envvar(
-            "".join(f"{k}={v} " for k, v in extra_env.items()),
+        extra_env_string = "".join(
+            f"{active_theme.envvar(name)}={active_theme.default(str(value))} "
+            for name, value in extra_env.items()
         )
 
-    cmd_str = active_theme.invoked_command(" ".join(cmd_args))
+    cmd_parts = tuple(cmd_args)
+    styled_parts = []
+    if cmd_parts:
+        styled_parts.append(_highlight_bin_name(cmd_parts[0]))
+        for part in cmd_parts[1:]:
+            styled_parts.append(
+                active_theme.option(part) if part.startswith("-") else part,
+            )
 
-    return PROMPT + extra_env_string + cmd_str
+    sigil, _, spacing = PROMPT.partition(" ")
+    return (
+        active_theme.bracket(sigil)
+        + f" {spacing}"
+        + extra_env_string
+        + " ".join(styled_parts)
+    )
 
 
 _LIVE_PROCESSES: Final[set[subprocess.Popen[str]]] = set()
@@ -802,7 +841,7 @@ def _pump_stream(
     sink: list[str],
     log: logging.Logger,
     level: int,
-    prefix: str,
+    label: str | None,
 ) -> None:
     """Reader-thread body: accumulate ``pipe``'s lines and forward each to ``log``.
 
@@ -811,12 +850,17 @@ def _pump_stream(
     stripped of ANSI codes and trailing whitespace. Blank lines are accumulated
     but not logged. The loop ends at ``EOF``, when every writer of the pipe has
     closed it.
+
+    ``label`` rides each record as its ``label`` attribute, which
+    :class:`click_extra.logging.Formatter` renders glued to the level name
+    (``debug:mas: ...``) rather than polluting the message text itself.
     """
+    extra = {"label": label} if label else None
     for line in pipe:
         sink.append(line)
         text = strip_ansi(line).rstrip()
         if text:
-            log.log(level, f"{prefix}{text}")
+            log.log(level, text, extra=extra)
 
 
 def _drain_readers(readers: Iterable[threading.Thread], timeout: float | None) -> bool:
@@ -858,7 +902,7 @@ def run_cli(
       ``$ ENV=value command args`` line of :func:`format_cli_prompt`, so a user
       can reproduce by hand what the tool runs on their system;
     - each line of the child's output is forwarded to the logger *as it is
-      produced* (ANSI-stripped, prefixed with ``label``), instead of being held
+      produced* (ANSI-stripped, tagged with ``label``), instead of being held
       back until the child exits, so a long-running command narrates its progress
       live;
     - the child is registered in the live-process registry for the duration of the
@@ -892,9 +936,13 @@ def run_cli(
         for this call (see :func:`~click_extra.envvar.env_copy`). They are part of
         the disclosed prompt line, since reproducing the call requires them.
     :param timeout: seconds before the child is killed. ``None`` waits forever.
-    :param label: prefix identifying this call on each streamed output line
-        (``brew: Already up-to-date.``), for when several children interleave in
-        one log. Applied to the output lines only, never the prompt line.
+    :param label: tag identifying this call on each streamed output line, for
+        when several children interleave in one log. Carried as the record's
+        ``label`` attribute, which :class:`click_extra.logging.Formatter` renders
+        glued to the level name and styled like an invoked command
+        (``debug:mas: Warning: ...``); a foreign formatter can read
+        ``record.label`` itself. Applied to the output lines only, never the
+        prompt line.
     :param merge_streams: route the child's ``stderr`` into ``stdout`` so the OS
         interleaves both in write order. The result's ``stderr`` is then ``None``,
         like a :func:`subprocess.run` call with ``stderr=STDOUT``.
@@ -941,7 +989,7 @@ def run_cli(
         | windows_creation_flags,
         startupinfo=startupinfo,
     )
-    log.debug(f"Spawned PID {process.pid}: {clean_args[0]}.")
+    log.debug(f"Spawned PID {process.pid}: {_highlight_bin_name(clean_args[0])}.")
 
     # Track the live child so the main thread's SIGINT handler can terminate it on
     # Ctrl+C (see terminate_live_processes): a worker thread never receives the
@@ -953,7 +1001,6 @@ def run_cli(
     # calling thread blocks in wait(). Daemon threads, so an abandoned reader (an
     # orphaned grandchild holding the pipe open past the kill grace) never blocks
     # interpreter shutdown.
-    prefix = f"{label}: " if label else ""
     out_lines: list[str] = []
     err_lines: list[str] = []
     readers = []
@@ -962,16 +1009,17 @@ def run_cli(
             continue
         reader = threading.Thread(
             target=_pump_stream,
-            args=(pipe, sink, log, output_level, prefix),
+            args=(pipe, sink, log, output_level, label),
             daemon=True,
         )
         reader.start()
         readers.append(reader)
 
     deadline = time.monotonic() + timeout if timeout is not None else None
+    timeout_desc = "none" if timeout is None else f"{timeout}s"
     try:
         try:
-            log.debug(f"Waiting for PID {process.pid} (timeout={timeout}s).")
+            log.debug(f"Waiting for PID {process.pid} (timeout={timeout_desc}).")
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             log.debug(f"PID {process.pid} timed out; sending kill.")
