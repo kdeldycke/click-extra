@@ -28,42 +28,30 @@ from textwrap import indent
 
 import click
 import click.testing
-from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
-from extra_platforms import is_windows
 
 from . import Color, Style
+
+# The CLI-invocation serialization and disclosure atoms moved to
+# click_extra.execution once production code (subprocess wrappers, not just tests)
+# started depending on them. This module still consumes them, which keeps their
+# historical click_extra.testing import path working.
+from .execution import (
+    INDENT,
+    args_cleanup,
+    format_cli_prompt,
+)
 from .parameters import patch_attr
-from .theme import get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from contextlib import AbstractContextManager
-    from pathlib import Path
     from typing import IO, Any, Literal
 
     from .envvar import TEnvVars
-
-    TArg = str | Path | None
-    TNestedArgs = Iterable[TArg | Iterable["TNestedArgs"]]
-    """Type for arbitrary nested CLI arguments.
-
-    Arguments can be ``str``, :py:class:`pathlib.Path` objects or ``None`` values.
-    """
-
-
-PROMPT = (">" if is_windows() else "$") + " "
-"""Prompt used to simulate the CLI execution.
-
-.. hint::
-    Use ASCII characters to avoid issues with Windows terminals.
-"""
-
-
-INDENT = " " * len(PROMPT)
-"""Constants for rendering of CLI execution."""
+    from .execution import TArg, TNestedArgs
 
 
 OUTPUT_LABEL = "<output>"
@@ -148,41 +136,6 @@ class StreamView:
             stderr=result.stderr,
             exit_code=result.returncode,
         )
-
-
-def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
-    """Flatten recursive iterables, remove all ``None``, and cast each element to
-    strings.
-
-    Helps serialize :py:class:`pathlib.Path` and other objects.
-
-    It also allows for nested iterables and ``None`` values as CLI arguments for
-    convenience. We just need to flatten and filters them out.
-    """
-    return tuple(str(arg) for arg in flatten(args) if arg is not None)
-
-
-def format_cli_prompt(
-    cmd_args: Iterable[str],
-    extra_env: TEnvVars | None = None,
-) -> str:
-    """Render the shell prompt simulating a CLI invocation, for logs and dry-runs.
-
-    Prefixes :data:`~click_extra.testing.PROMPT` to any ``extra_env`` assignments
-    and the command line, each styled through the active theme
-    (:func:`~click_extra.theme.get_current_theme`). Useful to print a
-    copy-pasteable command trace in debug logs, dry-runs and test output.
-    """
-    active_theme = get_current_theme()
-    extra_env_string = ""
-    if extra_env:
-        extra_env_string = active_theme.envvar(
-            "".join(f"{k}={v} " for k, v in extra_env.items()),
-        )
-
-    cmd_str = active_theme.invoked_command(" ".join(cmd_args))
-
-    return PROMPT + extra_env_string + cmd_str
 
 
 def render_cli_run(

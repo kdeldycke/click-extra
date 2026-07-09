@@ -25,6 +25,7 @@ import pytest
 
 from click_extra import (
     LogLevel,
+    Spinner,
     command,
     echo,
     quiet_option,
@@ -605,3 +606,34 @@ def test_logger_propagation(invoke):
         debug: Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
     assert result.exit_code == 0
+
+
+def test_stream_handler_routes_through_active_spinner(capsys):
+    """A record emitted while a spinner animates on the same stream is printed
+    through Spinner.echo(), on its own line, instead of over the frame."""
+    handler = StreamHandler()
+    # A plain stdlib formatter keeps the assertion free of theme ANSI codes.
+    handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+    record = logging.LogRecord(
+        name="test",
+        level=logging.WARNING,
+        pathname=__file__,
+        lineno=1,
+        msg="mind the spinner",
+        args=None,
+        exc_info=None,
+    )
+
+    # A huge delay keeps the spinner registered without ever drawing a frame,
+    # making the test timing-free: echo() then degrades to a plain line write.
+    spinner = Spinner("work", enabled=True, delay=3600)
+    spinner.start()
+    try:
+        handler.emit(record)
+    finally:
+        spinner.stop()
+    assert capsys.readouterr().err == "WARNING: mind the spinner\n"
+
+    # With no spinner running, the plain click.echo path takes over.
+    handler.emit(record)
+    assert capsys.readouterr().err == "WARNING: mind the spinner\n"

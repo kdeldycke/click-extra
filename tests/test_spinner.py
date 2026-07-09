@@ -43,6 +43,7 @@ from click_extra.spinner import (
     _TOUR_CYCLES,
     _TOUR_MIN,
     _tour_duration,
+    active_spinner,
 )
 from click_extra.spinner_presets import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
 from click_extra.theme import KO_GLYPH, OK_GLYPH
@@ -744,3 +745,35 @@ def test_tour_duration_bounds_dwell():
     one_big_cycle = len(big.frames) * big.interval
     assert one_big_cycle > _TOUR_CAP
     assert _tour_duration(big) == one_big_cycle
+
+
+def test_active_spinner_registry_lifecycle():
+    """A started spinner advertises itself, keyed by stream, until stopped."""
+    assert active_spinner() is None
+
+    # A huge delay keeps the animation registered without ever drawing a frame,
+    # making the test timing-free.
+    spinner = Spinner("work", enabled=True, delay=3600)
+    spinner.start()
+    try:
+        assert active_spinner() is spinner
+        assert active_spinner(sys.stderr) is spinner
+        # No spinner animates on stdout.
+        assert active_spinner(sys.stdout) is None
+    finally:
+        spinner.stop()
+    assert active_spinner() is None
+
+    # stop() is idempotent, deregistering only once.
+    spinner.stop()
+    assert active_spinner() is None
+
+
+def test_active_spinner_ignores_disabled_spinner():
+    """A disabled spinner never animates, so it never registers either."""
+    spinner = Spinner("silent", enabled=False)
+    spinner.start()
+    try:
+        assert active_spinner() is None
+    finally:
+        spinner.stop()

@@ -142,9 +142,25 @@ class StreamHandler(logging.StreamHandler):
         self._stderr_output = stream == sys.stderr
 
     def emit(self, record: LogRecord) -> None:
-        """Use :func:`click.echo` to print to the console."""
+        """Use :func:`click.echo` to print to the console.
+
+        Cooperates with any :class:`~click_extra.spinner.Spinner` currently
+        animating on the same stream: the record is then printed through
+        :meth:`~click_extra.spinner.Spinner.echo`, which erases the in-progress
+        frame first, so a log line emitted mid-animation lands on its own line
+        instead of garbling the spinner (and vice versa).
+        """
         try:
-            click.echo(self.format(record), err=self._stderr_output)
+            # Imported here, not at module level: spinner.py is a leaf this
+            # logging module must not force-load (nor risk an import cycle with)
+            # just to emit a record.
+            from .spinner import active_spinner
+
+            spinner = active_spinner(self._stream)
+            if spinner is not None:
+                spinner.echo(self.format(record))
+            else:
+                click.echo(self.format(record), err=self._stderr_output)
         except RecursionError:
             raise
 

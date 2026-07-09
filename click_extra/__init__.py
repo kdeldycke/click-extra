@@ -153,9 +153,14 @@ from .execution import (
     JobsOption,
     TimerOption,
     ZeroExitOption,
+    args_cleanup,
+    format_cli_prompt,
+    install_interrupt_handler,
     resolve_jobs,
+    run_cli,
     run_jobs,
     run_lanes,
+    terminate_live_processes,
 )
 from .highlight import (
     HelpFormatter,
@@ -222,7 +227,7 @@ from .test_suite import (
     parse_test_suite,
     run_test_suite,
 )
-from .testing import CliRunner, Result, format_cli_prompt
+from .testing import CliRunner, Result
 from .theme import (
     BUILTIN_THEMES,
     HelpTheme,
@@ -341,6 +346,7 @@ __all__ = [
     "ZeroExitOption",
     "accessible_option",
     "annotations",
+    "args_cleanup",
     "argument",
     "basicConfig",
     "cases_from_data",
@@ -378,6 +384,7 @@ __all__ = [
     "getchar",
     "group",
     "help_option",
+    "install_interrupt_handler",
     "jobs_option",
     "last_param",
     "launch",
@@ -413,6 +420,7 @@ __all__ = [
     "render_table",
     "require_sibling_param",
     "resolve_jobs",
+    "run_cli",
     "run_config_validation",
     "run_jobs",
     "run_lanes",
@@ -430,6 +438,7 @@ __all__ = [
     "style",
     "table_format_option",
     "telemetry_option",
+    "terminate_live_processes",
     "theme_option",
     "theme_registry",
     "timer_option",

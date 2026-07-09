@@ -79,6 +79,36 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
 
+_ACTIVE_SPINNERS: list[Spinner] = []
+"""Stack of the spinners currently animating, innermost last.
+
+A spinner registers itself when :meth:`Spinner.start` actually begins an
+animation (a disabled spinner never registers) and deregisters on
+:meth:`Spinner.stop`. Guarded by :data:`_ACTIVE_SPINNERS_LOCK`, since spinners
+are started and stopped from worker threads too.
+"""
+
+
+_ACTIVE_SPINNERS_LOCK = threading.Lock()
+"""Guards :data:`_ACTIVE_SPINNERS` against concurrent mutation."""
+
+
+def active_spinner(stream: IO[str] | None = None) -> Spinner | None:
+    """Return the innermost spinner currently animating, or ``None``.
+
+    With ``stream`` given, only a spinner drawing on that very stream matches.
+    This is how output producers cooperate with a running animation instead of
+    garbling it: :class:`click_extra.logging.StreamHandler` checks here and
+    routes its records through :meth:`Spinner.echo`, which erases the in-progress
+    frame, prints the line, and lets the next tick redraw the spinner underneath.
+    """
+    with _ACTIVE_SPINNERS_LOCK:
+        for spinner in reversed(_ACTIVE_SPINNERS):
+            if stream is None or spinner._resolve_stream() is stream:
+                return spinner
+    return None
+
+
 class Spinner:
     """A thread-animated, indeterminate progress spinner usable as a context
     manager.
@@ -394,6 +424,11 @@ class Spinner:
         self._stop.clear()
         self._drawn = False
         self._cursor_hidden = False
+        # Advertise the animation so concurrent writers (the logging bridge, see
+        # active_spinner()) print through echo() instead of over the frame.
+        with _ACTIVE_SPINNERS_LOCK:
+            if self not in _ACTIVE_SPINNERS:
+                _ACTIVE_SPINNERS.append(self)
         self._thread = threading.Thread(
             target=self._animate,
             args=(stream,),
@@ -411,6 +446,11 @@ class Spinner:
         # Freeze the timer first, before the early return, so even a never-drawn
         # spinner reports the operation's duration through `elapsed_time`.
         self._stop_time = time.monotonic()
+        # Withdraw from the active registry first, so a concurrent log record
+        # emitted during the teardown below goes through the plain path.
+        with _ACTIVE_SPINNERS_LOCK:
+            if self in _ACTIVE_SPINNERS:
+                _ACTIVE_SPINNERS.remove(self)
         if self._thread is None:
             return
         self._stop.set()

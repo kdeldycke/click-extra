@@ -13,11 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Tests for the execution-control options: --jobs, --time and -0/--zero-exit."""
+"""Tests for the execution-control options (--jobs, --time, -0/--zero-exit) and the
+subprocess-execution primitives (run_cli and the interrupt machinery)."""
 
 from __future__ import annotations
 
+import logging
 import re
+import signal
+import subprocess
+import sys
 import threading
 from textwrap import dedent
 from time import monotonic, sleep
@@ -26,6 +31,7 @@ from unittest.mock import patch
 import click
 import cloup
 import pytest
+from boltons.strutils import strip_ansi
 
 from click_extra import (
     Command,
@@ -38,12 +44,20 @@ from click_extra import (
     jobs_option,
     pass_context,
     resolve_jobs,
+    run_cli,
     run_jobs,
     run_lanes,
     timer_option,
     zero_exit_option,
 )
-from click_extra.execution import CPU_COUNT
+from click_extra.execution import (
+    _LIVE_PROCESSES,
+    _LIVE_PROCESSES_LOCK,
+    CPU_COUNT,
+    PROMPT,
+    install_interrupt_handler,
+    terminate_live_processes,
+)
 from click_extra.logging import LogLevel
 from click_extra.pytest import command_decorators
 
@@ -722,3 +736,216 @@ def test_zero_exit_auto_envvar(invoke):
     assert result.stdout == "Zero-exit value: True\n"
     assert not result.stderr
     assert result.exit_code == 0
+
+
+# --- Subprocess execution -----------------------------------------------------
+
+
+def test_run_cli_returns_completed_process(caplog):
+    """run_cli mirrors subprocess.run's result shape, with separate streams."""
+    code = "import sys; print('to out'); print('to err', file=sys.stderr)"
+    with caplog.at_level(logging.DEBUG):
+        result = run_cli((sys.executable, "-c", code))
+    assert isinstance(result, subprocess.CompletedProcess)
+    assert result.returncode == 0
+    assert result.stdout == "to out\n"
+    assert result.stderr == "to err\n"
+
+
+def test_run_cli_flattens_nested_args(caplog):
+    """Nested iterables are flattened, None dropped, and elements stringified."""
+    with caplog.at_level(logging.DEBUG):
+        result = run_cli((sys.executable, None, ("-c", ("print('ok')",))))
+    assert result.args == (sys.executable, "-c", "print('ok')")
+    assert result.stdout == "ok\n"
+
+
+def test_run_cli_discloses_command_at_info(caplog):
+    """The invocation is logged up front at INFO, with its forced env vars, and
+    the output stays out of the INFO records."""
+    with caplog.at_level(logging.INFO):
+        run_cli(
+            (sys.executable, "-c", "print('sesame')"),
+            extra_env={"MY_VAR": "value"},
+        )
+    prompts = [
+        record
+        for record in caplog.records
+        if strip_ansi(record.getMessage()).startswith(PROMPT)
+    ]
+    assert len(prompts) == 1
+    assert prompts[0].levelno == logging.INFO
+    message = strip_ansi(prompts[0].getMessage())
+    assert "MY_VAR=value " in message
+    assert sys.executable in message
+    # The child's output is a DEBUG concern, absent at INFO. The prompt record is
+    # excluded: the command line itself carries the print('sesame') code.
+    assert not any(
+        "sesame" in strip_ansi(record.getMessage())
+        for record in caplog.records
+        if record not in prompts
+    )
+
+
+def test_run_cli_command_level_override(caplog):
+    """A caller can lower the disclosure line to DEBUG for internal probes."""
+    with caplog.at_level(logging.DEBUG):
+        run_cli((sys.executable, "-c", "pass"), command_level=logging.DEBUG)
+    prompts = [
+        record
+        for record in caplog.records
+        if strip_ansi(record.getMessage()).startswith(PROMPT)
+    ]
+    assert len(prompts) == 1
+    assert prompts[0].levelno == logging.DEBUG
+
+
+def test_run_cli_streams_output_at_debug_with_label(caplog):
+    """Every output line is forwarded to the logger, prefixed with the label."""
+    code = "import sys; print('line1'); print('line2'); print('boom', file=sys.stderr)"
+    with caplog.at_level(logging.DEBUG):
+        run_cli((sys.executable, "-c", code), label="probe")
+    messages = [
+        strip_ansi(record.getMessage())
+        for record in caplog.records
+        if record.levelno == logging.DEBUG
+    ]
+    assert "probe: line1" in messages
+    assert "probe: line2" in messages
+    assert "probe: boom" in messages
+
+
+def test_run_cli_merged_streams():
+    """merge_streams interleaves stderr into stdout and nulls the stderr field."""
+    code = dedent("""\
+        import sys
+        print("to out")
+        sys.stdout.flush()
+        print("to err", file=sys.stderr)
+        """)
+    result = run_cli((sys.executable, "-c", code), merge_streams=True)
+    assert result.stderr is None
+    assert "to out" in result.stdout
+    assert "to err" in result.stdout
+
+
+def test_run_cli_timeout_kills_child_and_attaches_partial_output():
+    """An overrun raises TimeoutExpired carrying what was captured so far, and
+    leaves no zombie in the live registry."""
+    code = "print('partial', flush=True); import time; time.sleep(30)"
+    start = monotonic()
+    with pytest.raises(subprocess.TimeoutExpired) as excinfo:
+        run_cli((sys.executable, "-c", code), timeout=2)
+    # The child was killed at the deadline, not waited out.
+    assert monotonic() - start < 15
+    assert "partial" in (excinfo.value.output or "")
+    assert not _LIVE_PROCESSES
+
+
+def test_run_cli_registers_live_process_then_discards_it():
+    """run_cli tracks its subprocess while it runs, and drops it once done.
+
+    A background call parks in a real subprocess. Once it is registered,
+    terminate_live_processes() unblocks it, and run_cli's ``finally`` clears the
+    registry: this is the exact path the SIGINT handler drives on Ctrl+C.
+    """
+
+    def call():
+        run_cli((sys.executable, "-c", "import time; time.sleep(30)"))
+
+    worker = threading.Thread(target=call)
+    worker.start()
+    try:
+        deadline = monotonic() + 5
+        while not _LIVE_PROCESSES and monotonic() < deadline:
+            sleep(0.01)
+        assert _LIVE_PROCESSES, "run_cli() should register its live subprocess"
+        # Terminating the child unblocks the parked run_cli() call.
+        terminate_live_processes()
+        worker.join(timeout=5)
+        assert not worker.is_alive()
+    finally:
+        terminate_live_processes()
+        worker.join(timeout=5)
+    # run_cli()'s finally discarded the child once it was reaped.
+    assert not _LIVE_PROCESSES
+
+
+def test_terminate_live_processes_ignores_already_reaped():
+    """A process gone between snapshot and signal is skipped, not raised on."""
+    proc = subprocess.Popen(
+        (sys.executable, "-c", "pass"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+    )
+    proc.wait(timeout=5)  # Already exited before we signal it.
+    with _LIVE_PROCESSES_LOCK:
+        _LIVE_PROCESSES.add(proc)
+    try:
+        terminate_live_processes()  # Must not raise on the dead process.
+    finally:
+        with _LIVE_PROCESSES_LOCK:
+            _LIVE_PROCESSES.discard(proc)
+
+
+def test_install_interrupt_handler_terminates_children_and_reraises():
+    """The installed SIGINT handler SIGTERMs live children, then raises to abort."""
+    ctx = click.Context(click.Command("cli"))
+    original = signal.getsignal(signal.SIGINT)
+    install_interrupt_handler(ctx)
+    handler = signal.getsignal(signal.SIGINT)
+    assert callable(handler)
+    assert handler is not original
+
+    proc = subprocess.Popen(
+        (sys.executable, "-c", "import time; time.sleep(30)"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+    )
+    with _LIVE_PROCESSES_LOCK:
+        _LIVE_PROCESSES.add(proc)
+    try:
+        # Simulate signal delivery: the handler kills the child, then re-raises.
+        with pytest.raises(KeyboardInterrupt):
+            handler(signal.SIGINT, None)
+        assert proc.wait(timeout=5) != 0
+    finally:
+        with _LIVE_PROCESSES_LOCK:
+            _LIVE_PROCESSES.discard(proc)
+        if proc.poll() is None:
+            proc.kill()
+        ctx.close()  # Restores the previous handler via call_on_close.
+    assert signal.getsignal(signal.SIGINT) is original
+
+
+def test_install_interrupt_handler_restored_on_context_close():
+    """Closing the context restores the handler in place before the install."""
+    original = signal.getsignal(signal.SIGINT)
+    ctx = click.Context(click.Command("cli"))
+    try:
+        install_interrupt_handler(ctx)
+        assert signal.getsignal(signal.SIGINT) is not original
+    finally:
+        ctx.close()
+    assert signal.getsignal(signal.SIGINT) is original
+
+
+def test_install_interrupt_handler_skips_off_main_thread():
+    """signal.signal() only works in the main thread: off-thread install is a no-op."""
+    original = signal.getsignal(signal.SIGINT)
+    ctx = click.Context(click.Command("cli"))
+    errors: list[BaseException] = []
+
+    def off_main():
+        try:
+            install_interrupt_handler(ctx)
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    worker = threading.Thread(target=off_main)
+    worker.start()
+    worker.join()
+    assert not errors
+    assert signal.getsignal(signal.SIGINT) is original

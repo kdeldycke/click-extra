@@ -46,7 +46,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from shutil import which
-from subprocess import PIPE, STDOUT, TimeoutExpired, run
+from subprocess import TimeoutExpired
 
 from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
@@ -59,12 +59,11 @@ from .config.formats import (
     parse_content,
     read_file,
 )
-from .execution import run_jobs
+from .execution import args_cleanup, run_cli, run_jobs
 from .spinner import Spinner
 from .testing import (
     STREAM_FIELDS,
     StreamView,
-    args_cleanup,
     regex_fullmatch_line_by_line,
     render_cli_run,
 )
@@ -382,29 +381,27 @@ class CLITestCase:
         assert os.access(binary, os.X_OK)
 
         clean_args = args_cleanup(binary, args, self.cli_parameters)
-        logging.info(f"Run CLI command: {' '.join(clean_args)}")
 
-        # When the case asserts on the merged stream (output_* directives), route
-        # stderr into stdout so the OS interleaves both in write order: result.stdout
-        # then holds the combined stream and result.stderr is None. Otherwise capture
-        # the two streams separately.
+        # The child-side half of run_cli's UTF-8 decoding contract: a CPython-based
+        # binary (including Nuitka builds) honors PYTHONIOENCODING and emits UTF-8
+        # on piped stdout, where Windows would default to cp1252. Set as a default
+        # only: an explicitly exported PYTHONIOENCODING keeps winning.
+        extra_env = None
+        if "PYTHONIOENCODING" not in os.environ:
+            extra_env = {"PYTHONIOENCODING": "utf8"}
+
+        # run_cli discloses the invocation at INFO and streams the output live at
+        # DEBUG, then returns the same CompletedProcess shape subprocess.run did.
         try:
-            result = run(
+            result = run_cli(
                 clean_args,
-                stdout=PIPE,
-                stderr=STDOUT if self.has_merged_output_directives else PIPE,
+                extra_env=extra_env,
                 timeout=self.timeout,  # type: ignore[arg-type]
-                check=False,
-                # Force UTF-8 decoding of subprocess output. The encoding parameter
-                # only affects parent-side decoding and does not change child process
-                # behavior. Without this, Windows defaults to cp1252, causing
-                # UnicodeDecodeError on non-ASCII output (like contributor names).
-                encoding="utf-8",
-                # The child-side half of the same contract: a CPython-based binary
-                # (including Nuitka builds) honors PYTHONIOENCODING and emits UTF-8
-                # on piped stdout, where Windows would default to cp1252. An
-                # explicitly exported PYTHONIOENCODING wins over ours.
-                env={"PYTHONIOENCODING": "utf8", **os.environ},
+                # When the case asserts on the merged stream (output_* directives),
+                # route stderr into stdout so the OS interleaves both in write
+                # order: result.stdout then holds the combined stream and
+                # result.stderr is None. Otherwise capture the two separately.
+                merge_streams=self.has_merged_output_directives,
                 # Last-resort guard for binaries that emit non-UTF-8 bytes anyway:
                 # escape them instead of raising UnicodeDecodeError from the reader
                 # thread, which surfaced as a bare "expected string or bytes-like
