@@ -643,7 +643,7 @@ BLUE_BOLD = "\x1b[34m\x1b[1mSummer\x1b[0m"
         pytest.param(
             ansi_to_html,
             "\x1b[94mSummer\x1b[0m",
-            '<span style="color: #5555ff">Summer</span>',
+            '<span style="color: #6871ff">Summer</span>',
             id="html-bright-color-resolves-to-hex",
         ),
         pytest.param(
@@ -695,7 +695,7 @@ BLUE_BOLD = "\x1b[34m\x1b[1mSummer\x1b[0m"
         pytest.param(
             ansi_to_jira,
             "\x1b[94mSummer\x1b[0m",
-            "{color:#5555ff}Summer{color}",
+            "{color:#6871ff}Summer{color}",
             id="jira-bright-color-resolves-to-hex",
         ),
         pytest.param(
@@ -724,7 +724,7 @@ BLUE_BOLD = "\x1b[34m\x1b[1mSummer\x1b[0m"
         pytest.param(
             ansi_to_latex,
             "\x1b[94mSummer\x1b[0m",
-            "\\textcolor[HTML]{5555FF}{Summer}",
+            "\\textcolor[HTML]{6871FF}{Summer}",
             id="latex-bright-color-resolves-to-hex",
         ),
         pytest.param(

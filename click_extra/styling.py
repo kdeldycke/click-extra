@@ -64,27 +64,43 @@ if TYPE_CHECKING:
 
 # --- Color conversion utilities ----------------------------------------------
 
-# 16 standard ANSI colors as approximate sRGB values. Used by :meth:`to_css`
-# (where ``bright_*`` named colors aren't valid CSS keywords) and by
-# :meth:`contrast_ratio` (which needs RGB to compute luminance).
 _ANSI_16_RGB: tuple[tuple[int, int, int], ...] = (
     (0, 0, 0),  # 0: black
-    (170, 0, 0),  # 1: red
-    (0, 170, 0),  # 2: green
-    (170, 85, 0),  # 3: yellow
-    (0, 0, 170),  # 4: blue
-    (170, 0, 170),  # 5: magenta
-    (0, 170, 170),  # 6: cyan
-    (170, 170, 170),  # 7: white
-    (85, 85, 85),  # 8: bright_black
-    (255, 85, 85),  # 9: bright_red
-    (85, 255, 85),  # 10: bright_green
-    (255, 255, 85),  # 11: bright_yellow
-    (85, 85, 255),  # 12: bright_blue
-    (255, 85, 255),  # 13: bright_magenta
-    (85, 255, 255),  # 14: bright_cyan
-    (255, 255, 255),  # 15: bright_white
+    (239, 41, 41),  # 1: red
+    (138, 226, 52),  # 2: green
+    (252, 233, 79),  # 3: yellow
+    (52, 101, 164),  # 4: blue
+    (197, 9, 197),  # 5: magenta
+    (52, 226, 226),  # 6: cyan
+    (245, 245, 245),  # 7: white
+    (103, 103, 103),  # 8: bright_black
+    (255, 109, 103),  # 9: bright_red
+    (95, 249, 103),  # 10: bright_green
+    (254, 251, 103),  # 11: bright_yellow
+    (104, 113, 255),  # 12: bright_blue
+    (255, 118, 255),  # 13: bright_magenta
+    (95, 253, 255),  # 14: bright_cyan
+    (254, 255, 255),  # 15: bright_white
 )
+"""Canonical sRGB values for the 16 ANSI colors.
+
+The single source of truth wherever a named ANSI color, or one of the first 16
+slots of the 256-color palette, must materialize as a concrete RGB value:
+:meth:`Style.to_css` (``bright_*`` names are not valid CSS keywords),
+:meth:`Style.contrast_ratio` (luminance needs RGB), :func:`_palette_to_rgb`
+(indices 0-15), and the palettes rendering terminal sessions in the
+documentation (``click_extra.pygments._NAMED_COLORS`` and ``_PALETTE_256``).
+
+Values are the ones the documentation always rendered: Tango-flavored normal
+colors and iTerm2's default brights, picked for legibility on both light and
+dark backgrounds.
+
+.. note::
+    The 8 base *named* colors keep bypassing this table in markup output:
+    :func:`_color_to_css` emits them as plain CSS keywords (and the Jira and
+    LaTeX emitters as macro/xcolor names), delegating the exact shade to the
+    renderer. This table only answers when a concrete value is unavoidable.
+"""
 
 _ANSI_NAMES: tuple[str, ...] = (
     "black",
@@ -226,7 +242,13 @@ def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
 
 
 def _palette_to_rgb(idx: int) -> tuple[int, int, int]:
-    """Convert a 256-color palette index to an approximate sRGB tuple."""
+    """Convert a 256-color palette index to its sRGB tuple.
+
+    Indices 0-15 are the terminal's *system colors*: terminals render them with
+    their theme's palette, so they resolve through the canonical
+    :data:`_ANSI_16_RGB` table. Indices 16-231 (the 6x6x6 color cube) and
+    232-255 (the grayscale ramp) are fixed by the xterm 256-color layout.
+    """
     if 0 <= idx < 16:
         return _ANSI_16_RGB[idx]
     if 16 <= idx < 232:

@@ -37,7 +37,6 @@ stripped.
 
 from __future__ import annotations
 
-import itertools
 import re
 from io import StringIO
 
@@ -69,7 +68,13 @@ from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
 from pygments.style import StyleMeta
 from pygments.token import Generic, Text, Token, string_to_tokentype
 
-from .styling import _CUBE_VALUES, _nearest_256
+from .styling import (
+    _ANSI_16_RGB,
+    _ANSI_NAMES,
+    _nearest_256,
+    _palette_to_rgb,
+    _rgb_to_hex,
+)
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -82,58 +87,28 @@ if TYPE_CHECKING:
 # --- Color palettes ---
 
 _NAMED_COLORS: dict[str, str] = {
-    "Black": "#000000",
-    "Red": "#ef2929",
-    "Green": "#8ae234",
-    "Yellow": "#fce94f",
-    "Blue": "#3465a4",
-    "Magenta": "#c509c5",
-    "Cyan": "#34e2e2",
-    "White": "#f5f5f5",
-    "BrightBlack": "#676767",
-    "BrightRed": "#ff6d67",
-    "BrightGreen": "#5ff967",
-    "BrightYellow": "#fefb67",
-    "BrightBlue": "#6871ff",
-    "BrightMagenta": "#ff76ff",
-    "BrightCyan": "#5ffdff",
-    "BrightWhite": "#feffff",
+    prefix + name.capitalize(): _rgb_to_hex(_ANSI_16_RGB[offset + i])
+    for prefix, offset in (("", 0), ("Bright", 8))
+    for i, name in enumerate(_ANSI_NAMES)
 }
-"""Standard 8 colors and their bright variants, mapped to hex values."""
+"""Standard 8 colors and their bright variants, mapped to hex values.
+
+Keyed by ``Token.Ansi`` component name (``Red``, ``BrightRed``, ...) and derived
+from the canonical :data:`click_extra.styling._ANSI_16_RGB` palette, so the
+documentation renders named ANSI colors with the exact values ``Style`` uses
+for CSS output and contrast math.
+"""
 
 _PALETTE_256: dict[int, str] = {
-    0: "#000000",
-    1: "#800000",
-    2: "#008000",
-    3: "#808000",
-    4: "#000080",
-    5: "#800080",
-    6: "#008080",
-    7: "#c0c0c0",
-    8: "#808080",
-    9: "#ff0000",
-    10: "#00ff00",
-    11: "#ffff00",
-    12: "#0000ff",
-    13: "#ff00ff",
-    14: "#00ffff",
-    15: "#ffffff",
+    idx: _rgb_to_hex(_palette_to_rgb(idx)) for idx in range(256)
 }
 """256-color indexed palette mapped to hex values.
 
-Indices 0-7 are the standard colors, 8-15 are bright variants, 16-231 are the 6x6x6
-color cube, and 232-255 are the grayscale ramp.
+Derived index by index from :func:`click_extra.styling._palette_to_rgb`:
+indices 0-15 are the system colors (the canonical named palette, like real
+terminals which render those slots with their theme), 16-231 the 6x6x6 color
+cube, and 232-255 the grayscale ramp.
 """
-
-# 6x6x6 color cube (indices 16-231).
-_PALETTE_256.update({
-    16 + i: "#{:02x}{:02x}{:02x}".format(*rgb)
-    for i, rgb in enumerate(itertools.product(_CUBE_VALUES, _CUBE_VALUES, _CUBE_VALUES))
-})
-# Grayscale ramp (indices 232-255).
-_PALETTE_256.update({
-    232 + i: f"#{10 * i + 8:02x}{10 * i + 8:02x}{10 * i + 8:02x}" for i in range(24)
-})
 
 
 _SGR_FG_COLORS: dict[int, str] = {
