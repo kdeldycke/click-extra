@@ -36,7 +36,7 @@ from .types import MultiChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Sequence
+    from collections.abc import Callable, Iterable, Mapping, Sequence
     from typing import Any
 
 
@@ -1049,7 +1049,7 @@ def select_columns(
 
 
 def select_row(
-    row: dict[str, Any],
+    row: Mapping[str, Any],
     selected_ids: Sequence[str] | None,
     canonical_ids: Sequence[str],
 ) -> tuple:
