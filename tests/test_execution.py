@@ -43,6 +43,7 @@ from click_extra import (
     format_cli_prompt,
     get_current_theme,
     group,
+    highlight_bin_name,
     jobs_option,
     pass_context,
     resolve_jobs,
@@ -826,6 +827,19 @@ def test_run_cli_streams_output_at_debug_with_label(caplog):
         for record in caplog.records
         if getattr(record, "label", None) == "probe"
     )
+
+
+def test_highlight_bin_name():
+    """Only the binary's own name is styled; its directory stays plain, whichever
+    separator convention the path uses."""
+    theme = get_current_theme()
+    styled = theme.invoked_command
+    assert highlight_bin_name("/opt/homebrew/bin/mas") == (
+        f"/opt/homebrew/bin/{styled('mas')}"
+    )
+    assert highlight_bin_name("C:\\Tools\\mas.exe") == f"C:\\Tools\\{styled('mas.exe')}"
+    # A bare name (no separator) is styled whole.
+    assert highlight_bin_name("mas") == styled("mas")
 
 
 def test_format_cli_prompt_styles_token_families():

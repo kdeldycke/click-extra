@@ -673,7 +673,7 @@ def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
 
-def _highlight_bin_name(program: str) -> str:
+def highlight_bin_name(program: str) -> str:
     """Style the binary's own name inside ``program``, leaving its directory plain.
 
     ``/opt/homebrew/bin/mas`` renders with only ``mas`` in the active theme's
@@ -703,7 +703,7 @@ def format_cli_prompt(
     - each environment assignment as ``envvar`` name, plain ``=``, ``default``
       value;
     - the program's binary name with ``invoked_command``, its directory plain
-      (see :func:`_highlight_bin_name`);
+      (see :func:`highlight_bin_name`);
     - the ``-``/``--`` flags with ``option``; other arguments stay plain.
 
     Useful to print a copy-pasteable command trace in debug logs, dry-runs and
@@ -720,7 +720,7 @@ def format_cli_prompt(
     cmd_parts = tuple(cmd_args)
     styled_parts = []
     if cmd_parts:
-        styled_parts.append(_highlight_bin_name(cmd_parts[0]))
+        styled_parts.append(highlight_bin_name(cmd_parts[0]))
         for part in cmd_parts[1:]:
             styled_parts.append(
                 active_theme.option(part) if part.startswith("-") else part,
@@ -989,7 +989,7 @@ def run_cli(
         | windows_creation_flags,
         startupinfo=startupinfo,
     )
-    log.debug(f"Spawned PID {process.pid}: {_highlight_bin_name(clean_args[0])}.")
+    log.debug(f"Spawned PID {process.pid}: {highlight_bin_name(clean_args[0])}.")
 
     # Track the live child so the main thread's SIGINT handler can terminate it on
     # Ctrl+C (see terminate_live_processes): a worker thread never receives the
