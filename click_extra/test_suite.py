@@ -348,7 +348,10 @@ class CLITestCase:
         ```
         """
         if self.only_platforms and current_platform() not in self.only_platforms:  # type: ignore[operator]
-            raise SkippedTest(f"Test case only runs on platform: {current_platform()}")
+            required = ", ".join(
+                sorted(trait.id for trait in extract_members(self.only_platforms))
+            )
+            raise SkippedTest(f"Test case only runs on platforms: {required}")
 
         if current_platform() in extract_members(
             self.skip_platforms, additional_skip_platforms

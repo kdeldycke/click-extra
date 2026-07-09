@@ -32,11 +32,13 @@ from __future__ import annotations
 import sys
 
 import pytest
+from extra_platforms import current_platform, extract_members
 
 from click_extra import (
     DEFAULT_TEST_SUITE,
     CLITestCase,
     ConfigFormat,
+    SkippedTest,
     cases_from_data,
     load_test_suite,
     parse_test_suite,
@@ -238,6 +240,30 @@ def test_output_directive_mismatch_fails():
     """A substring absent from the merged stream fails the case."""
     case = CLITestCase(cli_parameters=_INTERLEAVE, output_contains=("absent",))
     with pytest.raises(AssertionError):
+        case.run_cli_test(sys.executable, None, None)
+
+
+# --- Platform gating ----------------------------------------------------------
+
+
+def test_only_platforms_runs_on_member_platform():
+    """A case restricted to the current platform's own id is not skipped."""
+    case = CLITestCase(cli_parameters="--version", only_platforms=current_platform().id)
+    case.run_cli_test(sys.executable, None, None)
+
+
+def test_only_platforms_skip_names_required_platforms(monkeypatch):
+    """The skip message names the case's required platforms, not the current one.
+
+    The message used to interpolate `current_platform()`, producing the
+    contradictory "only runs on platform: macOS" for a case skipped *on* macOS.
+    """
+    macos = next(iter(extract_members("macos")))
+    monkeypatch.setattr("click_extra.test_suite.current_platform", lambda: macos)
+    case = CLITestCase(
+        cli_parameters="--version", only_platforms=("freebsd", "windows")
+    )
+    with pytest.raises(SkippedTest, match="only runs on platforms: freebsd, windows"):
         case.run_cli_test(sys.executable, None, None)
 
 
