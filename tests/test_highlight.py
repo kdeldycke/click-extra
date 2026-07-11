@@ -1466,8 +1466,8 @@ def test_command_aliases_collected():
 
 
 def test_command_aliases_highlighted(invoke):
-    """Aliases inside parenthetical groups are highlighted with the subcommand
-    style."""
+    """Aliases inside parenthetical groups take the alias slot, and the
+    parentheses and separators the alias_secondary slot."""
 
     @group
     def cli():
@@ -1491,10 +1491,14 @@ def test_command_aliases_highlighted(invoke):
     assert "  " + theme.subcommand("backup") + " " in help_text
     assert "  " + theme.subcommand("restore") + " " in help_text
 
-    # Aliases inside parentheses are highlighted.
-    assert theme.subcommand("save") + "," in help_text
-    assert theme.subcommand("freeze") + ")" in help_text
-    assert theme.subcommand("load") + ")" in help_text
+    # Aliases inside parentheses are highlighted, punctuation included.
+    assert theme.alias_secondary("(") + theme.alias("save") in help_text
+    assert (
+        theme.alias_secondary(", ") + theme.alias("freeze") + theme.alias_secondary(")")
+    ) in help_text
+    assert (
+        theme.alias_secondary("(") + theme.alias("load") + theme.alias_secondary(")")
+    ) in help_text
 
 
 def test_single_alias_highlighted(invoke):
@@ -1514,7 +1518,9 @@ def test_single_alias_highlighted(invoke):
     help_text = result.output
 
     assert "  " + theme.subcommand("show") + " " in help_text
-    assert "(" + theme.subcommand("ls") + ")" in help_text
+    assert (
+        theme.alias_secondary("(") + theme.alias("ls") + theme.alias_secondary(")")
+    ) in help_text
 
 
 def test_alias_no_false_positive_in_description(invoke):
@@ -1535,7 +1541,9 @@ def test_alias_no_false_positive_in_description(invoke):
     help_text = result.output
 
     # The alias in parentheses is highlighted.
-    assert "(" + theme.subcommand("cp") + ")" in help_text
+    assert (
+        theme.alias_secondary("(") + theme.alias("cp") + theme.alias_secondary(")")
+    ) in help_text
 
     # The "cp" inside the description is NOT highlighted because it is not
     # preceded by "(", ",", or " " followed by ")"/",".
@@ -1569,7 +1577,9 @@ def test_alias_substring_not_highlighted(invoke):
     # The full subcommand name is highlighted.
     assert "  " + theme.subcommand("backup") + " " in help_text
     # The alias inside parentheses is highlighted.
-    assert "(" + theme.subcommand("back") + ")" in help_text
+    assert (
+        theme.alias_secondary("(") + theme.alias("back") + theme.alias_secondary(")")
+    ) in help_text
 
 
 @pytest.mark.parametrize(

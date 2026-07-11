@@ -141,9 +141,11 @@ def test_render_tree_theme_styling():
     assert theme.subcommand("status") in tree
     assert theme.subcommand("calibrate") in tree
     assert theme.metavar("CITY") in tree
-    # Aliases render like the help-screen keyword pass: the word takes the
-    # subcommand slot, the parentheses stay plain punctuation.
-    assert "(" + theme.subcommand("st") + ")" in tree
+    # Aliases render through Cloup's canonical formatter, like help screens:
+    # the word takes the alias slot, the punctuation the alias_secondary slot.
+    assert (
+        theme.alias_secondary("(") + theme.alias("st") + theme.alias_secondary(")")
+    ) in tree
 
 
 def test_render_tree_wraps_descriptions():

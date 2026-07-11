@@ -605,18 +605,29 @@ class HelpFormatter(cloup.HelpFormatter):
                 self.theme.subcommand,
             )
 
-        # Highlight command aliases inside parenthetical groups like
-        # "(lock, freeze, snapshot)". Aliases are preceded by "(" or ", "
-        # and followed by "," or ")".
+        # Style command aliases and their parenthetical punctuation, like
+        # "(lock, freeze, snapshot)". The whole group is rebuilt through
+        # Cloup's own ``format_subcommand_aliases``, the canonical consumer of
+        # the ``alias`` / ``alias_secondary`` theme slots, so help screens and
+        # the ``--tree`` view render aliases identically. The group only
+        # matches when every comma-separated word is a known alias, so a
+        # parenthetical in prose that merely contains an alias is left alone.
         if kw.command_aliases:
-            help_text = highlight(
-                help_text,
-                (
-                    re.compile(rf"(?<=[(, ]){re.escape(name)}(?=[,)])")
-                    for name in sorted(kw.command_aliases, key=len, reverse=True)
-                ),
-                self.theme.subcommand,
+            alias_alt = "|".join(
+                re.escape(name)
+                for name in sorted(kw.command_aliases, key=len, reverse=True)
             )
+            alias_group_re = re.compile(
+                rf"\((?P<aliases>(?:{alias_alt})(?:, (?:{alias_alt}))*)\)"
+            )
+
+            def restyle_alias_group(match: re.Match) -> str:
+                return cloup.Group.format_subcommand_aliases(
+                    match.group("aliases").split(", "),
+                    self.theme,
+                )
+
+            help_text = alias_group_re.sub(restyle_alias_group, help_text)
 
         # Style trailing bracket fields [env var: ...; default: ...; ...].
         # This must happen post-wrapping because Click's text wrapper splits

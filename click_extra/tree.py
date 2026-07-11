@@ -46,6 +46,7 @@ from dataclasses import dataclass
 from gettext import gettext as _
 
 import click
+import cloup
 from wcwidth import wcswidth
 
 from . import context
@@ -124,13 +125,11 @@ def _command_labels(
     deliberately left out: they are ``--show-params``' job. The plain variant
     is used to measure column widths, the styled one to print.
 
-    Alias styling matches the help-screen keyword pass
-    (:class:`~click_extra.highlight.HelpFormatter`) glyph for glyph: the alias
-    words take the ``subcommand`` slot and the parentheses and separators stay
-    plain punctuation. Cloup's own ``format_subcommand_aliases`` would style
-    the punctuation with ``alias_secondary``, a slot the help pipeline never
-    applies, making the same alias render differently in the tree and in
-    ``--help``.
+    Aliases render through Cloup's own ``format_subcommand_aliases``: the
+    alias words take the ``alias`` theme slot and the parentheses and
+    separators the ``alias_secondary`` slot, exactly like the help-screen
+    keyword pass (:class:`~click_extra.highlight.HelpFormatter`), which
+    routes through the same formatter.
     """
     theme = get_current_theme()
     aliases = tuple(getattr(command, "aliases", None) or ())
@@ -138,7 +137,7 @@ def _command_labels(
     styled = style_name(name)
     if aliases:
         plain += f" ({', '.join(aliases)})"
-        styled += " (" + ", ".join(theme.subcommand(alias) for alias in aliases) + ")"
+        styled += " " + cloup.Group.format_subcommand_aliases(aliases, theme)
     operands = " ".join(
         param.make_metavar(ctx=ctx)
         for param in command.params
