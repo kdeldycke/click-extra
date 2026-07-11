@@ -1,6 +1,6 @@
 # {octicon}`terminal` CLI wrapper
 
-Click Extra's `wrap` subcommand runs any installed Click CLI through Click Extra, without modifying the target's source code. By default it applies help colorization, useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling. With `--show-params` or `--man`, it instead loads the target and [describes it](#introspecting-external-clis) without running it.
+Click Extra's `wrap` subcommand runs any installed Click CLI through Click Extra, without modifying the target's source code. By default it applies help colorization, useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling. With `--show-params`, `--man`, `--carapace` or `--tree`, it instead loads the target and [describes it](#introspecting-external-clis) without running it.
 
 ## Usage
 
@@ -233,6 +233,8 @@ CLIs already built with Click Extra or Cloup are unaffected by the patching (the
 ## Introspecting external CLIs
 
 The `--show-params` flag turns `wrap` into a read-only inspector: it loads any Click CLI without running it and prints a table of every parameter, with its ID, spec, class, type, hidden status, environment variables, and default value. This is the same table the [`--show-params` option](parameters.md#show-params-option) produces for a Click Extra CLI, pointed at a foreign target instead.
+
+The other introspection modes follow the same contract, each documented on its facet's page: [`--man`](man-page.md) renders the target's man page, [`--carapace`](carapace.md#the-wrap-carapace-mode) its completion spec, and [`--tree`](tree.md#foreign-clis) its hierarchy of nested subcommands. All four are mutually exclusive.
 
 ```{click:source}
 :hide-source:

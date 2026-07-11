@@ -208,6 +208,16 @@ The [`--columns` option on `--show-params`](parameters.md#columns-selection) is 
 
 - [`click#1279` - Provide access to a normalized list of args that will result in the same params](https://github.com/pallets/click/issues/1279)
 
+### Command tree
+
+click-extra ships a [`--tree` flag](tree.md) on every command, the standalone [`@tree_option` decorator](tree.md#standalone-option), and a [`wrap --tree` mode](tree.md#foreign-clis) that prints the subcommand hierarchy of any Click CLI without running it. That covers the whole checklist of the tree view rich-click has planned for its `1.10` release:
+
+- [`rich-click#269` - `--tree` integration](https://github.com/ewels/rich-click/issues/269): open since August 2025, filed by rich-click's maintainer after the author of the [treeclick](https://github.com/wr1/treeclick) plugin reached out. It proposes a `@click.tree_option()` decorator, a `rich-click --tree [cmd]` mode working on any Click CLI, and opt-in wiring through `context_settings`: the same three surfaces click-extra exposes (default option, standalone decorator, CLI wrapper).
+- [`rich-click#270` - Subcommand tree view](https://github.com/ewels/rich-click/pull/270): first-concept PR from treeclick's author, self-described as rough and stalled since September 2025.
+- [`rich-click#275` - 1.10 roadmap](https://github.com/ewels/rich-click/issues/275): tracks the `--tree` option and `@click.tree_option()` among the planned features.
+
+One design difference: treeclick embeds the tree inside `--help` output through custom `TreeGroup`/`TreeCommand` classes, and the older [`click-command-tree`](https://github.com/whwright/click-command-tree) package registers a `tree` *subcommand* on the user's group, walking the static `commands` mapping. click-extra renders the view behind a dedicated eager flag, like `--man` and `--show-params`: the plain help screen stays untouched, a flag cannot collide with the user's own subcommand namespace, and the live-context walk includes lazily-registered commands.
+
 ### Shell completion
 
 click-extra exports any Click command tree to a [Carapace completion spec](carapace.md), so a CLI gets native completion across every shell [Carapace](https://carapace.sh) supports (Bash, Zsh, Fish, Nushell, PowerShell, Elvish, and more) from a single generated file. Click's built-in completion is wired per shell and installed by hand; one spec covers them all:

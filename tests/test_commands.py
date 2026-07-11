@@ -438,6 +438,7 @@ def test_duplicate_option(invoke):
         "  -q, --quiet                  Decrease the default WARNING verbosity by one\n"
         "                               level for each additional repetition of the\n"
         "                               option.  [default: 0]\n"
+        "  --tree                       Show the tree of nested subcommands and exit.\n"
         "  --man                        Show the command's man page (roff) and exit.\n"
         "  --version                    Show the version and exit.\n"
         "  --version                    Show the version and exit.\n"

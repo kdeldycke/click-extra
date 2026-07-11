@@ -205,7 +205,7 @@ def cli():
 See how the `--version` option gets duplicated at the end:
 
 ```{click:run}
-:emphasize-lines: 39,40
+:emphasize-lines: 40,41
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert (

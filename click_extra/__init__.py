@@ -141,6 +141,7 @@ from .decorators import (  # type: ignore[no-redef]
     telemetry_option,
     theme_option,
     timer_option,
+    tree_option,
     validate_config_option,
     verbose_option,
     verbosity_option,
@@ -247,6 +248,7 @@ from .theme import (
     set_default_theme,
     theme_registry,
 )
+from .tree import TreeOption, render_command_tree
 from .version import VersionOption
 
 __all__ = [
@@ -344,6 +346,7 @@ __all__ = [
     "TelemetryOption",
     "ThemeOption",
     "TimerOption",
+    "TreeOption",
     "Tuple",
     "UsageError",
     "ValidateConfigOption",
@@ -430,6 +433,7 @@ __all__ = [
     "register_theme",
     "render_ansi",
     "render_columns_markdown_table",
+    "render_command_tree",
     "render_manpage",
     "render_manpages",
     "render_table",
@@ -458,6 +462,7 @@ __all__ = [
     "theme_option",
     "theme_registry",
     "timer_option",
+    "tree_option",
     "unstyle",
     "validate_config_option",
     "verbose_option",

@@ -36,6 +36,7 @@ pytest
 wrap
 man-page
 carapace
+tree
 typer
 benchmark
 ```

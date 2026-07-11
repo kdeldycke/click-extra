@@ -18,8 +18,8 @@
 Monkey-patches Click's decorator functions before importing (or running) a
 target module so its ``@click.command()`` / ``@click.group()`` produce
 colorized, keyword-highlighted, themed variants. Also resolves and invokes the
-target, and introspects it for ``--show-params`` and ``--man`` without firing
-its callbacks.
+target, and introspects it for ``--show-params``, ``--man`` and ``--tree``
+without firing its callbacks.
 
 Not to be confused with text wrapping: that is :func:`click.wrap_text`, exposed
 at the package root as ``click_extra.wrap_text``.
@@ -49,9 +49,14 @@ from .context import Context
 from .decorators import columns_option
 from .highlight import HelpFormatter, _HelpColorsMixin
 from .man_page import render_manpage, write_manpages
-from .parameters import ShowParamsOption, render_params_table
+from .parameters import (
+    ShowParamsOption,
+    make_resilient_context,
+    render_params_table,
+)
 from .table import DEFAULT_FORMAT, TableFormat
 from .theme import BUILTIN_THEMES, HelpTheme, nocolor_theme, set_default_theme
+from .tree import render_command_tree
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -489,8 +494,9 @@ def resolve_target_command(
     ``subcommands`` navigate into nested groups, mirroring the path a user would
     type.
 
-    Shared by the ``wrap`` command's ``--show-params`` and ``--man`` modes so
-    both introspect the exact same resolved command.
+    Shared by the ``wrap`` command's introspection modes (``--show-params``,
+    ``--man``, ``--carapace``, ``--tree``) so all describe the exact same
+    resolved command.
 
     :raises click.ClickException: when no unambiguous Click command can be
         found, or a requested subcommand does not exist.
@@ -589,14 +595,15 @@ class _WrapCommand(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         carries only the options that act on the *target* CLI rather than on
         click-extra itself:
 
-        - **Action flags** (``--show-params``, ``--man``) describe and exit
-          without running the target. Their group-level twins
+        - **Action flags** (``--show-params``, ``--man``, ``--tree``) describe
+          and exit without running the target. Their group-level twins
           (``click-extra --show-params``) introspect the ``click-extra`` CLI
           itself, so they cannot reach a wrapped foreign command: the subject
           differs, which is why these are *not* redundant with the group
           versions. They route through the same rendering cores as the
           group-level options (:func:`~click_extra.parameters.render_params_table`,
-          :func:`~click_extra.man_page.render_manpage`), so a new introspection
+          :func:`~click_extra.man_page.render_manpage`,
+          :func:`~click_extra.tree.render_command_tree`), so a new introspection
           feature only has to add one option here, never a parallel subcommand.
 
         - **Modifiers** (``--table-format``, ``--columns``, ``--output-dir``)
@@ -734,6 +741,28 @@ def _wrap_carapace(
         click.echo(dump_carapace_spec(cmd, prog_name=prog_name, invocation=invocation))
 
 
+def _wrap_tree(
+    ctx: click.Context,
+    script: str,
+    nav: tuple[str, ...],
+) -> None:
+    """Resolve a foreign target and print its subcommand tree.
+
+    Roots the tree at the resolved (sub)command, labeled with the navigation
+    path the user typed, and defers to the shared
+    :func:`~click_extra.tree.render_command_tree` core. Accessibility mode is
+    carried over from the wrapping context so the rail degrades to ASCII (the
+    resolved target gets a fresh root context whose ``meta`` would otherwise
+    lose the :data:`~click_extra.context.ACCESSIBLE` entry).
+    """
+    cmd, _ = resolve_target_command(script, nav)
+    prog_name = " ".join((script, *nav))
+    subject_ctx = make_resilient_context(cmd, prog_name)
+    if context.get(ctx, context.ACCESSIBLE, False):
+        context.set(subject_ctx, context.ACCESSIBLE, True)
+    click.echo(render_command_tree(cmd, ctx=subject_ctx), color=ctx.color)
+
+
 def _config_args_for_target(
     ctx: click.Context,
     script: str,
@@ -823,6 +852,13 @@ def _config_args_for_target(
     "without running it.",
 )
 @option(
+    "--tree",
+    is_flag=True,
+    default=False,
+    help="Show the tree of nested subcommands of the target CLI and exit, "
+    "without running it.",
+)
+@option(
     "--output-dir",
     type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=Path),
     default=None,
@@ -857,6 +893,7 @@ def wrap(
     show_params: bool,
     man: bool,
     carapace_spec: bool,
+    tree: bool,
     output_dir: Path | None,
     install: bool,
     table_format: TableFormat,
@@ -866,10 +903,11 @@ def wrap(
     By default, runs SCRIPT with keyword highlighting and themed styling for
     its help screens. The target CLI is not modified.
 
-    With --show-params, --man or --carapace, SCRIPT is loaded and described
-    without being run. Extra arguments after SCRIPT navigate into nested
-    subcommands; for --show-params, any trailing options are replayed against the
-    resolved command so the parameter table reports their value and source.
+    With --show-params, --man, --carapace or --tree, SCRIPT is loaded and
+    described without being run. Extra arguments after SCRIPT navigate into
+    nested subcommands; for --show-params, any trailing options are replayed
+    against the resolved command so the parameter table reports their value and
+    source.
 
     Resolution order for SCRIPT: installed console_scripts entry point, a local
     project directory (its entry point is read from pyproject.toml or setup.cfg),
@@ -879,9 +917,9 @@ def wrap(
         click.echo(ctx.get_help(), color=ctx.color)
         ctx.exit(0)
 
-    if sum((show_params, man, carapace_spec)) > 1:
+    if sum((show_params, man, carapace_spec, tree)) > 1:
         raise click.UsageError(
-            "--show-params, --man and --carapace are mutually exclusive."
+            "--show-params, --man, --carapace and --tree are mutually exclusive."
         )
     if output_dir is not None and not man:
         raise click.UsageError("--output-dir requires --man.")
@@ -892,12 +930,14 @@ def wrap(
     args = script_and_args[1:]
 
     # Introspection modes: load the target and describe it without running it.
-    if show_params or man or carapace_spec:
+    if show_params or man or carapace_spec or tree:
         nav, target_args = _split_navigation(args)
         if man:
             _wrap_man(script, nav, output_dir)
         elif carapace_spec:
             _wrap_carapace(ctx, script, nav, install)
+        elif tree:
+            _wrap_tree(ctx, script, nav)
         else:
             _wrap_show_params(ctx, script, nav, target_args, table_format)
         ctx.exit(0)

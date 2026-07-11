@@ -86,6 +86,7 @@ To understand how we ended up with the result above, [go read the tutorial](http
 - [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
 - [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping
 - [`--show-params`](https://kdeldycke.github.io/click-extra/parameters.html#show-params-option) to debug parameter defaults, values, environment variables and provenance
+- [`--tree`](https://kdeldycke.github.io/click-extra/tree.html) to print the whole hierarchy of nested subcommands with their descriptions
 - [`--time`/`--no-time`](https://kdeldycke.github.io/click-extra/execution.html#timer) to measure command execution duration
 - [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between 40+ table-rendering styles (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
 - [`--jobs`](https://kdeldycke.github.io/click-extra/execution.html#parallel-jobs) for parallel-execution worker counts
@@ -105,6 +106,7 @@ To understand how we ended up with the result above, [go read the tutorial](http
 
 - [CLI wrapper](https://kdeldycke.github.io/click-extra/wrap.html) (`click-extra wrap`) applies help colorization, themes, and config loading to any Click CLI without modifying its source code
 - [`show-params` subcommand](https://kdeldycke.github.io/click-extra/wrap.html#introspecting-external-clis) to introspect any external Click CLI's parameters
+- [`--tree` mode](https://kdeldycke.github.io/click-extra/tree.html#foreign-clis) to print any external Click CLI's subcommand hierarchy without running it
 - [User-defined themes via `--config`](https://kdeldycke.github.io/click-extra/wrap.html#custom-themes-via-config) work transparently through the wrapper, so users can theme third-party CLIs from their own `pyproject.toml`
 
 ### Performance and structure

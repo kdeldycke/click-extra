@@ -54,6 +54,7 @@ from .parameters import ExtraOption, ShowParamsOption
 from .spinner import ProgressOption
 from .table import TableFormatOption
 from .theme import ThemeOption, get_current_theme
+from .tree import TreeOption
 from .version import VersionOption
 
 TYPE_CHECKING = False
@@ -99,6 +100,7 @@ def default_params() -> list[click.Option]:
     #. ``--verbosity LEVEL``
     #. ``-v``, ``--verbose``
     #. ``-q``, ``--quiet``
+    #. ``--tree``
     #. ``--man``
     #. ``--version``
     #. ``-h``, ``--help``
@@ -140,6 +142,7 @@ def default_params() -> list[click.Option]:
         VerbosityOption(),
         VerboseOption(),
         QuietOption(),
+        TreeOption(),
         ManOption(),
         VersionOption(),
     ]

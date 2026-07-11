@@ -47,6 +47,7 @@ from .parameters import Argument, Option, ShowParamsOption
 from .table import ColumnsOption, SortByOption, TableFormatOption
 from .telemetry import TelemetryOption
 from .theme import ThemeOption
+from .tree import TreeOption
 from .version import VersionOption
 
 TYPE_CHECKING = False
@@ -353,6 +354,7 @@ table_format_option = decorator_factory(dec=option, cls=TableFormatOption)
 telemetry_option = decorator_factory(dec=option, cls=TelemetryOption)
 theme_option = decorator_factory(dec=option, cls=ThemeOption)
 timer_option = decorator_factory(dec=option, cls=TimerOption)
+tree_option = decorator_factory(dec=option, cls=TreeOption)
 verbose_option = decorator_factory(dec=option, cls=VerboseOption)
 verbosity_option = decorator_factory(dec=option, cls=VerbosityOption)
 zero_exit_option = decorator_factory(dec=option, cls=ZeroExitOption)

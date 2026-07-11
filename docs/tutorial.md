@@ -233,6 +233,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@verbosity_option`](logging.md#colored-verbosity)                   | `--verbosity LEVEL`             | ✅      |
 | {py:class}`@verbose_option <click_extra.logging.VerboseOption>`       | `-v, --verbose`                 | ✅      |
 | {py:class}`@quiet_option <click_extra.logging.QuietOption>`           | `-q, --quiet`                   | ✅      |
+| [`@tree_option`](tree.md)                                             | `--tree`                        | ✅      |
 | [`@man_option`](man-page.md#generating-man-pages)                     | `--man`                         | ✅      |
 | [`@version_option`](version.md)                                       | `--version`                     | ✅      |
 | {py:class}`@help_option <click_extra.highlight.HelpFormatter>`        | `-h, --help`                    | ✅      |
