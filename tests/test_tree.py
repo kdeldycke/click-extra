@@ -143,6 +143,8 @@ def test_render_tree_theme_styling():
     assert theme.metavar("CITY") in tree
     # Aliases render through Cloup's canonical formatter, like help screens:
     # the word takes the alias slot, the punctuation the alias_secondary slot.
+    # alias_secondary is Optional in Cloup; built-in themes always set it.
+    assert theme.alias_secondary is not None
     assert (
         theme.alias_secondary("(") + theme.alias("st") + theme.alias_secondary(")")
     ) in tree

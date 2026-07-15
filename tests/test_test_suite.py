@@ -278,8 +278,9 @@ def test_non_utf8_output_does_not_crash_the_harness():
     case = CLITestCase(
         cli_parameters=(
             "-c",
-            # 0x82 is not valid UTF-8: written raw, bypassing text encoding.
-            r"import sys; sys.stdout.buffer.write(b'caf\x82-end\n')",
+            # 0x82 (é in CP850) is invalid UTF-8: written raw, bypassing text
+            # encoding.
+            r"import sys; sys.stdout.buffer.write(b'Montr\x82al-end\n')",
         ),
         exit_code=0,
         stdout_contains=("-end",),

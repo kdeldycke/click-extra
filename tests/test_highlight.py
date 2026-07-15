@@ -1492,6 +1492,8 @@ def test_command_aliases_highlighted(invoke):
     assert "  " + theme.subcommand("restore") + " " in help_text
 
     # Aliases inside parentheses are highlighted, punctuation included.
+    # alias_secondary is Optional in Cloup; built-in themes always set it.
+    assert theme.alias_secondary is not None
     assert theme.alias_secondary("(") + theme.alias("save") in help_text
     assert (
         theme.alias_secondary(", ") + theme.alias("freeze") + theme.alias_secondary(")")
@@ -1518,6 +1520,8 @@ def test_single_alias_highlighted(invoke):
     help_text = result.output
 
     assert "  " + theme.subcommand("show") + " " in help_text
+    # alias_secondary is Optional in Cloup; built-in themes always set it.
+    assert theme.alias_secondary is not None
     assert (
         theme.alias_secondary("(") + theme.alias("ls") + theme.alias_secondary(")")
     ) in help_text
@@ -1541,6 +1545,8 @@ def test_alias_no_false_positive_in_description(invoke):
     help_text = result.output
 
     # The alias in parentheses is highlighted.
+    # alias_secondary is Optional in Cloup; built-in themes always set it.
+    assert theme.alias_secondary is not None
     assert (
         theme.alias_secondary("(") + theme.alias("cp") + theme.alias_secondary(")")
     ) in help_text
@@ -1577,6 +1583,8 @@ def test_alias_substring_not_highlighted(invoke):
     # The full subcommand name is highlighted.
     assert "  " + theme.subcommand("backup") + " " in help_text
     # The alias inside parentheses is highlighted.
+    # alias_secondary is Optional in Cloup; built-in themes always set it.
+    assert theme.alias_secondary is not None
     assert (
         theme.alias_secondary("(") + theme.alias("back") + theme.alias_secondary(")")
     ) in help_text

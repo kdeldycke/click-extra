@@ -879,7 +879,9 @@ def test_run_cli_merged_streams():
         print("to err", file=sys.stderr)
         """)
     result = run_cli((sys.executable, "-c", code), merge_streams=True)
-    assert result.stderr is None
+    # run_cli() types both streams as str; merging nulls stderr at runtime.
+    stderr: str | None = result.stderr
+    assert stderr is None
     assert "to out" in result.stdout
     assert "to err" in result.stdout
 
