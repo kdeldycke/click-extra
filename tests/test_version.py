@@ -49,6 +49,11 @@ from click_extra import (
 )
 from click_extra.cli import demo
 from click_extra.commands import default_params
+from click_extra.prebake import (
+    discover_package_init_files,
+    prebake_dunder,
+    prebake_version,
+)
 from click_extra.pytest import (
     command_decorators,
     default_debug_colored_log_end,
@@ -57,10 +62,7 @@ from click_extra.pytest import (
 )
 from click_extra.version import (
     archival_field,
-    discover_package_init_files,
     find_archival_file,
-    prebake_dunder,
-    prebake_version,
     read_archival,
     resolve_git_dirty,
     resolve_git_distance,

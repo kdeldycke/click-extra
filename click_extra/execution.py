@@ -1015,6 +1015,16 @@ def run_cli(
         reader.start()
         readers.append(reader)
 
+    def timeout_expired() -> subprocess.TimeoutExpired:
+        """Build the exception with the partial capture attached, as run() does."""
+        assert timeout is not None
+        return subprocess.TimeoutExpired(
+            clean_args,
+            timeout,
+            output="".join(out_lines),
+            stderr=None if merge_streams else "".join(err_lines),
+        )
+
     deadline = time.monotonic() + timeout if timeout is not None else None
     timeout_desc = "none" if timeout is None else f"{timeout}s"
     try:
@@ -1028,13 +1038,7 @@ def run_cli(
             process.wait()
             _drain_readers(readers, _KILL_DRAIN_GRACE)
             log.debug(f"PID {process.pid} killed; exit {process.returncode}.")
-            assert timeout is not None
-            raise subprocess.TimeoutExpired(
-                clean_args,
-                timeout,
-                output="".join(out_lines),
-                stderr=None if merge_streams else "".join(err_lines),
-            ) from None
+            raise timeout_expired() from None
         except KeyboardInterrupt:
             log.debug(f"PID {process.pid} interrupted; sending kill.")
             process.kill()
@@ -1053,13 +1057,7 @@ def run_cli(
     remaining = None if deadline is None else max(0.0, deadline - time.monotonic())
     if not _drain_readers(readers, remaining):
         log.debug(f"PID {process.pid} exited but its output drain timed out.")
-        assert timeout is not None
-        raise subprocess.TimeoutExpired(
-            clean_args,
-            timeout,
-            output="".join(out_lines),
-            stderr=None if merge_streams else "".join(err_lines),
-        ) from None
+        raise timeout_expired() from None
 
     stdout = "".join(out_lines)
     stderr = "".join(err_lines)

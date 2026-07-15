@@ -49,16 +49,6 @@ from boltons.formatutils import BaseFormatField, tokenize_format_str
 from . import Style, echo, get_current_context
 from .context import _LazyMetaDict
 from .parameters import ExtraOption
-
-# The build-time pre-baking helpers moved to ``click_extra.prebake``. Re-exported
-# here so the historical ``from click_extra.version import prebake_*`` import path
-# keeps working. ``prebake`` imports nothing from this module, so there is no
-# circular import.
-from .prebake import (  # noqa: F401
-    discover_package_init_files,
-    prebake_dunder,
-    prebake_version,
-)
 from .theme import BUILTIN_THEMES, nocolor_theme
 
 # Frozen reference to the default theme's invoked-command style. Used as the

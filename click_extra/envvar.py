@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import os
 import re
+from contextlib import contextmanager
 
 import click
 from boltons.iterutils import flatten_iter
@@ -31,7 +32,7 @@ from extra_platforms import is_windows
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Iterable, Iterator, Mapping
     from typing import Any
 
     TEnvVarID = str | None
@@ -125,6 +126,38 @@ def param_envvar_ids(
     Names are normalized to uppercase on Windows by :func:`merge_envvar_ids`.
     """
     return merge_envvar_ids(param.envvar, param_auto_envvar_id(param, ctx))
+
+
+@contextmanager
+def temporary_env(
+    set_vars: Mapping[str, str] | None = None,
+    unset_vars: Iterable[str] = (),
+) -> Iterator[None]:
+    """Apply environment variable changes for the block's duration, then restore.
+
+    *set_vars* are written into :data:`os.environ` and *unset_vars* removed. On
+    exit, every touched variable is restored to its pre-block state: recreated
+    with its former value, or removed when it did not exist before.
+
+    The process environment is patched directly (not through test-framework
+    fixtures) so the helper serves production code paths and test harnesses
+    alike, with a single restore discipline.
+    """
+    set_vars = dict(set_vars or {})
+    # Materialized up front: the iterable is consumed twice (snapshot + removal).
+    unset_vars = tuple(unset_vars)
+    saved = {var: os.environ.get(var) for var in (*set_vars, *unset_vars)}
+    os.environ.update(set_vars)
+    for var in unset_vars:
+        os.environ.pop(var, None)
+    try:
+        yield
+    finally:
+        for var, value in saved.items():
+            if value is None:
+                os.environ.pop(var, None)
+            else:
+                os.environ[var] = value
 
 
 def env_copy(extend: TEnvVars | None = None) -> TEnvVars | None:

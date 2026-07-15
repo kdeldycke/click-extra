@@ -455,8 +455,8 @@ class HelpFormatter(cloup.HelpFormatter):
         r"(  )"  # 2 spaces (column or description spacing).
         r"\["  # Opening bracket.
         r"("  # Capture the bracket content.
-        r"(?:env\s+var:|default:|required"  # Must start with a recognized label
-        r"|(?:[^\]\s]+(?:<|<=))?x(?:<|<=|>|>=)[^\]\s]+)"  # or a range (see _range_re).
+        r"(?:env\s+var:|default:|required"  # Must start with a recognized label.
+        r"|(?:[^\]\s]+(?:<|<=))?x(?:<|<=|>|>=)[^\]\s]+)"  # Or a range (see _range_re).
         r"[^\]]*"  # Followed by any non-] characters.
         r")"
         r"\]",  # Closing bracket.

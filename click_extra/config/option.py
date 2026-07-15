@@ -1174,6 +1174,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         :func:`~click_extra.theme.validate_themes_config` validator, so failures
         below this point would be a click-extra bug rather than user error.
         """
+        # Lazy-imported to avoid the load-time config-theme cycle, like
+        # _builtin_config_validators in click_extra.config.builtin.
         from ..theme import themes_from_config
 
         _, app_section = self._app_section(ctx, user_conf)

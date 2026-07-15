@@ -55,6 +55,7 @@ from typing import cast
 
 import click
 import cloup
+from click.shell_completion import CompletionItem
 from cloup._util import identity
 
 from . import color, context
@@ -705,9 +706,7 @@ class ThemeChoice(click.ParamType):
         ctx: click.Context,
         param: click.Parameter,
         incomplete: str,
-    ) -> list[click.shell_completion.CompletionItem]:
-        from click.shell_completion import CompletionItem
-
+    ) -> list[CompletionItem]:
         prefix = self._normalize(incomplete)
         return [
             CompletionItem(name)

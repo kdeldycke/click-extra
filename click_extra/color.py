@@ -37,6 +37,7 @@ import click
 from extra_platforms import is_unix
 
 from . import ParameterSource
+from .envvar import temporary_env
 from .parameters import ExtraOption
 from .styling import _relative_luminance
 
@@ -173,22 +174,12 @@ def forced_color() -> Iterator[None]:
     :func:`~click_extra.styling.supports_truecolor`). The previous environment is
     restored on exit, so the override never leaks beyond a single capture.
     """
-    disabling = [var for var, enables in color_envvars.items() if not enables]
-    saved = {
-        var: os.environ.get(var) for var in ("FORCE_COLOR", "COLORTERM", *disabling)
-    }
-    os.environ["FORCE_COLOR"] = "1"
-    os.environ["COLORTERM"] = "truecolor"
-    for var in disabling:
-        os.environ.pop(var, None)
-    try:
+    disabling = (var for var, enables in color_envvars.items() if not enables)
+    with temporary_env(
+        {"FORCE_COLOR": "1", "COLORTERM": "truecolor"},
+        unset_vars=disabling,
+    ):
         yield
-    finally:
-        for var, value in saved.items():
-            if value is None:
-                os.environ.pop(var, None)
-            else:
-                os.environ[var] = value
 
 
 # --- Terminal background detection -------------------------------------------

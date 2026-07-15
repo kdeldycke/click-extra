@@ -64,6 +64,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
+
+EXTRA_OPTION_SETTINGS: tuple[str, ...] = ("show_choices", "show_envvar")
+"""Click Extra context settings forced onto every option when set to non-``None``."""
+
 
 def default_params() -> list[click.Option]:
     """Default additional options added to ``@command`` and ``@group``.
@@ -146,12 +151,6 @@ def default_params() -> list[click.Option]:
         ManOption(),
         VersionOption(),
     ]
-
-
-DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
-
-EXTRA_OPTION_SETTINGS: tuple[str, ...] = ("show_choices", "show_envvar")
-"""Click Extra context settings forced onto every option when set to non-``None``."""
 
 
 class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]

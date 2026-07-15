@@ -47,7 +47,6 @@ from functools import cached_property, partial
 import click
 from click.testing import CliRunner, EchoingStdin
 from docutils import nodes
-from docutils.statemachine import StringList
 from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.util import logging
@@ -58,6 +57,7 @@ from ._base import (
     compile_directive,
     directive_source,
     make_cleanup,
+    parse_into_section,
 )
 
 TYPE_CHECKING = False
@@ -231,7 +231,7 @@ class ClickRunner(CliRunner):
             prog_name = cli.name.replace("_", "-")
 
         output_lines.append(f"$ {prog_name} {shlex.join(args)}".rstrip())
-        # remove "python" from command
+        # Remove "python" from the command.
         prog_name = prog_name.rsplit(" ", 1)[-1]
 
         if isinstance(input, (tuple, list)):
@@ -592,16 +592,8 @@ class ClickDirective(SphinxDirective):
             lines.extend(self.render_code_block(results, self.language, "results"))
 
         # Convert code block lines to a Docutils node tree.
-        # The section element is the main unit of hierarchy for Docutils documents.
-        section = nodes.section()
-        source_file, _line_number = self.get_source_info()
-        self.state.nested_parse(
-            StringList(lines, source_file),
-            # XXX Check that the offset here is properly computed in both rST and MyST.
-            self.content_offset,
-            section,
-        )
-        return section.children
+        # XXX Check that the offset here is properly computed in both rST and MyST.
+        return parse_into_section(self, lines)
 
 
 class SourceDirective(ClickDirective):
@@ -824,17 +816,9 @@ class TreeDirective(ClickDirective):
             lines.append("```")
             lines.append("")
 
-        # Hand the generated MyST source back to the parser. Nested directives
-        # (`{click:run}`) execute during this pass and share the runner
-        # namespace, so the CLI variable resolves inside each generated block.
-        section = nodes.section()
-        source_file, _ = self.get_source_info()
-        self.state.nested_parse(
-            StringList(lines, source_file),
-            self.content_offset,
-            section,
-        )
-        return section.children
+        # Nested `{click:run}` directives execute during the shared parse and
+        # resolve the CLI variable from the same runner namespace.
+        return parse_into_section(self, lines)
 
 
 def _format_default(value: object) -> str:
@@ -1081,14 +1065,7 @@ class ConfigDirective(ClickDirective):
                 lines.append("")
 
         # Hand the generated MyST source back to the parser, like click:tree.
-        section_node = nodes.section()
-        source_file, _ = self.get_source_info()
-        self.state.nested_parse(
-            StringList(lines, source_file),
-            self.content_offset,
-            section_node,
-        )
-        return section_node.children
+        return parse_into_section(self, lines)
 
 
 class ClickDomain(StatelessDomain):

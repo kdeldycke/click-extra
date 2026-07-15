@@ -46,7 +46,12 @@ from docutils.parsers.rst import Parser as RstParser
 from docutils.statemachine import StringList
 from docutils.utils import new_document
 
-from ._base import StatelessDomain, compile_directive, make_cleanup
+from ._base import (
+    StatelessDomain,
+    compile_directive,
+    make_cleanup,
+    parse_into_section,
+)
 from .click import ClickDirective
 
 TYPE_CHECKING = False
@@ -155,14 +160,7 @@ class PythonRunDirective(PythonDirective):
         if self.show_results:
             lines.extend(self.render_code_block(results, self.language, "results"))
 
-        section = nodes.section()
-        source_file, _ = self.get_source_info()
-        self.state.nested_parse(
-            StringList(lines, source_file),
-            self.content_offset,
-            section,
-        )
-        return section.children
+        return parse_into_section(self, lines)
 
 
 def _parse_with(

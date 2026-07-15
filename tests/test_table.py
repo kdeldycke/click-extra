@@ -1547,7 +1547,7 @@ def test_print_table_explicit_sort_key_wins(invoke):
             [("Fruit", "fruit")],
             table_format=TableFormat.JSON,
             # Sort by reversed name: ananab < elppa < yrrehc.
-            sort_key=lambda row: row[0][::-1],
+            sort_key=lambda row: (row[0] or "")[::-1],
         )
 
     result = invoke(cli, "--sort-by", "fruit", color=False)

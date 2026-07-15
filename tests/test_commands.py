@@ -59,14 +59,23 @@ def test_module_root_declarations():
     """
     click_extra_members = set(click_extra.__all__)
 
+    # Namespace artifacts that are not real API: ``annotations`` is the
+    # ``from __future__ import annotations`` binding upstream modules leave
+    # behind, and cloup's ``__all__`` leaks the stdlib ``warnings`` module.
+    artifacts = {"annotations", "warnings"}
+
     click_members = {
         name
         for name, member in inspect.getmembers(click)
-        if not name.startswith("_") and not inspect.ismodule(member)
+        if not name.startswith("_")
+        and not inspect.ismodule(member)
+        and name not in artifacts
     }
     assert click_members <= click_extra_members
 
-    cloup_members = {m for m in cloup.__all__ if not m.startswith("_")}
+    cloup_members = {
+        m for m in cloup.__all__ if not m.startswith("_") and m not in artifacts
+    }
     assert cloup_members <= click_extra_members
 
 

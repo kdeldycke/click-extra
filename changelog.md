@@ -35,6 +35,12 @@
 - A `test-suite` case skipped by `only_platforms` now reports the platforms it requires; the message used to name the current platform, reading as its own contradiction.
 - Add a binaries page to the documentation: a catalog of every released standalone executable with download links, VirusTotal analyses and a detection trend chart, rendered as a searchable and sortable table via sphinx-datatables. Detection history is backfilled from the VirusTotal tables of past release notes; future releases keep the page and its scan records current.
 - Coverage now uploads to Codecov from one runner per OS and Python version, on released Click and Cloup only, instead of from every test matrix cell. The Codecov Test Analytics upload and its `junit.xml` artifact are dropped.
+- Remove the leaked `annotations` and `warnings` entries from the package's public API: both were star-import artifacts (Click's own future-import binding, and the stdlib module listed in Cloup's `__all__`), not Click, Cloup or Click Extra API.
+- Remove the historical `from click_extra.version import prebake_*` compatibility imports: the pre-baking helpers are only importable from `click_extra.prebake`.
+- Add `temporary_env()` to `click_extra.envvar`: a context manager applying environment variable changes for the duration of a block, then restoring every touched variable to its previous state. It now backs `forced_color()` and the `runner` pytest fixture, which each hand-rolled the same save-and-restore ceremony.
+- Expose `generator_tag()` in `click_extra.parameters`: the provenance tag stamped into generated man pages and Carapace completion specs, previously duplicated as a private helper in each exporter.
+- `regex_fullmatch_line_by_line` now reports a regular line mismatch instead of crashing with an `IndexError` when the regex and the checked content do not have the same number of lines.
+- Remove dead code: `CarapaceCompletion.is_empty()`, the internal `_roff_line()` roff helper and the deprecated alert parser's `current_depth()`.
 
 ## [`8.3.0` (2026-07-08)](https://github.com/kdeldycke/click-extra/compare/v8.2.0...v8.3.0)
 

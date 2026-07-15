@@ -109,10 +109,6 @@ class ParserState:
         """Check if currently inside a code block."""
         return any(f.is_code_block for f in self.fence_stack)
 
-    def current_depth(self) -> int:
-        """Get current alert nesting depth."""
-        return self.alert_stack[-1].depth if self.alert_stack else 0
-
 
 @cache
 def check_colon_fence(app: Sphinx) -> None:

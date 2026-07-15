@@ -24,6 +24,7 @@ import subprocess
 from contextlib import nullcontext
 from dataclasses import dataclass
 from functools import cached_property, partial
+from itertools import zip_longest
 from textwrap import indent
 
 import click
@@ -253,7 +254,7 @@ class CliRunner(click.testing.CliRunner):
           <https://github.com/pallets/click/issues/2110>`_ of
           ``click.testing.CliRunner.invoke()`` because of colliding parameters.
 
-        - Strips all ANSI codes from results if ``color`` was explicirely set to
+        - Strips all ANSI codes from results if ``color`` was explicitly set to
           ``False``.
 
         - Always prints a simulation of the CLI execution as the user would see it in
@@ -265,7 +266,7 @@ class CliRunner(click.testing.CliRunner):
         :param args: can be nested iterables composed of ``str``,
             :py:class:`pathlib.Path` objects and ``None`` values. The nested structure
             will be flattened and ``None`` values will be filtered out. Then all
-            elements will be casted to ``str``. See
+            elements will be cast to ``str``. See
             :func:`~click_extra.testing.args_cleanup` for details.
         :param input: same as ``click.testing.CliRunner.invoke()``.
         :param env: same as ``click.testing.CliRunner.invoke()``.
@@ -410,11 +411,11 @@ def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:
     else:
         regex_lines = regex.pattern.splitlines(keepends=True)
 
-    line_indexes = range(max(len(regex_lines), len(content_lines)))
-    for i in line_indexes:
-        regex_line = regex_lines[i]
-        content_line = content_lines[i]
-
+    # Pad the shorter side with empty lines so a length mismatch is reported as
+    # a regular line mismatch instead of crashing on an out-of-range index.
+    for i, (regex_line, content_line) in enumerate(
+        zip_longest(regex_lines, content_lines, fillvalue=""),
+    ):
         try:
             matched = re.fullmatch(regex_line, content_line)
         except re.error:

@@ -42,7 +42,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Mapping, Sequence
     from logging import LogRecord
-    from typing import IO, Any, Literal
+    from typing import IO, Any, ClassVar, Literal
 
 logger = getLogger(__name__)
 
@@ -704,7 +704,57 @@ class VerbosityOption(_VerbosityOption):
         )
 
 
-class VerboseOption(_VerbosityOption):
+class _CounterOption(_VerbosityOption):
+    """Shared machinery of the ``-v``/``-q`` counting twins.
+
+    Each subclass declares the ``ctx.meta`` key its raw repetition count is
+    recorded under (:attr:`_counter_key`) and its direction word
+    (:attr:`_help_verb`, also reused by the debug trace); the recording,
+    reconciliation and tracing below are common to both.
+    """
+
+    _counter_key: ClassVar[str]
+    """The ``ctx.meta`` key the raw repetition count is recorded under."""
+
+    def set_level(self, ctx: click.Context, param: click.Parameter, value: int) -> None:
+        """Record the repetition count, then reconcile.
+
+        The number of repetitions is saved on the context under
+        :attr:`_counter_key` and folded into the verbosity counter by
+        ``_VerbosityOption.resolve_level``.
+        """
+        context.set(ctx, self._counter_key, value)
+        self.apply_verbosity(ctx)
+
+        # Report the net effect after the level has been applied, so the message has a
+        # chance to be seen at DEBUG level.
+        if value and not ctx.resilient_parsing:
+            logger.debug(
+                f"{self._help_verb}d log verbosity by {value} levels: "
+                f"from {self.get_base_level(ctx)} "
+                f"to {context.get(ctx, context.VERBOSITY_LEVEL)}."
+            )
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        count: bool = True,
+        **kwargs,
+    ) -> None:
+        # Force type and default to have them aligned with the counting option's
+        # original behavior:
+        # https://github.com/pallets/click/blob/5dd6288/src/click/core.py#L2612-L2618
+        kwargs["type"] = IntRange(min=0)
+        kwargs["default"] = 0
+
+        super().__init__(
+            param_decls=param_decls,
+            count=count,
+            **kwargs,
+        )
+
+
+class VerboseOption(_CounterOption):
     """``--verbose``/``-v`` option to raise the log level of ``_VerbosityOption`` by
     one step per repetition.
 
@@ -727,49 +777,19 @@ class VerboseOption(_VerbosityOption):
     """
 
     _help_verb = "Increase"
-
-    def set_level(self, ctx: click.Context, param: click.Parameter, value: int) -> None:
-        """Record the ``-v`` repetition count, then reconcile.
-
-        The number of repetitions is saved in
-        ``ctx.meta[click_extra.context.VERBOSE]`` and folded into the verbosity
-        counter by ``_VerbosityOption.resolve_level``.
-        """
-        context.set(ctx, context.VERBOSE, value)
-        self.apply_verbosity(ctx)
-
-        # Report the net effect after the level has been applied, so the message has a
-        # chance to be seen at DEBUG level.
-        if value and not ctx.resilient_parsing:
-            logger.debug(
-                f"Increased log verbosity by {value} levels: "
-                f"from {self.get_base_level(ctx)} "
-                f"to {context.get(ctx, context.VERBOSITY_LEVEL)}."
-            )
+    _counter_key = context.VERBOSE
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        count: bool = True,
         **kwargs,
     ) -> None:
         if not param_decls:
             param_decls = ("--verbose", "-v")
-
-        # Force type and default to have them aligned with the counting option's
-        # original behavior:
-        # https://github.com/pallets/click/blob/5dd6288/src/click/core.py#L2612-L2618
-        kwargs["type"] = IntRange(min=0)
-        kwargs["default"] = 0
-
-        super().__init__(
-            param_decls=param_decls,
-            count=count,
-            **kwargs,
-        )
+        super().__init__(param_decls=param_decls, **kwargs)
 
 
-class QuietOption(_VerbosityOption):
+class QuietOption(_CounterOption):
     """``--quiet``/``-q`` option to lower the log level of ``_VerbosityOption`` by
     one step per repetition.
 
@@ -789,41 +809,13 @@ class QuietOption(_VerbosityOption):
     """
 
     _help_verb = "Decrease"
-
-    def set_level(self, ctx: click.Context, param: click.Parameter, value: int) -> None:
-        """Record the ``-q`` repetition count, then reconcile.
-
-        The number of repetitions is saved in
-        ``ctx.meta[click_extra.context.QUIET]`` and folded into the verbosity counter
-        by ``_VerbosityOption.resolve_level``.
-        """
-        context.set(ctx, context.QUIET, value)
-        self.apply_verbosity(ctx)
-
-        # Report the net effect after the level has been applied, so the message has a
-        # chance to be seen at DEBUG level.
-        if value and not ctx.resilient_parsing:
-            logger.debug(
-                f"Decreased log verbosity by {value} levels: "
-                f"from {self.get_base_level(ctx)} "
-                f"to {context.get(ctx, context.VERBOSITY_LEVEL)}."
-            )
+    _counter_key = context.QUIET
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        count: bool = True,
         **kwargs,
     ) -> None:
         if not param_decls:
             param_decls = ("--quiet", "-q")
-
-        # Force type and default to mirror the counting behavior of VerboseOption.
-        kwargs["type"] = IntRange(min=0)
-        kwargs["default"] = 0
-
-        super().__init__(
-            param_decls=param_decls,
-            count=count,
-            **kwargs,
-        )
+        super().__init__(param_decls=param_decls, **kwargs)

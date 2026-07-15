@@ -21,6 +21,7 @@ import logging
 from contextlib import contextmanager, nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
+from importlib import metadata
 from operator import getitem
 from typing import TypeVar
 
@@ -253,6 +254,21 @@ def missing_extra_message(
         f"{subject} requires an optional dependency. "
         f"Install it with: pip install {package}[{extra}]"
     )
+
+
+def generator_tag() -> str:
+    """Provenance tag for generated artifacts: ``Click Extra <version>``.
+
+    Stamped into the header comments of the documents Click Extra generates
+    from a CLI (man pages, Carapace completion specs). This is Click Extra's
+    *own* version (the generator), not the documented CLI's version. Falls back
+    to the bare name when the distribution metadata is unavailable (such as
+    running from an uninstalled source tree).
+    """
+    try:
+        return f"Click Extra {metadata.version('click-extra')}"
+    except metadata.PackageNotFoundError:
+        return "Click Extra"
 
 
 class _ParameterMixin:
@@ -877,7 +893,8 @@ def render_params_table(
         ``consume_value()`` rather than ``handle_parse_result()`` so eager
         callbacks are not re-triggered.
     """
-    # Imported here to avoid circular imports with the table module.
+    # Imported here to avoid circular imports with the config, table and theme
+    # modules, which all import from this one.
     from .config import ConfigOption
     from .table import (
         DEFAULT_FORMAT,
@@ -1290,6 +1307,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         ``docs/parameters.md``: editing a description here automatically
         rebuilds the docs table on the next ``sphinx-build``.
         """
+        # Imported here to avoid a circular import: table imports from this module.
         from .table import render_columns_markdown_table
 
         return render_columns_markdown_table(cls.TABLE_HEADERS)

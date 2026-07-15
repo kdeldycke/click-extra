@@ -23,6 +23,8 @@ demands of any domain that ships only directives (no roles or objects).
 
 from __future__ import annotations
 
+from docutils import nodes
+from docutils.statemachine import StringList
 from sphinx.domains import Domain
 
 TYPE_CHECKING = False
@@ -30,7 +32,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from types import CodeType
 
-    from docutils import nodes
     from docutils.nodes import Element
     from sphinx.addnodes import pending_xref
     from sphinx.application import Sphinx
@@ -77,6 +78,26 @@ def compile_directive(directive: SphinxDirective) -> CodeType:
     """
     source_code, location = directive_source(directive)
     return compile(source_code, location, "exec")
+
+
+def parse_into_section(
+    directive: SphinxDirective,
+    lines: list[str],
+) -> list[nodes.Node]:
+    """Hand generated source *lines* back to the directive's parser.
+
+    Nested directives inside *lines* execute during this pass and share the
+    directive's runner namespace. Returns the parsed children, ready to be
+    returned from the directive's ``run()``.
+    """
+    section = nodes.section()
+    source_file, _ = directive.get_source_info()
+    directive.state.nested_parse(
+        StringList(lines, source_file),
+        directive.content_offset,
+        section,
+    )
+    return section.children
 
 
 def make_cleanup(attr: str) -> Callable[[Sphinx, nodes.document], None]:

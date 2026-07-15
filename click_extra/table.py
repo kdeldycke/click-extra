@@ -666,6 +666,26 @@ def _context_sort_key(
     return column_sort_key(header_defs, sort_columns)
 
 
+def _resolve_table_inputs(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None,
+    sort_key: Callable[[Sequence[str | None]], Any] | None,
+) -> tuple[Sequence[Sequence[str | None]], Sequence[str | None] | None]:
+    """Split header definitions and apply the resolved row sort.
+
+    The shared preamble of :func:`render_table` and :func:`print_table`: the
+    render labels are split from the sortable column definitions, the active
+    ``--sort-by`` selection is resolved when no explicit *sort_key* is given,
+    and rows are sorted when a key applies.
+    """
+    labels, header_defs = _split_header_defs(headers)
+    if sort_key is None and header_defs:
+        sort_key = _context_sort_key(header_defs)
+    if sort_key is not None:
+        table_data = sorted(table_data, key=sort_key)
+    return table_data, labels
+
+
 def render_table(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None = None,
@@ -684,11 +704,7 @@ def render_table(
     :param sort_key: Optional callable passed to :py:func:`sorted` as the ``key``
         argument. When provided, rows are sorted before rendering.
     """
-    headers, header_defs = _split_header_defs(headers)
-    if sort_key is None and header_defs:
-        sort_key = _context_sort_key(header_defs)
-    if sort_key is not None:
-        table_data = sorted(table_data, key=sort_key)
+    table_data, headers = _resolve_table_inputs(table_data, headers, sort_key)
     render_func, _ = _select_table_funcs(table_format)
     return render_func(table_data, headers, **kwargs)
 
@@ -767,11 +783,7 @@ def print_table(
     :param sort_key: Optional callable passed to :py:func:`sorted` as the ``key``
         argument. When provided, rows are sorted before rendering.
     """
-    headers, header_defs = _split_header_defs(headers)
-    if sort_key is None and header_defs:
-        sort_key = _context_sort_key(header_defs)
-    if sort_key is not None:
-        table_data = sorted(table_data, key=sort_key)
+    table_data, headers = _resolve_table_inputs(table_data, headers, sort_key)
 
     ansi_translator: Callable[[str], str] | None = None
     if table_format:

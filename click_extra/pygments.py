@@ -112,24 +112,15 @@ cube, and 232-255 the grayscale ramp.
 
 
 _SGR_FG_COLORS: dict[int, str] = {
-    30: "Black",
-    31: "Red",
-    32: "Green",
-    33: "Yellow",
-    34: "Blue",
-    35: "Magenta",
-    36: "Cyan",
-    37: "White",
-    90: "BrightBlack",
-    91: "BrightRed",
-    92: "BrightGreen",
-    93: "BrightYellow",
-    94: "BrightBlue",
-    95: "BrightMagenta",
-    96: "BrightCyan",
-    97: "BrightWhite",
+    offset + i: prefix + name.capitalize()
+    for prefix, offset in (("", 30), ("Bright", 90))
+    for i, name in enumerate(_ANSI_NAMES)
 }
-"""SGR foreground color codes (30-37, 90-97) to named color strings."""
+"""SGR foreground color codes (30-37, 90-97) to named color strings.
+
+Derived from the canonical :data:`click_extra.styling._ANSI_NAMES` order, the
+same construction as :data:`_NAMED_COLORS`.
+"""
 
 _SGR_BG_COLORS: dict[int, str] = {
     code + 10: name for code, name in _SGR_FG_COLORS.items()

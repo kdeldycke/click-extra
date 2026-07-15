@@ -17,8 +17,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+TYPE_CHECKING = False
 # Mypy override: the ``from click import *`` / ``from cloup import *`` star imports
 # below make mypy resolve these re-implemented names to the click or cloup base class,
 # which hides click-extra's own attributes. Declaring the correct types here first,
@@ -56,10 +55,12 @@ except ImportError:  # Click < 8.4.0.
 # Overrides click helpers with cloup's.
 from cloup import *  # type: ignore[no-redef, assignment]
 
-# XXX Import types first to avoid circular imports. The True condition is a hack to
-# prevent ruff from re-ordering imports.
-if True:
-    from .types import ChoiceSource, Duration, EnumChoice, MultiChoice
+# Import types first to avoid circular imports: the sibling modules imported below
+# depend on it. The isort directive seals it into its own import section so ruff
+# does not fold it back into alphabetical order among the imports below.
+from .types import ChoiceSource, Duration, EnumChoice, MultiChoice
+
+# isort: split
 
 # Override cloup.Style with our own version. The override must happen after
 # ``from cloup import *`` (which would otherwise re-shadow our subclass) and
@@ -359,7 +360,6 @@ __all__ = [
     "VersionOption",
     "ZeroExitOption",
     "accessible_option",
-    "annotations",
     "ansi_to_html",
     "ansi_to_jira",
     "ansi_to_latex",
@@ -471,7 +471,6 @@ __all__ = [
     "verbose_option",
     "verbosity_option",
     "version_option",
-    "warnings",
     "wrap_text",
     "write_manpages",
     "zero_exit_option",
@@ -490,6 +489,14 @@ if not _HAS_CLICK_8_4_EXPORTS:
     __all__.remove("NoSuchCommand")
     __all__.remove("get_pager_file")
 del _HAS_CLICK_8_4_EXPORTS
+
+# Scrub namespace artifacts that are not part of the public API: ``annotations``
+# is this module's own ``from __future__ import annotations`` binding (deleting
+# it does not affect postponed evaluation, which is settled at compile time),
+# and ``warnings`` is the stdlib module leaked through ``from cloup import *``
+# (cloup lists it in its ``__all__``).
+del annotations
+del warnings  # noqa: F821
 
 
 __version__ = "8.4.0.dev0"
