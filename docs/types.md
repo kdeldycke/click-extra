@@ -43,7 +43,7 @@ result = invoke(prune_cli, args=["--max-age", "0"])
 assert result.output == "Cutoff: None\n"
 ```
 
-Unparseable input fails at parse time with a `BadParameter`:
+Unparsable input fails at parse time with a `BadParameter`:
 
 ```{click:run}
 result = invoke(prune_cli, args=["--max-age", "2 fortnights"])
