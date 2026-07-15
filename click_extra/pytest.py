@@ -87,6 +87,58 @@ def invoke(runner):
     return runner.invoke
 
 
+@pytest.fixture
+def isolated_app_dir(monkeypatch, tmp_path):
+    """Repoint configuration-file discovery at a fresh, empty directory.
+
+    The default ``--config`` search pattern derives from
+    :func:`click.get_app_dir`, which resolves to the *host* configuration
+    folder (``~/Library/Application Support/<app>`` on macOS,
+    ``~/.config/<app>`` on Unix, ``%APPDATA%\\<app>`` on Windows). Any
+    configuration file living there bleeds into every in-process CLI
+    invocation, making a test suite pass or fail depending on the developer's
+    personal configuration.
+
+    This fixture repoints ``get_app_dir`` (both ``click``'s and the reference
+    bound into click-extra's config machinery) at a per-test temporary
+    directory, whatever application name is requested. It returns that
+    directory, so a test can also plant a configuration file in it to
+    exercise the default discovery against a controlled file.
+
+    An explicit ``--config <path>`` bypasses the default search pattern and is
+    left unaffected.
+
+    .. note::
+        The :func:`runner` fixture pins ``HOME`` and its platform equivalents
+        inside an isolated filesystem, which also redirects the discovery
+        paths built from the home directory — but only for tests requesting
+        that fixture. This one intercepts ``get_app_dir`` directly, covering
+        any in-process invocation, without touching ``HOME`` (a suite may need
+        the real one elsewhere) and without leaking into subprocesses.
+
+    To make a whole suite hermetic, alias it to an ``autouse`` fixture in your
+    ``conftest.py``:
+
+    .. code-block:: python
+
+        import pytest
+
+
+        @pytest.fixture(autouse=True)
+        def isolate_user_config(isolated_app_dir):
+            return isolated_app_dir
+    """
+    app_dir = tmp_path / "app-dir"
+    app_dir.mkdir()
+
+    def patched_app_dir(*args, **kwargs) -> str:
+        return str(app_dir)
+
+    monkeypatch.setattr(click, "get_app_dir", patched_app_dir)
+    monkeypatch.setattr("click_extra.config.option.get_app_dir", patched_app_dir)
+    return app_dir
+
+
 skip_naked = pytest.mark.skip(reason="Naked decorator not supported.")
 """Mark to skip Cloup decorators without parenthesis.
 

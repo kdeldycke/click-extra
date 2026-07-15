@@ -626,6 +626,58 @@ assert result.exit_code == 0
 assert result.stdout.index("Apple") < result.stdout.index("Cherry")
 ```
 
+### One `--sort-by` across subcommands
+
+A CLI whose subcommands render different tables can still share a single `--sort-by`, declared once on the group. Pass bare column IDs instead of column definitions: they declare a **field vocabulary** untied to any single table layout, so nothing is baked into `ctx.print_table` at declaration time.
+
+Each table then declares which field its columns carry, by passing `(label, column_id)` pairs (or `ColumnSpec` instances) as `print_table()` headers. The selection is resolved per table: rows sort by the selected fields the table carries (in selection order, remaining columns breaking ties left to right), and keep their original order when the table carries none of them.
+
+```{click:source}
+from click_extra import group, sort_by_option
+from click_extra.table import TableFormat, print_table
+
+@group
+@sort_by_option("fruit", "price", default=())
+def cli():
+    """Subcommands render heterogeneous tables, sorted from one option."""
+
+@cli.command()
+def fruits():
+    """Table carrying the `fruit` field."""
+    print_table(
+        [["Cherry", "50"], ["Apple", "120"], ["Banana", "80"]],
+        [("Fruit", "fruit"), ("Count", None)],
+        table_format=TableFormat.ROUNDED_OUTLINE,
+    )
+
+@cli.command()
+def cities():
+    """Table carrying none of the vocabulary fields."""
+    print_table(
+        [["Paris", "2M"], ["London", "9M"]],
+        [("City", "city"), ("Population", None)],
+        table_format=TableFormat.ROUNDED_OUTLINE,
+    )
+```
+
+The `fruits` table carries the selected field, so its rows sort by it:
+
+```{click:run}
+result = invoke(cli, args=["--sort-by", "fruit", "fruits"])
+assert result.exit_code == 0
+assert result.stdout.index("Apple") < result.stdout.index("Banana") < result.stdout.index("Cherry")
+```
+
+The `cities` table carries none of the vocabulary fields, so the same selection leaves its rows untouched:
+
+```{click:run}
+result = invoke(cli, args=["--sort-by", "fruit", "cities"])
+assert result.exit_code == 0
+assert result.stdout.index("Paris") < result.stdout.index("London")
+```
+
+The `default=()` in the declaration above means bare invocations keep the original row order. Leave `default` unset to derive the first vocabulary field as the default sort, like the single-table mode does.
+
 For programmatic use without a CLI option, `render_table()` accepts a `sort_key` callable:
 
 ```{click:source}

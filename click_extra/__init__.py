@@ -59,7 +59,7 @@ from cloup import *  # type: ignore[no-redef, assignment]
 # XXX Import types first to avoid circular imports. The True condition is a hack to
 # prevent ruff from re-ordering imports.
 if True:
-    from .types import ChoiceSource, EnumChoice, MultiChoice
+    from .types import ChoiceSource, Duration, EnumChoice, MultiChoice
 
 # Override cloup.Style with our own version. The override must happen after
 # ``from cloup import *`` (which would otherwise re-shadow our subclass) and
@@ -218,6 +218,7 @@ from .table import (
     SortByOption,
     TableFormat,
     TableFormatOption,
+    column_sort_key,
     print_data,
     print_table,
     render_columns_markdown_table,
@@ -295,6 +296,7 @@ __all__ = [
     "ConstraintMixin",
     "Context",
     "DateTime",
+    "Duration",
     "EnumChoice",
     "ExportConfigOption",
     "ExtraOption",
@@ -368,6 +370,7 @@ __all__ = [
     "cases_from_data",
     "clear",
     "color_option",
+    "column_sort_key",
     "columns_option",
     "command",
     "config_option",

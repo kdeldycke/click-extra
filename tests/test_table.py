@@ -60,6 +60,7 @@ from click_extra.table import (
     _column_sort_key,
     _setup_tabulate,
     _strip_none,
+    column_sort_key,
     print_data,
     print_table,
     render_table,
@@ -1402,3 +1403,154 @@ def test_sort_by_and_columns_share_registry():
     assert [c.id for c in cols_opt.columns] == list(
         sort_opt.type.choices  # type: ignore[attr-defined]
     )
+
+
+@pytest.mark.parametrize(
+    ("header_defs", "sort_columns", "rows", "expected_first_col"),
+    (
+        pytest.param(
+            [("Name", "name"), ("Age", "age")],
+            ("age", "name", "age"),
+            [["Bob", "30"], ["Alice", "25"], ["Charlie", "25"]],
+            ["Alice", "Charlie", "Bob"],
+            id="duplicate-requests-deduplicated",
+        ),
+        pytest.param(
+            [ColumnSpec("name", "Name"), ("Age", "age")],
+            ("name",),
+            [["Bob", "30"], ["Alice", "25"]],
+            ["Alice", "Bob"],
+            id="column-spec-defs",
+        ),
+        pytest.param(
+            [("Name", "name"), ("Notes", None)],
+            ("version", "name"),
+            [["Bob", "x"], ["Alice", "y"]],
+            ["Alice", "Bob"],
+            id="fields-not-carried-skipped",
+        ),
+    ),
+)
+def test_column_sort_key_field_mapping(
+    header_defs, sort_columns, rows, expected_first_col
+):
+    """The public key builder maps requested fields onto the carried columns."""
+    key = column_sort_key(header_defs, sort_columns)
+    assert key is not None
+    assert [r[0] for r in sorted(rows, key=key)] == expected_first_col
+
+
+@pytest.mark.parametrize(
+    "sort_columns",
+    (
+        pytest.param((), id="empty-selection"),
+        pytest.param(None, id="no-selection"),
+        pytest.param(("version", "manager_id"), id="fields-not-carried"),
+    ),
+)
+def test_column_sort_key_none_when_not_carried(sort_columns):
+    """No requested field carried by the table: rows must keep their order."""
+    assert column_sort_key([("Name", "name"), ("Notes", None)], sort_columns) is None
+
+
+def test_render_table_rich_headers_render_labels():
+    """ColumnSpec and (label, column_id) header entries render their labels."""
+    result = render_table(
+        [["a", "1"]],
+        [ColumnSpec("fruit", "Fruit"), ("Count", "count")],
+        table_format=TableFormat.JSON,
+    )
+    assert json.loads(result) == [{"Fruit": "a", "Count": "1"}]
+
+
+def test_sort_by_option_field_vocabulary():
+    """Bare column IDs declare a table-less field vocabulary."""
+    opt = SortByOption("fruit", "count")
+    assert opt.field_vocabulary is True
+    assert opt.header_defs == ((None, "fruit"), (None, "count"))
+    assert list(opt.type.choices) == ["fruit", "count"]  # type: ignore[attr-defined]
+    assert opt.default == ("fruit",)
+
+    # An explicit empty default declares no default sort, unlike None which
+    # derives the first sortable ID.
+    assert SortByOption("fruit", "count", default=()).default == ()
+
+
+def test_sort_by_option_labeled_defs_not_vocabulary():
+    """Labeled definitions keep the declaration-time baked-sort behavior."""
+    assert SortByOption(("Fruit", "fruit")).field_vocabulary is False
+    assert SortByOption(columns=(ColumnSpec("fruit", "Fruit"),)).field_vocabulary is (
+        False
+    )
+
+
+def test_sort_by_option_rejects_mixed_defs():
+    """Bare IDs and labeled definitions cannot be mixed."""
+    with pytest.raises(
+        TypeError, match="bare column IDs or labeled column definitions"
+    ):
+        SortByOption("fruit", ("Count", "count"))
+
+
+def test_sort_by_group_heterogeneous_tables(invoke):
+    """A group-level field vocabulary sorts each subcommand's table independently.
+
+    Each table sorts by the selected fields it carries; a table carrying none
+    of them keeps its original row order.
+    """
+
+    @group
+    @sort_by_option("fruit", "price", default=())
+    def cli():
+        pass
+
+    @cli.command()
+    def fruits():
+        print_table(
+            [["banana", "3"], ["apple", "1"]],
+            [("Fruit", "fruit"), ("Count", None)],
+            table_format=TableFormat.JSON,
+        )
+
+    @cli.command()
+    def cities():
+        print_table(
+            [["NYC", "8M"], ["LA", "4M"]],
+            [("City", "city"), ("Population", None)],
+            table_format=TableFormat.JSON,
+        )
+
+    # The fruits table carries the selected field: rows sort by it.
+    result = invoke(cli, "--sort-by", "fruit", "fruits", color=False)
+    assert result.exit_code == 0
+    assert [r["Fruit"] for r in json.loads(result.stdout)] == ["apple", "banana"]
+
+    # The cities table carries none of the vocabulary: original order kept.
+    result = invoke(cli, "--sort-by", "fruit", "cities", color=False)
+    assert result.exit_code == 0
+    assert [r["City"] for r in json.loads(result.stdout)] == ["NYC", "LA"]
+
+    # No selection at all: original order kept everywhere.
+    result = invoke(cli, "fruits", color=False)
+    assert result.exit_code == 0
+    assert [r["Fruit"] for r in json.loads(result.stdout)] == ["banana", "apple"]
+
+
+def test_print_table_explicit_sort_key_wins(invoke):
+    """An explicit sort_key bypasses the context ``--sort-by`` resolution."""
+
+    @command
+    @sort_by_option("fruit")
+    def cli():
+        print_table(
+            [["banana"], ["apple"], ["cherry"]],
+            [("Fruit", "fruit")],
+            table_format=TableFormat.JSON,
+            # Sort by reversed name: ananab < elppa < yrrehc.
+            sort_key=lambda row: row[0][::-1],
+        )
+
+    result = invoke(cli, "--sort-by", "fruit", color=False)
+    assert result.exit_code == 0
+    parsed = json.loads(result.stdout)
+    assert [r["Fruit"] for r in parsed] == ["banana", "apple", "cherry"]

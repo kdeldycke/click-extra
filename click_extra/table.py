@@ -613,18 +613,80 @@ def _select_table_funcs(
             return partial(_render_tabulate, table_format=table_format), print_func
 
 
+def _split_header_defs(
+    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None,
+) -> tuple[
+    Sequence[str | None] | None,
+    tuple[tuple[str | None, str | None], ...] | None,
+]:
+    """Split header definitions into render labels and sortable column defs.
+
+    ``headers`` entries may be plain strings (a label carrying no column ID),
+    :class:`ColumnSpec` instances or ``(label, column_id)`` pairs. Returns the
+    labels to render and the ``(label, column_id)`` definitions, the latter
+    ``None`` when no entry carries a column ID (nothing to sort on).
+    """
+    if headers is None:
+        return None, None
+    labels: list[str | None] = []
+    defs: list[tuple[str | None, str | None]] = []
+    for header in headers:
+        label: str | None
+        col_id: str | None
+        if isinstance(header, ColumnSpec):
+            label, col_id = header.label, header.id
+        elif isinstance(header, (tuple, list)):
+            label, col_id = header
+        else:
+            label, col_id = header, None
+        labels.append(label)
+        defs.append((label, col_id))
+    if not any(col_id for _, col_id in defs):
+        return labels, None
+    return labels, tuple(defs)
+
+
+def _context_sort_key(
+    header_defs: Sequence[tuple[str | None, str | None]],
+) -> Callable[[Sequence[str | None]], tuple] | None:
+    """Build a sort key from the ``--sort-by`` selection of the current context.
+
+    Reads :data:`click_extra.context.SORT_BY`, which ``ctx.meta`` shares
+    across the whole context tree, so a selection made on a parent group is
+    visible from the subcommand doing the printing. Returns ``None`` outside
+    any Click context, when no selection is active, or when the table carries
+    none of the selected columns.
+    """
+    ctx = click.get_current_context(silent=True)
+    if ctx is None:
+        return None
+    sort_columns = context.get(ctx, context.SORT_BY)
+    if not sort_columns:
+        return None
+    return column_sort_key(header_defs, sort_columns)
+
+
 def render_table(
     table_data: Sequence[Sequence[str | None]],
-    headers: Sequence[str | None] | None = None,
+    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None = None,
     table_format: TableFormat | None = None,
     sort_key: Callable[[Sequence[str | None]], Any] | None = None,
     **kwargs,
 ) -> str:
     """Render a table and return it as a string.
 
+    ``headers`` entries carrying a column ID (:class:`ColumnSpec` instances or
+    ``(label, column_id)`` pairs) plug the table into the active ``--sort-by``
+    selection: when no explicit ``sort_key`` is given, rows sort by the
+    selected columns this table carries, and keep their original order when it
+    carries none. See :func:`column_sort_key` for the exact semantics.
+
     :param sort_key: Optional callable passed to :py:func:`sorted` as the ``key``
         argument. When provided, rows are sorted before rendering.
     """
+    headers, header_defs = _split_header_defs(headers)
+    if sort_key is None and header_defs:
+        sort_key = _context_sort_key(header_defs)
     if sort_key is not None:
         table_data = sorted(table_data, key=sort_key)
     render_func, _ = _select_table_funcs(table_format)
@@ -678,12 +740,18 @@ def _color_forced() -> bool:
 
 def print_table(
     table_data: Sequence[Sequence[str | None]],
-    headers: Sequence[str | None] | None = None,
+    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None = None,
     table_format: TableFormat | None = None,
     sort_key: Callable[[Sequence[str | None]], Any] | None = None,
     **kwargs,
 ) -> None:
     """Render a table and print it to the console.
+
+    ``headers`` entries carrying a column ID (:class:`ColumnSpec` instances or
+    ``(label, column_id)`` pairs) plug the table into the active ``--sort-by``
+    selection: when no explicit ``sort_key`` is given, rows sort by the
+    selected columns this table carries, and keep their original order when it
+    carries none. See :func:`column_sort_key` for the exact semantics.
 
     ANSI codes carried by cell values and headers depend on the format:
 
@@ -699,6 +767,9 @@ def print_table(
     :param sort_key: Optional callable passed to :py:func:`sorted` as the ``key``
         argument. When provided, rows are sorted before rendering.
     """
+    headers, header_defs = _split_header_defs(headers)
+    if sort_key is None and header_defs:
+        sort_key = _context_sort_key(header_defs)
     if sort_key is not None:
         table_data = sorted(table_data, key=sort_key)
 
@@ -939,40 +1010,80 @@ class TableFormatOption(ExtraOption):
         )
 
 
-def _column_sort_key(
-    header_defs: Sequence[tuple[str, str | None]],
-    sort_columns: Sequence[str] | None = None,
+def _row_sort_key(
+    sort_order: Sequence[int],
     cell_key: Callable[[str | None], Any] | None = None,
 ) -> Callable[[Sequence[str | None]], tuple]:
-    """Build a multi-column sort key from header definitions.
+    """Build a row sort key comparing cells at the ``sort_order`` positions.
 
-    Specified sort columns are moved to the front of the comparison order;
-    remaining columns provide tie-breaking in their natural (header) order.
     Each cell is passed through ``cell_key`` before comparison. Defaults to
-    ANSI-stripped, case-folded string comparison.
+    ANSI-stripped, case-folded string comparison, with ``None`` and empty
+    cells collating as the empty string.
     """
     if cell_key is None:
 
         def cell_key(v):
             return strip_ansi(v).casefold() if v else ""
 
-    column_count = len(header_defs)
-    sort_order = list(range(column_count))
-
-    if sort_columns:
-        col_index = {col_id: i for i, (_, col_id) in enumerate(header_defs) if col_id}
-        # Move specified columns to the front in reverse order so the first
-        # specified column ends up at position 0.
-        for sort_col in reversed(sort_columns):
-            if sort_col in col_index:
-                idx = col_index[sort_col]
-                sort_order.remove(idx)
-                sort_order.insert(0, idx)
-
     def key_func(row: Sequence[str | None]) -> tuple:
         return tuple(cell_key(row[i]) for i in sort_order)
 
     return key_func
+
+
+def column_sort_key(
+    header_defs: Sequence[ColumnSpec | tuple[str | None, str | None]],
+    sort_columns: Sequence[str] | None = None,
+    cell_key: Callable[[str | None], Any] | None = None,
+) -> Callable[[Sequence[str | None]], tuple] | None:
+    """Build a row sort key from the ``sort_columns`` a table actually carries.
+
+    ``header_defs`` describes the rendered columns: :class:`ColumnSpec`
+    instances or ``(label, column_id)`` tuples, with ``column_id=None`` for
+    columns that cannot be sorted on. The requested ``sort_columns`` the table
+    carries drive the comparison first, de-duplicated and in request order;
+    the remaining columns follow in their natural left-to-right order for
+    tie-breaking.
+
+    Returns ``None`` when the table carries none of the requested columns,
+    signalling that rows should keep their original order. This is what lets
+    one ``--sort-by`` selection apply across subcommands rendering
+    heterogeneous tables: each table sorts by the requested fields it knows,
+    and a table knowing none of them is left untouched.
+    """
+    defs = tuple(_normalize_column_def(c) for c in header_defs)
+    col_index = {col_id: i for i, (_, col_id) in enumerate(defs) if col_id}
+    primaries = [
+        col_index[col_id]
+        for col_id in dict.fromkeys(sort_columns or ())
+        if col_id in col_index
+    ]
+    if not primaries:
+        return None
+    sort_order = (
+        *primaries,
+        *(i for i in range(len(defs)) if i not in primaries),
+    )
+    return _row_sort_key(sort_order, cell_key)
+
+
+def _column_sort_key(
+    header_defs: Sequence[tuple[str, str | None]],
+    sort_columns: Sequence[str] | None = None,
+    cell_key: Callable[[str | None], Any] | None = None,
+) -> Callable[[Sequence[str | None]], tuple]:
+    """Like :func:`column_sort_key`, but always sorts.
+
+    When none of the ``sort_columns`` is carried by ``header_defs`` (or none
+    is requested), rows still sort, comparing every column in natural
+    left-to-right order. This is the key :class:`SortByOption` bakes into
+    ``ctx.print_table`` when its column definitions are known at declaration
+    time.
+    """
+    key = column_sort_key(header_defs, sort_columns, cell_key)
+    if key is None:
+        key = _row_sort_key(range(len(header_defs)), cell_key)
+    return key
 
 
 @dataclass(frozen=True, slots=True)
@@ -1161,14 +1272,18 @@ class ColumnsOption(ExtraOption):
         context.set(ctx, context.COLUMNS, tuple(columns) if columns else ())
 
 
-def _normalize_column_def(column: ColumnSpec | tuple[str, str | None]):
+def _normalize_column_def(column: ColumnSpec | tuple[str | None, str | None] | str):
     """Coerce a column definition to a ``(label, column_id)`` tuple.
 
-    Accepts a :class:`ColumnSpec` (so a registry can be shared with ``--columns``)
-    or a raw ``(label, column_id)`` tuple.
+    Accepts a :class:`ColumnSpec` (so a registry can be shared with
+    ``--columns``), a raw ``(label, column_id)`` tuple, or a bare column ID
+    string, which declares a sortable field untied to any table layout (its
+    label is ``None``).
     """
     if isinstance(column, ColumnSpec):
         return (column.label, column.id)
+    if isinstance(column, str):
+        return (None, column)
     return tuple(column)
 
 
@@ -1203,13 +1318,39 @@ class SortByOption(ExtraOption):
         @pass_context
         def my_cmd(ctx):
             ctx.print_table(rows, [col.label for col in COLUMNS])
+
+    Definitions may instead be bare column ID strings, declaring a
+    **field vocabulary** untied to any single table layout. This fits a
+    ``--sort-by`` declared once on a group whose subcommands render
+    heterogeneous tables: nothing is baked into ``ctx.print_table`` since no
+    layout is known up front. The selection is resolved per table by
+    :func:`print_table`, from the column IDs its headers carry — each table
+    sorts by the selected fields it knows (remaining columns breaking ties
+    left to right) and keeps its original row order when it knows none.
+
+    .. code-block:: python
+
+        @group
+        @sort_by_option("package_id", "package_name", "manager_id")
+        def my_cli():
+            pass
+
+
+        @my_cli.command
+        def installed():
+            print_table(rows, [("Package ID", "package_id"), ("Manager", "manager_id")])
+
+
+        @my_cli.command
+        def managers():
+            print_table(rows, [("Manager", "manager_id"), ("Path", None)])
     """
 
     def __init__(
         self,
-        *header_defs: ColumnSpec | tuple[str, str | None],
+        *header_defs: ColumnSpec | tuple[str, str | None] | str,
         param_decls: Sequence[str] | None = None,
-        columns: Sequence[ColumnSpec | tuple[str, str | None]] | None = None,
+        columns: Sequence[ColumnSpec | tuple[str, str | None] | str] | None = None,
         default: str | Sequence[str] | None = None,
         expose_value: bool = False,
         cell_key: Callable[[str | None], Any] | None = None,
@@ -1221,20 +1362,41 @@ class SortByOption(ExtraOption):
 
         # Accept a shared ``columns=`` registry (the same ``ColumnSpec`` tuple
         # passed to ``--columns``) or positional definitions. Each entry may be a
-        # ``ColumnSpec`` or a raw ``(label, column_id)`` tuple.
+        # ``ColumnSpec``, a raw ``(label, column_id)`` tuple, or a bare column ID
+        # string.
         if columns is not None and header_defs:
             msg = "Pass column definitions positionally or via columns=, not both."
             raise TypeError(msg)
         raw_defs = columns if columns is not None else header_defs
         self.header_defs = tuple(_normalize_column_def(c) for c in raw_defs)
         self.cell_key = cell_key
+
+        # Bare column IDs declare a table-less field vocabulary; labeled
+        # definitions describe one table's layout. Mixing both would leave the
+        # labeled part baking a sort over a layout the vocabulary part denies.
+        labeled = [d for d in self.header_defs if d[0] is not None]
+        if labeled and len(labeled) != len(self.header_defs):
+            msg = "Pass either bare column IDs or labeled column definitions, not both."
+            raise TypeError(msg)
+
+        self.field_vocabulary = bool(self.header_defs) and not labeled
+        """Whether definitions are bare column IDs, untied to any table layout.
+
+        In this mode :meth:`init_sort` only publishes the selection on the
+        context: the sort is resolved per table at :func:`print_table` time.
+        """
+
         sortable_ids = [col_id for _, col_id in self.header_defs if col_id]
 
-        # Normalize default to a tuple for multiple mode.
-        if not default:
+        # Normalize default to a tuple for multiple mode. ``None`` derives the
+        # first sortable ID; an explicit empty sequence declares no default
+        # sort, so bare invocations keep the original row order.
+        if default is None:
             default = (sortable_ids[0],) if sortable_ids else ()
         elif isinstance(default, str):
             default = (default,)
+        else:
+            default = tuple(default)
 
         kwargs.setdefault("callback", self.init_sort)
 
@@ -1260,11 +1422,19 @@ class SortByOption(ExtraOption):
         selected ``sort_columns``, then rebinds ``ctx.print_table`` to
         :func:`print_table` with that key applied. The call contract is the same
         sorted or not: ``ctx.print_table(table_data, headers)``.
+
+        In field-vocabulary mode no table layout is known at declaration time,
+        so nothing is baked: the selection is only published on the context
+        (``ctx.meta`` is shared with every subcommand), and resolved per table
+        by :func:`print_table` from the column IDs its headers carry.
         """
         if ctx.resilient_parsing:
             return
 
         context.set(ctx, context.SORT_BY, sort_columns)
+
+        if self.field_vocabulary:
+            return
 
         sort_key = _column_sort_key(self.header_defs, sort_columns, self.cell_key)
         table_format = context.get(ctx, context.TABLE_FORMAT)

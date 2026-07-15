@@ -2,6 +2,61 @@
 
 A collection of custom Click parameter types for common use-cases.
 
+## `Duration`
+
+Click has no type for time quantities: `--max-age 7 days`, `--cooldown P7D` and `--timeout 30s` all land on the CLI author as strings to parse by hand. `Duration` turns them into a [`datetime.timedelta`](https://docs.python.org/3/library/datetime.html#timedelta-objects), accepting three input shapes:
+
+- Friendly durations: `7 days`, `1 week`, `12h`, `30m`, `45s`, or a bare number of days like `7`.
+- ISO 8601 durations: `P7D`, `PT12H`, `P1WT6H`.
+- RFC 3339 timestamps: `2024-05-01T00:00:00Z`, converted at parse time to their age (`now - timestamp`).
+
+```{click:source}
+from click import command, echo, option
+from click_extra import Duration
+
+@command
+@option(
+    "--max-age",
+    type=Duration(),
+    help="Ignore entries newer than this.",
+)
+def prune_cli(max_age):
+    echo(f"Cutoff: {max_age!r}")
+```
+
+All three shapes resolve to the same `timedelta` value:
+
+```{click:run}
+result = invoke(prune_cli, args=["--max-age", "7 days"])
+assert result.output == "Cutoff: datetime.timedelta(days=7)\n"
+```
+
+```{click:run}
+result = invoke(prune_cli, args=["--max-age", "P7D"])
+assert result.output == "Cutoff: datetime.timedelta(days=7)\n"
+```
+
+Some inputs parse to `None` instead of a `timedelta`: a zero duration, an empty string, and a timestamp in the future. Cutoff options (cooldowns, timeouts, retention windows, cache TTLs) read `None` as "no cutoff", so a `0` on the command line disables the gate and overrides a value set in a configuration file:
+
+```{click:run}
+result = invoke(prune_cli, args=["--max-age", "0"])
+assert result.output == "Cutoff: None\n"
+```
+
+Unparseable input fails at parse time with a `BadParameter`:
+
+```{click:run}
+result = invoke(prune_cli, args=["--max-age", "2 fortnights"])
+assert "'2 fortnights' is not a valid duration" in result.stderr
+```
+
+Durations resolve to a fixed number of seconds, assuming a day is 24 hours: the local time zone, DST transitions, and calendar boundaries are ignored. Calendar units are rejected for the same reason, as their length is ambiguous (months span 28-31 days, years 365-366):
+
+```{click:run}
+result = invoke(prune_cli, args=["--max-age", "3 months"])
+assert "calendar units (months, years) are rejected" in result.stderr
+```
+
 ## `EnumChoice`
 
 `click.Choice` is supporting `Enum`s, but naively: the [`Enum.name` property](https://docs.python.org/3/library/enum.html#enum.Enum.name) of each members is used for choices. It [was designed that way to simplify the implementation](https://github.com/pallets/click/issues/2911#issuecomment-2891534372), because it is the part of `Enum` that is guaranteed to be unique strings.

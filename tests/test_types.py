@@ -19,6 +19,7 @@ from __future__ import annotations
 import importlib.metadata
 import sys
 from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 from enum import Enum, Flag, IntEnum, IntFlag, auto
 from operator import attrgetter
 
@@ -31,6 +32,7 @@ from click_extra import (
     BadParameter,
     Choice,
     ChoiceSource,
+    Duration,
     EnumChoice,
     MultiChoice,
     echo,
@@ -1034,3 +1036,155 @@ def test_multi_choice_in_click_option() -> None:
     result = runner.invoke(cli, ["--tags", "alpha,delta"])
     assert result.exit_code != 0
     assert "'delta'" in result.stderr
+
+
+# --- Duration -----------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        # Friendly durations.
+        ("7 days", timedelta(days=7)),
+        ("1 week", timedelta(weeks=1)),
+        ("2 weeks", timedelta(weeks=2)),
+        ("3d", timedelta(days=3)),
+        ("12h", timedelta(hours=12)),
+        ("30m", timedelta(minutes=30)),
+        ("45s", timedelta(seconds=45)),
+        ("1.5d", timedelta(days=1, hours=12)),
+        # A bare number defaults to days.
+        ("7", timedelta(days=7)),
+        # Spacing and case are irrelevant.
+        ("  6   HOURS  ", timedelta(hours=6)),
+        # ISO 8601 durations.
+        ("P7D", timedelta(days=7)),
+        ("P1W", timedelta(weeks=1)),
+        ("PT12H", timedelta(hours=12)),
+        ("PT30M", timedelta(minutes=30)),
+        ("PT45S", timedelta(seconds=45)),
+        ("P1WT6H", timedelta(weeks=1, hours=6)),
+        ("P2DT3H30M", timedelta(days=2, hours=3, minutes=30)),
+        # ISO 8601 is case-insensitive.
+        ("p7d", timedelta(days=7)),
+        ("pt12h", timedelta(hours=12)),
+        # Zero and empty values parse to None.
+        ("0", None),
+        ("0 days", None),
+        ("PT0H", None),
+        ("", None),
+        (None, None),
+    ),
+)
+def test_duration_parsing(value, expected) -> None:
+    assert Duration().convert(value, None, None) == expected
+
+
+def test_duration_passthrough_timedelta() -> None:
+    """An already-parsed timedelta is returned unchanged (idempotent conversion)."""
+    delta = timedelta(days=2)
+    assert Duration().convert(delta, None, None) is delta
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        "bogus",
+        "2 fortnights",
+        "abc",
+        "tomorrow",
+        "-3d",
+        # Bare ISO 8601 prefix with no components.
+        "P",
+        # Unknown ISO 8601 unit.
+        "P3X",
+        # Date without a time zone.
+        "2024-05-01",
+        "2024-05-01T00:00:00",
+        # Malformed RFC 3339 timestamp.
+        "2024-99-99T00:00:00Z",
+    ),
+)
+def test_duration_invalid(value) -> None:
+    with pytest.raises(BadParameter):
+        Duration().convert(value, None, None)
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        # Friendly form.
+        "7 months",
+        "1 year",
+        "3 months",
+        "2 years",
+        # ISO 8601 form (M before T = months, Y = years).
+        "P3M",
+        "P1Y",
+        "P1Y6M",
+    ),
+)
+def test_duration_rejects_calendar_units(value) -> None:
+    """Months and years are explicitly rejected because their length is ambiguous."""
+    with pytest.raises(BadParameter) as exc_info:
+        Duration().convert(value, None, None)
+    assert "calendar units" in str(exc_info.value)
+    assert "ambiguous" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        # Z suffix.
+        "2024-05-01T00:00:00Z",
+        # Explicit UTC offset.
+        "2024-05-01T00:00:00+00:00",
+        # Non-UTC offset.
+        "2024-05-01T02:00:00+02:00",
+        # Lowercase T and Z accepted.
+        "2024-05-01t00:00:00z",
+    ),
+)
+def test_duration_absolute_timestamp(value) -> None:
+    """An RFC 3339 timestamp is converted to ``now - timestamp`` at parse time."""
+    result = Duration().convert(value, None, None)
+    expected = datetime.now(tz=timezone.utc) - datetime(2024, 5, 1, tzinfo=timezone.utc)
+    assert isinstance(result, timedelta)
+    assert abs(result - expected) < timedelta(seconds=5)
+
+
+def test_duration_future_timestamp_parses_to_none() -> None:
+    """A timestamp in the future parses to ``None``, read as "no cutoff"."""
+    assert Duration().convert("2999-01-01T00:00:00Z", None, None) is None
+
+
+def test_duration_in_click_option() -> None:
+    """End-to-end: ``Duration`` plugs into a Click option."""
+    captured: list[timedelta | None] = []
+
+    @click.command
+    @click.option("--max-age", type=Duration())
+    def cli(max_age: timedelta | None) -> None:
+        captured.append(max_age)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--max-age", "1 week"])
+    assert result.exit_code == 0
+    assert captured == [timedelta(weeks=1)]
+
+    # A zero duration reaches the command as None.
+    captured.clear()
+    result = runner.invoke(cli, ["--max-age", "0"])
+    assert result.exit_code == 0
+    assert captured == [None]
+
+    # The rendered help carries the default uppercased metavar.
+    help_text = runner.invoke(cli, ["--help"]).stdout
+    assert "--max-age DURATION" in help_text
+
+    # An invalid duration fails at parse time, before the callback runs.
+    captured.clear()
+    result = runner.invoke(cli, ["--max-age", "2 fortnights"])
+    assert result.exit_code != 0
+    assert "'2 fortnights' is not a valid duration" in result.stderr
+    assert not captured

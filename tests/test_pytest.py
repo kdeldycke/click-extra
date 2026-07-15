@@ -18,10 +18,13 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
+import click
 import pytest
 from boltons.strutils import strip_ansi
 
+from click_extra import command, echo, option
 from click_extra.pytest import (
     default_debug_colored_config,
     default_debug_colored_log_end,
@@ -73,3 +76,34 @@ def test_aligned_colored_fixtures(uncolored, colored):
     # Check that all lines can be compiled as regexes.
     assert re.compile(uncolored)
     assert re.compile(colored)
+
+
+def test_isolated_app_dir(invoke, isolated_app_dir):
+    """Config discovery is repointed at the isolated directory.
+
+    A CLI invoked in-process must not see the host's real configuration
+    folder, and a configuration file planted in the isolated directory must be
+    picked up by the default ``--config`` search pattern.
+    """
+    # Every application name resolves to the same isolated directory.
+    assert Path(click.get_app_dir("any-app")) == isolated_app_dir
+    assert Path(click.get_app_dir("other-app", roaming=False)) == isolated_app_dir
+
+    @command
+    @option("--dummy-flag/--no-flag")
+    def my_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    # The isolated directory starts empty: no configuration is discovered.
+    result = invoke(my_cli)
+    assert result.exit_code == 0
+    assert result.stdout == "dummy_flag = False\n"
+
+    # A file planted in the isolated directory is discovered by default.
+    (isolated_app_dir / "config.toml").write_text(
+        "[my-cli]\ndummy_flag = true\n",
+        encoding="utf-8",
+    )
+    result = invoke(my_cli)
+    assert result.exit_code == 0
+    assert result.stdout == "dummy_flag = True\n"
