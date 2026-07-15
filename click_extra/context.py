@@ -295,16 +295,16 @@ final level came from ``--verbosity`` or from ``-v``/``-q`` repetitions.
 VERBOSE: Final[str] = "click_extra.verbose"
 """Raw repetition count of ``--verbose``/``-v``.
 
-Written by :meth:`click_extra.logging.VerboseOption.set_level`. Combined with
-:data:`QUIET` into the signed ``verbose - quiet`` counter that
+Written by the ``set_level`` callback of :class:`click_extra.logging.VerboseOption`.
+Combined with :data:`QUIET` into the signed ``verbose - quiet`` counter that
 ``_VerbosityOption.resolve_level`` shifts the base level by.
 """
 
 QUIET: Final[str] = "click_extra.quiet"
 """Raw repetition count of ``--quiet``/``-q``.
 
-Written by :meth:`click_extra.logging.QuietOption.set_level`. The quiet
-counterpart of :data:`VERBOSE`: each ``-q`` subtracts one step from the
+Written by the ``set_level`` callback of :class:`click_extra.logging.QuietOption`.
+The quiet counterpart of :data:`VERBOSE`: each ``-q`` subtracts one step from the
 ``verbose - quiet`` net applied on top of the base verbosity level.
 """
 

@@ -60,7 +60,7 @@ from .theme import get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ def _command_labels(
     command: click.Command,
     name: str,
     ctx: click.Context,
-    style_name,
+    style_name: Callable[[str], str],
 ) -> tuple[str, str]:
     """Build the plain and styled labels of a tree node.
 

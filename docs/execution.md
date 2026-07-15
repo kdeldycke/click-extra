@@ -115,7 +115,7 @@ A value of `0` disables parallelism: it is rounded up to `1` and a warning notes
 ```
 
 ```{warning}
-`auto` and `max` express a wish for parallelism, but on hosts with few logical CPUs they resolve to a single job and run sequentially: `max` on a single-core host, or `auto` on a one- or two-core host (it reserves one core). A warning is then logged, so the silent sequential fallback is not mistaken for parallel execution. An explicit `--jobs 1` is treated as a deliberate sequential choice and stays silent.
+`auto` and `max` express a wish for parallelism, but on hosts with few logical CPUs they resolve to a single job and run sequentially: `max` on a single-core host, or `auto` on a one- or two-core host (it reserves one core). An explicit request (on the command line, or through an environment variable or configuration file) logs a warning, so the silent sequential fallback is not mistaken for parallel execution. The option's own default only logs at info level, sparing every bare invocation on a 1-CPU host a warning it cannot act on. An explicit `--jobs 1` is treated as a deliberate sequential choice and stays silent.
 ```
 
 ```{tip}

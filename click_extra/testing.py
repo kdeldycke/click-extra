@@ -267,7 +267,7 @@ class CliRunner(click.testing.CliRunner):
             :py:class:`pathlib.Path` objects and ``None`` values. The nested structure
             will be flattened and ``None`` values will be filtered out. Then all
             elements will be cast to ``str``. See
-            :func:`~click_extra.testing.args_cleanup` for details.
+            :func:`~click_extra.execution.args_cleanup` for details.
         :param input: same as ``click.testing.CliRunner.invoke()``.
         :param env: same as ``click.testing.CliRunner.invoke()``.
         :param catch_exceptions: same as ``click.testing.CliRunner.invoke()``.

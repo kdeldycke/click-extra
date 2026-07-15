@@ -660,8 +660,8 @@ class ColorOption(ExtraOption):
         #. The ``auto`` default, leaving ``ctx.color`` at ``None`` for TTY detection.
 
         Whatever branch settles it, the resolution is mirrored process-wide by
-        :func:`publish_invocation_color` so output produced from background
-        threads honors it too.
+        :func:`~click_extra.color.publish_invocation_color` so output produced
+        from background threads honors it too.
         """
         try:
             when = value
