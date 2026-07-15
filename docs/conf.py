@@ -36,7 +36,71 @@ extensions = [
     "sphinx_autodoc_typehints",
     "click_extra.sphinx",
     "sphinxcontrib.mermaid",
+    # jQuery must be listed explicitly: sphinx-datatables only activates it
+    # from a html-page-context callback, too late for the jquery.js static
+    # file to be registered and copied, leaving `$` undefined at runtime.
+    "sphinxcontrib.jquery",
+    "sphinx_datatables",
 ]
+
+# Applies to every table carrying the (default) `sphinx-datatable` class:
+# currently only the binaries catalog. An empty `order` preserves the CSV's
+# newest-first row order on load instead of DataTables' default first-column
+# ascending sort; the page length accommodates one release's worth of
+# binaries per page with room to spare. The render callback appends a
+# relative hint ("9 days ago") to the Released column (index 2 in
+# repomatic.binaries_page.CSV_HEADERS) at display time only, so sorting and
+# searching keep operating on the raw ISO dates and the generated CSV stays
+# free of hints that would go stale between releases. Passed as a raw JS
+# string because a JSON dict cannot carry the function. Raw string: the JS
+# regex's backslashes are not Python escapes.
+datatables_options = r"""
+{
+    "order": [],
+    "pageLength": 25,
+    "columnDefs": [
+        {
+            "targets": 2,
+            "render": function (data, type, row) {
+                if (type !== "display" || !data) {
+                    return data;
+                }
+                // Cells arrive as rendered HTML (<p>2026-07-02</p>), so
+                // extract the date instead of parsing the markup.
+                const match = /\d{4}-\d{2}-\d{2}/.exec(data);
+                if (!match) {
+                    return data;
+                }
+                const days = Math.floor(
+                    (Date.now() - Date.parse(match[0])) / 86400000);
+                if (!isFinite(days)) {
+                    return data;
+                }
+                let hint;
+                if (days <= 0) {
+                    hint = "today";
+                } else if (days === 1) {
+                    hint = "a day ago";
+                } else if (days < 30) {
+                    hint = days + " days ago";
+                } else if (days < 350) {
+                    const months = Math.round(days / 30.44);
+                    hint = months === 1 ? "a month ago" : months + " months ago";
+                } else {
+                    const years = Math.round(days / 365.25);
+                    hint = years === 1 ? "a year ago" : years + " years ago";
+                }
+                // Inject inside the paragraph so the hint stays on the
+                // same line as the date.
+                const label = " (" + hint + ")";
+                return data.includes("</p>")
+                    ? data.replace("</p>", label + "</p>")
+                    : data + label;
+            }
+        }
+    ]
+}
+"""
 
 # Opt into the click:* and python:* directive families. Both execute
 # arbitrary Python at build time; see docs/sphinx.md for the security
@@ -268,6 +332,10 @@ linkcheck_ignore = [
     r"https://no-color\.org",
     # crates.io blocks automated link checkers.
     r"https://crates\.io/crates/.*",
+    # VirusTotal analysis pages are a JS app that rate-limits bots, and the
+    # binaries catalog links one per released binary. Also excluded from the
+    # lychee run (see [tool.lychee] in pyproject.toml).
+    r"https://www\.virustotal\.com/gui/.*",
     # star-history uses client-side hash routing; fragments are not real HTML anchors.
     r"https://star-history\.com/#.*",
     # Telemetry opt-out endpoint is slow and times out from CI.

@@ -102,6 +102,8 @@ Click Extra demo, version 7.2.0
 
 This is a great way to play with Click Extra and check that it runs fine on your system, and renders properly in your terminal.
 
+The demo CLI is also compiled into standalone executables for Linux, macOS, and Windows, so you can try it without Python or `uv`. Binaries of all past releases, with their VirusTotal analyses, are cataloged on the [binaries page](binaries.md).
+
 ## Try the library
 
 Now that you have tried the demo application, you can also try the library itself in an interactive Python shell without installing anything on your system:

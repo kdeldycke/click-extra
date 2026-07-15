@@ -276,6 +276,9 @@ docs = [
   "sphinx-autodoc-typehints>=2.4",
   # sphinx-copybutton 0.5.2 stabilized the copy button behavior for code blocks.
   "sphinx-copybutton>=0.5.2",
+  # sphinx-datatables 1.0.0 is the first stable release; renders the binaries
+  # catalog as a searchable, sortable table.
+  "sphinx-datatables>=1",
   # sphinx-design 0.6 introduced the current directive syntax for cards, grids, and tabs.
   "sphinx-design>=0.6",
   # sphinxcontrib-mermaid 1.2.3 fixed mermaid_d3_zoom configuration support.
@@ -298,8 +301,8 @@ typing = [
 # We rely on recent Python features in some of our {click:run} directives.
 dependency-groups.docs = { requires-python = ">= 3.14" }
 # Cooldown period: 7-day buffer before using newly released packages.
-# Relative dates are fine here because the Renovate lock-maintenance job
-# (sync-uv-lock) reverts uv.lock when the only diff is timestamp noise.
+# Relative dates are fine here because the sync-uv-lock autofix job reverts
+# uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
@@ -560,6 +563,9 @@ exclude = [
   "^https://star-history.com/#.*$",
   # crates.io blocks automated link checkers.
   "^https://crates.io/crates/.*$",
+  # VirusTotal analysis pages are a JS app that rate-limits bots, and the
+  # binaries page links one per released binary.
+  "^https://www\\.virustotal\\.com/gui/.*$",
   # asciinema.org and no-color.org are valid but intermittently fail DNS
   # resolution or time out from CI runners. Also excluded from the Sphinx
   # linkcheck run (see linkcheck_ignore in docs/conf.py).
@@ -580,22 +586,26 @@ dependency-graph.all-groups = false
 # extra, so left in the graph it greedily claims all optional packages into a
 # single `--extra all` box and the per-extra subgraphs render empty.
 dependency-graph.no-extras = [ "all" ]
-exclude = [ "skills", "workflows/debug.yaml" ]
+exclude = [ "workflows/debug.yaml" ]
 # Render the Click command tree as roff `.1` files and attach a
 # `click-extra-manpages.tar.gz` asset to every GitHub release. The script
 # target mirrors `click_extra_manpages` in `docs/conf.py`, so the release
 # tarball and the HTML docs site stay in lockstep. Requires repomatic
 # >= 6.25.0 in the release engine.
 manpages.script = "click_extra.cli:demo"
-# Full test matrix (28 jobs; runs on push-to-main and the monthly schedule,
+# Align the sync updaters' stabilization cooldown (default 8 days) with uv's
+# 7-day `exclude-newer` window configured in [tool.uv] above.
+minimum-release-age = "7 days"
+# Full test matrix (25 jobs; runs on push-to-main and the monthly schedule,
 # never on PRs). It composes from two parts: a shipped cross-product for
 # cross-platform coverage, and explicit `full-include` rows for forward-looking
 # dependency coverage. Everything forward-looking runs on the single fastest
 # runner (ubuntu-24.04-arm, measured in CI). The slices:
-#   - released click × released cloup: {3.10, 3.14, 3.14t} on the 4 retained
-#     OSes (ubuntu-24.04-arm, ubuntu-slim, macos-26, windows-2025), plus the
-#     ubuntu-24.04-arm × 3.15 early-warning probe. 13 jobs, from the base
-#     cross-product (`remove.os` + `include` + the 3.15 `exclude` rows below).
+#   - released click × released cloup: {3.10, 3.14} on the 4 retained OSes
+#     (ubuntu-24.04-arm, ubuntu-slim, macos-26, windows-2025), plus repomatic's
+#     single-runner free-threaded 3.14t probe (ubuntu-24.04-arm) and the
+#     prerelease 3.15 probe held to ubuntu-24.04-arm by the `exclude` rows
+#     below. 10 jobs.
 #   - {8.3.1, 8.3.2, 8.3.3, 8.4.0, 8.4.1} click × released cloup: ubuntu-24.04-arm ×
 #     3.10 (the floor corner). Every Click release from the floor through 8.4.1,
 #     past the 8.4.0 param-source regression, verifying the whole >=8.3.1 range. 5 jobs.
@@ -617,9 +627,12 @@ test-matrix.include = [
   { "cloup-version" = "released" },
 ]
 # Keep the prerelease Python 3.15 probe to a single early-warning cell
-# (ubuntu-24.04-arm, released Click/Cloup); hold it off every other runner. This
-# carves the 3.15 row out of the base cross-product. Applies to both matrices,
-# but the PR matrix has no 3.15 cell, so it is a no-op there.
+# (ubuntu-24.04-arm, released Click/Cloup); hold it off every other runner.
+# repomatic emits one unstable 3.15 probe row per OS in the axis, and these
+# excludes trim all but the fastest runner. They apply to both matrices, but
+# the PR matrix axes carry no ubuntu-slim or 3.15 values, so `metadata` logs
+# "Dropping no-op exclude" warnings for that matrix only: the full-matrix rows
+# stay live (verified: removing them adds the three 3.15 cells back).
 test-matrix.exclude = [
   { "os" = "ubuntu-slim", "python-version" = "3.15" },
   { "os" = "macos-26", "python-version" = "3.15" },

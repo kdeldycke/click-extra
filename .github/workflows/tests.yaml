@@ -58,20 +58,20 @@ jobs:
     outputs:
       metadata: ${{ steps.metadata.outputs.metadata }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
       - name: Run repomatic metadata
         id: metadata
         run: >
-          uvx --no-progress 'repomatic==6.31.0' metadata
+          uvx --no-progress 'repomatic==7.1.0' metadata
           --format github-json --output "$GITHUB_OUTPUT"
-          test_matrix test_matrix_pr
+          coverage_cells test_matrix test_matrix_pr
 
   once-tests:
     name: 🔂 Once tests
     runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
       - name: Install Python
         run: uv --no-progress venv --python 3.14
@@ -161,7 +161,7 @@ jobs:
     # We keep going when a job flagged as not stable fails.
     continue-on-error: ${{ matrix.state == 'unstable' }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
       - name: Force native ARM64 Python on Windows ARM64
         # Workaround for https://github.com/astral-sh/uv/issues/12906: uv defaults to x86_64 Python on ARM64 Windows,
@@ -205,7 +205,7 @@ jobs:
           uv run --with flask --with quart -- click-extra run quart --help
 
       - name: Unittests
-        # Produce XML artifacts for Codecov integration (coverage + test analytics).
+        # Produce the coverage XML artifact consumed by the Codecov upload below.
         env:
           CLICK_VERSION: ${{ matrix.click-version }}
           CLOUP_VERSION: ${{ matrix.cloup-version }}
@@ -222,18 +222,33 @@ jobs:
             pytest -m "not once" \
             --cov \
             --cov-report=term \
-            --cov-report=xml \
-            --junitxml=junit.xml \
-            --override-ini=junit_family=legacy
+            --cov-report=xml
 
       - name: Upload coverage to Codecov
-        # Skip on prepare-release PRs (Codecov cannot create commits on protected
-        # branches), sync-repomatic PRs (data-only changes with no coverable
-        # lines), and fork PRs (secrets are not available).
+        # Upload coverage only from the coverage-distinct cells: one runner per
+        # OS at released Python (the `coverage_cells` set, mirroring the PR
+        # matrix), restricted to released Click and Cloup. Coverage depends on
+        # OS family, Python version, and dependency versions, never CPU
+        # architecture: architecture twins, prerelease, and free-threaded cells
+        # produce coverage already captured by these cells, while the floor and
+        # dev Click/Cloup cells are kept out so the signal tracks the released
+        # dependency set (their version-compat branches count as uncovered).
+        #
+        # coverage_cells arrives as a space-joined string of `os|python-version`
+        # tokens (the GitHub list-output convention), so the membership test
+        # pads both operands with spaces to match a whole token, not a substring.
+        #
+        # Also skip sync-repomatic PRs (data-only changes with no coverable
+        # lines) and fork PRs (secrets are not available). The version-bump PR
+        # family is already filtered by the metadata job's `github.head_ref`
+        # gate above.
         if: >
-          github.head_ref != 'prepare-release'
-          && github.head_ref != 'sync-repomatic'
+          github.head_ref != 'sync-repomatic'
           && env.CODECOV_TOKEN != ''
+          && matrix.click-version == 'released'
+          && matrix.cloup-version == 'released'
+          && contains(format(' {0} ', fromJSON(needs.metadata.outputs.metadata).coverage_cells),
+          format(' {0}|{1} ', matrix.os, matrix.python-version))
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         shell: bash
@@ -243,19 +258,4 @@ jobs:
           upload-process
           --git-service github
           --report-type coverage
-          --token "${CODECOV_TOKEN}"
-      - name: Upload test results to Codecov
-        if: >
-          github.head_ref != 'prepare-release'
-          && github.head_ref != 'sync-repomatic'
-          && env.CODECOV_TOKEN != ''
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        shell: bash
-        run: >
-          uvx --no-progress 'codecov-cli==11.2.8'
-          --auto-load-params-from githubactions
-          upload-process
-          --git-service github
-          --report-type test_results
           --token "${CODECOV_TOKEN}"

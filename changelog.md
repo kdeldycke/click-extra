@@ -29,6 +29,8 @@
 - The `--jobs` sequential-execution warning now fires only for an explicit `auto`/`max` request; the option's own default logs it at info level, so bare invocations on 1-CPU hosts stay quiet.
 - `test-suite` no longer crashes on non-UTF-8 binary output: undecodable bytes are escaped into the captured stream, and the subprocess inherits `PYTHONIOENCODING=utf8` so CPython-based binaries emit UTF-8 on Windows pipes.
 - A `test-suite` case skipped by `only_platforms` now reports the platforms it requires; the message used to name the current platform, reading as its own contradiction.
+- Add a binaries page to the documentation: a catalog of every released standalone executable with download links, VirusTotal analyses and a detection trend chart, rendered as a searchable and sortable table via sphinx-datatables. Detection history is backfilled from the VirusTotal tables of past release notes; future releases keep the page and its scan records current.
+- Coverage now uploads to Codecov from one runner per OS and Python version, on released Click and Cloup only, instead of from every test matrix cell. The Codecov Test Analytics upload and its `junit.xml` artifact are dropped.
 
 ## [`8.3.0` (2026-07-08)](https://github.com/kdeldycke/click-extra/compare/v8.2.0...v8.3.0)
 
