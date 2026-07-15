@@ -149,7 +149,11 @@ While `from_ansi()` parses bare escapes, `split_ansi()` tokenizes a whole string
 ```{python:run}
 from click_extra import Style, split_ansi, style
 
-runs = list(split_ansi(style("Monday", fg="blue") + " was " + style("sunny", fg="yellow", bold=True)))
+runs = list(
+    split_ansi(
+        style("Monday", fg="blue") + " was " + style("sunny", fg="yellow", bold=True)
+    )
+)
 assert runs == [
     (Style(fg="blue"), "Monday"),
     (Style(), " was "),
@@ -164,8 +168,10 @@ for run_style, text in runs:
 ```{python:run}
 from click_extra import render_ansi, style
 
+
 def brackets(run_style, text):
     return f"[{text}]"
+
 
 result = render_ansi("a " + style("styled", fg="red") + " word", brackets)
 assert result == "a [styled] word"
@@ -182,11 +188,19 @@ Four ready-made converters translate ANSI styling to markup languages with nativ
 - `ansi_to_textile()` produces `%{…}` spans carrying the style as inline CSS.
 
 ```{python:run}
-from click_extra import ansi_to_html, ansi_to_jira, ansi_to_latex, ansi_to_textile, style
+from click_extra import (
+    ansi_to_html,
+    ansi_to_jira,
+    ansi_to_latex,
+    ansi_to_textile,
+    style,
+)
 
 sample = style("Summer", fg="blue", bold=True)
 
-assert ansi_to_html(sample) == '<span style="color: blue; font-weight: bold">Summer</span>'
+assert (
+    ansi_to_html(sample) == '<span style="color: blue; font-weight: bold">Summer</span>'
+)
 assert ansi_to_jira(sample) == "{color:blue}*Summer*{color}"
 assert ansi_to_latex(sample) == "\\textcolor{blue}{\\textbf{Summer}}"
 assert ansi_to_textile(sample) == "%{color: blue; font-weight: bold}Summer%"
