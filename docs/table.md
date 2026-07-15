@@ -167,26 +167,26 @@ Cells and headers can carry ANSI styles, produced by `click_extra.style()` or a 
 
 The formats translating ANSI codes to native styling, and the markup they produce:
 
-| Format ID                                                    | Native styling markup                                                                                                            |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `html`, `unsafehtml`                                          | Inline-CSS `<span style="…">` tags, self-contained (no stylesheet needed)                                                          |
-| `jira`                                                        | `{color:…}` macros, plus `*bold*`, `_italic_`, `+underline+` and `-strikethrough-` markers                                          |
-| `latex`, `latex-booktabs`, `latex-longtable`, `latex-raw`     | `\textcolor` / `\colorbox` (requires [`xcolor`](https://ctan.org/pkg/xcolor) in the preamble), `\textbf`, `\textit`, `\underline` |
-| `mediawiki`                                                   | Inline-CSS `<span style="…">` tags (MediaWiki accepts embedded HTML)                                                               |
-| `textile`                                                     | `%{…}` spans carrying the style as inline CSS                                                                                       |
+| Format ID                                                 | Native styling markup                                                                                                             |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `html`, `unsafehtml`                                      | Inline-CSS `<span style="…">` tags, self-contained (no stylesheet needed)                                                         |
+| `jira`                                                    | `{color:…}` macros, plus `*bold*`, `_italic_`, `+underline+` and `-strikethrough-` markers                                        |
+| `latex`, `latex-booktabs`, `latex-longtable`, `latex-raw` | `\textcolor` / `\colorbox` (requires [`xcolor`](https://ctan.org/pkg/xcolor) in the preamble), `\textbf`, `\textit`, `\underline` |
+| `mediawiki`                                               | Inline-CSS `<span style="…">` tags (MediaWiki accepts embedded HTML)                                                              |
+| `textile`                                                 | `%{…}` spans carrying the style as inline CSS                                                                                     |
 
 Every other markup format keeps stripping ANSI codes. The verdict, format by format:
 
-| Format ID                                            | Why ANSI codes are stripped                                                                                                                                       |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `asciidoc`                                           | No portable inline styling: color roles need a custom stylesheet, and `+++` passthrough blocks are tied to the HTML backend                                        |
-| `csv`, `csv-excel`, `csv-excel-tab`, `csv-unix`, `tsv` | Data interchange formats, with no concept of styling                                                                                                              |
-| `github`, `pipe`                                     | GitHub sanitizes inline `style` attributes from rendered Markdown, so translated HTML spans would display no color there                                           |
-| `hjson`, `json`, `json5`, `jsonc`, `toml`, `xml`, `yaml` | Structured serialization formats meant for programmatic consumption: styling is presentation, not data                                                          |
-| `moinmoin`                                           | MoinMoin wiki markup has no standard inline color syntax, and embedded HTML is disabled by default                                                                 |
-| `orgtbl`                                             | Org-mode has emphasis markers but no inline color markup                                                                                                           |
-| `rst`                                                | reStructuredText needs custom roles backed by a stylesheet for inline color; there is no standard inline syntax                                                    |
-| `youtrack`                                           | Undocumented by JetBrains, and [scheduled for removal in python-tabulate `0.11`](https://github.com/astanin/python-tabulate/issues/375)                            |
+| Format ID                                                | Why ANSI codes are stripped                                                                                                             |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `asciidoc`                                               | No portable inline styling: color roles need a custom stylesheet, and `+++` passthrough blocks are tied to the HTML backend             |
+| `csv`, `csv-excel`, `csv-excel-tab`, `csv-unix`, `tsv`   | Data interchange formats, with no concept of styling                                                                                    |
+| `github`, `pipe`                                         | GitHub sanitizes inline `style` attributes from rendered Markdown, so translated HTML spans would display no color there                |
+| `hjson`, `json`, `json5`, `jsonc`, `toml`, `xml`, `yaml` | Structured serialization formats meant for programmatic consumption: styling is presentation, not data                                  |
+| `moinmoin`                                               | MoinMoin wiki markup has no standard inline color syntax, and embedded HTML is disabled by default                                      |
+| `orgtbl`                                                 | Org-mode has emphasis markers but no inline color markup                                                                                |
+| `rst`                                                    | reStructuredText needs custom roles backed by a stylesheet for inline color; there is no standard inline syntax                         |
+| `youtrack`                                               | Undocumented by JetBrains, and [scheduled for removal in python-tabulate `0.11`](https://github.com/astanin/python-tabulate/issues/375) |
 
 Here is the translation at work: the blue `Friday` and bold red `Hot 🥵` cells of the example command come out as self-contained HTML:
 
