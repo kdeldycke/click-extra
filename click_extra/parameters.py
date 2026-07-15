@@ -27,10 +27,14 @@ from typing import TypeVar
 
 import click
 import cloup
+from click import ParamType, get_current_context
+from click._utils import UNSET
 from deepmerge import always_merger
 
-from . import UNSET, EnumChoice, ParamType, Style, context, get_current_context
+from . import context
 from .envvar import param_envvar_ids
+from .styling import Style
+from .types import EnumChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

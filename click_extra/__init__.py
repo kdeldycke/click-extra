@@ -55,22 +55,6 @@ except ImportError:  # Click < 8.4.0.
 # Overrides click helpers with cloup's.
 from cloup import *  # type: ignore[no-redef, assignment]
 
-# Import types first to avoid circular imports: the sibling modules imported below
-# depend on it. The isort directive seals it into its own import section so ruff
-# does not fold it back into alphabetical order among the imports below.
-from .types import ChoiceSource, Duration, EnumChoice, MultiChoice
-
-# isort: split
-
-# Override cloup.Style with our own version. The override must happen after
-# ``from cloup import *`` (which would otherwise re-shadow our subclass) and
-# before any module that does ``from . import Style`` is loaded (parameters,
-# version, testing all do).
-from . import styling as _styling_module
-
-Style = _styling_module.Style  # type: ignore[misc]
-del _styling_module
-
 # Imported for its registration side effect: defining the module registers the
 # ``carapace`` shell completion class (see click_extra.carapace.CarapaceComplete),
 # so dynamic Carapace completion resolves in any CLI that imports click_extra.
@@ -205,7 +189,12 @@ from .spinner import (  # type: ignore[no-redef]
     SpinnerPreset,
     progressbar,
 )
+
+# ``Style`` shadows the ``cloup.Style`` bound by the star import above with
+# click-extra's enhanced subclass; relative imports always follow the cloup
+# star import, so the override needs no special placement.
 from .styling import (
+    Style,
     ansi_to_html,
     ansi_to_jira,
     ansi_to_latex,
@@ -251,6 +240,7 @@ from .theme import (
     theme_registry,
 )
 from .tree import TreeOption, render_command_tree
+from .types import ChoiceSource, Duration, EnumChoice, MultiChoice
 from .version import VersionOption
 
 __all__ = [

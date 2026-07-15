@@ -272,7 +272,8 @@ Keep `__init__.py` files minimal — avoid placing logic, constants, or business
 
 ### Imports
 
-- Import from the root package (`from click_extra import ...`) when possible.
+- **Consumers, docs, and tests** import from the root package (`from click_extra import ...`) when possible.
+- **Package internals** import each symbol from its concrete source module (`from .types import EnumChoice`, `from .styling import Style`, `from click import echo`, `from click._utils import UNSET`), never from the root package (`from . import X`). Root-symbol imports read attributes off the partially-initialized package, which makes `__init__.py`'s import order load-bearing during package initialization. Importing a sibling module as a namespace (`from . import context`) is fine: Python resolves it through `sys.modules` without depending on the root's binding order.
 - Place imports at the top of the file, unless avoiding circular imports. **Never use local imports inside functions** — move them to the module level. Local imports hide dependencies, bypass ruff's import sorting, and make it harder to see what a module depends on.
 - **Version-dependent imports** (e.g., `tomllib` fallback for Python 3.10) should be placed **after all normal imports** but **before the `TYPE_CHECKING` block**. This allows ruff to freely sort and organize the normal imports above without interference.
 

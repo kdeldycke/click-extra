@@ -50,9 +50,9 @@ from subprocess import TimeoutExpired
 
 from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
+from click import echo
 from extra_platforms import current_platform, extract_members, is_windows
 
-from . import echo
 from .config.formats import (
     ConfigFormat,
     disabled_format_message,

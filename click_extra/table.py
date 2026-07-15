@@ -27,12 +27,13 @@ from io import StringIO
 
 import click
 from boltons.strutils import strip_ansi
+from click import echo
 
-from . import EnumChoice, context, echo
+from . import context
 from .config.formats import ConfigFormat, serialize_content
 from .parameters import ExtraOption, missing_extra_message
 from .styling import ansi_to_html, ansi_to_jira, ansi_to_latex, ansi_to_textile
-from .types import MultiChoice
+from .types import EnumChoice, MultiChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

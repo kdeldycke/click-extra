@@ -31,8 +31,7 @@ import click
 import click.testing
 from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
-
-from . import Color, Style
+from cloup import Color
 
 # The CLI-invocation serialization and disclosure atoms moved to
 # click_extra.execution once production code (subprocess wrappers, not just tests)
@@ -44,6 +43,7 @@ from .execution import (
     format_cli_prompt,
 )
 from .parameters import patch_attr
+from .styling import Style
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

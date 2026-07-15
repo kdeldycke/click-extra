@@ -34,9 +34,9 @@ from contextlib import contextmanager
 from gettext import gettext as _
 
 import click
+from click.core import ParameterSource
 from extra_platforms import is_unix
 
-from . import ParameterSource
 from .envvar import temporary_env
 from .parameters import ExtraOption
 from .styling import _relative_luminance

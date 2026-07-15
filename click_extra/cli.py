@@ -25,28 +25,22 @@ from pathlib import Path
 
 import click
 import cloup
-from extra_platforms import ALL_IDS
-
-from . import (
-    SPINNERS,
+from click import (
     Choice,
     ClickException,
-    Color,
     FloatRange,
     IntRange,
-    argument,
-    command,
-    context,
     echo,
-    file_path,
-    group,
-    jobs_option,
-    option,
-    pass_context,
     style,
 )
+from cloup import Color, file_path
+from extra_platforms import ALL_IDS
+
+from . import context
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
 from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
+from .context import pass_context
+from .decorators import argument, command, group, jobs_option, option
 from .envvar import merge_envvar_ids
 from .parameters import missing_extra_message
 from .prebake import (
@@ -61,6 +55,7 @@ from .spinner import (
     _spinner_preview,
     _tour_duration,
 )
+from .spinner_presets import SPINNERS
 from .styling import _nearest_256
 from .table import print_table
 from .test_suite import (

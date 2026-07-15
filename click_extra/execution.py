@@ -48,11 +48,12 @@ from typing import Final, TypeVar, cast
 import click
 from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
+from click import echo
 from click.core import ParameterSource
 from click.shell_completion import CompletionItem
 from extra_platforms import is_windows
 
-from . import context, echo
+from . import context
 from .envvar import env_copy
 from .parameters import ExtraOption
 from .theme import get_current_theme

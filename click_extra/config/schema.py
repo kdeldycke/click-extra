@@ -34,10 +34,11 @@ from dataclasses import (
 from functools import partial
 from typing import NamedTuple, get_origin, get_type_hints
 
+from click import get_current_context
 from deepmerge import always_merger
 from extra_platforms._utils import _recursive_update
 
-from .. import context, get_current_context
+from .. import context
 from ..parameters import ParamStructure
 
 TYPE_CHECKING = False

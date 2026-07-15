@@ -53,23 +53,22 @@ from pathlib import Path, PurePosixPath
 from boltons.iterutils import flatten, unique
 from boltons.pathutils import shrinkuser
 from boltons.urlutils import URL
+from click import (
+    UNPROCESSED,
+    Choice,
+    Path as ClickPath,
+    echo,
+    get_app_dir,
+    get_current_context,
+)
+from click._utils import UNSET
+from click.core import ParameterSource
 from deepmerge import always_merger
 from extra_platforms import is_windows
 from extra_platforms._utils import _recursive_update, _remove_blanks
 from wcmatch import fnmatch, glob
 
-from .. import (
-    UNPROCESSED,
-    UNSET,
-    Choice,
-    EnumChoice,
-    ParameterSource,
-    Path as ClickPath,
-    context,
-    echo,
-    get_app_dir,
-    get_current_context,
-)
+from .. import context
 from ..parameters import (
     PARAM_PATH_SEP,
     ExtraOption,
@@ -77,6 +76,7 @@ from ..parameters import (
     replay_raw_args,
     require_sibling_param,
 )
+from ..types import EnumChoice
 from .builtin import THEMES_CONFIG_KEY, _builtin_config_validators
 from .formats import (
     SERIALIZABLE_FORMATS,

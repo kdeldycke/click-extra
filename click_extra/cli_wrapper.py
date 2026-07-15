@@ -42,11 +42,11 @@ import cloup
 from click.core import ParameterSource
 from click.utils import make_str
 
-from . import EnumChoice, context, option
+from . import context
 from .carapace import dump_carapace_spec, install_carapace_spec
 from .commands import ColorizedCommand, ColorizedGroup, Group
 from .context import Context
-from .decorators import columns_option
+from .decorators import columns_option, option
 from .highlight import HelpFormatter, _HelpColorsMixin
 from .man_page import render_manpage, write_manpages
 from .parameters import (
@@ -57,6 +57,7 @@ from .parameters import (
 from .table import DEFAULT_FORMAT, TableFormat
 from .theme import BUILTIN_THEMES, HelpTheme, nocolor_theme, set_default_theme
 from .tree import render_command_tree
+from .types import EnumChoice
 
 if sys.version_info >= (3, 11):
     import tomllib
