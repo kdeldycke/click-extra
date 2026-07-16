@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.4.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.4.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.4.0` (2026-07-16)](https://github.com/kdeldycke/click-extra/compare/v8.3.0...v8.4.0)
 
 - **Breaking:** Remove the historical `from click_extra.version import prebake_*` compatibility imports; the pre-baking helpers are only importable from `click_extra.prebake`.
