@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add a `start_new_session` option to `run_cli()`: the child then leads its own POSIX session and process group, and every kill path (`timeout` overrun, mid-run `KeyboardInterrupt`, `terminate_live_processes()`) signals the whole group, so grandchildren spawned by the child are reaped instead of surviving as orphans holding the output pipes open. Off by default: a new session detaches the child from the controlling terminal, which would break interactive prompts raised from inside it (like `sudo` reading `/dev/tty`) and `sudo`'s tty-keyed credential cache. No-op on Windows, where the timeout path already kills the full process tree.
+
 ## [`8.4.0` (2026-07-16)](https://github.com/kdeldycke/click-extra/compare/v8.3.0...v8.4.0)
 
 - **Breaking:** Remove the historical `from click_extra.version import prebake_*` compatibility imports; the pre-baking helpers are only importable from `click_extra.prebake`.

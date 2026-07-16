@@ -748,7 +748,44 @@ from several worker threads at once.
 
 
 _LIVE_PROCESSES_LOCK: Final = threading.Lock()
-"""Guards :data:`_LIVE_PROCESSES` against concurrent mutation by worker threads."""
+"""Guards :data:`_LIVE_PROCESSES` and :data:`_GROUP_LEADERS` against concurrent
+mutation by worker threads."""
+
+
+_GROUP_LEADERS: Final[set[subprocess.Popen[str]]] = set()
+"""Subset of :data:`_LIVE_PROCESSES` spawned with ``start_new_session``.
+
+Each of these children leads its own POSIX session and process group, so the
+kill paths signal the whole group (reaping its descendants along with it)
+instead of the direct child alone. Maintained by :func:`run_cli` in lockstep
+with :data:`_LIVE_PROCESSES`, under the same lock.
+"""
+
+
+def _kill_posix_process_group(
+    process: subprocess.Popen[str],
+    signum: signal.Signals,
+) -> bool:
+    """Signal the whole POSIX process group led by ``process``.
+
+    Only meaningful for a child spawned with ``start_new_session``, whose group
+    ID equals its PID. Returns ``True`` when the signal was delivered to the
+    group, ``False`` when it could not be (no ``killpg`` on this platform, or
+    the group is already gone), leaving the caller to fall back on signalling
+    the direct child.
+    """
+    killpg = getattr(os, "killpg", None)
+    if killpg is None:
+        return False
+    try:
+        # A start_new_session child is its own session and group leader, so its
+        # PID doubles as the group ID: no getpgid() lookup (which could race
+        # with the reaping of the child) is needed.
+        killpg(process.pid, signum)
+    except OSError:
+        # The whole group is already gone: nothing left to signal.
+        return False
+    return True
 
 
 def terminate_live_processes() -> None:
@@ -760,6 +797,10 @@ def terminate_live_processes() -> None:
     :func:`run_cli`, letting the thread pool drain instead of hanging on a child
     that ignored the terminal's process-group ``SIGINT``.
 
+    A child spawned with ``start_new_session`` never receives the terminal's
+    ``SIGINT`` at all (it left the foreground process group), so its whole group
+    is signalled here, descendants included.
+
     Uses ``SIGTERM`` rather than ``SIGKILL`` so a child still gets to clean up,
     notably to restore terminal state a ``sudo`` password prompt may have altered.
     The registry is snapshotted under the lock, then signalled outside it, because
@@ -768,7 +809,13 @@ def terminate_live_processes() -> None:
     """
     with _LIVE_PROCESSES_LOCK:
         live = tuple(_LIVE_PROCESSES)
+        leaders = set(_GROUP_LEADERS)
     for process in live:
+        if process in leaders and _kill_posix_process_group(
+            process,
+            signal.SIGTERM,
+        ):
+            continue
         try:
             process.terminate()
         except OSError:
@@ -814,7 +861,8 @@ Once the child is killed its pipes normally hit ``EOF`` at once, so the readers
 finish within milliseconds. The exception is an orphaned grandchild holding an
 inherited pipe handle open: the grace period bounds the wait instead of blocking
 forever, and the daemon reader threads are then abandoned with whatever output
-they collected.
+they collected. A ``start_new_session`` child never leaves such orphans behind
+(its whole group is killed), so its drain always completes promptly.
 """
 
 
@@ -890,6 +938,7 @@ def run_cli(
     merge_streams: bool = False,
     errors: str = "replace",
     windows_creation_flags: int = 0,
+    start_new_session: bool = False,
     command_level: int = logging.INFO,
     output_level: int = logging.DEBUG,
     log: logging.Logger | None = None,
@@ -916,9 +965,11 @@ def run_cli(
       ``stdout`` and ``stderr`` decoded as UTF-8;
     - raises :exc:`subprocess.TimeoutExpired` (with the partial capture attached)
       when the child, or the draining of its output, outlives ``timeout``. The
-      child is killed first, and its whole process tree on Windows (see
-      :func:`_kill_windows_process_tree`);
-    - a :exc:`KeyboardInterrupt` mid-run kills the child, then propagates.
+      child is killed first — its whole process tree on Windows (see
+      :func:`_kill_windows_process_tree`), its whole POSIX process group when
+      spawned with ``start_new_session``, the direct child alone otherwise;
+    - a :exc:`KeyboardInterrupt` mid-run kills the child (with the same tree,
+      group or direct scope), then propagates.
 
     The child reads from :data:`subprocess.DEVNULL` so it can never block on
     ``stdin``, and never opens a console window on Windows.
@@ -952,6 +1003,19 @@ def run_cli(
         ``"backslashreplace"`` to keep them inspectable as escapes.
     :param windows_creation_flags: extra Windows process-creation flags, OR-ed
         with the always-on ``CREATE_NO_WINDOW``. No-op off Windows.
+    :param start_new_session: make the child lead its own POSIX session and
+        process group (:class:`subprocess.Popen`'s parameter of the same name).
+        Every kill path — the ``timeout`` overrun, a mid-run
+        :exc:`KeyboardInterrupt`, and :func:`terminate_live_processes` — then
+        signals the whole group, so a grandchild spawned by the child (a shim
+        re-executing the real binary, an installer helper) is reaped along with
+        it instead of surviving as an orphan holding the output pipes open.
+        Off by default, and to be left off when a descendant must keep the
+        controlling terminal: a new session detaches from it, so an interactive
+        prompt raised from inside the child (``sudo`` reading ``/dev/tty``)
+        would fail, and ``sudo``'s tty-keyed credential cache would no longer
+        match. No-op on Windows, where the timeout path already kills the full
+        tree.
     :param command_level: logging level of the invocation-disclosure line.
         Defaults to :data:`logging.INFO`; lower it to :data:`logging.DEBUG` for
         internal probes not worth narrating.
@@ -977,6 +1041,9 @@ def run_cli(
         startupinfo = startupinfo()
         startupinfo.dwFlags = getattr(subprocess, "STARTF_USESHOWWINDOW", 0)
         startupinfo.wShowWindow = 0  # SW_HIDE
+    # Session isolation is a POSIX concept: force it off on Windows, whose kill
+    # path already covers the whole tree through taskkill.
+    start_new_session = start_new_session and not is_windows()
     process = subprocess.Popen(
         clean_args,
         # Prevents the child from blocking on stdin reads.
@@ -989,14 +1056,18 @@ def run_cli(
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
         | windows_creation_flags,
         startupinfo=startupinfo,
+        start_new_session=start_new_session,
     )
     log.debug(f"Spawned PID {process.pid}: {highlight_bin_name(clean_args[0])}.")
 
     # Track the live child so the main thread's SIGINT handler can terminate it on
     # Ctrl+C (see terminate_live_processes): a worker thread never receives the
-    # interrupt itself.
+    # interrupt itself. A session-isolated child is also flagged as the leader of
+    # its own process group, so every kill path signals the group as a whole.
     with _LIVE_PROCESSES_LOCK:
         _LIVE_PROCESSES.add(process)
+        if start_new_session:
+            _GROUP_LEADERS.add(process)
 
     # One reader thread per captured pipe streams the output live while the
     # calling thread blocks in wait(). Daemon threads, so an abandoned reader (an
@@ -1026,6 +1097,15 @@ def run_cli(
             stderr=None if merge_streams else "".join(err_lines),
         )
 
+    def kill_child() -> None:
+        """Forcibly stop the child: its tree on Windows, its whole POSIX process
+        group when session-isolated, the direct child otherwise."""
+        _kill_windows_process_tree(process.pid)
+        if not (
+            start_new_session and _kill_posix_process_group(process, signal.SIGKILL)
+        ):
+            process.kill()
+
     deadline = time.monotonic() + timeout if timeout is not None else None
     timeout_desc = "none" if timeout is None else f"{timeout}s"
     try:
@@ -1034,15 +1114,14 @@ def run_cli(
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             log.debug(f"PID {process.pid} timed out; sending kill.")
-            _kill_windows_process_tree(process.pid)
-            process.kill()
+            kill_child()
             process.wait()
             _drain_readers(readers, _KILL_DRAIN_GRACE)
             log.debug(f"PID {process.pid} killed; exit {process.returncode}.")
             raise timeout_expired() from None
         except KeyboardInterrupt:
             log.debug(f"PID {process.pid} interrupted; sending kill.")
-            process.kill()
+            kill_child()
             process.wait()
             _drain_readers(readers, _KILL_DRAIN_GRACE)
             raise
@@ -1051,6 +1130,7 @@ def run_cli(
         # signal an already-reaped process.
         with _LIVE_PROCESSES_LOCK:
             _LIVE_PROCESSES.discard(process)
+            _GROUP_LEADERS.discard(process)
 
     # The child exited: drain the readers within what remains of the deadline. A
     # reader can outlive the child when a grandchild inherited the pipe and keeps

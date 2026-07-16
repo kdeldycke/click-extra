@@ -19,6 +19,7 @@ subprocess-execution primitives (run_cli and the interrupt machinery)."""
 from __future__ import annotations
 
 import logging
+import os
 import re
 import signal
 import subprocess
@@ -32,6 +33,7 @@ import click
 import cloup
 import pytest
 from boltons.strutils import strip_ansi
+from extra_platforms.pytest import skip_windows
 
 from click_extra import (
     Command,
@@ -54,6 +56,7 @@ from click_extra import (
     zero_exit_option,
 )
 from click_extra.execution import (
+    _GROUP_LEADERS,
     _LIVE_PROCESSES,
     _LIVE_PROCESSES_LOCK,
     CPU_COUNT,
@@ -899,6 +902,75 @@ def test_run_cli_timeout_kills_child_and_attaches_partial_output():
     assert not _LIVE_PROCESSES
 
 
+@skip_windows
+def test_run_cli_default_shares_process_group():
+    """By default the child stays in the caller's process group: it keeps the
+    controlling terminal (an interactive ``sudo`` raised from inside the child
+    must be able to prompt on ``/dev/tty``) and receives the terminal's signals
+    with the rest of the foreground group."""
+    result = run_cli((sys.executable, "-c", "import os; print(os.getpgid(0))"))
+    assert int(result.stdout) == os.getpgid(0)
+
+
+@skip_windows
+def test_run_cli_new_session_makes_child_group_leader():
+    """With start_new_session the child leads its own session and process group,
+    whose ID is its own PID: the property every group-kill path relies on."""
+    result = run_cli(
+        (sys.executable, "-c", "import os; print(os.getpid(), os.getpgid(0))"),
+        start_new_session=True,
+    )
+    pid, pgid = (int(field) for field in result.stdout.split())
+    assert pid == pgid
+    assert pgid != os.getpgid(0)
+
+
+def _assert_process_dies(pid: int, deadline_seconds: float = 5.0) -> None:
+    """Poll until ``pid`` is gone, killing it and failing if it survives.
+
+    Signal delivery and the reparenting of orphans to the reaper are
+    asynchronous, so the check retries briefly instead of asserting at once.
+    """
+    deadline = monotonic() + deadline_seconds
+    while monotonic() < deadline:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return
+        except PermissionError:
+            # Very unlikely PID reuse by another user: consider it gone.
+            return
+        sleep(0.05)
+    os.kill(pid, signal.SIGKILL)  # Don't leak the sleeper past the test.
+    pytest.fail(f"PID {pid} survived the process-group kill.")
+
+
+@skip_windows
+def test_run_cli_timeout_new_session_kills_grandchildren():
+    """A timed-out start_new_session child takes its whole process group down:
+    the grandchild is reaped along with it instead of surviving as an orphan
+    holding the inherited output pipe open."""
+    code = dedent("""\
+        import subprocess, sys, time
+        grandchild = subprocess.Popen(
+            (sys.executable, "-c", "import time; time.sleep(30)"),
+        )
+        print(f"grandchild={grandchild.pid}", flush=True)
+        time.sleep(30)
+        """)
+    start = monotonic()
+    with pytest.raises(subprocess.TimeoutExpired) as excinfo:
+        run_cli((sys.executable, "-c", code), timeout=2, start_new_session=True)
+    # The grandchild inherited the stdout pipe, so a surviving orphan would have
+    # stalled the drain for the full kill grace: a prompt return doubles as
+    # evidence the whole group died.
+    assert monotonic() - start < 15
+    match = re.search(r"grandchild=(\d+)", excinfo.value.output or "")
+    assert match, "the child never reported its grandchild's PID"
+    _assert_process_dies(int(match.group(1)))
+    assert not _LIVE_PROCESSES
+
+
 def test_run_cli_registers_live_process_then_discards_it():
     """run_cli tracks its subprocess while it runs, and drops it once done.
 
@@ -926,6 +998,48 @@ def test_run_cli_registers_live_process_then_discards_it():
         worker.join(timeout=5)
     # run_cli()'s finally discarded the child once it was reaped.
     assert not _LIVE_PROCESSES
+
+
+@skip_windows
+def test_terminate_live_processes_signals_whole_group(tmp_path):
+    """Interrupting a start_new_session child reaps its grandchild too: the
+    group never received the terminal's SIGINT (it left the foreground group),
+    so terminate_live_processes() is its only kill path and must cover the
+    descendants.
+
+    The child reports its grandchild's PID through a sentinel file, polled
+    before tearing down, so the group is never signalled mid-spawn.
+    """
+    pid_file = tmp_path / "grandchild.pid"
+    code = dedent(f"""\
+        import subprocess, sys, time
+        grandchild = subprocess.Popen(
+            (sys.executable, "-c", "import time; time.sleep(30)"),
+        )
+        open({str(pid_file)!r}, "w").write(str(grandchild.pid))
+        time.sleep(30)
+        """)
+
+    def call():
+        run_cli((sys.executable, "-c", code), start_new_session=True)
+
+    worker = threading.Thread(target=call)
+    worker.start()
+    try:
+        deadline = monotonic() + 10
+        while not pid_file.exists() and monotonic() < deadline:
+            sleep(0.01)
+        assert pid_file.exists(), "the child never reported its grandchild's PID"
+        assert _GROUP_LEADERS, "the isolated child should be flagged group leader"
+        terminate_live_processes()
+        worker.join(timeout=10)
+        assert not worker.is_alive()
+    finally:
+        terminate_live_processes()
+        worker.join(timeout=5)
+    assert not _LIVE_PROCESSES
+    assert not _GROUP_LEADERS
+    _assert_process_dies(int(pid_file.read_text()))
 
 
 def test_terminate_live_processes_ignores_already_reaped():
