@@ -589,9 +589,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         help_option = cli.get_help_option(ctx)
         if help_option is not None and help_option.name is not None:
             excluded_ids.append(help_option.name)
-        return frozenset(
-            f"{cli.name}{PARAM_PATH_SEP}{p}" for p in excluded_ids
-        )
+        return frozenset(f"{cli.name}{PARAM_PATH_SEP}{p}" for p in excluded_ids)
 
     @cached_property
     def file_pattern(self) -> str:
