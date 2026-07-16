@@ -230,7 +230,10 @@ def option_value_kind(
         return "flag"
     if getattr(param, "secondary_opts", None):
         return "flag"
-    if getattr(param, "flag_value", None) is not None:
+    flag_value = getattr(param, "flag_value", None)
+    # Click's development branch models an absent flag_value as the UNSET
+    # sentinel, not None.
+    if flag_value is not None and flag_value is not UNSET:
         return "optional"
     return "required"
 
@@ -705,6 +708,14 @@ def format_param_row(
     default_val = param.get_default(ctx)
     if default_val is UNSET:
         default_val = None
+
+    # Click's development branch models an absent flag_value as the UNSET
+    # sentinel and resolves the effective value lazily in the
+    # flag_activation_value property. Read the latter to mirror the value
+    # released Click materializes in flag_value (None for a plain option or a
+    # counter, True for a boolean flag, the declared value otherwise).
+    if flag_value is UNSET:
+        flag_value = getattr(param, "flag_activation_value", None)
 
     if is_structured:
         default_val = _structured_value(default_val)
