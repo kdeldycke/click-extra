@@ -42,7 +42,6 @@ flowchart LR
         markdown(["`markdown`"])
         markupsafe(["`markupsafe`"])
         mergedeep(["`mergedeep`"])
-        pygments{{"`pygments >=2.14`"}}
         pymdown_extensions{{"`pymdown-extensions >=10`"}}
         python_dateutil(["`python-dateutil`"])
         pyyaml_env_tag(["`pyyaml-env-tag`"])
@@ -50,6 +49,11 @@ flowchart LR
         platformdirs(["`platformdirs`"])
         six(["`six`"])
         watchdog(["`watchdog`"])
+        ext_mkdocs_pygments{{"`pygments >=2.14`"}}
+    end
+
+    subgraph ext_pygments [--extra pygments]
+        ext_pygments_pygments{{"`pygments >=2.14`"}}
     end
 
     subgraph ext_pytest [--extra pytest]
@@ -62,6 +66,7 @@ flowchart LR
     subgraph ext_sphinx [--extra sphinx]
         sphinx{{"`sphinx >=8`"}}
         requests{{"`requests`"}}
+        pygments{{"`pygments >=2.14`"}}
         alabaster(["`alabaster`"])
         babel(["`babel`"])
         certifi(["`certifi`"])
@@ -86,6 +91,10 @@ flowchart LR
 
     subgraph ext_xml [--extra xml]
         xmltodict{{"`xmltodict >=1`"}}
+    end
+
+    subgraph ext_yaml [--extra yaml]
+        ext_yaml_pyyaml{{"`pyyaml >=6.0.3`"}}
     end
 
     click_extra ==>|" >=8.3.1 "| click_0
@@ -160,10 +169,15 @@ flowchart LR
     click_extra -.-> ext_json5
     click_extra -.-> ext_jsonc
     click_extra -.-> ext_mkdocs
+    click_extra -.-> ext_pygments
     click_extra -.-> ext_pytest
     click_extra -.-> ext_sphinx
     click_extra -.-> ext_toml
     click_extra -.-> ext_xml
+    click_extra -.-> ext_yaml
+    ext_mkdocs_pygments -.- pygments
+    ext_pygments_pygments -.- pygments
+    ext_yaml_pyyaml -.- pyyaml
 
     click alabaster "https://pypi.org/project/alabaster/" _blank
     click babel "https://pypi.org/project/babel/" _blank
@@ -222,6 +236,9 @@ flowchart LR
     click wcmatch "https://pypi.org/project/wcmatch/" _blank
     click wcwidth "https://pypi.org/project/wcwidth/" _blank
     click xmltodict "https://pypi.org/project/xmltodict/" _blank
+    click ext_mkdocs_pygments "https://pypi.org/project/pygments/" _blank
+    click ext_pygments_pygments "https://pypi.org/project/pygments/" _blank
+    click ext_yaml_pyyaml "https://pypi.org/project/pyyaml/" _blank
 
     style click_extra stroke-width:3px
     style boltons stroke-width:3px
@@ -247,6 +264,9 @@ flowchart LR
     style wcmatch stroke-width:3px
     style wcwidth stroke-width:3px
     style xmltodict stroke-width:3px
+    style ext_mkdocs_pygments stroke-width:3px,stroke-dasharray:5 5
+    style ext_pygments_pygments stroke-width:3px,stroke-dasharray:5 5
+    style ext_yaml_pyyaml stroke-width:3px,stroke-dasharray:5 5
 
     style primary-deps fill:#1565C020,stroke:#42A5F5
     style ext_carapace fill:#7B1FA220,stroke:#BA68C8
@@ -254,7 +274,9 @@ flowchart LR
     style ext_json5 fill:#7B1FA220,stroke:#BA68C8
     style ext_jsonc fill:#7B1FA220,stroke:#BA68C8
     style ext_mkdocs fill:#7B1FA220,stroke:#BA68C8
+    style ext_pygments fill:#7B1FA220,stroke:#BA68C8
     style ext_pytest fill:#7B1FA220,stroke:#BA68C8
     style ext_sphinx fill:#7B1FA220,stroke:#BA68C8
     style ext_toml fill:#7B1FA220,stroke:#BA68C8
     style ext_xml fill:#7B1FA220,stroke:#BA68C8
+    style ext_yaml fill:#7B1FA220,stroke:#BA68C8
