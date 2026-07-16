@@ -31,6 +31,8 @@
 - `--color`/`--no-color` now reach output produced from background threads: `StreamHandler` consults the process-wide `invocation_color()` instead of `click.echo`'s thread-local context lookup.
 - `Formatter` no longer mutates a record's `levelname` in place: a record formatted several times no longer accumulates styling or glued labels.
 - `Style.from_ansi()` now parses the parameter-less reset escape (`\x1b[m`) and ignores all selective reset codes (`22`-`29`, `39`, `49`, `55`), not just the full `0` reset.
+- `ConfigOption.excluded_params` now resolves the CLI's `--help` option ID from Click at runtime instead of assuming it is named `help`; the option keeps being excluded from configuration files if Click ever renames it.
+- `ExtraOption.handle_parse_result` now pre-records the parameter source of every option, not just eager ones, so non-eager callbacks and types keep introspecting their provenance on Click `8.4.0`.
 - The `--jobs` sequential-execution warning now fires only for an explicit `auto`/`max` request; the option's own default logs it at info level.
 - `test-suite` no longer crashes on non-UTF-8 binary output: undecodable bytes are escaped into the captured stream, and the subprocess inherits `PYTHONIOENCODING=utf8`.
 - A `test-suite` case skipped by `only_platforms` now reports the platforms it requires; the message used to name the current platform.

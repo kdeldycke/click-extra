@@ -719,7 +719,7 @@ App-supplied `ConfigValidator`s on the same `extension_path` run alongside the b
 
 The {py:attr}`excluded_params <click_extra.config.option.ConfigOption.excluded_params>` argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
 
-It defaults to the value of {py:data}`~click_extra.config.option.DEFAULT_EXCLUDED_PARAMS`.
+It defaults to the value of {py:data}`~click_extra.config.option.DEFAULT_EXCLUDED_PARAMS`, plus the CLI's `--help` option, resolved at runtime.
 
 You can set your own list of option to ignore with the `excluded_params` argument:
 

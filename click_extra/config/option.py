@@ -130,7 +130,6 @@ use of any configuration file at all.
 DEFAULT_EXCLUDED_PARAMS = (
     CONFIG_OPTION_NAME,
     "export_config",
-    "help",
     "show_params",
     "version",
 )
@@ -142,10 +141,14 @@ Defaults to:
   file.
 - ``--export-config`` flag, which like ``--show-params`` introspects the CLI and exits,
   so it has no place in the configuration it would export.
-- ``--help``, as it makes no sense to have the configurable file always forces a CLI to
-  show the help and exit.
 - ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
 - ``--version``, which is not a configurable option *per-se*.
+
+``--help`` is excluded too (it makes no sense to have a configuration file always
+force a CLI to show the help and exit), but is deliberately absent from this tuple:
+unlike the entries above, click-extra does not control that option's internal name.
+It is resolved at runtime instead, in :attr:`ConfigOption.excluded_params`, so a
+rename on Click's own side does not silently stop excluding it.
 """
 
 
@@ -230,7 +233,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         - ``excluded_params`` are parameters which, if present in the configuration
           file, will be ignored and not applied to the CLI. Items are expected to be the
           fully-qualified ID of the parameter, as produced in the output of
-          ``--show-params``. Will default to the value of ``DEFAULT_EXCLUDED_PARAMS``.
+          ``--show-params``. Will default to the value of ``DEFAULT_EXCLUDED_PARAMS``,
+          plus the CLI's ``--help`` option, resolved at runtime.
 
         - ``included_params`` is the inverse of ``excluded_params``: only the listed
           parameters will be loaded from the configuration file. Cannot be used together
@@ -576,9 +580,17 @@ class ConfigOption(ExtraOption, ParamStructure):
             for a just-in-time call within the current context. Without this trick we could
             not have fetched the CLI name.
         """
-        cli = get_current_context().find_root().command
+        ctx = get_current_context()
+        cli = ctx.find_root().command
+        excluded_ids = list(DEFAULT_EXCLUDED_PARAMS)
+        # Resolve the help option's ID from Click itself instead of assuming it is
+        # named "help": Click's development branch renamed it to
+        # "_click_default_help", and click-extra does not control that name.
+        help_option = cli.get_help_option(ctx)
+        if help_option is not None and help_option.name is not None:
+            excluded_ids.append(help_option.name)
         return frozenset(
-            f"{cli.name}{PARAM_PATH_SEP}{p}" for p in DEFAULT_EXCLUDED_PARAMS
+            f"{cli.name}{PARAM_PATH_SEP}{p}" for p in excluded_ids
         )
 
     @cached_property

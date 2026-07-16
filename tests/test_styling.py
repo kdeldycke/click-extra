@@ -59,12 +59,15 @@ unreliable.
 try:
     click.style("X", fg="")
     CLICK_REJECTS_EMPTY_COLOR = False
-except TypeError:
+except (TypeError, ValueError):
     CLICK_REJECTS_EMPTY_COLOR = True
-"""True when Click raises ``TypeError`` for empty-string ``fg`` / ``bg`` arguments.
+"""True when Click raises for empty-string ``fg`` / ``bg`` arguments.
 
-Click ``8.5.0`` started rejecting falsy non-``None`` color values.  Development
-snapshots with version numbers >= ``8.5`` may not yet enforce this validation.
+Click ``8.5.0`` started rejecting falsy non-``None`` color values with
+``TypeError``. Later development snapshots raise ``ValueError`` instead for
+colors unrecognized by ``_interpret_color``. Both are caught here since
+development snapshots with version numbers >= ``8.5`` may not yet enforce
+this validation, or may enforce it with either exception class.
 """
 
 # --- 1. Hex string color shorthand ------------------------------------------
@@ -504,7 +507,7 @@ def test_style_call_empty_string_color_ignored(style):
 @pytest.mark.parametrize("style", [Style(fg=""), Style(bg="")])
 def test_style_call_empty_string_color_rejected(style):
     """Click >= 8.5 validates colors at render time and rejects empty strings."""
-    with pytest.raises(TypeError, match="Unknown color"):
+    with pytest.raises((TypeError, ValueError), match="Unknown color"):
         style("X")
 
 

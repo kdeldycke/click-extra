@@ -76,6 +76,25 @@ from click_extra.theme import get_current_theme
 from .test_highlight import HashType
 
 
+def _detect_click_help_param_name() -> str:
+    """Probe Click's internal parameter name for its built-in help option."""
+    probe_cmd = click.Command("probe")
+    probe_ctx = probe_cmd.make_context("probe", [])
+    help_option = probe_cmd.get_help_option(probe_ctx)
+    assert help_option is not None
+    assert help_option.name is not None
+    return help_option.name
+
+
+CLICK_HELP_PARAM_NAME = _detect_click_help_param_name()
+"""Click's internal ``.name`` for its built-in ``--help`` option.
+
+Detected at runtime instead of hardcoded as ``"help"``: Click's development branch
+renamed it to ``"_click_default_help"``, an internal identifier click-extra does not
+control and a version comparison alone cannot reliably predict.
+"""
+
+
 class Custom(ParamType):
     """A dummy custom type."""
 
@@ -221,9 +240,19 @@ def test_params_auto_types(invoke, option_decorator):
                 "hidden_param": None,
                 "file_arg1": None,
                 "file_arg2": None,
-                "help": None,
+                CLICK_HELP_PARAM_NAME: None,
             },
         }
+
+
+def _sort_params_table(table: Sequence[Sequence]) -> list[Sequence]:
+    """Sort rows like render_params_table() does: depth first, then alphabetically
+    by path. Lets tests declare and mutate rows in any convenient order while still
+    matching the CLI's actual output order, which shifts whenever a row's
+    alphabetical position changes, like Click's help option gaining a leading
+    underscore on its development branch.
+    """
+    return sorted(table, key=lambda row: (len(str(row[0]).split(".")), row[0]))
 
 
 def assert_table_content(
@@ -232,6 +261,8 @@ def assert_table_content(
     table_format: TableFormat | None = None,
 ) -> None:
     """Helper to assert the content of a rendered table in the output."""
+    expected_table = _sort_params_table(expected_table)
+
     # Crudly parse the rendered table from the output, as if produced with the
     # default style.
     extracted_table = []
@@ -270,7 +301,7 @@ def test_standalone_show_params_option(
 
     expected_table: list = [
         (
-            "show-params.help",
+            f"show-params.{CLICK_HELP_PARAM_NAME}",
             "--help",
             "click.core.Option",
             "click.types.BoolParamType",
@@ -495,7 +526,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "DEFAULT",
         ),
         (
-            "show-params-cli.help",
+            f"show-params-cli.{CLICK_HELP_PARAM_NAME}",
             "-h, --help",
             "click.core.Option",
             "click.types.BoolParamType",
@@ -503,7 +534,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "✘",
             "✘",
             "✘",
-            "SHOW_PARAMS_CLI_HELP",
+            f"SHOW_PARAMS_CLI_{CLICK_HELP_PARAM_NAME.upper()}",
             False,
             "✓",
             True,
@@ -1052,11 +1083,16 @@ def test_columns_option_rejects_unknown_id(invoke):
 
 
 def test_recurse_subcommands(invoke):
-    @group(params=[ShowParamsOption()])
+    # ``help_command=False``: the auto-injected ``help`` subcommand is unrelated to
+    # what this test covers (recursive parameter introspection) and is tested on its
+    # own in test_commands.py. Keeping it out avoids coupling this fixture's row
+    # count to Click's internal naming of its own ``--help`` option, which collides
+    # with the ``help`` subcommand's name on some Click versions but not others.
+    @group(params=[ShowParamsOption()], help_command=False)
     def show_params_cli_main():
         echo("main cmd")
 
-    @show_params_cli_main.group(params=[])
+    @show_params_cli_main.group(params=[], help_command=False)
     def show_params_sub_cmd():
         echo("subcommand")
 
@@ -1069,7 +1105,7 @@ def test_recurse_subcommands(invoke):
 
     expected_table: list[list] = [
         [
-            "show-params-cli-main.help",
+            f"show-params-cli-main.{CLICK_HELP_PARAM_NAME}",
             "-h, --help",
             "click.core.Option",
             "click.types.BoolParamType",
@@ -1077,7 +1113,7 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✘",
             "",
-            "SHOW_PARAMS_CLI_MAIN_HELP",
+            f"SHOW_PARAMS_CLI_MAIN_{CLICK_HELP_PARAM_NAME.upper()}",
             False,
             "✓",
             True,
@@ -1111,7 +1147,7 @@ def test_recurse_subcommands(invoke):
             "COMMANDLINE",
         ],
         [
-            "show-params-cli-main.show-params-sub.help",
+            f"show-params-cli-main.show-params-sub.{CLICK_HELP_PARAM_NAME}",
             "-h, --help",
             "click.core.Option",
             "click.types.BoolParamType",
@@ -1119,7 +1155,7 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✘",
             "",
-            "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_HELP",
+            f"SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_{CLICK_HELP_PARAM_NAME.upper()}",
             False,
             "✓",
             True,
@@ -1132,7 +1168,7 @@ def test_recurse_subcommands(invoke):
             "DEFAULT",
         ],
         [
-            "show-params-cli-main.show-params-sub.show-params-sub-sub.help",
+            f"show-params-cli-main.show-params-sub.show-params-sub-sub.{CLICK_HELP_PARAM_NAME}",
             "-h, --help",
             "click.core.Option",
             "click.types.BoolParamType",
@@ -1140,7 +1176,7 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✘",
             "",
-            "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_SHOW_PARAMS_SUB_SUB_HELP",
+            f"SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_SHOW_PARAMS_SUB_SUB_{CLICK_HELP_PARAM_NAME.upper()}",
             False,
             "✓",
             True,
@@ -1261,7 +1297,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
 
     expected_table: list[list] = [
         [
-            "show-params.help",
+            f"show-params.{CLICK_HELP_PARAM_NAME}",
             "--help",
             "click.core.Option",
             "click.types.BoolParamType",
@@ -1416,7 +1452,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
         headers = tuple(bold(label) for label in ShowParamsOption.column_labels())
 
     rendered = render_table(
-        render_data,
+        _sort_params_table(render_data),
         headers=headers,
         table_format=table_format,
     )
@@ -1485,7 +1521,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
             "",
         ],
         [
-            "show-params.help",
+            f"show-params.{CLICK_HELP_PARAM_NAME}",
             "--help",
             "click.core.Option",
             "click.types.BoolParamType",
@@ -1634,7 +1670,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     )
 
     rendered = render_table(
-        expected_table,
+        _sort_params_table(expected_table),
         headers=ShowParamsOption.column_labels(),
         table_format=table_format,
     )
