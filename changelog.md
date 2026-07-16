@@ -9,6 +9,9 @@
 
 ## [`8.4.0` (2026-07-16)](https://github.com/kdeldycke/click-extra/compare/v8.3.0...v8.4.0)
 
+> [!NOTE]
+> `8.4.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.4.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.4.0).
+
 - **Breaking:** Remove the historical `from click_extra.version import prebake_*` compatibility imports; the pre-baking helpers are only importable from `click_extra.prebake`.
 - **Breaking:** Remove the leaked `annotations` and `warnings` entries from the package's public API: both were star-import artifacts, not Click, Cloup or Click Extra API.
 - **Breaking:** Move `args_cleanup`, `format_cli_prompt`, `PROMPT` and `INDENT` from `click_extra.testing` to `click_extra.execution`; all but `PROMPT` stay importable from their historical home.
