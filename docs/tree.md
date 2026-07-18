@@ -2,7 +2,7 @@
 
 The `--tree` flag prints the whole hierarchy of nested subcommands at once, with their one-line descriptions. It is a constant-cost overview of a CLI's shape: without it, mapping an unfamiliar command set means walking `--help` screens one level at a time, or generating a full [man page](man-page.md) or [completion spec](carapace.md) dump.
 
-It is also the hierarchical companion of [`--show-params`](parameters.md#show-params-option): where the parameter table flattens the command tree into dotted IDs (`cli.subcommand.param`), `--tree` renders the skeleton those IDs hang off, without the parameter noise.
+It is also the hierarchical companion of [`--params`](parameters.md#params-option): where the parameter table flattens the command tree into dotted IDs (`cli.subcommand.param`), `--tree` renders the skeleton those IDs hang off, without the parameter noise.
 
 ## `--tree` flag
 
@@ -55,7 +55,7 @@ assert "diagnose" not in result.stdout
 
 The rendering mirrors help screens: subcommands are discovered dynamically (so lazily-registered commands are included), listed in the same order, hidden ones are skipped, aliases are parenthesized, operand metavars follow each name like on the usage line (`report CITY`), and deprecated commands carry their `(Deprecated)` marker. Descriptions are column-aligned and wrap at the terminal width, with the tree rail running through the wrapped lines. Everything is styled with the same [theme slots](theme.md) as help screens (`invoked_command` for the root, `subcommand` and `alias` below, `metavar` for operands), so the tree follows `--theme` and `--color` like every other output.
 
-Options are deliberately absent from the tree: their exhaustive inventory is [`--show-params`](parameters.md#show-params-option)' job.
+Options are deliberately absent from the tree: their exhaustive inventory is [`--params`](parameters.md#params-option)' job.
 
 Like the [completion spec](carapace.md#commands-discovered-from-external-state), the tree is a point-in-time snapshot: a group that computes its subcommands from external state (a loaded application, installed plugins, a scanned directory) renders exactly what its `list_commands` returns at that moment.
 
@@ -91,7 +91,7 @@ assert "shell" in result.stdout
 
 The error line above is Flask itself: its group computes part of its command list from the application, and without one only the static commands render. That is the point-in-time snapshot caveat made visible.
 
-Extra arguments after SCRIPT navigate into nested command groups and re-root the tree at the resolved node, exactly like [subcommand drilling](wrap.md#subcommand-drilling) for `--show-params`:
+Extra arguments after SCRIPT navigate into nested command groups and re-root the tree at the resolved node, exactly like [subcommand drilling](wrap.md#subcommand-drilling) for `--params`:
 
 ```{code-block} shell-session
 $ click-extra wrap --tree -- flask run
@@ -99,12 +99,12 @@ $ click-extra wrap --tree -- flask run
 
 ## Structure vs. inventory
 
-`--tree` and `--show-params` are two projections of the same walk, and answer different questions:
+`--tree` and `--params` are two projections of the same walk, and answer different questions:
 
 - `--tree` is **command-level, hierarchical, static**: which subcommands exist and how they nest. No values, no options.
-- [`--show-params`](parameters.md#show-params-option) is **parameter-level, flat, runtime**: one row per parameter with its type, environment variable, default, current value and provenance.
+- [`--params`](parameters.md#params-option) is **parameter-level, flat, runtime**: one row per parameter with its type, environment variable, default, current value and provenance.
 
-The tree is a human rendering only. Machine-readable hierarchies are already covered: `--show-params --table-format json` serializes every parameter with its dotted path, and [`--carapace`](carapace.md) serializes the whole command-and-flag tree as YAML.
+The tree is a human rendering only. Machine-readable hierarchies are already covered: `--params --table-format json` serializes every parameter with its dotted path, and [`--carapace`](carapace.md) serializes the whole command-and-flag tree as YAML.
 
 ## Standalone option
 

@@ -1,6 +1,6 @@
 # {octicon}`terminal` CLI wrapper
 
-Click Extra's `wrap` subcommand runs any installed Click CLI through Click Extra, without modifying the target's source code. By default it applies help colorization, useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling. With `--show-params`, `--man`, `--carapace` or `--tree`, it instead loads the target and [describes it](#introspecting-external-clis) without running it.
+Click Extra's `wrap` subcommand runs any installed Click CLI through Click Extra, without modifying the target's source code. By default it applies help colorization, useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling. With `--params`, `--man`, `--carapace` or `--tree`, it instead loads the target and [describes it](#introspecting-external-clis) without running it.
 
 ## Usage
 
@@ -188,7 +188,7 @@ Themes loaded this way live on `ctx.meta` for the current invocation only. The m
    $ click-extra wrap -- my_package.cli --help
    ```
 
-The same resolver backs every `wrap` mode, including [`--show-params`](#introspecting-external-clis) and [`--man`](man-page.md#target-resolution).
+The same resolver backs every `wrap` mode, including [`--params`](#introspecting-external-clis) and [`--man`](man-page.md#target-resolution).
 
 ## Dependencies of the wrapped CLI
 
@@ -232,7 +232,7 @@ CLIs already built with Click Extra or Cloup are unaffected by the patching (the
 
 ## Introspecting external CLIs
 
-The `--show-params` flag turns `wrap` into a read-only inspector: it loads any Click CLI without running it and prints a table of every parameter, with its ID, spec, class, type, hidden status, environment variables, and default value. This is the same table the [`--show-params` option](parameters.md#show-params-option) produces for a Click Extra CLI, pointed at a foreign target instead.
+The `--params` flag turns `wrap` into a read-only inspector: it loads any Click CLI without running it and prints a table of every parameter, with its ID, spec, class, type, hidden status, environment variables, and default value. This is the same table the [`--params` option](parameters.md#params-option) produces for a Click Extra CLI, pointed at a foreign target instead.
 
 The other introspection modes follow the same contract, each documented on its facet's page: [`--man`](man-page.md) renders the target's man page, [`--carapace`](carapace.md#the-wrap-carapace-mode) its completion spec, and [`--tree`](tree.md#foreign-clis) its hierarchy of nested subcommands. All four are mutually exclusive.
 
@@ -250,7 +250,7 @@ assert "Show the parameters of the target CLI" in result.stdout
 Here is Flask's `run` subcommand rendered with the vertical table format:
 
 ```{click:run}
-result = invoke(wrap, args=["--show-params", "--table-format", "vertical", "--", "flask", "run"])
+result = invoke(wrap, args=["--params", "--table-format", "vertical", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "run.host" in result.output
 assert "run.port" in result.output
@@ -260,7 +260,7 @@ assert "-p, --port INTEGER" in result.output
 Because `wrap` resolves the target's own context, the auto-generated environment variables resolve too (Flask sets the `FLASK_` prefix, so `--port` reads `FLASK_RUN_PORT`):
 
 ```{click:run}
-result = invoke(wrap, args=["--show-params", "--table-format", "vertical", "--columns", "id,envvars", "--", "flask", "run"])
+result = invoke(wrap, args=["--params", "--table-format", "vertical", "--columns", "id,envvars", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "FLASK_RUN_PORT" in result.output
 ```
@@ -270,7 +270,7 @@ assert "FLASK_RUN_PORT" in result.output
 Pass `--columns` a comma-separated list of column IDs to restrict and reorder the table, SQL `SELECT`-style:
 
 ```{click:run}
-result = invoke(wrap, args=["--show-params", "--columns", "id,spec,default", "--", "flask", "run"])
+result = invoke(wrap, args=["--params", "--columns", "id,spec,default", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "run.port" in result.output
 ```
@@ -280,7 +280,7 @@ assert "run.port" in result.output
 Any options after `SCRIPT` (and its subcommand path) are replayed against the resolved command, so the `value` and `source` columns report what each parameter would resolve to under those arguments:
 
 ```{click:run}
-result = invoke(wrap, args=["--show-params", "--columns", "id,value,source", "--", "flask", "run", "--port", "8080"])
+result = invoke(wrap, args=["--params", "--columns", "id,value,source", "--", "flask", "run", "--port", "8080"])
 assert result.exit_code == 0
 assert "8080" in result.output
 assert "COMMANDLINE" in result.output
@@ -291,7 +291,7 @@ assert "COMMANDLINE" in result.output
 All [`--table-format`](table.md#table-formats) renderings are supported. JSON is handy for programmatic consumption:
 
 ```{click:run}
-result = invoke(wrap, args=["--show-params", "--table-format", "json", "--", "flask", "run"])
+result = invoke(wrap, args=["--params", "--table-format", "json", "--", "flask", "run"])
 assert result.exit_code == 0
 assert '"run.port"' in result.output
 assert '"Default": 5000' in result.output
@@ -302,8 +302,8 @@ assert '"Default": 5000' in result.output
 Extra arguments after `SCRIPT` navigate into nested command groups; the table then scopes to the resolved node:
 
 ```shell-session
-$ click-extra wrap --show-params -- flask run
-$ click-extra wrap --show-params -- flask routes
+$ click-extra wrap --params -- flask run
+$ click-extra wrap --params -- flask routes
 ```
 
 ### Target resolution
@@ -313,7 +313,7 @@ Target resolution follows [the same order as the default mode](#script-resolutio
 When the resolved entry point is a wrapper function (not a Click command), the module is scanned for Click command instances. If a single command group is found, it is used automatically. If multiple candidates exist, the error message lists them so you can use explicit `module:name` notation:
 
 ```shell-session
-$ click-extra wrap --show-params -- flask.cli:cli
+$ click-extra wrap --params -- flask.cli:cli
 ```
 
 Some CLIs import their Click command *lazily*: a `__main__:main` wrapper that runs `from my_package.cli import cli` only when called, for instance. The module scan then finds nothing at the top level and `wrap` reports `No Click command found in my_package.__main__`. Introspection cannot recover the command from such an entry point, nor from the project directory that resolves to it, because running the wrapper is the only thing that would import the command. Point it instead at the module that *defines* the command with `module:function` notation, making the package importable if it is not installed:

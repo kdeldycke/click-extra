@@ -18,7 +18,7 @@
 Monkey-patches Click's decorator functions before importing (or running) a
 target module so its ``@click.command()`` / ``@click.group()`` produce
 colorized, keyword-highlighted, themed variants. Also resolves and invokes the
-target, and introspects it for ``--show-params``, ``--man`` and ``--tree``
+target, and introspects it for ``--params``, ``--man`` and ``--tree``
 without firing its callbacks.
 
 Not to be confused with text wrapping: that is :func:`click.wrap_text`, exposed
@@ -495,7 +495,7 @@ def resolve_target_command(
     ``subcommands`` navigate into nested groups, mirroring the path a user would
     type.
 
-    Shared by the ``wrap`` command's introspection modes (``--show-params``,
+    Shared by the ``wrap`` command's introspection modes (``--params``,
     ``--man``, ``--carapace``, ``--tree``) so all describe the exact same
     resolved command.
 
@@ -596,9 +596,9 @@ class _WrapCommand(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         carries only the options that act on the *target* CLI rather than on
         click-extra itself:
 
-        - **Action flags** (``--show-params``, ``--man``, ``--tree``) describe
+        - **Action flags** (``--params``, ``--man``, ``--tree``) describe
           and exit without running the target. Their group-level twins
-          (``click-extra --show-params``) introspect the ``click-extra`` CLI
+          (``click-extra --params``) introspect the ``click-extra`` CLI
           itself, so they cannot reach a wrapped foreign command: the subject
           differs, which is why these are *not* redundant with the group
           versions. They route through the same rendering cores as the
@@ -618,7 +618,7 @@ class _WrapCommand(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
     context_class: type[cloup.Context] = Context
 
 
-#: Default columns for the standalone ``wrap --show-params``: the full registry
+#: Default columns for the standalone ``wrap --params``: the full registry
 #: minus ``allowed_in_conf``, which only a click-extra ``--config`` option can
 #: populate and a foreign CLI therefore always leaves empty.
 _FOREIGN_PARAM_COLUMNS: tuple[str, ...] = tuple(
@@ -833,7 +833,7 @@ def _config_args_for_target(
     context_settings={"allow_interspersed_args": False},
 )
 @option(
-    "--show-params",
+    "--params",
     is_flag=True,
     default=False,
     help="Show the parameters of the target CLI and exit, without running it.",
@@ -877,7 +877,7 @@ def _config_args_for_target(
     "--table-format",
     type=EnumChoice(TableFormat),
     default=DEFAULT_FORMAT,
-    help="With --show-params, the rendering style of the parameter table. "
+    help="With --params, the rendering style of the parameter table. "
     "Falls back to the click-extra group's --table-format when not set here.",
 )
 @columns_option(columns=ShowParamsOption.TABLE_HEADERS)
@@ -891,7 +891,7 @@ def _config_args_for_target(
 def wrap(
     ctx: click.Context,
     script_and_args: tuple[str, ...],
-    show_params: bool,
+    params: bool,
     man: bool,
     carapace_spec: bool,
     tree: bool,
@@ -904,9 +904,9 @@ def wrap(
     By default, runs SCRIPT with keyword highlighting and themed styling for
     its help screens. The target CLI is not modified.
 
-    With --show-params, --man, --carapace or --tree, SCRIPT is loaded and
+    With --params, --man, --carapace or --tree, SCRIPT is loaded and
     described without being run. Extra arguments after SCRIPT navigate into
-    nested subcommands; for --show-params, any trailing options are replayed
+    nested subcommands; for --params, any trailing options are replayed
     against the resolved command so the parameter table reports their value and
     source.
 
@@ -918,9 +918,9 @@ def wrap(
         click.echo(ctx.get_help(), color=ctx.color)
         ctx.exit(0)
 
-    if sum((show_params, man, carapace_spec, tree)) > 1:
+    if sum((params, man, carapace_spec, tree)) > 1:
         raise click.UsageError(
-            "--show-params, --man, --carapace and --tree are mutually exclusive."
+            "--params, --man, --carapace and --tree are mutually exclusive."
         )
     if output_dir is not None and not man:
         raise click.UsageError("--output-dir requires --man.")
@@ -931,7 +931,7 @@ def wrap(
     args = script_and_args[1:]
 
     # Introspection modes: load the target and describe it without running it.
-    if show_params or man or carapace_spec or tree:
+    if params or man or carapace_spec or tree:
         nav, target_args = _split_navigation(args)
         if man:
             _wrap_man(script, nav, output_dir)

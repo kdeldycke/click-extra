@@ -596,7 +596,7 @@ class ColorOption(ExtraOption):
         variables (``NO_COLOR``, ``FORCE_COLOR``, …) are read manually through
         :func:`~click_extra.color.resolve_color_env`. Letting Click manage them would
         dump the whole :data:`~click_extra.color.color_envvars` set into the
-        ``--show-params`` env-var column, and only bind one variable per option anyway.
+        ``--params`` env-var column, and only bind one variable per option anyway.
     """
 
     _gnu_optional_value: ClassVar[bool] = True

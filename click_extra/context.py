@@ -189,20 +189,20 @@ RAW_ARGS: Final[str] = "click_extra.raw_args"
 
 Written by :class:`click_extra.commands.Command.make_context` so that
 :class:`click_extra.parameters.ShowParamsOption` can re-parse the original
-arguments for the ``--show-params`` table without re-running the callbacks.
+arguments for the ``--params`` table without re-running the callbacks.
 Consumers normalize the parser's ``UNSET`` sentinel back to ``None`` on read,
 matching what ``click.Command.parse_args`` does for ``ctx.params``.
 """
 
 # Developer note: why RAW_ARGS exists, and what to actually propose upstream.
 #
-# What --show-params needs is the *forward* resolution: for every parameter, the
+# What --params needs is the *forward* resolution: for every parameter, the
 # value it resolves to and its provenance (ParameterSource), computable at an
 # arbitrary moment. Click does not expose this:
 #   - The parsed command-line values (`opts`) are a local in
 #     `click.Command.parse_args`, discarded when it returns. They are never
 #     stored on the Context, despite the convenience of pretending otherwise.
-#   - --show-params is eager, so its callback fires mid-processing, before the
+#   - --params is eager, so its callback fires mid-processing, before the
 #     non-eager parameters land in `ctx.params`. Reading `ctx.params` there would
 #     see a partial picture.
 #
@@ -210,7 +210,7 @@ matching what ``click.Command.parse_args`` does for ``ctx.params``.
 # argv under RAW_ARGS; parameters.render_params_table rebuilds the parser,
 # re-parses those args to recover `opts`, and calls `consume_value()` (not
 # `handle_parse_result()`) per parameter so eager callbacks are not re-fired.
-# The same re-parse backs `click-extra wrap --show-params`, which introspects a
+# The same re-parse backs `click-extra wrap --params`, which introspects a
 # foreign CLI that is never actually executed (no live parse to borrow from).
 #
 # Fragilities to keep in mind:
@@ -229,7 +229,7 @@ matching what ``click.Command.parse_args`` does for ``ctx.params``.
 #   1. Preserve the raw input argv on the Context. Trivial; what we do here.
 #   2. Expose the parsed `opts`, or better, a per-parameter resolved
 #      (value, ParameterSource), on the Context. Modest; this is what
-#      --show-params actually consumes.
+#      --params actually consumes.
 #   3. Reconstruct a *normalized* argv from a Context (the inverse direction).
 #      Hard and underdefined; this is click#1279.
 # click#1279 was filed for pip-tools and is feature 3: davidism scoped it with

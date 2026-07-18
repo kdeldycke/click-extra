@@ -415,7 +415,7 @@ def test_wrap_carapace_install(runner, greet_script, tmp_path, monkeypatch):
     ("extra_flags", "message"),
     [
         (["--man"], "mutually exclusive"),
-        (["--show-params"], "mutually exclusive"),
+        (["--params"], "mutually exclusive"),
     ],
 )
 def test_wrap_carapace_mutually_exclusive(runner, greet_script, extra_flags, message):

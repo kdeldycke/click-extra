@@ -2294,7 +2294,7 @@ def test_export_config_to_stdout(invoke):
     assert 'name = "Alice"' in result.stdout
     # Action options and config plumbing are excluded from the dump.
     assert "export_config" not in result.stdout
-    assert "show_params" not in result.stdout
+    assert "params =" not in result.stdout
     assert "config =" not in result.stdout
     assert "version" not in result.stdout
 

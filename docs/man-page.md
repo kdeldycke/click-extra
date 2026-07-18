@@ -76,7 +76,7 @@ $ uvx --from click-extra --with flask click-extra wrap --man --output-dir /tmp/m
    $ click-extra wrap --man -- my_package.cli > my_package.1
    ```
 
-`wrap` resolves SCRIPT the [same way](wrap.md#script-resolution) in every mode, so any of these forms works whether you run, introspect (`--show-params`), or document (`--man`) the target.
+`wrap` resolves SCRIPT the [same way](wrap.md#script-resolution) in every mode, so any of these forms works whether you run, introspect (`--params`), or document (`--man`) the target.
 
 ### Programmatic API
 
@@ -221,12 +221,12 @@ assert "fahrenheit" in result.output
 assert "celsius" not in result.output
 ```
 
-`--show-params` prints the full mapping at once: every parameter, the environment variable it reads, its default, its resolved value, and the source that value came from.
+`--params` prints the full mapping at once: every parameter, the environment variable it reads, its default, its resolved value, and the source that value came from.
 
 ```{click:run}
 from boltons.strutils import strip_ansi
 
-result = invoke(weather, args=["--show-params"])
+result = invoke(weather, args=["--params"])
 assert result.exit_code == 0
 assert "WEATHER_UNITS" in strip_ansi(result.stdout)
 ```

@@ -413,7 +413,7 @@ class ExtraOption(Option):
             and ``ShowParamsOption`` rely on this introspection (from their eager
             callback) to decide whether an env var should override the default
             (``--color``), whether the ``--config`` path was user-supplied, and what
-            to render in the ``Source`` column of ``--show-params``. ``JobsOption``
+            to render in the ``Source`` column of ``--params``. ``JobsOption``
             relies on the same introspection from its type's non-eager ``convert()``
             (:class:`~click_extra.execution.JobCount`), to decide whether an
             ``auto``/``max`` collapsing to a single job logs as a warning (explicit
@@ -902,7 +902,7 @@ def render_params_table(
 
     This is the shared rendering core behind both
     :meth:`~click_extra.parameters.ShowParamsOption.print_params` (introspecting
-    the live CLI) and the ``click-extra wrap --show-params`` path (introspecting a
+    the live CLI) and the ``click-extra wrap --params`` path (introspecting a
     foreign target).
     The caller is responsible for exiting the context afterwards.
 
@@ -1058,11 +1058,20 @@ def render_params_table(
 
 
 class ShowParamsOption(ExtraOption, ParamStructure):
-    """A pre-configured option adding a ``--show-params`` option.
+    """A pre-configured option adding a ``--params`` option.
 
     Between configuration files, default values and environment variables, it might be
     hard to guess under which set of parameters the CLI will be executed. This option
     print information about the parameters that will be fed to the CLI.
+
+    .. note::
+        The flag is named ``--params``, not ``--show-params``. It names the view it
+        prints, matching the neighbouring bare-noun informational flags (``--help``,
+        ``--version``, ``--man``, ``--tree``), none of which carry a ``show-`` verb
+        prefix. The class and :func:`@show_params_option
+        <click_extra.decorators.show_params_option>` decorator keep their historical
+        names: the class is named for what it does (show the parameters), while the
+        flag and the parameter's ID use the bare noun.
     """
 
     from .table import ColumnSpec as _ColumnSpec
@@ -1157,7 +1166,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "Reflects [`click.Parameter`'s `expose_value`]"
                 "(https://click.palletsprojects.com/en/stable/api/#click.Parameter) "
                 "constructor argument: whether the parsed value is forwarded to "
-                "the command callback. Eager options like `--show-params` and "
+                "the command callback. Eager options like `--params` and "
                 "`--help` typically run a callback and exit, so they are not "
                 "exposed."
             ),
@@ -1287,7 +1296,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             ),
         ),
     )
-    """Rich column registry for the ``--show-params`` table.
+    """Rich column registry for the ``--params`` table.
 
     Each entry is a :class:`click_extra.table.ColumnSpec` carrying the column's
     stable ``id`` (used by ``--columns`` and as structured-format key), its
@@ -1345,7 +1354,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         **kwargs,
     ) -> None:
         if not param_decls:
-            param_decls = ("--show-params",)
+            param_decls = ("--params",)
 
         kwargs.setdefault("callback", self.print_params)
 
@@ -1374,7 +1383,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         Thin wrapper over
         :func:`~click_extra.parameters.render_params_table`, the shared rendering core
-        also driving ``click-extra wrap --show-params`` for foreign CLIs. The
+        also driving ``click-extra wrap --params`` for foreign CLIs. The
         live invocation context carries everything the core needs: the captured
         :data:`~click_extra.context.RAW_ARGS` (attached by
         ``Command``/``Group``) for value and source resolution, plus

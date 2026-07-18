@@ -130,7 +130,7 @@ use of any configuration file at all.
 DEFAULT_EXCLUDED_PARAMS = (
     CONFIG_OPTION_NAME,
     "export_config",
-    "show_params",
+    "params",
     "version",
 )
 """Default parameter IDs to exclude from the configuration file.
@@ -139,9 +139,9 @@ Defaults to:
 
 - ``--config`` option, which cannot be used to recursively load another configuration
   file.
-- ``--export-config`` flag, which like ``--show-params`` introspects the CLI and exits,
+- ``--export-config`` flag, which like ``--params`` introspects the CLI and exits,
   so it has no place in the configuration it would export.
-- ``--show-params`` flag, which is like ``--help`` and stops the CLI execution.
+- ``--params`` flag, which is like ``--help`` and stops the CLI execution.
 - ``--version``, which is not a configurable option *per-se*.
 
 ``--help`` is excluded too (it makes no sense to have a configuration file always
@@ -233,7 +233,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         - ``excluded_params`` are parameters which, if present in the configuration
           file, will be ignored and not applied to the CLI. Items are expected to be the
           fully-qualified ID of the parameter, as produced in the output of
-          ``--show-params``. Will default to the value of ``DEFAULT_EXCLUDED_PARAMS``,
+          ``--params``. Will default to the value of ``DEFAULT_EXCLUDED_PARAMS``,
           plus the CLI's ``--help`` option, resolved at runtime.
 
         - ``included_params`` is the inverse of ``excluded_params``: only the listed

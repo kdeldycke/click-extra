@@ -188,10 +188,10 @@ def test_params_auto_types(invoke, option_decorator):
     ):
         echo("Works!")
 
-    # Invoke the --show-params option to trigger the introspection.
+    # Invoke the --params option to trigger the introspection.
     result = invoke(
         params_introspection,
-        "--show-params",
+        "--params",
         "random_file1",
         "random_file2",
         color=False,
@@ -226,7 +226,7 @@ def test_params_auto_types(invoke, option_decorator):
                 "unprocessed_param": None,
                 "file_param": None,
                 "path_param": None,
-                "show_params": None,
+                "params": None,
                 "choice_param": None,
                 "number_choice": None,
                 "hash_type": None,
@@ -297,7 +297,7 @@ def test_standalone_show_params_option(
     def show_params():
         echo("It works!")
 
-    result = invoke(show_params, "--show-params")
+    result = invoke(show_params, "--params")
 
     expected_table: list = [
         (
@@ -322,8 +322,8 @@ def test_standalone_show_params_option(
             "",
         ),
         (
-            "show-params.show_params",
-            "--show-params",
+            "show-params.params",
+            "--params",
             "click_extra.parameters.ShowParamsOption",
             "click.types.BoolParamType",
             "bool",
@@ -384,7 +384,7 @@ def test_integrated_show_params_option(invoke, create_config):
         str(conf_path),
         "--int-param1",
         "9999",
-        "--show-params",
+        "--params",
         "--help",
     ]
     result = invoke(show_params_cli, *raw_args, color=False)
@@ -694,15 +694,15 @@ def test_integrated_show_params_option(invoke, create_config):
             "DEFAULT",
         ),
         (
-            "show-params-cli.show_params",
-            "--show-params",
+            "show-params-cli.params",
+            "--params",
             "click_extra.parameters.ShowParamsOption",
             "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
             "✘",
-            "SHOW_PARAMS_CLI_SHOW_PARAMS",
+            "SHOW_PARAMS_CLI_PARAMS",
             False,
             "✓",
             True,
@@ -892,11 +892,11 @@ def test_integrated_show_params_option(invoke, create_config):
 
 @pytest.mark.parametrize(
     "args_order",
-    permutations(("--show-params", "--table-format=csv", "--no-color")),
+    permutations(("--params", "--table-format=csv", "--no-color")),
     ids=lambda p: " ".join(p),
 )
 def test_show_params_table_format_ordering(invoke, args_order):
-    """``--show-params`` respects ``--table-format`` regardless of CLI order."""
+    """``--params`` respects ``--table-format`` regardless of CLI order."""
 
     @command
     @option("--name", default="world")
@@ -928,7 +928,7 @@ def test_show_params_native_types(invoke, table_format):
 
     result = invoke(
         typed_cli,
-        "--show-params",
+        "--params",
         f"--table-format={table_format}",
         color=False,
     )
@@ -960,7 +960,7 @@ def test_show_params_no_default_renders_none(invoke):
     """A parameter with no default renders as None, not the UNSET sentinel.
 
     Regression guard for Click 8.4's ``UNSET`` sentinel leaking into the value
-    and default columns through the ``--show-params`` re-parse path. See the
+    and default columns through the ``--params`` re-parse path. See the
     RAW_ARGS dossier in ``click_extra.context``.
     """
 
@@ -970,7 +970,7 @@ def test_show_params_no_default_renders_none(invoke):
     def grocery_cli(fruit, baskets):
         echo(f"fruit is {fruit!r}")
 
-    result = invoke(grocery_cli, "--show-params", "--table-format=json", color=False)
+    result = invoke(grocery_cli, "--params", "--table-format=json", color=False)
 
     assert result.exit_code == 0
     output = result.stdout
@@ -1046,7 +1046,7 @@ def test_columns_option_projects_and_orders(invoke):
         "--no-color",
         "--columns",
         "id,value,is_flag",
-        "--show-params",
+        "--params",
     )
     assert result.exit_code == 0
     lines = result.stdout.strip().splitlines()
@@ -1075,7 +1075,7 @@ def test_columns_option_rejects_unknown_id(invoke):
         "--no-color",
         "--columns",
         "id,nope,spec",
-        "--show-params",
+        "--params",
     )
     assert result.exit_code != 0
     assert "Unknown --columns ID(s): 'nope'" in result.stderr
@@ -1101,7 +1101,7 @@ def test_recurse_subcommands(invoke):
     def show_params_sub_sub_cmd(int_param):
         echo(f"subsubcommand int_param is {int_param!r}")
 
-    result = invoke(show_params_cli_main, "--show-params", color=False)
+    result = invoke(show_params_cli_main, "--params", color=False)
 
     expected_table: list[list] = [
         [
@@ -1126,15 +1126,15 @@ def test_recurse_subcommands(invoke):
             "DEFAULT",
         ],
         [
-            "show-params-cli-main.show_params",
-            "--show-params",
+            "show-params-cli-main.params",
+            "--params",
             "click_extra.parameters.ShowParamsOption",
             "click.types.BoolParamType",
             "bool",
             "✘",
             "✘",
             "",
-            "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS",
+            "SHOW_PARAMS_CLI_MAIN_PARAMS",
             False,
             "✓",
             True,
@@ -1243,7 +1243,7 @@ def test_subcommand_conflicts_with_parent_param(invoke):
     def alpha_foo_cmd():
         """Subcommand named 'foo', same as alpha's --foo param."""
 
-    result = invoke(root, "--show-params", color=False)
+    result = invoke(root, "--params", color=False)
     # The CLI succeeds; the conflicting subcommand is excluded from the tree.
     assert result.exit_code == 0
     # The --foo option of alpha IS in the tree.
@@ -1274,7 +1274,7 @@ def test_nested_subcommand_no_false_conflict_with_root_param(invoke):
     def alpha_verbose_cmd():
         """Subcommand named 'verbose', same as root's --verbose param."""
 
-    result = invoke(root, "--show-params", color=False)
+    result = invoke(root, "--params", color=False)
     assert result.exit_code == 0
 
 
@@ -1285,7 +1285,7 @@ def test_nested_subcommand_no_false_conflict_with_root_param(invoke):
 )
 @pytest.mark.parametrize("table_format", TableFormat)
 def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
-    """Check all rendering styles of the table with standalone ``--show-params`` and
+    """Check all rendering styles of the table with standalone ``--params`` and
     ``--table-format`` option.
     """
 
@@ -1318,8 +1318,8 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
             "",
         ],
         [
-            "show-params.show_params",
-            "--show-params",
+            "show-params.params",
+            "--params",
             "click_extra.parameters.ShowParamsOption",
             "click.types.BoolParamType",
             "bool",
@@ -1364,10 +1364,10 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
     # Check the default rendering style.
     for args in (
         # There is no impact with just the presence of @table_format_option decorator.
-        ("--show-params",),
-        # Both options are eager, so passing --table-format after --show-params makes
+        ("--params",),
+        # Both options are eager, so passing --table-format after --params makes
         # it too late to have an effect.
-        ("--show-params", "--table-format", table_format),
+        ("--params", "--table-format", table_format),
     ):
         result = invoke(show_params, args)
         assert_table_content(result.stdout, expected_table)
@@ -1416,7 +1416,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
     # Check the explicit rendering style of the table. Ignore colors, they'll be
     # checked in the next test.
     result = invoke(
-        show_params, "--table-format", table_format, "--show-params", color=False
+        show_params, "--table-format", table_format, "--params", color=False
     )
 
     styler = STYLED_FORMATS.get(table_format)
@@ -1542,8 +1542,8 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
             "",
         ],
         [
-            "show-params.show_params",
-            "--show-params",
+            "show-params.params",
+            "--params",
             "click_extra.parameters.ShowParamsOption",
             "click.types.BoolParamType",
             "bool",
@@ -1588,11 +1588,11 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     # Check the default rendering style.
     for args in (
         # There is no impact with just the presence of @color_option decorator.
-        ("--show-params",),
-        # Both options are eager, so passing --color after --show-params makes it too
+        ("--params",),
+        # Both options are eager, so passing --color after --params makes it too
         # late to have an effect.
-        ("--show-params", "--color"),
-        ("--show-params", "--color=never"),
+        ("--params", "--color"),
+        ("--params", "--color=never"),
     ):
         result = invoke(show_params, args)
         assert_table_content(result.stdout, expected_table)
@@ -1602,7 +1602,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     expected_table[0][18] = "COMMANDLINE"
 
     # Force --color.
-    result = invoke(show_params, "--color", "--show-params")
+    result = invoke(show_params, "--color", "--params")
     # --color is forced, so the table is colorized and doesn't match expected_table, unless we
     # strip all ANSI escape sequences.
     with pytest.raises(AssertionError):
@@ -1611,7 +1611,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
     assert result.exit_code == 0
 
     # Force --color=never.
-    result = invoke(show_params, "--color=never", "--show-params")
+    result = invoke(show_params, "--color=never", "--params")
     assert_table_content(result.stdout, expected_table)
     assert result.exit_code == 0
 
@@ -1666,7 +1666,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
 
     # Check the explicit rendering style of the table.
     result = invoke(
-        show_params, "--color=never", "--table-format", table_format, "--show-params"
+        show_params, "--color=never", "--table-format", table_format, "--params"
     )
 
     rendered = render_table(

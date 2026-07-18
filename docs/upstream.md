@@ -202,7 +202,7 @@ click-extra's [`MultiChoice` type](types.md#multichoice) parses a single comma-s
 - [`click#2771` - Allow `nargs=-1` in options with a non-whitespace separator](https://github.com/pallets/click/issues/2771): open, exactly the same feature request.
 - [`click#2537` - Allow `nargs=-1` for `click.option`](https://github.com/pallets/click/issues/2537): closed as not planned, the earlier space-separated variant.
 
-The [`--columns` option on `--show-params`](parameters.md#columns-selection) is the headline consumer; the type is also exposed at the package root for arbitrary tags / categories / modes use cases in downstream CLIs.
+The [`--columns` option on `--params`](parameters.md#columns-selection) is the headline consumer; the type is also exposed at the package root for arbitrary tags / categories / modes use cases in downstream CLIs.
 
 ### Normalized arguments
 
@@ -216,7 +216,7 @@ click-extra ships a [`--tree` flag](tree.md) on every command, the standalone [`
 - [`rich-click#270` - Subcommand tree view](https://github.com/ewels/rich-click/pull/270): first-concept PR from treeclick's author, self-described as rough and stalled since September 2025.
 - [`rich-click#275` - 1.10 roadmap](https://github.com/ewels/rich-click/issues/275): tracks the `--tree` option and `@click.tree_option()` among the planned features.
 
-One design difference: treeclick embeds the tree inside `--help` output through custom `TreeGroup`/`TreeCommand` classes, and the older [`click-command-tree`](https://github.com/whwright/click-command-tree) package registers a `tree` *subcommand* on the user's group, walking the static `commands` mapping. click-extra renders the view behind a dedicated eager flag, like `--man` and `--show-params`: the plain help screen stays untouched, a flag cannot collide with the user's own subcommand namespace, and the live-context walk includes lazily-registered commands.
+One design difference: treeclick embeds the tree inside `--help` output through custom `TreeGroup`/`TreeCommand` classes, and the older [`click-command-tree`](https://github.com/whwright/click-command-tree) package registers a `tree` *subcommand* on the user's group, walking the static `commands` mapping. click-extra renders the view behind a dedicated eager flag, like `--man` and `--params`: the plain help screen stays untouched, a flag cannot collide with the user's own subcommand namespace, and the live-context walk includes lazily-registered commands.
 
 ### Shell completion
 

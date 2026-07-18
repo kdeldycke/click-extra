@@ -100,7 +100,7 @@ def default_params() -> list[click.Option]:
     #. ``--color`` / ``--no-color``
     #. ``--progress`` / ``--no-progress``
     #. ``--theme``
-    #. ``--show-params``
+    #. ``--params``
     #. ``--table-format FORMAT``
     #. ``--verbosity LEVEL``
     #. ``-v``, ``--verbose``
@@ -258,7 +258,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
 
           Defaults to ``None``, which will leave all options untouched, and let them
           decide of their own ``show_envvar`` setting. The rationale being that
-          discoverability of environment variables is enabled by the ``--show-params``
+          discoverability of environment variables is enabled by the ``--params``
           option, which is active by default on extra commands. So there is no need to
           surcharge the help screen.
 

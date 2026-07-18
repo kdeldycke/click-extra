@@ -2,7 +2,7 @@
 
 Click's environment-variable handling spreads across several internal methods on `Parameter`, `Option`, and `Context`. This module centralizes that logic into a small set of pure helpers that downstream code can call to introspect what Click *would* read for a given parameter, plus a couple of subprocess-friendly conveniences.
 
-The helpers underpin click-extra's [`show_envvar` defaults](commands.md#default-options) on every option's help screen, the [`--show-params` table](parameters.md#show-params-option), and the auto-envvar reconciliation in [`TelemetryOption`](telemetry.md), [`ColorOption`](colorize.md), and others, but they're equally useful for any downstream code that needs to surface the env-var contract of its CLI.
+The helpers underpin click-extra's [`show_envvar` defaults](commands.md#default-options) on every option's help screen, the [`--params` table](parameters.md#params-option), and the auto-envvar reconciliation in [`TelemetryOption`](telemetry.md), [`ColorOption`](colorize.md), and others, but they're equally useful for any downstream code that needs to surface the env-var contract of its CLI.
 
 ```{seealso}
 [Environment variables are a legacy mess: Let's dive deep into them](https://allvpv.org/haotic-journey-through-envvars/) is the best survey of the wider problem space these helpers paper over.
@@ -107,7 +107,7 @@ with click.Context(show, auto_envvar_prefix="MYAPP") as ctx:
     print(f"--verbose: {param_envvar_ids(verbose_opt, ctx)}")
 ```
 
-This is what powers click-extra's `--show-params` table: each row's *Env. vars.* column comes from `param_envvar_ids(param, ctx)`, joined with `, ` and styled with the active theme's `envvar` slot.
+This is what powers click-extra's `--params` table: each row's *Env. vars.* column comes from `param_envvar_ids(param, ctx)`, joined with `, ` and styled with the active theme's `envvar` slot.
 
 ## `env_copy(extend=None)`
 

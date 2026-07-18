@@ -108,7 +108,7 @@ class AccessibleOption(ExtraOption):
             The global ``ACCESSIBLE`` environment variable is read here rather than
             wired through the option's ``envvar``. Click would otherwise list it
             alongside the auto-generated ``<CLI>_ACCESSIBLE`` variable in the
-            ``--show-params`` table, making the combined string the widest cell of
+            ``--params`` table, making the combined string the widest cell of
             the env-var column and pushing every other row's padding out. This
             mirrors how :class:`~click_extra.color.ColorOption` reads
             ``NO_COLOR`` and friends.

@@ -523,7 +523,7 @@ class TimerOption(ExtraOption):
         """Compute and print elapsed execution time.
 
         Always prints, even when a sibling eager option (``--version``,
-        ``--show-params``, ``--show-config``…) short-circuited the command
+        ``--params``, ``--show-config``…) short-circuited the command
         body via ``ctx.exit()``. That makes ``--time`` a usable probe for
         the cost of Click Extra's own machinery (option parsing, config
         loading, eager callbacks), not just user command bodies.
@@ -542,7 +542,7 @@ class TimerOption(ExtraOption):
         ``ctx.meta`` under :data:`click_extra.context.START_TIME`, and queues
         :py:meth:`print_timer` as a context-close callback so the elapsed
         duration is printed even when a sibling eager option (``--version``,
-        ``--show-params``…) short-circuits the command body.
+        ``--params``…) short-circuits the command body.
 
         Renamed from ``register_timer_on_close`` to align with the
         ``init_<system>`` convention shared with

@@ -138,7 +138,7 @@ myst_enable_extensions = [
 ]
 
 # Substitutions exposed to MyST documents as ``{{ name }}``. Built from
-# Python data so single-source-of-truth content (like the --show-params column
+# Python data so single-source-of-truth content (like the --params column
 # registry) stays in sync between code and docs automatically.
 from click_extra.parameters import ShowParamsOption
 
@@ -154,8 +154,8 @@ myst_heading_anchors = 6
 # Slugify headings exactly the way docutils derives HTML ids, so the anchors
 # MyST resolves match the ids actually rendered in the page. The default
 # GitHub-style slugifier keeps leading digits, "--" prefixes, dots and
-# underscores that docutils strips or collapses (e.g. "`--show-params` option"
-# → "show-params-option", "solarized_dark" → "solarized-dark"), which otherwise
+# underscores that docutils strips or collapses (e.g. "`--params` option"
+# → "params-option", "solarized_dark" → "solarized-dark"), which otherwise
 # leaves every cross-reference to such a heading unresolved.
 myst_heading_slug_func = make_id
 # XXX Allow ```mermaid``` directive to be used without curly braces (```{mermaid}```), see:

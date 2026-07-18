@@ -19,7 +19,7 @@ Provides the ``--tree`` flag: a constant-cost overview of a CLI's nested
 subcommands, where the only alternative is walking ``--help`` screens one
 level at a time or generating a full man page or completion spec dump.
 
-This is the command-level, hierarchical companion of ``--show-params``:
+This is the command-level, hierarchical companion of ``--params``:
 where the parameter table flattens the hierarchy into dotted ``id`` paths
 (``cli.subcommand.param``), the tree renders the skeleton those paths hang
 off. Both share the same dynamic discovery (:meth:`click.Group.list_commands`
@@ -28,7 +28,7 @@ off. Both share the same dynamic discovery (:meth:`click.Group.list_commands`
 descriptions (:func:`~click_extra.parameters.full_short_help`).
 
 The tree is a human rendering only: machine-readable hierarchies are already
-served by ``--show-params --table-format json`` (parameters with dotted
+served by ``--params --table-format json`` (parameters with dotted
 paths) and the Carapace exporter (:mod:`click_extra.carapace`, a YAML
 command-and-flag tree).
 
@@ -122,7 +122,7 @@ def _command_labels(
     the command declares any (a Cloup feature), mirroring the group help-screen
     listing (like ``wrap (run)``), then the metavars of its operands (like
     ``CITY`` or ``[ARGS]...``), mirroring the usage line. Option synopses are
-    deliberately left out: they are ``--show-params``' job. The plain variant
+    deliberately left out: they are ``--params``' job. The plain variant
     is used to measure column widths, the styled one to print.
 
     Aliases render through Cloup's own ``format_subcommand_aliases``: the
@@ -295,7 +295,7 @@ class TreeOption(ExtraOption):
         would suggest the flat listing ``--help`` already provides.
 
         The bare noun also lines up with the neighbouring ``--man``,
-        ``--version`` and ``--help`` informational flags; ``--show-params`` is
+        ``--version`` and ``--help`` informational flags; ``--params`` is
         the historical outlier, not the pattern. A flag was preferred over a
         registered ``tree`` subcommand, which could collide with the user's
         own command namespace.

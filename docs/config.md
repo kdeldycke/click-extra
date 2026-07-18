@@ -511,7 +511,7 @@ $ weather --city Oslo --export-config toml > ~/.config/weather/config.toml
 The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
 
 ```{note}
-`--export-config` is itself excluded from the export, like the other [introspection options](#excluding-parameters) (`--help`, `--version`, `--show-params`). It requires a sibling `@config_option` decorator to be present on the same command.
+`--export-config` is itself excluded from the export, like the other [introspection options](#excluding-parameters) (`--help`, `--version`, `--params`). It requires a sibling `@config_option` decorator to be present on the same command.
 ```
 
 ## Extending validation
@@ -739,7 +739,7 @@ def my_cli(int_param):
 ```{hint}
 You need to provide the fully-qualified ID of the option you're looking to block. I.e. the dot-separated ID that is prefixed by the CLI name. That way you can specify an option to ignore at any level, including subcommands.
 
-If you have difficulties identifying your options and their IDs, run your CLI with the [`--show-params` option](parameters.md#show-params-option) for introspection.
+If you have difficulties identifying your options and their IDs, run your CLI with the [`--params` option](parameters.md#params-option) for introspection.
 ```
 
 ## Including parameters
@@ -768,7 +768,7 @@ In the example above, only `flag_a` will be loaded from configuration. `flag_b` 
 ```
 
 ```{hint}
-Like `excluded_params`, you need to provide the fully-qualified ID of the option. Run your CLI with the [`--show-params` option](parameters.md#show-params-option) to discover parameter IDs.
+Like `excluded_params`, you need to provide the fully-qualified ID of the option. Run your CLI with the [`--params` option](parameters.md#params-option) to discover parameter IDs.
 ```
 
 ### Schema-only configuration

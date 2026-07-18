@@ -45,7 +45,7 @@ assert result.stdout.count("$files") == 1
 $ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace -- flask > flask.yaml
 ```
 
-`--carapace` must appear *before* SCRIPT, since arguments after SCRIPT navigate into nested subcommands. It is mutually exclusive with `--man` and `--show-params`.
+`--carapace` must appear *before* SCRIPT, since arguments after SCRIPT navigate into nested subcommands. It is mutually exclusive with `--man` and `--params`.
 
 Pass `--install` to write the spec straight into Carapace's user spec directory (`$XDG_CONFIG_HOME/carapace/specs/`, which Carapace loads on startup) instead of printing it:
 

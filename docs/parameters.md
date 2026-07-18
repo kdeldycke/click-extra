@@ -2,11 +2,11 @@
 
 Click Extra implements tools to manipulate your CLI's parameters, options and arguments.
 
-The cornerstone of these tools is the magical `--show-params` option, which is a X-ray scanner for your CLI's parameters.
+The cornerstone of these tools is the magical `--params` option, which is a X-ray scanner for your CLI's parameters.
 
-## `--show-params` option
+## `--params` option
 
-Click Extra adds a `--show-params` flag to every `@command` and `@group`. It dumps a colorized table of every parameter, its current value, where that value came from, the resolved environment variable, and the default:
+Click Extra adds a `--params` flag to every `@command` and `@group`. It dumps a colorized table of every parameter, its current value, where that value came from, the resolved environment variable, and the default:
 
 ```{click:source}
 :emphasize-lines: 3
@@ -22,19 +22,19 @@ def cli(int_param1, int_param2):
 
 ```{click:run}
 :emphasize-lines: 1
-result = invoke(cli, args=["--int-param1", "3", "--show-params"])
+result = invoke(cli, args=["--int-param1", "3", "--params"])
 assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m      │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
 assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m      │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
 ```
 
-`--int-param1` shows `3` because it was passed on the command line. `--int-param2` falls back to its `555` default. The `--show-params` option produces this table dynamically: every value is re-evaluated at invocation time from the current `argv`, environment, and config files.
+`--int-param1` shows `3` because it was passed on the command line. `--int-param2` falls back to its `555` default. The `--params` option produces this table dynamically: every value is re-evaluated at invocation time from the current `argv`, environment, and config files.
 
 ```{tip}
-Every command built with `@command` or `@group` captures the pre-parsed `argv` slice on `ctx.meta` as `RAW_ARGS`, which `--show-params` itself relies on to re-parse the original arguments. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
+Every command built with `@command` or `@group` captures the pre-parsed `argv` slice on `ctx.meta` as `RAW_ARGS`, which `--params` itself relies on to re-parse the original arguments. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
 ```
 
 ```{hint}
-`--show-params` always displays all parameters, even those marked as not *allowed in conf*. In effect bypassing the {py:attr}`excluded_params <click_extra.parameters.ParamStructure.excluded_params>` argument. So you can still see the `--help`, `--version`, `-C`/`--config` and `--show-params` options in the table.
+`--params` always displays all parameters, even those marked as not *allowed in conf*. In effect bypassing the {py:attr}`excluded_params <click_extra.parameters.ParamStructure.excluded_params>` argument. So you can still see the `--help`, `--version`, `-C`/`--config` and `--params` options in the table.
 ```
 
 ### Available columns
@@ -45,7 +45,7 @@ Each row in the table mirrors a single [`click.Parameter`](https://click.pallets
 
 ### Columns selection
 
-Add Click Extra's {py:func}`columns_option <click_extra.decorators.columns_option>` to your CLI so users can pick which columns `--show-params` emits, in the order they want, SQL `SELECT`-style:
+Add Click Extra's {py:func}`columns_option <click_extra.decorators.columns_option>` to your CLI so users can pick which columns `--params` emits, in the order they want, SQL `SELECT`-style:
 
 ```{click:source}
 :hide-source:
@@ -62,7 +62,7 @@ def cli_with_columns(int_param1, int_param2):
 
 ```{click:run}
 :emphasize-lines: 1
-result = invoke(cli_with_columns, args=["--no-color", "--columns", "id,is_flag,default,value", "--show-params"])
+result = invoke(cli_with_columns, args=["--no-color", "--columns", "id,is_flag,default,value", "--params"])
 assert "ID" in result.stdout
 assert "Is flag" in result.stdout
 assert "Default" in result.stdout
@@ -72,37 +72,37 @@ assert "Spec." not in result.stdout
 assert "Confirmation prompt" not in result.stdout
 ```
 
-Unknown IDs raise a `BadParameter` listing the valid ones (`--columns` is built on top of the generic [`MultiChoice`](types.md#multichoice) type, which does the validation at parse time). The standalone [`click-extra wrap --show-params`](#introspecting-external-clis) exposes the same option for inspecting third-party CLIs.
+Unknown IDs raise a `BadParameter` listing the valid ones (`--columns` is built on top of the generic [`MultiChoice`](types.md#multichoice) type, which does the validation at parse time). The standalone [`click-extra wrap --params`](#introspecting-external-clis) exposes the same option for inspecting third-party CLIs.
 
 ### Table format
 
-The default table produced by `--show-params` can be a bit overwhelming, so you can change its rendering with the [`--table-format` option](table.md#table-formats):
+The default table produced by `--params` can be a bit overwhelming, so you can change its rendering with the [`--table-format` option](table.md#table-formats):
 
 ```{click:run}
 :emphasize-lines: 1
-result = invoke(cli, args=["--table-format", "vertical", "--show-params"])
+result = invoke(cli, args=["--table-format", "vertical", "--params"])
 assert "***************************[ 1. row ]***************************\n" in result.stdout
 assert "\x1b[1mEnv. vars.\x1b[0m          | \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m\n" in result.stdout
 assert "\x1b[1mDefault\x1b[0m             | \x1b[32m\x1b[2m\x1b[3m10\x1b[0m\n" in result.stdout
 ```
 
 ```{caution}
-Because both options are eager, the order in which they are passed matters. `--table-format` must be passed before `--show-params`, otherwise it will have no effect.
+Because both options are eager, the order in which they are passed matters. `--table-format` must be passed before `--params`, otherwise it will have no effect.
 ```
 
 ### Color highlighting
 
-By default, the table produced by `--show-params` is colorized to highlight important bits. If you do not like colors, you can disable them with the [`--no-color` option](colorize.md#color-no-color-flag):
+By default, the table produced by `--params` is colorized to highlight important bits. If you do not like colors, you can disable them with the [`--no-color` option](colorize.md#color-no-color-flag):
 
 ```{click:run}
 :emphasize-lines: 1
-result = invoke(cli, args=["--no-color", "--show-params"])
+result = invoke(cli, args=["--no-color", "--params"])
 assert "│ CLI_INT_PARAM1      │ 10 " in result.stdout
 assert "│ CLI_INT_PARAM2      │ 555 " in result.stdout
 ```
 
 ```{caution}
-Because both options are eager, the order in which they are passed matters. `--no-color` must be passed before `--show-params`, otherwise it will have no effect.
+Because both options are eager, the order in which they are passed matters. `--no-color` must be passed before `--params`, otherwise it will have no effect.
 ```
 
 ## Introspecting parameters
@@ -163,7 +163,7 @@ Values passed to function: {'dummy_flag': True, 'my_list': ('pip', 'npm', 'gem')
 
 ## Introspecting external CLIs
 
-The `--show-params` option works on your own Click Extra CLIs. To inspect a third-party CLI that doesn't use Click Extra, use [`wrap --show-params`](wrap.md#introspecting-external-clis), which loads the target and prints the same table without running it:
+The `--params` option works on your own Click Extra CLIs. To inspect a third-party CLI that doesn't use Click Extra, use [`wrap --params`](wrap.md#introspecting-external-clis), which loads the target and prints the same table without running it:
 
 ```{click:source}
 :hide-source:
@@ -171,7 +171,7 @@ from click_extra.cli_wrapper import wrap
 ```
 
 ```{click:run}
-result = invoke(wrap, args=["--show-params", "--table-format", "vertical", "--", "flask", "run"])
+result = invoke(wrap, args=["--params", "--table-format", "vertical", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "run.host" in result.output
 assert "-p, --port INTEGER" in result.output

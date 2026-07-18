@@ -1209,7 +1209,7 @@ class ColumnsOption(ExtraOption):
 
     .. code-block:: shell-session
 
-        $ my-cli --columns id,spec,value --show-params
+        $ my-cli --columns id,spec,value --params
 
     The selection is stored in
     :data:`ctx.meta[click_extra.context.COLUMNS] <click_extra.context.COLUMNS>` and
