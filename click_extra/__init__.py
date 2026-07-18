@@ -42,14 +42,14 @@ from click._utils import UNSET
 from click.core import ParameterSource
 
 # NoSuchCommand (PR pallets/click#3228) and get_pager_file (PR pallets/click#1572)
-# are Click 8.4.1.dev0 additions, absent on the Click 8.3.x releases click-extra still
+# are Click 8.5.0.dev0 additions, absent on the Click 8.3.x releases click-extra still
 # supports. Import them only when present so click-extra mirrors Click's own public
 # surface; the matching __all__ entries are trimmed below when they are missing.
 try:
     from click import NoSuchCommand, get_pager_file
 
     _HAS_CLICK_8_4_EXPORTS = True
-except ImportError:  # Click < 8.4.1.dev0.
+except ImportError:  # Click < 8.5.0.dev0.
     _HAS_CLICK_8_4_EXPORTS = False
 
 # Overrides click helpers with cloup's.
@@ -472,7 +472,7 @@ __all__ = [
     ``ruff`` via `RUF022 <https://docs.astral.sh/ruff/rules/unsorted-dunder-all/>`_.
 """
 
-# NoSuchCommand and get_pager_file are only re-exported on Click >= 8.4.1.dev0 (see the
+# NoSuchCommand and get_pager_file are only re-exported on Click >= 8.5.0.dev0 (see the
 # guarded import above). Drop them from the public API on older Click so ``__all__``
 # matches the names actually bound in this module.
 if not _HAS_CLICK_8_4_EXPORTS:
@@ -489,7 +489,7 @@ del annotations
 del warnings  # noqa: F821
 
 
-__version__ = "8.4.1.dev0"
+__version__ = "8.5.0.dev0"
 __git_branch__ = ""
 __git_date__ = ""
 __git_long_hash__ = ""
