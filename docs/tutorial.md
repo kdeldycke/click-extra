@@ -228,7 +228,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@no_config_option`](config.md#)                                     | `--no-config`                   | ✅      |
 | [`@validate_config_option`](config.md#validating-configuration-files) | `--validate-config FILE`        | ✅      |
 | [`@export_config_option`](config.md#exporting-the-configuration)      | `--export-config FORMAT`        | ✅      |
-| [`@show_params_option`](parameters.md#params-option)             | `--params`                 | ✅      |
+| [`@show_params_option`](parameters.md#params-option)                  | `--params`                      | ✅      |
 | [`@table_format_option`](table.md)                                    | `--table-format FORMAT`         | ✅      |
 | [`@verbosity_option`](logging.md#colored-verbosity)                   | `--verbosity LEVEL`             | ✅      |
 | {py:class}`@verbose_option <click_extra.logging.VerboseOption>`       | `-v, --verbose`                 | ✅      |
