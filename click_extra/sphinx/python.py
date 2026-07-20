@@ -35,11 +35,11 @@ Each render variant has a clear parser contract:
 - ``python:render-rst`` always parses the captured output as reST, regardless
   of host. Lets ``.md`` documents embed reST-generated content.
 
-On top of live rendering, ``python:render`` accepts a ``:sync:`` flag. A
-sync block also mirrors its generated Markdown back into the source ``.md``,
-between :data:`SYNC_MARKER_START` / :data:`SYNC_MARKER_END` markers directly
-below the fence, rewritten on every build by
-:func:`rewrite_python_sync_regions`. The document then self-updates and its
+On top of live rendering, ``python:render`` accepts a ``:mirror:`` flag. A
+mirror block also writes its generated Markdown back into the source ``.md``,
+between :data:`MIRROR_MARKER_START` / :data:`MIRROR_MARKER_END` markers
+directly below the fence, rewritten on every build by
+:func:`rewrite_python_mirror_regions`. The document then self-updates and its
 output is reviewable in place and on GitHub, reviving the ``docs_update.py``
 marker-region pattern with the generator inlined into the page.
 """
@@ -77,36 +77,36 @@ if TYPE_CHECKING:
     from sphinx.util.typing import OptionSpec
 
 
-SYNC_MARKER_START = "<!-- python:render:sync: auto-generated, do not edit -->"
-"""Opening marker of a ``python:render`` ``:sync:`` region.
+MIRROR_MARKER_START = "<!-- python:render:mirror: auto-generated, do not edit -->"
+"""Opening marker of a ``python:render`` ``:mirror:`` region.
 
 Written on its own line, directly below the fence, and paired with
-:data:`SYNC_MARKER_END`. Everything between the two markers is regenerated on
-every build by :func:`rewrite_python_sync_regions`: edit the Python block
+:data:`MIRROR_MARKER_END`. Everything between the two markers is regenerated
+on every build by :func:`rewrite_python_mirror_regions`: edit the Python block
 above the marker, never the mirrored region itself.
 """
 
-SYNC_MARKER_END = "<!-- python:render:sync: end -->"
-"""Closing marker of a ``:sync:`` region. See :data:`SYNC_MARKER_START`."""
+MIRROR_MARKER_END = "<!-- python:render:mirror: end -->"
+"""Closing marker of a ``:mirror:`` region. See :data:`MIRROR_MARKER_START`."""
 
-_SYNC_FENCE_OPEN = re.compile(
+_MIRROR_FENCE_OPEN = re.compile(
     r"^[ \t]*(?P<fence>`{3,}|:{3,})\{python:render\}[ \t]*\S*[ \t]*$"
 )
 """Match a MyST ``python:render`` fence opening line (backtick or colon fence).
 
 Anchored on ``{python:render}`` so the sibling ``python:render-myst`` and
-``python:render-rst`` directives never match: ``:sync:`` mirrors Markdown back
-into a Markdown host, so it is scoped to the plain ``python:render`` form.
+``python:render-rst`` directives never match: ``:mirror:`` writes Markdown
+back into a Markdown host, so it is scoped to the plain ``python:render`` form.
 """
 
-_SYNC_OPTION_LINE = re.compile(r"^:(?P<key>[A-Za-z0-9_+-]+):[ \t]*(?P<value>.*)$")
+_MIRROR_OPTION_LINE = re.compile(r"^:(?P<key>[A-Za-z0-9_+-]+):[ \t]*(?P<value>.*)$")
 """Match a MyST directive option line (``:key:`` or ``:key: value``)."""
 
 _ANY_FENCE_OPEN = re.compile(r"^[ \t]*(?P<fence>`{3,}|:{3,})")
 """Match the opening line of any MyST fence (backtick or colon).
 
-Lets :func:`_rewrite_sync_regions` treat every fence as a unit and skip over
-its content, so a ``python:render :sync:`` example *shown inside* a longer
+Lets :func:`_rewrite_mirror_regions` treat every fence as a unit and skip over
+its content, so a ``python:render :mirror:`` example *shown inside* a longer
 ``code-block`` fence (as the documentation does) is copied verbatim rather
 than executed.
 """
@@ -253,11 +253,11 @@ class PythonRenderBaseDirective(PythonDirective):
     class forces that parser regardless of host file format.
     """
 
-    def _run_sync(self) -> list[nodes.Node]:
-        """Render (at most) the source block in ``:sync:`` mode.
+    def _run_mirror(self) -> list[nodes.Node]:
+        """Render (at most) the source block in ``:mirror:`` mode.
 
-        In sync mode the executed output is materialized as a raw Markdown
-        region below the fence by :func:`rewrite_python_sync_regions` during
+        In mirror mode the executed output is written as a raw Markdown
+        region below the fence by :func:`rewrite_python_mirror_regions` during
         the ``source-read`` pass, and that region is what the host parser
         renders. Emitting the results here as well would duplicate the
         content, so the directive stays silent (or shows only its Python
@@ -278,8 +278,8 @@ class PythonRenderBaseDirective(PythonDirective):
 
     def run(self) -> list[nodes.Node]:
         """Render the captured stdout as live document content."""
-        if "sync" in self.options:
-            return self._run_sync()
+        if "mirror" in self.options:
+            return self._run_mirror()
 
         results = self.runner.run_python(self)
 
@@ -330,20 +330,20 @@ class PythonRenderDirective(PythonRenderBaseDirective):
     For a host-independent contract, see :class:`PythonRenderMystDirective`
     and :class:`PythonRenderRstDirective`.
 
-    Accepts an extra ``:sync:`` flag on top of the shared option spec. When
-    set, the block also mirrors its generated Markdown back into the source
-    file, between :data:`SYNC_MARKER_START` / :data:`SYNC_MARKER_END`
+    Accepts an extra ``:mirror:`` flag on top of the shared option spec. When
+    set, the block also writes its generated Markdown back into the source
+    file, between :data:`MIRROR_MARKER_START` / :data:`MIRROR_MARKER_END`
     markers, so the ``.md`` self-updates and the output is reviewable in
-    place (and on GitHub). See :func:`rewrite_python_sync_regions`.
+    place (and on GitHub). See :func:`rewrite_python_mirror_regions`.
     """
 
     forced_parser = None
 
     option_spec: ClassVar[OptionSpec] = {
         **PythonRenderBaseDirective.option_spec,
-        "sync": directives.flag,
+        "mirror": directives.flag,
     }
-    """Shared option spec plus the ``:sync:`` flag (see the class docstring)."""
+    """Shared option spec plus the ``:mirror:`` flag (see the class docstring)."""
 
 
 class PythonRenderMystDirective(PythonRenderBaseDirective):
@@ -384,7 +384,7 @@ class PythonRenderRstDirective(PythonRenderBaseDirective):
     forced_parser = RstParser
 
 
-def _is_sync_close_fence(line: str, fence: str) -> bool:
+def _is_mirror_close_fence(line: str, fence: str) -> bool:
     """Return whether ``line`` closes a fence opened with ``fence``.
 
     A closing fence is a run of the same fence character, at least as long as
@@ -394,7 +394,7 @@ def _is_sync_close_fence(line: str, fence: str) -> bool:
     return bool(stripped) and set(stripped) == {fence[0]} and len(stripped) >= len(fence)
 
 
-def _split_sync_options(inner: list[str]) -> tuple[set[str], list[str]]:
+def _split_mirror_options(inner: list[str]) -> tuple[set[str], list[str]]:
     """Split a fence's inner lines into its option keys and its Python body.
 
     Leading ``:key:`` lines are consumed as directive options; an optional
@@ -403,7 +403,7 @@ def _split_sync_options(inner: list[str]) -> tuple[set[str], list[str]]:
     """
     options: set[str] = set()
     index = 0
-    while index < len(inner) and (match := _SYNC_OPTION_LINE.match(inner[index])):
+    while index < len(inner) and (match := _MIRROR_OPTION_LINE.match(inner[index])):
         options.add(match.group("key"))
         index += 1
     if index < len(inner) and not inner[index].strip():
@@ -411,30 +411,30 @@ def _split_sync_options(inner: list[str]) -> tuple[set[str], list[str]]:
     return options, inner[index:]
 
 
-def _skip_existing_sync_region(lines: list[str], index: int) -> int:
-    """Return the index just past an existing sync region starting at ``index``.
+def _skip_existing_mirror_region(lines: list[str], index: int) -> int:
+    """Return the index just past an existing mirror region starting at ``index``.
 
-    Skips leading blank lines, then a :data:`SYNC_MARKER_START` …
-    :data:`SYNC_MARKER_END` block if one is present. Returns ``index``
+    Skips leading blank lines, then a :data:`MIRROR_MARKER_START` …
+    :data:`MIRROR_MARKER_END` block if one is present. Returns ``index``
     unchanged when no region follows, so a first-time block is not consumed.
     """
     cursor = index
     while cursor < len(lines) and not lines[cursor].strip():
         cursor += 1
-    if cursor < len(lines) and lines[cursor].strip() == SYNC_MARKER_START:
-        while cursor < len(lines) and lines[cursor].strip() != SYNC_MARKER_END:
+    if cursor < len(lines) and lines[cursor].strip() == MIRROR_MARKER_START:
+        while cursor < len(lines) and lines[cursor].strip() != MIRROR_MARKER_END:
             cursor += 1
         if cursor < len(lines):
             return cursor + 1
     return index
 
 
-def _execute_sync_block(
+def _execute_mirror_block(
     body: list[str],
     namespace: dict[str, object],
     location: str,
 ) -> list[str]:
-    """Execute a sync block's Python body and return its captured stdout lines.
+    """Execute a mirror block's Python body and return its captured stdout lines.
 
     Mirrors :meth:`PythonRunner.run_python` but works from raw source lines:
     the ``source-read`` pass runs before any directive instance exists. Shares
@@ -448,13 +448,13 @@ def _execute_sync_block(
     return buffer.getvalue().splitlines()
 
 
-def _rewrite_sync_regions(text: str, location: str) -> str:
-    """Return ``text`` with every ``python:render :sync:`` region refreshed.
+def _rewrite_mirror_regions(text: str, location: str) -> str:
+    """Return ``text`` with every ``python:render :mirror:`` region refreshed.
 
     Walks the document fence by fence. Every fence is consumed as a unit (so
     a ``python:render`` example nested inside a longer ``code-block`` fence is
     left untouched); only a top-level ``python:render`` fence carrying a
-    ``:sync:`` option is executed, its output written into the marker region
+    ``:mirror:`` option is executed, its output written into the marker region
     directly below it (a region is inserted on first sight). Idempotent: a
     region whose source is unchanged round-trips to the same text.
     """
@@ -473,7 +473,7 @@ def _rewrite_sync_regions(text: str, location: str) -> str:
 
         fence = fence_match.group("fence")
         close = index + 1
-        while close < total and not _is_sync_close_fence(lines[close], fence):
+        while close < total and not _is_mirror_close_fence(lines[close], fence):
             close += 1
         if close >= total:
             # Unterminated fence: leave the tail untouched.
@@ -482,17 +482,17 @@ def _rewrite_sync_regions(text: str, location: str) -> str:
 
         options: set[str] = set()
         body: list[str] = []
-        if _SYNC_FENCE_OPEN.match(line):
-            options, body = _split_sync_options(lines[index + 1 : close])
+        if _MIRROR_FENCE_OPEN.match(line):
+            options, body = _split_mirror_options(lines[index + 1 : close])
         # Emit the whole fence unit (source and close line) verbatim.
         out.extend(lines[index : close + 1])
         index = close + 1
-        if "sync" not in options:
+        if "mirror" not in options:
             continue
 
-        generated = _execute_sync_block(body, namespace, location)
-        index = _skip_existing_sync_region(lines, index)
-        out.extend(["", SYNC_MARKER_START, "", *generated, "", SYNC_MARKER_END])
+        generated = _execute_mirror_block(body, namespace, location)
+        index = _skip_existing_mirror_region(lines, index)
+        out.extend(["", MIRROR_MARKER_START, "", *generated, "", MIRROR_MARKER_END])
         # Collapse the gap to the following content to a single blank line.
         while index < total and not lines[index].strip():
             index += 1
@@ -502,20 +502,20 @@ def _rewrite_sync_regions(text: str, location: str) -> str:
     return "\n".join(out)
 
 
-def rewrite_python_sync_regions(
+def rewrite_python_mirror_regions(
     app: Sphinx,
     docname: str,
     source: list[str],
 ) -> None:
-    """``source-read`` handler mirroring ``python:render :sync:`` output.
+    """``source-read`` handler mirroring ``python:render :mirror:`` output.
 
-    For each ``python:render`` block flagged ``:sync:``, execute it before the
-    document is parsed and write its generated Markdown back into a
-    :data:`SYNC_MARKER_START` / :data:`SYNC_MARKER_END` region directly below
-    the fence. The rewrite is applied both to the in-memory ``source`` (so the
-    *same* build renders the fresh output with zero lag) and, best effort, to
-    the file on disk (so the ``.md`` self-updates and the region is reviewable
-    on GitHub and in diffs).
+    For each ``python:render`` block flagged ``:mirror:``, execute it before
+    the document is parsed and write its generated Markdown back into a
+    :data:`MIRROR_MARKER_START` / :data:`MIRROR_MARKER_END` region directly
+    below the fence. The rewrite is applied both to the in-memory ``source``
+    (so the *same* build renders the fresh output with zero lag) and, best
+    effort, to the file on disk (so the ``.md`` self-updates and the region is
+    reviewable on GitHub and in diffs).
 
     .. danger::
         Like the ``python:*`` directives, this executes arbitrary Python at
@@ -527,17 +527,17 @@ def rewrite_python_sync_regions(
 
     .. note::
         The mirrored region is raw Markdown, re-parsed by the host on every
-        build and reformatted by ``mdformat`` in the autofix pipeline. A sync
-        block must therefore ``print`` ``mdformat``-canonical Markdown (like
-        :func:`click_extra.table.render_table` in ``GITHUB`` mode) or the
-        generator and the formatter will fight over the region.
+        build and reformatted by ``mdformat`` in the autofix pipeline. A
+        mirror block must therefore ``print`` ``mdformat``-canonical Markdown
+        (like :func:`click_extra.table.render_table` in ``GITHUB`` mode) or
+        the generator and the formatter will fight over the region.
     """
     text = source[0]
-    if "python:render" not in text or ":sync:" not in text:
+    if "python:render" not in text or ":mirror:" not in text:
         return
 
     location = app.env.doc2path(docname)
-    rewritten = _rewrite_sync_regions(text, location)
+    rewritten = _rewrite_mirror_regions(text, location)
     if rewritten == text:
         return
     source[0] = rewritten
@@ -548,7 +548,7 @@ def rewrite_python_sync_regions(
             path.write_text(rewritten, encoding="utf-8")
     except OSError as error:
         logger.warning(
-            "click_extra.sphinx: could not persist python:render:sync region "
+            "click_extra.sphinx: could not persist python:render:mirror region "
             "for %s: %s",
             docname,
             error,

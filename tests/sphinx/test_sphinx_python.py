@@ -28,9 +28,9 @@ from pathlib import Path
 from textwrap import dedent
 
 from click_extra.sphinx.python import (
-    SYNC_MARKER_END,
-    SYNC_MARKER_START,
-    _rewrite_sync_regions,
+    MIRROR_MARKER_END,
+    MIRROR_MARKER_START,
+    _rewrite_mirror_regions,
 )
 
 from .conftest import FormatType, SphinxAppWrapper
@@ -323,13 +323,13 @@ def test_python_runner_isolated_from_click_runner(sphinx_app_myst):
     assert "python-only" in html
 
 
-# --- python:render :sync: source mirroring ------------------------------------
+# --- python:render :mirror: source mirroring ----------------------------------
 
-_SYNC_TABLE_BLOCK = dedent("""
+_MIRROR_TABLE_BLOCK = dedent("""
     # Title
 
     ```{python:render}
-    :sync:
+    :mirror:
     rows = [("apple", 3), ("banana", 5), ("cherry", 8)]
     print("| Fruit  | Count |")
     print("| :----- | ----: |")
@@ -341,91 +341,91 @@ _SYNC_TABLE_BLOCK = dedent("""
 """)
 
 
-def test_sync_rewrite_inserts_region():
-    """A sync block with no region yet gets one inserted below the fence."""
-    out = _rewrite_sync_regions(_SYNC_TABLE_BLOCK, "<test>")
-    assert out.count(SYNC_MARKER_START) == 1
-    assert out.count(SYNC_MARKER_END) == 1
+def test_mirror_rewrite_inserts_region():
+    """A mirror block with no region yet gets one inserted below the fence."""
+    out = _rewrite_mirror_regions(_MIRROR_TABLE_BLOCK, "<test>")
+    assert out.count(MIRROR_MARKER_START) == 1
+    assert out.count(MIRROR_MARKER_END) == 1
     assert "| apple | 3 |" in out
     # The fence and the trailing prose are preserved around the region.
     assert "```{python:render}" in out
-    assert out.index("```{python:render}") < out.index(SYNC_MARKER_START)
-    assert out.index(SYNC_MARKER_END) < out.index("Trailing prose.")
+    assert out.index("```{python:render}") < out.index(MIRROR_MARKER_START)
+    assert out.index(MIRROR_MARKER_END) < out.index("Trailing prose.")
 
 
-def test_sync_rewrite_is_idempotent():
+def test_mirror_rewrite_is_idempotent():
     """Re-running over an already-mirrored document is a no-op."""
-    once = _rewrite_sync_regions(_SYNC_TABLE_BLOCK, "<test>")
-    twice = _rewrite_sync_regions(once, "<test>")
+    once = _rewrite_mirror_regions(_MIRROR_TABLE_BLOCK, "<test>")
+    twice = _rewrite_mirror_regions(once, "<test>")
     assert once == twice
     # The region is replaced in place, never appended a second time.
-    assert twice.count(SYNC_MARKER_START) == 1
+    assert twice.count(MIRROR_MARKER_START) == 1
 
 
-def test_sync_rewrite_replaces_stale_region():
+def test_mirror_rewrite_replaces_stale_region():
     """A stale region is refreshed from the block's current output."""
     stale = dedent(f"""
         ```{{python:render}}
-        :sync:
+        :mirror:
         print("| Fruit |")
         print("| :---- |")
         print("| apple |")
         ```
 
-        {SYNC_MARKER_START}
+        {MIRROR_MARKER_START}
 
         | Fruit |
         | :---- |
         | STALE |
 
-        {SYNC_MARKER_END}
+        {MIRROR_MARKER_END}
 
         After.
     """)
-    out = _rewrite_sync_regions(stale, "<test>")
+    out = _rewrite_mirror_regions(stale, "<test>")
     assert "| apple |" in out
     assert "STALE" not in out
-    assert out.count(SYNC_MARKER_START) == 1
+    assert out.count(MIRROR_MARKER_START) == 1
     assert "After." in out
 
 
-def test_sync_rewrite_skips_example_nested_in_code_block():
-    """A sync block shown inside a longer code-block fence is never executed."""
+def test_mirror_rewrite_skips_example_nested_in_code_block():
+    """A mirror block shown inside a longer code-block fence is never executed."""
     documented = dedent("""
         ````{code-block} markdown
         ```{python:render}
-        :sync:
+        :mirror:
         print("MUST-NOT-RUN")
         ```
         ````
     """)
-    out = _rewrite_sync_regions(documented, "<test>")
+    out = _rewrite_mirror_regions(documented, "<test>")
     # No region is generated: the inner block was copied verbatim, not run.
-    assert SYNC_MARKER_START not in out
+    assert MIRROR_MARKER_START not in out
     assert out == documented
 
 
-def test_python_render_sync_mirrors_region_to_source(sphinx_app_myst):
-    """`:sync:` renders the table once and mirrors it into the source `.md`."""
-    html = sphinx_app_myst.build_document(_SYNC_TABLE_BLOCK)
+def test_python_render_mirror_writes_region_to_source(sphinx_app_myst):
+    """`:mirror:` renders the table once and writes it into the source `.md`."""
+    html = sphinx_app_myst.build_document(_MIRROR_TABLE_BLOCK)
     assert html is not None
     # Rendered exactly once (from the mirrored region; the directive itself
-    # emits nothing in sync mode, so there is no second copy).
+    # emits nothing in mirror mode, so there is no second copy).
     assert html.count("<table") == 1
     for fruit in ("apple", "banana", "cherry"):
         assert fruit in html
     # The source file on disk now carries the mirrored region.
     source = (Path(sphinx_app_myst.srcdir) / "index.md").read_text(encoding="utf-8")
-    assert SYNC_MARKER_START in source
-    assert SYNC_MARKER_END in source
+    assert MIRROR_MARKER_START in source
+    assert MIRROR_MARKER_END in source
     assert "| apple | 3 |" in source
 
 
-def test_python_render_sync_show_source_still_single_table(sphinx_app_myst):
-    """`:sync: :show-source:` shows the Python but still renders one table."""
+def test_python_render_mirror_show_source_still_single_table(sphinx_app_myst):
+    """`:mirror: :show-source:` shows the Python but still renders one table."""
     content = dedent("""
         ```{python:render}
-        :sync:
+        :mirror:
         :show-source:
         print("| Fruit  | Count |")
         print("| :----- | ----: |")
