@@ -172,6 +172,10 @@ assert result.exit_code == 0
 
 ``````
 
+```{tip}
+Prefer the terminal? Run `click-extra themes` to print the same gallery in your shell: the `themes` demo subcommand renders one sample help screen under each built-in palette, one after another. A terminal keeps a single background, so the light-background themes (`light`, `manpage`) look washed out on a dark terminal, and the dark themes look washed out on a light one.
+```
+
 Three flavors ship in `click_extra/themes.toml`:
 
 - **ANSI themes** (`dark`, `light`) use the 16 named ANSI colors via `cloup.styling.Color`, so the rendered colors track whatever palette the user's terminal is configured with. Pick these when you want to blend in with the user's terminal theme.

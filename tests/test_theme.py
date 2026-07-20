@@ -40,6 +40,7 @@ from click_extra import (
     option,
     theme as _theme,
 )
+from click_extra.cli import demo
 from click_extra.theme import (
     AUTO_THEME,
     BUILTIN_THEMES,
@@ -105,6 +106,25 @@ def test_theme_default_unchanged_after_invocation():
     runner = CliRunner()
     runner.invoke(greet, ["--theme", "light", "--help"], color=True)
     assert _theme.get_default_theme() is original
+
+
+def test_demo_themes_renders_each_builtin_palette():
+    """`click-extra themes` renders the sample help once per built-in theme, each
+    in its own palette.
+
+    Guards against the whole gallery collapsing onto the default palette: the
+    ``themes`` command drives ``get_current_theme`` through the context ``THEME``
+    meta, so a regression there would render all seven screens identically.
+    """
+    result = CliRunner().invoke(demo, ["themes"], color=True)
+    assert result.exit_code == 0
+    # Every built-in theme is labeled in the gallery.
+    for name in BUILTIN_THEMES:
+        assert name in result.output
+    # Multiple 24-bit palettes actually reach the help screens: were every theme
+    # to fall back to the 16-color default, no truecolor codes would appear.
+    truecolor = set(re.findall(r"\x1b\[38;2;\d+;\d+;\d+m", result.output))
+    assert len(truecolor) >= 10
 
 
 def test_theme_meta_key_matches_registry():

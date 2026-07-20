@@ -38,11 +38,12 @@ from extra_platforms import ALL_IDS
 
 from . import context
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
+from .commands import ColorizedCommand
 from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
 from .context import pass_context
 from .decorators import argument, command, group, jobs_option, option
 from .envvar import merge_envvar_ids
-from .parameters import missing_extra_message
+from .parameters import make_resilient_context, missing_extra_message
 from .prebake import (
     _find_dunder_str,
     discover_package_init_files,
@@ -66,6 +67,7 @@ from .test_suite import (
     parse_test_suite,
     run_test_suite,
 )
+from .theme import BUILTIN_THEMES
 from .version import (
     GIT_FIELDS,
     GIT_RESOLVERS,
@@ -610,6 +612,66 @@ def demo_spinner(
     # --progress / --accessible. A no-op when captured or piped.
     if sys.stderr.isatty() and context.get(ctx, context.PROGRESS, True):
         _animate_spinners(selection)
+
+
+# A throwaway CLI used only by `demo themes` to showcase each palette on a real
+# help screen. Built on ColorizedCommand so it renders through the themed
+# HelpFormatter without inheriting the default_params that would bury the accent
+# colors under click-extra's own options. Its callback is never invoked (only
+# its help is rendered), and its example data is domain-neutral on purpose.
+@click.command(cls=ColorizedCommand, name="garden")
+@option(
+    "--rows",
+    type=int,
+    default=4,
+    show_default=True,
+    help="Number of planting rows to dig.",
+)
+@option(
+    "--crop",
+    type=Choice(["carrot", "tomato", "basil", "radish"]),
+    default="carrot",
+    show_default=True,
+    show_envvar=True,
+    envvar="GARDEN_CROP",
+    help="Which crop to sow.",
+)
+@option(
+    "--spacing",
+    type=IntRange(5, 40),
+    default=15,
+    show_default=True,
+    help="Centimetres between seeds.",
+)
+@option("--water/--no-water", default=True, help="Water the bed right after sowing.")
+@argument("plot")
+def _theme_gallery_sample(**_kwargs: object) -> None:
+    """Sow a crop into a garden PLOT and water it in."""
+
+
+@demo.command(name="themes", section=_demo_section)
+@pass_context
+def demo_themes(ctx: click.Context) -> None:
+    """Render a sample help screen under every built-in theme, one after another.
+
+    Each built-in palette is applied in turn to the same throwaway CLI so the
+    themes can be eyeballed back to back. A terminal keeps a single background,
+    so light-background themes (light, manpage) look washed out on a dark
+    terminal, and dark themes look washed out on a light one.
+    """
+    for name, theme in BUILTIN_THEMES.items():
+        # Point get_current_theme() at this palette by writing the same
+        # context.THEME meta ThemeOption sets from --theme; the HelpFormatter
+        # reads it back when it renders the sample below. Scoped to this
+        # context, so no process-global theme state leaks between invocations.
+        context.set(ctx, context.THEME, theme)
+        sample_ctx = make_resilient_context(_theme_gallery_sample, "garden")
+        sample_ctx.color = ctx.color
+        echo(style("─" * 60, fg="bright_black"), color=ctx.color)
+        echo("Theme: " + theme.heading(name), color=ctx.color)
+        echo()
+        echo(_theme_gallery_sample.get_help(sample_ctx), color=ctx.color)
+        echo()
 
 
 @demo.group()
