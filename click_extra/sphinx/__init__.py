@@ -39,7 +39,11 @@ from ..pygments import AnsiHtmlFormatter
 from . import manpages, matrix
 from .alerts import convert_github_alerts
 from .click import ClickDomain, cleanup_runner
-from .python import PythonDomain, cleanup_python_runner
+from .python import (
+    PythonDomain,
+    cleanup_python_runner,
+    rewrite_python_sync_regions,
+)
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -123,6 +127,12 @@ def _register_exec_directives(app: Sphinx, config: Config) -> None:
     app.connect("doctree-read", cleanup_runner)
     app.add_domain(PythonDomain)
     app.connect("doctree-read", cleanup_python_runner)
+    # Mirror `python:render :sync:` output back into the source before it is
+    # parsed. Priority 100 (below the default 500) runs it ahead of any other
+    # source-read transformer (like the GitHub-alerts converter) so the file
+    # persisted to disk mirrors the on-disk source, not a downstream in-memory
+    # conversion. See rewrite_python_sync_regions for the full contract.
+    app.connect("source-read", rewrite_python_sync_regions, priority=100)
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:

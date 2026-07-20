@@ -34,17 +34,28 @@ Each render variant has a clear parser contract:
   regardless of host. Lets ``.rst`` documents embed MyST-generated content.
 - ``python:render-rst`` always parses the captured output as reST, regardless
   of host. Lets ``.md`` documents embed reST-generated content.
+
+On top of live rendering, ``python:render`` accepts a ``:sync:`` flag. A
+sync block also mirrors its generated Markdown back into the source ``.md``,
+between :data:`SYNC_MARKER_START` / :data:`SYNC_MARKER_END` markers directly
+below the fence, rewritten on every build by
+:func:`rewrite_python_sync_regions`. The document then self-updates and its
+output is reviewable in place and on GitHub, reviving the ``docs_update.py``
+marker-region pattern with the generator inlined into the page.
 """
 
 from __future__ import annotations
 
 import contextlib
 import io
+import re
+from pathlib import Path
 
 from docutils import nodes
-from docutils.parsers.rst import Parser as RstParser
+from docutils.parsers.rst import Parser as RstParser, directives
 from docutils.statemachine import StringList
 from docutils.utils import new_document
+from sphinx.util import logging
 
 from ._base import (
     StatelessDomain,
@@ -54,12 +65,51 @@ from ._base import (
 )
 from .click import ClickDirective
 
+logger = logging.getLogger(__name__)
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import ClassVar
 
     from docutils.frontend import Values
     from docutils.parsers import Parser
+    from sphinx.application import Sphinx
+    from sphinx.util.typing import OptionSpec
+
+
+SYNC_MARKER_START = "<!-- python:render:sync: auto-generated, do not edit -->"
+"""Opening marker of a ``python:render`` ``:sync:`` region.
+
+Written on its own line, directly below the fence, and paired with
+:data:`SYNC_MARKER_END`. Everything between the two markers is regenerated on
+every build by :func:`rewrite_python_sync_regions`: edit the Python block
+above the marker, never the mirrored region itself.
+"""
+
+SYNC_MARKER_END = "<!-- python:render:sync: end -->"
+"""Closing marker of a ``:sync:`` region. See :data:`SYNC_MARKER_START`."""
+
+_SYNC_FENCE_OPEN = re.compile(
+    r"^[ \t]*(?P<fence>`{3,}|:{3,})\{python:render\}[ \t]*\S*[ \t]*$"
+)
+"""Match a MyST ``python:render`` fence opening line (backtick or colon fence).
+
+Anchored on ``{python:render}`` so the sibling ``python:render-myst`` and
+``python:render-rst`` directives never match: ``:sync:`` mirrors Markdown back
+into a Markdown host, so it is scoped to the plain ``python:render`` form.
+"""
+
+_SYNC_OPTION_LINE = re.compile(r"^:(?P<key>[A-Za-z0-9_+-]+):[ \t]*(?P<value>.*)$")
+"""Match a MyST directive option line (``:key:`` or ``:key: value``)."""
+
+_ANY_FENCE_OPEN = re.compile(r"^[ \t]*(?P<fence>`{3,}|:{3,})")
+"""Match the opening line of any MyST fence (backtick or colon).
+
+Lets :func:`_rewrite_sync_regions` treat every fence as a unit and skip over
+its content, so a ``python:render :sync:`` example *shown inside* a longer
+``code-block`` fence (as the documentation does) is copied verbatim rather
+than executed.
+"""
 
 
 class PythonRunner:
@@ -203,8 +253,34 @@ class PythonRenderBaseDirective(PythonDirective):
     class forces that parser regardless of host file format.
     """
 
+    def _run_sync(self) -> list[nodes.Node]:
+        """Render (at most) the source block in ``:sync:`` mode.
+
+        In sync mode the executed output is materialized as a raw Markdown
+        region below the fence by :func:`rewrite_python_sync_regions` during
+        the ``source-read`` pass, and that region is what the host parser
+        renders. Emitting the results here as well would duplicate the
+        content, so the directive stays silent (or shows only its Python
+        source when ``:show-source:`` is set) and never runs the block a
+        second time.
+        """
+        if not self.show_source:
+            return []
+        section = nodes.section()
+        source_file, _ = self.get_source_info()
+        source_lines = list(self.render_code_block(self.content, "python"))
+        self.state.nested_parse(
+            StringList(source_lines, source_file),
+            self.content_offset,
+            section,
+        )
+        return section.children
+
     def run(self) -> list[nodes.Node]:
         """Render the captured stdout as live document content."""
+        if "sync" in self.options:
+            return self._run_sync()
+
         results = self.runner.run_python(self)
 
         if not self.show_source and not self.show_results:
@@ -253,9 +329,21 @@ class PythonRenderDirective(PythonRenderBaseDirective):
 
     For a host-independent contract, see :class:`PythonRenderMystDirective`
     and :class:`PythonRenderRstDirective`.
+
+    Accepts an extra ``:sync:`` flag on top of the shared option spec. When
+    set, the block also mirrors its generated Markdown back into the source
+    file, between :data:`SYNC_MARKER_START` / :data:`SYNC_MARKER_END`
+    markers, so the ``.md`` self-updates and the output is reviewable in
+    place (and on GitHub). See :func:`rewrite_python_sync_regions`.
     """
 
     forced_parser = None
+
+    option_spec: ClassVar[OptionSpec] = {
+        **PythonRenderBaseDirective.option_spec,
+        "sync": directives.flag,
+    }
+    """Shared option spec plus the ``:sync:`` flag (see the class docstring)."""
 
 
 class PythonRenderMystDirective(PythonRenderBaseDirective):
@@ -294,6 +382,177 @@ class PythonRenderRstDirective(PythonRenderBaseDirective):
     """
 
     forced_parser = RstParser
+
+
+def _is_sync_close_fence(line: str, fence: str) -> bool:
+    """Return whether ``line`` closes a fence opened with ``fence``.
+
+    A closing fence is a run of the same fence character, at least as long as
+    the opener, optionally surrounded by whitespace and nothing else.
+    """
+    stripped = line.strip()
+    return bool(stripped) and set(stripped) == {fence[0]} and len(stripped) >= len(fence)
+
+
+def _split_sync_options(inner: list[str]) -> tuple[set[str], list[str]]:
+    """Split a fence's inner lines into its option keys and its Python body.
+
+    Leading ``:key:`` lines are consumed as directive options; an optional
+    single blank line separates them from the body. Returns the set of option
+    keys and the remaining body lines.
+    """
+    options: set[str] = set()
+    index = 0
+    while index < len(inner) and (match := _SYNC_OPTION_LINE.match(inner[index])):
+        options.add(match.group("key"))
+        index += 1
+    if index < len(inner) and not inner[index].strip():
+        index += 1
+    return options, inner[index:]
+
+
+def _skip_existing_sync_region(lines: list[str], index: int) -> int:
+    """Return the index just past an existing sync region starting at ``index``.
+
+    Skips leading blank lines, then a :data:`SYNC_MARKER_START` …
+    :data:`SYNC_MARKER_END` block if one is present. Returns ``index``
+    unchanged when no region follows, so a first-time block is not consumed.
+    """
+    cursor = index
+    while cursor < len(lines) and not lines[cursor].strip():
+        cursor += 1
+    if cursor < len(lines) and lines[cursor].strip() == SYNC_MARKER_START:
+        while cursor < len(lines) and lines[cursor].strip() != SYNC_MARKER_END:
+            cursor += 1
+        if cursor < len(lines):
+            return cursor + 1
+    return index
+
+
+def _execute_sync_block(
+    body: list[str],
+    namespace: dict[str, object],
+    location: str,
+) -> list[str]:
+    """Execute a sync block's Python body and return its captured stdout lines.
+
+    Mirrors :meth:`PythonRunner.run_python` but works from raw source lines:
+    the ``source-read`` pass runs before any directive instance exists. Shares
+    ``namespace`` across the blocks of one document so a later block can reuse
+    an earlier block's imports and variables.
+    """
+    buffer = io.StringIO()
+    code = compile("\n".join(body), location, "exec")
+    with contextlib.redirect_stdout(buffer):
+        exec(code, namespace)  # noqa: S102
+    return buffer.getvalue().splitlines()
+
+
+def _rewrite_sync_regions(text: str, location: str) -> str:
+    """Return ``text`` with every ``python:render :sync:`` region refreshed.
+
+    Walks the document fence by fence. Every fence is consumed as a unit (so
+    a ``python:render`` example nested inside a longer ``code-block`` fence is
+    left untouched); only a top-level ``python:render`` fence carrying a
+    ``:sync:`` option is executed, its output written into the marker region
+    directly below it (a region is inserted on first sight). Idempotent: a
+    region whose source is unchanged round-trips to the same text.
+    """
+    lines = text.split("\n")
+    total = len(lines)
+    out: list[str] = []
+    namespace: dict[str, object] = {"__file__": "dummy.py"}
+    index = 0
+    while index < total:
+        line = lines[index]
+        fence_match = _ANY_FENCE_OPEN.match(line)
+        if not fence_match:
+            out.append(line)
+            index += 1
+            continue
+
+        fence = fence_match.group("fence")
+        close = index + 1
+        while close < total and not _is_sync_close_fence(lines[close], fence):
+            close += 1
+        if close >= total:
+            # Unterminated fence: leave the tail untouched.
+            out.extend(lines[index:])
+            break
+
+        options: set[str] = set()
+        body: list[str] = []
+        if _SYNC_FENCE_OPEN.match(line):
+            options, body = _split_sync_options(lines[index + 1 : close])
+        # Emit the whole fence unit (source and close line) verbatim.
+        out.extend(lines[index : close + 1])
+        index = close + 1
+        if "sync" not in options:
+            continue
+
+        generated = _execute_sync_block(body, namespace, location)
+        index = _skip_existing_sync_region(lines, index)
+        out.extend(["", SYNC_MARKER_START, "", *generated, "", SYNC_MARKER_END])
+        # Collapse the gap to the following content to a single blank line.
+        while index < total and not lines[index].strip():
+            index += 1
+        if index < total:
+            out.append("")
+
+    return "\n".join(out)
+
+
+def rewrite_python_sync_regions(
+    app: Sphinx,
+    docname: str,
+    source: list[str],
+) -> None:
+    """``source-read`` handler mirroring ``python:render :sync:`` output.
+
+    For each ``python:render`` block flagged ``:sync:``, execute it before the
+    document is parsed and write its generated Markdown back into a
+    :data:`SYNC_MARKER_START` / :data:`SYNC_MARKER_END` region directly below
+    the fence. The rewrite is applied both to the in-memory ``source`` (so the
+    *same* build renders the fresh output with zero lag) and, best effort, to
+    the file on disk (so the ``.md`` self-updates and the region is reviewable
+    on GitHub and in diffs).
+
+    .. danger::
+        Like the ``python:*`` directives, this executes arbitrary Python at
+        build time with the full privileges of the Sphinx process. It is
+        registered only when ``click_extra_enable_exec_directives`` is set,
+        and must run before any other ``source-read`` transformer (it is
+        connected at a low priority) so the persisted file mirrors the
+        on-disk source rather than a downstream in-memory conversion.
+
+    .. note::
+        The mirrored region is raw Markdown, re-parsed by the host on every
+        build and reformatted by ``mdformat`` in the autofix pipeline. A sync
+        block must therefore ``print`` ``mdformat``-canonical Markdown (like
+        :func:`click_extra.table.render_table` in ``GITHUB`` mode) or the
+        generator and the formatter will fight over the region.
+    """
+    text = source[0]
+    if "python:render" not in text or ":sync:" not in text:
+        return
+
+    location = app.env.doc2path(docname)
+    rewritten = _rewrite_sync_regions(text, location)
+    if rewritten == text:
+        return
+    source[0] = rewritten
+
+    try:
+        path = Path(location)
+        if path.read_text(encoding="utf-8") != rewritten:
+            path.write_text(rewritten, encoding="utf-8")
+    except OSError as error:
+        logger.warning(
+            "click_extra.sphinx: could not persist python:render:sync region "
+            "for %s: %s",
+            docname,
+            error,
+        )
 
 
 class PythonDomain(StatelessDomain):

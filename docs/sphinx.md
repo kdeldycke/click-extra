@@ -829,6 +829,52 @@ for name in sorted(sys.builtin_module_names)[:5]:
     print(f"| `{name}` | built-in |")
 ```
 
+### Self-updating source with `:sync:`
+
+`python:render` accepts a `:sync:` flag. On top of rendering live, a sync block mirrors its generated Markdown back into the source `.md`, between two HTML-comment markers directly below the fence. The file self-updates on every build, and the output stays reviewable in the raw file, in diffs, and on GitHub, which renders the mirrored Markdown even though it never executes the block. This revives the `docs_update.py` marker-region pattern with the generator inlined into the page: no separate regenerator script, and no drift.
+
+Add `:sync:` to a `python:render` fence:
+
+````{code-block} markdown
+```{python:render}
+:sync:
+from click_extra.table import TableFormat, render_table
+
+print(render_table(
+    [["Lisbon", "12:00"], ["Denver", "05:00"]],
+    headers=["City", "Local time"],
+    table_format=TableFormat.GITHUB,
+))
+```
+````
+
+After a build the file gains a mirrored region, refreshed in place each time:
+
+````{code-block} markdown
+```{python:render}
+:sync:
+...
+```
+
+<!-- python:render:sync: auto-generated, do not edit -->
+
+| City   | Local time |
+| :----- | :--------- |
+| Lisbon | 12:00      |
+| Denver | 05:00      |
+
+<!-- python:render:sync: end -->
+````
+
+A few properties follow from the mirror being real Markdown:
+
+- The mirrored region is the single rendered copy, so the directive emits nothing of its own in sync mode: otherwise the table would render twice. Add `:show-source:` to also show the Python block above the region.
+- The rewrite runs before the page is parsed, so the same build that updates the file also renders the fresh output. There is no one-build lag.
+- The disk write is best effort. On a read-only checkout the page still renders from the in-memory mirror; it just is not persisted to the file.
+- The region is reformatted by `mdformat` like any other Markdown, so a sync block must print `mdformat`-canonical Markdown. `render_table` in `GITHUB` mode already does; a hand-built table may be re-aligned by the formatter and then fight the generator.
+
+`:sync:` is scoped to `python:render` in a Markdown host, and shares the `click_extra_enable_exec_directives` opt-in with the rest of the executing directives.
+
 ### Cross-format rendering
 
 `python:render-myst` and `python:render-rst` let a host file embed content authored in the other markup. This page is MyST, but the following block prints reST and parses it as such:
@@ -861,20 +907,21 @@ The `python:source` block ran silently to seed `dedent` and `GREETING`; the subs
 
 `python:run` and the `python:render*` directives accept the same option spec as `click:run`. Defaults match: results shown, source hidden, so an inline `import` line in a `python:run` block runs silently and stays out of the rendered output.
 
-| Option                              | Effect                                                                   | Default |
-| ----------------------------------- | ------------------------------------------------------------------------ | ------- |
-| `:show-source:` / `:hide-source:`   | Render the directive's source block, or omit it.                         | hidden  |
-| `:show-results:` / `:hide-results:` | Render the captured output block, or omit it.                            | shown   |
-| `:linenos:`                         | Display line numbers in both blocks.                                     | off     |
-| `:lineno-start:`                    | Starting line number when `:linenos:` is on. Applies to source.          | 1       |
-| `:emphasize-lines:`                 | Highlight lines in the source block. Syntax: `1,3-5`.                    | none    |
-| `:emphasize-result-lines:`          | Highlight lines in the result block. Same syntax as `:emphasize-lines:`. | none    |
-| `:language:`                        | Override the Pygments lexer used to render the result block.             | `text`  |
-| `:caption:`                         | Set a caption on the rendered code block.                                | none    |
-| `:name:`                            | Anchor name for cross-referencing.                                       | none    |
-| `:class:`                           | Extra CSS class on the rendered block.                                   | none    |
-| `:dedent:`                          | Strip N leading spaces from every line of the source.                    | 0       |
-| `:force:`                           | Suppress minor highlighting errors.                                      | off     |
+| Option                              | Effect                                                                                     | Default |
+| ----------------------------------- | ------------------------------------------------------------------------------------------ | ------- |
+| `:show-source:` / `:hide-source:`   | Render the directive's source block, or omit it.                                           | hidden  |
+| `:show-results:` / `:hide-results:` | Render the captured output block, or omit it.                                              | shown   |
+| `:sync:`                            | Mirror the generated Markdown back into the source below the fence (`python:render` only). | off     |
+| `:linenos:`                         | Display line numbers in both blocks.                                                       | off     |
+| `:lineno-start:`                    | Starting line number when `:linenos:` is on. Applies to source.                            | 1       |
+| `:emphasize-lines:`                 | Highlight lines in the source block. Syntax: `1,3-5`.                                      | none    |
+| `:emphasize-result-lines:`          | Highlight lines in the result block. Same syntax as `:emphasize-lines:`.                   | none    |
+| `:language:`                        | Override the Pygments lexer used to render the result block.                               | `text`  |
+| `:caption:`                         | Set a caption on the rendered code block.                                                  | none    |
+| `:name:`                            | Anchor name for cross-referencing.                                                         | none    |
+| `:class:`                           | Extra CSS class on the rendered block.                                                     | none    |
+| `:dedent:`                          | Strip N leading spaces from every line of the source.                                      | 0       |
+| `:force:`                           | Suppress minor highlighting errors.                                                        | off     |
 
 ```{seealso}
 Some related projects for build-time Python execution:
