@@ -591,6 +591,33 @@ def test_group_options_work_with_wrap(runner, greet_script, group_opts):
 
 
 @pytest.mark.parametrize(
+    ("theme", "styled_heading"),
+    [
+        # The styled ``Usage:`` heading uses each theme's 24-bit ``heading`` slot,
+        # which no other built-in emits; re-pin if the palette changes.
+        ("dracula", "\x1b[38;2;255;121;198m\x1b[4mUsage:"),
+        ("nord", "\x1b[38;2;94;129;172m\x1b[4mUsage:"),
+    ],
+)
+def test_wrap_honors_group_theme(runner, greet_script, theme, styled_heading):
+    """A group-level ``--theme`` reaches the wrapped CLI's help screen.
+
+    ThemeOption records the pick on the shared context meta, but the wrapped
+    target runs under its own fresh context; wrap must bridge the pick to the
+    process default (through patch_click) for the target's help to pick it up.
+    """
+    result = runner.invoke(
+        demo,
+        ["--theme", theme, "wrap", greet_script, "--help"],
+        color=True,
+    )
+    assert result.exit_code == 0
+    assert styled_heading in result.output
+    # Not the 16-color bright-blue heading of the dark default it used to leak.
+    assert "\x1b[94m\x1b[4mUsage:" not in result.output
+
+
+@pytest.mark.parametrize(
     "subcommand",
     ["gradient", "palette", "8color", "colors", "styles"],
 )

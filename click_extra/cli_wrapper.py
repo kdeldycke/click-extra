@@ -55,7 +55,13 @@ from .parameters import (
     render_params_table,
 )
 from .table import DEFAULT_FORMAT, TableFormat
-from .theme import BUILTIN_THEMES, HelpTheme, nocolor_theme, set_default_theme
+from .theme import (
+    BUILTIN_THEMES,
+    HelpTheme,
+    get_current_theme,
+    nocolor_theme,
+    set_default_theme,
+)
 from .tree import render_command_tree
 from .types import EnumChoice
 
@@ -955,8 +961,11 @@ def wrap(
 
     # Color and theme are inherited from the parent group's context: ColorOption
     # has already processed --color/--no-color flags and environment variables
-    # (NO_COLOR, CLICOLOR, etc.), and ThemeOption has reassigned
-    # ``theme.default_theme`` to the user's pick. ``theme=None`` instructs
-    # ``patch_click`` to keep that current default.
-    patch_click(theme=None, color=ctx.color)
+    # (NO_COLOR, CLICOLOR, etc.), and ThemeOption has recorded the user's --theme
+    # pick on the shared context meta. The wrapped target runs under its own fresh
+    # context with no meta, so ``get_current_theme`` (reading that meta, or the
+    # dark default when --theme was omitted) resolves the pick here and hands it to
+    # ``patch_click``, which installs it as the process-wide default the target's
+    # help then renders with.
+    patch_click(theme=get_current_theme(), color=ctx.color)
     invoke_target(script, module_path, function_name, args)
