@@ -170,6 +170,11 @@ from .man_page import (
     render_manpages,
     write_manpages,
 )
+from .myst_converter import (
+    convert_directory,
+    convert_file,
+    detect_source_package,
+)
 from .parameters import (
     Argument,
     ExtraOption,
@@ -181,6 +186,10 @@ from .parameters import (
     last_param,
     require_sibling_param,
     search_params,
+)
+from .rst_to_myst import (
+    convert_apidoc_rst_to_myst,
+    convert_rst_files_in_directory,
 )
 from .spinner import (  # type: ignore[no-redef]
     SPINNERS,
@@ -369,6 +378,11 @@ __all__ = [
     "constrained_params",
     "constraint",
     "context",
+    "convert_apidoc_rst_to_myst",
+    "convert_directory",
+    "convert_file",
+    "convert_rst_files_in_directory",
+    "detect_source_package",
     "dir_path",
     "echo",
     "echo_via_pager",

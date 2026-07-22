@@ -33,6 +33,10 @@ extensions = [
     "sphinxext.opengraph",
     "myst_parser",
     "sphinx.ext.autosectionlabel",
+    # myst_docstrings hooks autodoc-process-docstring at priority 400 (vs default
+    # 500) so it always runs before sphinx_autodoc_typehints. Listing it first
+    # makes the intent explicit; the extension enforces this at load time.
+    "click_extra.sphinx.myst_docstrings",
     "sphinx_autodoc_typehints",
     "click_extra.sphinx",
     "sphinxcontrib.mermaid",

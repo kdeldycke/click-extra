@@ -46,7 +46,29 @@ docs = [
 
 ### 3. Migrate existing docstrings
 
-For a one-time migration of an existing reST codebase, [`repomatic`](https://github.com/kdeldycke/repomatic) ships a `convert-to-myst` command that rewrites source files in place, idempotently. See the [repomatic MyST docstrings page](https://kdeldycke.github.io/repomatic/myst-docstrings.html) for usage. Migration is optional: the extension is idempotent, so reST-only docstrings pass through unchanged and a codebase can convert one module at a time.
+For a one-time migration of an existing reST codebase, run the bundled converter on your source directory:
+
+```shell-session
+$ click-extra convert-to-myst
+```
+
+The command auto-detects the source package directory from the `[project.scripts]` entry points in `pyproject.toml`. You can also pass an explicit path:
+
+```shell-session
+$ click-extra convert-to-myst src/mypackage
+```
+
+The conversion is idempotent: re-running it on already-converted files is a no-op. Migration is also optional: the extension passes reST-only docstrings through unchanged, so a codebase can convert one module at a time.
+
+The applied transformations, in order:
+
+1. **Cross-references**: `` :role:`target` `` becomes `` {role}`target` ``
+2. **Named links**: `` `text <url>`_ `` becomes `[text](url)`
+3. **Inline code**: ``` ``code`` ``` becomes `` `code` ``
+4. **`#:` comment blocks**: prefix stripped, directives converted, prefix restored
+5. **Directives**: `.. directive::` + indented body becomes ```` ```{directive} ```` / ```` ``` ````
+
+Content containing `{` inside inline code is left as double backticks to avoid clashing with MyST cross-reference syntax. These pass through the build-time extension unchanged.
 
 ## Syntax reference
 

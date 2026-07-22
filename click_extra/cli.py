@@ -43,6 +43,7 @@ from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
 from .context import pass_context
 from .decorators import argument, command, group, jobs_option, option
 from .envvar import merge_envvar_ids
+from .myst_converter import convert_directory, detect_source_package
 from .parameters import make_resilient_context, missing_extra_message
 from .prebake import (
     _find_dunder_str,
@@ -342,6 +343,41 @@ def refresh_directives_cmd(
 
 
 demo.add_command(refresh_directives_cmd)
+
+
+@command(name="convert-to-myst")
+@argument("directory", required=False, default=None)
+def convert_to_myst_cmd(directory: str | None) -> None:
+    """Convert reST docstrings to MyST markdown in Python source files.
+
+    Transforms reST markup in docstrings and #: comment blocks to MyST. The
+    companion click_extra.sphinx.myst_docstrings Sphinx extension converts the
+    MyST back to reST at build time, so sphinx.ext.autodoc still works.
+
+    If DIRECTORY is not specified, auto-detects the source package directory
+    from the project's script entry points in pyproject.toml.
+
+    Safe to re-run: already-converted MyST syntax does not match the reST
+    patterns, so the conversion is idempotent.
+    """
+    if directory:
+        root = Path(directory)
+    else:
+        try:
+            root = detect_source_package()
+        except ValueError as error:
+            raise ClickException(str(error)) from error
+
+    if not root.is_dir():
+        raise ClickException(f"Not a directory: {root}")
+
+    changed = convert_directory(root)
+    for filepath in changed:
+        echo(f"  Converted: {filepath}")
+    echo(f"\n{len(changed)} file(s) converted.")
+
+
+demo.add_command(convert_to_myst_cmd)
 
 
 _ALL_STYLES = (
