@@ -1016,7 +1016,7 @@ def test_terminate_live_processes_signals_whole_group(tmp_path):
         grandchild = subprocess.Popen(
             (sys.executable, "-c", "import time; time.sleep(30)"),
         )
-        open({str(pid_file)!r}, "w").write(str(grandchild.pid))
+        open({str(pid_file)!r}, "w", encoding="utf-8").write(str(grandchild.pid))
         time.sleep(30)
         """)
 
@@ -1039,7 +1039,7 @@ def test_terminate_live_processes_signals_whole_group(tmp_path):
         worker.join(timeout=5)
     assert not _LIVE_PROCESSES
     assert not _GROUP_LEADERS
-    _assert_process_dies(int(pid_file.read_text()))
+    _assert_process_dies(int(pid_file.read_text(encoding="utf-8")))
 
 
 def test_terminate_live_processes_ignores_already_reaped():

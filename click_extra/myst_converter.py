@@ -21,7 +21,7 @@ the MyST back to reST at build time, so `sphinx.ext.autodoc` still works.
 
 Conversions applied (in order):
 
-1. Cross-references: ``{role}`target``` -> ``{role}`target```
+1. Cross-references: ``:role:`target``` -> ``{role}`target```
 2. Named links: ```text <url>`_` -> `[text](url)``
 3. Inline code: ````code```` -> ```code```
 4. `#:` comment blocks: strip prefix, convert directives, re-wrap.
@@ -169,7 +169,7 @@ def convert_links(text: str) -> str:
 DOUBLE_BACKTICK_RE = re.compile(r"(?<!`)``(?!`)([^`\n]+?)``(?!`)")
 
 
-def _halve_backticks(m: re.Match) -> str:
+def _halve_backticks(m: re.Match[str]) -> str:
     """Halve a literal's backticks, keeping brace-bearing content double.
 
     Content with `{` (interpolation placeholders, format templates) must stay

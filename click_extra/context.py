@@ -149,7 +149,8 @@ class Context(cloup.Context):
         Same contract as {func}`click_extra.table.render_table`, with
         `table_format` and `sort_key` defaulting to the values resolved by
         the `--table-format` and `--sort-by` options (read from
-        {data}`TABLE_FORMAT` and {data}`TABLE_SORT_KEY`). `ctx.meta` is
+        {data}`~click_extra.context.TABLE_FORMAT` and
+        {data}`~click_extra.context.TABLE_SORT_KEY`). `ctx.meta` is
         shared along the context chain, so this works from any subcommand
         without reaching for the root context. Without those options in the
         chain, falls back to the default format and no sort.

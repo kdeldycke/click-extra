@@ -493,7 +493,7 @@ from samcli.cli.main import cli as sam_cli
 from dbt.cli.main import cli as dbt_cli
 
 
-@click_extra.group
+@click_extra.group(name="wrap.py")
 def main():
     pass
 
@@ -509,39 +509,59 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 30-32
+:emphasize-lines: 49-51
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --time / --no-time    Measure and print elapsed execution time.  [default: no-
-                        time]
-  --color [auto|always|never]
-                        Colorize the output. A bare --color is the same as
-                        --color=always.  [default: auto]
-  --no-color            Disable colorization (alias of --color=never).
-  --config CONFIG_PATH  Location of the configuration file. Supports glob
-                        pattern of local path and remote URL.  [default:
-                        ~/Library/Application
-                        Support/wrap.py/*.{toml,yaml,yml,json,ini,xml}]
-  --no-config           Ignore all configuration files and only use command line
-                        parameters and environment variables.
-  --params              Show all CLI parameters, their provenance, defaults and
-                        value, then exit.
-  --table-format [asciidoc|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|html|jira|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|tsv|unsafehtml|vertical|youtrack]
-                        Rendering style of tables.  [default: rounded-outline]
-  --verbosity LEVEL     Either CRITICAL, ERROR, WARNING, INFO, DEBUG.  [default:
-                        INFO]
-  -v, --verbose         Increase the default WARNING verbosity by one level for
-                        each additional repetition of the option.  [default: 0]
-  -q, --quiet           Decrease the default WARNING verbosity by one level for
-                        each additional repetition of the option.  [default: 0]
-  --version             Show the version and exit.
-  -h, --help            Show this message and exit.
+  --time / --no-time           Measure and print elapsed execution time.
+                               [default: no-time]
+  --config CONFIG_PATH         Location of the configuration file. Supports
+                               local path with glob patterns or remote URL.
+                               [default: ~/Library/Application Support/wrap.py/
+                               {*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hj
+                               son,*.ini,*.xml,pyproject.toml}]
+  --no-config                  Ignore all configuration files and only use
+                               command line parameters and environment
+                               variables.
+  --validate-config FILE       Validate the configuration file and exit.
+  --export-config FORMAT       Export the configuration in the selected format
+                               to <stdout>, then exit.
+  --accessible                 Accessibility mode: disable colors and render
+                               tables in a plain, screen-reader-friendly
+                               format.
+  --color [auto|always|never]  Colorize the output. A bare --color is the same
+                               as --color=always.  [default: auto]
+  --no-color                   Disable colorization (alias of --color=never).
+  --progress / --no-progress   Show progress indicators during long operations.
+                               Disabled for non-interactive output (pipes, dumb
+                               terminals, CI) and by --accessible.  [default:
+                               progress]
+  --theme [dark|dracula|light|manpage|monokai|nord|solarized_dark]
+                               Color theme used for help screens.  [default:
+                               dark]
+  --params                     Show all CLI parameters, their provenance,
+                               defaults and value, then exit.
+  --table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|hjson|html|jira|json|json5|jsonc|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|toml|tsv|unsafehtml|vertical|xml|yaml|youtrack]
+                               Rendering style of tables.  [default: rounded-
+                               outline]
+  --verbosity LEVEL            Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
+                               [default: WARNING]
+  -v, --verbose                Increase the default WARNING verbosity by one
+                               level for each additional repetition of the
+                               option.  [default: 0]
+  -q, --quiet                  Decrease the default WARNING verbosity by one
+                               level for each additional repetition of the
+                               option.  [default: 0]
+  --tree                       Show the tree of nested subcommands and exit.
+  --man                        Show the command's man page (roff) and exit.
+  --version                    Show the version and exit.
+  -h, --help                   Show this message and exit.
 
 Commands:
   aws_sam  AWS Serverless Application Model (SAM) CLI
   dbt      An ELT tool for managing your SQL transformations and data models.
+  help     Show help for a command.
 ```
 
 Here you can see that the top-level CLI gets [all the default options and behavior (including coloring)](tutorial.md#all-bells-and-whistles) of `@group`. But it also made available the standalone `aws_sam` and `dbt` CLI as standard subcommands.

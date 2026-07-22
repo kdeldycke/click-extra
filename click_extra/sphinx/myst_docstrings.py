@@ -40,7 +40,7 @@ Supported conversions:
   - reST output
 * - Cross-references
   - ``{role}`target```
-  - ``{role}`target```
+  - ``:role:`target```
 * - Fenced directives
   - `` ```{note} ``
   - `.. note::`
@@ -83,6 +83,8 @@ from __future__ import annotations
 
 import logging
 import re
+
+from sphinx.errors import ExtensionError
 
 from .. import __version__
 
@@ -331,8 +333,6 @@ def setup(app):
     :raises ExtensionError: If `sphinx_autodoc_typehints` is already loaded.
     """
     if _TYPEHINTS_EXT in app.extensions:
-        from sphinx.errors import ExtensionError
-
         msg = (
             f"click_extra.sphinx.myst_docstrings must be listed before"
             f" {_TYPEHINTS_EXT} in conf.py extensions."

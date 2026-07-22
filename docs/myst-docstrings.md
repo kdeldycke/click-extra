@@ -184,7 +184,7 @@ In the example above, single-backtick code spans (`path`, `True`) are doubled fo
 
 The extension handles the constructs listed above. It does **not** convert:
 
-- **Nested fences of the same type** (` ` `/` \`\`\` \`\`\`\`). A single nesting level works because the inner directive (like `.. code-block::`) stays as reST inside the converted outer fence.
+- **Nested fences of the same type** (```` ``` ```` / ````` ```` `````). A single nesting level works because the inner directive (like `.. code-block::`) stays as reST inside the converted outer fence.
 - **Complex tables** (```` ```{list-table} ````, ```` ```{csv-table} ````). These work in module-level docstrings processed by `myst-parser` but are unlikely to appear in function docstrings.
 - **`{` inside single backticks**. Content like `` `{version}` `` would be misinterpreted as a cross-reference. Keep these as double backticks (``` ``{version}`` ```), which the extension passes through to Sphinx as-is.
 - **Domain-qualified roles** (`` {py:class}`str` ``). The role converter only handles bare role names. Write domain-qualified references in reST (`` :py:class:`str` ``), which passes through unchanged; the `convert-to-myst` migration leaves them in reST for the same reason.

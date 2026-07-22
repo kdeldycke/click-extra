@@ -10,7 +10,7 @@ Because the two come from separate class lineages, they cannot be merged. A hybr
 
 ## How this differs from rich-click
 
-[rich-click](https://rich-click.readthedocs.io) does integrate with Typer, through its [`patch_typer()`](https://rich-click.readthedocs.io/en/latest/documentation/typer_support/) helper, which can look like a counterexample. The difference is in what each library changes. rich-click only restyles the help *output*: it overrides how help is rendered and leaves Typer's own command construction and parsing untouched, so it never crosses the Click-lineage boundary.
+[rich-click](https://ewels.github.io/rich-click/) does integrate with Typer, through its [`patch_typer()`](https://ewels.github.io/rich-click/latest/documentation/typer_support/) helper, which can look like a counterexample. The difference is in what each library changes. rich-click only restyles the help *output*: it overrides how help is rendered and leaves Typer's own command construction and parsing untouched, so it never crosses the Click-lineage boundary.
 
 click-extra's value is the opposite kind of work. Its features run *during parsing*: `--config` loads a file and feeds it into the command's defaults, `--verbosity` configures logging, `--color` and `--version` resolve ahead of the rest. That requires being a working Click command inside the same parser that runs it, which is exactly what Typer's bundled Click forecloses. Restyling output transfers to Typer; parse-time behavior does not.
 

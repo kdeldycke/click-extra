@@ -50,7 +50,7 @@ def _clean_heading(title: str) -> str:
 
     ```{note}
     `sphinx-apidoc` produces headings like
-    `meta\\_package\\_manager.managers.apm module`.  The backslash
+    `weather\\_station\\_manager.managers.apm module`.  The backslash
     escapes are necessary in RST but meaningless in markdown, where they
     cause a tug-of-war with `mdformat` (which strips them on every
     reformat pass).  Wrapping the identifier in backticks makes the
