@@ -22,17 +22,18 @@ them as colored HTML with CSS classes. Supports the standard 8/16 named colors, 
 SGR text attributes: bold, faint, italic, underline, blink, reverse video, strikethrough,
 and overline.
 
-OSC 8 hyperlinks are rendered as HTML ``<a>`` tags. Other OSC sequences are silently
+OSC 8 hyperlinks are rendered as HTML `<a>` tags. Other OSC sequences are silently
 stripped.
 
-.. note::
-    24-bit RGB colors (``SGR 38;2;r;g;b`` and ``48;2;r;g;b``) are preserved by default
-    and rendered by ``AnsiHtmlFormatter`` as inline ``style="color: #rrggbb"`` /
-    ``style="background-color: #rrggbb"`` spans (CSS classes cannot enumerate 16.7M
-    colors). Other token components (bold, named colors, palette indices) keep their
-    CSS-class rendering. Pass ``true_color=False`` to ``AnsiColorLexer``, ``AnsiFilter``,
-    or any session lexer (via ``get_lexer_by_name(..., true_color=False)``) to opt into
-    quantization to the nearest entry in the 256-color palette instead.
+```{note}
+24-bit RGB colors (`SGR 38;2;r;g;b` and `48;2;r;g;b`) are preserved by default
+and rendered by `AnsiHtmlFormatter` as inline `style="color: #rrggbb"` /
+`style="background-color: #rrggbb"` spans (CSS classes cannot enumerate 16.7M
+colors). Other token components (bold, named colors, palette indices) keep their
+CSS-class rendering. Pass `true_color=False` to `AnsiColorLexer`, `AnsiFilter`,
+or any session lexer (via `get_lexer_by_name(..., true_color=False)`) to opt into
+quantization to the nearest entry in the 256-color palette instead.
+```
 """
 
 from __future__ import annotations
@@ -93,9 +94,9 @@ _NAMED_COLORS: dict[str, str] = {
 }
 """Standard 8 colors and their bright variants, mapped to hex values.
 
-Keyed by ``Token.Ansi`` component name (``Red``, ``BrightRed``, ...) and derived
-from the canonical :data:`click_extra.styling._ANSI_16_RGB` palette, so the
-documentation renders named ANSI colors with the exact values ``Style`` uses
+Keyed by `Token.Ansi` component name (`Red`, `BrightRed`, ...) and derived
+from the canonical {data}`click_extra.styling._ANSI_16_RGB` palette, so the
+documentation renders named ANSI colors with the exact values `Style` uses
 for CSS output and contrast math.
 """
 
@@ -104,7 +105,7 @@ _PALETTE_256: dict[int, str] = {
 }
 """256-color indexed palette mapped to hex values.
 
-Derived index by index from :func:`click_extra.styling._palette_to_rgb`:
+Derived index by index from {func}`click_extra.styling._palette_to_rgb`:
 indices 0-15 are the system colors (the canonical named palette, like real
 terminals which render those slots with their theme), 16-231 the 6x6x6 color
 cube, and 232-255 the grayscale ramp.
@@ -118,8 +119,8 @@ _SGR_FG_COLORS: dict[int, str] = {
 }
 """SGR foreground color codes (30-37, 90-97) to named color strings.
 
-Derived from the canonical :data:`click_extra.styling._ANSI_NAMES` order, the
-same construction as :data:`_NAMED_COLORS`.
+Derived from the canonical {data}`click_extra.styling._ANSI_NAMES` order, the
+same construction as {data}`_NAMED_COLORS`.
 """
 
 _SGR_BG_COLORS: dict[int, str] = {
@@ -127,7 +128,7 @@ _SGR_BG_COLORS: dict[int, str] = {
 }
 """SGR background color codes (40-47, 100-107) to named color strings.
 
-Derived from ``_SGR_FG_COLORS`` by offsetting each code by +10.
+Derived from `_SGR_FG_COLORS` by offsetting each code by +10.
 """
 
 _SGR_ATTR_ON: dict[int, str] = {
@@ -140,10 +141,10 @@ _SGR_ATTR_ON: dict[int, str] = {
     9: "Strikethrough",
     53: "Overline",
 }
-"""SGR codes that activate text attributes, mapped to ``Token.Ansi`` component names.
+"""SGR codes that activate text attributes, mapped to `Token.Ansi` component names.
 
 This mapping is the single source of truth for supported text attributes. The attribute
-names appear in ``EXTRA_ANSI_CSS``, the Pygments token hierarchy, and CSS class names.
+names appear in `EXTRA_ANSI_CSS`, the Pygments token hierarchy, and CSS class names.
 """
 
 _SGR_ATTR_OFF: dict[int, tuple[str, ...]] = {
@@ -167,16 +168,16 @@ both bold and faint simultaneously.
 Ansi = Token.Ansi
 """Unified token namespace for ANSI styling.
 
-Compound tokens from the lexer (like ``Token.Ansi.Bold.Red``) and individual style
-components (like ``Token.Ansi.Red``) share this single namespace. The formatter
+Compound tokens from the lexer (like `Token.Ansi.Bold.Red`) and individual style
+components (like `Token.Ansi.Red`) share this single namespace. The formatter
 decomposes compound tokens into individual CSS classes at render time.
 """
 
 _AnsiLinkStart = Token.AnsiLinkStart
 """Structural token emitted at the start of an OSC 8 hyperlink.
 
-The token value carries the raw URL. ``AnsiHtmlFormatter`` converts these into HTML
-``<a>`` tags.
+The token value carries the raw URL. `AnsiHtmlFormatter` converts these into HTML
+`<a>` tags.
 """
 
 _AnsiLinkEnd = Token.AnsiLinkEnd
@@ -186,12 +187,12 @@ _SAFE_URL_SCHEMES = frozenset(("ftp", "ftps", "http", "https", "mailto"))
 """Allowed URL schemes for OSC 8 hyperlinks.
 
 Only URLs with one of these schemes are emitted as link tokens. All other URLs are
-silently stripped to prevent ``javascript:`` and other injection vectors.
+silently stripped to prevent `javascript:` and other injection vectors.
 """
 
 
 def _has_safe_scheme(url: str) -> bool:
-    """Return ``True`` if ``url`` starts with a scheme in ``_SAFE_URL_SCHEMES``."""
+    """Return `True` if `url` starts with a scheme in `_SAFE_URL_SCHEMES`."""
     colon = url.find(":")
     return colon > 0 and url[:colon].lower() in _SAFE_URL_SCHEMES
 
@@ -200,7 +201,7 @@ def _has_safe_scheme(url: str) -> bool:
 
 
 def _build_ansi_styles() -> dict[_TokenType, str]:
-    """Build the Pygments style dict mapping ``Token.Ansi.*`` to CSS property strings.
+    """Build the Pygments style dict mapping `Token.Ansi.*` to CSS property strings.
 
     Registers text attributes, 16 named colors (foreground and background), and the full
     256-color indexed palette.
@@ -231,7 +232,7 @@ def _build_ansi_styles() -> dict[_TokenType, str]:
 _ANSI_STYLES: dict[_TokenType, str] = _build_ansi_styles()
 """Pre-built Pygments style dict for all ANSI color tokens.
 
-Computed once at import time. Used by ``AnsiHtmlFormatter`` to augment the base Pygments
+Computed once at import time. Used by `AnsiHtmlFormatter` to augment the base Pygments
 style with ANSI color support.
 """
 
@@ -241,7 +242,7 @@ style with ANSI color support.
 DEFAULT_TOKEN_TYPE = Generic.Output
 """Default Pygments token type to render with ANSI support.
 
-Defaults to ``Generic.Output`` tokens, as this is the token type used by all REPL-like
+Defaults to `Generic.Output` tokens, as this is the token type used by all REPL-like
 and terminal session lexers.
 """
 
@@ -258,11 +259,11 @@ _ANSI_ESCAPE_RE = re.compile(
 
 Alternatives in priority order:
 
-1. CSI SGR sequence (``ESC [`` + params + ``m``): captured for SGR processing.
-2. Other CSI sequences (``ESC [`` + params + final byte): consumed and stripped.
-3. OSC 8 hyperlink (``ESC ] 8 ; params ; URI ST``): URI captured for link rendering.
-4. Other OSC sequences (``ESC ]`` + payload + ``BEL`` or ``ST``): consumed and stripped.
-5. VT100 charset selection (``ESC (`` or ``ESC )`` + designator): consumed and stripped.
+1. CSI SGR sequence (`ESC [` + params + `m`): captured for SGR processing.
+2. Other CSI sequences (`ESC [` + params + final byte): consumed and stripped.
+3. OSC 8 hyperlink (`ESC ] 8 ; params ; URI ST`): URI captured for link rendering.
+4. Other OSC sequences (`ESC ]` + payload + `BEL` or `ST`): consumed and stripped.
+5. VT100 charset selection (`ESC (` or `ESC )` + designator): consumed and stripped.
 6. Any other escape sequence: consumed and stripped.
 7. Plain text: captured and emitted with the current styling token.
 """
@@ -271,9 +272,9 @@ Alternatives in priority order:
 class AnsiColorLexer(Lexer):
     """Lexer for text containing ANSI escape sequences.
 
-    Parses Select Graphic Rendition (SGR) codes and emits compound ``Token.Ansi.*``
+    Parses Select Graphic Rendition (SGR) codes and emits compound `Token.Ansi.*`
     tokens representing the active styling state. OSC 8 hyperlinks emit
-    ``Token.AnsiLinkStart`` / ``Token.AnsiLinkEnd`` structural tokens. All other escape
+    `Token.AnsiLinkStart` / `Token.AnsiLinkEnd` structural tokens. All other escape
     sequences are silently stripped.
 
     Supported SGR codes:
@@ -286,7 +287,7 @@ class AnsiColorLexer(Lexer):
 
     Supported OSC sequences:
 
-    - OSC 8 hyperlinks: rendered as ``<a>`` tags by ``AnsiHtmlFormatter``. Only URLs with
+    - OSC 8 hyperlinks: rendered as `<a>` tags by `AnsiHtmlFormatter`. Only URLs with
       safe schemes (http, https, mailto, ftp, ftps) are emitted; others are stripped.
     """
 
@@ -296,11 +297,11 @@ class AnsiColorLexer(Lexer):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the lexer.
 
-        :param true_color: Default ``True``. 24-bit RGB sequences are preserved as
+        :param true_color: Default `True`. 24-bit RGB sequences are preserved as
             ``Token.Ansi.FG_{rrggbb}`` / ``Token.Ansi.BG_{rrggbb}`` tokens, which
-            ``AnsiHtmlFormatter`` renders as inline ``style="color: #rrggbb"`` /
-            ``style="background-color: #rrggbb"`` attributes (CSS classes cannot
-            enumerate 16.7M colors). Pass ``False`` to quantize 24-bit RGB to the
+            `AnsiHtmlFormatter` renders as inline `style="color: #rrggbb"` /
+            `style="background-color: #rrggbb"` attributes (CSS classes cannot
+            enumerate 16.7M colors). Pass `False` to quantize 24-bit RGB to the
             nearest entry in the 256-color palette and emit ``Token.Ansi.C{n}`` /
             ``Token.Ansi.BGC{n}`` tokens that map to CSS classes via the style dict.
         """
@@ -323,7 +324,7 @@ class AnsiColorLexer(Lexer):
 
         Each active attribute and color becomes a component of the token path. For
         example, bold red text on a green background produces
-        ``Token.Ansi.Bold.Red.BGGreen``.
+        `Token.Ansi.Bold.Red.BGGreen`.
 
         Uses a dirty flag to avoid recomputation when the state hasn't changed since the
         last access (common with stripped non-SGR escapes between text fragments).
@@ -334,8 +335,8 @@ class AnsiColorLexer(Lexer):
         if self.fg_color:
             components.append(self.fg_color)
         if self.bg_color:
-            # ``BG_rrggbb`` true-color values are already prefixed; named and
-            # palette-indexed values use the conventional ``BG`` prefix.
+            # `BG_rrggbb` true-color values are already prefixed; named and
+            # palette-indexed values use the conventional `BG` prefix.
             components.append(
                 self.bg_color
                 if self.bg_color.startswith("BG_")
@@ -410,7 +411,7 @@ class AnsiColorLexer(Lexer):
                 elif mode == 2:
                     # 24-bit RGB: 38;2;r;g;b or 48;2;r;g;b.
                     # Quantized to the nearest 256-color entry by default; preserved
-                    # as FG_/BG_ hex token components when ``true_color`` is enabled.
+                    # as FG_/BG_ hex token components when `true_color` is enabled.
                     if len(values) < 3:
                         continue
                     r, g, b = values.pop(0), values.pop(0), values.pop(0)
@@ -431,10 +432,10 @@ class AnsiColorLexer(Lexer):
     def get_tokens_unprocessed(
         self, text: str
     ) -> Iterator[tuple[int, _TokenType, str]]:
-        """Parse ANSI escape sequences from ``text`` and yield styled tokens.
+        """Parse ANSI escape sequences from `text` and yield styled tokens.
 
         SGR sequences update the styling state. OSC 8 hyperlinks emit structural
-        ``Token.AnsiLinkStart`` / ``Token.AnsiLinkEnd`` tokens. All other escape
+        `Token.AnsiLinkStart` / `Token.AnsiLinkEnd` tokens. All other escape
         sequences are consumed and stripped.
         """
         self._reset_state()
@@ -470,29 +471,28 @@ class AnsiColorLexer(Lexer):
 
 
 class AnsiFilter(Filter):
-    """Custom filter transforming a particular kind of token (``Generic.Output`` by
+    """Custom filter transforming a particular kind of token (`Generic.Output` by
     default) into ANSI tokens."""
 
     def __init__(self, **options) -> None:
-        """Initialize an ``AnsiColorLexer`` and configure the ``token_type`` to be
+        """Initialize an `AnsiColorLexer` and configure the `token_type` to be
         colorized.
 
-        :param true_color: Forwarded to the inner ``AnsiColorLexer`` to control whether
-            24-bit RGB sequences are preserved as ``FG_/BG_`` hex tokens for inline-style
-            rendering (default ``True``) or quantized to the 256-color palette. See
-            :class:`AnsiColorLexer` for details.
+        :param true_color: Forwarded to the inner `AnsiColorLexer` to control whether
+            24-bit RGB sequences are preserved as `FG_/BG_` hex tokens for inline-style
+            rendering (default `True`) or quantized to the 256-color palette. See
+            {class}`AnsiColorLexer` for details.
 
-        .. note::
-            Only one ``token_type`` is supported. All Pygments session lexers
-            (``ShellSessionBaseLexer`` and the manually-maintained list in
-            ``collect_session_lexers``) emit terminal output exclusively as
-            ``Generic.Output``. No upstream issue or PR proposes splitting output into
-            additional token types (like ``Generic.Error`` for stderr). If that changes,
-            this filter would need to accept a set of token types instead of a single
-            one. See `pygments#1148
-            <https://github.com/pygments/pygments/issues/1148>`_ and `pygments#2499
-            <https://github.com/pygments/pygments/issues/2499>`_ for the closest
-            related discussions.
+        ```{note}
+        Only one `token_type` is supported. All Pygments session lexers
+        (`ShellSessionBaseLexer` and the manually-maintained list in
+        `collect_session_lexers`) emit terminal output exclusively as
+        `Generic.Output`. No upstream issue or PR proposes splitting output into
+        additional token types (like `Generic.Error` for stderr). If that changes,
+        this filter would need to accept a set of token types instead of a single
+        one. See [pygments#1148](https://github.com/pygments/pygments/issues/1148) and [pygments#2499](https://github.com/pygments/pygments/issues/2499) for the closest
+        related discussions.
+        ```
         """
         true_color = bool(options.pop("true_color", True))
         super().__init__(**options)
@@ -504,7 +504,7 @@ class AnsiFilter(Filter):
     def filter(
         self, lexer: Lexer | None, stream: Iterable[tuple[_TokenType, str]]
     ) -> Iterator[tuple[_TokenType, str]]:
-        """Transform each token of ``token_type`` type into a stream of ANSI tokens."""
+        """Transform each token of `token_type` type into a stream of ANSI tokens."""
         for ttype, value in stream:
             if ttype == self.token_type:
                 yield from self.ansi_lexer.get_tokens(value)
@@ -521,9 +521,9 @@ class _AnsiSessionMeta(LexerMeta):
     def __new__(cls, name, bases, dct):
         """Set up class properties for new ANSI-capable lexers.
 
-        - Adds an ``ANSI`` prefix to the lexer's name.
-        - Replaces all ``aliases`` IDs from the parent lexer with variants prefixed with
-            ``ansi-``.
+        - Adds an `ANSI` prefix to the lexer's name.
+        - Replaces all `aliases` IDs from the parent lexer with variants prefixed with
+            `ansi-`.
         """
         new_cls = super().__new__(cls, name, bases, dct)
         new_cls.name = f"ANSI {new_cls.name}"
@@ -532,19 +532,19 @@ class _AnsiSessionMeta(LexerMeta):
 
 
 class _AnsiFilterMixin(Lexer):
-    """Mixin appending ``TokenMergeFilter`` and ``AnsiFilter`` to a session
+    """Mixin appending `TokenMergeFilter` and `AnsiFilter` to a session
     lexer's filter chain so its terminal output renders ANSI colors."""
 
     def __init__(self, *args, **kwargs) -> None:
-        """Add ``TokenMergeFilter`` and ``AnsiFilter`` to the filter chain.
+        """Add `TokenMergeFilter` and `AnsiFilter` to the filter chain.
 
         Session lexers parse code blocks line by line to differentiate inputs and outputs.
-        Each output line ends up encapsulated into a ``Generic.Output`` token. The
-        ``TokenMergeFilter`` consolidates contiguous output lines into a single token,
-        then ``AnsiFilter`` transforms the merged output into ANSI-styled tokens.
+        Each output line ends up encapsulated into a `Generic.Output` token. The
+        `TokenMergeFilter` consolidates contiguous output lines into a single token,
+        then `AnsiFilter` transforms the merged output into ANSI-styled tokens.
 
-        :param true_color: Forwarded to ``AnsiFilter``. Default ``True``: 24-bit RGB
-            renders via inline styles. Pass ``False`` to quantize to the 256-color palette.
+        :param true_color: Forwarded to `AnsiFilter`. Default `True`: 24-bit RGB
+            renders via inline styles. Pass `False` to quantize to the 256-color palette.
         """
         true_color = bool(kwargs.pop("true_color", True))
         super().__init__(*args, **kwargs)
@@ -556,13 +556,13 @@ def collect_session_lexers() -> Iterator[type[Lexer]]:
     """Retrieve all lexers producing shell-like sessions in Pygments.
 
     This function contains a manually-maintained list of lexers, to which we dynamically
-    add lexers inheriting from ``ShellSessionBaseLexer``.
+    add lexers inheriting from `ShellSessionBaseLexer`.
 
-    .. hint::
+    ```{hint}
 
-        To help maintain this list, there is `a test that will fail
-        <https://github.com/kdeldycke/click-extra/blob/main/tests/test_pygments.py>`_
-        if a new REPL/terminal-like lexer is added to Pygments but not referenced here.
+    To help maintain this list, there is [a test that will fail](https://github.com/kdeldycke/click-extra/blob/main/tests/test_pygments.py)
+    if a new REPL/terminal-like lexer is added to Pygments but not referenced here.
+    ```
     """
     yield from [
         DylanConsoleLexer,
@@ -612,12 +612,12 @@ EXTRA_ANSI_CSS: dict[str, str] = {
 }
 """All SGR text attribute CSS declarations.
 
-Maps ``Token.Ansi`` component names to CSS declarations. These are kept out of the
-Pygments style dict (``_ANSI_STYLES``) to prevent Furo's dark-mode CSS generator from
-injecting ``color: #D0D0D0`` fallbacks that conflict with foreground color tokens.
+Maps `Token.Ansi` component names to CSS declarations. These are kept out of the
+Pygments style dict (`_ANSI_STYLES`) to prevent Furo's dark-mode CSS generator from
+injecting `color: #D0D0D0` fallbacks that conflict with foreground color tokens.
 
-Used by ``AnsiHtmlFormatter.get_token_style_defs`` to inject CSS rules that both
-standalone ``pygmentize`` and Furo's dark-mode CSS generator pick up.
+Used by `AnsiHtmlFormatter.get_token_style_defs` to inject CSS rules that both
+standalone `pygmentize` and Furo's dark-mode CSS generator pick up.
 """
 
 _LINK_OPEN = "\ue000"
@@ -632,8 +632,8 @@ _LINK_CLOSE = "\ue002"
 _LINK_MARKER_RE = re.compile(f"{_LINK_OPEN}([^{_LINK_SEP}]*){_LINK_SEP}")
 """Regex matching link-open markers in post-processed HTML.
 
-Captures the HTML-escaped URL between ``_LINK_OPEN`` and ``_LINK_SEP`` for replacement
-with an ``<a href="...">`` tag.
+Captures the HTML-escaped URL between `_LINK_OPEN` and `_LINK_SEP` for replacement
+with an `<a href="...">` tag.
 """
 
 _RGB_FG_OPEN = "\ue010"
@@ -654,30 +654,30 @@ _RGB_MARKER_RE = re.compile(
 """Regex matching 24-bit color open markers in post-processed HTML.
 
 Captures the marker kind (foreground or background) and the 6-character hex value for
-replacement with a ``<span style="...">`` tag.
+replacement with a `<span style="...">` tag.
 """
 
 
 class AnsiHtmlFormatter(HtmlFormatter):
     """HTML formatter with ANSI color and hyperlink support.
 
-    Extends Pygments' ``HtmlFormatter`` to handle compound ``Token.Ansi.*`` tokens by
+    Extends Pygments' `HtmlFormatter` to handle compound `Token.Ansi.*` tokens by
     decomposing them into individual CSS classes, augments the base style with ANSI color
     definitions for the 256-color indexed palette, and renders OSC 8 hyperlinks as HTML
-    ``<a>`` tags.
+    `<a>` tags.
     """
 
     name = "ANSI HTML"
     aliases: ClassVar[list[str]] = ["ansi-html"]
 
     def __init__(self, **kwargs) -> None:
-        """Intercept the ``style`` argument to augment it with ANSI color support.
+        """Intercept the `style` argument to augment it with ANSI color support.
 
         Creates a new style instance that inherits from the one provided by the user, but
-        updates its ``styles`` attribute with ANSI token definitions from
-        ``_ANSI_STYLES``.
+        updates its `styles` attribute with ANSI token definitions from
+        `_ANSI_STYLES`.
         """
-        # Same default style as Pygments' HtmlFormatter: ``default``.
+        # Same default style as Pygments' HtmlFormatter: `default`.
         base_style_id = kwargs.setdefault("style", "default")
         base_style = _lookup_style(base_style_id)
 
@@ -694,11 +694,11 @@ class AnsiHtmlFormatter(HtmlFormatter):
     def format_unencoded(self, tokensource, outfile) -> None:
         """Render tokens to HTML, converting OSC 8 link and 24-bit RGB markers to tags.
 
-        Replaces ``Token.AnsiLinkStart`` / ``Token.AnsiLinkEnd`` with Unicode Private
-        Use Area markers, strips ``FG_/BG_`` 24-bit RGB components from compound tokens
+        Replaces `Token.AnsiLinkStart` / `Token.AnsiLinkEnd` with Unicode Private
+        Use Area markers, strips `FG_/BG_` 24-bit RGB components from compound tokens
         and replaces them with PUA markers carrying the hex value, delegates to Pygments'
-        HTML rendering, then post-processes the output to swap markers for ``<a>`` and
-        inline-styled ``<span>`` tags.
+        HTML rendering, then post-processes the output to swap markers for `<a>` and
+        inline-styled `<span>` tags.
         """
         buffer = StringIO()
         super().format_unencoded(
@@ -714,10 +714,10 @@ class AnsiHtmlFormatter(HtmlFormatter):
 
     @staticmethod
     def _rgb_marker_to_span(match: re.Match) -> str:
-        """Replace a 24-bit RGB open marker with a ``<span>`` tag carrying inline style.
+        """Replace a 24-bit RGB open marker with a `<span>` tag carrying inline style.
 
-        ``_RGB_FG_OPEN`` produces a ``color`` declaration; ``_RGB_BG_OPEN`` produces a
-        ``background-color`` declaration.
+        `_RGB_FG_OPEN` produces a `color` declaration; `_RGB_BG_OPEN` produces a
+        `background-color` declaration.
         """
         prop = "color" if match.group("kind") == _RGB_FG_OPEN else "background-color"
         return f'<span style="{prop}: #{match.group("hex")}">'
@@ -726,11 +726,11 @@ class AnsiHtmlFormatter(HtmlFormatter):
     def _inject_rgb_markers(
         tokensource: Iterable[tuple[_TokenType, str]],
     ) -> Iterator[tuple[_TokenType, str]]:
-        """Strip ``FG_/BG_`` components from Ansi tokens and wrap text in PUA markers.
+        """Strip `FG_/BG_` components from Ansi tokens and wrap text in PUA markers.
 
         24-bit RGB colors cannot be expressed as a finite set of CSS classes, so they
         bypass the style dict entirely. The hex value travels with the text via PUA
-        markers and gets converted to inline ``style="..."`` attributes during HTML
+        markers and gets converted to inline `style="..."` attributes during HTML
         post-processing. Non-RGB token components (Bold, named colors, palette indices)
         survive on the rebuilt token and continue to render through the standard CSS
         class mechanism.
@@ -757,7 +757,7 @@ class AnsiHtmlFormatter(HtmlFormatter):
                 continue
 
             # Rebuild the token without the RGB components. An empty result collapses
-            # to ``Text`` so Pygments emits no surrounding span: the inline-style span
+            # to `Text` so Pygments emits no surrounding span: the inline-style span
             # produced by the marker post-processing is the only wrapper needed.
             new_ttype: _TokenType = Text
             if kept:
@@ -782,8 +782,8 @@ class AnsiHtmlFormatter(HtmlFormatter):
     ) -> Iterator[tuple[_TokenType, str]]:
         """Replace link tokens with PUA-marked text for post-processing.
 
-        ``Token.AnsiLinkStart`` becomes the URL wrapped in ``_LINK_OPEN`` /
-        ``_LINK_SEP``. ``Token.AnsiLinkEnd`` becomes ``_LINK_CLOSE``. All other tokens
+        `Token.AnsiLinkStart` becomes the URL wrapped in `_LINK_OPEN` /
+        `_LINK_SEP`. `Token.AnsiLinkEnd` becomes `_LINK_CLOSE`. All other tokens
         pass through unchanged.
         """
         for ttype, value in tokensource:
@@ -798,9 +798,9 @@ class AnsiHtmlFormatter(HtmlFormatter):
         """CSS for the SGR attributes Pygments cannot express, the blink keyframe
         and the OSC 8 hyperlink rule.
 
-        Pygments' style strings support ``bold``, ``italic`` and ``underline`` but
+        Pygments' style strings support `bold`, `italic` and `underline` but
         have no keywords for faint, blink, reverse, strikethrough or overline, so
-        those are emitted as dedicated declarations from ``EXTRA_ANSI_CSS``.
+        those are emitted as dedicated declarations from `EXTRA_ANSI_CSS`.
         """
         prefix = self.get_css_prefix(arg)
         lines: list[str] = []
@@ -818,9 +818,9 @@ class AnsiHtmlFormatter(HtmlFormatter):
     def get_token_style_defs(self, arg=None):
         """Extend Pygments' token CSS with rules for SGR attributes it cannot express.
 
-        Overriding ``get_token_style_defs`` (rather than ``get_style_defs``) ensures
+        Overriding `get_token_style_defs` (rather than `get_style_defs`) ensures
         that Furo's dark-mode CSS generator, which calls this method directly, also
-        picks up the extra rules built by ``_extra_ansi_css_lines``.
+        picks up the extra rules built by `_extra_ansi_css_lines`.
         """
         return super().get_token_style_defs(arg) + self._extra_ansi_css_lines(arg)
 
@@ -830,8 +830,8 @@ class AnsiHtmlFormatter(HtmlFormatter):
 
         The MkDocs plugin layers these over a theme's own syntax highlighting, so
         it must not pull in the standard token rules (those would override the
-        theme). Keeps the ``-Ansi-*`` token rules plus everything
-        ``_extra_ansi_css_lines`` adds. Owning this selection here, next to
+        theme). Keeps the `-Ansi-*` token rules plus everything
+        `_extra_ansi_css_lines` adds. Owning this selection here, next to
         the rules it returns, keeps the MkDocs plugin from hard-coding this
         formatter's class names and CSS internals.
         """
@@ -841,24 +841,25 @@ class AnsiHtmlFormatter(HtmlFormatter):
         return "\n".join(ansi_token_rules + self._extra_ansi_css_lines(arg))
 
     def _get_css_classes(self, ttype: _TokenType) -> str:
-        """Map a token to its CSS classes, decomposing compound ``Token.Ansi.*`` tokens.
+        """Map a token to its CSS classes, decomposing compound `Token.Ansi.*` tokens.
 
-        For a token like ``Token.Ansi.Bold.Cyan``, Pygments' default walks the token
-        hierarchy and emits the concatenated compound class (``-Ansi-Bold-Cyan``)
-        alongside each ancestor, repeating the intermediate ``-Ansi-Bold``. No CSS rule
+        For a token like `Token.Ansi.Bold.Cyan`, Pygments' default walks the token
+        hierarchy and emits the concatenated compound class (`-Ansi-Bold-Cyan`)
+        alongside each ancestor, repeating the intermediate `-Ansi-Bold`. No CSS rule
         targets the compound class (the style dict only holds single components), so it
         is dead weight. This override returns the base class plus exactly one class per
-        component instead (``-Ansi -Ansi-Bold -Ansi-Cyan``): each maps to its own rule,
+        component instead (`-Ansi -Ansi-Bold -Ansi-Cyan`): each maps to its own rule,
         with no dead or duplicated classes. Non-ANSI tokens keep Pygments' default
         behavior.
 
-        .. note::
-            The decomposition is formatter-level, so it reaches every integration
-            rather than a single renderer. Sphinx installs this formatter via
-            ``PygmentsBridge.html_formatter`` in :func:`click_extra.sphinx.setup`;
-            MkDocs reparents ``pymdownx.highlight``'s formatters onto it in
-            :class:`click_extra.mkdocs.AnsiColorPlugin`. Editing this method therefore
-            re-pins both the Sphinx and the MkDocs HTML output (and their tests).
+        ```{note}
+        The decomposition is formatter-level, so it reaches every integration
+        rather than a single renderer. Sphinx installs this formatter via
+        `PygmentsBridge.html_formatter` in {func}`click_extra.sphinx.setup`;
+        MkDocs reparents `pymdownx.highlight`'s formatters onto it in
+        {class}`click_extra.mkdocs.AnsiColorPlugin`. Editing this method therefore
+        re-pins both the Sphinx and the MkDocs HTML output (and their tests).
+        ```
 
         Results are cached per token type since the same compound tokens recur frequently
         in typical terminal output.

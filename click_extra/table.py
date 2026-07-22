@@ -43,18 +43,19 @@ if TYPE_CHECKING:
 
 @cache
 def _setup_tabulate() -> None:
-    """Import ``tabulate``, apply Click Extra's patches, and register its formats.
+    """Import `tabulate`, apply Click Extra's patches, and register its formats.
 
-    ``tabulate`` is a comparatively heavy dependency, only needed when a table
+    `tabulate` is a comparatively heavy dependency, only needed when a table
     is actually rendered through it (the CSV, structured and serialization
     formats use other backends). Importing and configuring it here, on the first
     render rather than at module load, keeps it off the default import path of
     every CLI built with Click Extra. This mirrors the optional
     serialization-format imports deferred elsewhere in this module.
 
-    .. note::
-        ``@cache`` ensures the import and the one-time monkeypatches below run
-        only once. Do not hoist ``import tabulate`` back to module scope.
+    ```{note}
+    `@cache` ensures the import and the one-time monkeypatches below run
+    only once. Do not hoist `import tabulate` back to module scope.
+    ```
     """
     import tabulate
     from tabulate import DataRow, TableFormat as TabulateTableFormat
@@ -64,8 +65,8 @@ def _setup_tabulate() -> None:
 
     fmts = tabulate._table_formats  # type: ignore[attr-defined]
 
-    # Register the custom ``aligned`` format: a minimal format with single-space
-    # column separators and no borders or decorations. Similar to ``plain`` but
+    # Register the custom `aligned` format: a minimal format with single-space
+    # column separators and no borders or decorations. Similar to `plain` but
     # more compact (single space instead of double space between columns). Useful
     # for bar plugin output or other contexts requiring minimal formatting.
     fmts["aligned"] = TabulateTableFormat(
@@ -79,12 +80,12 @@ def _setup_tabulate() -> None:
         with_header_hide=None,
     )
 
-    # Patch the ``github`` format to support alignment colons in separator rows,
-    # matching the ``pipe`` format. Backport of
+    # Patch the `github` format to support alignment colons in separator rows,
+    # matching the `pipe` format. Backport of
     # https://github.com/astanin/python-tabulate/pull/410
     fmts["github"] = fmts["pipe"]
 
-    # Backport ``colon_grid`` for tabulate < 0.10 by aliasing it to ``grid``.
+    # Backport `colon_grid` for tabulate < 0.10 by aliasing it to `grid`.
     # Lets downstream distributions ship click-extra without bumping tabulate
     # globally.
     if "colon_grid" not in fmts:
@@ -97,10 +98,10 @@ class TableFormat(Enum):
     Hard-coded to be in alphabetical order. Content of this enum is checked in
     unit tests.
 
-    .. warning::
-        The ``youtrack`` format is missing in action from any official JetBrains
-        documentation. It `will be removed in python-tabulate v0.11
-        <https://github.com/astanin/python-tabulate/issues/375>`_.
+    ```{warning}
+    The `youtrack` format is missing in action from any official JetBrains
+    documentation. It [will be removed in python-tabulate v0.11](https://github.com/astanin/python-tabulate/issues/375).
+    ```
     """
 
     ALIGNED = "aligned"
@@ -162,8 +163,8 @@ class TableFormat(Enum):
         """Whether this format is a markup rendering.
 
         ANSI codes never reach a markup rendering raw: they are either
-        translated to the format's native styling (see :attr:`supports_styling`)
-        or stripped from cell values. Forcing ``--color`` on the command line
+        translated to the format's native styling (see {attr}`supports_styling`)
+        or stripped from cell values. Forcing `--color` on the command line
         preserves them as-is in the markup formats without styling support.
         """
         return self in MARKUP_FORMATS
@@ -172,7 +173,7 @@ class TableFormat(Enum):
     def supports_styling(self) -> bool:
         """Whether ANSI codes are translated to this format's native styling.
 
-        See :data:`~click_extra.table.STYLED_FORMATS` for the registry, and
+        See {data}`~click_extra.table.STYLED_FORMATS` for the registry, and
         the rationale behind each excluded markup format.
         """
         return self in STYLED_FORMATS
@@ -226,46 +227,46 @@ STYLED_FORMATS: dict[TableFormat, Callable[[str], str]] = {
 }
 """Markup formats able to express styles natively, mapped to their ANSI translator.
 
-:func:`print_table` runs the rendered output of these formats through their
+{func}`print_table` runs the rendered output of these formats through their
 translator, converting the ANSI codes carried by cells and headers into the
-format's own styling markup: inline-CSS HTML ``<span>``\\ s for the HTML pair
+format's own styling markup: inline-CSS HTML `<span>`\\ s for the HTML pair
 and MediaWiki (which accepts embedded HTML), Textile ``%{...}`` spans, Jira
 ``{color:...}`` macros, and xcolor-based LaTeX macros.
 
-.. note::
-    Translation happens on the rendered output, not on cell values, on
-    purpose. tabulate escapes cell content for some formats (``html``
-    escapes HTML entities, non-raw ``latex`` variants escape TeX specials)
-    while ANSI sequences pass through unscathed, so pre-render translation
-    would get its markup mangled by those escaping rules. Post-render
-    injection also keeps column-width computation on the ANSI text, which
-    tabulate measures correctly.
+```{note}
+Translation happens on the rendered output, not on cell values, on
+purpose. tabulate escapes cell content for some formats (`html`
+escapes HTML entities, non-raw `latex` variants escape TeX specials)
+while ANSI sequences pass through unscathed, so pre-render translation
+would get its markup mangled by those escaping rules. Post-render
+injection also keeps column-width computation on the ANSI text, which
+tabulate measures correctly.
+```
 
-.. important::
-    Every markup format absent from this registry keeps the historical
-    behavior: ANSI codes are stripped from cells before rendering. The
-    verdict, format by format:
+```{important}
+Every markup format absent from this registry keeps the historical
+behavior: ANSI codes are stripped from cells before rendering. The
+verdict, format by format:
 
-    - ``asciidoc``: no portable inline styling. Colors require
-      stylesheet-defined roles or ``+++`` passthrough blocks tied to the
-      HTML backend, both lossy and non-standard.
-    - ``csv``, ``csv-excel``, ``csv-excel-tab``, ``csv-unix``, ``tsv``:
-      data interchange formats, with no concept of styling.
-    - ``github``, ``pipe``: GitHub sanitizes inline ``style`` attributes
-      from rendered Markdown, so translated HTML spans would not display any
-      color there. Raw ANSI can still be forced with ``--color`` for
-      terminal Markdown viewers which support escape sequences.
-    - ``hjson``, ``json``, ``json5``, ``jsonc``, ``toml``, ``xml``,
-      ``yaml``: structured serialization formats meant for programmatic
-      consumption. Styling is presentation, not data.
-    - ``moinmoin``: MoinMoin wiki markup has no standard inline color
-      syntax, and embedded HTML is disabled by default.
-    - ``orgtbl``: Org-mode has emphasis markers but no inline color markup.
-    - ``rst``: reStructuredText needs custom roles backed by a stylesheet
-      for inline color; there is no standard inline syntax.
-    - ``youtrack``: undocumented by JetBrains and `scheduled for removal in
-      python-tabulate 0.11
-      <https://github.com/astanin/python-tabulate/issues/375>`_.
+- `asciidoc`: no portable inline styling. Colors require
+  stylesheet-defined roles or `+++` passthrough blocks tied to the
+  HTML backend, both lossy and non-standard.
+- `csv`, `csv-excel`, `csv-excel-tab`, `csv-unix`, `tsv`:
+  data interchange formats, with no concept of styling.
+- `github`, `pipe`: GitHub sanitizes inline `style` attributes
+  from rendered Markdown, so translated HTML spans would not display any
+  color there. Raw ANSI can still be forced with `--color` for
+  terminal Markdown viewers which support escape sequences.
+- `hjson`, `json`, `json5`, `jsonc`, `toml`, `xml`,
+  `yaml`: structured serialization formats meant for programmatic
+  consumption. Styling is presentation, not data.
+- `moinmoin`: MoinMoin wiki markup has no standard inline color
+  syntax, and embedded HTML is disabled by default.
+- `orgtbl`: Org-mode has emphasis markers but no inline color markup.
+- `rst`: reStructuredText needs custom roles backed by a stylesheet
+  for inline color; there is no standard inline syntax.
+- `youtrack`: undocumented by JetBrains and [scheduled for removal in python-tabulate 0.11](https://github.com/astanin/python-tabulate/issues/375).
+```
 """
 
 
@@ -274,7 +275,7 @@ DEFAULT_FORMAT = TableFormat.ROUNDED_OUTLINE
 
 RECORD_KEY = "record"
 """Key used for each record in structured formats that require named containers
-(TOML ``[[record]]``, XML ``<record>``)."""
+(TOML `[[record]]`, XML `<record>`)."""
 
 XML_ROOT_KEY = "records"
 """Root element name for XML table output."""
@@ -291,13 +292,13 @@ SERIALIZATION_FORMATS = frozenset(
     },
 )
 """Structured serialization formats whose renderers escape raw ESC bytes, making
-post-render ``strip_ansi()`` ineffective."""
+post-render `strip_ansi()` ineffective."""
 
 
 def _get_csv_dialect(table_format: TableFormat | None = None) -> str:
     """Extract, validate and normalize CSV dialect ID from format.
 
-    Defaults to ``excel`` rendering, like in Python's csv module.
+    Defaults to `excel` rendering, like in Python's csv module.
     """
     dialect = "excel"
 
@@ -322,9 +323,9 @@ def _render_csv(
 ) -> str:
     """Render a table in CSV format.
 
-    .. note::
-        StringIO is used to capture CSV output in memory. `Hard-coded to default to
-        UTF-8 <https://github.com/python/cpython/blob/9291095/Lib/_pyio.py#L2652>`_.
+    ```{note}
+    StringIO is used to capture CSV output in memory. [Hard-coded to default to UTF-8](https://github.com/python/cpython/blob/9291095/Lib/_pyio.py#L2652).
+    ```
     """
     defaults = {"dialect": _get_csv_dialect(table_format)}
     defaults.update(kwargs)
@@ -368,7 +369,7 @@ def _render_yaml(
 ) -> str:
     """Render a table as YAML.
 
-    Requires the ``pyyaml`` package (installable via the ``[yaml]`` extra).
+    Requires the `pyyaml` package (installable via the `[yaml]` extra).
     """
     return serialize_content(
         ConfigFormat.YAML, _rows_as_dicts(table_data, headers), **kwargs
@@ -382,8 +383,8 @@ def _render_toml(
 ) -> str:
     """Render a table as TOML using array-of-tables syntax.
 
-    ``None`` values are omitted (TOML has no null type). Requires the ``tomlkit``
-    package (installable via the ``[toml]`` extra).
+    `None` values are omitted (TOML has no null type). Requires the `tomlkit`
+    package (installable via the `[toml]` extra).
     """
     import tomlkit
 
@@ -410,7 +411,7 @@ def _render_hjson(
 ) -> str:
     """Render a table as HJSON.
 
-    Requires the ``hjson`` package (installable via the ``[hjson]`` extra).
+    Requires the `hjson` package (installable via the `[hjson]` extra).
     """
     return serialize_content(
         ConfigFormat.HJSON, _rows_as_dicts(table_data, headers), **kwargs
@@ -424,8 +425,8 @@ def _render_xml(
 ) -> str:
     """Render a table as XML.
 
-    ``None`` values are omitted. Requires the ``xmltodict`` package (installable
-    via the ``[xml]`` extra).
+    `None` values are omitted. Requires the `xmltodict` package (installable
+    via the `[xml]` extra).
     """
 
     def _xml_safe_name(name: str) -> str:
@@ -460,16 +461,16 @@ def _render_vertical(
     sep_length: int = 27,
     **kwargs,
 ) -> str:
-    """Re-implements ``cli-helpers``'s vertical table layout.
+    """Re-implements `cli-helpers`'s vertical table layout.
 
-    .. note::
-        See `cli-helpers source code for reference
-        <https://github.com/dbcli/cli_helpers/blob/v2.7.0/cli_helpers/tabular_output/vertical_table_adapter.py>`_.
+    ```{note}
+    See [cli-helpers source code for reference](https://github.com/dbcli/cli_helpers/blob/v2.7.0/cli_helpers/tabular_output/vertical_table_adapter.py).
+    ```
 
-    .. caution::
-        This layout is `hard-coded to 27 asterisks to separate rows
-        <https://github.com/dbcli/cli_helpers/blob/c34ae9f/cli_helpers/tabular_output/vertical_table_adapter.py#L34>`_,
-        as in the original implementation.
+    ```{caution}
+    This layout is [hard-coded to 27 asterisks to separate rows](https://github.com/dbcli/cli_helpers/blob/c34ae9f/cli_helpers/tabular_output/vertical_table_adapter.py#L34),
+    as in the original implementation.
+    ```
     """
     if not headers:
         headers = []
@@ -491,21 +492,22 @@ def _render_vertical(
 
 
 _GFM_SEPARATOR_RE = re.compile(r"^\|[-: |]+\|$")
-"""Matches a GFM table separator row (like ``|:---|:---|``)."""
+"""Matches a GFM table separator row (like `|:---|:---|`)."""
 
 
 def _pad_gfm_separator(text: str) -> str:
     """Add space padding to GFM table separator rows.
 
-    Tabulate's ``pipe`` format fills padding positions with dashes in separator
-    rows (``|:---|``), while mdformat normalizes them to spaces (``| :-- |``).
+    Tabulate's `pipe` format fills padding positions with dashes in separator
+    rows (`|:---|`), while mdformat normalizes them to spaces (`| :-- |`).
     This post-processing step matches mdformat's canonical form, preventing an
     infinite formatting cycle between table-generating and markdown-formatting
     tools.
 
-    .. note::
-        Proposed upstream at https://github.com/astanin/python-tabulate/pull/426
-        If merged, this workaround can be removed.
+    ```{note}
+    Proposed upstream at https://github.com/astanin/python-tabulate/pull/426
+    If merged, this workaround can be removed.
+    ```
     """
     lines = []
     for line in text.split("\n"):
@@ -543,9 +545,9 @@ def _render_tabulate(
     table_format: TableFormat | None = None,
     **kwargs,
 ) -> str:
-    """Render a table with ``tabulate``.
+    """Render a table with `tabulate`.
 
-    Default format is ``TableFormat.ROUNDED_OUTLINE``.
+    Default format is `TableFormat.ROUNDED_OUTLINE`.
     """
     if not headers:
         headers = ()
@@ -572,15 +574,15 @@ def _render_tabulate(
 def _select_table_funcs(
     table_format: TableFormat | None = None,
 ) -> tuple[Callable[..., str], Callable[[str], None]]:
-    """Returns the rendering and print functions for the given ``table_format``.
+    """Returns the rendering and print functions for the given `table_format`.
 
     For all formats other than CSV and structured serializations, we rely on Click's
-    ``echo()`` as the print function, to benefit from its sensitivity to global
-    colorization settings. Thanks to this the ``--color``/``--no-color`` option is
+    `echo()` as the print function, to benefit from its sensitivity to global
+    colorization settings. Thanks to this the `--color`/`--no-color` option is
     automatically supported.
 
     For CSV and structured serialization formats we return the Python standard
-    ``print()`` function, to preserve line terminations and avoid extra line returns.
+    `print()` function, to preserve line terminations and avoid extra line returns.
     """
     # Structured serializations and CSV variants embed their own line terminations,
     # so they bypass echo() (which would add an extra line return).
@@ -622,10 +624,10 @@ def _split_header_defs(
 ]:
     """Split header definitions into render labels and sortable column defs.
 
-    ``headers`` entries may be plain strings (a label carrying no column ID),
-    :class:`ColumnSpec` instances or ``(label, column_id)`` pairs. Returns the
-    labels to render and the ``(label, column_id)`` definitions, the latter
-    ``None`` when no entry carries a column ID (nothing to sort on).
+    `headers` entries may be plain strings (a label carrying no column ID),
+    {class}`ColumnSpec` instances or `(label, column_id)` pairs. Returns the
+    labels to render and the `(label, column_id)` definitions, the latter
+    `None` when no entry carries a column ID (nothing to sort on).
     """
     if headers is None:
         return None, None
@@ -650,11 +652,11 @@ def _split_header_defs(
 def _context_sort_key(
     header_defs: Sequence[tuple[str | None, str | None]],
 ) -> Callable[[Sequence[str | None]], tuple] | None:
-    """Build a sort key from the ``--sort-by`` selection of the current context.
+    """Build a sort key from the `--sort-by` selection of the current context.
 
-    Reads :data:`click_extra.context.SORT_BY`, which ``ctx.meta`` shares
+    Reads {data}`click_extra.context.SORT_BY`, which `ctx.meta` shares
     across the whole context tree, so a selection made on a parent group is
-    visible from the subcommand doing the printing. Returns ``None`` outside
+    visible from the subcommand doing the printing. Returns `None` outside
     any Click context, when no selection is active, or when the table carries
     none of the selected columns.
     """
@@ -674,9 +676,9 @@ def _resolve_table_inputs(
 ) -> tuple[Sequence[Sequence[str | None]], Sequence[str | None] | None]:
     """Split header definitions and apply the resolved row sort.
 
-    The shared preamble of :func:`render_table` and :func:`print_table`: the
+    The shared preamble of {func}`render_table` and {func}`print_table`: the
     render labels are split from the sortable column definitions, the active
-    ``--sort-by`` selection is resolved when no explicit *sort_key* is given,
+    `--sort-by` selection is resolved when no explicit *sort_key* is given,
     and rows are sorted when a key applies.
     """
     labels, header_defs = _split_header_defs(headers)
@@ -696,13 +698,13 @@ def render_table(
 ) -> str:
     """Render a table and return it as a string.
 
-    ``headers`` entries carrying a column ID (:class:`ColumnSpec` instances or
-    ``(label, column_id)`` pairs) plug the table into the active ``--sort-by``
-    selection: when no explicit ``sort_key`` is given, rows sort by the
+    `headers` entries carrying a column ID ({class}`ColumnSpec` instances or
+    `(label, column_id)` pairs) plug the table into the active `--sort-by`
+    selection: when no explicit `sort_key` is given, rows sort by the
     selected columns this table carries, and keep their original order when it
-    carries none. See :func:`column_sort_key` for the exact semantics.
+    carries none. See {func}`column_sort_key` for the exact semantics.
 
-    :param sort_key: Optional callable passed to :py:func:`sorted` as the ``key``
+    :param sort_key: Optional callable passed to :py:func:`sorted` as the `key`
         argument. When provided, rows are sorted before rendering.
     """
     table_data, headers = _resolve_table_inputs(table_data, headers, sort_key)
@@ -729,9 +731,9 @@ def _strip_ansi_cells(
 def _color_disabled() -> bool:
     """Whether color output is disabled for the current invocation.
 
-    Reads the resolved ``ctx.color`` tri-state, which subcommand contexts
-    inherit from their parents. Only an explicit ``False`` (``--no-color``,
-    ``NO_COLOR``, ``--color=never``) disables styling: the ``None`` (auto)
+    Reads the resolved `ctx.color` tri-state, which subcommand contexts
+    inherit from their parents. Only an explicit `False` (`--no-color`,
+    `NO_COLOR`, `--color=never`) disables styling: the `None` (auto)
     default keeps it, as a markup document carries its own rendering and no
     TTY is involved.
     """
@@ -740,11 +742,11 @@ def _color_disabled() -> bool:
 
 
 def _color_forced() -> bool:
-    """Whether ``--color`` was explicitly forced on the command line.
+    """Whether `--color` was explicitly forced on the command line.
 
     Walks up the context chain, so a color option declared on a parent group is
     honored from the subcommand doing the printing. The default set by a
-    :class:`~click_extra.color.ColorOption` does not count as forced: only an
+    {class}`~click_extra.color.ColorOption` does not count as forced: only an
     explicit command line flag does.
     """
     ctx: click.Context | None = click.get_current_context(silent=True)
@@ -764,24 +766,24 @@ def print_table(
 ) -> None:
     """Render a table and print it to the console.
 
-    ``headers`` entries carrying a column ID (:class:`ColumnSpec` instances or
-    ``(label, column_id)`` pairs) plug the table into the active ``--sort-by``
-    selection: when no explicit ``sort_key`` is given, rows sort by the
+    `headers` entries carrying a column ID ({class}`ColumnSpec` instances or
+    `(label, column_id)` pairs) plug the table into the active `--sort-by`
+    selection: when no explicit `sort_key` is given, rows sort by the
     selected columns this table carries, and keep their original order when it
-    carries none. See :func:`column_sort_key` for the exact semantics.
+    carries none. See {func}`column_sort_key` for the exact semantics.
 
     ANSI codes carried by cell values and headers depend on the format:
 
     - Markup formats with native styling support (see
-      :data:`~click_extra.table.STYLED_FORMATS`) get them translated to the
+      {data}`~click_extra.table.STYLED_FORMATS`) get them translated to the
       format's own styling markup, unless color output is disabled
-      (``--no-color``, ``NO_COLOR``, ...).
+      (`--no-color`, `NO_COLOR`, ...).
     - Other markup formats get them stripped from cell values before
-      rendering, unless ``--color`` is explicitly forced on the command line.
-    - Plain-text formats keep them raw, and defer to ``echo()``'s sensitivity
+      rendering, unless `--color` is explicitly forced on the command line.
+    - Plain-text formats keep them raw, and defer to `echo()`'s sensitivity
       to the global colorization settings.
 
-    :param sort_key: Optional callable passed to :py:func:`sorted` as the ``key``
+    :param sort_key: Optional callable passed to :py:func:`sorted` as the `key`
         argument. When provided, rows are sorted before rendering.
     """
     table_data, headers = _resolve_table_inputs(table_data, headers, sort_key)
@@ -821,7 +823,7 @@ def _missing_extra_message(
 
 
 def _strip_none(data: Any) -> Any:
-    """Recursively drop ``None`` values from dicts.
+    """Recursively drop `None` values from dicts.
 
     Needed for formats without a null type (TOML, XML).
     """
@@ -833,7 +835,7 @@ def _strip_none(data: Any) -> Any:
 
 
 def _strip_none_and_wrap(data: Any) -> dict:
-    """Strip ``None`` values and wrap bare lists under the ``record`` key.
+    """Strip `None` values and wrap bare lists under the `record` key.
 
     Shared preprocessing for TOML and XML, which have no null type and require a
     top-level mapping.
@@ -869,7 +871,7 @@ def serialize_data(
         stringified automatically. Set to a custom callable for different behavior.
     :param root_element: Root element name for XML output.
     :param kwargs: Extra keyword arguments forwarded to the underlying serializer
-        (like ``sort_keys`` or ``indent`` for JSON).
+        (like `sort_keys` or `indent` for JSON).
     :raises ValueError: If the format is not a serialization format.
     """
     if table_format not in SERIALIZATION_FORMATS:
@@ -904,9 +906,9 @@ def serialize_data(
 
 
 def _apply_default(data: Any, default: Callable) -> Any:
-    """Recursively apply a ``default`` callback to non-native types.
+    """Recursively apply a `default` callback to non-native types.
 
-    Walks dicts, lists, and tuples. For any other type, calls ``default(obj)``
+    Walks dicts, lists, and tuples. For any other type, calls `default(obj)`
     which should return a JSON-serializable value or raise :py:class:`TypeError`.
     """
     if isinstance(data, dict):
@@ -955,27 +957,27 @@ def print_data(
 
 
 class TableFormatOption(ExtraOption):
-    """A pre-configured option that is adding a ``--table-format`` flag to select
+    """A pre-configured option that is adding a `--table-format` flag to select
     the rendering style of a table.
 
     The selected table format ID is made available in the context in
-    ``ctx.meta[click_extra.context.TABLE_FORMAT]``, where the
-    :meth:`~click_extra.context.Context.render_table` and
-    :meth:`~click_extra.context.Context.print_table` context methods pick it
-    up as their default format. ``ctx.meta`` is shared along the context
+    `ctx.meta[click_extra.context.TABLE_FORMAT]`, where the
+    {meth}`~click_extra.context.Context.render_table` and
+    {meth}`~click_extra.context.Context.print_table` context methods pick it
+    up as their default format. `ctx.meta` is shared along the context
     chain, so declaring this option on a group makes the selected format reach
     every subcommand:
 
-    - ``ctx.render_table(table_data, headers, **kwargs)``: renders and returns
+    - `ctx.render_table(table_data, headers, **kwargs)`: renders and returns
       the table as a string,
-    - ``ctx.print_table(table_data, headers, **kwargs)``: renders and prints
+    - `ctx.print_table(table_data, headers, **kwargs)`: renders and prints
       the table to the console.
 
     Where:
 
-    - ``table_data`` is a 2-dimensional iterable of iterables for rows and cells values,
-    - ``headers`` is a list of string to be used as column headers,
-    - ``**kwargs`` are any extra keyword arguments supported by the underlying table
+    - `table_data` is a 2-dimensional iterable of iterables for rows and cells values,
+    - `headers` is a list of string to be used as column headers,
+    - `**kwargs` are any extra keyword arguments supported by the underlying table
       formatting function.
     """
 
@@ -1010,10 +1012,10 @@ class TableFormatOption(ExtraOption):
         param: click.Parameter,
         table_format: TableFormat | None,
     ) -> None:
-        """Save the resolved ``table_format`` in the context's shared ``meta``.
+        """Save the resolved `table_format` in the context's shared `meta`.
 
-        The :meth:`~click_extra.context.Context.render_table` and
-        :meth:`~click_extra.context.Context.print_table` context methods read
+        The {meth}`~click_extra.context.Context.render_table` and
+        {meth}`~click_extra.context.Context.print_table` context methods read
         it back at call time.
         """
         if ctx.resilient_parsing:
@@ -1040,10 +1042,10 @@ def _row_sort_key(
     sort_order: Sequence[int],
     cell_key: Callable[[str | None], Any] | None = None,
 ) -> Callable[[Sequence[str | None]], tuple]:
-    """Build a row sort key comparing cells at the ``sort_order`` positions.
+    """Build a row sort key comparing cells at the `sort_order` positions.
 
-    Each cell is passed through ``cell_key`` before comparison. Defaults to
-    ANSI-stripped, case-folded string comparison, with ``None`` and empty
+    Each cell is passed through `cell_key` before comparison. Defaults to
+    ANSI-stripped, case-folded string comparison, with `None` and empty
     cells collating as the empty string.
     """
     if cell_key is None:
@@ -1062,18 +1064,18 @@ def column_sort_key(
     sort_columns: Sequence[str] | None = None,
     cell_key: Callable[[str | None], Any] | None = None,
 ) -> Callable[[Sequence[str | None]], tuple] | None:
-    """Build a row sort key from the ``sort_columns`` a table actually carries.
+    """Build a row sort key from the `sort_columns` a table actually carries.
 
-    ``header_defs`` describes the rendered columns: :class:`ColumnSpec`
-    instances or ``(label, column_id)`` tuples, with ``column_id=None`` for
-    columns that cannot be sorted on. The requested ``sort_columns`` the table
+    `header_defs` describes the rendered columns: {class}`ColumnSpec`
+    instances or `(label, column_id)` tuples, with `column_id=None` for
+    columns that cannot be sorted on. The requested `sort_columns` the table
     carries drive the comparison first, de-duplicated and in request order;
     the remaining columns follow in their natural left-to-right order for
     tie-breaking.
 
-    Returns ``None`` when the table carries none of the requested columns,
+    Returns `None` when the table carries none of the requested columns,
     signalling that rows should keep their original order. This is what lets
-    one ``--sort-by`` selection apply across subcommands rendering
+    one `--sort-by` selection apply across subcommands rendering
     heterogeneous tables: each table sorts by the requested fields it knows,
     and a table knowing none of them is left untouched.
     """
@@ -1098,12 +1100,12 @@ def _column_sort_key(
     sort_columns: Sequence[str] | None = None,
     cell_key: Callable[[str | None], Any] | None = None,
 ) -> Callable[[Sequence[str | None]], tuple]:
-    """Like :func:`column_sort_key`, but always sorts.
+    """Like {func}`column_sort_key`, but always sorts.
 
-    When none of the ``sort_columns`` is carried by ``header_defs`` (or none
+    When none of the `sort_columns` is carried by `header_defs` (or none
     is requested), rows still sort, comparing every column in natural
-    left-to-right order. This is the key :class:`SortByOption` publishes on
-    the context (``click_extra.context.TABLE_SORT_KEY``) when its column
+    left-to-right order. This is the key {class}`SortByOption` publishes on
+    the context (`click_extra.context.TABLE_SORT_KEY`) when its column
     definitions are known at declaration time.
     """
     key = column_sort_key(header_defs, sort_columns, cell_key)
@@ -1116,20 +1118,21 @@ def _column_sort_key(
 class ColumnSpec:
     """Rich description of a single column in a rendered table.
 
-    Three fields, all required-by-convention even though ``description`` defaults to
+    Three fields, all required-by-convention even though `description` defaults to
     empty so quick prototypes do not have to write a sentence for every column:
 
-    - ``id``: stable, snake_case identifier used by ``--columns`` to address the column,
+    - `id`: stable, snake_case identifier used by `--columns` to address the column,
       to key structured-format serializations, and to thread state through
-      :data:`click_extra.context.COLUMNS`.
-    - ``label``: the human-readable header shown at the top of the rendered table.
-    - ``description``: a MyST/Markdown blurb describing what the column represents.
+      {data}`click_extra.context.COLUMNS`.
+    - `label`: the human-readable header shown at the top of the rendered table.
+    - `description`: a MyST/Markdown blurb describing what the column represents.
       Used to auto-generate the column reference in the documentation.
 
-    .. note::
-        Frozen + slots: instances are immutable and lightweight. Tuples of
-        ``ColumnSpec`` are intended to be defined as module-level constants
-        (like :data:`click_extra.parameters.ShowParamsOption.TABLE_HEADERS`).
+    ```{note}
+    Frozen + slots: instances are immutable and lightweight. Tuples of
+    `ColumnSpec` are intended to be defined as module-level constants
+    (like {data}`click_extra.parameters.ShowParamsOption.TABLE_HEADERS`).
+    ```
     """
 
     id: str
@@ -1142,12 +1145,12 @@ class ColumnSpec:
     """MyST/Markdown description of what the column carries.
 
     Used to auto-generate the *Available columns* section in the docs via the
-    ``show_params_columns_table`` MyST substitution. Plain text without inline
+    `show_params_columns_table` MyST substitution. Plain text without inline
     markup is fine: links and emphasis are optional sugar."""
 
 
 def render_columns_markdown_table(columns: Iterable[ColumnSpec]) -> str:
-    """Render an iterable of :class:`ColumnSpec` as a 2-column Markdown table.
+    """Render an iterable of {class}`ColumnSpec` as a 2-column Markdown table.
 
     Output shape::
 
@@ -1156,7 +1159,7 @@ def render_columns_markdown_table(columns: Iterable[ColumnSpec]) -> str:
         | `Label` | description |
         ...
 
-    Suitable for inlining into MyST documents via ``myst_substitutions`` so the
+    Suitable for inlining into MyST documents via `myst_substitutions` so the
     *Available columns* reference can be auto-generated from a single source of
     truth.
     """
@@ -1172,12 +1175,12 @@ def select_columns(
     columns: Sequence[ColumnSpec],
     selected_ids: Sequence[str] | None,
 ) -> tuple[ColumnSpec, ...]:
-    """Filter and reorder ``columns`` according to ``selected_ids``.
+    """Filter and reorder `columns` according to `selected_ids`.
 
-    Returns ``columns`` unchanged when ``selected_ids`` is falsy (no projection).
-    Otherwise yields the matching :class:`ColumnSpec` in the order ``selected_ids``
-    specifies, SQL-``SELECT``-style. Raises ``KeyError`` for unknown IDs so the
-    caller can convert it into a :class:`click.UsageError`.
+    Returns `columns` unchanged when `selected_ids` is falsy (no projection).
+    Otherwise yields the matching {class}`ColumnSpec` in the order `selected_ids`
+    specifies, SQL-`SELECT`-style. Raises `KeyError` for unknown IDs so the
+    caller can convert it into a {class}`click.UsageError`.
     """
     if not selected_ids:
         return tuple(columns)
@@ -1190,9 +1193,9 @@ def select_row(
     selected_ids: Sequence[str] | None,
     canonical_ids: Sequence[str],
 ) -> tuple:
-    """Build a positional row by reading cells from ``row`` in the selection order.
+    """Build a positional row by reading cells from `row` in the selection order.
 
-    Falls back to ``canonical_ids`` when ``selected_ids`` is empty / unset, so the
+    Falls back to `canonical_ids` when `selected_ids` is empty / unset, so the
     row preserves its canonical column order in the absence of any user selection.
     """
     ids = selected_ids if selected_ids else canonical_ids
@@ -1200,13 +1203,13 @@ def select_row(
 
 
 class ColumnsType(MultiChoice):
-    """Column-flavored alias of :class:`click_extra.types.MultiChoice`.
+    """Column-flavored alias of {class}`click_extra.types.MultiChoice`.
 
     Pins the comma separator and case-sensitive matching (column IDs are
     snake_case identifiers, not free-form strings), and renames the metavar
-    fallback to ``COLUMNS`` instead of the generic ``MULTI``. The
-    ``accepted_ids`` constructor keyword is a column-flavored alias of
-    ``MultiChoice.choices``.
+    fallback to `COLUMNS` instead of the generic `MULTI`. The
+    `accepted_ids` constructor keyword is a column-flavored alias of
+    `MultiChoice.choices`.
     """
 
     name = "columns"
@@ -1216,29 +1219,30 @@ class ColumnsType(MultiChoice):
 
 
 class ColumnsOption(ExtraOption):
-    """A ``--columns`` option that lets users restrict and reorder table columns.
+    """A `--columns` option that lets users restrict and reorder table columns.
 
-    Accepts a comma-separated list of column IDs, SQL-``SELECT``-style:
+    Accepts a comma-separated list of column IDs, SQL-`SELECT`-style:
 
-    .. code-block:: shell-session
+    ```{code-block} shell-session
 
-        $ my-cli --columns id,spec,value --params
+    $ my-cli --columns id,spec,value --params
+    ```
 
     The selection is stored in
-    :data:`ctx.meta[click_extra.context.COLUMNS] <click_extra.context.COLUMNS>` and
+    {data}`ctx.meta[click_extra.context.COLUMNS] <click_extra.context.COLUMNS>` and
     consumed by table-rendering callbacks (like
-    :class:`click_extra.parameters.ShowParamsOption`) to project rows + headers
+    {class}`click_extra.parameters.ShowParamsOption`) to project rows + headers
     before rendering.
 
-    Pass ``columns=`` at construction time with the column registry the option
+    Pass `columns=` at construction time with the column registry the option
     should advertise: the help text then lists the accepted IDs and the default
     selection, and the callback validates the user input against that registry
-    so unknown IDs fail fast with a :class:`click.UsageError`. Without
-    ``columns=``, the option stays generic: it parses any IDs and leaves
+    so unknown IDs fail fast with a {class}`click.UsageError`. Without
+    `columns=`, the option stays generic: it parses any IDs and leaves
     validation to the downstream consumer.
 
     Empty / unset means *render every column in canonical order*: the default
-    behavior, indistinguishable from not passing ``--columns`` at all.
+    behavior, indistinguishable from not passing `--columns` at all.
     """
 
     def __init__(
@@ -1263,7 +1267,7 @@ class ColumnsOption(ExtraOption):
         """Column registry this option advertises and validates against (may be empty)."""
 
         # When the registry is known, expose the IDs in the metavar (parallel to
-        # ``click.Choice`` showing ``[a|b|c]``) so the help screen enumerates the
+        # `click.Choice` showing `[a|b|c]`) so the help screen enumerates the
         # accepted values inline rather than burying them in the description.
         if type is None:
             type = ColumnsType(accepted_ids=tuple(c.id for c in self.columns))
@@ -1289,7 +1293,7 @@ class ColumnsOption(ExtraOption):
         """Store the selected column IDs on the context for later projection.
 
         Validation of the IDs against the registry happens inside
-        :meth:`~click_extra.types.MultiChoice.convert`, before this callback runs,
+        {meth}`~click_extra.types.MultiChoice.convert`, before this callback runs,
         so this just
         threads the parsed selection onto the context.
         """
@@ -1299,12 +1303,12 @@ class ColumnsOption(ExtraOption):
 
 
 def _normalize_column_def(column: ColumnSpec | tuple[str | None, str | None] | str):
-    """Coerce a column definition to a ``(label, column_id)`` tuple.
+    """Coerce a column definition to a `(label, column_id)` tuple.
 
-    Accepts a :class:`ColumnSpec` (so a registry can be shared with
-    ``--columns``), a raw ``(label, column_id)`` tuple, or a bare column ID
+    Accepts a {class}`ColumnSpec` (so a registry can be shared with
+    `--columns`), a raw `(label, column_id)` tuple, or a bare column ID
     string, which declares a sortable field untied to any table layout (its
-    label is ``None``).
+    label is `None`).
     """
     if isinstance(column, ColumnSpec):
         return (column.label, column.id)
@@ -1314,64 +1318,66 @@ def _normalize_column_def(column: ColumnSpec | tuple[str | None, str | None] | s
 
 
 class SortByOption(ExtraOption):
-    """A ``--sort-by`` option whose choices are derived from column definitions.
+    """A `--sort-by` option whose choices are derived from column definitions.
 
-    Stores the selected column IDs in ``ctx.meta[click_extra.context.SORT_BY]``
+    Stores the selected column IDs in `ctx.meta[click_extra.context.SORT_BY]`
     and publishes the derived row sort key in
-    ``ctx.meta[click_extra.context.TABLE_SORT_KEY]``, which ``ctx.print_table``
+    `ctx.meta[click_extra.context.TABLE_SORT_KEY]`, which `ctx.print_table`
     picks up so that table output is automatically sorted, without changing its
-    ``(table_data, headers)`` call contract. The option accepts
-    ``multiple=True``, so users can repeat ``--sort-by`` to define a
+    `(table_data, headers)` call contract. The option accepts
+    `multiple=True`, so users can repeat `--sort-by` to define a
     multi-column sort priority.
 
-    Column definitions may be ``ColumnSpec`` instances or raw
-    ``(label, column_id)`` tuples, passed positionally or via the ``columns=``
-    keyword. Passing a ``ColumnSpec`` registry via ``columns=`` lets the same
-    tuple drive both ``ColumnsOption`` (``--columns``) and ``--sort-by``, so
+    Column definitions may be `ColumnSpec` instances or raw
+    `(label, column_id)` tuples, passed positionally or via the `columns=`
+    keyword. Passing a `ColumnSpec` registry via `columns=` lets the same
+    tuple drive both `ColumnsOption` (`--columns`) and `--sort-by`, so
     the two options stay in sync from a single source of truth.
 
-    .. code-block:: python
+    ```{code-block} python
 
-        COLUMNS = (
-            ColumnSpec("package_id", "Package ID"),
-            ColumnSpec("package_name", "Name"),
-            ColumnSpec("manager_id", "Manager"),
-        )
+    COLUMNS = (
+        ColumnSpec("package_id", "Package ID"),
+        ColumnSpec("package_name", "Name"),
+        ColumnSpec("manager_id", "Manager"),
+    )
 
 
-        @command
-        @table_format_option
-        @columns_option(columns=COLUMNS)
-        @sort_by_option(columns=COLUMNS)
-        @pass_context
-        def my_cmd(ctx):
-            ctx.print_table(rows, [col.label for col in COLUMNS])
+    @command
+    @table_format_option
+    @columns_option(columns=COLUMNS)
+    @sort_by_option(columns=COLUMNS)
+    @pass_context
+    def my_cmd(ctx):
+        ctx.print_table(rows, [col.label for col in COLUMNS])
+    ```
 
     Definitions may instead be bare column ID strings, declaring a
     **field vocabulary** untied to any single table layout. This fits a
-    ``--sort-by`` declared once on a group whose subcommands render
+    `--sort-by` declared once on a group whose subcommands render
     heterogeneous tables: no sort key is published since no layout is known up
-    front. The selection is resolved per table by :func:`print_table`, from
+    front. The selection is resolved per table by {func}`print_table`, from
     the column IDs its headers carry — each table sorts by the selected fields
     it knows (remaining columns breaking ties left to right) and keeps its
     original row order when it knows none.
 
-    .. code-block:: python
+    ```{code-block} python
 
-        @group
-        @sort_by_option("package_id", "package_name", "manager_id")
-        def my_cli():
-            pass
-
-
-        @my_cli.command
-        def installed():
-            print_table(rows, [("Package ID", "package_id"), ("Manager", "manager_id")])
+    @group
+    @sort_by_option("package_id", "package_name", "manager_id")
+    def my_cli():
+        pass
 
 
-        @my_cli.command
-        def managers():
-            print_table(rows, [("Manager", "manager_id"), ("Path", None)])
+    @my_cli.command
+    def installed():
+        print_table(rows, [("Package ID", "package_id"), ("Manager", "manager_id")])
+
+
+    @my_cli.command
+    def managers():
+        print_table(rows, [("Manager", "manager_id"), ("Path", None)])
+    ```
     """
 
     def __init__(
@@ -1388,9 +1394,9 @@ class SortByOption(ExtraOption):
         if not param_decls:
             param_decls = ("--sort-by",)
 
-        # Accept a shared ``columns=`` registry (the same ``ColumnSpec`` tuple
-        # passed to ``--columns``) or positional definitions. Each entry may be a
-        # ``ColumnSpec``, a raw ``(label, column_id)`` tuple, or a bare column ID
+        # Accept a shared `columns=` registry (the same `ColumnSpec` tuple
+        # passed to `--columns`) or positional definitions. Each entry may be a
+        # `ColumnSpec`, a raw `(label, column_id)` tuple, or a bare column ID
         # string.
         if columns is not None and header_defs:
             msg = "Pass column definitions positionally or via columns=, not both."
@@ -1410,13 +1416,13 @@ class SortByOption(ExtraOption):
         self.field_vocabulary = bool(self.header_defs) and not labeled
         """Whether definitions are bare column IDs, untied to any table layout.
 
-        In this mode :meth:`init_sort` only publishes the selection on the
-        context: the sort is resolved per table at :func:`print_table` time.
+        In this mode {meth}`init_sort` only publishes the selection on the
+        context: the sort is resolved per table at {func}`print_table` time.
         """
 
         sortable_ids = [col_id for _, col_id in self.header_defs if col_id]
 
-        # Normalize default to a tuple for multiple mode. ``None`` derives the
+        # Normalize default to a tuple for multiple mode. `None` derives the
         # first sortable ID; an explicit empty sequence declares no default
         # sort, so bare invocations keep the original row order.
         if default is None:
@@ -1444,18 +1450,18 @@ class SortByOption(ExtraOption):
         param: click.Parameter,
         sort_columns: tuple[str, ...],
     ) -> None:
-        """Publish the row sort key on the context's shared ``meta``.
+        """Publish the row sort key on the context's shared `meta`.
 
         Builds the sort key from this option's column definitions and the
-        selected ``sort_columns``, then stores it under
-        ``ctx.meta[click_extra.context.TABLE_SORT_KEY]``, where
-        ``ctx.print_table`` picks it up. The call contract is the same sorted
-        or not: ``ctx.print_table(table_data, headers)``.
+        selected `sort_columns`, then stores it under
+        `ctx.meta[click_extra.context.TABLE_SORT_KEY]`, where
+        `ctx.print_table` picks it up. The call contract is the same sorted
+        or not: `ctx.print_table(table_data, headers)`.
 
         In field-vocabulary mode no table layout is known at declaration time,
         so no key is published: only the selection lands on the context
-        (``ctx.meta`` is shared with every subcommand), resolved per table by
-        :func:`print_table` from the column IDs its headers carry.
+        (`ctx.meta` is shared with every subcommand), resolved per table by
+        {func}`print_table` from the column IDs its headers carry.
         """
         if ctx.resilient_parsing:
             return

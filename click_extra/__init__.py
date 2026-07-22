@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 TYPE_CHECKING = False
-# Mypy override: the ``from click import *`` / ``from cloup import *`` star imports
+# Mypy override: the `from click import *` / `from cloup import *` star imports
 # below make mypy resolve these re-implemented names to the click or cloup base class,
 # which hides click-extra's own attributes. Declaring the correct types here first,
 # before the star imports, makes mypy treat the later bindings as no-redefs and keeps
@@ -56,7 +56,7 @@ except ImportError:  # Click < 8.5.0.dev0.
 from cloup import *  # type: ignore[no-redef, assignment]
 
 # Imported for its registration side effect: defining the module registers the
-# ``carapace`` shell completion class (see click_extra.carapace.CarapaceComplete),
+# `carapace` shell completion class (see click_extra.carapace.CarapaceComplete),
 # so dynamic Carapace completion resolves in any CLI that imports click_extra.
 from . import (
     carapace as carapace,
@@ -173,6 +173,7 @@ from .man_page import (
 from .myst_converter import (
     convert_directory,
     convert_file,
+    convert_source,
     detect_source_package,
 )
 from .parameters import (
@@ -199,7 +200,7 @@ from .spinner import (  # type: ignore[no-redef]
     progressbar,
 )
 
-# ``Style`` shadows the ``cloup.Style`` bound by the star import above with
+# `Style` shadows the `cloup.Style` bound by the star import above with
 # click-extra's enhanced subclass; relative imports always follow the cloup
 # star import, so the override needs no special placement.
 from .styling import (
@@ -382,6 +383,7 @@ __all__ = [
     "convert_directory",
     "convert_file",
     "convert_rst_files_in_directory",
+    "convert_source",
     "detect_source_package",
     "dir_path",
     "echo",
@@ -481,24 +483,25 @@ __all__ = [
 ]
 """Expose all of Click, Cloup and Click Extra.
 
-.. note::
-    The content of ``__all__`` is checked by a unittest and sorted by
-    ``ruff`` via `RUF022 <https://docs.astral.sh/ruff/rules/unsorted-dunder-all/>`_.
+```{note}
+The content of `__all__` is checked by a unittest and sorted by
+`ruff` via [RUF022](https://docs.astral.sh/ruff/rules/unsorted-dunder-all/).
+```
 """
 
 # NoSuchCommand and get_pager_file are only re-exported on Click >= 8.5.0.dev0 (see the
-# guarded import above). Drop them from the public API on older Click so ``__all__``
+# guarded import above). Drop them from the public API on older Click so `__all__`
 # matches the names actually bound in this module.
 if not _HAS_CLICK_8_4_EXPORTS:
     __all__.remove("NoSuchCommand")
     __all__.remove("get_pager_file")
 del _HAS_CLICK_8_4_EXPORTS
 
-# Scrub namespace artifacts that are not part of the public API: ``annotations``
-# is this module's own ``from __future__ import annotations`` binding (deleting
+# Scrub namespace artifacts that are not part of the public API: `annotations`
+# is this module's own `from __future__ import annotations` binding (deleting
 # it does not affect postponed evaluation, which is settled at compile time),
-# and ``warnings`` is the stdlib module leaked through ``from cloup import *``
-# (cloup lists it in its ``__all__``).
+# and `warnings` is the stdlib module leaked through `from cloup import *`
+# (cloup lists it in its `__all__`).
 del annotations
 del warnings  # noqa: F821
 

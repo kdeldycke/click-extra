@@ -49,19 +49,17 @@ logger = getLogger(__name__)
 
 
 class LogLevel(IntEnum):
-    """Mapping of :ref:`canonical log level names <levels>` to their integer level.
+    """Mapping of {ref}`canonical log level names <levels>` to their integer level.
 
-    That's our own version of `logging._nameToLevel
-    <https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L115-L124>`_,
+    That's our own version of [logging._nameToLevel](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L115-L124),
     but:
 
     - sorted from lowest to highest verbosity,
     - excludes the following levels:
-        - :data:`NOTSET <logging.NOTSET>`, which is considered internal
-        - ``WARN``, which :meth:`is obsolete <logging.Logger.warning>`
-        - ``FATAL``, which `shouldn't be used <https://github.com/python/cpython/issues/85013>`_
-          and has been `replaced by CRITICAL
-          <https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L2150-L2154>`_
+        - {data}`NOTSET <logging.NOTSET>`, which is considered internal
+        - `WARN`, which {meth}`is obsolete <logging.Logger.warning>`
+        - `FATAL`, which [shouldn't be used](https://github.com/python/cpython/issues/85013)
+          and has been [replaced by CRITICAL](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L2150-L2154)
     """
 
     CRITICAL = logging.CRITICAL
@@ -76,41 +74,40 @@ class LogLevel(IntEnum):
 
 
 DEFAULT_LEVEL: LogLevel = LogLevel.WARNING
-""":data:`WARNING <logging.WARNING>` is the default level we expect any loggers to starts their lives at.
+"""{data}`WARNING <logging.WARNING>` is the default level we expect any loggers to starts their lives at.
 
-:data:`WARNING <logging.WARNING>` has been chosen as it is `the level at which the default Python's
-global root logger is set up <https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1997>`_.
+{data}`WARNING <logging.WARNING>` has been chosen as it is [the level at which the default Python's global root logger is set up](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1997).
 
-This value is also used as the default level for :class:`VerbosityOption` .
+This value is also used as the default level for {class}`VerbosityOption` .
 """
 
 
 _RESET_REGISTERED: str = f"{context.META_NAMESPACE}_verbosity_reset_registered"
-"""Internal sentinel marking that ``reset_loggers`` was queued on the context.
+"""Internal sentinel marking that `reset_loggers` was queued on the context.
 
-Lives in ``ctx.meta`` so the verbosity inheritance chain
-(``_VerbosityOption`` / ``VerbosityOption`` / ``VerboseOption`` / ``QuietOption``)
+Lives in `ctx.meta` so the verbosity inheritance chain
+(`_VerbosityOption` / `VerbosityOption` / `VerboseOption` / `QuietOption`)
 registers the close callback at most once per invocation, even when several
 verbosity options are passed.
 """
 
 
 _COUNTER_SCANNED: str = f"{context.META_NAMESPACE}_verbosity_counter_scanned"
-"""Internal sentinel marking that the ``-v``/``-q`` counter was pre-resolved.
+"""Internal sentinel marking that the `-v`/`-q` counter was pre-resolved.
 
-The first verbosity option reaching :meth:`_VerbosityOption.handle_parse_result`
-reads the raw ``--verbose``/``--quiet`` repetition counts from the parsed
-``opts`` and stashes them on the context before any option applies a level. This
+The first verbosity option reaching {meth}`_VerbosityOption.handle_parse_result`
+reads the raw `--verbose`/`--quiet` repetition counts from the parsed
+`opts` and stashes them on the context before any option applies a level. This
 way the option that fires first already reconciles the full counter and never
-applies an intermediate, louder level that a later ``-q`` would have to lower
-(which would leak its ``Set ... DEBUG`` debug trace).
+applies an intermediate, louder level that a later `-q` would have to lower
+(which would leak its `Set ... DEBUG` debug trace).
 """
 
 
 class StreamHandler(logging.StreamHandler):
     """A handler to output logs to the console.
 
-    Wraps :class:`logging.StreamHandler`, but use :func:`click.echo` to support color printing.
+    Wraps {class}`logging.StreamHandler`, but use {func}`click.echo` to support color printing.
 
     Only :py:data:`<stderr> <sys.stderr>` or :py:data:`<stdout> <sys.stdout>` are allowed as output stream.
 
@@ -118,7 +115,7 @@ class StreamHandler(logging.StreamHandler):
     """
 
     _stderr_output: bool = True
-    """:func:`click.echo`'s ``err`` parameter to be used at printing time."""
+    """{func}`click.echo`'s `err` parameter to be used at printing time."""
 
     _stream: IO[Any] = sys.stderr
 
@@ -126,8 +123,7 @@ class StreamHandler(logging.StreamHandler):
     def stream(self) -> IO[Any]:
         """The stream to which logs are written.
 
-        A proxy of the parent :class:`logging.StreamHandler`'s `stream attribute
-        <https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1129>`_.
+        A proxy of the parent {class}`logging.StreamHandler`'s [stream attribute](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1129).
 
         Redefined here to enforce checks on the stream value.
         """
@@ -144,19 +140,19 @@ class StreamHandler(logging.StreamHandler):
         self._stderr_output = stream == sys.stderr
 
     def emit(self, record: LogRecord) -> None:
-        """Use :func:`click.echo` to print to the console.
+        """Use {func}`click.echo` to print to the console.
 
-        Cooperates with any :class:`~click_extra.spinner.Spinner` currently
+        Cooperates with any {class}`~click_extra.spinner.Spinner` currently
         animating on the same stream: the record is then printed through
-        :meth:`~click_extra.spinner.Spinner.echo`, which erases the in-progress
+        {meth}`~click_extra.spinner.Spinner.echo`, which erases the in-progress
         frame first, so a log line emitted mid-animation lands on its own line
         instead of garbling the spinner (and vice versa).
 
         The color tri-state is resolved through
-        :func:`~click_extra.color.invocation_color` rather than left to
-        :func:`click.echo`'s own context lookup: a record emitted from a
+        {func}`~click_extra.color.invocation_color` rather than left to
+        {func}`click.echo`'s own context lookup: a record emitted from a
         background thread (a subprocess stream reader, a fan-out worker) has no
-        reachable Click context, and would otherwise ignore ``--no-color`` and
+        reachable Click context, and would otherwise ignore `--no-color` and
         keep its ANSI codes on a TTY.
         """
         try:
@@ -191,17 +187,17 @@ class Formatter(logging.Formatter):
         """Colorize the record's log level name before calling the standard
         formatter.
 
-        Colors are sourced from a :class:`click_extra.theme.HelpTheme`,
-        resolved per-invocation via :func:`click_extra.theme.get_current_theme`.
+        Colors are sourced from a {class}`click_extra.theme.HelpTheme`,
+        resolved per-invocation via {func}`click_extra.theme.get_current_theme`.
 
-        A record carrying a ``label`` attribute (each line
-        :func:`~click_extra.execution.run_cli` streams from a subprocess is
+        A record carrying a `label` attribute (each line
+        {func}`~click_extra.execution.run_cli` streams from a subprocess is
         tagged with its caller-provided label) renders it glued to the level
-        name, styled like an invoked command: ``debug:mas: Warning: ...``. The
+        name, styled like an invoked command: `debug:mas: Warning: ...`. The
         tag stays out of the message text itself, so a foreign formatter is free
-        to render ``record.label`` its own way.
+        to render `record.label` its own way.
 
-        The record's ``levelname`` is restored afterwards: a record may be
+        The record's `levelname` is restored afterwards: a record may be
         formatted more than once (several handlers, a captured then re-rendered
         record), and must not accumulate styling or glued labels.
         """
@@ -239,83 +235,85 @@ def basicConfig(
     file_handler_class: type[Handler] = FileHandler,
     formatter_class: type[logging.Formatter] = Formatter,
 ) -> None:
-    """Configure the global ``root`` logger.
+    """Configure the global `root` logger.
 
-    This function is a wrapper around Python standard library's :func:`logging.basicConfig`,
+    This function is a wrapper around Python standard library's {func}`logging.basicConfig`,
     but with additional parameters and tweaked defaults.
 
-    It sets up the global ``root`` logger, and optionally adds a file or stream handler to it.
+    It sets up the global `root` logger, and optionally adds a file or stream handler to it.
 
     Differences in default values:
 
     ==========  ===========================  ======================================
-    Argument    :func:`basicConfig` default  :func:`logging.basicConfig` default
+    Argument    {func}`basicConfig` default  {func}`logging.basicConfig` default
     ==========  ===========================  ======================================
-    ``style``   ``{``                        ``%``
-    ``format``  ``{levelname}: {message}``   ``%(levelname)s:%(name)s:%(message)s``
+    `style`   ``{``                        `%`
+    `format`  ``{levelname}: {message}``   `%(levelname)s:%(name)s:%(message)s`
     ==========  ===========================  ======================================
 
-    This function takes the same parameters as :func:`logging.basicConfig`, but require them
+    This function takes the same parameters as {func}`logging.basicConfig`, but require them
     to be all passed as explicit keywords arguments.
 
-    :param filename: Specifies that a :class:`logging.FileHandler` be created, using the
+    :param filename: Specifies that a {class}`logging.FileHandler` be created, using the
         specified filename, rather than an :py:class:`StreamHandler`.
-    :param filemode: If *filename* is specified, open the file in this :func:`mode <.open>`.
+    :param filemode: If *filename* is specified, open the file in this {func}`mode <.open>`.
 
-        Defaults to ``a``.
+        Defaults to `a`.
     :param format: Use the specified format string for the handler.
 
         Defaults to ``{levelname}: {message}``.
     :param datefmt: Use the specified date/time format, as accepted by
-        :func:`time.strftime`.
+        {func}`time.strftime`.
     :param style: If format is specified, use this style for the format string:
 
-        - ``%`` for :ref:`printf-style <old-string-formatting>`,
-        - ``{`` for :meth:`str.format`,
-        - ``$`` for :class:`string.Template`.
+        - `%` for {ref}`printf-style <old-string-formatting>`,
+        - ``{`` for {meth}`str.format`,
+        - `$` for {class}`string.Template`.
 
         Defaults to ``{``.
-    :param level: Set the ``root`` logger level to the specified :ref:`level <levels>`.
+    :param level: Set the `root` logger level to the specified {ref}`level <levels>`.
     :param stream: Use the specified stream to initialize the
         :py:class:`StreamHandler`. Note that this argument is incompatible with
-        *filename* - if both are present, a ``ValueError`` is raised.
+        *filename* - if both are present, a `ValueError` is raised.
     :param handlers: If specified, this should be an iterable of already created
-        handlers to add to the ``root`` logger. Any handlers which don't already have a
+        handlers to add to the `root` logger. Any handlers which don't already have a
         formatter set will be assigned the default formatter created in this function.
         Note that this argument is incompatible with *filename* or *stream* - if both
-        are present, a ``ValueError`` is raised.
-    :param force: If this argument is specified as ``True``, any existing
-        handlers attached to the ``root`` logger are removed and closed, before carrying
+        are present, a `ValueError` is raised.
+    :param force: If this argument is specified as `True`, any existing
+        handlers attached to the `root` logger are removed and closed, before carrying
         out the configuration as specified by the other arguments.
-    :param encoding: :ref:`Name of the encoding <standard-encodings>` used to decode or
+    :param encoding: {ref}`Name of the encoding <standard-encodings>` used to decode or
         encode the file. To be specified along with *filename*, and passed to
-        :class:`logging.FileHandler` for opening the output file.
-    :param errors: Optional string that specifies :ref:`how encoding and decoding errors
-        are to be handled <error-handlers>` by the :class:`logging.FileHandler`. Defaults
-        to ``backslashreplace``. Note that if ``None`` is specified, it will be passed as
-        such to :func:`open`.
+        {class}`logging.FileHandler` for opening the output file.
+    :param errors: Optional string that specifies {ref}`how encoding and decoding errors
+        are to be handled <error-handlers>` by the {class}`logging.FileHandler`. Defaults
+        to `backslashreplace`. Note that if `None` is specified, it will be passed as
+        such to {func}`open`.
 
-    .. important::
-        Always keep the signature of this function, the default values of its
-        parameters and its documentation in sync with the one from Python's standard
-        library.
+    ```{important}
+    Always keep the signature of this function, the default values of its
+    parameters and its documentation in sync with the one from Python's standard
+    library.
+    ```
 
     These new arguments are available for better configurability:
 
     :param stream_handler_class: A :py:class:`logging.Handler` class that will be used in
-        :func:`logging.basicConfig` to create a default stream-based handler. Defaults to
+        {func}`logging.basicConfig` to create a default stream-based handler. Defaults to
         :py:class:`StreamHandler`.
     :param file_handler_class: A :py:class:`logging.Handler` class that will be used in
-        :func:`logging.basicConfig` to create a default file-based handler. Defaults to
-        :class:`logging.FileHandler`.
+        {func}`logging.basicConfig` to create a default file-based handler. Defaults to
+        {class}`logging.FileHandler`.
     :param formatter_class: A :py:class:`logging.Formatter` class of the formatter that
-        will be used in :func:`logging.basicConfig` to setup the default formatter. Defaults to
+        will be used in {func}`logging.basicConfig` to setup the default formatter. Defaults to
         :py:class:`Formatter`.
 
-    .. note::
-        I don't like the camel-cased name of this function and would have called it
-        ``basic_config()``, but it's kept this way for consistency with Python's
-        standard library :func:`logging.basicConfig`.
+    ```{note}
+    I don't like the camel-cased name of this function and would have called it
+    `basic_config()`, but it's kept this way for consistency with Python's
+    standard library {func}`logging.basicConfig`.
+    ```
     """
     # Collect all arguments that are not None, because basicConfig is testing the
     # presence of them instead of their values. So we'll add them conditionally to
@@ -348,21 +346,21 @@ def new_logger(
 
     By default, this helper will:
 
-    - :func:`Fetch the logger <logging.getLogger>` registered under the ``name`` parameter, or creates a new one
+    - {func}`Fetch the logger <logging.getLogger>` registered under the `name` parameter, or creates a new one
       with that name if it doesn't exist,
-    - Set the logger's :attr:`propagate <logging.Logger.propagate>` attribute to ``False``,
+    - Set the logger's {attr}`propagate <logging.Logger.propagate>` attribute to `False`,
     - Force removal of any existing handlers and formatters attached to the logger,
     - Attach a new :py:class:`StreamHandler` with :py:class:`Formatter`,
     - Return the logger object.
 
-    This function is a wrapper around :func:`basicConfig` and takes the same keywords arguments.
+    This function is a wrapper around {func}`basicConfig` and takes the same keywords arguments.
 
-    :param name: ID of the logger to setup. If ``None``, Python's ``root``
+    :param name: ID of the logger to setup. If `None`, Python's `root`
         logger will be used. If a logger with the provided name is not found in the
         global registry, a new logger with that name will be created.
-    :param propagate: Sets the logger's :attr:`propagate <logging.Logger.propagate>` attribute. Defaults to ``False``.
-    :param force: Same as the *force* parameter from :func:`logging.basicConfig` and :func:`basicConfig`. Defaults to ``True``.
-    :param kwargs: Any other keyword parameters supported by :func:`logging.basicConfig` and :func:`basicConfig`.
+    :param propagate: Sets the logger's {attr}`propagate <logging.Logger.propagate>` attribute. Defaults to `False`.
+    :param force: Same as the *force* parameter from {func}`logging.basicConfig` and {func}`basicConfig`. Defaults to `True`.
+    :param kwargs: Any other keyword parameters supported by {func}`logging.basicConfig` and {func}`basicConfig`.
     """
     if name == logging.root.name:
         logger = logging.root
@@ -388,77 +386,81 @@ class _VerbosityOption(ExtraOption):
     verbosity.
 
     Sets the level of the provided logger. If no logger is provided, sets the level of
-    the global ``root`` logger.
+    the global `root` logger.
 
-    .. important::
-        The internal ``click_extra`` logger will be aligned to the level set through
-        this class.
+    ```{important}
+    The internal `click_extra` logger will be aligned to the level set through
+    this class.
+    ```
 
-    .. caution::
-        This class is not intended to be used as-is. It is the internal place where
-        the level requested by the three competing options is reconciled:
+    ```{caution}
+    This class is not intended to be used as-is. It is the internal place where
+    the level requested by the three competing options is reconciled:
 
-        - ``--verbosity LEVEL`` sets an absolute level (defaults to
-          :const:`DEFAULT_LEVEL`).
-        - ``--verbose``/``-v`` raises the verbosity, one :class:`LogLevel` step per
-          repetition.
-        - ``--quiet``/``-q`` lowers the verbosity, one :class:`LogLevel` step per
-          repetition.
+    - `--verbosity LEVEL` sets an absolute level (defaults to
+      {const}`DEFAULT_LEVEL`).
+    - `--verbose`/`-v` raises the verbosity, one {class}`LogLevel` step per
+      repetition.
+    - `--quiet`/`-q` lowers the verbosity, one {class}`LogLevel` step per
+      repetition.
 
-        ``-v`` and ``-q`` form a single signed counter around the base level:
-        ``net = (number of -v) - (number of -q)``. The counter is clamped to the
-        :class:`LogLevel` range, so it never reaches past :attr:`LogLevel.DEBUG`
-        (loudest) nor :attr:`LogLevel.CRITICAL` (quietest). See
-        :meth:`resolve_level` for the way the counter is reconciled with an explicit
-        ``--verbosity``.
+    `-v` and `-q` form a single signed counter around the base level:
+    `net = (number of -v) - (number of -q)`. The counter is clamped to the
+    {class}`LogLevel` range, so it never reaches past {attr}`LogLevel.DEBUG`
+    (loudest) nor {attr}`LogLevel.CRITICAL` (quietest). See
+    {meth}`resolve_level` for the way the counter is reconciled with an explicit
+    `--verbosity`.
+    ```
 
-    .. note::
-        ``-q`` only lowers the *logging* verbosity. It deliberately does not silence
-        :func:`click.echo`: a command's primary output is not a diagnostic and stays
-        on its stream.
+    ```{note}
+    `-q` only lowers the *logging* verbosity. It deliberately does not silence
+    {func}`click.echo`: a command's primary output is not a diagnostic and stays
+    on its stream.
+    ```
 
-    .. todo::
-        Let the counter reach beyond the current :class:`LogLevel` range, as sketched
-        by the ``-vvvv`` (trace) and ``-q`` (silence everything) notes that used to
-        live here:
+    ```{todo}
+    Let the counter reach beyond the current {class}`LogLevel` range, as sketched
+    by the `-vvvv` (trace) and `-q` (silence everything) notes that used to
+    live here:
 
-        - a ``TRACE`` pseudo-level below :attr:`LogLevel.DEBUG` (numeric value ``5``,
-          mirroring ``logging.DEBUG - 5``) so repeated ``-v`` can surface
-          finer-grained tracing past ``DEBUG``;
-        - a ``SILENT`` pseudo-level above :attr:`LogLevel.CRITICAL` (any value above
-          ``logging.CRITICAL``) so repeated ``-q`` can suppress every record,
-          including :attr:`LogLevel.CRITICAL`.
+    - a `TRACE` pseudo-level below {attr}`LogLevel.DEBUG` (numeric value `5`,
+      mirroring `logging.DEBUG - 5`) so repeated `-v` can surface
+      finer-grained tracing past `DEBUG`;
+    - a `SILENT` pseudo-level above {attr}`LogLevel.CRITICAL` (any value above
+      `logging.CRITICAL`) so repeated `-q` can suppress every record,
+      including {attr}`LogLevel.CRITICAL`.
 
-        Both require extending :class:`LogLevel`, which ripples into the
-        ``--verbosity`` :class:`~click_extra.types.EnumChoice`, the
-        :class:`Formatter` level-name color lookup and the level-ordering tests.
-        They are intentionally left out of the symmetric-counter change that
-        introduced ``-q``, where the counter simply clamps at ``DEBUG``/``CRITICAL``.
+    Both require extending {class}`LogLevel`, which ripples into the
+    `--verbosity` {class}`~click_extra.types.EnumChoice`, the
+    {class}`Formatter` level-name color lookup and the level-ordering tests.
+    They are intentionally left out of the symmetric-counter change that
+    introduced `-q`, where the counter simply clamps at `DEBUG`/`CRITICAL`.
+    ```
     """
 
     logger_name: str
     """The ID of the logger to set the level to.
 
-    This will be provided to :func:`logging.getLogger` to fetch the logger object, and
+    This will be provided to {func}`logging.getLogger` to fetch the logger object, and
     as such, can be a dot-separated string to build hierarchical loggers.
     """
 
     _help_verb: str | None = None
-    """Direction word used by :meth:`get_help_record` to build the default help.
+    """Direction word used by {meth}`get_help_record` to build the default help.
 
-    Set to ``Increase`` by :class:`VerboseOption` and ``Decrease`` by
-    :class:`QuietOption`. Left ``None`` on the base and on :class:`VerbosityOption`,
+    Set to `Increase` by {class}`VerboseOption` and `Decrease` by
+    {class}`QuietOption`. Left `None` on the base and on {class}`VerbosityOption`,
     which both render their help verbatim instead of deriving it from the base level.
     """
 
     def get_help_record(self, ctx: click.Context) -> tuple[str, str] | None:
         """Dynamically generates the default help message.
 
-        We need that patch because :meth:`get_base_level` depends on the context, so we
-        cannot hard-code the help message as the option's ``__init__`` default.
+        We need that patch because {meth}`get_base_level` depends on the context, so we
+        cannot hard-code the help message as the option's `__init__` default.
 
-        Only the ``-v``/``-q`` counting options derive their help from the base level
-        (via :attr:`_help_verb`). The base and :class:`VerbosityOption` carry a static
+        Only the `-v`/`-q` counting options derive their help from the base level
+        (via {attr}`_help_verb`). The base and {class}`VerbosityOption` carry a static
         help and fall straight through to the parent implementation.
         """
         help_message_patch = nullcontext()
@@ -480,25 +482,27 @@ class _VerbosityOption(ExtraOption):
     def all_loggers(self) -> Generator[Logger, None, None]:
         """Returns the list of logger IDs affected by the verbosity option.
 
-        Will returns ``click_extra`` internal logger first, then the option's
-        :attr:`logger_name`.
+        Will returns `click_extra` internal logger first, then the option's
+        {attr}`logger_name`.
         """
         for name in ("click_extra", self.logger_name):
             yield getLogger(name)
 
     def reset_loggers(self) -> None:
         """Forces all loggers managed by the option to be reset to
-        :const:`DEFAULT_LEVEL`.
+        {const}`DEFAULT_LEVEL`.
 
-        .. important::
-            Loggers are reset in reverse order to ensure the internal logger is changed
-            last. That way the internal ``click_extra`` logger can report its ongoing
-            logger-altering operations while using the logging facilities itself.
+        ```{important}
+        Loggers are reset in reverse order to ensure the internal logger is changed
+        last. That way the internal `click_extra` logger can report its ongoing
+        logger-altering operations while using the logging facilities itself.
+        ```
 
-        .. danger::
-            Resetting loggers is extremely important for unittests. Because they're
-            global, loggers have tendency to leak and pollute their state between
-            multiple test calls.
+        ```{danger}
+        Resetting loggers is extremely important for unittests. Because they're
+        global, loggers have tendency to leak and pollute their state between
+        multiple test calls.
+        ```
         """
         for managed_logger in list(self.all_loggers)[::-1]:
             logger.debug(f"Reset {managed_logger} to {DEFAULT_LEVEL}.")
@@ -510,15 +514,15 @@ class _VerbosityOption(ExtraOption):
         opts: Mapping[str, Any],
         args: list[str],
     ) -> tuple[Any, list[str]]:
-        """Pre-resolve the ``-v``/``-q`` counter before any level is applied.
+        """Pre-resolve the `-v`/`-q` counter before any level is applied.
 
-        The first verbosity option to be processed reads the raw ``--verbose`` and
-        ``--quiet`` repetition counts straight from the parsed ``opts`` and stashes them
+        The first verbosity option to be processed reads the raw `--verbose` and
+        `--quiet` repetition counts straight from the parsed `opts` and stashes them
         on the context. By the time any verbosity callback applies a level,
-        :meth:`resolve_level` already sees the full counter, so the option that fires
+        {meth}`resolve_level` already sees the full counter, so the option that fires
         first lands on the final level directly instead of applying a louder
-        intermediate that a later ``-q`` would have to walk back. See
-        :data:`_COUNTER_SCANNED`.
+        intermediate that a later `-q` would have to walk back. See
+        {data}`_COUNTER_SCANNED`.
         """
         if not ctx.resilient_parsing and not context.get(ctx, _COUNTER_SCANNED):
             context.set(ctx, _COUNTER_SCANNED, True)
@@ -536,12 +540,12 @@ class _VerbosityOption(ExtraOption):
         )
 
     def get_base_level(self, ctx: click.Context) -> LogLevel:
-        """Returns the base level the ``-v``/``-q`` counter is anchored at.
+        """Returns the base level the `-v`/`-q` counter is anchored at.
 
-        Sourced from the :attr:`~VerbosityOption.default` of any
-        :class:`VerbosityOption` declared on the current command. When the
-        ``-v``/``-q`` options are used standalone (no ``--verbosity``), it defaults to
-        :const:`DEFAULT_LEVEL`.
+        Sourced from the {attr}`~VerbosityOption.default` of any
+        {class}`VerbosityOption` declared on the current command. When the
+        `-v`/`-q` options are used standalone (no `--verbosity`), it defaults to
+        {const}`DEFAULT_LEVEL`.
         """
         verbosity_option = last_param(ctx.command.params, VerbosityOption)
         if verbosity_option is None:
@@ -549,24 +553,24 @@ class _VerbosityOption(ExtraOption):
         return verbosity_option.default  # type: ignore[return-value]
 
     def resolve_level(self, ctx: click.Context) -> LogLevel:
-        """Reconcile ``--verbosity``, ``-v`` and ``-q`` into a single level.
+        """Reconcile `--verbosity`, `-v` and `-q` into a single level.
 
         Reads the raw value each option recorded on the context
-        (:data:`~click_extra.context.VERBOSITY`,
-        :data:`~click_extra.context.VERBOSE` and
-        :data:`~click_extra.context.QUIET`) and folds them with this rule:
+        ({data}`~click_extra.context.VERBOSITY`,
+        {data}`~click_extra.context.VERBOSE` and
+        {data}`~click_extra.context.QUIET`) and folds them with this rule:
 
-        - ``net = verbose - quiet``;
-        - ``net == 0``: the ``--verbosity`` value wins (its default when the user did
+        - `net = verbose - quiet`;
+        - `net == 0`: the `--verbosity` value wins (its default when the user did
           not pass it);
-        - ``net > 0``: the more verbose of the counter result and the ``--verbosity``
+        - `net > 0`: the more verbose of the counter result and the `--verbosity`
           value wins;
-        - ``net < 0``: the more quiet of the counter result and the ``--verbosity``
+        - `net < 0`: the more quiet of the counter result and the `--verbosity`
           value wins.
 
-        The counter starts from :meth:`get_base_level` and is clamped to the
-        :class:`LogLevel` range. This keeps ``-v`` backward compatible (it still counts
-        up from the default and the loudest request wins), while letting ``-q`` mirror
+        The counter starts from {meth}`get_base_level` and is clamped to the
+        {class}`LogLevel` range. This keeps `-v` backward compatible (it still counts
+        up from the default and the loudest request wins), while letting `-q` mirror
         it downwards.
         """
         base = self.get_base_level(ctx)
@@ -579,11 +583,11 @@ class _VerbosityOption(ExtraOption):
             return verbosity
 
         levels = tuple(LogLevel)
-        # Higher index == more verbose. ``-v`` raises the index, ``-q`` lowers it.
+        # Higher index == more verbose. `-v` raises the index, `-q` lowers it.
         counter_index = min(max(levels.index(base) + net, 0), len(levels) - 1)
         counter = levels[counter_index]
 
-        # ``min`` picks the more verbose (lowest numeric) level, ``max`` the quieter.
+        # `min` picks the more verbose (lowest numeric) level, `max` the quieter.
         return min(counter, verbosity) if net > 0 else max(counter, verbosity)
 
     def apply_verbosity(self, ctx: click.Context) -> None:
@@ -591,12 +595,12 @@ class _VerbosityOption(ExtraOption):
 
         Called by every verbosity option after it has recorded its own raw value, so
         the last option to fire reconciles the complete picture via
-        :meth:`resolve_level`. The reconciled level is published on ``ctx.meta`` under
-        :data:`~click_extra.context.VERBOSITY_LEVEL` and only (re)applied when it
-        actually changes, to keep the debug trace free of redundant ``Set`` lines.
+        {meth}`resolve_level`. The reconciled level is published on `ctx.meta` under
+        {data}`~click_extra.context.VERBOSITY_LEVEL` and only (re)applied when it
+        actually changes, to keep the debug trace free of redundant `Set` lines.
         """
         # Skip logger reconfiguration during help rendering, shell completion,
-        # and any ``make_context(resilient_parsing=True)`` path.
+        # and any `make_context(resilient_parsing=True)` path.
         if ctx.resilient_parsing:
             return
 
@@ -614,7 +618,7 @@ class _VerbosityOption(ExtraOption):
             logger.debug(f"Set {managed_logger} to {new_level}.")
 
         # Register the close callback at most once per ctx. All verbosity options flow
-        # through this method, so without a guard the same ``reset_loggers`` would be
+        # through this method, so without a guard the same `reset_loggers` would be
         # queued more than once on Context._close_callbacks.
         if not context.get(ctx, _RESET_REGISTERED):
             ctx.call_on_close(self.reset_loggers)
@@ -638,11 +642,11 @@ class _VerbosityOption(ExtraOption):
     ) -> None:
         """Set up a verbosity-altering option.
 
-        :param default_logger: If a :class:`logging.Logger` object is provided, that's
+        :param default_logger: If a {class}`logging.Logger` object is provided, that's
             the instance to which we will set the level to. If the parameter is a string
             and is found in the global registry, we will use it as the logger's ID.
-            Otherwise, we will create a new logger with :func:`new_logger`
-            Default to the global ``root`` logger.
+            Otherwise, we will create a new logger with {func}`new_logger`
+            Default to the global `root` logger.
         """
         # A logger object has been provided, fetch its name.
         if isinstance(default_logger, Logger):
@@ -668,15 +672,15 @@ class _VerbosityOption(ExtraOption):
 
 
 class VerbosityOption(_VerbosityOption):
-    """``--verbosity LEVEL`` option to set the log level of ``_VerbosityOption``."""
+    """`--verbosity LEVEL` option to set the log level of `_VerbosityOption`."""
 
     def set_level(
         self, ctx: click.Context, param: click.Parameter, value: LogLevel
     ) -> None:
-        """Record the ``--verbosity`` value, then reconcile.
+        """Record the `--verbosity` value, then reconcile.
 
-        The value passed to ``--verbosity`` is saved in
-        ``ctx.meta[click_extra.context.VERBOSITY]``.
+        The value passed to `--verbosity` is saved in
+        `ctx.meta[click_extra.context.VERBOSITY]`.
         """
         context.set(ctx, context.VERBOSITY, value)
         self.apply_verbosity(ctx)
@@ -706,23 +710,23 @@ class VerbosityOption(_VerbosityOption):
 
 
 class _CounterOption(_VerbosityOption):
-    """Shared machinery of the ``-v``/``-q`` counting twins.
+    """Shared machinery of the `-v`/`-q` counting twins.
 
-    Each subclass declares the ``ctx.meta`` key its raw repetition count is
-    recorded under (:attr:`_counter_key`) and its direction word
-    (:attr:`_help_verb`, also reused by the debug trace); the recording,
+    Each subclass declares the `ctx.meta` key its raw repetition count is
+    recorded under ({attr}`_counter_key`) and its direction word
+    ({attr}`_help_verb`, also reused by the debug trace); the recording,
     reconciliation and tracing below are common to both.
     """
 
     _counter_key: ClassVar[str]
-    """The ``ctx.meta`` key the raw repetition count is recorded under."""
+    """The `ctx.meta` key the raw repetition count is recorded under."""
 
     def set_level(self, ctx: click.Context, param: click.Parameter, value: int) -> None:
         """Record the repetition count, then reconcile.
 
         The number of repetitions is saved on the context under
-        :attr:`_counter_key` and folded into the verbosity counter by
-        ``_VerbosityOption.resolve_level``.
+        {attr}`_counter_key` and folded into the verbosity counter by
+        `_VerbosityOption.resolve_level`.
         """
         context.set(ctx, self._counter_key, value)
         self.apply_verbosity(ctx)
@@ -756,25 +760,25 @@ class _CounterOption(_VerbosityOption):
 
 
 class VerboseOption(_CounterOption):
-    """``--verbose``/``-v`` option to raise the log level of ``_VerbosityOption`` by
+    """`--verbose`/`-v` option to raise the log level of `_VerbosityOption` by
     one step per repetition.
 
-    Each ``-v`` raises the verbosity by one :class:`LogLevel` step. The option can be
-    repeated, so ``-vv`` (or ``-v -v``) raises it by two steps.
+    Each `-v` raises the verbosity by one {class}`LogLevel` step. The option can be
+    repeated, so `-vv` (or `-v -v`) raises it by two steps.
 
     The base level the counter starts from is sourced from
-    ``VerbosityOption.default``. So with ``--verbosity``'s default left at
-    ``WARNING``:
+    `VerbosityOption.default`. So with `--verbosity`'s default left at
+    `WARNING`:
 
-    - ``-v`` raises the level to ``INFO``,
-    - ``-vv`` raises the level to ``DEBUG``,
-    - any further repetition is clamped at the loudest level, so ``-vvvvv`` for example
-      resolves to ``DEBUG``.
+    - `-v` raises the level to `INFO`,
+    - `-vv` raises the level to `DEBUG`,
+    - any further repetition is clamped at the loudest level, so `-vvvvv` for example
+      resolves to `DEBUG`.
 
-    ``-v`` shares a single signed counter with :class:`QuietOption`'s ``-q``, so the two
-    cancel out: ``-v -q`` leaves the level unchanged. See
-    ``_VerbosityOption.resolve_level`` for the full reconciliation rule with
-    ``--verbosity``.
+    `-v` shares a single signed counter with {class}`QuietOption`'s `-q`, so the two
+    cancel out: `-v -q` leaves the level unchanged. See
+    `_VerbosityOption.resolve_level` for the full reconciliation rule with
+    `--verbosity`.
     """
 
     _help_verb = "Increase"
@@ -791,22 +795,22 @@ class VerboseOption(_CounterOption):
 
 
 class QuietOption(_CounterOption):
-    """``--quiet``/``-q`` option to lower the log level of ``_VerbosityOption`` by
+    """`--quiet`/`-q` option to lower the log level of `_VerbosityOption` by
     one step per repetition.
 
-    The symmetric counterpart of :class:`VerboseOption`: where ``-v`` raises the
-    verbosity one :class:`LogLevel` step at a time, ``-q`` lowers it. Starting from
-    ``VerbosityOption.default`` (``WARNING`` by default):
+    The symmetric counterpart of {class}`VerboseOption`: where `-v` raises the
+    verbosity one {class}`LogLevel` step at a time, `-q` lowers it. Starting from
+    `VerbosityOption.default` (`WARNING` by default):
 
-    - ``-q`` lowers the level to ``ERROR``,
-    - ``-qq`` lowers the level to ``CRITICAL``,
-    - any further repetition is clamped at the quietest level, so ``-qqqqq`` for example
-      resolves to ``CRITICAL``.
+    - `-q` lowers the level to `ERROR`,
+    - `-qq` lowers the level to `CRITICAL`,
+    - any further repetition is clamped at the quietest level, so `-qqqqq` for example
+      resolves to `CRITICAL`.
 
-    ``-q`` shares a single signed counter with :class:`VerboseOption`'s ``-v``, so the
-    two cancel out: ``-v -q`` leaves the level unchanged. See
-    ``_VerbosityOption.resolve_level`` for the full reconciliation rule with
-    ``--verbosity``.
+    `-q` shares a single signed counter with {class}`VerboseOption`'s `-v`, so the
+    two cancel out: `-v -q` leaves the level unchanged. See
+    `_VerbosityOption.resolve_level` for the full reconciliation rule with
+    `--verbosity`.
     """
 
     _help_verb = "Decrease"

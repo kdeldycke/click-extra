@@ -15,35 +15,38 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """An indeterminate terminal spinner for long-running, blocking work.
 
-Click ships :func:`click.progressbar`, but it is *determinate*: it needs a known
+Click ships {func}`click.progressbar`, but it is *determinate*: it needs a known
 length or an iterable to advance through. Some work has no measurable progress:
 a blocking subprocess, a network round-trip, a query whose duration is unknown.
 For those, the only honest feedback is "something is happening".
 
-:class:`Spinner` fills that gap. It animates a small frame sequence on a daemon
-thread, so the caller can stay blocked in a single call (``communicate()``,
-``urlopen()``, ...) while the spinner keeps turning:
+{class}`Spinner` fills that gap. It animates a small frame sequence on a daemon
+thread, so the caller can stay blocked in a single call (`communicate()`,
+`urlopen()`, ...) while the spinner keeps turning:
 
-.. code-block:: python
+```{code-block} python
 
-    from time import sleep
+from time import sleep
 
-    from click_extra import Spinner
+from click_extra import Spinner
 
-    with Spinner("Brewing tea"):
-        sleep(5)  # A blocking call with no measurable progress.
+with Spinner("Brewing tea"):
+    sleep(5)  # A blocking call with no measurable progress.
+```
 
-.. caution::
-    The spinner draws with carriage returns and ANSI control codes, so it is a
-    no-op whenever its output stream is not a TTY (a pipe, a file, a captured
-    test buffer, a CI log), unless ``enabled`` is forced. This keeps redirected
-    output and machine-readable formats clean.
+```{caution}
+The spinner draws with carriage returns and ANSI control codes, so it is a
+no-op whenever its output stream is not a TTY (a pipe, a file, a captured
+test buffer, a CI log), unless `enabled` is forced. This keeps redirected
+output and machine-readable formats clean.
+```
 
-.. note::
-    On Windows, :meth:`Spinner.start` enables the console's virtual-terminal
-    processing so the ANSI control codes animate in place rather than print
-    literally (``⠋␛[0m … ␛[K``). Modern terminals (Windows Terminal, recent
-    conhost) already have it on; this just covers older consoles.
+```{note}
+On Windows, {meth}`Spinner.start` enables the console's virtual-terminal
+processing so the ANSI control codes animate in place rather than print
+literally (`⠋␛[0m … ␛[K`). Modern terminals (Windows Terminal, recent
+conhost) already have it on; this just covers older consoles.
+```
 """
 
 from __future__ import annotations
@@ -82,24 +85,24 @@ if TYPE_CHECKING:
 _ACTIVE_SPINNERS: list[Spinner] = []
 """Stack of the spinners currently animating, innermost last.
 
-A spinner registers itself when :meth:`Spinner.start` actually begins an
+A spinner registers itself when {meth}`Spinner.start` actually begins an
 animation (a disabled spinner never registers) and deregisters on
-:meth:`Spinner.stop`. Guarded by :data:`_ACTIVE_SPINNERS_LOCK`, since spinners
+{meth}`Spinner.stop`. Guarded by {data}`_ACTIVE_SPINNERS_LOCK`, since spinners
 are started and stopped from worker threads too.
 """
 
 
 _ACTIVE_SPINNERS_LOCK = threading.Lock()
-"""Guards :data:`_ACTIVE_SPINNERS` against concurrent mutation."""
+"""Guards {data}`_ACTIVE_SPINNERS` against concurrent mutation."""
 
 
 def active_spinner(stream: IO[str] | None = None) -> Spinner | None:
-    """Return the innermost spinner currently animating, or ``None``.
+    """Return the innermost spinner currently animating, or `None`.
 
-    With ``stream`` given, only a spinner drawing on that very stream matches.
+    With `stream` given, only a spinner drawing on that very stream matches.
     This is how output producers cooperate with a running animation instead of
-    garbling it: :class:`click_extra.logging.StreamHandler` checks here and
-    routes its records through :meth:`Spinner.echo`, which erases the in-progress
+    garbling it: {class}`click_extra.logging.StreamHandler` checks here and
+    routes its records through {meth}`Spinner.echo`, which erases the in-progress
     frame, prints the line, and lets the next tick redraw the spinner underneath.
     """
     with _ACTIVE_SPINNERS_LOCK:
@@ -115,15 +118,16 @@ class Spinner:
 
     The animation runs on a background daemon thread, leaving the calling thread
     free to block on the actual work. Entering the context (or calling
-    :meth:`start`) begins the animation; leaving it (or calling :meth:`stop`)
+    {meth}`start`) begins the animation; leaving it (or calling {meth}`stop`)
     halts the thread and erases the spinner line so it never lingers above the
     next output.
 
-    .. note::
-        A single :class:`Spinner` instance drives one animation at a time. mpm
-        and similar tools run their subprocesses sequentially, so one shared
-        instance whose :attr:`label` is reassigned between steps is enough; for
-        concurrent work, use one instance per thread.
+    ```{note}
+    A single {class}`Spinner` instance drives one animation at a time. mpm
+    and similar tools run their subprocesses sequentially, so one shared
+    instance whose {attr}`label` is reassigned between steps is enough; for
+    concurrent work, use one instance per thread.
+    ```
     """
 
     label: str
@@ -152,42 +156,42 @@ class Spinner:
         """Configure (but do not start) the spinner.
 
         :param label: text shown after the spinner glyph. As a special case, a
-            bare ``@Spinner`` decorator passes the wrapped function here instead;
+            bare `@Spinner` decorator passes the wrapped function here instead;
             it is detected and the label defaults to empty.
         :param frames: the animation frames, cycled in order. Defaults to
-            :data:`~click_extra.spinner_presets.SPINNER_FRAMES`, or the ``spinner``
+            {data}`~click_extra.spinner_presets.SPINNER_FRAMES`, or the `spinner`
             preset's frames when given.
-        :param spinner: a :class:`~click_extra.spinner_presets.SpinnerPreset` from
-            the :data:`~click_extra.spinner_presets.SPINNERS` catalog
-            (``spinner=SPINNERS["moon"]``), supplying both frames and a tuned
-            interval. An explicit ``frames`` or ``interval`` still overrides it.
+        :param spinner: a {class}`~click_extra.spinner_presets.SpinnerPreset` from
+            the {data}`~click_extra.spinner_presets.SPINNERS` catalog
+            (`spinner=SPINNERS["moon"]`), supplying both frames and a tuned
+            interval. An explicit `frames` or `interval` still overrides it.
         :param reverse: cycle the frames backwards, spinning the animation the
             other way. Set it when the rotation runs counter to what you expect;
-            it composes with any custom ``frames``.
-        :param interval: seconds between two frames. Defaults to ``0.1``, or the
-            ``spinner`` preset's interval when given.
+            it composes with any custom `frames`.
+        :param interval: seconds between two frames. Defaults to `0.1`, or the
+            `spinner` preset's interval when given.
         :param delay: seconds to wait before drawing the first frame. A non-zero
             delay keeps the spinner silent for calls that finish quickly, so it
             only surfaces once an operation is genuinely slow.
-        :param style: a :class:`~click_extra.styling.Style` applied to the spinner
-            glyph, label and timer (``Style(fg="cyan", bold=True)``). Color is
-            decoupled from animation: ``--no-color`` / ``NO_COLOR`` strip it while
-            the spinner keeps spinning (see :class:`ProgressOption`).
+        :param style: a {class}`~click_extra.styling.Style` applied to the spinner
+            glyph, label and timer (`Style(fg="cyan", bold=True)`). Color is
+            decoupled from animation: `--no-color` / `NO_COLOR` strip it while
+            the spinner keeps spinning (see {class}`ProgressOption`).
         :param timer: append the elapsed wall-clock time to the spinner, and to
-            any final :meth:`ok` / :meth:`fail` line. ``True`` uses the default
-            compact format (``2.3s``, ``1:05``, then ``1:02:03``). Pass a callable
-            ``(seconds: float) -> str`` to format the duration yourself, like
+            any final {meth}`ok` / {meth}`fail` line. `True` uses the default
+            compact format (`2.3s`, `1:05`, then `1:02:03`). Pass a callable
+            `(seconds: float) -> str` to format the duration yourself, like
             ``timer=lambda s: f"{s / 60:.0f}m"`` for whole minutes.
-        :param stream: where to draw; defaults to :data:`sys.stderr` so the
-            spinner never mixes into ``stdout`` data.
-        :param enabled: force the spinner on or off. ``None`` (the default)
-            auto-detects, animating only when ``stream`` is a TTY.
+        :param stream: where to draw; defaults to {data}`sys.stderr` so the
+            spinner never mixes into `stdout` data.
+        :param enabled: force the spinner on or off. `None` (the default)
+            auto-detects, animating only when `stream` is a TTY.
         :param hide_cursor: hide the text cursor while spinning and restore it on
             stop.
         :param beep: ring the terminal bell once when the spinner stops. It
             fires only when the spinner was active, so a disabled or redirected
             spinner stays silent.
-        :raises ValueError: if ``style`` carries a color or attribute that
+        :raises ValueError: if `style` carries a color or attribute that
             cannot be rendered.
         """
         # Support a bare `@Spinner` decorator (no parentheses): the first
@@ -200,8 +204,8 @@ class Spinner:
         # purpose: that helper wraps a decorator *factory function* and returns a
         # function, so it cannot wrap `Spinner` without replacing the class: and
         # `Spinner` must stay a class to double as a context manager and to support
-        # ``isinstance()`` / subclassing. The bare-call hook therefore has to live
-        # in ``__init__``, the one place the parenthesis-less form reaches.
+        # `isinstance()` / subclassing. The bare-call hook therefore has to live
+        # in `__init__`, the one place the parenthesis-less form reaches.
         self._decorated: Callable[..., Any] | None = None
         if callable(label):
             self._decorated = label
@@ -253,7 +257,7 @@ class Spinner:
         self._stop_time: float | None = None
 
     def _resolve_stream(self) -> IO[str]:
-        """Return the explicit ``stream``, or default to :data:`sys.stderr`.
+        """Return the explicit `stream`, or default to {data}`sys.stderr`.
 
         Resolved lazily so a stream swapped in after construction (as test
         harnesses do) is honored.
@@ -261,12 +265,12 @@ class Spinner:
         return self.stream if self.stream is not None else sys.stderr
 
     def _resolve_enabled(self, stream: IO[str]) -> bool:
-        """Decide whether to animate, honoring an explicit ``enabled`` override.
+        """Decide whether to animate, honoring an explicit `enabled` override.
 
-        Auto-detection (``enabled=None``) animates only on an interactive terminal
+        Auto-detection (`enabled=None`) animates only on an interactive terminal
         that can move the cursor. That rules out non-interactive streams (a pipe,
-        file or captured buffer, which are not a TTY) and ``TERM=dumb`` /
-        ``TERM=unknown`` terminals, whose lack of cursor control would smear a trail
+        file or captured buffer, which are not a TTY) and `TERM=dumb` /
+        `TERM=unknown` terminals, whose lack of cursor control would smear a trail
         of frames down the screen instead of animating in place.
         """
         if self.enabled is not None:
@@ -279,15 +283,15 @@ class Spinner:
     def _resolve_color_enabled(self, stream: IO[str]) -> bool:
         """Decide whether to apply ANSI color, orthogonally to whether it animates.
 
-        Color follows Click Extra's reconciled :attr:`ctx.color
-        <click.Context.color>` when a command context is active, so ``--color`` /
-        ``--no-color`` and the ``NO_COLOR`` / ``FORCE_COLOR`` family have already
+        Color follows Click Extra's reconciled {attr}`ctx.color
+        <click.Context.color>` when a command context is active, so `--color` /
+        `--no-color` and the `NO_COLOR` / `FORCE_COLOR` family have already
         been honored. Outside a CLI it falls back to those two environment variables
-        and a dumb/unknown ``TERM`` (see
-        :data:`~click_extra.color.COLOR_DISABLING_TERMS`), then to TTY detection.
-        This is independent of :meth:`_resolve_enabled`: a spinner can spin in plain
-        text (a TTY under ``NO_COLOR``), which is exactly the decoupling
-        :class:`ProgressOption` documents.
+        and a dumb/unknown `TERM` (see
+        {data}`~click_extra.color.COLOR_DISABLING_TERMS`), then to TTY detection.
+        This is independent of {meth}`_resolve_enabled`: a spinner can spin in plain
+        text (a TTY under `NO_COLOR`), which is exactly the decoupling
+        {class}`ProgressOption` documents.
         """
         ctx = click.get_current_context(silent=True)
         if ctx is not None and ctx.color is not None:
@@ -305,11 +309,11 @@ class Spinner:
         return bool(isatty and isatty())
 
     def _style(self, text: str) -> str:
-        """Apply the configured :class:`~click_extra.styling.Style`, or return bare.
+        """Apply the configured {class}`~click_extra.styling.Style`, or return bare.
 
         A no-op when no style was set or color is disabled, so the same call site
         produces colored output on a capable terminal and plain output under
-        ``NO_COLOR`` / a pipe.
+        `NO_COLOR` / a pipe.
         """
         if self._color_enabled and self.style is not None:
             return self.style(text)
@@ -317,9 +321,9 @@ class Spinner:
 
     @property
     def elapsed_time(self) -> float:
-        """Seconds elapsed since :meth:`start`, frozen once :meth:`stop` is called.
+        """Seconds elapsed since {meth}`start`, frozen once {meth}`stop` is called.
 
-        Returns ``0.0`` before the spinner has started.
+        Returns `0.0` before the spinner has started.
         """
         if self._start_time is None:
             return 0.0
@@ -330,14 +334,14 @@ class Spinner:
     def shown(self) -> bool:
         """Whether the spinner has drawn at least one frame to its stream.
 
-        ``True`` only once an animation frame was actually rendered. It stays
-        ``False`` for a disabled spinner (off a TTY, on a ``TERM=dumb`` terminal,
-        or with ``enabled=False``) and for a call that finishes within ``delay``,
-        before the first frame. Reset by :meth:`start`.
+        `True` only once an animation frame was actually rendered. It stays
+        `False` for a disabled spinner (off a TTY, on a `TERM=dumb` terminal,
+        or with `enabled=False`) and for a call that finishes within `delay`,
+        before the first frame. Reset by {meth}`start`.
 
         Use it to gate output that should mirror the spinner's visibility.
-        :meth:`ok` and :meth:`fail` write their line unconditionally, so an
-        outcome is still recorded in a pipe or log; guard them with ``shown`` when
+        {meth}`ok` and {meth}`fail` write their line unconditionally, so an
+        outcome is still recorded in a pipe or log; guard them with `shown` when
         you only want the finisher on screen after a spinner the user actually
         saw::
 
@@ -350,7 +354,7 @@ class Spinner:
 
     @staticmethod
     def _format_elapsed(seconds: float) -> str:
-        """Render a duration compactly: ``2.3s``, ``1:05``, then ``1:02:03``."""
+        """Render a duration compactly: `2.3s`, `1:05`, then `1:02:03`."""
         if seconds < 60:
             return f"{seconds:.1f}s"
         minutes, secs = divmod(int(seconds), 60)
@@ -360,10 +364,10 @@ class Spinner:
         return f"{minutes}:{secs:02d}"
 
     def _clock(self) -> str:
-        """The ``( elapsed )`` timer suffix, or empty when no timer is set.
+        """The `( elapsed )` timer suffix, or empty when no timer is set.
 
-        ``timer=True`` uses :meth:`_format_elapsed`; a callable ``timer`` formats
-        :attr:`elapsed_time` itself. The result is always wrapped the same way.
+        `timer=True` uses {meth}`_format_elapsed`; a callable `timer` formats
+        {attr}`elapsed_time` itself. The result is always wrapped the same way.
         """
         if not self.timer:
             return ""
@@ -375,7 +379,7 @@ class Spinner:
         """Best-effort: turn on virtual-terminal processing for a Windows console.
 
         Without it, legacy Windows consoles print the spinner's ANSI control codes
-        literally (``⠋␛[0m … ␛[K``) instead of animating in place: the recurring
+        literally (`⠋␛[0m … ␛[K`) instead of animating in place: the recurring
         complaint behind yaspin's Windows issues. Modern terminals (Windows
         Terminal, recent conhost) already enable it; this just covers the
         laggards. A no-op everywhere but Windows, and silent when the console (or
@@ -405,13 +409,13 @@ class Spinner:
     def start(self) -> None:
         """Begin animating on a background thread, unless the spinner is disabled.
 
-        A disabled spinner (non-TTY stream, or ``enabled=False``) returns at once
+        A disabled spinner (non-TTY stream, or `enabled=False`) returns at once
         without spawning a thread or emitting anything (but still records the
-        start time, so a later :meth:`ok` / :meth:`fail` can report a duration).
+        start time, so a later {meth}`ok` / {meth}`fail` can report a duration).
         """
         # Time the operation even when the spinner is silenced, and resolve color
         # here on the calling thread: the animation thread never sees the Click
-        # context that ``_resolve_color_enabled`` reads.
+        # context that `_resolve_color_enabled` reads.
         self._start_time = time.monotonic()
         self._stop_time = None
         stream = self._resolve_stream()
@@ -480,19 +484,19 @@ class Spinner:
                 self._cursor_hidden = False
 
     def echo(self, message: str = "") -> None:
-        """Print ``message`` on its own line above the running spinner.
+        """Print `message` on its own line above the running spinner.
 
-        Click's :func:`click.progressbar` and a bare ``print`` both fight the
+        Click's {func}`click.progressbar` and a bare `print` both fight the
         animation: a frame drawn between the cursor returns and the text mangles
-        the line. :meth:`echo` takes the same draw lock as the animation thread,
-        erases the in-progress frame, writes ``message`` followed by a newline,
+        the line. {meth}`echo` takes the same draw lock as the animation thread,
+        erases the in-progress frame, writes `message` followed by a newline,
         and lets the next tick redraw the spinner underneath. It is safe to call
         from another thread while the spinner runs.
 
-        Output goes to the spinner's own ``stream`` (``stderr`` by default), so
-        results written to ``stdout`` never need it. When the spinner is not
+        Output goes to the spinner's own `stream` (`stderr` by default), so
+        results written to `stdout` never need it. When the spinner is not
         animating (disabled, or a non-TTY stream), it degrades to a plain write
-        of ``message`` with no control codes.
+        of `message` with no control codes.
         """
         stream = self._resolve_stream()
         with self._lock:
@@ -505,21 +509,21 @@ class Spinner:
     def ok(self, symbol: str | None = None, *, style: Style | None = None) -> None:
         """Stop the spinner and leave a persistent success line on screen.
 
-        Where :meth:`stop` erases the spinner, :meth:`ok` replaces the final
-        frame with ``symbol`` followed by the current label (and the elapsed time
-        when ``timer`` is set), then keeps that line. ``symbol`` defaults to the
-        themed success glyph :data:`~click_extra.theme.OK_GLYPH` (``✓``), painted
-        with the active theme's ``success`` slot unless ``style`` overrides it.
-        Color is stripped under ``--no-color`` / ``NO_COLOR``; the glyph stays.
+        Where {meth}`stop` erases the spinner, {meth}`ok` replaces the final
+        frame with `symbol` followed by the current label (and the elapsed time
+        when `timer` is set), then keeps that line. `symbol` defaults to the
+        themed success glyph {data}`~click_extra.theme.OK_GLYPH` (`✓`), painted
+        with the active theme's `success` slot unless `style` overrides it.
+        Color is stripped under `--no-color` / `NO_COLOR`; the glyph stays.
         """
         self._finalize(symbol, style, success=True)
 
     def fail(self, symbol: str | None = None, *, style: Style | None = None) -> None:
         """Stop the spinner and leave a persistent failure line on screen.
 
-        The failure counterpart of :meth:`ok`, defaulting to
-        :data:`~click_extra.theme.KO_GLYPH` (``✘``) painted with the active
-        theme's ``error`` slot.
+        The failure counterpart of {meth}`ok`, defaulting to
+        {data}`~click_extra.theme.KO_GLYPH` (`✘`) painted with the active
+        theme's `error` slot.
         """
         self._finalize(symbol, style, success=False)
 
@@ -563,9 +567,9 @@ class Spinner:
     def _animate(self, stream: IO[str]) -> None:
         """Frame loop run on the background thread.
 
-        Waits ``delay`` before the first frame, then writes one frame every
-        ``interval`` until :meth:`stop` is called. Every wait goes through the
-        stop :class:`~threading.Event`, so the spinner reacts to ``stop()``
+        Waits `delay` before the first frame, then writes one frame every
+        `interval` until {meth}`stop` is called. Every wait goes through the
+        stop {class}`~threading.Event`, so the spinner reacts to `stop()`
         immediately instead of sleeping out the current interval. Stream errors
         (a closed terminal) end the loop quietly rather than surfacing a
         traceback from the background thread.
@@ -616,7 +620,7 @@ class Spinner:
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Use the spinner as a decorator, with or without parentheses.
 
-        ``@Spinner`` wraps a function directly; ``@Spinner("Loading", …)`` first
+        `@Spinner` wraps a function directly; `@Spinner("Loading", …)` first
         configures the spinner, then wraps. Either way the function spins for the
         duration of every call and returns its result untouched. The one instance
         is shared across calls, which is fine for sequential use; give concurrent
@@ -640,37 +644,38 @@ class Spinner:
 
 
 class ProgressOption(ExtraOption):
-    """A pre-configured ``--progress``/``--no-progress`` flag gating spinner display.
+    """A pre-configured `--progress`/`--no-progress` flag gating spinner display.
 
     Resolves to a single boolean published at
-    :data:`ctx.meta[click_extra.context.PROGRESS] <click_extra.context.PROGRESS>`,
-    which a CLI reads to decide whether to start a :class:`Spinner`. The default is
-    ``True``; ``--accessible`` lowers it to ``False`` (via ``default_map``) so a
+    {data}`ctx.meta[click_extra.context.PROGRESS] <click_extra.context.PROGRESS>`,
+    which a CLI reads to decide whether to start a {class}`Spinner`. The default is
+    `True`; `--accessible` lowers it to `False` (via `default_map`) so a
     screen reader is never handed a spinning glyph.
 
-    .. note::
-        Spinner display is intentionally **decoupled from color**, even though both
-        emit ANSI. A spinner is an *interactivity* concern, not a color one: it is
-        built from cursor-control codes (hide-cursor, carriage return, clear-line),
-        which the `NO_COLOR standard <https://no-color.org>`_ explicitly does not
-        govern -- it "only signals the user's intention regarding adding ANSI color
-        to text output". So ``--no-color`` / ``NO_COLOR`` strip the spinner's colors
-        but never hide it.
+    ```{note}
+    Spinner display is intentionally **decoupled from color**, even though both
+    emit ANSI. A spinner is an *interactivity* concern, not a color one: it is
+    built from cursor-control codes (hide-cursor, carriage return, clear-line),
+    which the [NO_COLOR standard](https://no-color.org) explicitly does not
+    govern -- it "only signals the user's intention regarding adding ANSI color
+    to text output". So `--no-color` / `NO_COLOR` strip the spinner's colors
+    but never hide it.
 
-        This matches how the wider ecosystem treats the two axes as orthogonal:
-        cargo, npm, pip, Rich, indicatif and ora all gate progress on the terminal
-        (and a dedicated ``--progress``/``--quiet`` knob), while ``NO_COLOR`` only
-        affects color. Rich uses ``TERM=dumb`` -- not ``NO_COLOR`` -- as the signal
-        to drop cursor-moving features like progress bars.
+    This matches how the wider ecosystem treats the two axes as orthogonal:
+    cargo, npm, pip, Rich, indicatif and ora all gate progress on the terminal
+    (and a dedicated `--progress`/`--quiet` knob), while `NO_COLOR` only
+    affects color. Rich uses `TERM=dumb` -- not `NO_COLOR` -- as the signal
+    to drop cursor-moving features like progress bars.
 
-        The spinner is therefore silenced by two things only, neither of them color:
+    The spinner is therefore silenced by two things only, neither of them color:
 
-        - **non-interactive output** -- a pipe, file, CI log, or ``TERM=dumb``
-          terminal that cannot move the cursor (see ``Spinner._resolve_enabled``);
-        - **explicit intent** -- ``--no-progress`` or ``--accessible``.
+    - **non-interactive output** -- a pipe, file, CI log, or `TERM=dumb`
+      terminal that cannot move the cursor (see `Spinner._resolve_enabled`);
+    - **explicit intent** -- `--no-progress` or `--accessible`.
+    ```
 
-    This option is eager. It no longer reads ``ctx.color``, so its position relative
-    to :class:`~click_extra.color.ColorOption` is not load-bearing.
+    This option is eager. It no longer reads `ctx.color`, so its position relative
+    to {class}`~click_extra.color.ColorOption` is not load-bearing.
     """
 
     def set_progress(
@@ -681,11 +686,11 @@ class ProgressOption(ExtraOption):
     ) -> None:
         """Publish whether progress spinners may be shown.
 
-        Stores the resolved ``--progress`` flag at
-        :data:`~click_extra.context.PROGRESS`. Deliberately independent of color:
-        see the :class:`ProgressOption` note for why a spinner is gated on
-        interactivity (TTY / ``TERM=dumb``) and ``--accessible``, never on
-        ``--no-color`` / ``NO_COLOR``.
+        Stores the resolved `--progress` flag at
+        {data}`~click_extra.context.PROGRESS`. Deliberately independent of color:
+        see the {class}`ProgressOption` note for why a spinner is gated on
+        interactivity (TTY / `TERM=dumb`) and `--accessible`, never on
+        `--no-color` / `NO_COLOR`.
         """
         context.set(ctx, context.PROGRESS, value)
 
@@ -728,26 +733,27 @@ def progressbar(
     hidden: bool | None = None,
     **kwargs: Any,
 ) -> ProgressBar[V]:
-    """Drop-in for :func:`click.progressbar` honoring ``--progress`` / ``--no-progress``.
+    """Drop-in for {func}`click.progressbar` honoring `--progress` / `--no-progress`.
 
     Click's own progress bar is *determinate*, the counterpart to the
-    indeterminate :class:`Spinner`. This thin wrapper gates it on the same
-    :data:`~click_extra.context.PROGRESS` flag the spinner uses, so a single
-    ``--no-progress`` (or ``--accessible``, which lowers the ``progress`` default)
+    indeterminate {class}`Spinner`. This thin wrapper gates it on the same
+    {data}`~click_extra.context.PROGRESS` flag the spinner uses, so a single
+    `--no-progress` (or `--accessible`, which lowers the `progress` default)
     silences both.
 
-    :param hidden: tri-state. Left at its default ``None``, the bar follows the
-        resolved ``--progress`` flag: hidden when the user (or ``--accessible``)
-        turned progress off, shown otherwise. An explicit ``True`` or ``False``
-        forces the bar regardless, mirroring how an explicit ``color=`` argument
-        overrides ``ctx.color`` on :func:`click.echo`. With no active context (the
+    :param hidden: tri-state. Left at its default `None`, the bar follows the
+        resolved `--progress` flag: hidden when the user (or `--accessible`)
+        turned progress off, shown otherwise. An explicit `True` or `False`
+        forces the bar regardless, mirroring how an explicit `color=` argument
+        overrides `ctx.color` on {func}`click.echo`. With no active context (the
         bar used outside a Click command) it defaults to shown.
 
-    .. note::
-        Only ``--no-progress`` is wired here. Color is already handled upstream:
-        Click renders the bar through :func:`click.echo`, whose ``color=None``
-        resolves against ``ctx.color``, so ``--no-color`` / ``NO_COLOR`` strip the
-        bar's ANSI without any work from this wrapper.
+    ```{note}
+    Only `--no-progress` is wired here. Color is already handled upstream:
+    Click renders the bar through {func}`click.echo`, whose `color=None`
+    resolves against `ctx.color`, so `--no-color` / `NO_COLOR` strip the
+    bar's ANSI without any work from this wrapper.
+    ```
     """
     if hidden is None:
         ctx = click.get_current_context(silent=True)
@@ -764,13 +770,13 @@ _SPINNER_PREVIEW_WIDTH = 56
 def _spinner_preview(preset: SpinnerPreset) -> str:
     """Join leading frames into a preview within the display-width budget.
 
-    Frames are measured by terminal cell width (:func:`wcwidth.wcswidth`), not by
+    Frames are measured by terminal cell width ({func}`wcwidth.wcswidth`), not by
     code points, so 1-cell glyphs and 2-cell emoji fill the column consistently
     rather than letting an emoji-heavy preview balloon it. Emoji variation
-    selectors (``U+FE0F``) are dropped: ``wcwidth`` sizes the promoted emoji at
+    selectors (`U+FE0F`) are dropped: `wcwidth` sizes the promoted emoji at
     two cells while many terminals render the bare symbol in one, and that
-    disagreement misaligns the table. Wide animations (``shark``, ``pong``,
-    ``dots8Bit``, …) stop at the budget with a ``… (+N)`` tail.
+    disagreement misaligns the table. Wide animations (`shark`, `pong`,
+    `dots8Bit`, …) stop at the budget with a `… (+N)` tail.
     """
     shown: list[str] = []
     width = 0
@@ -814,10 +820,10 @@ _TOUR_CAP = 3.0
 def _tour_duration(preset: SpinnerPreset) -> float:
     """Seconds the live tour dwells on a spinner.
 
-    Aims for :data:`_TOUR_CYCLES` full cycles (one cycle is a pass through every
-    frame), then clamps to ``[_TOUR_MIN, _TOUR_CAP]`` seconds: a snappy spinner is
-    held at least :data:`_TOUR_MIN` seconds so it is watchable, while a long or
-    slow one is capped at :data:`_TOUR_CAP`. The cap never trims below a single
+    Aims for {data}`_TOUR_CYCLES` full cycles (one cycle is a pass through every
+    frame), then clamps to `[_TOUR_MIN, _TOUR_CAP]` seconds: a snappy spinner is
+    held at least {data}`_TOUR_MIN` seconds so it is watchable, while a long or
+    slow one is capped at {data}`_TOUR_CAP`. The cap never trims below a single
     full cycle, so even a 256-frame spinner completes one loop.
     """
     one_cycle = len(preset.frames) * preset.interval
@@ -828,9 +834,9 @@ def _tour_duration(preset: SpinnerPreset) -> float:
 def _animate_spinners(names: list[str]) -> None:
     """Spin each named catalog animation live, with its label and elapsed timer.
 
-    Each spinner runs for its :func:`_tour_duration` (up to :data:`_TOUR_CYCLES`
-    cycles, capped at :data:`_TOUR_CAP` seconds) before moving on, then leaves a
-    ``✓`` success line behind. Interactive terminals only.
+    Each spinner runs for its {func}`_tour_duration` (up to {data}`_TOUR_CYCLES`
+    cycles, capped at {data}`_TOUR_CAP` seconds) before moving on, then leaves a
+    `✓` success line behind. Interactive terminals only.
     """
     for name in names:
         preset = SPINNERS[name]

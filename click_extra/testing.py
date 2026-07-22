@@ -73,11 +73,11 @@ STREAM_FIELDS = {
     "stdout_": (STDOUT_LABEL, "stdout"),
     "stderr_": (STDERR_LABEL, "stderr"),
 }
-"""Maps a test-case field prefix to its stream label and :class:`StreamView` attribute.
+"""Maps a test-case field prefix to its stream label and {class}`StreamView` attribute.
 
-``output_*`` directives target the merged stream; ``stdout_*`` and ``stderr_*``
-target the separate streams. Both :func:`render_cli_run` and
-:meth:`click_extra.test_suite.CLITestCase.run_cli_test` read this single table so the
+`output_*` directives target the merged stream; `stdout_*` and `stderr_*`
+target the separate streams. Both {func}`render_cli_run` and
+{meth}`click_extra.test_suite.CLITestCase.run_cli_test` read this single table so the
 rendered trace and the assertion loop agree on labels and stream selection.
 """
 
@@ -88,11 +88,11 @@ class StreamView:
 
     Both runners produce one of these so the renderer and the assertion loop read a
     single shape, regardless of whether the run was driven in-process (Click's
-    :class:`click.testing.Result`) or as a black-box subprocess
-    (:class:`subprocess.CompletedProcess`).
+    {class}`click.testing.Result`) or as a black-box subprocess
+    ({class}`subprocess.CompletedProcess`).
 
-    A run captures either the merged stream (``output``) or the separate ``stdout`` and
-    ``stderr`` streams, never both: the unused fields stay empty.
+    A run captures either the merged stream (`output`) or the separate `stdout` and
+    `stderr` streams, never both: the unused fields stay empty.
     """
 
     stdout: str = ""
@@ -106,13 +106,13 @@ class StreamView:
     separate streams were captured."""
 
     exit_code: int | None = None
-    """Process exit code, or ``None`` when unavailable."""
+    """Process exit code, or `None` when unavailable."""
 
     @classmethod
     def from_result(cls, result: click.testing.Result) -> StreamView:
-        """Build a view from an in-process :class:`click.testing.Result`.
+        """Build a view from an in-process {class}`click.testing.Result`.
 
-        Click always exposes ``stdout``, ``stderr`` and the interleaved ``output``
+        Click always exposes `stdout`, `stderr` and the interleaved `output`
         together, so all three are carried over verbatim.
         """
         return cls(
@@ -124,11 +124,11 @@ class StreamView:
 
     @classmethod
     def from_completed_process(cls, result: subprocess.CompletedProcess) -> StreamView:
-        """Build a view from a black-box :class:`subprocess.CompletedProcess`.
+        """Build a view from a black-box {class}`subprocess.CompletedProcess`.
 
-        A subprocess run with stderr merged into stdout (``stderr=STDOUT``) reports
-        ``result.stderr`` as ``None``: that case is rendered as the interleaved
-        ``output`` stream. Otherwise the two streams are kept separate.
+        A subprocess run with stderr merged into stdout (`stderr=STDOUT`) reports
+        `result.stderr` as `None`: that case is rendered as the interleaved
+        `output` stream. Otherwise the two streams are kept separate.
         """
         if result.stderr is None:
             return cls(output=result.stdout or "", exit_code=result.returncode)
@@ -184,28 +184,28 @@ def _print_cli_run(
 
 
 INVOKE_ARGS = set(inspect.getfullargspec(click.testing.CliRunner.invoke).args)
-"""Parameter IDs of ``click.testing.CliRunner.invoke()``.
+"""Parameter IDs of `click.testing.CliRunner.invoke()`.
 
 We need to collect them to help us identify which extra parameters passed to
-``invoke()`` collides with its original signature.
+`invoke()` collides with its original signature.
 
-.. warning::
-    This has been `reported upstream to Click project
-    <https://github.com/pallets/click/issues/2110>`_ but has been rejected and not
-    considered an issue worth fixing.
+```{warning}
+This has been [reported upstream to Click project](https://github.com/pallets/click/issues/2110) but has been rejected and not
+considered an issue worth fixing.
+```
 """
 
 
 class Result(click.testing.Result):
-    """A ``Result`` subclass with automatic traceback formatting.
+    """A `Result` subclass with automatic traceback formatting.
 
-    Enhances ``__repr__`` so that pytest assertion failures show the full
+    Enhances `__repr__` so that pytest assertion failures show the full
     traceback instead of just the exception type.
     """
 
     @cached_property
     def formatted_exception(self) -> str | None:
-        """Full formatted traceback, or ``None`` if no exception occurred."""
+        """Full formatted traceback, or `None` if no exception occurred."""
         if self.exception is None:
             return None
         if self.exc_info:
@@ -220,10 +220,10 @@ class Result(click.testing.Result):
 
 
 class CliRunner(click.testing.CliRunner):
-    """Augment :class:`click.testing.CliRunner` with extra features and bug fixes."""
+    """Augment {class}`click.testing.CliRunner` with extra features and bug fixes."""
 
     force_color: bool = False
-    """Global class attribute to override the ``color`` parameter in ``invoke``."""
+    """Global class attribute to override the `color` parameter in `invoke`."""
 
     def invoke(  # type: ignore[override]
         self,
@@ -235,27 +235,25 @@ class CliRunner(click.testing.CliRunner):
         color: bool | Literal["forced"] | None = None,
         **extra: Any,
     ) -> Result:
-        """Same as ``click.testing.CliRunner.invoke()`` with extra features.
+        """Same as `click.testing.CliRunner.invoke()` with extra features.
 
         - The first positional parameter is the CLI to invoke. The remaining positional
           parameters of the function are the CLI arguments. All other parameters are
           required to be named.
 
         - The CLI arguments can be nested iterables of arbitrary depth. This is
-          `useful for argument composition of test cases with @pytest.mark.parametrize
-          <https://docs.pytest.org/en/stable/example/parametrize.html>`_.
+          [useful for argument composition of test cases with @pytest.mark.parametrize](https://docs.pytest.org/en/stable/example/parametrize.html).
 
-        - Allow forcing of the ``color`` property at the class-level via
-          ``force_color`` attribute.
+        - Allow forcing of the `color` property at the class-level via
+          `force_color` attribute.
 
-        - Adds a special case in the form of ``color="forced"`` parameter, which allows
+        - Adds a special case in the form of `color="forced"` parameter, which allows
           colored output to be kept, while forcing the initialization of
-          ``Context.color = True``. This is `not allowed in current implementation
-          <https://github.com/pallets/click/issues/2110>`_ of
-          ``click.testing.CliRunner.invoke()`` because of colliding parameters.
+          `Context.color = True`. This is [not allowed in current implementation](https://github.com/pallets/click/issues/2110) of
+          `click.testing.CliRunner.invoke()` because of colliding parameters.
 
-        - Strips all ANSI codes from results if ``color`` was explicitly set to
-          ``False``.
+        - Strips all ANSI codes from results if `color` was explicitly set to
+          `False`.
 
         - Always prints a simulation of the CLI execution as the user would see it in
           its terminal. Including colors.
@@ -263,24 +261,24 @@ class CliRunner(click.testing.CliRunner):
         - Pretty-prints a formatted exception traceback if the command fails.
 
         :param cli: CLI to invoke.
-        :param args: can be nested iterables composed of ``str``,
-            :py:class:`pathlib.Path` objects and ``None`` values. The nested structure
-            will be flattened and ``None`` values will be filtered out. Then all
-            elements will be cast to ``str``. See
-            :func:`~click_extra.execution.args_cleanup` for details.
-        :param input: same as ``click.testing.CliRunner.invoke()``.
-        :param env: same as ``click.testing.CliRunner.invoke()``.
-        :param catch_exceptions: same as ``click.testing.CliRunner.invoke()``.
+        :param args: can be nested iterables composed of `str`,
+            :py:class:`pathlib.Path` objects and `None` values. The nested structure
+            will be flattened and `None` values will be filtered out. Then all
+            elements will be cast to `str`. See
+            {func}`~click_extra.execution.args_cleanup` for details.
+        :param input: same as `click.testing.CliRunner.invoke()`.
+        :param env: same as `click.testing.CliRunner.invoke()`.
+        :param catch_exceptions: same as `click.testing.CliRunner.invoke()`.
         :param color: If a boolean, the parameter will be passed as-is to
-            ``click.testing.CliRunner.isolation()``. If ``"forced"``, the parameter
-            will be passed as ``True`` to ``click.testing.CliRunner.isolation()`` and
-            an extra ``color=True`` parameter will be passed to the invoked CLI.
-        :param extra: same as ``click.testing.CliRunner.invoke()``, but colliding
+            `click.testing.CliRunner.isolation()`. If `"forced"`, the parameter
+            will be passed as `True` to `click.testing.CliRunner.isolation()` and
+            an extra `color=True` parameter will be passed to the invoked CLI.
+        :param extra: same as `click.testing.CliRunner.invoke()`, but colliding
             parameters are allowed and properly passed on to the invoked CLI.
         """
-        # Pop out the ``args`` parameter from ``extra`` and append it to the positional
-        # arguments. This handles the case where ``args`` is passed as a keyword
-        # argument, as in vanilla Click's ``CliRunner.invoke()`` API.
+        # Pop out the `args` parameter from `extra` and append it to the positional
+        # arguments. This handles the case where `args` is passed as a keyword
+        # argument, as in vanilla Click's `CliRunner.invoke()` API.
         cli_args = list(args)
         if "args" in extra:
             cli_args.extend(extra.pop("args"))
@@ -289,31 +287,31 @@ class CliRunner(click.testing.CliRunner):
 
         if color == "forced":
             # Pass the color argument as an extra parameter to the invoked CLI.
-            # This works around Click issue #2110: ``CliRunner.invoke(color=True)``
-            # controls the test "terminal" but cannot simultaneously pass ``color``
-            # through to ``Context``.
+            # This works around Click issue #2110: `CliRunner.invoke(color=True)`
+            # controls the test "terminal" but cannot simultaneously pass `color`
+            # through to `Context`.
             extra["color"] = True
 
-        # The class attribute ``force_color`` overrides the ``color`` parameter.
+        # The class attribute `force_color` overrides the `color` parameter.
         if self.force_color:
             isolation_color = True
-        # Cast to ``bool`` to avoid passing ``None`` or ``"forced"`` to ``invoke()``.
+        # Cast to `bool` to avoid passing `None` or `"forced"` to `invoke()`.
         else:
             isolation_color = bool(color)
 
         # No-op context manager without any effects.
         extra_params_bypass: AbstractContextManager = nullcontext()
 
-        # If ``extra`` contains parameters that collide with the original ``invoke()``
-        # parameters, we need to remove them from ``extra``, then use a monkeypatch to
+        # If `extra` contains parameters that collide with the original `invoke()`
+        # parameters, we need to remove them from `extra`, then use a monkeypatch to
         # properly pass them to the CLI.
         colliding_params = INVOKE_ARGS.intersection(extra)
         if colliding_params:
-            # Transfer colliding parameters from ``extra`` to ``extra_bypass``.
+            # Transfer colliding parameters from `extra` to `extra_bypass`.
             extra_bypass = {pid: extra.pop(pid) for pid in colliding_params}
-            # Monkeypatch the original command's ``main()`` call to pass extra
-            # parameter for ``Context`` initialization. Because we cannot simply add
-            # colliding parameter IDs to ``**extra``.
+            # Monkeypatch the original command's `main()` call to pass extra
+            # parameter for `Context` initialization. Because we cannot simply add
+            # colliding parameter IDs to `**extra`.
             extra_params_bypass = patch_attr(
                 cli,
                 "main",
@@ -335,7 +333,7 @@ class CliRunner(click.testing.CliRunner):
         result.__class__ = Result
         extra_result: Result = result  # type: ignore[assignment]
 
-        # ``color`` has been explicitly set to ``False``, so strip all ANSI codes.
+        # `color` has been explicitly set to `False`, so strip all ANSI codes.
         if color is False:
             extra_result.stdout_bytes = strip_ansi(extra_result.stdout_bytes)  # type: ignore[assignment,arg-type]
             extra_result.stderr_bytes = strip_ansi(extra_result.stderr_bytes)  # type: ignore[assignment,arg-type]
@@ -356,7 +354,7 @@ class CliRunner(click.testing.CliRunner):
 def unescape_regex(text: str) -> str:
     """De-obfuscate a regex for better readability.
 
-    This is like the reverse of ``re.escape()``.
+    This is like the reverse of `re.escape()`.
     """
     char_map = {
         escaped_char: chr(single_char)
@@ -393,9 +391,9 @@ matching."""
 
 
 def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:
-    """Check that the ``content`` matches the given ``regex``.
+    """Check that the `content` matches the given `regex`.
 
-    If the ``regex`` does not fully match the ``content``, raise an ``AssertionError``,
+    If the `regex` does not fully match the `content`, raise an `AssertionError`,
     with a message showing the first mismatching line.
 
     This is useful when comparing large walls of text, such as CLI output.

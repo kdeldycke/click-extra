@@ -13,10 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Click context plumbing: the :class:`Context` subclass plus the central
-registry of every ``ctx.meta`` key Click Extra writes or reads.
+"""Click context plumbing: the {class}`Context` subclass plus the central
+registry of every `ctx.meta` key Click Extra writes or reads.
 
-Click's :attr:`click.Context.meta` is a per-invocation dict that Click shares
+Click's {attr}`click.Context.meta` is a per-invocation dict that Click shares
 across the parent/child context hierarchy. Click Extra uses it to pass
 per-invocation state (the picked theme, the resolved table format, the loaded
 configuration, etc.) between eager callbacks and the rest of the CLI without
@@ -25,24 +25,25 @@ back-to-back invocations of the same CLI (Sphinx builds, test runners, REPLs)
 from leaking state into each other.
 
 This module is part of Click Extra's **public API**. Inside any
-``@command``- or ``@group``-decorated function, request the active context
-with :func:`click.pass_context` (or call :func:`click.get_current_context`)
+`@command`- or `@group`-decorated function, request the active context
+with {func}`click.pass_context` (or call {func}`click.get_current_context`)
 and read the entries you need:
 
-.. code-block:: python
+```{code-block} python
 
-    from click_extra import command, context, echo, pass_context
+from click_extra import command, context, echo, pass_context
 
 
-    @command
-    @pass_context
-    def cli(ctx):
-        echo(f"Theme: {ctx.meta[context.THEME]}")
-        echo(f"Jobs:  {ctx.meta[context.JOBS]}")
+@command
+@pass_context
+def cli(ctx):
+    echo(f"Theme: {ctx.meta[context.THEME]}")
+    echo(f"Jobs:  {ctx.meta[context.JOBS]}")
+```
 
 Each constant below documents who writes the entry, when, and what shape the
 value takes. The raw string values are stable and downstream code may also
-read ``ctx.meta["click_extra.<field>"]`` directly: the constants exist so
+read `ctx.meta["click_extra.<field>"]` directly: the constants exist so
 internal call sites and downstream code can converge on a single spelling.
 """
 
@@ -73,52 +74,53 @@ POSIXLY_CORRECT_ENVVAR: Final[str] = "POSIXLY_CORRECT"
 """Environment variable that requests strict POSIX argument parsing.
 
 When this variable is present in the environment (regardless of its value,
-matching GNU ``getopt`` semantics), :class:`Context` forces
-``allow_interspersed_args`` to ``False`` so option parsing stops at the first
+matching GNU `getopt` semantics), {class}`Context` forces
+`allow_interspersed_args` to `False` so option parsing stops at the first
 positional argument.
 """
 
 
 class Context(cloup.Context):
-    """Like ``cloup._context.Context``, but with the ability to populate the context's
-    ``meta`` property at instantiation.
+    """Like `cloup._context.Context`, but with the ability to populate the context's
+    `meta` property at instantiation.
 
-    Also defaults ``color`` to ``True`` for root contexts (those without a parent), so
-    help screens are always colorized, even when piped. Click's own default is ``None``
+    Also defaults `color` to `True` for root contexts (those without a parent), so
+    help screens are always colorized, even when piped. Click's own default is `None`
     (auto-detect via TTY), which strips colors in non-interactive contexts.
 
-    Parent-to-child color inheritance is handled by Click itself at ``Context.__init__``
+    Parent-to-child color inheritance is handled by Click itself at `Context.__init__`
     time, so no property override is needed.
 
-    When the ``POSIXLY_CORRECT`` environment variable is set, this context forces
-    ``allow_interspersed_args`` to ``False`` so option parsing stops at the first
+    When the `POSIXLY_CORRECT` environment variable is set, this context forces
+    `allow_interspersed_args` to `False` so option parsing stops at the first
     positional argument, as GNU getopt-based tools do. See
-    :data:`~click_extra.context.POSIXLY_CORRECT_ENVVAR`.
+    {data}`~click_extra.context.POSIXLY_CORRECT_ENVVAR`.
 
-    .. todo::
-        Propose addition of ``meta`` keyword upstream to Click.
+    ```{todo}
+    Propose addition of `meta` keyword upstream to Click.
+    ```
     """
 
     formatter_class = HelpFormatter
     """Use our own formatter to colorize the help screen."""
 
     def __init__(self, *args, meta: dict[str, Any] | None = None, **kwargs) -> None:
-        """Like parent's context but with an extra ``meta`` keyword-argument.
+        """Like parent's context but with an extra `meta` keyword-argument.
 
-        Also pre-seed ``color`` from the color environment variables for a parentless
+        Also pre-seed `color` from the color environment variables for a parentless
         context when the user did not provide it, and force
-        ``allow_interspersed_args`` to ``False`` when ``POSIXLY_CORRECT`` is set in the
+        `allow_interspersed_args` to `False` when `POSIXLY_CORRECT` is set in the
         environment.
         """
         super().__init__(*args, **kwargs)
 
-        # Click defaults root ``ctx.color`` to ``None`` (GNU ``auto``: keep ANSI on a
+        # Click defaults root `ctx.color` to `None` (GNU `auto`: keep ANSI on a
         # TTY, strip it when piped). For a parentless context, pre-seed it from the
         # color environment variables so the eager help and version screens, which
-        # can render before ``--color`` resolves, still honor ``FORCE_COLOR`` /
-        # ``NO_COLOR``. With no recognized variable the value stays ``None`` (auto),
-        # and the ``ColorOption`` callback later layers the command line, configuration
-        # and ``--accessible`` on top.
+        # can render before `--color` resolves, still honor `FORCE_COLOR` /
+        # `NO_COLOR`. With no recognized variable the value stays `None` (auto),
+        # and the `ColorOption` callback later layers the command line, configuration
+        # and `--accessible` on top.
         if not self.parent and self.color is None:
             self.color = resolve_color_env()
 
@@ -144,10 +146,10 @@ class Context(cloup.Context):
     ) -> str:
         """Render a table honoring the invocation's table options, and return it.
 
-        Same contract as :func:`click_extra.table.render_table`, with
-        ``table_format`` and ``sort_key`` defaulting to the values resolved by
-        the ``--table-format`` and ``--sort-by`` options (read from
-        :data:`TABLE_FORMAT` and :data:`TABLE_SORT_KEY`). ``ctx.meta`` is
+        Same contract as {func}`click_extra.table.render_table`, with
+        `table_format` and `sort_key` defaulting to the values resolved by
+        the `--table-format` and `--sort-by` options (read from
+        {data}`TABLE_FORMAT` and {data}`TABLE_SORT_KEY`). `ctx.meta` is
         shared along the context chain, so this works from any subcommand
         without reaching for the root context. Without those options in the
         chain, falls back to the default format and no sort.
@@ -178,9 +180,9 @@ class Context(cloup.Context):
     ) -> None:
         """Render a table honoring the invocation's table options, and print it.
 
-        The printing counterpart of :meth:`render_table`: same defaulting of
-        ``table_format`` and ``sort_key`` from the context's shared ``meta``,
-        delegating to :func:`click_extra.table.print_table` (which also
+        The printing counterpart of {meth}`render_table`: same defaulting of
+        `table_format` and `sort_key` from the context's shared `meta`,
+        delegating to {func}`click_extra.table.print_table` (which also
         handles ANSI translation and colorization policy).
         """
         # Imported here because the table module depends on this one.
@@ -200,10 +202,10 @@ class Context(cloup.Context):
 
 
 META_NAMESPACE: Final[str] = "click_extra."
-"""Prefix shared by every ``ctx.meta`` key Click Extra writes.
+"""Prefix shared by every `ctx.meta` key Click Extra writes.
 
 Reserved for entries the framework owns. Downstream consumers picking their
-own ``ctx.meta`` keys are encouraged to use a different prefix to avoid
+own `ctx.meta` keys are encouraged to use a different prefix to avoid
 colliding with current or future Click Extra entries.
 """
 
@@ -211,8 +213,8 @@ colliding with current or future Click Extra entries.
 class _LazyMetaDict(dict):
     """Dict subclass that lazily resolves fields on first access.
 
-    Installed as ``ctx._meta`` so that ``ctx.meta["click_extra.<field>"]``
-    transparently evaluates the corresponding ``@cached_property`` on the
+    Installed as `ctx._meta` so that `ctx.meta["click_extra.<field>"]`
+    transparently evaluates the corresponding `@cached_property` on the
     source object only when the key is actually read.
     """
 
@@ -252,13 +254,13 @@ class _LazyMetaDict(dict):
 # --- Argument capture ---------------------------------------------------------
 
 RAW_ARGS: Final[str] = "click_extra.raw_args"
-"""The raw, pre-parsed ``argv`` slice fed to the current command.
+"""The raw, pre-parsed `argv` slice fed to the current command.
 
-Written by :class:`click_extra.commands.Command.make_context` so that
-:class:`click_extra.parameters.ShowParamsOption` can re-parse the original
-arguments for the ``--params`` table without re-running the callbacks.
-Consumers normalize the parser's ``UNSET`` sentinel back to ``None`` on read,
-matching what ``click.Command.parse_args`` does for ``ctx.params``.
+Written by {class}`click_extra.commands.Command.make_context` so that
+{class}`click_extra.parameters.ShowParamsOption` can re-parse the original
+arguments for the `--params` table without re-running the callbacks.
+Consumers normalize the parser's `UNSET` sentinel back to `None` on read,
+matching what `click.Command.parse_args` does for `ctx.params`.
 """
 
 # Developer note: why RAW_ARGS exists, and what to actually propose upstream.
@@ -318,70 +320,70 @@ matching what ``click.Command.parse_args`` does for ``ctx.params``.
 CONF_SOURCE: Final[str] = "click_extra.conf_source"
 """Resolved path or URL of the configuration file that was loaded.
 
-Written by :class:`click_extra.config.option.ConfigOption.load_conf` after a
-configuration file is found and parsed. ``None`` if no file matched.
+Written by {class}`click_extra.config.option.ConfigOption.load_conf` after a
+configuration file is found and parsed. `None` if no file matched.
 """
 
 CONF_FULL: Final[str] = "click_extra.conf_full"
 """Full parsed configuration document (the whole file, every section).
 
-Written by :class:`click_extra.config.option.ConfigOption.load_conf`. Read by
-:class:`click_extra.commands.Group` (for subcommand inheritance) and by
-:func:`click_extra.cli_wrapper.invoke_target` (to forward the loaded config to
+Written by {class}`click_extra.config.option.ConfigOption.load_conf`. Read by
+{class}`click_extra.commands.Group` (for subcommand inheritance) and by
+{func}`click_extra.cli_wrapper.invoke_target` (to forward the loaded config to
 wrapped CLIs).
 """
 
 TOOL_CONFIG: Final[str] = "click_extra.tool_config"
-"""The app-specific config section, deserialized through ``config_schema``.
+"""The app-specific config section, deserialized through `config_schema`.
 
-Written by :class:`~click_extra.config.option.ConfigOption`'s
-``_apply_config_schema`` method only when a schema callable is configured. Read via
-:func:`click_extra.config.schema.get_tool_config`.
+Written by {class}`~click_extra.config.option.ConfigOption`'s
+`_apply_config_schema` method only when a schema callable is configured. Read via
+{func}`click_extra.config.schema.get_tool_config`.
 """
 
 
 # --- Verbosity / logging ------------------------------------------------------
 
 VERBOSITY_LEVEL: Final[str] = "click_extra.verbosity_level"
-"""The reconciled :class:`~click_extra.logging.LogLevel` chosen for the run.
+"""The reconciled {class}`~click_extra.logging.LogLevel` chosen for the run.
 
-Written by ``_VerbosityOption.apply_verbosity``, which
-reconciles every verbosity-related option (``--verbosity``, ``--verbose``/``-v``
-and ``--quiet``/``-q``) into a single level. Read by the same method to detect
+Written by `_VerbosityOption.apply_verbosity`, which
+reconciles every verbosity-related option (`--verbosity`, `--verbose`/`-v`
+and `--quiet`/`-q`) into a single level. Read by the same method to detect
 whether the reconciled level changed since a sibling option last fired.
 """
 
 VERBOSITY: Final[str] = "click_extra.verbosity"
-"""Raw value of ``--verbosity LEVEL`` as the user passed it.
+"""Raw value of `--verbosity LEVEL` as the user passed it.
 
-Written by :meth:`click_extra.logging.VerbosityOption.set_level`. Stored
-alongside :data:`VERBOSITY_LEVEL` so downstream code can tell whether the
-final level came from ``--verbosity`` or from ``-v``/``-q`` repetitions.
+Written by {meth}`click_extra.logging.VerbosityOption.set_level`. Stored
+alongside {data}`VERBOSITY_LEVEL` so downstream code can tell whether the
+final level came from `--verbosity` or from `-v`/`-q` repetitions.
 """
 
 VERBOSE: Final[str] = "click_extra.verbose"
-"""Raw repetition count of ``--verbose``/``-v``.
+"""Raw repetition count of `--verbose`/`-v`.
 
-Written by the ``set_level`` callback of :class:`click_extra.logging.VerboseOption`.
-Combined with :data:`QUIET` into the signed ``verbose - quiet`` counter that
-``_VerbosityOption.resolve_level`` shifts the base level by.
+Written by the `set_level` callback of {class}`click_extra.logging.VerboseOption`.
+Combined with {data}`QUIET` into the signed `verbose - quiet` counter that
+`_VerbosityOption.resolve_level` shifts the base level by.
 """
 
 QUIET: Final[str] = "click_extra.quiet"
-"""Raw repetition count of ``--quiet``/``-q``.
+"""Raw repetition count of `--quiet`/`-q`.
 
-Written by the ``set_level`` callback of :class:`click_extra.logging.QuietOption`.
-The quiet counterpart of :data:`VERBOSE`: each ``-q`` subtracts one step from the
-``verbose - quiet`` net applied on top of the base verbosity level.
+Written by the `set_level` callback of {class}`click_extra.logging.QuietOption`.
+The quiet counterpart of {data}`VERBOSE`: each `-q` subtracts one step from the
+`verbose - quiet` net applied on top of the base verbosity level.
 """
 
 
 # --- Timing -------------------------------------------------------------------
 
 START_TIME: Final[str] = "click_extra.start_time"
-"""``time.perf_counter()`` snapshot taken when ``--time`` is enabled.
+"""`time.perf_counter()` snapshot taken when `--time` is enabled.
 
-Written by :class:`click_extra.execution.TimerOption.init_timer`.
+Written by {class}`click_extra.execution.TimerOption.init_timer`.
 """
 
 
@@ -390,7 +392,7 @@ Written by :class:`click_extra.execution.TimerOption.init_timer`.
 JOBS: Final[str] = "click_extra.jobs"
 """Effective parallel job count after clamping (always >= 1).
 
-Written by :class:`click_extra.execution.JobsOption.validate_jobs`. Click Extra
+Written by {class}`click_extra.execution.JobsOption.validate_jobs`. Click Extra
 itself does not act on this value: it is a contract for downstream commands
 that drive their own concurrency.
 """
@@ -399,35 +401,35 @@ that drive their own concurrency.
 # --- Table rendering ----------------------------------------------------------
 
 TABLE_FORMAT: Final[str] = "click_extra.table_format"
-"""The :class:`~click_extra.table.TableFormat` chosen via ``--table-format``.
+"""The {class}`~click_extra.table.TableFormat` chosen via `--table-format`.
 
-Written by :class:`click_extra.table.TableFormatOption.init_formatter`. Read
-by :meth:`Context.render_table` and :meth:`Context.print_table` as their
+Written by {class}`click_extra.table.TableFormatOption.init_formatter`. Read
+by {meth}`Context.render_table` and {meth}`Context.print_table` as their
 default format.
 """
 
 SORT_BY: Final[str] = "click_extra.sort_by"
-"""Tuple of column IDs picked via ``--sort-by`` (in priority order).
+"""Tuple of column IDs picked via `--sort-by` (in priority order).
 
-Written by :class:`click_extra.table.SortByOption.init_sort`.
+Written by {class}`click_extra.table.SortByOption.init_sort`.
 """
 
 TABLE_SORT_KEY: Final[str] = "click_extra.table_sort_key"
-"""Row sort key derived from the ``--sort-by`` selection.
+"""Row sort key derived from the `--sort-by` selection.
 
-Written by :class:`click_extra.table.SortByOption.init_sort` when its column
+Written by {class}`click_extra.table.SortByOption.init_sort` when its column
 definitions are known at declaration time (labeled mode). Read by
-:meth:`Context.render_table` and :meth:`Context.print_table` as their default
-``sort_key``. Absent in field-vocabulary mode, where the sort is resolved per
-table by :func:`click_extra.table.print_table` from the column IDs its headers
+{meth}`Context.render_table` and {meth}`Context.print_table` as their default
+`sort_key`. Absent in field-vocabulary mode, where the sort is resolved per
+table by {func}`click_extra.table.print_table` from the column IDs its headers
 carry.
 """
 
 COLUMNS: Final[str] = "click_extra.columns"
-"""Tuple of column IDs selected via ``--columns`` (in display order).
+"""Tuple of column IDs selected via `--columns` (in display order).
 
-Written by :class:`click_extra.table.ColumnsOption.init_columns`. Read by
-table-rendering consumers (like :class:`click_extra.parameters.ShowParamsOption`)
+Written by {class}`click_extra.table.ColumnsOption.init_columns`. Read by
+table-rendering consumers (like {class}`click_extra.parameters.ShowParamsOption`)
 to project and reorder columns before emitting the table. Empty / unset means
 no projection: render every column in its canonical order.
 """
@@ -436,21 +438,21 @@ no projection: render every column in its canonical order.
 # --- Theming ------------------------------------------------------------------
 
 THEME: Final[str] = "click_extra.theme.active"
-"""The :class:`~click_extra.theme.HelpTheme` active for this invocation.
+"""The {class}`~click_extra.theme.HelpTheme` active for this invocation.
 
-Written by :class:`click_extra.theme.ThemeOption.set_theme`. Read via
-:func:`click_extra.theme.get_current_theme`, which falls back to
-``click_extra.theme.default_theme`` when no key is set.
+Written by {class}`click_extra.theme.ThemeOption.set_theme`. Read via
+{func}`click_extra.theme.get_current_theme`, which falls back to
+`click_extra.theme.default_theme` when no key is set.
 """
 
 THEME_OVERRIDES: Final[str] = "click_extra.theme.overrides"
 """Per-invocation theme registry overlay loaded from the user's config file.
 
-Written by :class:`click_extra.config.option.ConfigOption` when it sees
-``[tool.<cli>.themes.<name>]`` tables: each table is built into a
-:class:`~click_extra.theme.HelpTheme` (cascading on top of an existing
-theme when *name* matches one already in :data:`~click_extra.theme.theme_registry`).
-Read by :func:`click_extra.theme.get_theme_registry` so ``--theme`` can pick
+Written by {class}`click_extra.config.option.ConfigOption` when it sees
+`[tool.<cli>.themes.<name>]` tables: each table is built into a
+{class}`~click_extra.theme.HelpTheme` (cascading on top of an existing
+theme when *name* matches one already in {data}`~click_extra.theme.theme_registry`).
+Read by {func}`click_extra.theme.get_theme_registry` so `--theme` can pick
 the new themes without leaking them into sibling invocations sharing the
 same process.
 """
@@ -459,11 +461,11 @@ same process.
 # --- Telemetry ----------------------------------------------------------------
 
 TELEMETRY: Final[str] = "click_extra.telemetry"
-"""``True`` if the user opted into telemetry, ``False`` otherwise.
+"""`True` if the user opted into telemetry, `False` otherwise.
 
-Written by :class:`click_extra.telemetry.TelemetryOption.set_telemetry` after
-reconciling ``--telemetry`` / ``--no-telemetry`` with the standard
-``DO_NOT_TRACK`` environment variable. Downstream code reads this to decide
+Written by {class}`click_extra.telemetry.TelemetryOption.set_telemetry` after
+reconciling `--telemetry` / `--no-telemetry` with the standard
+`DO_NOT_TRACK` environment variable. Downstream code reads this to decide
 whether to emit usage data.
 """
 
@@ -471,35 +473,35 @@ whether to emit usage data.
 # --- Progress -----------------------------------------------------------------
 
 PROGRESS: Final[str] = "click_extra.progress"
-"""``True`` when the CLI may display progress spinners, ``False`` otherwise.
+"""`True` when the CLI may display progress spinners, `False` otherwise.
 
-Written by :class:`click_extra.spinner.ProgressOption.set_progress` from the
-``--progress`` / ``--no-progress`` flag (which ``--accessible`` lowers to
-``False``). Downstream code reads it to decide whether to start a
-:class:`~click_extra.spinner.Spinner`.
+Written by {class}`click_extra.spinner.ProgressOption.set_progress` from the
+`--progress` / `--no-progress` flag (which `--accessible` lowers to
+`False`). Downstream code reads it to decide whether to start a
+{class}`~click_extra.spinner.Spinner`.
 
 Deliberately independent of color: a spinner is an interactivity concern, so it is
-gated on the terminal (TTY / ``TERM=dumb``, handled by the spinner) and on explicit
-intent (``--no-progress`` / ``--accessible``), never on ``--no-color`` /
-``NO_COLOR``. See :class:`~click_extra.spinner.ProgressOption` for the rationale.
+gated on the terminal (TTY / `TERM=dumb`, handled by the spinner) and on explicit
+intent (`--no-progress` / `--accessible`), never on `--no-color` /
+`NO_COLOR`. See {class}`~click_extra.spinner.ProgressOption` for the rationale.
 """
 
 
 # --- Accessibility ------------------------------------------------------------
 
 ACCESSIBLE: Final[str] = "click_extra.accessible"
-"""``True`` when the user requested screen-reader-friendly output.
+"""`True` when the user requested screen-reader-friendly output.
 
-Written by :meth:`~click_extra.AccessibleOption.set_accessible`
-after reconciling the ``--accessible`` flag with the ``ACCESSIBLE`` environment
+Written by {meth}`~click_extra.AccessibleOption.set_accessible`
+after reconciling the `--accessible` flag with the `ACCESSIBLE` environment
 variable. Read by output helpers that must degrade a cursor-driven element to a
-linear stream: :func:`~click_extra.clear` becomes a no-op and
-:func:`~click_extra.echo_via_pager` writes its text straight to
+linear stream: {func}`~click_extra.clear` becomes a no-op and
+{func}`~click_extra.echo_via_pager` writes its text straight to
 stdout instead of spawning a pager.
 
-This is the *readable* counterpart to the ``--color`` / ``--progress`` /
-``--table-format`` defaults that ``--accessible`` also lowers: those are consumed
-through their own resolved values (``ctx.color``, :data:`PROGRESS`, the table
+This is the *readable* counterpart to the `--color` / `--progress` /
+`--table-format` defaults that `--accessible` also lowers: those are consumed
+through their own resolved values (`ctx.color`, {data}`PROGRESS`, the table
 format), while this flag exposes the accessibility intent itself.
 """
 
@@ -507,12 +509,12 @@ format), while this flag exposes the accessibility intent itself.
 # --- Exit code ----------------------------------------------------------------
 
 ZERO_EXIT: Final[str] = "click_extra.zero_exit"
-"""``True`` when the user asked the CLI to always return a zero exit code.
+"""`True` when the user asked the CLI to always return a zero exit code.
 
-Written by :class:`click_extra.execution.ZeroExitOption.set_zero_exit`. Click
+Written by {class}`click_extra.execution.ZeroExitOption.set_zero_exit`. Click
 Extra itself does not act on this value: it is a contract for downstream
 commands that suppress their non-zero "problems found" exit code and return
-``0`` as long as the run itself succeeded.
+`0` as long as the run itself succeeded.
 """
 
 
@@ -520,19 +522,19 @@ commands that suppress their non-zero "problems found" exit code and return
 
 
 def pass_context(func: Callable[Concatenate[Context, P], R]) -> Callable[P, R]:
-    """Mark a callback as wanting the active :class:`Context` as its first argument.
+    """Mark a callback as wanting the active {class}`Context` as its first argument.
 
-    Click's own :func:`click.pass_context` is typed for the base
-    :class:`click.Context`. A handler annotated with click-extra's enhanced
-    :class:`Context` (to reach its extra helpers like ``ctx.print_table``)
+    Click's own {func}`click.pass_context` is typed for the base
+    {class}`click.Context`. A handler annotated with click-extra's enhanced
+    {class}`Context` (to reach its extra helpers like `ctx.print_table`)
     therefore fails static type checking: function parameters are contravariant,
-    so ``Callable[[Context], R]`` is not assignable where a
-    ``Callable[[click.Context], R]`` is expected.
+    so `Callable[[Context], R]` is not assignable where a
+    `Callable[[click.Context], R]` is expected.
 
-    This drop-in is typed for the enhanced :class:`Context` and still accepts
-    handlers typed for the base ``click.Context`` (a wider first parameter is
+    This drop-in is typed for the enhanced {class}`Context` and still accepts
+    handlers typed for the base `click.Context` (a wider first parameter is
     allowed), so both type-check. At runtime it forwards the active context
-    unchanged, exactly like :func:`click.pass_context`.
+    unchanged, exactly like {func}`click.pass_context`.
     """
 
     @functools.wraps(func)
@@ -543,9 +545,9 @@ def pass_context(func: Callable[Concatenate[Context, P], R]) -> Callable[P, R]:
 
 
 def get(ctx: click.Context, key: str, default: Any = None) -> Any:
-    """Read ``key`` from the current context's shared ``meta`` dict.
+    """Read `key` from the current context's shared `meta` dict.
 
-    Equivalent to ``ctx.meta.get(key, default)``. Click's ``meta`` is shared
+    Equivalent to `ctx.meta.get(key, default)`. Click's `meta` is shared
     across the parent/child hierarchy, so reading from the local context is
     sufficient: there is no need to walk up to the root manually.
     """
@@ -557,10 +559,10 @@ def set(
     key: str,
     value: Any,
 ) -> None:
-    """Write ``value`` under ``key`` in the current context's shared ``meta`` dict.
+    """Write `value` under `key` in the current context's shared `meta` dict.
 
-    Equivalent to ``ctx.meta[key] = value``. Provided as the symmetric writer
-    for :func:`get` so that callers can route both sides of a ``meta`` access
+    Equivalent to `ctx.meta[key] = value`. Provided as the symmetric writer
+    for {func}`get` so that callers can route both sides of a `meta` access
     through this module.
     """
     ctx.meta[key] = value

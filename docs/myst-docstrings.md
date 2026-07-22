@@ -68,7 +68,9 @@ The applied transformations, in order:
 4. **`#:` comment blocks**: prefix stripped, directives converted, prefix restored
 5. **Directives**: `.. directive::` + indented body becomes ```` ```{directive} ```` / ```` ``` ````
 
-Content containing `{` inside inline code is left as double backticks to avoid clashing with MyST cross-reference syntax. These pass through the build-time extension unchanged.
+Only docstrings and comments are rewritten: string literals, f-strings, and every other piece of runtime code pass through byte-for-byte. A regex pattern or an error message that happens to contain reST markup is not documentation, and rewriting it would change program behavior.
+
+Content containing `{` inside inline code is left as double backticks to avoid clashing with MyST cross-reference syntax. These pass through the build-time extension unchanged. Likewise, a directive whose body already holds a triple-backtick fence stays a reST directive, and a directive nested inside a fence (the output of a previous conversion of nested directives) is never re-converted: same-level fences cannot nest in markdown, and reST passes through the build-time extension unchanged.
 
 ## Syntax reference
 
@@ -185,6 +187,7 @@ The extension handles the constructs listed above. It does **not** convert:
 - **Nested fences of the same type** (` ` `/` \`\`\` \`\`\`\`). A single nesting level works because the inner directive (like `.. code-block::`) stays as reST inside the converted outer fence.
 - **Complex tables** (```` ```{list-table} ````, ```` ```{csv-table} ````). These work in module-level docstrings processed by `myst-parser` but are unlikely to appear in function docstrings.
 - **`{` inside single backticks**. Content like `` `{version}` `` would be misinterpreted as a cross-reference. Keep these as double backticks (``` ``{version}`` ```), which the extension passes through to Sphinx as-is.
+- **Domain-qualified roles** (`` {py:class}`str` ``). The role converter only handles bare role names. Write domain-qualified references in reST (`` :py:class:`str` ``), which passes through unchanged; the `convert-to-myst` migration leaves them in reST for the same reason.
 - **MyST substitution references** (`{{variable}}`). These are a `myst-parser` feature for `.md` files and are not processed inside docstrings.
 - **MyST definition lists**. The `deflist` extension syntax (term on one line, `: definition` on the next) is not converted. The `: ` prefix is ambiguous with field list continuations and other reST constructs, making reliable regex detection impractical without a full parser. Use reST definition lists or restructure as a field list.
 - **Heading syntax** (`#`, `##`). Markdown headings inside docstrings are not converted to reST sections. Docstrings should not contain headings.

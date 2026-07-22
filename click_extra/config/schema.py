@@ -60,31 +60,33 @@ names subcommands explicitly, the config is ignored.
 
 Example TOML configuration:
 
-.. code-block:: toml
+```{code-block} toml
 
-    [my-cli]
-    _default_subcommands = ["backup", "sync"]
+[my-cli]
+_default_subcommands = ["backup", "sync"]
 
-    [my-cli.backup]
-    path = "/home"
+[my-cli.backup]
+path = "/home"
+```
 """
 
 PREPEND_SUBCOMMANDS_KEY = "_prepend_subcommands"
 """Reserved configuration key for prepending subcommands to every invocation.
 
-Unlike ``_default_subcommands`` which only fires when no subcommands are given on the
-CLI, ``_prepend_subcommands`` always prepends the listed subcommands. This is useful
-for always injecting a ``debug`` subcommand on a dev machine, for example.
+Unlike `_default_subcommands` which only fires when no subcommands are given on the
+CLI, `_prepend_subcommands` always prepends the listed subcommands. This is useful
+for always injecting a `debug` subcommand on a dev machine, for example.
 
-Only works with ``chain=True`` groups (non-chained groups resolve exactly one
+Only works with `chain=True` groups (non-chained groups resolve exactly one
 subcommand, so prepending would break the user's intended command).
 
 Example TOML configuration:
 
-.. code-block:: toml
+```{code-block} toml
 
-    [my-cli]
-    _prepend_subcommands = ["debug"]
+[my-cli]
+_prepend_subcommands = ["debug"]
+```
 """
 
 _RESERVED_CONFIG_KEYS = frozenset({DEFAULT_SUBCOMMANDS_KEY, PREPEND_SUBCOMMANDS_KEY})
@@ -97,11 +99,11 @@ EXTENSION_METADATA_KEY = "click_extra.extension"
 Schema authors set ``metadata={EXTENSION_METADATA_KEY: True}`` on a field when
 its sub-tree should pass through click-extra's CLI-parameter strict check and
 be validated by app-specific logic instead. Equivalent to typing the field as
-``dict[str, X]``: both forms are recognized by
-``_collect_opaque_paths_from_schema`` (the internal pipeline still calls
+`dict[str, X]`: both forms are recognized by
+`_collect_opaque_paths_from_schema` (the internal pipeline still calls
 these paths "opaque" since they're skipped by the normalize/flatten/strict
 machinery). The metadata form is useful when the underlying Python type is
-something other than a ``dict`` (for example, a nested dataclass that
+something other than a `dict` (for example, a nested dataclass that
 nonetheless represents user-extensible content)."""
 
 
@@ -109,37 +111,37 @@ CONFIG_PATH_METADATA_KEY = "click_extra.config_path"
 """Dataclass field metadata key pinning a field to an explicit config sub-path.
 
 Schema authors set ``metadata={CONFIG_PATH_METADATA_KEY: "test-suite"}`` on a
-field so the dataclass loader (``_from_dataclass``) reads its value from that
+field so the dataclass loader (`_from_dataclass`) reads its value from that
 dotted path under the app's configuration section, rather than from a key named
-after the field. The named counterpart to ``EXTENSION_METADATA_KEY``."""
+after the field. The named counterpart to `EXTENSION_METADATA_KEY`."""
 
 
 NORMALIZE_KEYS_METADATA_KEY = "click_extra.normalize_keys"
 """Dataclass field metadata key toggling key normalization on a field's value.
 
-Defaults to ``True``. Schema authors set
+Defaults to `True`. Schema authors set
 ``metadata={NORMALIZE_KEYS_METADATA_KEY: False}`` to keep a sub-tree's keys
-verbatim, so external identifiers (like ``python-version`` axis names) are not
-rewritten to Python-style names (``python_version``). Read by
-``_from_dataclass`` alongside ``CONFIG_PATH_METADATA_KEY``."""
+verbatim, so external identifiers (like `python-version` axis names) are not
+rewritten to Python-style names (`python_version`). Read by
+`_from_dataclass` alongside `CONFIG_PATH_METADATA_KEY`."""
 
 
 class ValidationError(Exception):
     """Raised when a configuration file fails validation.
 
     A single, structured exception type that uniformly carries the dotted
-    ``path`` of the offending key, a human-readable ``message``, and an optional
-    ``code`` for programmatic handling. Used by click-extra's built-in
-    strict-mode check and by every user-registered :class:`ConfigValidator`, so
-    downstream apps and ``--validate-config`` see the same error shape regardless
+    `path` of the offending key, a human-readable `message`, and an optional
+    `code` for programmatic handling. Used by click-extra's built-in
+    strict-mode check and by every user-registered {class}`ConfigValidator`, so
+    downstream apps and `--validate-config` see the same error shape regardless
     of who detected the problem.
 
     :param path: Dotted path to the offending key, relative to the configuration
-        file root (like ``"my-cli.managers.winget.cli_searchpath"``). An empty
+        file root (like `"my-cli.managers.winget.cli_searchpath"`). An empty
         string means the error applies to the document as a whole.
     :param message: Human-readable description of the failure. Should be a
         single sentence, no trailing punctuation, no path repeated.
-    :param code: Optional machine-readable error code (like ``"unknown_field"``)
+    :param code: Optional machine-readable error code (like `"unknown_field"`)
         for callers that want to dispatch on error type without parsing the
         message string.
     """
@@ -161,27 +163,27 @@ class ConfigValidator:
     """Register an app-defined *extension* validator for one sub-tree of the
     configuration file.
 
-    Apps register validators via the ``config_validators=`` kwarg on
-    :class:`~click_extra.config.option.ConfigOption` (or the matching decorator) to extend click-extra's
+    Apps register validators via the `config_validators=` kwarg on
+    {class}`~click_extra.config.option.ConfigOption` (or the matching decorator) to extend click-extra's
     built-in CLI-parameter strict check with custom validation logic. Each
-    validator targets a single dotted ``extension_path`` relative to the app's
+    validator targets a single dotted `extension_path` relative to the app's
     configuration section. Click-extra passes the matching sub-tree straight
     through to the registered validator: the strict check skips it, the schema
     machinery treats it as opaque, and the user's logic owns the result. The
-    validator runs both during ``--validate-config`` and during normal config
+    validator runs both during `--validate-config` and during normal config
     loading.
 
     :param extension_path: Dotted path of the sub-tree the validator owns,
         relative to the app's section in the configuration file. For example, an
-        app named ``my-cli`` with ``extension_path="managers"`` receives the
-        contents of the ``[my-cli.managers]`` table.
+        app named `my-cli` with `extension_path="managers"` receives the
+        contents of the `[my-cli.managers]` table.
     :param validator: Callable taking the sub-tree dict and raising
-        :class:`ValidationError` on failure. Must be a pure function: no side
+        {class}`ValidationError` on failure. Must be a pure function: no side
         effects on the click context, no print statements. The caller decides
         how to surface the error.
     :param description: Optional human-readable summary of what the validator
         checks. Surfaces in documentation generators that introspect the
-        decorator (like autodoc), and may be reused in ``--help`` text in a
+        decorator (like autodoc), and may be reused in `--help` text in a
         future release.
     """
 
@@ -214,7 +216,7 @@ def _check_type_conflict(
     Checks every level (intermediate and leaf) so that deep conflicts like
     ``{"a.b.c": 1, "a.b": 2}`` are caught.
 
-    In strict mode, raises ``ValueError`` instead of logging a warning.
+    In strict mode, raises `ValueError` instead of logging a warning.
     """
     node = target
     for i, part in enumerate(parts):
@@ -261,7 +263,7 @@ def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
     and a dict (like ``{"a": 1, "a.b": 2}``), as one value will silently
     override the other.
 
-    In strict mode, raises ``ValueError`` on type conflicts and invalid
+    In strict mode, raises `ValueError` on type conflicts and invalid
     dotted keys (empty segments).
     """
     expanded: dict = {}
@@ -292,7 +294,7 @@ def _normalize_conf(conf: dict, strict: bool = False) -> dict:
     (Stage 1) and
     :py:meth:`~click_extra.config.option.ConfigOption.merge_default_map`, so the
     document that gets validated and the document that gets merged into
-    ``default_map`` are normalized identically. A change to the recipe applies to
+    `default_map` are normalized identically. A change to the recipe applies to
     both at once instead of risking drift between the two call sites.
     """
     return _expand_dotted_keys(_strip_reserved_keys(conf), strict=strict)
@@ -306,27 +308,28 @@ def normalize_config_keys(
     """Normalize configuration keys to valid Python identifiers.
 
     Recursively replaces hyphens with underscores in all dict keys, using the
-    same ``str.replace("-", "_")`` transform that Click applies internally when
-    deriving parameter names from option declarations (``--foo-bar`` becomes
-    ``foo_bar``). Click does not expose this as a public function, so we
+    same `str.replace("-", "_")` transform that Click applies internally when
+    deriving parameter names from option declarations (`--foo-bar` becomes
+    `foo_bar`). Click does not expose this as a public function, so we
     replicate the one-liner here.
 
     Handles the convention mismatch between configuration formats (TOML, YAML,
     JSON all commonly use kebab-case) and Python identifiers. Works with all
-    configuration formats supported by ``ConfigOption``.
+    configuration formats supported by `ConfigOption`.
 
-    :param opaque_keys: Fully-qualified key names (using ``"_"`` as
+    :param opaque_keys: Fully-qualified key names (using `"_"` as
         separator) where recursion stops. The key itself is still
         normalized, but its dict value is kept as-is. Used in tandem
-        with ``flatten_config_keys``'s ``opaque_keys`` to protect data
+        with `flatten_config_keys`'s `opaque_keys` to protect data
         dicts (like GitHub Actions matrix axes) from normalization.
     :param _prefix: Internal parameter for tracking the accumulated key
         path during recursion. Callers should not set this.
 
-    .. todo::
-        Propose upstream to Click to extract the inline ``name.replace("-", "_")``
-        into a private ``_normalize_param_name`` helper, so downstream projects
-        like Click Extra can reuse it instead of duplicating the transform.
+    ```{todo}
+    Propose upstream to Click to extract the inline `name.replace("-", "_")`
+    into a private `_normalize_param_name` helper, so downstream projects
+    like Click Extra can reuse it instead of duplicating the transform.
+    ```
     """
     normalized: dict[str, Any] = {}
     for key, value in conf.items():
@@ -361,12 +364,12 @@ def flatten_config_keys(
 
     :param conf: Nested dictionary to flatten.
     :param sep: Separator used to join parent and child keys. Defaults to
-        ``"_"`` which produces valid Python identifiers when combined with
+        `"_"` which produces valid Python identifiers when combined with
         `normalize_config_keys`.
     :param opaque_keys: Fully-qualified key names where flattening stops.
         When the accumulated key matches an entry in this set, the dict
         value is kept as-is instead of being recursively flattened. This
-        is useful for fields typed as ``dict[str, X]`` where the dict keys
+        is useful for fields typed as `dict[str, X]` where the dict keys
         are data (like GitHub Actions matrix axis names), not config
         structure.
     :param _prefix: Internal parameter for tracking the accumulated key
@@ -390,8 +393,8 @@ def flatten_config_keys(
 def get_tool_config(ctx: click.Context | None = None) -> Any:
     """Retrieve the typed tool configuration from the context.
 
-    Returns the object stored under :data:`click_extra.context.TOOL_CONFIG`
-    by ``ConfigOption`` when a ``config_schema`` is set, or ``None`` if no
+    Returns the object stored under {data}`click_extra.context.TOOL_CONFIG`
+    by `ConfigOption` when a `config_schema` is set, or `None` if no
     schema was configured or no configuration was loaded.
 
     :param ctx: Click context. Defaults to the current context.
@@ -404,18 +407,18 @@ def get_tool_config(ctx: click.Context | None = None) -> Any:
 class SchemaFieldInfo(NamedTuple):
     """Documentation record for one option of a configuration schema.
 
-    Produced by :func:`schema_field_infos`. Consumed by the ``click:config``
+    Produced by {func}`schema_field_infos`. Consumed by the `click:config`
     Sphinx directive, and by CLIs building their own configuration reference
-    (a ``show-config`` table, say) from the same introspection.
+    (a `show-config` table, say) from the same introspection.
     """
 
     key: str
     """Dotted configuration path of the option.
 
-    Field names are kebab-cased (``setup_guide`` → ``setup-guide``) unless the
+    Field names are kebab-cased (`setup_guide` → `setup-guide`) unless the
     field pins an explicit path through
-    :data:`click_extra.config.schema.CONFIG_PATH_METADATA_KEY`. Nested dataclass
-    fields contribute one segment per nesting level (``test-suite.timeout``).
+    {data}`click_extra.config.schema.CONFIG_PATH_METADATA_KEY`. Nested dataclass
+    fields contribute one segment per nesting level (`test-suite.timeout`).
     """
 
     type_hint: str
@@ -427,7 +430,7 @@ class SchemaFieldInfo(NamedTuple):
     summary: str
     """First paragraph of the field's attribute docstring, collapsed onto a
     single line. Empty when the field has no docstring or the class source is
-    unavailable (see :func:`field_docstrings`)."""
+    unavailable (see {func}`field_docstrings`)."""
 
     description: str
     """Full attribute docstring of the field, paragraph breaks preserved."""
@@ -439,14 +442,15 @@ def field_docstrings(cls: type) -> dict[str, str]:
     Attribute docstrings are string literals immediately following an
     annotated assignment in a class body (the PEP 257 convention used by
     Sphinx's autodoc). Python discards them at runtime, so they are recovered
-    by parsing the class source with :mod:`ast`. Each docstring is cleaned up
-    with :func:`inspect.cleandoc`, preserving paragraph breaks.
+    by parsing the class source with {mod}`ast`. Each docstring is cleaned up
+    with {func}`inspect.cleandoc`, preserving paragraph breaks.
 
-    .. caution::
-        Returns an empty mapping when the class source is unavailable, as for
-        classes defined in an ``exec``-ed code block (an interactive session,
-        or the body of a ``click:source`` Sphinx directive). Import the schema
-        from a real module to get its docstrings documented.
+    ```{caution}
+    Returns an empty mapping when the class source is unavailable, as for
+    classes defined in an `exec`-ed code block (an interactive session,
+    or the body of a `click:source` Sphinx directive). Import the schema
+    from a real module to get its docstrings documented.
+    ```
     """
     try:
         source = inspect.getsource(cls)
@@ -481,16 +485,16 @@ def field_docstrings(cls: type) -> dict[str, str]:
 
 
 def _first_paragraph(text: str) -> str:
-    """Collapse the first paragraph of ``text`` onto a single line."""
+    """Collapse the first paragraph of `text` onto a single line."""
     return " ".join(text.split("\n\n")[0].split())
 
 
 def _field_config_key(field: Field) -> str:
     """Return the config key of a dataclass field.
 
-    The :data:`click_extra.config.schema.CONFIG_PATH_METADATA_KEY` metadata wins
+    The {data}`click_extra.config.schema.CONFIG_PATH_METADATA_KEY` metadata wins
     when set; otherwise the field name is kebab-cased
-    (``setup_guide`` → ``setup-guide``).
+    (`setup_guide` → `setup-guide`).
     """
     path = field.metadata.get(CONFIG_PATH_METADATA_KEY)
     if path:
@@ -501,10 +505,10 @@ def _field_config_key(field: Field) -> str:
 def _type_hint_str(field: Field) -> str:
     """Render a dataclass field's type annotation as a string.
 
-    Under PEP 563 (``from __future__ import annotations``) the annotation is
+    Under PEP 563 (`from __future__ import annotations`) the annotation is
     already the source string. Without it, the annotation is a live object:
-    plain classes render as their name, typing generics as their ``str()``
-    form (``list[str]``).
+    plain classes render as their name, typing generics as their `str()`
+    form (`list[str]`).
     """
     hint = field.type
     if isinstance(hint, str):
@@ -518,9 +522,9 @@ def _collect_field_infos(
     prefix: str,
     infos: list[SchemaFieldInfo],
 ) -> None:
-    """Accumulate :class:`SchemaFieldInfo` records for ``cls``, recursively.
+    """Accumulate {class}`SchemaFieldInfo` records for `cls`, recursively.
 
-    Nested dataclass defaults recurse with their key appended to ``prefix``;
+    Nested dataclass defaults recurse with their key appended to `prefix`;
     only leaf fields produce records, matching how the options surface in the
     configuration file.
     """
@@ -549,18 +553,18 @@ def schema_field_infos(schema: type) -> list[SchemaFieldInfo]:
 
     Introspects the dataclass fields, their type annotations, defaults, and
     attribute docstrings. Nested dataclass fields expand recursively into
-    dotted keys (``test-suite.timeout``), honoring
-    :data:`click_extra.config.schema.CONFIG_PATH_METADATA_KEY` at every level.
+    dotted keys (`test-suite.timeout`), honoring
+    {data}`click_extra.config.schema.CONFIG_PATH_METADATA_KEY` at every level.
     Records are sorted by key, segment-wise, so a sub-table's options stay
     contiguous even when another table's name shares their prefix
-    (``workflow.sync`` sorts before ``workflow-pins.sync``).
+    (`workflow.sync` sorts before `workflow-pins.sync`).
 
-    Defaults are read off a pristine ``schema()`` instance, so every field
+    Defaults are read off a pristine `schema()` instance, so every field
     must carry a default: configuration schemas are default-complete by
-    construction, since :func:`make_schema_callable` instantiates them from
+    construction, since {func}`make_schema_callable` instantiates them from
     partial user data.
 
-    :raises TypeError: when ``schema`` is not a dataclass type.
+    :raises TypeError: when `schema` is not a dataclass type.
     """
     if not (isinstance(schema, type) and is_dataclass(schema)):
         raise TypeError(
@@ -575,17 +579,17 @@ def schema_field_infos(schema: type) -> list[SchemaFieldInfo]:
 def _safe_get_type_hints(cls: type) -> dict[str, Any]:
     """Resolve type hints for a class, returning empty dict on failure.
 
-    Wraps ``typing.get_type_hints`` to handle cases where annotations
+    Wraps `typing.get_type_hints` to handle cases where annotations
     reference types that are not importable in the current context (like
-    forward references to types only available under ``TYPE_CHECKING``).
+    forward references to types only available under `TYPE_CHECKING`).
 
     When the initial resolution fails (common for locally-defined classes
     whose annotations are stringified by ``from __future__ import
-    annotations``), a second attempt is made with a ``localns`` built from
-    ``default_factory`` values on the class's dataclass fields. This
+    annotations`), a second attempt is made with a `localns`` built from
+    `default_factory` values on the class's dataclass fields. This
     allows nested dataclass types like ``sub: SubConfig =
     field(default_factory=SubConfig)`` to be resolved even when
-    ``SubConfig`` is not in the module's global scope.
+    `SubConfig` is not in the module's global scope.
     """
     try:
         return get_type_hints(cls)
@@ -618,7 +622,7 @@ def _safe_get_type_hints(cls: type) -> dict[str, Any]:
 
 
 def _is_mapping_type(hint: object) -> bool:
-    """Check if a resolved type hint is a ``dict`` or ``Mapping``."""
+    """Check if a resolved type hint is a `dict` or `Mapping`."""
     if hint is None:
         return False
     origin = get_origin(hint)
@@ -626,13 +630,13 @@ def _is_mapping_type(hint: object) -> bool:
 
 
 def _is_extension_field(field: Field, hint: object) -> bool:
-    """Return ``True`` when a dataclass field is an *extension point*.
+    """Return `True` when a dataclass field is an *extension point*.
 
     A field qualifies when **either**:
 
     - it carries ``metadata={EXTENSION_METADATA_KEY: True}`` (explicit marker,
       useful when the Python type is not a mapping), or
-    - its resolved type hint is ``dict[str, X]`` / ``Mapping[str, X]`` (the user
+    - its resolved type hint is `dict[str, X]` / `Mapping[str, X]` (the user
       controls the keys, not the schema).
 
     Single source of truth for the per-field extension-point criteria. Both the
@@ -640,7 +644,7 @@ def _is_extension_field(field: Field, hint: object) -> bool:
     flatten-boundary set computed inside :py:func:`_from_dataclass` route through
     this helper so they cannot drift apart. The historical leak this closes:
     :py:func:`_from_dataclass` used to inspect only the type hint, so a
-    non-mapping field flagged with ``EXTENSION_METADATA_KEY`` was opaque at the
+    non-mapping field flagged with `EXTENSION_METADATA_KEY` was opaque at the
     outer strip yet transparent at the inner flatten, which then descended into a
     sub-tree the schema author had marked off-limits.
     """
@@ -659,13 +663,13 @@ def _collect_opaque_paths_from_schema(
     is therefore treated as opaque by the rest of the pipeline) when **any** of
     the following is true:
 
-    - The field's type hint is ``dict[str, X]`` or ``Mapping[str, X]`` (user
+    - The field's type hint is `dict[str, X]` or `Mapping[str, X]` (user
       controls the keys, not the schema).
     - The field carries ``metadata={EXTENSION_METADATA_KEY: True}`` (explicit
       marker, useful when the underlying Python type is something other than a
       mapping).
 
-    The helper name retains the historical ``opaque`` term because callers
+    The helper name retains the historical `opaque` term because callers
     inside :py:mod:`click_extra.config` use the result to bypass the
     normalize/flatten/strict machinery: that pipeline's vocabulary is "opaque
     paths." From a public API point of view those are the *extension paths*,
@@ -679,8 +683,8 @@ def _collect_opaque_paths_from_schema(
     with the app section name (or any other root) before stripping or
     extracting sub-trees from a raw config dict.
 
-    Returns an empty set when ``schema`` is ``None`` or not a dataclass, so
-    callers can pass any of the values accepted by ``config_schema``.
+    Returns an empty set when `schema` is `None` or not a dataclass, so
+    callers can pass any of the values accepted by `config_schema`.
     """
     if schema is None or not is_dataclass(schema):
         return frozenset()
@@ -704,7 +708,7 @@ def _opaque_paths(
     """Union the opaque paths from a schema and a set of extension validators.
 
     Merges the dotted paths :py:func:`_collect_opaque_paths_from_schema` infers
-    from ``schema`` with every validator's ``extension_path``. The result is the
+    from `schema` with every validator's `extension_path`. The result is the
     single set of sub-trees, relative to the app section, that click-extra's
     normalize/flatten/strict machinery must skip. An app can declare an extension
     point through either source (or both, the union is idempotent), so callers
@@ -722,7 +726,7 @@ def _strip_opaque_subtrees(
 ) -> dict[str, Any]:
     """Return a shallow-copied *conf* with every opaque sub-tree removed.
 
-    Each path in ``opaque_paths`` is a dotted location relative to ``conf``'s
+    Each path in `opaque_paths` is a dotted location relative to `conf`'s
     root (callers prepend the app section name when needed). Paths that don't
     resolve to anything are silently skipped: a schema may declare an opaque
     field that the user never sets, and that's not an error. The empty path
@@ -732,7 +736,7 @@ def _strip_opaque_subtrees(
     document before running click-extra's CLI-parameter strict check. The
     sub-trees themselves are not returned: when callers need both the stripped
     document and the extracted sub-trees, they can read them out of the
-    original ``conf`` with :py:func:`_extract_dotted` before calling this
+    original `conf` with :py:func:`_extract_dotted` before calling this
     helper.
     """
     result = dict(conf)
@@ -746,8 +750,8 @@ def _extract_dotted(conf: dict[str, Any], path: str) -> tuple[Any, bool]:
     """Extract a value at a dotted path from a nested dict.
 
     :param conf: Nested dict to search.
-    :param path: Dotted path (like ``"test-matrix.replace"``).
-    :return: ``(value, True)`` if found, ``(None, False)`` otherwise.
+    :param path: Dotted path (like `"test-matrix.replace"`).
+    :return: `(value, True)` if found, `(None, False)` otherwise.
     """
     current: Any = conf
     for part in path.split("."):
@@ -783,8 +787,8 @@ def _apply_nested_schema(
 ) -> Any:
     """Recursively apply a schema callable to a dict value if the hint is a dataclass.
 
-    Falls back to ``normalize_config_keys`` when the hint is not a dataclass
-    but normalization is requested. Returns ``value`` unchanged otherwise.
+    Falls back to `normalize_config_keys` when the hint is not a dataclass
+    but normalization is requested. Returns `value` unchanged otherwise.
     """
     if is_dataclass(hint):
         sub = make_schema_callable(
@@ -806,10 +810,10 @@ def _from_dataclass(
 ) -> Any:
     """Build a dataclass instance from a raw configuration dict.
 
-    Handles explicit ``config_path`` metadata, type-aware normalization and
+    Handles explicit `config_path` metadata, type-aware normalization and
     flattening, nested dataclass recursion, and strict validation (raising in
-    strict mode, logging a warning in ``warn_unknown`` mode). Called by
-    ``make_schema_callable`` for dataclass schemas.
+    strict mode, logging a warning in `warn_unknown` mode). Called by
+    `make_schema_callable` for dataclass schemas.
     """
     all_fields = dc_fields(schema)
     known = {f.name for f in all_fields}
@@ -831,7 +835,9 @@ def _from_dataclass(
 
         hint = hints.get(f.name)
         if isinstance(value, dict):
-            value = _apply_nested_schema(hint, value, strict, do_normalize, warn_unknown)
+            value = _apply_nested_schema(
+                hint, value, strict, do_normalize, warn_unknown
+            )
         result[f.name] = value
 
     # --- Phase 2: type-aware normalize + flatten. ---
@@ -903,20 +909,20 @@ def make_schema_callable(
 ) -> Callable[[dict[str, Any]], Any] | None:
     """Wrap a schema type into a callable that accepts a raw config dict.
 
-    - **Dataclass types** (detected via ``dataclasses.is_dataclass``) are
+    - **Dataclass types** (detected via `dataclasses.is_dataclass`) are
       auto-wrapped: keys are normalized (hyphens to underscores), nested
       dicts are flattened, and the result is filtered to known fields
       before instantiation. Three schema-aware features refine this
       process:
 
-      1. **Type-aware flattening.**  Fields typed as ``dict[str, X]``
-         are treated as opaque: ``flatten_config_keys`` stops at their
+      1. **Type-aware flattening.**  Fields typed as `dict[str, X]`
+         are treated as opaque: `flatten_config_keys` stops at their
          boundary so the dict value is kept intact.
 
       2. **Field metadata.**  Dataclass fields may carry
-         ``click_extra.config_path`` (a dotted TOML path like
-         ``"test-matrix.replace"``) and ``click_extra.normalize_keys``
-         (``False`` to skip key normalization on the extracted value).
+         `click_extra.config_path` (a dotted TOML path like
+         `"test-matrix.replace"`) and `click_extra.normalize_keys`
+         (`False` to skip key normalization on the extracted value).
          Fields with an explicit path are extracted from the raw config
          before normalization and flattening.
 
@@ -926,21 +932,21 @@ def make_schema_callable(
 
     - **Any other callable** is returned as-is. The caller is responsible
       for key normalization if needed.
-    - ``None`` returns ``None``.
+    - `None` returns `None`.
 
-    :param strict: If ``True``, raise ``ValueError`` when the config
+    :param strict: If `True`, raise `ValueError` when the config
         contains keys that do not match any dataclass field (after
         normalization and flattening).
-    :param warn_unknown: If ``True`` (and ``strict`` is ``False``), log a
+    :param warn_unknown: If `True` (and `strict` is `False`), log a
         warning naming those same unknown keys instead of silently dropping
         them. Meant for configs whose section is schema-only (no CLI
-        parameter is merged from it, i.e. ``included_params=()``), where any
+        parameter is merged from it, i.e. `included_params=()`), where any
         unrecognized key can only be a typo. Applies recursively to nested
         dataclasses.
-    :param normalize: If ``False``, skip ``normalize_config_keys`` on
+    :param normalize: If `False`, skip `normalize_config_keys` on
         the remaining config dict. Used internally when recursing into
         nested dataclasses whose parent opted out of normalization via
-        ``click_extra.normalize_keys = False``.
+        `click_extra.normalize_keys = False`.
     """
     if schema is None:
         return None
@@ -963,8 +969,8 @@ def _select_app_section(
 ) -> dict[str, Any]:
     """Extract the app's configuration section from a parsed config document.
 
-    Looks for ``conf[app_name]`` first. If it is missing or empty, tries each
-    name in ``fallback_sections`` in order, logging a deprecation warning on
+    Looks for `conf[app_name]` first. If it is missing or empty, tries each
+    name in `fallback_sections` in order, logging a deprecation warning on
     match. Works identically for all configuration formats.
 
     Free-function form of :py:meth:`~click_extra.config.option.ConfigOption._resolve_app_section`, shared
@@ -998,10 +1004,10 @@ def _collect_validator_errors(
     config_validators: Sequence[ConfigValidator],
 ) -> Iterator[ValidationError]:
     """Run every validator against its extension sub-tree, yielding re-anchored
-    :class:`ValidationError` instances.
+    {class}`ValidationError` instances.
 
     Each validator receives the value of the sub-tree at its declared
-    ``extension_path`` (relative to the app section). Missing and non-dict
+    `extension_path` (relative to the app section). Missing and non-dict
     sub-trees are skipped without invoking the validator: an absent or malformed
     extension table is a click-extra concern, not the validator's. Raised paths
     are re-anchored to the configuration file root so reporting is uniform across
@@ -1030,45 +1036,46 @@ class ValidationReport:
 
     Bundles everything a caller needs after validating a parsed configuration
     document: the typed schema instance, the extracted opaque sub-trees, the
-    template-filtered config ready for ``default_map``, and every error detected
+    template-filtered config ready for `default_map`, and every error detected
     across all validation stages.
 
-    .. note::
-        The report holds references to the parsed sub-trees, not copies, so
-        building it is cheap regardless of document size.
+    ```{note}
+    The report holds references to the parsed sub-trees, not copies, so
+    building it is cheap regardless of document size.
+    ```
     """
 
     schema_instance: Any | None
     """Typed object produced by the configured schema callable.
 
-    ``None`` when no schema is configured, or when the schema stage raised
+    `None` when no schema is configured, or when the schema stage raised
     (in which case the failure is recorded in :py:attr:`errors`)."""
 
     opaque_subtrees: dict[str, dict[str, Any]]
     """Extracted extension sub-trees, keyed by dotted path relative to the app
     section. Only paths actually present in the document appear here, so callers
-    can re-route them to per-path validators or stash them on ``ctx.meta``."""
+    can re-route them to per-path validators or stash them on `ctx.meta`."""
 
     errors: tuple[ValidationError, ...]
-    """Every :class:`ValidationError` detected, in stage order (unknown CLI-flag
+    """Every {class}`ValidationError` detected, in stage order (unknown CLI-flag
     keys first, then schema errors, then validator failures). Empty on success.
 
-    With ``collect_all=False`` this holds at most one error: the first failure
+    With `collect_all=False` this holds at most one error: the first failure
     short-circuits the remaining stages."""
 
     merged_conf: dict[str, Any] | None = None
-    """The CLI-flag-bound configuration merged onto ``params_template``: the
+    """The CLI-flag-bound configuration merged onto `params_template`: the
     payload :py:meth:`~click_extra.config.option.ConfigOption._install_default_map`
-    layers into the context's ``default_map``.
+    layers into the context's `default_map`.
 
-    ``None`` when ``params_template`` was ``None`` (no strict check) or the strict
+    `None` when `params_template` was `None` (no strict check) or the strict
     check raised. Read it only on a successful report: it is the same value
     :py:meth:`~click_extra.config.option.ConfigOption.merge_default_map` would
     recompute, so reusing it avoids a second normalize/strip/merge pass."""
 
     @property
     def ok(self) -> bool:
-        """``True`` when no error was detected."""
+        """`True` when no error was detected."""
         return not self.errors
 
 
@@ -1089,22 +1096,22 @@ def run_config_validation(
 
     This is the module-level entry point that unifies click-extra's three
     historical validation paths (CLI-parameter strict check, dataclass schema,
-    and app-registered :class:`ConfigValidator` hooks) behind a single function
+    and app-registered {class}`ConfigValidator` hooks) behind a single function
     yielding a single error type. It is deliberately *not* named
-    ``validate_config``: that name belongs to
+    `validate_config`: that name belongs to
     :py:meth:`~click_extra.config.option.ValidateConfigOption.validate_config`, the callback powering the
-    ``--validate-config`` flag.
+    `--validate-config` flag.
 
     Stages, in order:
 
     1. **Normalize.** Strip reserved keys and expand dotted keys.
     2. **Partition.** Split opaque sub-trees (schema extension fields plus every
-       registered validator's ``extension_path``) from the CLI-flag-bound
+       registered validator's `extension_path`) from the CLI-flag-bound
        content. Extracted sub-trees land in
        :py:attr:`ValidationReport.opaque_subtrees`.
-    3. **Strict-check** the CLI-flag-bound part against ``params_template``,
+    3. **Strict-check** the CLI-flag-bound part against `params_template`,
        keeping the merged result as :py:attr:`ValidationReport.merged_conf`
-       (skipped when ``params_template`` is ``None``).
+       (skipped when `params_template` is `None`).
     4. **Schema-build** the app section through the configured callable,
        producing :py:attr:`ValidationReport.schema_instance`.
     5. **Validate** every opaque sub-tree through its registered validator.
@@ -1113,31 +1120,31 @@ def run_config_validation(
     :param app_name: Name of the app's section (used to resolve the section and
         to root opaque paths and error paths at the document level).
     :param params_template: The CLI-parameter template the strict check runs
-        against. Pass ``None`` to skip the strict check entirely (for example,
+        against. Pass `None` to skip the strict check entirely (for example,
         for a schema-only validation).
     :param config_schema: Dataclass type or callable describing the typed
-        configuration, or ``None``.
+        configuration, or `None`.
     :param config_validators: Extension validators to run against opaque
         sub-trees.
-    :param fallback_sections: Legacy section names to try when ``app_name`` is
+    :param fallback_sections: Legacy section names to try when `app_name` is
         absent or empty.
     :param schema_strict: Reject keys the dataclass schema does not recognize.
     :param schema_warn_unknown: In lax mode, log a warning naming keys the
-        dataclass schema does not recognize (see ``warn_unknown`` in
-        :func:`make_schema_callable`). Ignored when ``schema_strict`` rejects
+        dataclass schema does not recognize (see `warn_unknown` in
+        {func}`make_schema_callable`). Ignored when `schema_strict` rejects
         them outright.
     :param strict: Reject keys the CLI-parameter template does not recognize.
-    :param collect_all: When ``True`` (default), run every stage and collect all
-        errors. When ``False``, the first error short-circuits the rest.
-    :return: A :class:`ValidationReport`. ``ValidationError`` is the single error
-        type recorded by every stage; ``ValueError`` / ``TypeError`` raised by
+    :param collect_all: When `True` (default), run every stage and collect all
+        errors. When `False`, the first error short-circuits the rest.
+    :return: A {class}`ValidationReport`. `ValidationError` is the single error
+        type recorded by every stage; `ValueError` / `TypeError` raised by
         the strict check or schema callable are wrapped into it.
     """
     errors: list[ValidationError] = []
     merged_conf: dict[str, Any] | None = None
 
     def record(error: ValidationError) -> bool:
-        """Append *error*; return ``True`` when the caller should stop early."""
+        """Append *error*; return `True` when the caller should stop early."""
         errors.append(error)
         return not collect_all
 

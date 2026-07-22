@@ -15,28 +15,29 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Bake build-time metadata into Python source files before compilation.
 
-Compiled binaries (Nuitka, PyInstaller) and ``git``-less runtimes (Docker
+Compiled binaries (Nuitka, PyInstaller) and `git`-less runtimes (Docker
 images, archive checkouts) cannot resolve version or Git metadata at runtime
-the way :class:`click_extra.version.VersionOption` does. The values must
+the way {class}`click_extra.version.VersionOption` does. The values must
 instead be written into the source *before* the build, by rewriting the
-relevant dunder assignments (``__version__``, ``__git_short_hash__``, ...) in
-place with :mod:`ast`.
+relevant dunder assignments (`__version__`, `__git_short_hash__`, ...) in
+place with {mod}`ast`.
 
-This mirrors `shadow-rs <https://github.com/baoyachi/shadow-rs>`_, which
-injects build-time constants (``BRANCH``, ``SHORT_COMMIT``, ``COMMIT_HASH``,
-``COMMIT_DATE``, ``TAG``, ...) into Rust binaries at compile time.
+This mirrors [shadow-rs](https://github.com/baoyachi/shadow-rs), which
+injects build-time constants (`BRANCH`, `SHORT_COMMIT`, `COMMIT_HASH`,
+`COMMIT_DATE`, `TAG`, ...) into Rust binaries at compile time.
 
-.. todo::
-    Add the following build-time template fields, mirroring the constants
-    shadow-rs injects:
+```{todo}
+Add the following build-time template fields, mirroring the constants
+shadow-rs injects:
 
-    - ``{build_time}``: when the distribution was built (shadow-rs exposes it
-      as ``BUILD_TIME``, with RFC 2822 and RFC 3339 variants ``BUILD_TIME_2822``
-      / ``BUILD_TIME_3339``).
-    - ``{build_os}`` / ``{build_target}`` / ``{build_target_arch}``: the OS,
-      target triple and architecture the build ran on. These describe the
-      *build* host, unlike ``{env_info}`` which reports the *runtime* Python,
-      OS and architecture, so both are worth keeping for cross-built binaries.
+- ``{build_time}``: when the distribution was built (shadow-rs exposes it
+  as `BUILD_TIME`, with RFC 2822 and RFC 3339 variants `BUILD_TIME_2822`
+  / `BUILD_TIME_3339`).
+- ``{build_os}`` / ``{build_target}`` / ``{build_target_arch}``: the OS,
+  target triple and architecture the build ran on. These describe the
+  *build* host, unlike ``{env_info}`` which reports the *runtime* Python,
+  OS and architecture, so both are worth keeping for cross-built binaries.
+```
 """
 
 from __future__ import annotations
@@ -57,9 +58,9 @@ logger = logging.getLogger(__name__)
 def _find_dunder_str(source: str, name: str) -> ast.Constant | None:
     """Find a top-level dunder string constant in parsed source.
 
-    Locates the first top-level ``name = "..."`` assignment and returns
-    the :class:`ast.Constant` node for the string value. Returns
-    ``None`` if no matching assignment is found.
+    Locates the first top-level `name = "..."` assignment and returns
+    the {class}`ast.Constant` node for the string value. Returns
+    `None` if no matching assignment is found.
     """
     tree = ast.parse(source)
     for node in ast.iter_child_nodes(tree):
@@ -104,22 +105,20 @@ def prebake_version(
     file_path: Path,
     local_version: str,
 ) -> str | None:
-    """Pre-bake a ``__version__`` string with a `PEP 440 local version
-    identifier
-    <https://peps.python.org/pep-0440/#local-version-identifiers>`_.
+    """Pre-bake a `__version__` string with a [PEP 440 local version identifier](https://peps.python.org/pep-0440/#local-version-identifiers).
 
-    Reads *file_path*, finds the ``__version__`` assignment via
-    :mod:`ast`, and, if the version contains ``.dev`` and does not
-    already contain ``+``, appends ``+<local_version>``.
+    Reads *file_path*, finds the `__version__` assignment via
+    {mod}`ast`, and, if the version contains `.dev` and does not
+    already contain `+`, appends `+<local_version>`.
 
     This is the compile-time complement to the runtime
-    :attr:`click_extra.version.VersionOption.version` property:
-    Nuitka/PyInstaller binaries cannot run ``git`` at runtime, so the hash
-    must be baked into ``__version__`` in the source file **before**
+    {attr}`click_extra.version.VersionOption.version` property:
+    Nuitka/PyInstaller binaries cannot run `git` at runtime, so the hash
+    must be baked into `__version__` in the source file **before**
     compilation.
 
-    Returns the new version string on success, or ``None`` if no change
-    was made (release version, already pre-baked, or no ``__version__``
+    Returns the new version string on success, or `None` if no change
+    was made (release version, already pre-baked, or no `__version__`
     found).
     """
     source = file_path.read_text(encoding="utf-8")
@@ -166,22 +165,22 @@ def prebake_dunder(
 ) -> str | None:
     """Replace an empty dunder variable's value in a Python source file.
 
-    Reads *file_path*, finds a top-level ``name = ""`` assignment via
-    :mod:`ast`, and, if the current value is an empty string, replaces
+    Reads *file_path*, finds a top-level `name = ""` assignment via
+    {mod}`ast`, and, if the current value is an empty string, replaces
     it with *value*.
 
-    Placeholders must use empty strings (``__field__ = ""``, not
-    ``None``). The AST matcher only recognizes string literals, and
+    Placeholders must use empty strings (`__field__ = ""`, not
+    `None`). The AST matcher only recognizes string literals, and
     the empty string acts as a falsy sentinel that stays
-    type-consistent with baked values (always ``str``).
+    type-consistent with baked values (always `str`).
 
-    This is the generic counterpart to :func:`prebake_version`: where
-    ``prebake_version`` appends a PEP 440 local identifier to
-    ``__version__``, this function does a full replacement of any dunder
+    This is the generic counterpart to {func}`prebake_version`: where
+    `prebake_version` appends a PEP 440 local identifier to
+    `__version__`, this function does a full replacement of any dunder
     variable that starts empty. Typical use case: injecting a release
-    commit SHA into ``__git_tag_sha__ = ""`` at build time.
+    commit SHA into `__git_tag_sha__ = ""` at build time.
 
-    Returns the new value on success, or ``None`` if no change was made
+    Returns the new value on success, or `None` if no change was made
     (variable not found, or already has a non-empty value).
     """
     source = file_path.read_text(encoding="utf-8")
@@ -214,14 +213,14 @@ def prebake_dunder(
 
 
 def discover_package_init_files() -> list[Path]:
-    """Discover ``__init__.py`` files from ``[project.scripts]``.
+    """Discover `__init__.py` files from `[project.scripts]`.
 
-    Reads the ``pyproject.toml`` in the current working directory,
-    extracts ``[project.scripts]`` entry points, and returns the
-    unique ``__init__.py`` paths for each top-level package.
+    Reads the `pyproject.toml` in the current working directory,
+    extracts `[project.scripts]` entry points, and returns the
+    unique `__init__.py` paths for each top-level package.
 
     Only returns paths that exist on disk. Returns an empty list if
-    ``pyproject.toml`` is missing or has no ``[project.scripts]``.
+    `pyproject.toml` is missing or has no `[project.scripts]`.
     """
     pyproject_path = Path("pyproject.toml")
     if not pyproject_path.exists():

@@ -15,32 +15,33 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Help-screen color themes for Click Extra.
 
-Holds the :class:`HelpTheme` dataclass (pure data, no factory methods),
-the :data:`nocolor_theme` constant, the process-wide fallback accessed via
-:func:`get_default_theme` / :func:`set_default_theme`, the named-theme
-:data:`theme_registry` plus :func:`register_theme` helper, and the
-:class:`ThemeOption` that exposes ``--theme`` on every Click Extra command.
+Holds the {class}`HelpTheme` dataclass (pure data, no factory methods),
+the {data}`nocolor_theme` constant, the process-wide fallback accessed via
+{func}`get_default_theme` / {func}`set_default_theme`, the named-theme
+{data}`theme_registry` plus {func}`register_theme` helper, and the
+{class}`ThemeOption` that exposes `--theme` on every Click Extra command.
 
-The built-in themes (``dark``, ``dracula``, ``light``, ``manpage``,
-``monokai``, ``nord``, ``solarized_dark``) live in the package data file
-``click_extra/themes.toml`` and are loaded at module import time via
-:meth:`HelpTheme.from_dict`. ``manpage`` is a colorless theme that
+The built-in themes (`dark`, `dracula`, `light`, `manpage`,
+`monokai`, `nord`, `solarized_dark`) live in the package data file
+`click_extra/themes.toml` and are loaded at module import time via
+{meth}`HelpTheme.from_dict`. `manpage` is a colorless theme that
 shadows man-pages(7) typography (bold literals, italic replaceable); the
 others apply that same bold/italic split on top of their color palettes.
 Adding a new built-in theme is a one-file edit in that TOML file: no Python
 needed. The same TOML schema is used for user-defined themes loaded from
-configuration: see :doc:`/theme` for the user guide.
+configuration: see {doc}`/theme` for the user guide.
 
-.. note::
-    The active theme for a CLI invocation is stored on the Click context's
-    ``meta`` dict under :data:`click_extra.context.THEME` by
-    :class:`ThemeOption`. Use :func:`get_current_theme` to retrieve it: that
-    helper consults the active Click context first and falls back to
-    :func:`get_default_theme` when no context is in flight (like at import
-    time, in ``wrap`` patching, or in bare REPL usage). Per-invocation
-    context storage means concurrent invocations of the same CLI in one
-    process (Sphinx builds, test runners, REPLs) do not leak ``--theme``
-    choices into each other.
+```{note}
+The active theme for a CLI invocation is stored on the Click context's
+`meta` dict under {data}`click_extra.context.THEME` by
+{class}`ThemeOption`. Use {func}`get_current_theme` to retrieve it: that
+helper consults the active Click context first and falls back to
+{func}`get_default_theme` when no context is in flight (like at import
+time, in `wrap` patching, or in bare REPL usage). Per-invocation
+context storage means concurrent invocations of the same CLI in one
+process (Sphinx builds, test runners, REPLs) do not leak `--theme`
+choices into each other.
+```
 """
 
 from __future__ import annotations
@@ -77,60 +78,60 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class HelpTheme(cloup.HelpTheme):
-    """Extends ``cloup.HelpTheme`` with slots for log levels and the
+    """Extends `cloup.HelpTheme` with slots for log levels and the
     structural elements Click Extra highlights in help screens.
 
     Each slot below documents *what* it colors. The built-in themes shipped
-    in :data:`~click_extra.theme.BUILTIN_THEMES` provide the visual styling
+    in {data}`~click_extra.theme.BUILTIN_THEMES` provide the visual styling
     by setting the relevant slots; user-defined themes can be authored as
-    plain mappings and loaded via :meth:`from_dict`.
+    plain mappings and loaded via {meth}`from_dict`.
     """
 
     # --- Log-level slots -----------------------------------------------------
-    # Applied by :class:`~click_extra.logging.Formatter` to ``levelname``
+    # Applied by {class}`~click_extra.logging.Formatter` to `levelname`
     # before each record is emitted, so the visible level in the formatted
     # message picks up the matching style.
 
     critical: IStyle = identity
-    """Style applied to the ``CRITICAL`` level name in log records.
+    """Style applied to the `CRITICAL` level name in log records.
 
-    Example: ``CRITICAL: Database connection lost.``
+    Example: `CRITICAL: Database connection lost.`
     """
 
     error: IStyle = identity
-    """Style applied to the ``ERROR`` level name in log records.
+    """Style applied to the `ERROR` level name in log records.
 
-    Example: ``ERROR: Configuration file not found.``
+    Example: `ERROR: Configuration file not found.`
     """
 
     warning: IStyle = identity
-    """Style applied to the ``WARNING`` level name in log records.
+    """Style applied to the `WARNING` level name in log records.
 
-    Example: ``WARNING: Requested 16 jobs exceeds available CPU cores (8).``
+    Example: `WARNING: Requested 16 jobs exceeds available CPU cores (8).`
     """
 
     info: IStyle = identity
-    """Style applied to the ``INFO`` level name in log records.
+    """Style applied to the `INFO` level name in log records.
 
-    Usually left at :func:`identity <cloup._util.identity>`: ``INFO`` is the
+    Usually left at {func}`identity <cloup._util.identity>`: `INFO` is the
     default verbosity and shouldn't stand out from regular output.
     """
 
     debug: IStyle = identity
-    """Style applied to the ``DEBUG`` level name in log records.
+    """Style applied to the `DEBUG` level name in log records.
 
-    Example: ``DEBUG: Resolved /etc/myapp/config.toml.``
+    Example: `DEBUG: Resolved /etc/myapp/config.toml.`
     """
 
     # --- Help-screen structural slots ----------------------------------------
-    # Applied by :class:`~click_extra.highlight.HelpFormatter` while
+    # Applied by {class}`~click_extra.highlight.HelpFormatter` while
     # rendering each command's help output. The post-wrap formatter pass
     # walks the rendered help text and styles the matching tokens.
 
     option: IStyle = identity
-    """Style applied to option names (``--config``, ``-v``, ``--color/--no-color``)
+    """Style applied to option names (`--config`, `-v`, `--color/--no-color`)
     wherever they appear: synopsis column, free-form descriptions, and
-    docstrings (when :attr:`cross_ref_highlight` is enabled).
+    docstrings (when {attr}`cross_ref_highlight` is enabled).
     """
 
     subcommand: IStyle = identity
@@ -139,74 +140,74 @@ class HelpTheme(cloup.HelpTheme):
     """
 
     choice: IStyle = identity
-    """Style applied to each individual value inside a :class:`click.Choice`
-    metavar (like ``json``, ``csv``, ``xml`` within ``[json|csv|xml]``) and
+    """Style applied to each individual value inside a {class}`click.Choice`
+    metavar (like `json`, `csv`, `xml` within `[json|csv|xml]`) and
     to those values referenced in option descriptions.
     """
 
     metavar: IStyle = identity
-    """Style applied to type metavars (``INTEGER``, ``TEXT``, ``PATH``,
-    ``FILE``, ...) that follow an option name in the synopsis column.
+    """Style applied to type metavars (`INTEGER`, `TEXT`, `PATH`,
+    `FILE`, ...) that follow an option name in the synopsis column.
     """
 
     bracket: IStyle = identity
     """Style applied to the literal bracket characters and label prefixes of
-    trailing fields: ``[``, ``]``, ``default:``, ``env var:``, and the field
+    trailing fields: `[`, `]`, `default:`, `env var:`, and the field
     separators between them. Also acts as the **fallback** for the four
-    inner bracket-field slots (:attr:`envvar`, :attr:`default`,
-    :attr:`required`, :attr:`range_label`) whenever any of them is left at
-    :func:`identity <cloup._util.identity>`. A theme that only sets
-    ``bracket`` therefore renders the whole bracket field with a single
+    inner bracket-field slots ({attr}`envvar`, {attr}`default`,
+    {attr}`required`, {attr}`range_label`) whenever any of them is left at
+    {func}`identity <cloup._util.identity>`. A theme that only sets
+    `bracket` therefore renders the whole bracket field with a single
     uniform style; richer themes layer specific colors on top by setting
     the inner slots.
     """
 
     envvar: IStyle = identity
-    """Style applied to environment-variable values inside ``[env var: ...]``
+    """Style applied to environment-variable values inside `[env var: ...]`
     bracket fields, and to envvar names mentioned in option descriptions.
-    Falls back to :attr:`bracket` when left at
-    :func:`identity <cloup._util.identity>`, so a theme that only styles
-    ``bracket`` still gets a consistent rendering inside bracket fields.
+    Falls back to {attr}`bracket` when left at
+    {func}`identity <cloup._util.identity>`, so a theme that only styles
+    `bracket` still gets a consistent rendering inside bracket fields.
     """
 
     default: IStyle = identity
-    """Style applied to the default-value content inside ``[default: ...]``
-    bracket fields. Falls back to :attr:`bracket` when left at
-    :func:`identity <cloup._util.identity>`.
+    """Style applied to the default-value content inside `[default: ...]`
+    bracket fields. Falls back to {attr}`bracket` when left at
+    {func}`identity <cloup._util.identity>`.
     """
 
     range_label: IStyle = identity
-    """Style applied to range expressions (``0<=x<=9``, ``x>=1024``,
-    ``0<=x<100``) that appear inside bracket fields for ``IntRange`` and
-    ``FloatRange`` options. Falls back to :attr:`bracket` when left at
-    :func:`identity <cloup._util.identity>`.
+    """Style applied to range expressions (`0<=x<=9`, `x>=1024`,
+    `0<=x<100`) that appear inside bracket fields for `IntRange` and
+    `FloatRange` options. Falls back to {attr}`bracket` when left at
+    {func}`identity <cloup._util.identity>`.
     """
 
     required: IStyle = identity
-    """Style applied to the ``required`` label inside bracket fields on
-    mandatory options. Falls back to :attr:`bracket` when left at
-    :func:`identity <cloup._util.identity>`.
+    """Style applied to the `required` label inside bracket fields on
+    mandatory options. Falls back to {attr}`bracket` when left at
+    {func}`identity <cloup._util.identity>`.
     """
 
     argument: IStyle = identity
     """Style applied to argument metavars (positional parameter names like
-    ``MY_ARG``, ``SCRIPT``, ``[FILENAMES]...``) in the synopsis column and
+    `MY_ARG`, `SCRIPT`, `[FILENAMES]...`) in the synopsis column and
     when referenced in prose.
     """
 
     deprecated: IStyle = identity
-    """Style applied to ``(DEPRECATED)`` / ``(Deprecated: reason)`` markers
+    """Style applied to `(DEPRECATED)` / `(Deprecated: reason)` markers
     appended to options and commands.
     """
 
     search: IStyle = identity
-    """Style applied to substring matches in :command:`<cli> help --search`
+    """Style applied to substring matches in {command}`<cli> help --search`
     output, so users can spot where their query matched.
     """
 
     success: IStyle = identity
-    """Style applied to success glyphs in pre-rendered UI elements (the ``✓``
-    in :data:`~click_extra.theme.OK_GLYPH`) and any text passed through this
+    """Style applied to success glyphs in pre-rendered UI elements (the `✓`
+    in {data}`~click_extra.theme.OK_GLYPH`) and any text passed through this
     slot by downstream code.
     """
 
@@ -214,22 +215,22 @@ class HelpTheme(cloup.HelpTheme):
     """Highlight options, choices, arguments, metavars and CLI names in
     free-form text (descriptions, docstrings).
 
-    When ``False``, only structural elements are styled: bracket fields
-    (``[default: ...]``, ``[env var: ...]``, ranges, ``[required]``),
+    When `False`, only structural elements are styled: bracket fields
+    (`[default: ...]`, `[env var: ...]`, ranges, `[required]`),
     deprecated messages, and subcommand names in definition lists.
     """
 
     subheading: IStyle = identity
     """Style for sub-section headings inside log output or inline help.
 
-    Distinct from ``heading`` (which styles the top-level help-screen
-    section titles): :attr:`subheading` is intended for downstream code that
+    Distinct from `heading` (which styles the top-level help-screen
+    section titles): {attr}`subheading` is intended for downstream code that
     wants a second styling level for its own narrative output.
 
-    .. seealso::
-        Used by `mail-deduplicate
-        <https://github.com/kdeldycke/mail-deduplicate/blob/main/mail_deduplicate/deduplicate.py>`_
-        to style ``◼ N mails sharing hash …`` log lines.
+    ```{seealso}
+    Used by [mail-deduplicate](https://github.com/kdeldycke/mail-deduplicate/blob/main/mail_deduplicate/deduplicate.py)
+    to style `◼ N mails sharing hash …` log lines.
+    ```
     """
 
     def with_(  # type: ignore[override]
@@ -261,13 +262,13 @@ class HelpTheme(cloup.HelpTheme):
 
     @staticmethod
     def _encode_slot(field: Any, value: Any) -> Any:
-        """Encode a slot value for :meth:`to_dict`.
+        """Encode a slot value for {meth}`to_dict`.
 
-        :class:`~click_extra.styling.Style` instances become their
-        :meth:`Style.to_dict <click_extra.styling.Style.to_dict>` mapping;
-        ``cross_ref_highlight``'s ``bool`` passes through as-is. Anything
-        else (an opaque ``IStyle`` callable that isn't a :class:`Style`)
-        raises :class:`TypeError` since those cannot be serialized.
+        {class}`~click_extra.styling.Style` instances become their
+        {meth}`Style.to_dict <click_extra.styling.Style.to_dict>` mapping;
+        `cross_ref_highlight`'s `bool` passes through as-is. Anything
+        else (an opaque `IStyle` callable that isn't a {class}`Style`)
+        raises {class}`TypeError` since those cannot be serialized.
         """
         if isinstance(value, Style):
             return value.to_dict()
@@ -280,12 +281,12 @@ class HelpTheme(cloup.HelpTheme):
 
     @staticmethod
     def _decode_slot(field: Any, raw: Any) -> Any:
-        """Decode a slot value for :meth:`from_dict`.
+        """Decode a slot value for {meth}`from_dict`.
 
-        Mappings become :class:`~click_extra.styling.Style` instances via
-        :meth:`Style.from_dict <click_extra.styling.Style.from_dict>`;
-        ``cross_ref_highlight`` is coerced to ``bool``; anything else
-        raises :class:`TypeError`.
+        Mappings become {class}`~click_extra.styling.Style` instances via
+        {meth}`Style.from_dict <click_extra.styling.Style.from_dict>`;
+        `cross_ref_highlight` is coerced to `bool`; anything else
+        raises {class}`TypeError`.
         """
         if field.name == "cross_ref_highlight":
             return bool(raw)
@@ -299,40 +300,40 @@ class HelpTheme(cloup.HelpTheme):
     def to_dict(self) -> dict[str, Any]:
         """Serialize the theme to a plain dict suitable for TOML/JSON/YAML.
 
-        Each :class:`~click_extra.styling.Style` slot is emitted via
-        :meth:`Style.to_dict <click_extra.styling.Style.to_dict>`. Slots left
-        at their default (``identity`` or
-        ``None``) are omitted, so the output only carries what the theme
-        actually overrides. Pair with :meth:`from_dict` to round-trip.
+        Each {class}`~click_extra.styling.Style` slot is emitted via
+        {meth}`Style.to_dict <click_extra.styling.Style.to_dict>`. Slots left
+        at their default (`identity` or
+        `None`) are omitted, so the output only carries what the theme
+        actually overrides. Pair with {meth}`from_dict` to round-trip.
 
-        :raises TypeError: when a slot holds an opaque ``IStyle`` callable
-            that is not a :class:`~click_extra.styling.Style` (those cannot be
+        :raises TypeError: when a slot holds an opaque `IStyle` callable
+            that is not a {class}`~click_extra.styling.Style` (those cannot be
             serialized).
         """
         return fields_to_dict(self, encode=self._encode_slot)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> HelpTheme:
-        """Build a theme from the plain dict produced by :meth:`to_dict`.
+        """Build a theme from the plain dict produced by {meth}`to_dict`.
 
         Each value is interpreted by field type: a mapping becomes a
-        :class:`~click_extra.styling.Style` via
-        :meth:`Style.from_dict <click_extra.styling.Style.from_dict>`, while
-        ``cross_ref_highlight`` is read as a plain ``bool``. Unknown keys
-        raise :class:`TypeError` so typos surface immediately.
+        {class}`~click_extra.styling.Style` via
+        {meth}`Style.from_dict <click_extra.styling.Style.from_dict>`, while
+        `cross_ref_highlight` is read as a plain `bool`. Unknown keys
+        raise {class}`TypeError` so typos surface immediately.
         """
         return cls(**dict_to_fields(cls, data, decode=cls._decode_slot))
 
     def cascade(self, base: HelpTheme) -> HelpTheme:
         """Layer this theme's set slots on top of *base*.
 
-        Mirrors :meth:`Style.cascade <click_extra.styling.Style.cascade>` at
+        Mirrors {meth}`Style.cascade <click_extra.styling.Style.cascade>` at
         the slot level: this theme's non-default slots win, *base* fills the
         rest. Useful for layering a sparse override (typically parsed from a
-        config file's ``[tool.<cli>.themes.<name>]`` table) on top of a
+        config file's `[tool.<cli>.themes.<name>]` table) on top of a
         full built-in palette.
 
-        :raises TypeError: when *base* is not a :class:`HelpTheme`.
+        :raises TypeError: when *base* is not a {class}`HelpTheme`.
         """
         if not isinstance(base, HelpTheme):
             raise TypeError(
@@ -350,42 +351,43 @@ LITERAL_STYLES: frozenset[str] = frozenset({
     "option",
     "choice",
 })
-r"""Names of the :class:`HelpTheme` slots that color *literal* tokens:
+r"""Names of the {class}`HelpTheme` slots that color *literal* tokens:
 text the user types verbatim on the command line.
 
 Covers the command and subcommand names, their aliases, option flags
-(``--config``, ``-v``), and the concrete values of a :class:`click.Choice`
-(``json`` in ``[json|csv|xml]``).
+(`--config`, `-v`), and the concrete values of a {class}`click.Choice`
+(`json` in `[json|csv|xml]`).
 
 These map to the **bold** font of the man-pages(7) typographic convention,
-which sets text "typed literally" in bold (``\fB`` in roff) "even in the
-SYNOPSIS section". Paired with :data:`REPLACEABLE_STYLES`: the two are
+which sets text "typed literally" in bold (`\fB` in roff) "even in the
+SYNOPSIS section". Paired with {data}`REPLACEABLE_STYLES`: the two are
 disjoint, and every remaining slot is an annotation, prose, or chrome style
 that the literal/replaceable dichotomy does not classify (log levels,
-``[default: ...]`` / ``[env var: ...]`` fields, headings, ...).
+`[default: ...]` / `[env var: ...]` fields, headings, ...).
 
-.. note::
-    Every built-in theme applies this classification: literal slots render
-    bold and :data:`REPLACEABLE_STYLES` italic, mirroring a man page even in
-    the color palettes. ``tests/test_theme.py`` enforces the invariant, and
-    the ``manpage`` built-in theme is its pure-monochrome embodiment
-    (bold/italic, no color). A man-page generator can reuse the same two sets
-    to map each styled token to ``\fB`` / ``\fI``. See :doc:`/benchmark` for
-    the man-page generation gap.
+```{note}
+Every built-in theme applies this classification: literal slots render
+bold and {data}`REPLACEABLE_STYLES` italic, mirroring a man page even in
+the color palettes. `tests/test_theme.py` enforces the invariant, and
+the `manpage` built-in theme is its pure-monochrome embodiment
+(bold/italic, no color). A man-page generator can reuse the same two sets
+to map each styled token to `\fB` / `\fI`. See {doc}`/benchmark` for
+the man-page generation gap.
+```
 """
 
 REPLACEABLE_STYLES: frozenset[str] = frozenset({
     "metavar",
     "argument",
 })
-r"""Names of the :class:`HelpTheme` slots that color *replaceable* tokens:
+r"""Names of the {class}`HelpTheme` slots that color *replaceable* tokens:
 placeholders the user substitutes with a real value.
 
-Covers type metavars on options (``INTEGER``, ``CONFIG_PATH``) and positional
-argument metavars (``SOURCE``, ``[FILENAMES]...``).
+Covers type metavars on options (`INTEGER`, `CONFIG_PATH`) and positional
+argument metavars (`SOURCE`, `[FILENAMES]...`).
 
 These map to the *italic* font of the man-pages(7) convention, which sets
-replaceable arguments in italic (``\fI`` in roff). See :data:`LITERAL_STYLES`
+replaceable arguments in italic (`\fI` in roff). See {data}`LITERAL_STYLES`
 for the bold counterpart and the full rationale.
 """
 
@@ -393,29 +395,29 @@ for the bold counterpart and the full rationale.
 nocolor_theme: HelpTheme = HelpTheme()
 """Color theme for Click Extra to force no colors.
 
-All style slots default to ``identity``, so styling
+All style slots default to `identity`, so styling
 calls return the raw text unchanged.
 """
 
 
 _default_theme: HelpTheme = nocolor_theme
-"""Process-wide fallback theme. See :func:`get_default_theme`.
+"""Process-wide fallback theme. See {func}`get_default_theme`.
 
-Initialized to :data:`nocolor_theme` here, then reassigned to the ``dark``
-built-in theme at the bottom of this module once :file:`themes.toml` is loaded.
+Initialized to {data}`nocolor_theme` here, then reassigned to the `dark`
+built-in theme at the bottom of this module once {file}`themes.toml` is loaded.
 """
 
 
 def get_default_theme() -> HelpTheme:
     """Return the process-wide fallback theme.
 
-    Read by :func:`get_current_theme` when no Click context is active or
+    Read by {func}`get_current_theme` when no Click context is active or
     when the active context has no theme set. The default is the built-in
-    ``dark`` palette; :func:`~click_extra.cli_wrapper.patch_click` overrides it
-    via :func:`set_default_theme` for the duration of a patched session.
+    `dark` palette; {func}`~click_extra.cli_wrapper.patch_click` overrides it
+    via {func}`set_default_theme` for the duration of a patched session.
 
     Resolved through a function rather than a module attribute so callers
-    always observe the current value: capturing ``default_theme`` as a
+    always observe the current value: capturing `default_theme` as a
     default function parameter (the previous pattern) would freeze whatever
     was set at import time.
     """
@@ -425,10 +427,10 @@ def get_default_theme() -> HelpTheme:
 def set_default_theme(theme: HelpTheme) -> None:
     """Override the process-wide fallback theme.
 
-    :class:`ThemeOption` writes its picked theme to ``ctx.meta`` rather
+    {class}`ThemeOption` writes its picked theme to `ctx.meta` rather
     than calling this helper, so per-invocation choices do not leak across
     invocations sharing the same process. Use this only for genuinely
-    process-wide overrides: :func:`~click_extra.cli_wrapper.patch_click` is the
+    process-wide overrides: {func}`~click_extra.cli_wrapper.patch_click` is the
     canonical caller.
     """
     global _default_theme
@@ -441,14 +443,14 @@ def get_current_theme() -> HelpTheme:
     Resolution order:
 
     1. The theme stored on the active Click context under
-       :data:`click_extra.context.THEME` (set by :class:`ThemeOption`
-       from ``--theme``).
-    2. The process-wide fallback returned by :func:`get_default_theme`
-       (the dark default, or whatever :func:`~click_extra.cli_wrapper.patch_click`
+       {data}`click_extra.context.THEME` (set by {class}`ThemeOption`
+       from `--theme`).
+    2. The process-wide fallback returned by {func}`get_default_theme`
+       (the dark default, or whatever {func}`~click_extra.cli_wrapper.patch_click`
        set at process start).
 
     Falling back through the active context (instead of reading a module
-    attribute) keeps ``--theme`` scoped to the invocation that received it,
+    attribute) keeps `--theme` scoped to the invocation that received it,
     so a second invocation in the same process starts from the default
     again.
     """
@@ -461,16 +463,16 @@ def get_current_theme() -> HelpTheme:
 
 
 theme_registry: dict[str, HelpTheme] = {}
-"""Process-wide registry of named themes used by :class:`ThemeOption`.
+"""Process-wide registry of named themes used by {class}`ThemeOption`.
 
-Each entry maps a theme name to its :class:`HelpTheme` instance.
+Each entry maps a theme name to its {class}`HelpTheme` instance.
 Built-in themes are seeded here at module load time from
-:data:`BUILTIN_THEMES` (loaded from ``click_extra/themes.toml``).
+{data}`BUILTIN_THEMES` (loaded from `click_extra/themes.toml`).
 
-Use :func:`register_theme` to add your own at import time, *or* declare
-them in your CLI's config file under ``[tool.<cli>.themes.<name>]``: the
-latter goes through :class:`ConfigOption <click_extra.config.option.ConfigOption>`,
-lands on ``ctx.meta`` (see :data:`click_extra.context.THEME_OVERRIDES`),
+Use {func}`register_theme` to add your own at import time, *or* declare
+them in your CLI's config file under `[tool.<cli>.themes.<name>]`: the
+latter goes through {class}`ConfigOption <click_extra.config.option.ConfigOption>`,
+lands on `ctx.meta` (see {data}`click_extra.context.THEME_OVERRIDES`),
 and never mutates this module-level dict, so per-invocation choices don't
 leak between sibling invocations sharing the same process.
 """
@@ -478,10 +480,10 @@ leak between sibling invocations sharing the same process.
 
 def register_theme(name: str, theme: HelpTheme) -> None:
     """Register a named theme in the module-level
-    :data:`~click_extra.theme.theme_registry`.
+    {data}`~click_extra.theme.theme_registry`.
 
-    :param name: Lowercase identifier used as the ``--theme`` choice value.
-    :param theme: A :class:`HelpTheme` instance.
+    :param name: Lowercase identifier used as the `--theme` choice value.
+    :param theme: A {class}`HelpTheme` instance.
     """
     theme_registry[name] = theme
 
@@ -491,14 +493,14 @@ def get_theme_registry(
 ) -> dict[str, HelpTheme]:
     """Return the theme registry visible to *ctx*.
 
-    Merges the module-level :data:`theme_registry` with any per-invocation
-    overrides stored on ``ctx.meta`` under
-    :data:`click_extra.context.THEME_OVERRIDES`. Per-invocation entries win
+    Merges the module-level {data}`theme_registry` with any per-invocation
+    overrides stored on `ctx.meta` under
+    {data}`click_extra.context.THEME_OVERRIDES`. Per-invocation entries win
     on key collisions, which is what lets a config file's
-    ``[tool.<cli>.themes.dark]`` table override the built-in ``dark`` palette
+    `[tool.<cli>.themes.dark]` table override the built-in `dark` palette
     for one invocation without touching the global registry.
 
-    When *ctx* is ``None`` or has no overrides, returns a copy of the
+    When *ctx* is `None` or has no overrides, returns a copy of the
     module-level registry.
     """
     merged: dict[str, HelpTheme] = dict(theme_registry)
@@ -510,15 +512,15 @@ def get_theme_registry(
 
 
 AUTO_THEME: str = "auto"
-"""Reserved ``--theme`` value resolving the palette from the terminal background.
+"""Reserved `--theme` value resolving the palette from the terminal background.
 
-Unlike the named built-in palettes, ``auto`` is not a registry entry: it is a
-directive handled by :class:`ThemeOption`, which calls :func:`resolve_auto_theme`
-to pick ``dark`` or ``light`` from the detected background, mirroring
-``--color=auto``. Kept out of the ``--help`` metavar and shell completion (which
+Unlike the named built-in palettes, `auto` is not a registry entry: it is a
+directive handled by {class}`ThemeOption`, which calls {func}`resolve_auto_theme`
+to pick `dark` or `light` from the detected background, mirroring
+`--color=auto`. Kept out of the `--help` metavar and shell completion (which
 only advertise registered palettes), so a CLI that does not opt into auto
 detection keeps an unchanged help screen, yet accepted by
-:meth:`ThemeChoice.convert` so ``--theme=auto`` works on every Click Extra CLI.
+{meth}`ThemeChoice.convert` so `--theme=auto` works on every Click Extra CLI.
 """
 
 
@@ -529,21 +531,21 @@ def resolve_auto_theme(
     """Pick a built-in palette from the detected terminal background.
 
     Resolves the background mode via
-    :func:`~click_extra.color.resolve_background` and maps ``"dark"`` /
-    ``"light"`` to the same-named theme in the registry visible to *ctx*
-    (built-ins plus any ``[tool.<cli>.themes.<name>]`` config overlays). An
-    undetected background falls back to ``"dark"``, preserving Click Extra's
+    {func}`~click_extra.color.resolve_background` and maps `"dark"` /
+    `"light"` to the same-named theme in the registry visible to *ctx*
+    (built-ins plus any `[tool.<cli>.themes.<name>]` config overlays). An
+    undetected background falls back to `"dark"`, preserving Click Extra's
     default.
 
     :param ctx: context whose theme registry is consulted.
     :param query_background: when true, allow the live OSC 11 terminal query
-        (:func:`~click_extra.color.query_osc_background`) on top of the
+        ({func}`~click_extra.color.query_osc_background`) on top of the
         environment-variable signals. Off by default because the query reads
         stdin.
-    :return: the chosen :class:`HelpTheme`, or ``None`` when neither the
-        detected palette nor the ``dark`` fallback is registered (the
-        ``themes.toml`` data file was dropped). A ``None`` leaves ``ctx.meta``
-        untouched so :func:`get_current_theme` keeps the no-color default.
+    :return: the chosen {class}`HelpTheme`, or `None` when neither the
+        detected palette nor the `dark` fallback is registered (the
+        `themes.toml` data file was dropped). A `None` leaves `ctx.meta`
+        untouched so {func}`get_current_theme` keeps the no-color default.
     """
     registry = get_theme_registry(ctx)
     mode = color.resolve_background(allow_query=query_background)
@@ -556,11 +558,11 @@ def resolve_auto_theme(
 def themes_from_config(
     table: dict[str, Any],
 ) -> dict[str, HelpTheme]:
-    """Build a ``{name: HelpTheme}`` mapping from a ``[tool.<cli>.themes]`` sub-tree.
+    """Build a ``{name: HelpTheme}`` mapping from a `[tool.<cli>.themes]` sub-tree.
 
-    For each entry, build a :class:`HelpTheme` via :meth:`HelpTheme.from_dict`. If
-    *name* matches an existing key in :data:`theme_registry`, the new theme
-    is layered on top via :meth:`HelpTheme.cascade` so partial overrides
+    For each entry, build a {class}`HelpTheme` via {meth}`HelpTheme.from_dict`. If
+    *name* matches an existing key in {data}`theme_registry`, the new theme
+    is layered on top via {meth}`HelpTheme.cascade` so partial overrides
     (like just one slot) inherit the rest from the built-in palette.
     Stand-alone names produce theme instances with the unset slots left at
     their defaults.
@@ -576,13 +578,13 @@ def themes_from_config(
 
 
 def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
-    """Validate a ``[tool.<cli>.themes]`` sub-tree.
+    """Validate a `[tool.<cli>.themes]` sub-tree.
 
-    Registered as a built-in :class:`ConfigValidator <click_extra.config.schema.ConfigValidator>`
-    by :class:`ConfigOption <click_extra.config.option.ConfigOption>` so malformed
-    theme tables surface as :class:`~click_extra.config.schema.ValidationError` with
-    a rooted path (``my-cli.themes.<name>``) rather than a deep
-    :class:`TypeError` from :meth:`HelpTheme.from_dict`.
+    Registered as a built-in {class}`ConfigValidator <click_extra.config.schema.ConfigValidator>`
+    by {class}`ConfigOption <click_extra.config.option.ConfigOption>` so malformed
+    theme tables surface as {class}`~click_extra.config.schema.ValidationError` with
+    a rooted path (`my-cli.themes.<name>`) rather than a deep
+    {class}`TypeError` from {meth}`HelpTheme.from_dict`.
     """
     # Lazy-imported to avoid a load-time cycle with the config package.
     from .config import ValidationError
@@ -607,28 +609,28 @@ def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
 
 
 class ThemeChoice(click.ParamType):
-    """A :class:`click.ParamType` whose ``choices`` track the live theme registry.
+    """A {class}`click.ParamType` whose `choices` track the live theme registry.
 
-    Implements the ``click.Choice``-shaped duck interface (``choices``,
-    ``case_sensitive``, ``normalize_choice``) so :mod:`click_extra.highlight`
+    Implements the `click.Choice`-shaped duck interface (`choices`,
+    `case_sensitive`, `normalize_choice`) so {mod}`click_extra.highlight`
     can collect theme names for per-token highlighting through the same
-    code path it uses for Click's own ``Choice``. The ``choices`` attribute
-    is a property that queries :func:`get_theme_registry` at every lookup,
+    code path it uses for Click's own `Choice`. The `choices` attribute
+    is a property that queries {func}`get_theme_registry` at every lookup,
     so themes registered late (typically by
-    :class:`ConfigOption <click_extra.config.option.ConfigOption>` parsing
-    ``[tool.<cli>.themes.<name>]`` tables before ``--theme`` is processed)
-    are valid choices and appear in the ``--help`` metavar.
+    {class}`ConfigOption <click_extra.config.option.ConfigOption>` parsing
+    `[tool.<cli>.themes.<name>]` tables before `--theme` is processed)
+    are valid choices and appear in the `--help` metavar.
 
-    Implemented as a fresh :class:`click.ParamType` rather than a
-    :class:`click.Choice` subclass to avoid relying on Click's setter
-    semantics for ``self.choices``: the previous subclass design swallowed
-    Click's ``__init__``-time assignment with a no-op setter, which
+    Implemented as a fresh {class}`click.ParamType` rather than a
+    {class}`click.Choice` subclass to avoid relying on Click's setter
+    semantics for `self.choices`: the previous subclass design swallowed
+    Click's `__init__`-time assignment with a no-op setter, which
     would silently break under any future Click version that uses
-    ``object.__setattr__`` (like for slots) instead of regular attribute
+    `object.__setattr__` (like for slots) instead of regular attribute
     assignment.
     """
 
-    # Match ``click.Choice.name`` so machinery that branches on parameter
+    # Match `click.Choice.name` so machinery that branches on parameter
     # type (like metavar generation) treats this the same way.
     name: str = "choice"
 
@@ -648,7 +650,7 @@ class ThemeChoice(click.ParamType):
         return value if self.case_sensitive else value.casefold()
 
     def normalize_choice(self, choice: Any, ctx: click.Context | None) -> str:
-        """Mirrors :meth:`click.Choice.normalize_choice` for highlight compatibility."""
+        """Mirrors {meth}`click.Choice.normalize_choice` for highlight compatibility."""
         normed = str(choice)
         if ctx is not None and ctx.token_normalize_func is not None:
             normed = ctx.token_normalize_func(normed)
@@ -670,8 +672,8 @@ class ThemeChoice(click.ParamType):
         """Resolve *value* to a canonical theme name from the live registry.
 
         Normalizes *value* and looks it up against the names visible in
-        *ctx*. Returns the canonical name, ``None`` when no themes are
-        registered at all (an inert ``--theme``), and calls ``fail`` when
+        *ctx*. Returns the canonical name, `None` when no themes are
+        registered at all (an inert `--theme`), and calls `fail` when
         *value* is not a string or does not match any registered theme.
         """
         if value is None:
@@ -716,27 +718,27 @@ class ThemeChoice(click.ParamType):
 
 
 class ThemeOption(ExtraOption):
-    """A pre-configured option that adds ``--theme`` to select the help-screen palette.
+    """A pre-configured option that adds `--theme` to select the help-screen palette.
 
-    Accepts any name registered in :data:`~click_extra.theme.theme_registry`
+    Accepts any name registered in {data}`~click_extra.theme.theme_registry`
     *or* in the per-invocation overrides loaded by
-    :class:`ConfigOption <click_extra.config.option.ConfigOption>` from
-    ``[tool.<cli>.themes.<name>]``. Validation goes through
-    :class:`~click_extra.theme.ThemeChoice`, which reads the live registry at
+    {class}`ConfigOption <click_extra.config.option.ConfigOption>` from
+    `[tool.<cli>.themes.<name>]`. Validation goes through
+    {class}`~click_extra.theme.ThemeChoice`, which reads the live registry at
     parse time, so
-    config-defined themes appear as valid choices and in the ``--help``
+    config-defined themes appear as valid choices and in the `--help`
     metavar without any further wiring.
 
-    The resolved :class:`HelpTheme` lands on the Click context under
-    :data:`click_extra.context.THEME` and applies for the duration of the
+    The resolved {class}`HelpTheme` lands on the Click context under
+    {data}`click_extra.context.THEME` and applies for the duration of the
     current invocation only.
 
-    The reserved value :data:`~click_extra.theme.AUTO_THEME` (``--theme=auto``)
+    The reserved value {data}`~click_extra.theme.AUTO_THEME` (`--theme=auto`)
     is also accepted on every CLI: it resolves the palette from the terminal
-    background via :func:`~click_extra.theme.resolve_auto_theme` instead of
+    background via {func}`~click_extra.theme.resolve_auto_theme` instead of
     naming a registered theme. Background detection reads environment variables
-    by default; pass ``query_background=True`` to additionally allow the live
-    OSC 11 terminal query (:func:`~click_extra.color.query_osc_background`),
+    by default; pass `query_background=True` to additionally allow the live
+    OSC 11 terminal query ({func}`~click_extra.color.query_osc_background`),
     which is opt-in because it reads stdin.
     """
 
@@ -748,13 +750,13 @@ class ThemeOption(ExtraOption):
     ) -> None:
         """Resolve the chosen theme name and store it on the Click context.
 
-        :class:`~click_extra.theme.ThemeChoice` has already validated *value*
+        {class}`~click_extra.theme.ThemeChoice` has already validated *value*
         against the live registry (or accepted the
-        :data:`~click_extra.theme.AUTO_THEME` directive) by the time this fires.
-        A plain palette name is looked up unconditionally; ``auto`` is resolved
+        {data}`~click_extra.theme.AUTO_THEME` directive) by the time this fires.
+        A plain palette name is looked up unconditionally; `auto` is resolved
         from the terminal background via
-        :func:`~click_extra.theme.resolve_auto_theme`, leaving ``ctx.meta``
-        untouched when no palette can be resolved so :func:`get_current_theme`
+        {func}`~click_extra.theme.resolve_auto_theme`, leaving `ctx.meta`
+        untouched when no palette can be resolved so {func}`get_current_theme`
         keeps its default.
         """
         if value is None or ctx.resilient_parsing:
@@ -797,27 +799,28 @@ class ThemeOption(ExtraOption):
 
 
 def _load_builtin_themes() -> dict[str, HelpTheme]:
-    """Parse ``themes.toml`` into a ``{name: HelpTheme}`` mapping.
+    """Parse `themes.toml` into a ``{name: HelpTheme}`` mapping.
 
-    Each top-level table maps to a :class:`HelpTheme` via
-    :meth:`HelpTheme.from_dict`. A malformed payload still surfaces
+    Each top-level table maps to a {class}`HelpTheme` via
+    {meth}`HelpTheme.from_dict`. A malformed payload still surfaces
     immediately at import time so a corrupt shipped TOML cannot silently
-    degrade ``--theme``.
+    degrade `--theme`.
 
-    Reads the file via :mod:`importlib.resources` so the load works under
+    Reads the file via {mod}`importlib.resources` so the load works under
     zipped imports (PyOxidizer, PEX, certain Nuitka modes) where
-    ``Path(__file__).parent`` doesn't resolve to a real filesystem location.
+    `Path(__file__).parent` doesn't resolve to a real filesystem location.
 
-    .. note::
-        Some packaging and distribution setups drop the ``themes.toml`` data
-        file because they don't bundle package data (Nuitka onefile without
-        ``--include-package-data``, trimmed downstream rebuilds). A missing
-        file is tolerated rather than fatal: the function logs a warning on
-        the ``click_extra`` logger and returns an empty mapping, so importing
-        the package never aborts. The CLI then keeps the colorless
-        :data:`nocolor_theme` as its default (see the module footer) and
-        ``--theme`` offers no built-in choices, though themes declared in a
-        CLI's config file (``[tool.<cli>.themes.<name>]``) remain available.
+    ```{note}
+    Some packaging and distribution setups drop the `themes.toml` data
+    file because they don't bundle package data (Nuitka onefile without
+    `--include-package-data`, trimmed downstream rebuilds). A missing
+    file is tolerated rather than fatal: the function logs a warning on
+    the `click_extra` logger and returns an empty mapping, so importing
+    the package never aborts. The CLI then keeps the colorless
+    {data}`nocolor_theme` as its default (see the module footer) and
+    `--theme` offers no built-in choices, though themes declared in a
+    CLI's config file (`[tool.<cli>.themes.<name>]`) remain available.
+    ```
     """
     resource = resources.files(__package__).joinpath("themes.toml")
     try:
@@ -838,18 +841,18 @@ def _load_builtin_themes() -> dict[str, HelpTheme]:
 
 
 BUILTIN_THEMES: dict[str, HelpTheme] = _load_builtin_themes()
-"""Mapping of built-in theme names to their :class:`HelpTheme` instances.
+"""Mapping of built-in theme names to their {class}`HelpTheme` instances.
 
-Loaded from the package data file ``click_extra/themes.toml`` at module
-import time and seeded into :data:`theme_registry`. Adding a new built-in
-theme is a one-file edit in that TOML file: declare a new ``[<name>]``
+Loaded from the package data file `click_extra/themes.toml` at module
+import time and seeded into {data}`theme_registry`. Adding a new built-in
+theme is a one-file edit in that TOML file: declare a new `[<name>]`
 table with one inline-table per styled slot.
 
-Index by name to access any palette, like ``BUILTIN_THEMES["dark"]`` or
-``BUILTIN_THEMES["solarized_dark"]``.
+Index by name to access any palette, like `BUILTIN_THEMES["dark"]` or
+`BUILTIN_THEMES["solarized_dark"]`.
 
-Empty when the ``themes.toml`` data file is absent (some packaging and
-distribution setups drop it); see ``_load_builtin_themes`` for the
+Empty when the `themes.toml` data file is absent (some packaging and
+distribution setups drop it); see `_load_builtin_themes` for the
 fallback behavior.
 """
 
@@ -857,8 +860,8 @@ fallback behavior.
 OK_GLYPH: str = "✓"
 """Plain check-mark glyph for success indicators.
 
-Style at the call site with the active theme's ``success`` slot:
-``get_current_theme().success(OK_GLYPH)``. Stored as a raw string so
+Style at the call site with the active theme's `success` slot:
+`get_current_theme().success(OK_GLYPH)`. Stored as a raw string so
 downstream code can render it under whichever theme is active rather
 than the (frozen) theme that happened to be loaded at import time.
 """
@@ -866,8 +869,8 @@ than the (frozen) theme that happened to be loaded at import time.
 KO_GLYPH: str = "✘"
 """Plain heavy-ballot-X glyph for failure indicators.
 
-Style at the call site with the active theme's ``error`` slot:
-``get_current_theme().error(KO_GLYPH)``. See :data:`~click_extra.theme.OK_GLYPH` for why
+Style at the call site with the active theme's `error` slot:
+`get_current_theme().error(KO_GLYPH)`. See {data}`~click_extra.theme.OK_GLYPH` for why
 the glyph is exposed unstyled.
 """
 

@@ -16,8 +16,7 @@
 """Implements environment variable utilities.
 
 .. seealso:
-    `Environment variables are a legacy mess: Let's dive deep into them
-    <https://allvpv.org/haotic-journey-through-envvars/>`_.
+    [Environment variables are a legacy mess: Let's dive deep into them](https://allvpv.org/haotic-journey-through-envvars/).
 """
 
 from __future__ import annotations
@@ -42,24 +41,22 @@ if TYPE_CHECKING:
     """Type for arbitrary nested environment variable names."""
 
     TEnvVars = Mapping[str, str | None]
-    """Type for ``dict``-like environment variables."""
+    """Type for `dict`-like environment variables."""
 
 
 def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ...]:
     """Merge and deduplicate environment variables.
 
     Multiple parameters are accepted and can be single strings or arbitrary-nested
-    iterables of strings. ``None`` values are ignored.
+    iterables of strings. `None` values are ignored.
 
     Variable names are deduplicated while preserving their initial order.
 
-    .. caution::
-        `On Windows, environment variable names are case-insensitive
-        <https://docs.python.org/3/library/os.html#os.environ>`_, so we `normalize them
-        to uppercase as the standard library does
-        <https://github.com/python/cpython/blob/3.14/Lib/os.py#L770-L782>`_.
+    ```{caution}
+    [On Windows, environment variable names are case-insensitive](https://docs.python.org/3/library/os.html#os.environ), so we [normalize them to uppercase as the standard library does](https://github.com/python/cpython/blob/3.14/Lib/os.py#L770-L782).
+    ```
 
-    Returns a tuple of strings. The result is ready to be used as the ``envvar``
+    Returns a tuple of strings. The result is ready to be used as the `envvar`
     parameter for Click's options or arguments.
     """
     ids = []
@@ -79,10 +76,9 @@ def clean_envvar_id(envvar_id: str) -> str:
     Separates all contiguous alphanumeric string segments, eliminate empty strings,
     join them with an underscore and uppercase the result.
 
-    .. attention::
-        We do not rely too much on this utility to try to reproduce the `current
-        behavior of Click, which is not consistent regarding case-handling of
-        environment variable <https://github.com/pallets/click/issues/2483>`_.
+    ```{attention}
+    We do not rely too much on this utility to try to reproduce the [current behavior of Click, which is not consistent regarding case-handling of environment variable](https://github.com/pallets/click/issues/2483).
+    ```
     """
     return "_".join(p for p in re.split(r"[^a-zA-Z0-9]+", envvar_id) if p).upper()
 
@@ -94,8 +90,8 @@ def param_auto_envvar_id(
     """Compute the auto-generated environment variable of an option or argument.
 
     Returns the auto envvar exactly as computed within Click's internals, by
-    ``click.core.Parameter.resolve_envvar_value()`` and
-    ``click.core.Option.resolve_envvar_value()``.
+    `click.core.Parameter.resolve_envvar_value()` and
+    `click.core.Option.resolve_envvar_value()`.
     """
     # Skip parameters that have their auto-envvar explicitly disabled.
     if not getattr(param, "allow_from_autoenv", None):
@@ -121,9 +117,9 @@ def param_envvar_ids(
 
     The auto-generated environment variable is added at the end of the list, so that
     user-defined envvars takes precedence. This respects the current implementation
-    of ``click.core.Option.resolve_envvar_value()``.
+    of `click.core.Option.resolve_envvar_value()`.
 
-    Names are normalized to uppercase on Windows by :func:`merge_envvar_ids`.
+    Names are normalized to uppercase on Windows by {func}`merge_envvar_ids`.
     """
     return merge_envvar_ids(param.envvar, param_auto_envvar_id(param, ctx))
 
@@ -135,7 +131,7 @@ def temporary_env(
 ) -> Iterator[None]:
     """Apply environment variable changes for the block's duration, then restore.
 
-    *set_vars* are written into :data:`os.environ` and *unset_vars* removed. On
+    *set_vars* are written into {data}`os.environ` and *unset_vars* removed. On
     exit, every touched variable is restored to its pre-block state: recreated
     with its former value, or removed when it did not exist before.
 
@@ -161,13 +157,12 @@ def temporary_env(
 
 
 def env_copy(extend: TEnvVars | None = None) -> TEnvVars | None:
-    """Returns a copy of the current environment variables and eventually ``extend`` it.
+    """Returns a copy of the current environment variables and eventually `extend` it.
 
-    Mimics `Python's original implementation
-    <https://github.com/python/cpython/blob/3.14/Lib/subprocess.py#L1907-L1908>`_ by
-    returning ``None`` if no ``extend`` content are provided.
+    Mimics [Python's original implementation](https://github.com/python/cpython/blob/3.14/Lib/subprocess.py#L1907-L1908) by
+    returning `None` if no `extend` content are provided.
 
-    Environment variables are expected to be a ``dict`` of ``str:str``.
+    Environment variables are expected to be a `dict` of `str:str`.
     """
     if isinstance(extend, dict):
         for k, v in extend.items():

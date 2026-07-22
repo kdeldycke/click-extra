@@ -15,20 +15,19 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Sphinx rendering of CLI based on Click Extra.
 
-.. seealso::
-    These directives are based on `Pallets' Sphinx Themes
-    <https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py>`_,
-    `released under a BSD-3-Clause license
-    <https://github.com/pallets/pallets-sphinx-themes/blob/main/LICENSE.txt>`_.
+```{seealso}
+These directives are based on [Pallets' Sphinx Themes](https://github.com/pallets/pallets-sphinx-themes/blob/main/src/pallets_sphinx_themes/themes/click/domain.py),
+[released under a BSD-3-Clause license](https://github.com/pallets/pallets-sphinx-themes/blob/main/LICENSE.txt).
 
-    Compared to the latter, it:
+Compared to the latter, it:
 
-    - Add support for MyST syntax.
-    - Adds rendering of ANSI codes in CLI results.
-    - Has better error handling and reporting which helps you pinpoint the failing
-      code in your documentation.
-    - Removes the ``println`` function which was used to explicitly print a blank
-      line. This is no longer needed as it is now handled natively.
+- Add support for MyST syntax.
+- Adds rendering of ANSI codes in CLI results.
+- Has better error handling and reporting which helps you pinpoint the failing
+  code in your documentation.
+- Removes the `println` function which was used to explicitly print a blank
+  line. This is no longer needed as it is now handled natively.
+```
 """
 
 from __future__ import annotations
@@ -76,18 +75,18 @@ RST_INDENT = " " * 3
 
 
 _CLIRUNNER_HAS_CAPTURE = "capture" in inspect.signature(CliRunner.__init__).parameters
-"""Whether Click's :class:`~click.testing.CliRunner` accepts the ``capture`` keyword.
+"""Whether Click's {class}`~click.testing.CliRunner` accepts the `capture` keyword.
 
-Added in Click 8.4 to select the stream-capture strategy (``"sys"`` or ``"fd"``).
+Added in Click 8.4 to select the stream-capture strategy (`"sys"` or `"fd"`).
 Absent in earlier releases, where the runner's capture behavior is fixed.
 """
 
 
 class TerminatedEchoingStdin(EchoingStdin):
-    """Like ``click.testing.EchoingStdin`` but adds a visible
-    ``^D`` in place of the EOT character (``\x04``).
+    """Like `click.testing.EchoingStdin` but adds a visible
+    `^D` in place of the EOT character (`\x04`).
 
-    :meth:`ClickRunner.invoke` adds ``\x04`` when ``terminate_input=True``.
+    {meth}`ClickRunner.invoke` adds `\x04` when `terminate_input=True`.
     """
 
     def _echo(self, rv: bytes) -> bytes:
@@ -107,22 +106,23 @@ class TerminatedEchoingStdin(EchoingStdin):
 
 @contextlib.contextmanager
 def patch_subprocess():
-    """Patch subprocess to work better with :meth:`ClickRunner.invoke`.
+    """Patch subprocess to work better with {meth}`ClickRunner.invoke`.
 
-    ``subprocess.call`` output is redirected to ``click.echo`` so it
+    `subprocess.call` output is redirected to `click.echo` so it
     shows up in the example output.
 
-    .. caution::
-        The replacement is installed on the ``subprocess`` module itself
-        (not thread-local), so for the duration of the ``with`` block any
-        other code in the same process that calls ``subprocess.call`` sees
-        the patched version. With ``parallel_read_safe = True`` declared
-        on :class:`ClickDomain`, a parallel reader running concurrently
-        on a different document gets the patched ``subprocess.call`` too.
-        The redirection is benign (output goes to ``click.echo``) but the
-        race is real, and the parallel-safe claim is weaker than it
-        looks for documents that themselves shell out via
-        ``subprocess.call``.
+    ```{caution}
+    The replacement is installed on the `subprocess` module itself
+    (not thread-local), so for the duration of the `with` block any
+    other code in the same process that calls `subprocess.call` sees
+    the patched version. With `parallel_read_safe = True` declared
+    on {class}`ClickDomain`, a parallel reader running concurrently
+    on a different document gets the patched `subprocess.call` too.
+    The redirection is benign (output goes to `click.echo`) but the
+    race is real, and the parallel-safe claim is weaker than it
+    looks for documents that themselves shell out via
+    `subprocess.call`.
+    ```
     """
     old_call = subprocess.call
 
@@ -144,22 +144,22 @@ def patch_subprocess():
 
 
 class ClickRunner(CliRunner):
-    """A sub-class of :class:`click.testing.CliRunner` for Sphinx directive execution.
+    """A sub-class of {class}`click.testing.CliRunner` for Sphinx directive execution.
 
-    Produces unfiltered ANSI codes so that the ``Directive`` sub-classes below can
+    Produces unfiltered ANSI codes so that the `Directive` sub-classes below can
     render colors in the HTML output. Because Click Extra executes the documented
-    command here, :meth:`invoke` forces color across both color systems a CLI might use:
-    ``color=True`` covers Click's (``should_strip_ansi``), and
-    :func:`~click_extra.color.forced_color` sets ``FORCE_COLOR`` for Rich's (which
-    ``rich-click`` uses and ``color=True`` never reaches). The MkDocs plugin shares the
-    latter lever but cannot pass ``color=True``, since it patches a renderer it never
+    command here, {meth}`invoke` forces color across both color systems a CLI might use:
+    `color=True` covers Click's (`should_strip_ansi`), and
+    {func}`~click_extra.color.forced_color` sets `FORCE_COLOR` for Rich's (which
+    `rich-click` uses and `color=True` never reaches). The MkDocs plugin shares the
+    latter lever but cannot pass `color=True`, since it patches a renderer it never
     executes.
 
-    On Click 8.4+ the runner defaults to ``capture="fd"`` on Unix (overridable through
-    the ``click_extra_run_capture`` ``conf.py`` value) so a documented command that
-    writes through ``sys.stdout.fileno()`` is captured and rendered, instead of aborting
-    the build with :exc:`io.UnsupportedOperation`. On Windows, where fd-backed streams
-    are not supported, the default falls back to ``capture="sys"``.
+    On Click 8.4+ the runner defaults to `capture="fd"` on Unix (overridable through
+    the `click_extra_run_capture` `conf.py` value) so a documented command that
+    writes through `sys.stdout.fileno()` is captured and rendered, instead of aborting
+    the build with {exc}`io.UnsupportedOperation`. On Windows, where fd-backed streams
+    are not supported, the default falls back to `capture="sys"`.
     """
 
     def __init__(self, capture: Literal["sys", "fd"] | None = None) -> None:
@@ -209,11 +209,11 @@ class ClickRunner(CliRunner):
         _output_lines=None,
         **extra,
     ) -> click.testing.Result:
-        """Like ``CliRunner.invoke`` but displays what the user
+        """Like `CliRunner.invoke` but displays what the user
         would enter in the terminal for env vars, command arguments, and
         prompts.
 
-        :param terminate_input: Whether to display ``^D`` after a list of
+        :param terminate_input: Whether to display `^D` after a list of
             input.
         :param _output_lines: A list used internally to collect lines to
             be displayed.
@@ -240,11 +240,11 @@ class ClickRunner(CliRunner):
             if terminate_input:
                 input += "\x04"
 
-        # ``color=True`` keeps ANSI in Click's color system: it flips
-        # ``should_strip_ansi``, which CliRunner otherwise leaves stripping on its
+        # `color=True` keeps ANSI in Click's color system: it flips
+        # `should_strip_ansi`, which CliRunner otherwise leaves stripping on its
         # non-TTY buffer. But rich-click renders through Rich's Console, a separate
-        # system that ignores ``should_strip_ansi`` and only honors ``FORCE_COLOR``, so
-        # ``forced_color()`` sets that too. Together they cover both color systems a
+        # system that ignores `should_strip_ansi` and only honors `FORCE_COLOR`, so
+        # `forced_color()` sets that too. Together they cover both color systems a
         # documented CLI might use.
         with forced_color():
             result = super().invoke(
@@ -266,20 +266,20 @@ class ClickRunner(CliRunner):
             exec(code, self.namespace)  # noqa: S102
 
     def run_cli(self, directive: SphinxDirective) -> list[str]:
-        """Execute the given ``source_code``.
+        """Execute the given `source_code`.
 
         Returns a simulation of terminal execution, including a mix of input, output,
         prompts and tracebacks.
 
         The execution context is augmented, so you can refer directly to these
-        functions in the provided ``source_code``:
+        functions in the provided `source_code`:
 
-        - :meth:`invoke()`: which is the same as :meth:`ClickRunner.invoke`
-        - ``isolated_filesystem()``: A context manager that changes to a temporary
+        - {meth}`invoke()`: which is the same as {meth}`ClickRunner.invoke`
+        - `isolated_filesystem()`: A context manager that changes to a temporary
           directory while executing the block.
 
-        If any local variable in the provided ``source_code`` conflicts with these
-        functions, a :class:`RuntimeError` is raised to help you pinpoint the issue.
+        If any local variable in the provided `source_code` conflicts with these
+        functions, a {class}`RuntimeError` is raised to help you pinpoint the issue.
         """
         source_code, location = directive_source(directive)
 
@@ -336,15 +336,15 @@ def _resolve_run_capture(
 ) -> Literal["sys", "fd"]:
     """Degrade the configured stream-capture mode to one the platform supports.
 
-    The ``click_extra_run_capture`` ``conf.py`` value is a build-time
-    *preference*. ``"fd"`` backs the captured streams with a real file descriptor
-    so a command writing through ``sys.stdout.fileno()`` renders (see
-    :class:`ClickRunner`), but Windows has no Unix file descriptors and Click
-    rejects ``capture="fd"`` there. Degrade ``"fd"`` to ``"sys"`` on Windows so
+    The `click_extra_run_capture` `conf.py` value is a build-time
+    *preference*. `"fd"` backs the captured streams with a real file descriptor
+    so a command writing through `sys.stdout.fileno()` renders (see
+    {class}`ClickRunner`), but Windows has no Unix file descriptors and Click
+    rejects `capture="fd"` there. Degrade `"fd"` to `"sys"` on Windows so
     the documentation build proceeds: such fileno-writing commands simply do not
     render, instead of aborting the whole build.
 
-    A direct ``ClickRunner(capture="fd")`` call still honors the explicit pin (and
+    A direct `ClickRunner(capture="fd")` call still honors the explicit pin (and
     raises on Windows); only the config-derived preference degrades here.
     """
     if configured == "fd" and sys.platform == "win32":
@@ -372,20 +372,19 @@ class ClickDirective(SphinxDirective):
     }
     """Options supported by this directive.
 
-    Support the `same options
-    <https://github.com/sphinx-doc/sphinx/blob/cc7c6f4/sphinx/directives/code.py#L108-L117>`_
-    as ``sphinx.directives.code.CodeBlock``, and some specific to Click
+    Support the [same options](https://github.com/sphinx-doc/sphinx/blob/cc7c6f4/sphinx/directives/code.py#L108-L117)
+    as `sphinx.directives.code.CodeBlock`, and some specific to Click
     directives.
 
-    The standard ``emphasize-lines`` option applies to the source block only. Use
-    ``emphasize-result-lines`` to highlight specific lines in the captured output
-    block, with the same syntax (like ``:emphasize-result-lines: 1,3-5``).
+    The standard `emphasize-lines` option applies to the source block only. Use
+    `emphasize-result-lines` to highlight specific lines in the captured output
+    block, with the same syntax (like `:emphasize-result-lines: 1,3-5`).
     """
 
     default_language: str
     """Default highlighting language to use to render the code block.
 
-    `All Pygments' languages short names <https://pygments.org/languages/>`_ are
+    [All Pygments' languages short names](https://pygments.org/languages/) are
     recognized.
     """
 
@@ -395,12 +394,12 @@ class ClickDirective(SphinxDirective):
     """Whether to render the results of the example in the code block."""
 
     runner_method: str
-    """The name of the method to call on the :class:`ClickRunner` instance."""
+    """The name of the method to call on the {class}`ClickRunner` instance."""
 
     runner_attr: ClassVar[str] = "click_runner"
     """Name of the attribute holding the runner on the doctree.
 
-    Subclasses (like ``PythonDirective``)
+    Subclasses (like `PythonDirective`)
     override this so the Click and Python runners don't collide on the same
     document.
     """
@@ -408,7 +407,7 @@ class ClickDirective(SphinxDirective):
     runner_factory: ClassVar[type] = None  # type: ignore[assignment]
     """Class to instantiate for the per-document runner.
 
-    Defaults to :class:`ClickRunner` in :class:`ClickDirective` (set after the
+    Defaults to {class}`ClickRunner` in {class}`ClickDirective` (set after the
     class definition to break the forward reference).
     """
 
@@ -416,7 +415,7 @@ class ClickDirective(SphinxDirective):
     def runner(self):
         """Get or create the per-document runner.
 
-        Creates one runner per document, keyed by :attr:`runner_attr`.
+        Creates one runner per document, keyed by {attr}`runner_attr`.
         """
         runner = getattr(self.state.document, self.runner_attr, None)
         if runner is None:
@@ -441,12 +440,12 @@ class ClickDirective(SphinxDirective):
         return self.default_language
 
     def code_block_options(self, target: str = "source") -> list[str]:
-        """Render the options supported by Sphinx' native ``code-block`` directive.
+        """Render the options supported by Sphinx' native `code-block` directive.
 
-        ``target`` selects which block these options will be attached to:
-        ``"source"`` for the directive's input source code, ``"results"`` for the
-        captured output. ``emphasize-lines`` routes to the source block;
-        ``emphasize-result-lines`` is rewritten as ``emphasize-lines`` on the
+        `target` selects which block these options will be attached to:
+        `"source"` for the directive's input source code, `"results"` for the
+        captured output. `emphasize-lines` routes to the source block;
+        `emphasize-result-lines` is rewritten as `emphasize-lines` on the
         results block, so authors can highlight different lines in each.
         """
         options = []
@@ -471,8 +470,8 @@ class ClickDirective(SphinxDirective):
     def show_source(self) -> bool:
         """Whether to show the source code of the example in the code block.
 
-        The last occurrence of either ``show-source`` or ``hide-source`` options
-        wins. If neither is set, the default is taken from ``show_source_by_default``.
+        The last occurrence of either `show-source` or `hide-source` options
+        wins. If neither is set, the default is taken from `show_source_by_default`.
         """
         show_source = self.show_source_by_default
         for option_id in self.options:
@@ -486,8 +485,8 @@ class ClickDirective(SphinxDirective):
     def show_results(self) -> bool:
         """Whether to show the results of running the example in the code block.
 
-        The last occurrence of either ``show-results`` or ``hide-results`` options
-        wins. If neither is set, the default is taken from ``show_results_by_default``.
+        The last occurrence of either `show-results` or `hide-results` options
+        wins. If neither is set, the default is taken from `show_results_by_default`.
         """
         show_results = self.show_results_by_default
         for option_id in self.options:
@@ -504,22 +503,22 @@ class ClickDirective(SphinxDirective):
 
     @staticmethod
     def _slug(value: str) -> str:
-        """Lower-case + non-alphanumeric → ``-``, mirroring docutils' ``make_id``."""
+        """Lower-case + non-alphanumeric → `-`, mirroring docutils' `make_id`."""
         return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
     def _surrounding_section_depth(self) -> int:
         """Return the heading level of the section wrapping this directive.
 
-        Drives the default ``heading-offset`` of the scaffolding directives
-        (``click:tree``, ``click:config``) so generated headings nest
+        Drives the default `heading-offset` of the scaffolding directives
+        (`click:tree`, `click:config`) so generated headings nest
         correctly under the surrounding section, regardless of how deep in
-        the document the directive is placed. A value of ``1`` means the
-        directive sits inside the document's top-level ``h1`` section (the
-        next legal heading is ``h2``); ``3`` means it sits inside an ``h3``
-        section (next legal heading is ``h4``).
+        the document the directive is placed. A value of `1` means the
+        directive sits inside the document's top-level `h1` section (the
+        next legal heading is `h2`); `3` means it sits inside an `h3`
+        section (next legal heading is `h4`).
 
-        Read from ``state.memo.section_level``, which docutils' ``RSTState``
-        and MyST's ``MockState`` both populate. Falls back to ``1`` if the
+        Read from `state.memo.section_level`, which docutils' `RSTState`
+        and MyST's `MockState` both populate. Falls back to `1` if the
         attribute is unavailable (preserves the historical default).
         """
         try:
@@ -536,8 +535,8 @@ class ClickDirective(SphinxDirective):
     ) -> list[str]:
         """Render the code block with the source code or results.
 
-        ``target`` is forwarded to :meth:`code_block_options` so the
-        ``emphasize-lines`` / ``emphasize-result-lines`` split routes the right
+        `target` is forwarded to {meth}`code_block_options` so the
+        `emphasize-lines` / `emphasize-result-lines` split routes the right
         highlighting to each block.
         """
         block: list[str] = []
@@ -633,23 +632,24 @@ class TreeDirective(ClickDirective):
     Walks the Click command tree at build time and emits, in MyST syntax:
 
     - A GFM summary table linking each command to its section anchor.
-    - A heading + ``click:run`` ``--help`` block for the root command.
-    - One heading + ``click:run`` ``--help`` block per subcommand, nested by
+    - A heading + `click:run` `--help` block for the root command.
+    - One heading + `click:run` `--help` block per subcommand, nested by
       depth.
 
     Designed to replace per-project hand-rolled generators (like repomatic's
-    ``docs_update.py::cli_reference()``) with a single declarative directive
+    `docs_update.py::cli_reference()`) with a single declarative directive
     that walks the live command tree on every build.
 
     The required argument is a Python expression evaluated in the per-document
-    runner namespace; it must yield a :class:`click.Command`. The optional
+    runner namespace; it must yield a {class}`click.Command`. The optional
     directive body is Python preamble exec'd in the same namespace before
     evaluation, so authors may either import the CLI in a prior
-    ``click:source :hide-source:`` block or inline the import here.
+    `click:source :hide-source:` block or inline the import here.
 
-    .. note::
-        Currently MyST-only. Use the directive in a ``.md`` document with
-        ``myst_parser`` enabled.
+    ```{note}
+    Currently MyST-only. Use the directive in a `.md` document with
+    `myst_parser` enabled.
+    ```
     """
 
     has_content = True
@@ -668,19 +668,19 @@ class TreeDirective(ClickDirective):
     }
     """Recognized directive options.
 
-    ``max-depth`` caps the recursion into nested :class:`click.Group` commands
-    (default: ``10``). ``heading-offset`` shifts all generated headings down
+    `max-depth` caps the recursion into nested {class}`click.Group` commands
+    (default: `10`). `heading-offset` shifts all generated headings down
     by N levels. When unset, the directive reads
-    ``state.memo.section_level`` and uses the surrounding section depth so
+    `state.memo.section_level` and uses the surrounding section depth so
     the root nests one level below the enclosing section: inside the
-    document's ``h1`` title this yields ``1`` (root at ``h2``); inside an
-    ``h3`` section it yields ``3`` (root at ``h4``). Override only when the
-    auto-detected depth is wrong for the page layout. ``anchor-prefix`` and
-    ``label-prefix`` override the slug and display prefix used for anchors
-    and labels; both default to the CLI's :attr:`click.Command.name`.
-    ``root-label`` sets the heading text for the root help block
-    (default: ``"Help screen"``). ``no-table`` skips the summary table;
-    ``no-root`` skips the root ``--help`` block.
+    document's `h1` title this yields `1` (root at `h2`); inside an
+    `h3` section it yields `3` (root at `h4`). Override only when the
+    auto-detected depth is wrong for the page layout. `anchor-prefix` and
+    `label-prefix` override the slug and display prefix used for anchors
+    and labels; both default to the CLI's {attr}`click.Command.name`.
+    `root-label` sets the heading text for the root help block
+    (default: `"Help screen"`). `no-table` skips the summary table;
+    `no-root` skips the root `--help` block.
     """
 
     # The runner_attr, runner property, is_myst_syntax cached-property, and
@@ -696,10 +696,10 @@ class TreeDirective(ClickDirective):
     ) -> list[tuple[list[str], click.Command]]:
         """Depth-first traversal of the command tree, sorted alphabetically.
 
-        Returns ``(path, command)`` tuples where ``path`` is the list of
-        subcommand names from the root (exclusive) down to ``command``. The
+        Returns `(path, command)` tuples where `path` is the list of
+        subcommand names from the root (exclusive) down to `command`. The
         root itself is not included; callers that want a root entry add it
-        separately (see :meth:`run`).
+        separately (see {meth}`run`).
         """
         entries: list[tuple[list[str], click.Command]] = []
 
@@ -824,8 +824,8 @@ class TreeDirective(ClickDirective):
 def _format_default(value: object) -> str:
     """Format a schema field default as a Markdown fragment.
 
-    Used in both the summary table cells and the per-option ``**Default:**``
-    lines of ``click:config``. Multi-line strings are elided to a pointer,
+    Used in both the summary table cells and the per-option `**Default:**`
+    lines of `click:config`. Multi-line strings are elided to a pointer,
     since the TOML example block below renders them in full.
     """
     if value is None:
@@ -848,9 +848,9 @@ def _format_default(value: object) -> str:
 def _toml_value(value: object) -> str | None:
     """Format a Python value as a TOML literal.
 
-    Returns ``None`` when no sensible literal exists (``None`` defaults,
+    Returns `None` when no sensible literal exists (`None` defaults,
     opaque objects), which suppresses the option's example block in
-    ``click:config``.
+    `click:config`.
     """
     if value is None:
         return None
@@ -873,7 +873,7 @@ def _toml_value(value: object) -> str | None:
 
 
 class ConfigDirective(ClickDirective):
-    """Render the configuration reference of a CLI's ``config_schema``.
+    """Render the configuration reference of a CLI's `config_schema`.
 
     Introspects a configuration schema dataclass at build time and expands,
     in MyST syntax:
@@ -884,32 +884,34 @@ class ConfigDirective(ClickDirective):
       example pinned to the default value.
 
     Option metadata comes from
-    :func:`~click_extra.config.schema.schema_field_infos`: dotted kebab-case
+    {func}`~click_extra.config.schema.schema_field_infos`: dotted kebab-case
     keys, type annotations, defaults from a pristine schema instance, and
     attribute docstrings (which are parsed as the host document's markup).
     Designed to replace per-project hand-rolled generators (like repomatic's
-    ``docs_update.py::config_deflist()``) with a single declarative directive
+    `docs_update.py::config_deflist()`) with a single declarative directive
     that documents the live schema on every build.
 
     The required argument is a Python expression evaluated in the per-document
-    runner namespace; it must yield either a :class:`click.Command` whose
-    ``config_schema`` is set (the schema is pulled off its
-    :class:`~click_extra.config.option.ConfigOption`), or a schema dataclass
+    runner namespace; it must yield either a {class}`click.Command` whose
+    `config_schema` is set (the schema is pulled off its
+    {class}`~click_extra.config.option.ConfigOption`), or a schema dataclass
     directly. The optional directive body is Python preamble exec'd in the
     same namespace before evaluation, so authors may either import the CLI in
-    a prior ``click:source`` ``:hide-source:`` block or inline the import
+    a prior `click:source` `:hide-source:` block or inline the import
     here.
 
-    .. caution::
-        Attribute docstrings are recovered from the schema's source file, so
-        a schema defined inside an exec'd ``click:source`` block documents
-        its options without descriptions. Import the schema from a real
-        module instead (see
-        :func:`~click_extra.config.schema.field_docstrings`).
+    ```{caution}
+    Attribute docstrings are recovered from the schema's source file, so
+    a schema defined inside an exec'd `click:source` block documents
+    its options without descriptions. Import the schema from a real
+    module instead (see
+    {func}`~click_extra.config.schema.field_docstrings`).
+    ```
 
-    .. note::
-        Currently MyST-only. Use the directive in a ``.md`` document with
-        ``myst_parser`` enabled.
+    ```{note}
+    Currently MyST-only. Use the directive in a `.md` document with
+    `myst_parser` enabled.
+    ```
     """
 
     has_content = True
@@ -925,14 +927,14 @@ class ConfigDirective(ClickDirective):
     }
     """Recognized directive options.
 
-    ``heading-offset`` shifts all generated headings down by N levels; when
+    `heading-offset` shifts all generated headings down by N levels; when
     unset, the surrounding section depth is used (same behavior as
-    ``click:tree``). ``section`` overrides the TOML table header shown in the
+    `click:tree`). `section` overrides the TOML table header shown in the
     per-option examples: it defaults to ``tool.{cli-name}`` when the argument
     is a CLI (matching how click-extra and its downstream CLIs read their
-    section from ``pyproject.toml``), and to no header at all for a bare
-    schema; an explicitly empty ``:section:`` suppresses the header.
-    ``no-table`` skips the summary table; ``no-examples`` skips the TOML
+    section from `pyproject.toml`), and to no header at all for a bare
+    schema; an explicitly empty `:section:` suppresses the header.
+    `no-table` skips the summary table; `no-examples` skips the TOML
     example blocks.
     """
 
@@ -1069,13 +1071,13 @@ class ConfigDirective(ClickDirective):
 
 
 class ClickDomain(StatelessDomain):
-    """Setup new directives under the same ``click`` namespace:
+    """Setup new directives under the same `click` namespace:
 
-    - ``click:source`` which renders a Click CLI source code
-    - ``click:run`` which renders the results of running a Click CLI
-    - ``click:tree`` which walks a Click command tree and renders the full
-      ``--help`` reference for every subcommand, with a summary table on top
-    - ``click:config`` which documents a CLI's ``config_schema``: a summary
+    - `click:source` which renders a Click CLI source code
+    - `click:run` which renders the results of running a Click CLI
+    - `click:tree` which walks a Click command tree and renders the full
+      `--help` reference for every subcommand, with a summary table on top
+    - `click:config` which documents a CLI's `config_schema`: a summary
       table plus one section per option, with types, defaults, and TOML
       examples
     """
@@ -1091,4 +1093,4 @@ class ClickDomain(StatelessDomain):
 
 
 cleanup_runner = make_cleanup("click_runner")
-"""Drop the :class:`ClickRunner` from the doctree once the document is read."""
+"""Drop the {class}`ClickRunner` from the doctree once the document is read."""

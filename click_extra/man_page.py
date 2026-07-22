@@ -16,30 +16,29 @@
 """Generate roff/troff man pages from Click commands.
 
 Produces one man page per command, mirroring the man-pages(7) section
-structure documented in :doc:`/man-page`: NAME, SYNOPSIS, DESCRIPTION,
+structure documented in {doc}`/man-page`: NAME, SYNOPSIS, DESCRIPTION,
 OPTIONS, COMMANDS, ENVIRONMENT, FILES and EXIT STATUS.
 
-This is Click Extra's answer to the unmaintained `click-man
-<https://github.com/click-contrib/click-man>`_ package. It improves on it by:
+This is Click Extra's answer to the unmaintained [click-man](https://github.com/click-contrib/click-man) package. It improves on it by:
 
-- working on a command *object* via :meth:`click.Command.make_context`, so it
-  needs no ``console_scripts`` entry point;
+- working on a command *object* via {meth}`click.Command.make_context`, so it
+  needs no `console_scripts` entry point;
 - discovering subcommands dynamically through
-  :meth:`click.Group.list_commands` / :meth:`click.Group.get_command` with a
+  {meth}`click.Group.list_commands` / {meth}`click.Group.get_command` with a
   live context;
-- honoring Click's ``\\b`` no-rewrap marker (rendered as roff ``.nf`` / ``.fi``);
-- rendering boolean flags (``--foo`` / ``--no-foo``) and skipping hidden
+- honoring Click's `\\b` no-rewrap marker (rendered as roff `.nf` / `.fi`);
+- rendering boolean flags (`--foo` / `--no-foo`) and skipping hidden
   commands and options;
-- mirroring Cloup option groups as ``.SS`` subsections of OPTIONS (ungrouped
-  options fall under an ``Other options`` heading), matching the help screen;
+- mirroring Cloup option groups as `.SS` subsections of OPTIONS (ungrouped
+  options fall under an `Other options` heading), matching the help screen;
 - emitting ENVIRONMENT (from auto-generated env vars), FILES (from the
-  ``--config`` search pattern) and EXIT STATUS sections that click-man never
+  `--config` search pattern) and EXIT STATUS sections that click-man never
   grew.
 
 Font selection follows the man typographic convention encoded by
-:data:`click_extra.theme.LITERAL_STYLES` / :data:`~click_extra.theme.REPLACEABLE_STYLES`:
-literal tokens (command and option names) render bold (``\\fB``), replaceable
-tokens (metavars, operands) render italic (``\\fI``).
+{data}`click_extra.theme.LITERAL_STYLES` / {data}`~click_extra.theme.REPLACEABLE_STYLES`:
+literal tokens (command and option names) render bold (`\\fB`), replaceable
+tokens (metavars, operands) render italic (`\\fI`).
 """
 
 from __future__ import annotations
@@ -77,22 +76,22 @@ if TYPE_CHECKING:
 
 
 INLINE_LITERAL_RE = re.compile(r"``([^`]+?)``")
-"""Match a reST inline literal (``"``...``"``) in a docstring.
+"""Match a reST inline literal (`"`...`"`) in a docstring.
 
 Click stores docstrings verbatim, so any reST markup the author used to
-render code-like tokens in HTML docs leaks into ``Command.help`` /
-``Command.short_help``. The roff and HTML man-page paths translate these
+render code-like tokens in HTML docs leaks into `Command.help` /
+`Command.short_help`. The roff and HTML man-page paths translate these
 matches into the bold/literal markers their renderers understand; the
-Sphinx index directive translates them into ``nodes.literal``.
+Sphinx index directive translates them into `nodes.literal`.
 """
 
 
 def iter_inline_literals(text: str) -> Iterator[tuple[str, bool]]:
-    """Walk ``text`` and yield ``(segment, is_literal)`` pairs.
+    """Walk `text` and yield `(segment, is_literal)` pairs.
 
-    Split on :data:`INLINE_LITERAL_RE` so the consumer can apply
+    Split on {data}`INLINE_LITERAL_RE` so the consumer can apply
     different rendering to the literal segments (bold for roff, a
-    ``literal`` node for docutils) without re-parsing the regex.
+    `literal` node for docutils) without re-parsing the regex.
     """
     pos = 0
     for match in INLINE_LITERAL_RE.finditer(text):
@@ -128,8 +127,8 @@ DEFAULT_EXIT_STATUS: tuple[tuple[str, str], ...] = (
 )
 """Conventional exit codes shared by every Click Extra CLI.
 
-Mirrors the EXIT STATUS table in :doc:`/man-page`. Click returns ``2`` for
-usage errors (``UsageError``), ``1`` for aborts, and ``0`` on success.
+Mirrors the EXIT STATUS table in {doc}`/man-page`. Click returns `2` for
+usage errors (`UsageError`), `1` for aborts, and `0` on success.
 """
 
 
@@ -139,17 +138,17 @@ usage errors (``UsageError``), ``1`` for aborts, and ``0`` on success.
 def _roff_escape(text: str) -> str:
     """Escape inline text for roff.
 
-    Backslashes become ``\\e`` first (so escapes added afterwards survive), then
-    literal hyphens become ``\\-`` so they render as copy-pasteable minus signs
+    Backslashes become `\\e` first (so escapes added afterwards survive), then
+    literal hyphens become `\\-` so they render as copy-pasteable minus signs
     rather than typographic hyphens (important for option names like
-    ``--config``).
+    `--config`).
     """
     return text.replace("\\", "\\e").replace("-", "\\-")
 
 
 def _neutralize_leading_control(text: str) -> str:
-    """Prefix a zero-width ``\\&`` when ``text`` starts with a roff control
-    character (``.`` or ``'``) so it is not mistaken for a macro request.
+    """Prefix a zero-width `\\&` when `text` starts with a roff control
+    character (`.` or `'`) so it is not mistaken for a macro request.
     """
     if text[:1] in (".", "'"):
         return "\\&" + text
@@ -167,16 +166,16 @@ def _italic(text: str) -> str:
 
 
 def _quote(text: str) -> str:
-    """Quote a ``.TH`` header field, dropping any embedded double quotes."""
+    """Quote a `.TH` header field, dropping any embedded double quotes."""
     return '"{}"'.format(text.replace('"', ""))
 
 
 def _render_inline(text: str) -> str:
     """Render one line of Click help prose to a roff body line.
 
-    Translates each reST inline literal (``"``...``"``) to a bold span
-    (``\\fB...\\fR``); escapes plain prose with :func:`_roff_escape`;
-    neutralizes a leading control character (``.`` or ``'``) so the result
+    Translates each reST inline literal (`"`...`"`) to a bold span
+    (`\\fB...\\fR`); escapes plain prose with {func}`_roff_escape`;
+    neutralizes a leading control character (`.` or `'`) so the result
     is safe to emit between any other roff macros.
     """
     parts: list[str] = []
@@ -188,12 +187,12 @@ def _render_inline(text: str) -> str:
 def _emit_help(text: str) -> list[str]:
     """Render Click help/description prose to roff body lines (no section macro).
 
-    Click marks a no-rewrap region with a ``\\b`` (``\\x08``) control
+    Click marks a no-rewrap region with a `\\b` (`\\x08`) control
     character: everything after the marker within the same paragraph is
     rendered verbatim. Each paragraph is therefore split into a filled
-    prefix and a preformatted suffix, with ``.nf`` / ``.fi`` wrapping
+    prefix and a preformatted suffix, with `.nf` / `.fi` wrapping
     only the suffix. Paragraphs without a marker collapse to a single
-    filled line, separated from the previous one by ``.PP``.
+    filled line, separated from the previous one by `.PP`.
     """
     text = inspect.cleandoc(text).strip()
     if not text:
@@ -210,7 +209,7 @@ def _emit_help(text: str) -> list[str]:
         if pre:
             out.append(_render_inline(" ".join(pre.split())))
         if marker:
-            # ``\b`` may sit on its own line: strip the surrounding
+            # `\b` may sit on its own line: strip the surrounding
             # newlines so the .nf block is compact, but keep internal
             # line breaks so the no-fill region looks as written.
             post = post.strip("\n")
@@ -229,30 +228,30 @@ class ManOptionItem:
     """A single OPTIONS entry, extracted from a Click option."""
 
     names: tuple[str, ...]
-    """All literal spellings: primary ``opts`` followed by ``secondary_opts``
-    (so ``--foo`` / ``--no-foo`` boolean flags render both)."""
+    """All literal spellings: primary `opts` followed by `secondary_opts`
+    (so `--foo` / `--no-foo` boolean flags render both)."""
 
     metavar: str | None
-    """The rendered metavar, or ``None`` when the option takes no value (boolean
+    """The rendered metavar, or `None` when the option takes no value (boolean
     flags and counters)."""
 
     help: str | None
-    """The option's help text, possibly carrying a ``\\b`` no-rewrap marker."""
+    """The option's help text, possibly carrying a `\\b` no-rewrap marker."""
 
     required: bool
     """Whether the option is mandatory."""
 
     optional_value: bool = False
     """Whether the option's value is optional (a bare flag is allowed). Rendered as
-    the attached ``[=METAVAR]`` form instead of a space-separated metavar."""
+    the attached `[=METAVAR]` form instead of a space-separated metavar."""
 
     def to_roff(self) -> list[str]:
-        """Render this option as a roff tagged paragraph (``.TP``)."""
+        """Render this option as a roff tagged paragraph (`.TP`)."""
         tag = " / ".join(_bold(name) for name in self.names)
         if self.metavar:
             if self.optional_value:
                 # An optional value renders attached and bracketed
-                # (``--color[=auto|always|never]``), the man convention for a flag
+                # (`--color[=auto|always|never]`), the man convention for a flag
                 # usable bare. Strip the metavar's own outer brackets, if any, so a
                 # Choice does not double up.
                 inner = self.metavar
@@ -274,8 +273,8 @@ class ManOptionGroup:
     """A titled cluster of OPTIONS entries, mirroring a Cloup option group.
 
     A plain Click command, or a Cloup command with no explicit
-    ``@option_group``, yields a single group with ``title=None``: it renders as
-    a flat OPTIONS list with no ``.SS`` subsection heading, identical to a man
+    `@option_group`, yields a single group with `title=None`: it renders as
+    a flat OPTIONS list with no `.SS` subsection heading, identical to a man
     page that never grouped its options.
     """
 
@@ -283,14 +282,14 @@ class ManOptionGroup:
     """The option entries in this group."""
 
     title: str | None = None
-    """The subsection heading, rendered as a roff ``.SS``. ``None`` for the
+    """The subsection heading, rendered as a roff `.SS`. `None` for the
     implicit single group of an ungrouped command (no heading emitted)."""
 
     help: str | None = None
     """Optional group description, rendered as prose under the heading."""
 
     def to_roff(self) -> list[str]:
-        """Render an optional ``.SS`` heading, group help, then the options."""
+        """Render an optional `.SS` heading, group help, then the options."""
         lines: list[str] = []
         if self.title:
             lines.append(".SS " + _quote(self.title))
@@ -305,13 +304,13 @@ class ManOptionGroup:
 class ManPage:
     """A whole man page in structured form, ready to render to roff.
 
-    One :class:`ManPage` maps to one command (or subcommand). Its fields are
-    the man-pages(7) sections, in the order :doc:`/man-page` documents them.
-    Build it with :func:`~click_extra.man_page.extract_manpage` and serialize with :meth:`to_roff`.
+    One {class}`ManPage` maps to one command (or subcommand). Its fields are
+    the man-pages(7) sections, in the order {doc}`/man-page` documents them.
+    Build it with {func}`~click_extra.man_page.extract_manpage` and serialize with {meth}`to_roff`.
     """
 
     name: str
-    """Full command path, space-joined (like ``weather forecast``)."""
+    """Full command path, space-joined (like `weather forecast`)."""
 
     short_help: str = ""
     """One-line description for the NAME section."""
@@ -320,48 +319,48 @@ class ManPage:
     """Man section number."""
 
     synopsis_pieces: tuple[str, ...] = ()
-    """Usage metavars after the command name (``[OPTIONS]``, ``CITY``, ...)."""
+    """Usage metavars after the command name (`[OPTIONS]`, `CITY`, ...)."""
 
     description: str = ""
     """The command's full help text / docstring for the DESCRIPTION section."""
 
     operands: tuple[tuple[str, str], ...] = ()
-    """Positional arguments as ``(metavar, help)`` pairs."""
+    """Positional arguments as `(metavar, help)` pairs."""
 
     option_groups: tuple[ManOptionGroup, ...] = ()
     """The OPTIONS entries, partitioned into one or more groups. A command
     without explicit option groups carries a single untitled group."""
 
     subcommands: tuple[tuple[str, str], ...] = ()
-    """For groups: ``(name, short_help)`` pairs for the COMMANDS section."""
+    """For groups: `(name, short_help)` pairs for the COMMANDS section."""
 
     environment: tuple[tuple[str, str], ...] = ()
-    """ENVIRONMENT entries as ``(variable_name, help)`` pairs."""
+    """ENVIRONMENT entries as `(variable_name, help)` pairs."""
 
     files: tuple[str, ...] = ()
     """FILES entries (configuration search patterns)."""
 
     exit_status: tuple[tuple[str, str], ...] = DEFAULT_EXIT_STATUS
-    """EXIT STATUS entries as ``(code, meaning)`` pairs."""
+    """EXIT STATUS entries as `(code, meaning)` pairs."""
 
     version: str | None = None
-    """Version string for the ``.TH`` header."""
+    """Version string for the `.TH` header."""
 
     date: str = ""
-    """Date for the ``.TH`` header (``YYYY-MM-DD``)."""
+    """Date for the `.TH` header (`YYYY-MM-DD`)."""
 
     manual: str | None = None
-    """Manual name for the ``.TH`` header (the centered footer title)."""
+    """Manual name for the `.TH` header (the centered footer title)."""
 
     authors: str | None = None
-    """AUTHORS section content, or ``None`` to omit the section."""
+    """AUTHORS section content, or `None` to omit the section."""
 
     copyright: str | None = None
-    """COPYRIGHT section content, or ``None`` to omit the section."""
+    """COPYRIGHT section content, or `None` to omit the section."""
 
     @property
     def title(self) -> str:
-        """The ``.TH`` page title: the command path, hyphen-joined and upper-cased."""
+        """The `.TH` page title: the command path, hyphen-joined and upper-cased."""
         return self.name.replace(" ", "-").upper()
 
     def to_roff(self) -> str:
@@ -381,8 +380,8 @@ class ManPage:
 
         lines.append(".SH NAME")
         name = _roff_escape(self.name)
-        # ``self.short_help`` is the author's docstring or explicit
-        # ``short_help``: route it through ``_render_inline`` so inline
+        # `self.short_help` is the author's docstring or explicit
+        # `short_help`: route it through `_render_inline` so inline
         # reST literals show up as bold instead of leaking through as
         # raw backticks rendered as quotes by mandoc.
         lines.append(
@@ -453,7 +452,7 @@ class ManPage:
 
 
 def _resolve_date() -> str:
-    """Resolve the man page date, honoring ``SOURCE_DATE_EPOCH`` for reproducible
+    """Resolve the man page date, honoring `SOURCE_DATE_EPOCH` for reproducible
     builds (https://reproducible-builds.org/specs/source-date-epoch/)."""
     epoch = os.environ.get("SOURCE_DATE_EPOCH")
     when = (
@@ -471,11 +470,11 @@ def _distribution_names(ctx: Context) -> tuple[str, ...]:
 
 
 def _resolve_version(ctx: Context) -> str | None:
-    """Best-effort version lookup via :mod:`importlib.metadata`.
+    """Best-effort version lookup via {mod}`importlib.metadata`.
 
     Resolves the distribution from the program name (see
-    :func:`_distribution_names`) and reads its version. Pass ``version=`` to
-    :func:`render_manpage` to override this.
+    {func}`_distribution_names`) and reads its version. Pass `version=` to
+    {func}`render_manpage` to override this.
     """
     name = resolve_distribution(_distribution_names(ctx))
     return metadata.version(name) if name else None
@@ -485,9 +484,9 @@ def _resolve_authors(ctx: Context) -> str | None:
     """Best-effort AUTHORS lookup from distribution metadata.
 
     Resolves the distribution from the program name (see
-    :func:`_distribution_names`) and reads its author(s) through the shared
-    :func:`click_extra.version.resolve_author`, so ``--man`` and ``--version``
-    report the same author string (``Author`` / ``Maintainer`` / email display
+    {func}`_distribution_names`) and reads its author(s) through the shared
+    {func}`click_extra.version.resolve_author`, so `--man` and `--version`
+    report the same author string (`Author` / `Maintainer` / email display
     name, in that order).
     """
     name = resolve_distribution(_distribution_names(ctx))
@@ -495,16 +494,16 @@ def _resolve_authors(ctx: Context) -> str | None:
 
 
 def _config_default(config_option: ConfigOption, ctx: Context) -> str | None:
-    """The portable, home-relative ``--config`` search pattern (as shown in help)."""
+    """The portable, home-relative `--config` search pattern (as shown in help)."""
     return config_option.get_help_extra(ctx).get("default")
 
 
 def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
-    """FILES entries from the command's ``--config`` search pattern, if any.
+    """FILES entries from the command's `--config` search pattern, if any.
 
-    ``ConfigOption.default_pattern`` reads :func:`click.get_current_context`, so
+    `ConfigOption.default_pattern` reads {func}`click.get_current_context`, so
     the context is entered when none is active (the build-time path); the live
-    invocation context (the ``--man`` path) is reused as-is.
+    invocation context (the `--man` path) is reused as-is.
     """
     config_option = search_params(command.params, ConfigOption)
     if not isinstance(config_option, ConfigOption):
@@ -525,11 +524,11 @@ def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
 
 
 def _option_item(param: Parameter, ctx: Context) -> ManOptionItem:
-    """Build a :class:`ManOptionItem` from a single Click option.
+    """Build a {class}`ManOptionItem` from a single Click option.
 
-    The metavar follows :func:`~click_extra.parameters.option_value_kind`: a flag
+    The metavar follows {func}`~click_extra.parameters.option_value_kind`: a flag
     or counter takes no value (no metavar), an optional-value option renders the
-    attached ``[=METAVAR]`` form, and a regular option a space-separated metavar.
+    attached `[=METAVAR]` form, and a regular option a space-separated metavar.
     """
     kind = option_value_kind(param)
     return ManOptionItem(
@@ -549,14 +548,14 @@ def _build_option_groups(
     """Partition extracted options into man-page OPTIONS subsections.
 
     Cloup commands expose explicit option groups: each visible one becomes a
-    titled :class:`ManOptionGroup` (a roff ``.SS``), with the ungrouped
-    remainder gathered under Cloup's default-group title (``Other options``),
-    mirroring the ``--help`` screen. A command with no explicit
-    ``@option_group`` collapses to a single untitled group, rendered as a flat
+    titled {class}`ManOptionGroup` (a roff `.SS`), with the ungrouped
+    remainder gathered under Cloup's default-group title (`Other options`),
+    mirroring the `--help` screen. A command with no explicit
+    `@option_group` collapses to a single untitled group, rendered as a flat
     list exactly as before.
 
     Group membership is matched by option identity, not name: Click Extra's
-    ``--config`` / ``--no-config`` pair shares the ``config`` destination name,
+    `--config` / `--no-config` pair shares the `config` destination name,
     so a name-keyed lookup would drop one of them.
     """
     items_by_id = {id(param): item for param, item in option_items}
@@ -599,10 +598,10 @@ def extract_manpage(
     authors: str | None = None,
     copyright: str | None = None,
 ) -> ManPage:
-    """Build a :class:`ManPage` from a Click command and its context.
+    """Build a {class}`ManPage` from a Click command and its context.
 
-    The context must have been created for ``command`` (for example via
-    :meth:`click.Command.make_context` with ``resilient_parsing=True``), so
+    The context must have been created for `command` (for example via
+    {meth}`click.Command.make_context` with `resilient_parsing=True`), so
     that auto-generated environment-variable prefixes resolve correctly.
     """
     operands: list[tuple[str, str]] = []
@@ -656,13 +655,13 @@ def iter_command_contexts(
     _parent: Context | None = None,
     _path: tuple[str, ...] = (),
 ) -> Iterator[tuple[tuple[str, ...], Command, Context]]:
-    """Walk a command tree, yielding ``(path, command, context)`` for each
+    """Walk a command tree, yielding `(path, command, context)` for each
     visible command.
 
-    Subcommands are discovered dynamically (:meth:`click.Group.list_commands` /
-    :meth:`~click.Group.get_command`), so dynamically-registered commands are
+    Subcommands are discovered dynamically ({meth}`click.Group.list_commands` /
+    {meth}`~click.Group.get_command`), so dynamically-registered commands are
     included. Hidden commands are skipped. Each context is built with
-    ``resilient_parsing=True`` to avoid triggering required-argument errors,
+    `resilient_parsing=True` to avoid triggering required-argument errors,
     prompts, or eager-option side effects.
     """
     info_name = (prog_name or command.name or "") if not _path else (command.name or "")
@@ -682,10 +681,10 @@ def render_manpage(
 ) -> str:
     """Render a single command's man page as a roff string.
 
-    Reuses ``ctx`` when given (like the live invocation context), otherwise
-    builds a throwaway one with ``resilient_parsing=True``. Keyword overrides
-    (``version``, ``date``, ``manual``, ``authors``, ``copyright``) are passed
-    through to :func:`~click_extra.man_page.extract_manpage`.
+    Reuses `ctx` when given (like the live invocation context), otherwise
+    builds a throwaway one with `resilient_parsing=True`. Keyword overrides
+    (`version`, `date`, `manual`, `authors`, `copyright`) are passed
+    through to {func}`~click_extra.man_page.extract_manpage`.
     """
     if ctx is None:
         ctx = make_resilient_context(command, prog_name or command.name)
@@ -701,7 +700,7 @@ def render_manpages(
 
     Returns an ordered mapping of ``{filename: roff}`` where each filename is
     the command path joined by hyphens plus the section suffix (like
-    ``weather-forecast.1``).
+    `weather-forecast.1`).
     """
     pages: dict[str, str] = {}
     for path, cmd, ctx in iter_command_contexts(command, prog_name):
@@ -716,9 +715,9 @@ def write_manpages(
     prog_name: str | None = None,
     **overrides: str | None,
 ) -> list[Path]:
-    """Render the command tree and write each man page into ``target_dir``.
+    """Render the command tree and write each man page into `target_dir`.
 
-    Creates ``target_dir`` if missing. Returns the list of written paths.
+    Creates `target_dir` if missing. Returns the list of written paths.
     """
     target = Path(target_dir)
     target.mkdir(parents=True, exist_ok=True)
@@ -731,32 +730,33 @@ def write_manpages(
 
 
 class ManOption(ExtraOption):
-    """A pre-configured ``--man`` flag that prints the command's man page
+    """A pre-configured `--man` flag that prints the command's man page
     (roff) to stdout and exits.
 
-    Eager and value-less, like :class:`~click_extra.parameters.ShowParamsOption`.
+    Eager and value-less, like {class}`~click_extra.parameters.ShowParamsOption`.
     Part of the default option set injected by
-    :func:`~click_extra.commands.default_params`, so every ``@command``
-    and ``@group`` exposes it. Use
-    :func:`@man_option <click_extra.decorators.man_option>` to add it to a plain
+    {func}`~click_extra.commands.default_params`, so every `@command`
+    and `@group` exposes it. Use
+    {func}`@man_option <click_extra.decorators.man_option>` to add it to a plain
     Click CLI.
 
-    .. note::
-        The flag is named ``--man``, not ``--show-man`` or ``--man-page``.
+    ```{note}
+    The flag is named `--man`, not `--show-man` or `--man-page`.
 
-        In the POSIX, GNU and BSD traditions a program does not emit its own man
-        page through a flag: the page is a separate file read with ``man <prog>``,
-        either hand-written (BSD ``mdoc``) or generated at build time from
-        ``--help`` output (GNU ``help2man``). Click Extra already covers that
-        build-time path with :func:`~click_extra.man_page.write_manpages`, its
-        ``help2man`` equivalent.
+    In the POSIX, GNU and BSD traditions a program does not emit its own man
+    page through a flag: the page is a separate file read with `man <prog>`,
+    either hand-written (BSD `mdoc`) or generated at build time from
+    `--help` output (GNU `help2man`). Click Extra already covers that
+    build-time path with {func}`~click_extra.man_page.write_manpages`, its
+    `help2man` equivalent.
 
-        The one ecosystem that exposes a *runtime* flag is Perl's ``Pod::Usage``,
-        whose convention is ``--help`` for the brief usage and bare ``--man`` for
-        the full manual. ``--man`` also lines up with the neighbouring ``--help``
-        and ``--version`` informational flags, which use bare nouns with no
-        ``show-`` prefix. ``--show-man`` and ``--man-page`` have no precedent
-        outside Click Extra.
+    The one ecosystem that exposes a *runtime* flag is Perl's `Pod::Usage`,
+    whose convention is `--help` for the brief usage and bare `--man` for
+    the full manual. `--man` also lines up with the neighbouring `--help`
+    and `--version` informational flags, which use bare nouns with no
+    `show-` prefix. `--show-man` and `--man-page` have no precedent
+    outside Click Extra.
+    ```
     """
 
     def __init__(

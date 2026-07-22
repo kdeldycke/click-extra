@@ -15,9 +15,9 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Configuration file formats and their stateless content parsers.
 
-Holds the :class:`ConfigFormat` enum, the optional third-party parser probes
-that decide which formats are enabled, and :func:`parse_content`, the stateless
-dispatch used by :class:`~click_extra.config.option.ConfigOption` for every format that
+Holds the {class}`ConfigFormat` enum, the optional third-party parser probes
+that decide which formats are enabled, and {func}`parse_content`, the stateless
+dispatch used by {class}`~click_extra.config.option.ConfigOption` for every format that
 does not need the CLI parameter structure.
 """
 
@@ -56,16 +56,16 @@ _OPTIONAL_PARSERS: tuple[tuple[str, str, str], ...] = (
 """Third-party parsers each gating one optional configuration format.
 
 Each entry pairs the importable module name (probed without importing it) with
-the ``click-extra[extra]`` install target and the human-readable format label
+the `click-extra[extra]` install target and the human-readable format label
 used in the disabled-support debug message."""
 
 PARSER_SUPPORT: dict[str, bool] = {}
-"""Availability of each optional parser, keyed by ``click-extra[extra]`` name.
+"""Availability of each optional parser, keyed by `click-extra[extra]` name.
 
-Populated once at import time by probing each module in ``_OPTIONAL_PARSERS``
-with :func:`importlib.util.find_spec`. Read by :class:`ConfigFormat` to mark the
+Populated once at import time by probing each module in `_OPTIONAL_PARSERS`
+with {func}`importlib.util.find_spec`. Read by {class}`ConfigFormat` to mark the
 matching format as enabled or disabled. The probe does not import the module, so
-the actual parser is loaded lazily by :func:`parse_content` only when used."""
+the actual parser is loaded lazily by {func}`parse_content` only when used."""
 
 for _module_name, _extra, _label in _OPTIONAL_PARSERS:
     PARSER_SUPPORT[_extra] = importlib.util.find_spec(_module_name) is not None
@@ -79,21 +79,22 @@ class ConfigFormat(Enum):
     """All configuration formats, associated to their support status.
 
     The first element of the tuple is a sequence of file extensions associated to the
-    format. Patterns are fed to ``wcmatch.glob`` for matching, and are influenced by the
-    flags set on the ``ConfigOption`` instance.
+    format. Patterns are fed to `wcmatch.glob` for matching, and are influenced by the
+    flags set on the `ConfigOption` instance.
 
     The second element indicates whether the format is supported or not, depending on
     the availability of the required third-party packages. This evaluation is performed
     at runtime when this module is imported.
 
-    .. caution::
-        The order is important for both format members and file patterns. It defines the
-        priority order in which formats are tried when multiple candidate files are found.
+    ```{caution}
+    The order is important for both format members and file patterns. It defines the
+    priority order in which formats are tried when multiple candidate files are found.
+    ```
 
-    .. todo::
-        Add support for `JWCC
-        <https://nigeltao.github.io/blog/2021/json-with-commas-comments.html>`_
-        / `hujson <https://github.com/tailscale/hujson>`_ format?
+    ```{todo}
+    Add support for [JWCC](https://nigeltao.github.io/blog/2021/json-with-commas-comments.html)
+    / [hujson](https://github.com/tailscale/hujson) format?
+    ```
     """
 
     TOML = (("*.toml",), True, "TOML")
@@ -116,7 +117,7 @@ class ConfigFormat(Enum):
 
     @property
     def enabled(self) -> bool:
-        """Returns ``True`` if the format is supported, ``False`` otherwise."""
+        """Returns `True` if the format is supported, `False` otherwise."""
         return self.value[1]  # type: ignore[no-any-return]
 
     @property
@@ -131,11 +132,12 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
     INI is excluded: it needs the CLI parameter structure for type
     coercion and is handled by ConfigOption.load_ini_config.
 
-    .. note::
-        Optional third-party parsers are imported lazily, at the point of use,
-        rather than at module load. Only enabled formats reach this function
-        (disabled ones are filtered out of ``ConfigOption.file_format_patterns``),
-        so the import always resolves for the formats actually parsed here.
+    ```{note}
+    Optional third-party parsers are imported lazily, at the point of use,
+    rather than at module load. Only enabled formats reach this function
+    (disabled ones are filtered out of `ConfigOption.file_format_patterns`),
+    so the import always resolves for the formats actually parsed here.
+    ```
     """
     match fmt:
         case ConfigFormat.TOML:
@@ -184,35 +186,38 @@ SERIALIZABLE_FORMATS: tuple[ConfigFormat, ...] = (
     ConfigFormat.HJSON,
     ConfigFormat.XML,
 )
-"""Configuration formats :func:`serialize_content` can write, in priority order.
+"""Configuration formats {func}`serialize_content` can write, in priority order.
 
-Every :class:`ConfigFormat` except :attr:`~ConfigFormat.INI` and
-:attr:`~ConfigFormat.PYPROJECT_TOML`, which have no serializer. ``JSON``,
-``JSON5`` and ``JSONC`` are emitted as plain JSON through the standard library,
+Every {class}`ConfigFormat` except {attr}`~ConfigFormat.INI` and
+{attr}`~ConfigFormat.PYPROJECT_TOML`, which have no serializer. `JSON`,
+`JSON5` and `JSONC` are emitted as plain JSON through the standard library,
 so they need no optional dependency; the others require their format's extra.
 
-.. caution::
-    Keep this in sync with the ``match`` statement in :func:`serialize_content`.
+```{caution}
+Keep this in sync with the `match` statement in {func}`serialize_content`.
+```
 """
 
 
 def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
     """Serialize a Python object to a string in the given format.
 
-    The dumping counterpart to :func:`parse_content`. Per-format defaults can be
-    overridden through ``kwargs`` (forwarded to the underlying serializer). JSON5
+    The dumping counterpart to {func}`parse_content`. Per-format defaults can be
+    overridden through `kwargs` (forwarded to the underlying serializer). JSON5
     and JSONC are emitted as plain JSON, a valid subset of both.
 
-    .. caution::
-        Not every format round-trips: ``TOML`` and ``XML`` have no null type, and
-        ``XML`` expects a single root mapping, so the caller is responsible for
-        shaping ``data`` accordingly. ``INI`` and ``pyproject.toml`` have no
-        serializer here.
+    ```{caution}
+    Not every format round-trips: `TOML` and `XML` have no null type, and
+    `XML` expects a single root mapping, so the caller is responsible for
+    shaping `data` accordingly. `INI` and `pyproject.toml` have no
+    serializer here.
+    ```
 
-    .. note::
-        Optional third-party serializers are imported lazily, at the point of use.
-        Writing ``TOML`` uses ``tomlkit`` (the ``[toml]`` extra), unlike reading
-        which relies on the built-in ``tomllib``.
+    ```{note}
+    Optional third-party serializers are imported lazily, at the point of use.
+    Writing `TOML` uses `tomlkit` (the `[toml]` extra), unlike reading
+    which relies on the built-in `tomllib`.
+    ```
 
     :raises ValueError: the format has no serializer.
     """
@@ -265,10 +270,10 @@ def format_from_path(
     """Return the configuration format whose patterns match a file name.
 
     The name is matched against each format's
-    :attr:`~click_extra.config.formats.ConfigFormat.patterns`, so ``app.toml``
-    resolves to ``TOML`` and ``app.yml`` to ``YAML``. ``formats`` restricts and
+    {attr}`~click_extra.config.formats.ConfigFormat.patterns`, so `app.toml`
+    resolves to `TOML` and `app.yml` to `YAML`. `formats` restricts and
     orders the candidates (the first match wins); it defaults to every
-    :class:`~click_extra.config.formats.ConfigFormat`.
+    {class}`~click_extra.config.formats.ConfigFormat`.
     """
     candidates = tuple(ConfigFormat) if formats is None else formats
     for fmt in candidates:
@@ -280,11 +285,11 @@ def format_from_path(
 def disabled_format_message(fmt: ConfigFormat) -> str:
     """Build the "format support disabled, install the extra" message for a format.
 
-    The single source for the :exc:`ImportError` text raised when a format whose
-    optional parser is not installed is requested, shared by :func:`read_file` and
-    :func:`click_extra.test_suite.parse_test_suite`. A format's
-    :attr:`~click_extra.config.formats.ConfigFormat.label`, lower-cased, is its
-    ``click-extra[<extra>]`` install target.
+    The single source for the {exc}`ImportError` text raised when a format whose
+    optional parser is not installed is requested, shared by {func}`read_file` and
+    {func}`click_extra.test_suite.parse_test_suite`. A format's
+    {attr}`~click_extra.config.formats.ConfigFormat.label`, lower-cased, is its
+    `click-extra[<extra>]` install target.
     """
     return (
         f"{fmt} support disabled: install click-extra[{fmt.label.lower()}] "
@@ -295,11 +300,11 @@ def disabled_format_message(fmt: ConfigFormat) -> str:
 def read_file(path: Path, formats: Iterable[ConfigFormat] | None = None) -> Any:
     """Read a file and parse it, picking the format from its name.
 
-    The format is resolved with :func:`format_from_path` over ``formats`` (every
-    :class:`~click_extra.config.formats.ConfigFormat` by default), then the
-    content is parsed with :func:`parse_content`.
+    The format is resolved with {func}`format_from_path` over `formats` (every
+    {class}`~click_extra.config.formats.ConfigFormat` by default), then the
+    content is parsed with {func}`parse_content`.
 
-    :raises ValueError: the file name matches none of the candidate ``formats``.
+    :raises ValueError: the file name matches none of the candidate `formats`.
     :raises ImportError: the matched format's optional parser is not installed.
     """
     fmt = format_from_path(path, formats)

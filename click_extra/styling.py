@@ -13,36 +13,36 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Drop-in replacement for ``cloup.Style`` with extra features.
+"""Drop-in replacement for `cloup.Style` with extra features.
 
-The module name mirrors ``cloup.styling``, the upstream module that hosts
-the original ``Style`` class. Click Extra's :class:`Style` is a subclass that
-keeps cloup's runtime contract (calling, equality, hashing, ``with_()``)
+The module name mirrors `cloup.styling`, the upstream module that hosts
+the original `Style` class. Click Extra's {class}`Style` is a subclass that
+keeps cloup's runtime contract (calling, equality, hashing, `with_()`)
 intact and adds:
 
-- A compact, single-line ``__repr__`` that hides ``None`` and falsy
-  attributes and renders RGB tuples as ``#rrggbb`` hex.
-- Hex-string color shorthand: ``Style(fg="#f1fa8c")`` works alongside
-  ``Style(fg=(241, 250, 140))``.
-- A ``__str__`` that returns the styled word ``"sample"`` so REPL prints and
+- A compact, single-line `__repr__` that hides `None` and falsy
+  attributes and renders RGB tuples as `#rrggbb` hex.
+- Hex-string color shorthand: `Style(fg="#f1fa8c")` works alongside
+  `Style(fg=(241, 250, 140))`.
+- A `__str__` that returns the styled word `"sample"` so REPL prints and
   debuggers visualize what the style does, not just its fields.
-- A composition operator ``a | b`` that merges two styles, with the right
+- A composition operator `a | b` that merges two styles, with the right
   operand winning on conflicts.
-- A :meth:`Style.cascade` method that fills the style's ``None`` fields from
+- A {meth}`Style.cascade` method that fills the style's `None` fields from
   a base style without overriding any value already set.
-- :meth:`Style.to_dict` / :meth:`Style.from_dict` for round-tripping styles
+- {meth}`Style.to_dict` / {meth}`Style.from_dict` for round-tripping styles
   through TOML/JSON/YAML.
-- :meth:`Style.to_css` for emitting CSS-equivalent declarations: useful for
+- {meth}`Style.to_css` for emitting CSS-equivalent declarations: useful for
   HTML renderings of help screens.
-- :meth:`Style.from_ansi` for parsing an ANSI SGR escape sequence back into
-  a ``Style`` instance.
-- :meth:`Style.contrast_ratio` returning the WCAG contrast ratio between
+- {meth}`Style.from_ansi` for parsing an ANSI SGR escape sequence back into
+  a `Style` instance.
+- {meth}`Style.contrast_ratio` returning the WCAG contrast ratio between
   two foreground colors. Useful for theme designers checking accessibility.
-- :func:`split_ansi` and :func:`render_ansi` for tokenizing a string mixing
+- {func}`split_ansi` and {func}`render_ansi` for tokenizing a string mixing
   text and ANSI escapes into styled runs, and re-rendering those runs through
   a markup emitter.
-- The :func:`ansi_to_html`, :func:`ansi_to_jira`, :func:`ansi_to_latex` and
-  :func:`ansi_to_textile` converters, translating ANSI styling to markup
+- The {func}`ansi_to_html`, {func}`ansi_to_jira`, {func}`ansi_to_latex` and
+  {func}`ansi_to_textile` converters, translating ANSI styling to markup
   languages with native styling support.
 """
 
@@ -86,20 +86,21 @@ _ANSI_16_RGB: tuple[tuple[int, int, int], ...] = (
 
 The single source of truth wherever a named ANSI color, or one of the first 16
 slots of the 256-color palette, must materialize as a concrete RGB value:
-:meth:`Style.to_css` (``bright_*`` names are not valid CSS keywords),
-:meth:`Style.contrast_ratio` (luminance needs RGB), :func:`_palette_to_rgb`
+{meth}`Style.to_css` (`bright_*` names are not valid CSS keywords),
+{meth}`Style.contrast_ratio` (luminance needs RGB), {func}`_palette_to_rgb`
 (indices 0-15), and the palettes rendering terminal sessions in the
-documentation (``click_extra.pygments._NAMED_COLORS`` and ``_PALETTE_256``).
+documentation (`click_extra.pygments._NAMED_COLORS` and `_PALETTE_256`).
 
 Values are the ones the documentation always rendered: Tango-flavored normal
 colors and iTerm2's default brights, picked for legibility on both light and
 dark backgrounds.
 
-.. note::
-    The 8 base *named* colors keep bypassing this table in markup output:
-    :func:`_color_to_css` emits them as plain CSS keywords (and the Jira and
-    LaTeX emitters as macro/xcolor names), delegating the exact shade to the
-    renderer. This table only answers when a concrete value is unavoidable.
+```{note}
+The 8 base *named* colors keep bypassing this table in markup output:
+{func}`_color_to_css` emits them as plain CSS keywords (and the Jira and
+LaTeX emitters as macro/xcolor names), delegating the exact shade to the
+renderer. This table only answers when a concrete value is unavoidable.
+```
 """
 
 _ANSI_NAMES: tuple[str, ...] = (
@@ -117,15 +118,15 @@ _ANSI_NAMES: tuple[str, ...] = (
 _CUBE_VALUES: tuple[int, ...] = (0, 95, 135, 175, 215, 255)
 
 # Single source of truth mapping each boolean style attribute to its CSS
-# ``(property, value)`` equivalent. Consumed by :meth:`Style.to_css` (which
-# groups the three ``text-decoration`` attributes into one declaration) and,
-# in its declaration-string form, by ``click_extra.theme_docs._PALETTE_ATTR_CSS``
+# `(property, value)` equivalent. Consumed by {meth}`Style.to_css` (which
+# groups the three `text-decoration` attributes into one declaration) and,
+# in its declaration-string form, by `click_extra.theme_docs._PALETTE_ATTR_CSS`
 # to render the documentation palette's attribute pills.
 #
-# ``blink`` maps to an empty pair on purpose: there is no standard CSS for it
-# (the legacy ``text-decoration: blink`` keyword is non-functional in modern
+# `blink` maps to an empty pair on purpose: there is no standard CSS for it
+# (the legacy `text-decoration: blink` keyword is non-functional in modern
 # browsers). It is therefore omitted from the rendered CSS. Animated blink is
-# handled separately by ``click_extra.pygments`` via a ``@keyframes`` rule.
+# handled separately by `click_extra.pygments` via a `@keyframes` rule.
 _ATTR_CSS: dict[str, tuple[str, str]] = {
     "bold": ("font-weight", "bold"),
     "dim": ("opacity", "0.6"),
@@ -140,17 +141,17 @@ _ATTR_CSS: dict[str, tuple[str, str]] = {
 # Boolean style attributes processed in repr/css/from_ansi, in palette order.
 _BOOL_ATTRS: tuple[str, ...] = tuple(_ATTR_CSS)
 
-# Match a single ANSI SGR escape: ``\x1b[...m``. The parameter substring may be
-# empty: ``\x1b[m`` is a valid, parameter-less full reset.
+# Match a single ANSI SGR escape: `\x1b[...m`. The parameter substring may be
+# empty: `\x1b[m` is a valid, parameter-less full reset.
 _ANSI_SGR_RE: re.Pattern[str] = re.compile(r"\x1b\[([0-9;]*)m")
 
 
 # --- Shared dict round-trip helpers ------------------------------------------
 #
-# ``Style`` (per-attribute) and ``HelpTheme`` (per-slot) both serialize
+# `Style` (per-attribute) and `HelpTheme` (per-slot) both serialize
 # their dataclass fields to plain dicts for TOML/JSON/YAML round-tripping.
-# These helpers codify the shared rules: walk ``dataclasses.fields``, skip
-# cloup's lazy ``_style_kwargs`` cache, skip values that match the field
+# These helpers codify the shared rules: walk `dataclasses.fields`, skip
+# cloup's lazy `_style_kwargs` cache, skip values that match the field
 # default, and raise on unknown keys with a clear message.
 
 
@@ -162,16 +163,16 @@ def fields_to_dict(
 ) -> dict[str, Any]:
     """Serialize a dataclass instance to a dict of set fields.
 
-    Walks every field via :func:`dataclasses.fields`, skips the internal
-    ``_style_kwargs`` cache, applies *keep* to decide which fields are
+    Walks every field via {func}`dataclasses.fields`, skips the internal
+    `_style_kwargs` cache, applies *keep* to decide which fields are
     written (default: every non-default field), and passes the surviving
     values through *encode* (default: identity).
 
     :param instance: the dataclass to serialize.
-    :param encode: callable ``(field, value) -> encoded_value`` applied to
-        every kept value. Use to convert RGB tuples to ``#rrggbb`` strings,
+    :param encode: callable `(field, value) -> encoded_value` applied to
+        every kept value. Use to convert RGB tuples to `#rrggbb` strings,
         nested dataclasses to dicts, etc.
-    :param keep: callable ``(field, value) -> bool`` deciding whether the
+    :param keep: callable `(field, value) -> bool` deciding whether the
         field is emitted. Default keeps everything that differs from the
         field's declared default.
     """
@@ -196,13 +197,13 @@ def dict_to_fields(
 ) -> dict[str, Any]:
     """Validate *data*'s keys against *cls*'s dataclass fields and decode them.
 
-    Returns a kwargs dict ready to splat into ``cls(**kwargs)``. Raises
-    :class:`TypeError` listing every unknown key, so callers can build
+    Returns a kwargs dict ready to splat into `cls(**kwargs)`. Raises
+    {class}`TypeError` listing every unknown key, so callers can build
     a constructor call without an extra pre-validation pass.
 
     :param cls: the dataclass type whose fields define the legal keys.
     :param data: mapping from field name to a serialized value.
-    :param decode: callable ``(field, raw) -> decoded_value`` invoked for
+    :param decode: callable `(field, raw) -> decoded_value` invoked for
         every recognized key. Default returns the raw value unchanged.
     """
     fields_by_name = {f.name: f for f in fields(cls)}
@@ -218,7 +219,7 @@ def dict_to_fields(
 
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
-    """Parse a hex color (``#rrggbb`` or shorthand ``#rgb``) to an RGB tuple."""
+    """Parse a hex color (`#rrggbb` or shorthand `#rgb`) to an RGB tuple."""
     s = value.lstrip("#").lower()
     if len(s) not in (3, 6):
         raise ValueError(f"Not a valid hex color: {value!r}")
@@ -231,10 +232,10 @@ def _hex_to_rgb(value: str) -> tuple[int, int, int]:
 
 
 def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
-    """Format an ``(r, g, b)`` tuple as a ``#rrggbb`` hex string.
+    """Format an `(r, g, b)` tuple as a `#rrggbb` hex string.
 
-    The inverse of :func:`_hex_to_rgb`. The single source of truth for the
-    RGB-to-hex rendering shared by ``__repr__``, ``to_css``, ``to_dict``, and
+    The inverse of {func}`_hex_to_rgb`. The single source of truth for the
+    RGB-to-hex rendering shared by `__repr__`, `to_css`, `to_dict`, and
     the documentation palette.
     """
     r, g, b = rgb
@@ -246,7 +247,7 @@ def _palette_to_rgb(idx: int) -> tuple[int, int, int]:
 
     Indices 0-15 are the terminal's *system colors*: terminals render them with
     their theme's palette, so they resolve through the canonical
-    :data:`_ANSI_16_RGB` table. Indices 16-231 (the 6x6x6 color cube) and
+    {data}`_ANSI_16_RGB` table. Indices 16-231 (the 6x6x6 color cube) and
     232-255 (the grayscale ramp) are fixed by the xterm 256-color layout.
     """
     if 0 <= idx < 16:
@@ -268,19 +269,19 @@ def _palette_to_rgb(idx: int) -> tuple[int, int, int]:
 def _nearest_256(r: int, g: int, b: int) -> int:
     """Map a 24-bit RGB triplet to the nearest index in the 256-color palette.
 
-    The inverse of :func:`_palette_to_rgb`. Compares the Euclidean distance in RGB
+    The inverse of {func}`_palette_to_rgb`. Compares the Euclidean distance in RGB
     space against both the 6x6x6 color cube (indices 16-231) and the grayscale ramp
     (indices 232-255), returning whichever is closer.
 
-    Used by ``Style.__call__`` to downsample branded-theme colors when the
-    terminal lacks truecolor (see :func:`supports_truecolor`), and by
-    ``click_extra.pygments`` and ``click_extra.cli`` for the same 24-bit-to-8-bit
+    Used by `Style.__call__` to downsample branded-theme colors when the
+    terminal lacks truecolor (see {func}`supports_truecolor`), and by
+    `click_extra.pygments` and `click_extra.cli` for the same 24-bit-to-8-bit
     quantization.
 
-    .. seealso::
-        `Previous implementation
-        <https://github.com/kdeldycke/dotfiles/blob/64d29369/starship-ansi-colors.py>`_
-        of full-color to 8-bit quantization.
+    ```{seealso}
+    [Previous implementation](https://github.com/kdeldycke/dotfiles/blob/64d29369/starship-ansi-colors.py)
+    of full-color to 8-bit quantization.
+    ```
     """
     # Color cube (indices 16-231).
     ci = [
@@ -304,11 +305,11 @@ def _nearest_256(r: int, g: int, b: int) -> int:
 
 
 def _resolve_rgb(color: object) -> tuple[int, int, int]:
-    """Best-effort conversion of any color value to an ``(r, g, b)`` tuple.
+    """Best-effort conversion of any color value to an `(r, g, b)` tuple.
 
-    Accepts hex strings, named ANSI strings (``"red"``, ``"bright_blue"``),
-    palette indices (``int``), and ``Color``-enum-like objects with a
-    ``.name`` attribute.
+    Accepts hex strings, named ANSI strings (`"red"`, `"bright_blue"`),
+    palette indices (`int`), and `Color`-enum-like objects with a
+    `.name` attribute.
     """
     if isinstance(color, tuple) and len(color) == 3:
         return color
@@ -326,7 +327,7 @@ def _resolve_rgb(color: object) -> tuple[int, int, int]:
 
 
 def _color_repr(value: object) -> str:
-    """Compact human-readable form of a color value for ``__repr__``."""
+    """Compact human-readable form of a color value for `__repr__`."""
     if isinstance(value, tuple) and len(value) == 3:
         return _rgb_to_hex(value)
     if hasattr(value, "name") and not isinstance(value, str):
@@ -352,7 +353,7 @@ def _color_to_css(color: object) -> str:
 
 
 def _relative_luminance(color: object) -> float:
-    """WCAG relative luminance for a color value, in ``[0, 1]``.
+    """WCAG relative luminance for a color value, in `[0, 1]`.
 
     See: https://www.w3.org/TR/WCAG22/#dfn-relative-luminance
     """
@@ -368,11 +369,10 @@ def _relative_luminance(color: object) -> float:
 # --- Terminal color-depth detection -----------------------------------------
 
 _TRUECOLOR_COLORTERMS = frozenset({"truecolor", "24bit"})
-"""``COLORTERM`` values that advertise 24-bit (truecolor) support.
+"""`COLORTERM` values that advertise 24-bit (truecolor) support.
 
-The two tokens `Rich
-<https://github.com/Textualize/rich/blob/master/rich/console.py>`_ and the wider
-terminal ecosystem agree on. Any other non-empty ``COLORTERM`` is read as a
+The two tokens [Rich](https://github.com/Textualize/rich/blob/master/rich/console.py) and the wider
+terminal ecosystem agree on. Any other non-empty `COLORTERM` is read as a
 deliberate *non*-truecolor advertisement.
 """
 
@@ -380,28 +380,28 @@ deliberate *non*-truecolor advertisement.
 def supports_truecolor() -> bool:
     """Whether the terminal is assumed to render 24-bit (truecolor) ANSI.
 
-    Drives ``Style.__call__``'s choice between emitting a 24-bit
-    ``38;2;r;g;b`` sequence and quantizing it to the nearest ``38;5;n`` 256-color
+    Drives `Style.__call__`'s choice between emitting a 24-bit
+    `38;2;r;g;b` sequence and quantizing it to the nearest `38;5;n` 256-color
     index, so a branded theme's RGB colors degrade gracefully on a terminal that
     cannot display them.
 
     The policy is optimistic: assume truecolor unless the environment positively
     says otherwise. Precedence, highest first:
 
-    #. ``COLORTERM`` of ``truecolor`` / ``24bit`` (see
-       ``_TRUECOLOR_COLORTERMS``) keeps 24-bit.
-    #. Any other non-empty ``COLORTERM`` quantizes: an explicit lower
+    #. `COLORTERM` of `truecolor` / `24bit` (see
+       `_TRUECOLOR_COLORTERMS`) keeps 24-bit.
+    #. Any other non-empty `COLORTERM` quantizes: an explicit lower
        advertisement.
-    #. A ``TERM`` ending in ``-16color`` quantizes: an unambiguous sub-256
-       terminal. ``*-256color`` is deliberately *not* treated as a downgrade,
+    #. A `TERM` ending in `-16color` quantizes: an unambiguous sub-256
+       terminal. `*-256color` is deliberately *not* treated as a downgrade,
        since truecolor terminals routinely report it while advertising their
-       24-bit support through ``COLORTERM`` instead. Honoring it would strip
+       24-bit support through `COLORTERM` instead. Honoring it would strip
        truecolor from the very terminals this optimistic default protects.
     #. Otherwise keeps 24-bit.
 
-    A ``dumb`` / ``unknown`` ``TERM`` never reaches this decision for CLI output:
+    A `dumb` / `unknown` `TERM` never reaches this decision for CLI output:
     it has already disabled color upstream through
-    :func:`~click_extra.color.resolve_color_env`.
+    {func}`~click_extra.color.resolve_color_env`.
     """
     colorterm = os.environ.get("COLORTERM", "").strip().lower()
     if colorterm:
@@ -412,10 +412,10 @@ def supports_truecolor() -> bool:
 def _quantize_color(
     color: str | tuple[int, int, int] | int | None,
 ) -> str | tuple[int, int, int] | int | None:
-    """Map a 24-bit RGB ``(r, g, b)`` color to its nearest 256-palette index.
+    """Map a 24-bit RGB `(r, g, b)` color to its nearest 256-palette index.
 
-    Any non-tuple color (a named ANSI string, an existing palette ``int``, or
-    ``None``) is returned untouched: only true-color values need quantizing.
+    Any non-tuple color (a named ANSI string, an existing palette `int`, or
+    `None`) is returned untouched: only true-color values need quantizing.
     """
     if isinstance(color, tuple) and len(color) == 3:
         return _nearest_256(*color)
@@ -427,25 +427,25 @@ def _quantize_color(
 
 @dataclass(frozen=True, repr=False)
 class Style(cloup.Style):
-    """``cloup.Style`` with extra ergonomics.
+    """`cloup.Style` with extra ergonomics.
 
     See the module docstring for the full list of additions. The runtime
     contract (calling the instance to apply styling, equality, hashing,
-    ``with_()``) is otherwise identical to ``cloup.Style``.
+    `with_()`) is otherwise identical to `cloup.Style`.
     """
 
     fg: str | tuple[int, int, int] | int | None = None  # type: ignore[assignment]
-    """Foreground color: named ANSI string, ``#rrggbb`` hex, RGB tuple, or palette index."""
+    """Foreground color: named ANSI string, `#rrggbb` hex, RGB tuple, or palette index."""
 
     bg: str | tuple[int, int, int] | int | None = None  # type: ignore[assignment]
-    """Background color: named ANSI string, ``#rrggbb`` hex, RGB tuple, or palette index."""
+    """Background color: named ANSI string, `#rrggbb` hex, RGB tuple, or palette index."""
 
     def __post_init__(self) -> None:
-        """Convert ``#rrggbb`` shorthand strings on ``fg``/``bg`` to RGB tuples.
+        """Convert `#rrggbb` shorthand strings on `fg`/`bg` to RGB tuples.
 
-        Frozen dataclass: must use :func:`object.__setattr__` to bypass the
+        Frozen dataclass: must use {func}`object.__setattr__` to bypass the
         frozen guard. Runs once at construction; cloup's lazy
-        ``_style_kwargs`` cache (built on first ``__call__``) picks up the
+        `_style_kwargs` cache (built on first `__call__`) picks up the
         converted values.
         """
         if isinstance(self.fg, str) and self.fg.startswith("#"):
@@ -456,10 +456,10 @@ class Style(cloup.Style):
     def __call__(self, text: str) -> str:
         """Apply the style, quantizing 24-bit colors when truecolor is unavailable.
 
-        On a truecolor terminal (see :func:`supports_truecolor`) this is cloup's
-        unchanged behavior: RGB ``fg`` / ``bg`` emit ``38;2;r;g;b`` sequences. When
+        On a truecolor terminal (see {func}`supports_truecolor`) this is cloup's
+        unchanged behavior: RGB `fg` / `bg` emit `38;2;r;g;b` sequences. When
         the terminal does not advertise truecolor, RGB colors are downsampled to the
-        nearest ``38;5;n`` 256-color index so a branded theme degrades instead of
+        nearest `38;5;n` 256-color index so a branded theme degrades instead of
         relying on the terminal to convert. Named and palette-index colors are
         unaffected either way.
         """
@@ -469,8 +469,8 @@ class Style(cloup.Style):
         bg = _quantize_color(self.bg)
         if fg is self.fg and bg is self.bg:
             return super().__call__(text)
-        # Quantize on a transient copy. ``replace`` resets cloup's lazy
-        # ``_style_kwargs`` cache (the field is ``init=False``), so the singleton
+        # Quantize on a transient copy. `replace` resets cloup's lazy
+        # `_style_kwargs` cache (the field is `init=False`), so the singleton
         # theme styles keep their truecolor cache intact for the next call.
         return replace(self, fg=fg, bg=bg)(text)
 
@@ -488,9 +488,9 @@ class Style(cloup.Style):
         return f"Style({', '.join(parts)})"
 
     def __str__(self) -> str:
-        """Return the word ``"sample"`` styled with this Style.
+        """Return the word `"sample"` styled with this Style.
 
-        Lets ``print(style)`` and debuggers visualize the style instead of
+        Lets `print(style)` and debuggers visualize the style instead of
         dumping its fields.
         """
         return self("sample")
@@ -498,7 +498,7 @@ class Style(cloup.Style):
     def __eq__(self, other: object) -> bool:
         """Equality on the publicly-set fields.
 
-        Excludes cloup's lazily-populated ``_style_kwargs`` cache so two
+        Excludes cloup's lazily-populated `_style_kwargs` cache so two
         otherwise-identical styles compare equal whether or not either has
         been called yet.
         """
@@ -512,7 +512,7 @@ class Style(cloup.Style):
         return True
 
     def __hash__(self) -> int:
-        """Hash mirroring :meth:`__eq__`: skip the lazy ``_style_kwargs`` cache."""
+        """Hash mirroring {meth}`__eq__`: skip the lazy `_style_kwargs` cache."""
         return hash(
             tuple(
                 getattr(self, f.name) for f in fields(self) if f.name != "_style_kwargs"
@@ -521,11 +521,11 @@ class Style(cloup.Style):
 
     @staticmethod
     def _merge(base: cloup.Style, top: cloup.Style) -> Style:
-        """Return a :class:`Style` where *top*'s set fields override *base*'s.
+        """Return a {class}`Style` where *top*'s set fields override *base*'s.
 
         Field walked from *base* so we don't depend on *top* being our own
-        subclass: cloup's :class:`~cloup.Style` works fine as the right
-        operand of ``|``.
+        subclass: cloup's {class}`~cloup.Style` works fine as the right
+        operand of `|`.
         """
         merged: dict[str, Any] = {}
         for f in fields(base):
@@ -533,31 +533,31 @@ class Style(cloup.Style):
                 continue
             top_val = getattr(top, f.name)
             merged[f.name] = top_val if top_val is not None else getattr(base, f.name)
-        # Pick the most specific class present so ``my_style | cloup_style``
-        # still returns a ``Style`` (this subclass).
+        # Pick the most specific class present so `my_style | cloup_style`
+        # still returns a `Style` (this subclass).
         cls = type(top) if isinstance(top, Style) else type(base)
         if not isinstance(cls, type) or not issubclass(cls, Style):
             cls = Style
         return cls(**merged)
 
     def __or__(self, other: object) -> Style:
-        """``a | b`` merges two styles. ``b``'s set fields win on conflicts."""
+        """`a | b` merges two styles. `b`'s set fields win on conflicts."""
         if not isinstance(other, cloup.Style):
             return NotImplemented
         return self._merge(self, other)
 
     def __ror__(self, other: object) -> Style:
-        """Reflected ``|``: ``other | self`` where ``self``'s fields win."""
+        """Reflected `|`: `other | self` where `self`'s fields win."""
         if not isinstance(other, cloup.Style):
             return NotImplemented
         return self._merge(other, self)
 
     def cascade(self, base: cloup.Style) -> Style:
-        """Return a copy with ``None`` fields filled in from *base*.
+        """Return a copy with `None` fields filled in from *base*.
 
-        The instance's own non-``None`` values always win: ``cascade`` only
-        fills gaps. Useful for theme inheritance: ``derived.cascade(parent)``
-        keeps ``derived``'s overrides and inherits the rest from ``parent``.
+        The instance's own non-`None` values always win: `cascade` only
+        fills gaps. Useful for theme inheritance: `derived.cascade(parent)`
+        keeps `derived`'s overrides and inherits the rest from `parent`.
         """
         if not isinstance(base, cloup.Style):
             raise TypeError(f"Cannot cascade onto {type(base).__name__}: not a Style.")
@@ -565,10 +565,10 @@ class Style(cloup.Style):
 
     @staticmethod
     def _encode_field(_field: Any, value: Any) -> Any:
-        """Encode a field value for :meth:`to_dict`.
+        """Encode a field value for {meth}`to_dict`.
 
-        RGB tuples become ``#rrggbb`` strings; enum-shaped objects with a
-        ``.name`` are serialized by name; everything else passes through.
+        RGB tuples become `#rrggbb` strings; enum-shaped objects with a
+        `.name` are serialized by name; everything else passes through.
         """
         if isinstance(value, tuple) and len(value) == 3:
             return _rgb_to_hex(value)
@@ -579,18 +579,18 @@ class Style(cloup.Style):
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dict with only the set fields.
 
-        RGB tuples are emitted as ``#rrggbb`` strings so the result
+        RGB tuples are emitted as `#rrggbb` strings so the result
         round-trips through TOML/JSON/YAML untouched. Pair with
-        :meth:`from_dict` to rebuild a :class:`Style`.
+        {meth}`from_dict` to rebuild a {class}`Style`.
         """
         return fields_to_dict(self, encode=self._encode_field)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Style:
-        """Build a :class:`Style` from the plain dict produced by :meth:`to_dict`.
+        """Build a {class}`Style` from the plain dict produced by {meth}`to_dict`.
 
-        Validates that every key in *data* names a known :class:`Style` field
-        and raises :class:`TypeError` otherwise. Pair with :meth:`to_dict`
+        Validates that every key in *data* names a known {class}`Style` field
+        and raises {class}`TypeError` otherwise. Pair with {meth}`to_dict`
         to round-trip through TOML/JSON/YAML.
         """
         return cls(**dict_to_fields(cls, data))
@@ -598,18 +598,18 @@ class Style(cloup.Style):
     def to_css(self) -> str:
         """Render the style as a semicolon-separated CSS declaration list.
 
-        ``Style(fg="#f1fa8c", bold=True).to_css()`` returns
-        ``"color: #f1fa8c; font-weight: bold"``. Suitable for inline
-        ``style="..."`` attributes on HTML spans.
+        `Style(fg="#f1fa8c", bold=True).to_css()` returns
+        `"color: #f1fa8c; font-weight: bold"`. Suitable for inline
+        `style="..."` attributes on HTML spans.
         """
         parts: list[str] = []
         if self.fg is not None:
             parts.append(f"color: {_color_to_css(self.fg)}")
         if self.bg is not None:
             parts.append(f"background-color: {_color_to_css(self.bg)}")
-        # Per-attribute CSS comes from the shared ``_ATTR_CSS`` source of
-        # truth. The three ``text-decoration`` attributes are grouped into a
-        # single declaration; ``blink`` (empty pair) is skipped.
+        # Per-attribute CSS comes from the shared `_ATTR_CSS` source of
+        # truth. The three `text-decoration` attributes are grouped into a
+        # single declaration; `blink` (empty pair) is skipped.
         if self.bold:
             prop, value = _ATTR_CSS["bold"]
             parts.append(f"{prop}: {value}")
@@ -633,20 +633,20 @@ class Style(cloup.Style):
 
     @classmethod
     def from_ansi(cls, escape: str) -> Style:
-        """Parse one or more consecutive ANSI SGR escapes into a :class:`Style`.
+        """Parse one or more consecutive ANSI SGR escapes into a {class}`Style`.
 
         Supports the standard 8/16-color codes (30–37, 40–47, 90–97,
-        100–107), the ``38;5;n`` / ``48;5;n`` 256-color extension, and the
-        ``38;2;r;g;b`` / ``48;2;r;g;b`` 24-bit extension. Reset codes (the
-        full ``0`` reset, its parameter-less ``\\x1b[m`` form included, and
-        selective resets like ``22``, ``39`` or ``49``) are ignored, so
+        100–107), the `38;5;n` / `48;5;n` 256-color extension, and the
+        `38;2;r;g;b` / `48;2;r;g;b` 24-bit extension. Reset codes (the
+        full `0` reset, its parameter-less `\\x1b[m` form included, and
+        selective resets like `22`, `39` or `49`) are ignored, so
         parsing the full output of a style call (trailing reset included)
         recovers that style. Multiple back-to-back escapes (as click emits
-        when combining colors with attributes: ``\\x1b[31m\\x1b[1m``) are
-        merged into a single :class:`Style`.
+        when combining colors with attributes: `\\x1b[31m\\x1b[1m`) are
+        merged into a single {class}`Style`.
 
         To tokenize a string mixing text and escapes, with resets honored,
-        see :func:`split_ansi`.
+        see {func}`split_ansi`.
         """
         matches = list(_ANSI_SGR_RE.finditer(escape))
         if not matches:
@@ -659,7 +659,7 @@ class Style(cloup.Style):
     def contrast_ratio(self, other: cloup.Style) -> float:
         """Return the WCAG 2.x contrast ratio between this fg and *other*'s fg.
 
-        Result is in ``[1, 21]``: 1 = identical colors (no contrast),
+        Result is in `[1, 21]`: 1 = identical colors (no contrast),
         21 = maximum contrast (black on white). WCAG AA requires 4.5+ for
         normal text, 3.0+ for large text; AAA wants 7.0+ and 4.5+ respectively.
         """
@@ -681,7 +681,7 @@ _OSC_HYPERLINK_RE: re.Pattern[str] = re.compile(r"\x1b\]8;[^\x1b\x07]*(?:\x07|\x
 
 Both the opening marker (which carries the URI) and the closing one (empty URI)
 match, leaving the display text between them untouched. Consumed by
-:func:`_strip_unsupported_ansi` so hyperlinked text survives with its link
+{func}`_strip_unsupported_ansi` so hyperlinked text survives with its link
 dropped, instead of leaking the URI as visible garbage.
 """
 
@@ -697,8 +697,8 @@ _JIRA_ATTR_MARKUP: dict[str, str] = {
 def _sgr_params(params: str) -> tuple[int, ...]:
     """Decode an SGR parameter substring into a sequence of integer codes.
 
-    Per ECMA-48, an empty parameter defaults to ``0``: ``\\x1b[m`` is a full
-    reset, and ``\\x1b[;31m`` carries a reset followed by a red foreground.
+    Per ECMA-48, an empty parameter defaults to `0`: `\\x1b[m` is a full
+    reset, and `\\x1b[;31m` carries a reset followed by a red foreground.
     """
     return tuple(int(code) if code else 0 for code in params.split(";"))
 
@@ -711,17 +711,17 @@ def _apply_sgr_codes(
 ) -> None:
     """Apply SGR parameter *codes* to the mutable style *state*, in place.
 
-    The single source of truth for SGR semantics, shared by :func:`split_ansi`
-    (with the default ``resets=True``) and :meth:`Style.from_ansi` (with
-    ``resets=False``).
+    The single source of truth for SGR semantics, shared by {func}`split_ansi`
+    (with the default `resets=True`) and {meth}`Style.from_ansi` (with
+    `resets=False`).
 
-    Style-setting codes add entries to *state*, keyed by :class:`Style` field
-    names. When *resets* is true, the full ``0`` reset clears the state, and
-    selective resets drop their attribute: ``22`` (bold and dim), ``23``
-    (italic), ``24`` (underline), ``25`` (blink), ``27`` (reverse), ``29``
-    (strikethrough), ``39`` (foreground), ``49`` (background) and ``55``
+    Style-setting codes add entries to *state*, keyed by {class}`Style` field
+    names. When *resets* is true, the full `0` reset clears the state, and
+    selective resets drop their attribute: `22` (bold and dim), `23`
+    (italic), `24` (underline), `25` (blink), `27` (reverse), `29`
+    (strikethrough), `39` (foreground), `49` (background) and `55`
     (overline). When *resets* is false all of them are ignored, letting
-    :meth:`Style.from_ansi` merge escapes without wiping already-parsed codes.
+    {meth}`Style.from_ansi` merge escapes without wiping already-parsed codes.
 
     Unknown codes are silently skipped, like terminals do.
     """
@@ -790,7 +790,7 @@ def _strip_unsupported_ansi(text: str) -> str:
     """Remove non-SGR ANSI escapes, keeping OSC 8 hyperlinks' display text.
 
     OSC 8 boundary markers are removed first, so the display text between them
-    survives the broader :func:`boltons.strutils.strip_ansi` pass (whose CSI
+    survives the broader {func}`boltons.strutils.strip_ansi` pass (whose CSI
     pattern would otherwise leave the URI behind as visible garbage). Every
     other escape (cursor movements, screen clearing, other OSC commands) has
     no markup equivalent and is dropped.
@@ -799,17 +799,17 @@ def _strip_unsupported_ansi(text: str) -> str:
 
 
 def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
-    """Split *text* into ``(style, text)`` runs at ANSI SGR escape boundaries.
+    """Split *text* into `(style, text)` runs at ANSI SGR escape boundaries.
 
     A stateful SGR stream parser: each escape updates the current style state
-    (with full and selective resets honored, unlike :meth:`Style.from_ansi`),
+    (with full and selective resets honored, unlike {meth}`Style.from_ansi`),
     and every maximal run of text sharing the same state is yielded with its
-    :class:`Style`. Unstyled text is yielded with an empty :class:`Style`.
+    {class}`Style`. Unstyled text is yielded with an empty {class}`Style`.
     Consecutive runs with equal styles are merged and empty runs are dropped,
     so wrapping each yielded run produces minimal markup.
 
     Non-SGR escapes carry no style information and are removed from the
-    yielded text, per :func:`_strip_unsupported_ansi`.
+    yielded text, per {func}`_strip_unsupported_ansi`.
     """
     state: dict[str, Any] = {}
     current = Style()
@@ -859,10 +859,10 @@ def render_ansi(text: str, emitter: Callable[[Style, str], str]) -> str:
 
 
 def _html_emitter(style: Style, text: str) -> str:
-    """Wrap *text* in an HTML ``<span>`` carrying the style as inline CSS.
+    """Wrap *text* in an HTML `<span>` carrying the style as inline CSS.
 
-    Relies on :meth:`Style.to_css` for the declarations. A style with no CSS
-    equivalent (like a bare ``blink``) leaves the text unwrapped.
+    Relies on {meth}`Style.to_css` for the declarations. A style with no CSS
+    equivalent (like a bare `blink`) leaves the text unwrapped.
     """
     css = style.to_css()
     if not css:
@@ -871,10 +871,10 @@ def _html_emitter(style: Style, text: str) -> str:
 
 
 def ansi_to_html(text: str) -> str:
-    """Translate ANSI styling in *text* to inline-styled HTML ``<span>`` tags.
+    """Translate ANSI styling in *text* to inline-styled HTML `<span>` tags.
 
-    ``\\x1b[34mSummer\\x1b[0m`` becomes
-    ``<span style="color: blue">Summer</span>``. The spans are self-contained
+    `\\x1b[34mSummer\\x1b[0m` becomes
+    `<span style="color: blue">Summer</span>`. The spans are self-contained
     (no stylesheet needed) and also valid in markups accepting inline HTML,
     like MediaWiki.
     """
@@ -885,8 +885,8 @@ def _jira_emitter(style: Style, text: str) -> str:
     """Wrap *text* in Jira wiki markup.
 
     Foreground colors render as ``{color:...}`` macros: named for the 8 base
-    ANSI colors, ``#rrggbb`` hex otherwise. Text attributes use the markers
-    from :data:`_JIRA_ATTR_MARKUP`. Jira markup has no equivalent for
+    ANSI colors, `#rrggbb` hex otherwise. Text attributes use the markers
+    from {data}`_JIRA_ATTR_MARKUP`. Jira markup has no equivalent for
     background colors, dim, overline, reverse or blink: those are dropped.
     """
     prefix = ""
@@ -904,16 +904,15 @@ def _jira_emitter(style: Style, text: str) -> str:
 def ansi_to_jira(text: str) -> str:
     """Translate ANSI styling in *text* to Jira wiki markup.
 
-    ``\\x1b[34;1mSummer\\x1b[0m`` becomes ``{color:blue}*Summer*{color}``.
+    `\\x1b[34;1mSummer\\x1b[0m` becomes ``{color:blue}*Summer*{color}``.
     """
     return render_ansi(text, _jira_emitter)
 
 
 def _latex_color(color: object) -> str:
-    """Render a color as ``\\textcolor`` / ``\\colorbox`` arguments.
+    """Render a color as `\\textcolor` / `\\colorbox` arguments.
 
-    The 8 base ANSI color names are `predefined by xcolor
-    <https://ctan.org/pkg/xcolor>`_ and pass through as ``{name}``. Everything
+    The 8 base ANSI color names are [predefined by xcolor](https://ctan.org/pkg/xcolor) and pass through as ``{name}``. Everything
     else (bright variants, 256-color indices, 24-bit values) resolves to an
     ``[HTML]{RRGGBB}`` model specification.
     """
@@ -926,11 +925,11 @@ def _latex_color(color: object) -> str:
 def _latex_emitter(style: Style, text: str) -> str:
     """Wrap *text* in LaTeX styling macros.
 
-    Colors require the `xcolor package <https://ctan.org/pkg/xcolor>`_ in the
+    Colors require the [xcolor package](https://ctan.org/pkg/xcolor) in the
     document preamble (``\\usepackage{xcolor}``); bold, italic and underline
     use core LaTeX macros. Dim, overline, reverse, blink and strikethrough
     have no core-LaTeX equivalent and are dropped (strikethrough alone would
-    pull in the ``ulem`` package).
+    pull in the `ulem` package).
     """
     result = text
     if style.bold:
@@ -949,7 +948,7 @@ def _latex_emitter(style: Style, text: str) -> str:
 def ansi_to_latex(text: str) -> str:
     """Translate ANSI styling in *text* to LaTeX macros.
 
-    ``\\x1b[34;1mSummer\\x1b[0m`` becomes
+    `\\x1b[34;1mSummer\\x1b[0m` becomes
     ``\\textcolor{blue}{\\textbf{Summer}}``. The colored macros require
     ``\\usepackage{xcolor}`` in the document preamble.
     """
@@ -960,7 +959,7 @@ def _textile_emitter(style: Style, text: str) -> str:
     """Wrap *text* in a Textile span carrying the style as inline CSS.
 
     Textile accepts arbitrary CSS declarations in curly braces:
-    ``%{color:red}text%``. Relies on :meth:`Style.to_css` for the
+    ``%{color:red}text%``. Relies on {meth}`Style.to_css` for the
     declarations, like the HTML emitter.
     """
     css = style.to_css()
@@ -972,7 +971,7 @@ def _textile_emitter(style: Style, text: str) -> str:
 def ansi_to_textile(text: str) -> str:
     """Translate ANSI styling in *text* to Textile spans.
 
-    ``\\x1b[34;1mSummer\\x1b[0m`` becomes
+    `\\x1b[34;1mSummer\\x1b[0m` becomes
     ``%{color: blue; font-weight: bold}Summer%``.
     """
     return render_ansi(text, _textile_emitter)

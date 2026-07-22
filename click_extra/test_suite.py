@@ -16,23 +16,23 @@
 
 """Declarative, black-box CLI test suites.
 
-A test suite is a list of :class:`CLITestCase` invocations: each runs a target
+A test suite is a list of {class}`CLITestCase` invocations: each runs a target
 command (a name, a command line, or a path to a binary) once with extra
-parameters, then checks its exit code and ``stdout``/``stderr`` against literal,
+parameters, then checks its exit code and `stdout`/`stderr` against literal,
 substring, or regex expectations. Cases carry their own platform skip/only
 rules, so one suite runs across operating systems unchanged.
 
 Suites are written in any list-capable configuration format and loaded with
-:func:`load_test_suite` (which picks the format from the file extension) or
-:func:`parse_test_suite` (which parses a serialized string). TOML and JSON are
-built in; YAML and the other :data:`~click_extra.test_suite.SUITE_FORMATS` need their matching
-``click-extra[…]`` extra. :func:`run_test_suite` drives a list of cases against
-a target, parallelized per the resolved ``--jobs`` count (see
-:func:`click_extra.execution.run_jobs`) and reporting live progress through a
-:class:`click_extra.spinner.Spinner`.
+{func}`load_test_suite` (which picks the format from the file extension) or
+{func}`parse_test_suite` (which parses a serialized string). TOML and JSON are
+built in; YAML and the other {data}`~click_extra.test_suite.SUITE_FORMATS` need their matching
+`click-extra[…]` extra. {func}`run_test_suite` drives a list of cases against
+a target, parallelized per the resolved `--jobs` count (see
+{func}`click_extra.execution.run_jobs`) and reporting live progress through a
+{class}`click_extra.spinner.Spinner`.
 
 This is the black-box, subprocess-level complement to
-:class:`click_extra.testing.CliRunner`, which drives a CLI in-process.
+{class}`click_extra.testing.CliRunner`, which drives a CLI in-process.
 """
 
 from __future__ import annotations
@@ -81,16 +81,16 @@ SUITE_FORMATS: tuple[ConfigFormat, ...] = (
 """Configuration formats a test suite can be serialized in, built-in ones first.
 
 These are the formats able to represent a top-level list of case mappings,
-matched against a file's extension by :func:`load_test_suite`. TOML and JSON
+matched against a file's extension by {func}`load_test_suite`. TOML and JSON
 parse with no extra dependency; the others each need their matching
-``click-extra[…]`` extra. TOML has no bare top-level array, so a TOML suite
-lists its cases under a ``[[cases]]`` array of tables (see
-:func:`parse_test_suite`); the others use a bare list. INI (no nesting) and XML
+`click-extra[…]` extra. TOML has no bare top-level array, so a TOML suite
+lists its cases under a `[[cases]]` array of tables (see
+{func}`parse_test_suite`); the others use a bare list. INI (no nesting) and XML
 (no natural list representation) are excluded.
 
 Per-format availability is resolved by
-:class:`~click_extra.config.formats.ConfigFormat`, so a format whose parser is
-not installed raises an :exc:`ImportError` pointing at its extra at parse time.
+{class}`~click_extra.config.formats.ConfigFormat`, so a format whose parser is
+not installed raises an {exc}`ImportError` pointing at its extra at parse time.
 """
 
 TYPE_CHECKING = False
@@ -169,8 +169,8 @@ class CLITestCase:
     """Substrings that must all be present in the combined output.
 
     The combined output interleaves stdout and stderr in the order the command
-    wrote them, matching what a user sees in a terminal. The ``output_*``
-    directives are mutually exclusive with the ``stdout_*`` / ``stderr_*`` ones:
+    wrote them, matching what a user sees in a terminal. The `output_*`
+    directives are mutually exclusive with the `stdout_*` / `stderr_*` ones:
     a single subprocess run captures either the merged stream or the separate
     ones, not both.
     """
@@ -216,14 +216,14 @@ class CLITestCase:
 
     @property
     def has_merged_output_directives(self) -> bool:
-        """Whether any ``output_*`` directive (merged stream) is set."""
+        """Whether any `output_*` directive (merged stream) is set."""
         return any(
             getattr(self, f.name) for f in fields(self) if f.name.startswith("output_")
         )
 
     @property
     def has_separate_stream_directives(self) -> bool:
-        """Whether any ``stdout_*`` or ``stderr_*`` directive (separate streams) is
+        """Whether any `stdout_*` or `stderr_*` directive (separate streams) is
         set."""
         return any(
             getattr(self, f.name)
@@ -490,18 +490,18 @@ DEFAULT_TEST_SUITE: list[CLITestCase] = [
 
 
 def cases_from_data(data: Any) -> Generator[CLITestCase, None, None]:
-    """Build :class:`CLITestCase` instances from already-parsed suite data.
+    """Build {class}`CLITestCase` instances from already-parsed suite data.
 
-    The in-memory counterpart to :func:`parse_test_suite` (which parses a string)
-    and :func:`load_test_suite` (which reads a file): feed it a suite that is
-    already a Python object, such as the native ``cases`` mappings declared in a
-    ``[tool.<cli>.test-suite]`` config section.
+    The in-memory counterpart to {func}`parse_test_suite` (which parses a string)
+    and {func}`load_test_suite` (which reads a file): feed it a suite that is
+    already a Python object, such as the native `cases` mappings declared in a
+    `[tool.<cli>.test-suite]` config section.
 
-    A suite is a list of case mappings, each keyed by ``CLITestCase`` directive
+    A suite is a list of case mappings, each keyed by `CLITestCase` directive
     names. Formats with no bare top-level array (TOML) carry that list under a
-    top-level ``cases`` key, so a mapping is unwrapped here.
+    top-level `cases` key, so a mapping is unwrapped here.
 
-    :raises ValueError: the suite is empty, a mapping suite omits ``cases``, or a
+    :raises ValueError: the suite is empty, a mapping suite omits `cases`, or a
         case uses unknown directives.
     :raises TypeError: the suite is not a list, or a case is not a mapping.
     """
@@ -537,15 +537,15 @@ def parse_test_suite(
     suite_string: str | None,
     fmt: ConfigFormat = ConfigFormat.YAML,
 ) -> Generator[CLITestCase, None, None]:
-    """Parse a serialized test suite string into :class:`CLITestCase` instances.
+    """Parse a serialized test suite string into {class}`CLITestCase` instances.
 
-    ``fmt`` selects the serialization format, one of
-    :data:`~click_extra.test_suite.SUITE_FORMATS`; it defaults to YAML for string
+    `fmt` selects the serialization format, one of
+    {data}`~click_extra.test_suite.SUITE_FORMATS`; it defaults to YAML for string
     sources with no extension to key on, such as an environment variable.
-    :func:`load_test_suite` is the file-based counterpart.
+    {func}`load_test_suite` is the file-based counterpart.
 
-    :raises ValueError: the suite is empty, ``fmt`` cannot express a suite, a
-        mapping suite omits ``cases``, or a case uses unknown directives.
+    :raises ValueError: the suite is empty, `fmt` cannot express a suite, a
+        mapping suite omits `cases`, or a case uses unknown directives.
     :raises TypeError: the suite is not a list, or a case is not a mapping.
     :raises ImportError: the format's optional parser is not installed.
     """
@@ -567,10 +567,10 @@ def parse_test_suite(
 def load_test_suite(path: Path) -> Generator[CLITestCase, None, None]:
     """Read a test suite file and parse it by the format of its extension.
 
-    The format is resolved from ``path``'s name over the list-capable
-    :data:`~click_extra.test_suite.SUITE_FORMATS` (so ``suite.toml`` parses as TOML,
-    ``suite.yaml`` as YAML). Reading and format detection are delegated to
-    :func:`click_extra.config.formats.read_file`.
+    The format is resolved from `path`'s name over the list-capable
+    {data}`~click_extra.test_suite.SUITE_FORMATS` (so `suite.toml` parses as TOML,
+    `suite.yaml` as YAML). Reading and format detection are delegated to
+    {func}`click_extra.config.formats.read_file`.
 
     :raises ValueError: the file extension matches no suite format.
     :raises ImportError: the matched format's optional parser is not installed.
@@ -593,18 +593,18 @@ def run_test_suite(
 ) -> Counter:
     """Run a list of test cases against a target command and tally the results.
 
-    Cases are parallelized per ``jobs`` (see
-    :func:`click_extra.execution.run_jobs`): at one worker they run sequentially
-    and lazily, so ``exit_on_error`` can stop before the rest start; otherwise
+    Cases are parallelized per `jobs` (see
+    {func}`click_extra.execution.run_jobs`): at one worker they run sequentially
+    and lazily, so `exit_on_error` can stop before the rest start; otherwise
     they run in a thread pool and every case runs to completion. Either way
     outcomes are tallied in submission order. On an interactive terminal a
-    :class:`click_extra.spinner.Spinner` reports progress unless ``show_progress``
+    {class}`click_extra.spinner.Spinner` reports progress unless `show_progress`
     is false.
 
     :param command: The target to test: a command name, a command line, or a
         path to a binary or script.
     :param cases: The test cases to run.
-    :param jobs: Number of parallel workers; ``1`` runs sequentially.
+    :param jobs: Number of parallel workers; `1` runs sequentially.
     :param select_test: 1-based case numbers to run; others are skipped.
     :param skip_platform: Extra platforms (or group IDs) to skip every case on.
     :param timeout: Default per-case timeout in seconds when a case sets none.
@@ -612,8 +612,8 @@ def run_test_suite(
     :param show_trace_on_error: Echo the execution trace of each failed case.
     :param stats: Echo a one-line worker summary up front and a result tally.
     :param show_progress: Allow the progress spinner on an interactive terminal.
-    :return: A :class:`collections.Counter` with ``total``, ``skipped``, and
-        ``failed`` keys. A non-zero ``failed`` count signals the caller to exit
+    :return: A {class}`collections.Counter` with `total`, `skipped`, and
+        `failed` keys. A non-zero `failed` count signals the caller to exit
         with an error.
     """
     counter = Counter(total=len(cases), skipped=0, failed=0)

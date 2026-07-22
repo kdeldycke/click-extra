@@ -76,10 +76,10 @@ from .version import (
 
 
 def _resolve_paths(module: Path | None) -> list[Path]:
-    """Resolve target ``__init__.py`` paths.
+    """Resolve target `__init__.py` paths.
 
-    Precedence: an explicit ``--module``, then the ``[tool.click-extra.prebake]``
-    ``module`` config value, then ``[project.scripts]`` auto-discovery.
+    Precedence: an explicit `--module`, then the `[tool.click-extra.prebake]`
+    `module` config value, then `[project.scripts]` auto-discovery.
     """
     if module:
         return [module]
@@ -97,7 +97,7 @@ def _resolve_paths(module: Path | None) -> list[Path]:
 
 
 def _to_dunder(name: str) -> str:
-    """Ensure *name* has ``__`` prefix and suffix."""
+    """Ensure *name* has `__` prefix and suffix."""
     if not name.startswith("__"):
         name = f"__{name}"
     if not name.endswith("__"):
@@ -390,10 +390,10 @@ _ALL_STYLES = (
     "reverse",
     "strikethrough",
 )
-"""ANSI text style names supported by ``click.style()``."""
+"""ANSI text style names supported by `click.style()`."""
 
 _ALL_COLORS = sorted(Color._dict.values())  # type: ignore[attr-defined]
-"""All color names from ``click_extra.Color``."""
+"""All color names from `click_extra.Color`."""
 
 
 def _render_palette() -> str:
@@ -461,9 +461,9 @@ def _render_8color_table() -> str:
 def _render_gradient() -> str:
     """Render 24-bit RGB gradients alongside their 256-color quantized equivalents.
 
-    Each gradient is shown in two rows: the top row uses 24-bit ``SGR 38;2;r;g;b``
-    escape codes, the bottom row uses the quantized ``SGR 38;5;n`` index from
-    ``_nearest_256``. Visible stepping in the quantized row reveals the palette
+    Each gradient is shown in two rows: the top row uses 24-bit `SGR 38;2;r;g;b`
+    escape codes, the bottom row uses the quantized `SGR 38;5;n` index from
+    `_nearest_256`. Visible stepping in the quantized row reveals the palette
     resolution limits.
     """
     width = 72
@@ -721,12 +721,12 @@ def prebake():
 )
 @_module_option
 def version(git_hash: str | None, module: Path | None) -> None:
-    """Inject Git commit hash into ``__version__``.
+    """Inject Git commit hash into `__version__`.
 
     Appends the Git short hash as a PEP 440 local version identifier
-    (for example ``1.0.0.dev0`` becomes ``1.0.0.dev0+abc1234``).
+    (for example `1.0.0.dev0` becomes `1.0.0.dev0+abc1234`).
 
-    Only modifies ``.dev`` versions without an existing ``+`` suffix.
+    Only modifies `.dev` versions without an existing `+` suffix.
     Release versions and already pre-baked versions are left untouched.
     """
     if git_hash is None:
@@ -752,8 +752,8 @@ def version(git_hash: str | None, module: Path | None) -> None:
 def field(name: str, module: Path | None, value: str) -> None:
     """Replace an empty dunder variable with a value.
 
-    NAME is the template field name (like ``git_tag_sha``) or the full
-    dunder name (like ``__git_tag_sha__``). Double underscores are added
+    NAME is the template field name (like `git_tag_sha`) or the full
+    dunder name (like `__git_tag_sha__`). Double underscores are added
     automatically when missing.
 
     VALUE is the string to inject.
@@ -773,21 +773,21 @@ def field(name: str, module: Path | None, value: str) -> None:
 @prebake.command(name="all")
 @_module_option
 def all_fields(module: Path | None) -> None:
-    """Pre-bake ``__version__`` and all git fields in one pass.
+    """Pre-bake `__version__` and all git fields in one pass.
 
-    Scans each target file for empty ``__<field>__`` dunder placeholders,
+    Scans each target file for empty `__<field>__` dunder placeholders,
     resolves their values from the current Git state, and injects them.
 
-    Also appends the Git short hash to ``.dev`` versions in
-    ``__version__`` (same as ``prebake version``).
+    Also appends the Git short hash to `.dev` versions in
+    `__version__` (same as `prebake version`).
 
     \b
     Supported git fields:
         git_branch, git_long_hash, git_short_hash, git_date, git_tag
 
     \b
-    Additional computed fields (``__git_tag_sha__``, ``__git_distance__``,
-    ``__git_dirty__``) are baked if their dunder placeholder exists and a git
+    Additional computed fields (`__git_tag_sha__`, `__git_distance__`,
+    `__git_dirty__`) are baked if their dunder placeholder exists and a git
     resolution is available. Fields without a placeholder in the source file
     are skipped silently.
     """

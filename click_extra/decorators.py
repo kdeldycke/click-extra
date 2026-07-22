@@ -64,14 +64,14 @@ if TYPE_CHECKING:
     class CommandDecorator(Protocol[CommandT_co]):
         """Static type of the command decorators built by `decorator_factory`.
 
-        Mirrors Click's own overloads for ``@command``/``@group`` so type
+        Mirrors Click's own overloads for `@command`/`@group` so type
         checkers infer the produced command class, while also covering the
         no-parenthesis form enabled by `allow_missing_parenthesis`.
         """
 
         @overload
         def __call__(self, name: _AnyCallable, /) -> CommandT_co:
-            """Bare ``@command`` form: the callback is the only argument."""
+            """Bare `@command` form: the callback is the only argument."""
 
         @overload
         def __call__(
@@ -81,7 +81,7 @@ if TYPE_CHECKING:
             cls: type[SubCommandT],
             **attrs: Any,
         ) -> Callable[[_AnyCallable], SubCommandT]:
-            """Parenthesized form with an explicit ``cls`` override."""
+            """Parenthesized form with an explicit `cls` override."""
 
         @overload
         def __call__(
@@ -104,7 +104,7 @@ if TYPE_CHECKING:
 
         @overload
         def __call__(self, func: FC, /) -> FC:
-            """Bare ``@option`` form: the callback is the only argument."""
+            """Bare `@option` form: the callback is the only argument."""
 
         @overload
         def __call__(self, *param_decls: str, **attrs: Any) -> Callable[[FC], FC]:
@@ -115,7 +115,7 @@ def allow_missing_parenthesis(dec_factory):
     """Allow to use decorators with or without parenthesis.
 
     As proposed in
-    `Cloup issue #127 <https://github.com/janluke/cloup/issues/127#issuecomment-1264704896>`_.
+    [Cloup issue #127](https://github.com/janluke/cloup/issues/127#issuecomment-1264704896).
     """
 
     @wraps(dec_factory)
@@ -146,24 +146,25 @@ def decorator_factory(dec, *new_args, **new_defaults):
     Cloup's.
 
     The two overloads give static type checkers a precise signature for the
-    decorators this factory produces: command-style decorators (``cls`` is a
+    decorators this factory produces: command-style decorators (`cls` is a
     `click.Command` subclass) report the resulting command class, while
-    parameter-style decorators (``cls`` is a `click.Parameter` subclass, or
+    parameter-style decorators (`cls` is a `click.Parameter` subclass, or
     absent) return the decorated callback unchanged. Both overloads model the
     optional-parenthesis behaviour added by `allow_missing_parenthesis`, which
     plain inference cannot recover. See `CommandDecorator` and
     `ParameterDecorator` for the produced shapes.
 
-    .. attention::
-        The `cls` argument passed to the factory is used as the reference class from
-        which the produced decorator's `cls` argument must inherit.
+    ```{attention}
+    The `cls` argument passed to the factory is used as the reference class from
+    which the produced decorator's `cls` argument must inherit.
 
-        The idea is to ensure that, for example, the `@command` decorator
-        re-implemented by Click Extra is always a subclass of `Command`, even when
-        the user overrides the `cls` argument. That way it can always rely on the
-        additional properties and methods defined in the Click Extra framework, where we
-        have extended Cloup and Click so much that we want to prevent surprising side
-        effects.
+    The idea is to ensure that, for example, the `@command` decorator
+    re-implemented by Click Extra is always a subclass of `Command`, even when
+    the user overrides the `cls` argument. That way it can always rely on the
+    additional properties and methods defined in the Click Extra framework, where we
+    have extended Cloup and Click so much that we want to prevent surprising side
+    effects.
+    ```
     """
 
     @allow_missing_parenthesis
@@ -172,7 +173,7 @@ def decorator_factory(dec, *new_args, **new_defaults):
 
         These defaults values are merged with the user's own arguments.
 
-        A special case is made for the ``params`` argument, to allow it to be callable.
+        A special case is made for the `params` argument, to allow it to be callable.
         This limits the issue of the mutable options being shared between commands.
 
         This decorator can be used with or without arguments.
@@ -211,7 +212,7 @@ def decorator_factory(dec, *new_args, **new_defaults):
         # params function, the decorator captures the evaluated params list in its
         # closure. Click mutates that list with params.extend() on every application
         # to a function, so a pre-instantiated decorator (e.g. stored in a pytest
-        # parametrize list as ``command()``) would accumulate options across uses,
+        # parametrize list as `command()`) would accumulate options across uses,
         # creating duplicate parameters. Wrapping here calls params_func() freshly
         # on each application to prevent that shared mutation.
         if callable(params_func) and not isinstance(result, click.Command):
@@ -232,11 +233,11 @@ def decorator_factory(dec, *new_args, **new_defaults):
         return result
 
     # Surface the parameter class's constructor signature on the produced decorator,
-    # instead of the opaque ``(*args, **kwargs)``, so editors, ``help()`` and Sphinx
-    # autodoc show the real options. Restricted to parameter decorators (``option``,
-    # ``argument`` and their subclasses): their ``cls.__init__`` mirrors what the
-    # decorator forwards, whereas ``command``/``group`` wrap a different (Cloup)
-    # signature and ``help_option`` has no ``cls``.
+    # instead of the opaque `(*args, **kwargs)`, so editors, `help()` and Sphinx
+    # autodoc show the real options. Restricted to parameter decorators (`option`,
+    # `argument` and their subclasses): their `cls.__init__` mirrors what the
+    # decorator forwards, whereas `command`/`group` wrap a different (Cloup)
+    # signature and `help_option` has no `cls`.
     cls = new_defaults.get("cls")
     if isinstance(cls, type) and issubclass(cls, click.Parameter):
         try:
@@ -244,7 +245,7 @@ def decorator_factory(dec, *new_args, **new_defaults):
         except (TypeError, ValueError):
             pass
         else:
-            # Drop ``self`` and keep the rest as the decorator's public signature.
+            # Drop `self` and keep the rest as the decorator's public signature.
             decorator.__signature__ = inspect.Signature(init_params[1:])
 
     return decorator
@@ -273,11 +274,11 @@ help_option = decorator_factory(click.decorators.help_option, *DEFAULT_HELP_NAME
 def _register_grouped_option(f, option, group):
     """Memoize *option* on *f*, then wire its Cloup option-group membership.
 
-    The shared tail of the hand-written ``version_option`` and ``sort_by_option``
-    decorators (the ones the ``param_decls``-first ``decorator_factory`` cannot
-    build): both register an already-built option with the ``_param_memo``
+    The shared tail of the hand-written `version_option` and `sort_by_option`
+    decorators (the ones the `param_decls`-first `decorator_factory` cannot
+    build): both register an already-built option with the `_param_memo`
     primitive Cloup uses, then attach the option to *group* (hiding it when the
-    group is hidden). Returns *f* so a decorator can ``return`` it directly.
+    group is hidden). Returns *f* so a decorator can `return` it directly.
     """
     _param_memo(f, option)
     new_option = f.__click_params__[-1]
@@ -293,29 +294,31 @@ def _register_grouped_option(f, option, group):
 # two are told apart by their leading character (see the docstring below).
 @allow_missing_parenthesis
 def version_option(version=None, *param_decls, cls=VersionOption, group=None, **kwargs):
-    """Attach a :class:`~click_extra.version.VersionOption` to a command.
+    """Attach a {class}`~click_extra.version.VersionOption` to a command.
 
-    Drop-in compatible with Click's ``@version_option``: the first positional
+    Drop-in compatible with Click's `@version_option`: the first positional
     argument may be an explicit version string. click-extra otherwise auto-detects
     the version and treats positional arguments as option flags (like every other
     option decorator), so the two are disambiguated by their leading character: a
-    value starting with ``-`` is a flag declaration, anything else is a Click-style
-    version string forwarded into the ``version`` template field.
+    value starting with `-` is a flag declaration, anything else is a Click-style
+    version string forwarded into the `version` template field.
 
-    .. code-block:: python
+    ```{code-block} python
 
-        @command
-        @version_option("1.2.3")  # Click idiom: pins the displayed version.
-        def my_cmd(): ...
+    @command
+    @version_option("1.2.3")  # Click idiom: pins the displayed version.
+    def my_cmd(): ...
+    ```
 
-    .. note::
-        Hand-written instead of produced by
-        :func:`~click_extra.decorators.decorator_factory` because Click's leading
-        ``version`` positional conflicts with the ``param_decls``-first convention
-        the factory relies on.
+    ```{note}
+    Hand-written instead of produced by
+    {func}`~click_extra.decorators.decorator_factory` because Click's leading
+    `version` positional conflicts with the `param_decls`-first convention
+    the factory relies on.
+    ```
     """
     if version is not None and not str(version).startswith("-"):
-        # Click idiom ``@version_option("1.2.3")``: forward as a ``version`` override.
+        # Click idiom `@version_option("1.2.3")`: forward as a `version` override.
         fields = dict(kwargs.pop("fields", None) or {})
         if fields.get("version", version) != version:
             raise TypeError(
@@ -324,7 +327,7 @@ def version_option(version=None, *param_decls, cls=VersionOption, group=None, **
         fields["version"] = version
         kwargs["fields"] = fields
     elif version is not None:
-        # Leading ``-``: a flag declaration, not a version. Restore it as a param_decl.
+        # Leading `-`: a flag declaration, not a version. Restore it as a param_decl.
         param_decls = (version, *param_decls)
 
     def decorator(f):
@@ -369,19 +372,20 @@ zero_exit_option = decorator_factory(dec=option, cls=ZeroExitOption)
 # here and registered with the same `_param_memo` primitive Cloup uses, preserving
 # that API and composing with option groups and constraints.
 def sort_by_option(*header_defs, cls=SortByOption, group=None, **kwargs):
-    """Attach a :class:`~click_extra.table.SortByOption` to a command.
+    """Attach a {class}`~click_extra.table.SortByOption` to a command.
 
-    Forwards the positional ``header_defs`` (``(label, column_id)`` pairs) straight
-    to the option constructor and registers a regular Cloup ``Option``, so the
-    ``--sort-by`` option composes with ``@option_group`` and ``@constraint`` like any
+    Forwards the positional `header_defs` (`(label, column_id)` pairs) straight
+    to the option constructor and registers a regular Cloup `Option`, so the
+    `--sort-by` option composes with `@option_group` and `@constraint` like any
     other option decorator.
 
-    .. note::
-        Hand-written instead of produced by
-        :func:`~click_extra.decorators.decorator_factory` because
-        :class:`~click_extra.table.SortByOption` accepts its column definitions as
-        positional arguments, which conflicts with the ``param_decls``-first
-        convention the factory relies on.
+    ```{note}
+    Hand-written instead of produced by
+    {func}`~click_extra.decorators.decorator_factory` because
+    {class}`~click_extra.table.SortByOption` accepts its column definitions as
+    positional arguments, which conflicts with the `param_decls`-first
+    convention the factory relies on.
+    ```
     """
 
     def decorator(f):

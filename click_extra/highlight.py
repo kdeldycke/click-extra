@@ -16,10 +16,10 @@
 """Help-screen keyword highlighting and the colorized help formatter.
 
 Hosts the engine that collects highlightable keywords from a Click context
-(:class:`HelpKeywords`, ``_HelpColorsMixin``) and renders them with the
-active theme: :class:`HelpFormatter` styles ``--help`` output and
-:func:`highlight` applies a styling function to arbitrary matches. Split out of
-:mod:`click_extra.color`, which now focuses on ``--color``/``--no-color``
+({class}`HelpKeywords`, `_HelpColorsMixin`) and renders them with the
+active theme: {class}`HelpFormatter` styles `--help` output and
+{func}`highlight` applies a styling function to arbitrary matches. Split out of
+{mod}`click_extra.color`, which now focuses on `--color`/`--no-color`
 resolution.
 """
 
@@ -68,18 +68,18 @@ class HelpKeywords:
     defaults: set[str] = field(default_factory=set)
 
     def merge(self, other: HelpKeywords) -> None:
-        """Merge another ``HelpKeywords`` into this one.
+        """Merge another `HelpKeywords` into this one.
 
-        Each set field is updated with the corresponding set from ``other``.
+        Each set field is updated with the corresponding set from `other`.
         """
         for f in fields(self):
             getattr(self, f.name).update(getattr(other, f.name))
 
     def subtract(self, other: HelpKeywords) -> None:
-        """Remove keywords found in ``other`` from this instance.
+        """Remove keywords found in `other` from this instance.
 
         Each set field is difference-updated with the corresponding set from
-        ``other``. Mirror of :meth:`merge`.
+        `other`. Mirror of {meth}`merge`.
         """
         for f in fields(self):
             getattr(self, f.name).difference_update(getattr(other, f.name))
@@ -88,7 +88,7 @@ class HelpKeywords:
 class _HelpColorsMixin:
     """Adds extra-keywords highlighting to Click commands.
 
-    This mixin for ``click.Command``-like classes intercepts the top-level helper-
+    This mixin for `click.Command`-like classes intercepts the top-level helper-
     generation method to initialize the formatter with dynamic settings. This is
     implemented at this stage so we have access to the global context.
     """
@@ -96,19 +96,19 @@ class _HelpColorsMixin:
     #: Extra keywords to merge into the auto-collected set. Consumers can set
     #: this attribute on a command instance to inject additional keywords for
     #: help screen highlighting (like placeholder option names such as
-    #: ``--<manager-id>`` that appear in prose but are not real parameters).
+    #: `--<manager-id>` that appear in prose but are not real parameters).
     extra_keywords: HelpKeywords | None = None
 
     #: Keywords to remove from the auto-collected set. Mirror of
-    #: :attr:`extra_keywords`: any string listed here will not be highlighted
+    #: {attr}`extra_keywords`: any string listed here will not be highlighted
     #: even if it was collected from the Click context.
     excluded_keywords: HelpKeywords | None = None
 
     def collect_keywords(self, ctx: click.Context) -> HelpKeywords:
         """Parse click context to collect option names, choices and metavar keywords.
 
-        Override this method to customize keyword collection. Call ``super()`` and
-        mutate the returned ``HelpKeywords`` to extend the default set.
+        Override this method to customize keyword collection. Call `super()` and
+        mutate the returned `HelpKeywords` to extend the default set.
         """
         kw = HelpKeywords()
         subcommand_objs: set[click.Command] = set()
@@ -147,9 +147,9 @@ class _HelpColorsMixin:
         # command parameters. User-defined help options (like -h, --help) are
         # seeded into the options set.
         options: set[str] = set(ctx.help_option_names)
-        # Static methods are qualified with the class name (not ``self``) so
-        # ``collect_keywords`` can be called on commands that don't inherit the
-        # mixin (used by ``cli_wrapper.patch_click`` for third-party CLIs).
+        # Static methods are qualified with the class name (not `self`) so
+        # `collect_keywords` can be called on commands that don't inherit the
+        # mixin (used by `cli_wrapper.patch_click` for third-party CLIs).
         _HelpColorsMixin._collect_params(
             command.get_params(ctx),
             ctx,
@@ -188,7 +188,7 @@ class _HelpColorsMixin:
             else:
                 kw.long_options.add(name)
 
-        # Merge consumer-provided extra keywords. Uses ``getattr`` so the
+        # Merge consumer-provided extra keywords. Uses `getattr` so the
         # method works on commands that don't inherit the mixin.
         extra_kw = getattr(self, "extra_keywords", None)
         if extra_kw is not None:
@@ -206,10 +206,10 @@ class _HelpColorsMixin:
         ctx: click.Context,
         kw: HelpKeywords,
     ) -> None:
-        """Collect choice keywords from a ``click.Choice`` parameter.
+        """Collect choice keywords from a `click.Choice` parameter.
 
-        When a custom metavar (like ``LEVEL``) replaces the standard
-        ``[choice1|choice2]`` rendering, original-case choice strings are
+        When a custom metavar (like `LEVEL`) replaces the standard
+        `[choice1|choice2]` rendering, original-case choice strings are
         collected to match developer-written prose (such as "Either CRITICAL,
         ERROR, ...") without producing false-positive highlights for common
         English words like "error" and "info".
@@ -218,20 +218,20 @@ class _HelpColorsMixin:
         if isinstance(param, click.Option) and param.metavar:
             # Custom metavar hides the normalized choice list. Collect
             # original-case values. This is the first step of Click's own
-            # ``normalize_choice()`` before case folding is applied.
+            # `normalize_choice()` before case folding is applied.
             kw.choices.update(
                 c.name if isinstance(c, Enum) else str(c) for c in param.type.choices
             )
         else:
             # Standard metavar: collect the normalized forms that
-            # match what Click renders in ``[choice1|choice2]``.
+            # match what Click renders in `[choice1|choice2]`.
             kw.choices.update(
                 param.type.normalize_choice(c, ctx) for c in param.type.choices
             )
             # Also collect the rendered metavar string (like
-            # ``[json|xml|csv]``) so it can be styled and placeholdered
+            # `[json|xml|csv]`) so it can be styled and placeholdered
             # before cross-ref highlighting. This protects choices that
-            # appear in ``excluded_keywords`` from losing their
+            # appear in `excluded_keywords` from losing their
             # highlight inside their own metavar.
             kw.choice_metavars.add(param.make_metavar(ctx=ctx))
 
@@ -242,7 +242,7 @@ class _HelpColorsMixin:
         kw: HelpKeywords,
         options: set[str],
     ) -> None:
-        """Extract keywords from a list of parameters into ``kw`` and ``options``."""
+        """Extract keywords from a list of parameters into `kw` and `options`."""
         for param in params:
             # Ignore hidden options that are not meant to be displayed.
             if isinstance(param, click.Option) and param.hidden:
@@ -269,11 +269,11 @@ class _HelpColorsMixin:
                 # Highlight each datetime format string as a choice.
                 kw.choices.update(param.type.formats)
             elif type_choices := getattr(param.type, "choices", None):
-                # Duck-typed choice-like ``click.ParamType`` (such as
-                # :class:`click_extra.types.MultiChoice` and its subclasses):
+                # Duck-typed choice-like `click.ParamType` (such as
+                # {class}`click_extra.types.MultiChoice` and its subclasses):
                 # each accepted value is worth highlighting individually, and
-                # the rendered ``[a,b,c]`` metavar protects the brackets +
-                # separators from later passes. ``click.Choice`` subclasses are
+                # the rendered `[a,b,c]` metavar protects the brackets +
+                # separators from later passes. `click.Choice` subclasses are
                 # already handled by the branch above.
                 kw.choices.update(type_choices)
                 kw.choice_metavars.add(param.make_metavar(ctx=ctx))
@@ -281,7 +281,7 @@ class _HelpColorsMixin:
                 # Argument metavars are collected in the arguments set.
                 kw.metavars.add(param.make_metavar(ctx=ctx))
 
-            # A user-provided metavar (like ``metavar="LEVEL"``) is always
+            # A user-provided metavar (like `metavar="LEVEL"`) is always
             # worth highlighting, even for Choice/DateTime types.
             if param.metavar and not isinstance(param, click.Argument):
                 kw.metavars.add(param.metavar)
@@ -304,11 +304,11 @@ class _HelpColorsMixin:
 
     @staticmethod
     def _collect_excluded_keywords(ctx: click.Context) -> HelpKeywords | None:
-        """Merge ``excluded_keywords`` from the current command and all ancestors.
+        """Merge `excluded_keywords` from the current command and all ancestors.
 
         Mirrors the parent-context traversal that collects parent choices in
-        :meth:`collect_keywords`. Returns a fresh :class:`HelpKeywords` so that
-        no command's original ``excluded_keywords`` is mutated.
+        {meth}`collect_keywords`. Returns a fresh {class}`HelpKeywords` so that
+        no command's original `excluded_keywords` is mutated.
         """
         excluded: HelpKeywords | None = None
         cmd_ctx: click.Context | None = ctx
@@ -332,7 +332,7 @@ class _HelpColorsMixin:
 def _escape_for_help_screen(text: str) -> str:
     """Prepares a string to be used in a regular expression for matches in help screen.
 
-    Applies `re.escape <https://docs.python.org/3/library/re.html#re.escape>`_, then
+    Applies [re.escape](https://docs.python.org/3/library/re.html#re.escape), then
     accounts for long strings being wrapped on multiple lines and padded with spaces to
     fit the columnar layout.
 
@@ -361,11 +361,11 @@ class HelpFormatter(cloup.HelpFormatter):
     def __init__(self, *args, **kwargs) -> None:
         """Forces theme to the active one for the current Click context.
 
-        Also transform Cloup's standard ``HelpTheme`` to our own ``HelpTheme``.
+        Also transform Cloup's standard `HelpTheme` to our own `HelpTheme`.
 
-        Resolves the active theme via :func:`click_extra.theme.get_current_theme`,
+        Resolves the active theme via {func}`click_extra.theme.get_current_theme`,
         which reads the per-invocation pick from the Click context (set by
-        :class:`~click_extra.theme.ThemeOption`) and falls back to the module-level
+        {class}`~click_extra.theme.ThemeOption`) and falls back to the module-level
         default when no context is active.
         """
         active_theme = _theme.get_current_theme()
@@ -381,37 +381,38 @@ class HelpFormatter(cloup.HelpFormatter):
         args: str = "",
         prefix: str | None = None,
     ) -> None:
-        """ANSI-aware override of ``cloup.HelpFormatter.write_usage``.
+        """ANSI-aware override of `cloup.HelpFormatter.write_usage`.
 
-        On Click ``8.3.x``, ``click.formatting.wrap_text`` measures line length
-        with raw :func:`len`, counting every byte of the ANSI escape sequences
-        embedded in ``initial_indent`` (the styled ``Usage:`` heading +
+        On Click `8.3.x`, `click.formatting.wrap_text` measures line length
+        with raw {func}`len`, counting every byte of the ANSI escape sequences
+        embedded in `initial_indent` (the styled `Usage:` heading +
         invoked-command name). With 24-bit RGB themes (like Solarized Dark,
         Dracula, Nord, Monokai), each styled token carries 17+ extra
         bytes of escape, which inflates the measured line beyond the width
-        budget and causes premature wraps mid-token: ``[OPTIONS\\n  ]``.
+        budget and causes premature wraps mid-token: `[OPTIONS\\n  ]`.
 
-        Cloup styles ``prefix`` and ``prog`` then delegates to click's
-        :meth:`HelpFormatter.write_usage`, inheriting the bug. This
-        override re-applies the same styling, then bypasses ``wrap_text``
+        Cloup styles `prefix` and `prog` then delegates to click's
+        {meth}`HelpFormatter.write_usage`, inheriting the bug. This
+        override re-applies the same styling, then bypasses `wrap_text`
         whenever the visible content fits on a single line: the common case
         for short usage strings where wrapping is unnecessary. Lines that
         genuinely overflow the visible width fall back to click's
         implementation: the wrap point may still be sub-optimal but the
         output stays syntactically valid.
 
-        .. note::
-            Click ``8.4.0`` (PR `pallets/click#3420
-            <https://github.com/pallets/click/pull/3420>`_) made
-            ``click.formatting.TextWrapper`` ANSI-aware by counting
-            visible width instead of raw bytes, so this override is a no-op
-            fast path on Click ``>= 8.4.0`` and only fixes wrapping on the
-            Click ``8.3.x`` releases click-extra still supports.
+        ```{note}
+        Click `8.4.0` (PR [pallets/click#3420](https://github.com/pallets/click/pull/3420)) made
+        `click.formatting.TextWrapper` ANSI-aware by counting
+        visible width instead of raw bytes, so this override is a no-op
+        fast path on Click `>= 8.4.0` and only fixes wrapping on the
+        Click `8.3.x` releases click-extra still supports.
+        ```
 
-        .. todo:: Drop this override once the minimum supported Click rises to
-            ``8.4.0`` (which includes ``pallets/click#3420``). The
-            ``term_len``-based visible-width check below becomes redundant
-            once Click's own wrapper counts visible width.
+        ```{todo} Drop this override once the minimum supported Click rises to
+        `8.4.0` (which includes `pallets/click#3420`). The
+        `term_len`-based visible-width check below becomes redundant
+        once Click's own wrapper counts visible width.
+        ```
         """
         if prefix is None:
             prefix = "Usage:"
@@ -431,7 +432,7 @@ class HelpFormatter(cloup.HelpFormatter):
 
         # Visibly too wide for one line. Fall back to click's parent
         # implementation for multi-line wrapping. Bypass cloup's wrapper to
-        # avoid double-styling ``prefix`` and ``prog``.
+        # avoid double-styling `prefix` and `prog`.
         click.formatting.HelpFormatter.write_usage(
             self,
             styled_prog,
@@ -442,12 +443,12 @@ class HelpFormatter(cloup.HelpFormatter):
     keywords: HelpKeywords = HelpKeywords()
     excluded_keywords: HelpKeywords | None = None
 
-    #: Matches range expressions like ``0<=x<=9``, ``x>=1024``, ``0<=x<100``.
+    #: Matches range expressions like `0<=x<=9`, `x>=1024`, `0<=x<100`.
     #:
-    #: Bounds use ``[^\]\s]+`` (not ``\S+``) so a bound can't absorb the closing
-    #: ``]`` of its own field: with ``\S+``, ``[x>=1]`` matches ``1]`` and the
-    #: enclosing bracket regex then runs on to the next ``]`` on screen. Keep this
-    #: exclusion in sync with the range branch embedded in ``_bracket_re``.
+    #: Bounds use `[^\]\s]+` (not `\S+`) so a bound can't absorb the closing
+    #: `]` of its own field: with `\S+`, `[x>=1]` matches `1]` and the
+    #: enclosing bracket regex then runs on to the next `]` on screen. Keep this
+    #: exclusion in sync with the range branch embedded in `_bracket_re`.
     _range_re: ClassVar[re.Pattern] = re.compile(
         r"(?:[^\]\s]+(?:<|<=))?x(?:<|<=|>|>=)[^\]\s]+"
     )
@@ -466,9 +467,9 @@ class HelpFormatter(cloup.HelpFormatter):
     _envvar_re: ClassVar[re.Pattern] = re.compile(r"(env\s+var:\s+)(.*)", re.DOTALL)
     _default_re: ClassVar[re.Pattern] = re.compile(r"(default:\s+)(.*)", re.DOTALL)
 
-    #: Matches ``(DEPRECATED)`` and ``(DEPRECATED: reason)`` markers, regardless
+    #: Matches `(DEPRECATED)` and `(DEPRECATED: reason)` markers, regardless
     #: of casing. The canonical upstream format is produced by Click's shared
-    #: ``_format_deprecated_label`` helper; the case-insensitive flag also
+    #: `_format_deprecated_label` helper; the case-insensitive flag also
     #: catches manually-written variants in custom help strings.
     _deprecated_re: ClassVar[re.Pattern] = re.compile(
         r"\(deprecated(?::\s[^)]+)?\)",
@@ -476,13 +477,13 @@ class HelpFormatter(cloup.HelpFormatter):
     )
 
     def _bracket_or(self, slot_name: str) -> IStyle:
-        """Return ``theme.<slot_name>`` or fall back to ``theme.bracket``.
+        """Return `theme.<slot_name>` or fall back to `theme.bracket`.
 
-        When a theme leaves an inner bracket-field slot (``envvar``,
-        ``default``, ``required``, ``range_label``) at
-        :func:`identity <cloup._util.identity>`, value tokens inside the
-        bracket block default to the ``bracket`` styling rather than
-        rendering plain. This lets a theme set only ``bracket`` and get a
+        When a theme leaves an inner bracket-field slot (`envvar`,
+        `default`, `required`, `range_label`) at
+        {func}`identity <cloup._util.identity>`, value tokens inside the
+        bracket block default to the `bracket` styling rather than
+        rendering plain. This lets a theme set only `bracket` and get a
         uniformly dim bracket field for free; richer themes layer specific
         styles on top by setting the inner slots.
         """
@@ -492,16 +493,16 @@ class HelpFormatter(cloup.HelpFormatter):
         return slot
 
     def _style_bracket_fields(self, match: re.Match) -> str:
-        """Style a trailing ``[env var: ...; default: ...; ...]`` block.
+        """Style a trailing `[env var: ...; default: ...; ...]` block.
 
-        Parses the bracket content by splitting on ``;`` separators and
+        Parses the bracket content by splitting on `;` separators and
         matching each field by its label prefix. Applied post-wrapping because
-        Click's text wrapper splits lines after ``get_help_record()`` returns,
+        Click's text wrapper splits lines after `get_help_record()` returns,
         which would break pre-styled ANSI codes.
 
-        Inner-slot fallback: when a theme leaves ``envvar`` / ``default`` /
-        ``required`` / ``range_label`` at :func:`identity <cloup._util.identity>`,
-        the value token inherits the ``bracket`` styling via
+        Inner-slot fallback: when a theme leaves `envvar` / `default` /
+        `required` / `range_label` at {func}`identity <cloup._util.identity>`,
+        the value token inherits the `bracket` styling via
         :py:meth:`_bracket_or`. The bracket slot acts as the structural
         default for the whole field; the other four slots override
         piecemeal.
@@ -546,12 +547,12 @@ class HelpFormatter(cloup.HelpFormatter):
     def _style_choice_metavar(self, metavar: str, choices: set[str]) -> str | None:
         """Style individual choices inside a choice metavar string.
 
-        Takes a rendered metavar like ``[json|xml|csv]`` (Click ``Choice``-style)
-        or ``[id,spec,value]`` (Click Extra ``MultiChoice``-style) and returns a
-        styled version where each known choice is wrapped with ``theme.choice``.
+        Takes a rendered metavar like `[json|xml|csv]` (Click `Choice`-style)
+        or `[id,spec,value]` (Click Extra `MultiChoice`-style) and returns a
+        styled version where each known choice is wrapped with `theme.choice`.
         A part that is not a known choice is a type placeholder (like the
-        ``INTEGER`` in a hybrid ``[auto|max|INTEGER]`` metavar) and is styled
-        with ``theme.metavar`` instead. Returns ``None`` if ``metavar`` does not
+        `INTEGER` in a hybrid `[auto|max|INTEGER]` metavar) and is styled
+        with `theme.metavar` instead. Returns `None` if `metavar` does not
         look like a choice list.
         """
         # Strip the surrounding brackets.
@@ -559,7 +560,7 @@ class HelpFormatter(cloup.HelpFormatter):
             return None
         inner = metavar[1:-1]
         # Detect the separator from the metavar itself: pipe for pick-one
-        # ``click.Choice``, comma for multi-pick ``MultiChoice``.
+        # `click.Choice`, comma for multi-pick `MultiChoice`.
         sep = "|" if "|" in inner else ","
         parts = inner.split(sep)
         styled_parts = [
@@ -582,7 +583,7 @@ class HelpFormatter(cloup.HelpFormatter):
     def highlight_extra_keywords(self, help_text: str) -> str:
         """Highlight extra keywords in help screens based on the theme.
 
-        Uses the ``highlight()`` function for all keyword categories. Each
+        Uses the `highlight()` function for all keyword categories. Each
         category is processed as a batch of regex patterns with a single styling
         function, which handles overlapping matches and prevents double-styling.
         """
@@ -607,9 +608,9 @@ class HelpFormatter(cloup.HelpFormatter):
 
         # Style command aliases and their parenthetical punctuation, like
         # "(lock, freeze, snapshot)". The whole group is rebuilt through
-        # Cloup's own ``format_subcommand_aliases``, the canonical consumer of
-        # the ``alias`` / ``alias_secondary`` theme slots, so help screens and
-        # the ``--tree`` view render aliases identically. The group only
+        # Cloup's own `format_subcommand_aliases`, the canonical consumer of
+        # the `alias` / `alias_secondary` theme slots, so help screens and
+        # the `--tree` view render aliases identically. The group only
         # matches when every comma-separated word is a known alias, so a
         # parenthetical in prose that merely contains an alias is left alone.
         if kw.command_aliases:
@@ -648,7 +649,7 @@ class HelpFormatter(cloup.HelpFormatter):
 
         help_text = self._bracket_re.sub(_bracket_to_placeholder, help_text)
 
-        # Style and placeholder choice metavars (like ``[json|xml|csv]``)
+        # Style and placeholder choice metavars (like `[json|xml|csv]`)
         # before applying excluded_keywords and running cross-ref passes.
         # This ensures that choices excluded from cross-ref highlighting
         # (like "version") are still highlighted inside their own metavar.
@@ -760,26 +761,25 @@ def highlight(
     styling_func: Callable,
     ignore_case: bool = False,
 ) -> str:
-    """Highlights parts of the ``content`` that matches ``patterns``.
+    """Highlights parts of the `content` that matches `patterns`.
 
-    Takes care of overlapping parts within the ``content``, so that the styling function
+    Takes care of overlapping parts within the `content`, so that the styling function
     is applied only once to each contiguous range of matching characters.
 
-    .. todo::
-        Support case-foldeing, so we can have the ``Straße`` string matching the
-        ``Strasse`` content.
+    ```{todo}
+    Support case-foldeing, so we can have the `Straße` string matching the
+    `Strasse` content.
 
-        This could be tricky as it messes with string length and characters index, which
-        our logic relies on.
+    This could be tricky as it messes with string length and characters index, which
+    our logic relies on.
 
-        .. danger::
-            Roundtrip through lower-casing/upper-casing is a can of worms, because some
-            characters change length when their case is changed:
+    .. danger::
+        Roundtrip through lower-casing/upper-casing is a can of worms, because some
+        characters change length when their case is changed:
 
-            - `Unicode roundtrip-unsafe characters
-              <https://gist.github.com/rendello/4d8266b7c52bf0e98eab2073b38829d9>`_
-            - `Unicode codepoints expanding or contracting on case changes
-              <https://gist.github.com/rendello/d37552507a389656e248f3255a618127>`_
+        - [Unicode roundtrip-unsafe characters](https://gist.github.com/rendello/4d8266b7c52bf0e98eab2073b38829d9)
+        - [Unicode codepoints expanding or contracting on case changes](https://gist.github.com/rendello/d37552507a389656e248f3255a618127)
+    ```
     """
     # Normalize input to a set of patterns.
     if isinstance(patterns, (str, re.Pattern)):

@@ -20,21 +20,21 @@ the defaults that make output pleasant for sighted users actively harm that
 stream:
 
 - ANSI color codes, which carry no meaning once flattened to text;
-- tables drawn with Unicode box characters (``│``, ``╭``, ``─``, …), whose
+- tables drawn with Unicode box characters (`│`, `╭`, `─`, …), whose
   separators and whitespace-based column alignment are read out as noise;
 - animated progress spinners and bars, whose cursor-driven frames repeat
   endlessly to a reader that cannot watch them advance;
 - interactive takeovers like a pager or a screen-clear, which trap or wipe the
   linear stream the reader is following.
 
-The :class:`AccessibleOption` collapses these concerns into a single
-``--accessible`` switch (also driven by the ``ACCESSIBLE`` environment variable),
+The {class}`AccessibleOption` collapses these concerns into a single
+`--accessible` switch (also driven by the `ACCESSIBLE` environment variable),
 which is the same rationale that leads Click Extra to render help screens as
 minimal-width text rather than inside a terminal-wide table. It lowers the
-``--color``, ``--progress`` and ``--table-format`` defaults and publishes
-:data:`~click_extra.context.ACCESSIBLE`, which :func:`clear` and
-:func:`echo_via_pager` read to drop their interactive behavior. See the
-``--accessible`` section of ``docs/colorize.md`` for the full reasoning.
+`--color`, `--progress` and `--table-format` defaults and publishes
+{data}`~click_extra.context.ACCESSIBLE`, which {func}`clear` and
+{func}`echo_via_pager` read to drop their interactive behavior. See the
+`--accessible` section of `docs/colorize.md` for the full reasoning.
 """
 
 from __future__ import annotations
@@ -57,36 +57,38 @@ if TYPE_CHECKING:
 
 
 class AccessibleOption(ExtraOption):
-    """A pre-configured ``--accessible`` switch.
+    """A pre-configured `--accessible` switch.
 
-    Turning it on (either via the flag or the ``ACCESSIBLE`` environment variable)
-    is equivalent to passing ``--no-color --no-progress --table-format plain``, and
-    additionally streams :func:`echo_via_pager` output without a pager and turns
-    :func:`clear` into a no-op: it strips ANSI codes, silences progress spinners and
+    Turning it on (either via the flag or the `ACCESSIBLE` environment variable)
+    is equivalent to passing `--no-color --no-progress --table-format plain`, and
+    additionally streams {func}`echo_via_pager` output without a pager and turns
+    {func}`clear` into a no-op: it strips ANSI codes, silences progress spinners and
     bars, renders tables without box-drawing characters, and avoids interactive
     screen takeovers.
 
-    .. note::
-        It is a one-way flag with no ``--no-accessible`` counterpart: to opt back
-        out, pass the explicit ``--color`` / ``--table-format`` you want, which take
-        precedence anyway (see below). A negation flag would also be the widest
-        option label in the help screen, pushing every other option's description
-        column to the right.
+    ```{note}
+    It is a one-way flag with no `--no-accessible` counterpart: to opt back
+    out, pass the explicit `--color` / `--table-format` you want, which take
+    precedence anyway (see below). A negation flag would also be the widest
+    option label in the help screen, pushing every other option's description
+    column to the right.
+    ```
 
-    The switch only adjusts the *defaults* of the ``--color`` and ``--table-format``
-    options, through the context's ``default_map``. An explicit ``--color`` /
-    ``--table-format`` on the command line (or in a configuration file) therefore
-    keeps precedence over ``--accessible``.
+    The switch only adjusts the *defaults* of the `--color` and `--table-format`
+    options, through the context's `default_map`. An explicit `--color` /
+    `--table-format` on the command line (or in a configuration file) therefore
+    keeps precedence over `--accessible`.
 
-    This option is eager so it lands its defaults before ``--color`` and
-    ``--table-format`` are resolved.
+    This option is eager so it lands its defaults before `--color` and
+    `--table-format` are resolved.
 
-    .. note::
-        The values are injected with :meth:`dict.setdefault`, so they never clobber
-        a colorization or table format already requested by the user. Combined with
-        the ``ChainMap`` that :class:`~click_extra.config.option.ConfigOption` layers on top
-        of ``default_map``, this yields the precedence:
-        command line > configuration file > ``--accessible`` > built-in defaults.
+    ```{note}
+    The values are injected with {meth}`dict.setdefault`, so they never clobber
+    a colorization or table format already requested by the user. Combined with
+    the `ChainMap` that {class}`~click_extra.config.option.ConfigOption` layers on top
+    of `default_map`, this yields the precedence:
+    command line > configuration file > `--accessible` > built-in defaults.
+    ```
     """
 
     def set_accessible(
@@ -97,21 +99,22 @@ class AccessibleOption(ExtraOption):
     ) -> None:
         """Publish the accessibility intent and lower color/progress/table defaults.
 
-        Reconciles ``--accessible`` with the ``ACCESSIBLE`` environment variable,
-        stores the result at :data:`~click_extra.context.ACCESSIBLE` for output
-        helpers (:func:`clear`, :func:`echo_via_pager`) to read, then lowers the
-        ``--color`` / ``--progress`` / ``--table-format`` defaults when active. A
-        CLI that never sees ``--accessible`` (nor ``ACCESSIBLE``) keeps every
+        Reconciles `--accessible` with the `ACCESSIBLE` environment variable,
+        stores the result at {data}`~click_extra.context.ACCESSIBLE` for output
+        helpers ({func}`clear`, {func}`echo_via_pager`) to read, then lowers the
+        `--color` / `--progress` / `--table-format` defaults when active. A
+        CLI that never sees `--accessible` (nor `ACCESSIBLE`) keeps every
         default untouched.
 
-        .. note::
-            The global ``ACCESSIBLE`` environment variable is read here rather than
-            wired through the option's ``envvar``. Click would otherwise list it
-            alongside the auto-generated ``<CLI>_ACCESSIBLE`` variable in the
-            ``--params`` table, making the combined string the widest cell of
-            the env-var column and pushing every other row's padding out. This
-            mirrors how :class:`~click_extra.color.ColorOption` reads
-            ``NO_COLOR`` and friends.
+        ```{note}
+        The global `ACCESSIBLE` environment variable is read here rather than
+        wired through the option's `envvar`. Click would otherwise list it
+        alongside the auto-generated `<CLI>_ACCESSIBLE` variable in the
+        `--params` table, making the combined string the widest cell of
+        the env-var column and pushing every other row's padding out. This
+        mirrors how {class}`~click_extra.color.ColorOption` reads
+        `NO_COLOR` and friends.
+        ```
         """
         if not value:
             raw = os.environ.get("ACCESSIBLE")
@@ -163,11 +166,11 @@ class AccessibleOption(ExtraOption):
 
 
 def clear() -> None:
-    """Drop-in for :func:`click.clear` that becomes a no-op under ``--accessible``.
+    """Drop-in for {func}`click.clear` that becomes a no-op under `--accessible`.
 
     Clearing the screen wipes the scrollback a screen reader relies on and carries
     no meaning in a linear stream, so accessibility mode skips it entirely. Outside
-    accessibility mode (or with no active context) it defers to :func:`click.clear`,
+    accessibility mode (or with no active context) it defers to {func}`click.clear`,
     which already no-ops when stdout is not a terminal.
     """
     ctx = click.get_current_context(silent=True)
@@ -180,16 +183,16 @@ def echo_via_pager(
     text_or_generator: Iterable[str] | Callable[[], Iterable[str]] | str,
     color: bool | None = None,
 ) -> None:
-    """Drop-in for :func:`click.echo_via_pager` that streams plainly under --accessible.
+    """Drop-in for {func}`click.echo_via_pager` that streams plainly under --accessible.
 
     A pager is a full-screen, cursor-driven TUI: it traps output behind its own
     keybindings, hostile to a screen reader consuming a linear stream. Under
-    ``--accessible`` the text is written straight to stdout via :func:`click.echo`
+    `--accessible` the text is written straight to stdout via {func}`click.echo`
     instead. Outside accessibility mode (or with no active context) it defers to
-    :func:`click.echo_via_pager`, which already falls back to a plain write when
+    {func}`click.echo_via_pager`, which already falls back to a plain write when
     stdout is not a terminal.
 
-    The argument is normalized exactly as :func:`click.echo_via_pager` does (a
+    The argument is normalized exactly as {func}`click.echo_via_pager` does (a
     generator function is called, a string is emitted as-is, anything else is
     iterated), so the two behave identically on their inputs.
     """

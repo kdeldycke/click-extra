@@ -15,9 +15,10 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Allow the module to be run as a CLI. I.e.:
 
-.. code-block:: shell-session
+```{code-block} shell-session
 
-    $ python -m click_extra
+$ python -m click_extra
+```
 """
 
 from __future__ import annotations
@@ -28,11 +29,11 @@ from click_extra.cli import demo
 def main():
     """Indirection required to reconcile all invocation methods:
 
-    - ``python -m click_extra``
-    - entry point script: ``click-extra``
-    - Nuitka: ``python -m nuitka (...) click_extra/__main__.py``
+    - `python -m click_extra`
+    - entry point script: `click-extra`
+    - Nuitka: `python -m nuitka (...) click_extra/__main__.py`
 
-    See `poetry#5981 <https://github.com/python-poetry/poetry/issues/5981>`_.
+    See [poetry#5981](https://github.com/python-poetry/poetry/issues/5981).
     """
     demo()
 

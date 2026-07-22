@@ -15,9 +15,10 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Helpers and utilities for Sphinx.
 
-.. note::
-    The MkDocs counterpart lives in :mod:`click_extra.mkdocs`, which achieves the same
-    ANSI color rendering by patching ``pymdownx.highlight``'s formatter classes.
+```{note}
+The MkDocs counterpart lives in {mod}`click_extra.mkdocs`, which achieves the same
+ANSI color rendering by patching `pymdownx.highlight`'s formatter classes.
+```
 """
 
 from __future__ import annotations
@@ -56,27 +57,27 @@ logger = logging.getLogger(__name__)
 
 
 MYST_NATIVE_ALERTS_VERSION = Version("5.1.0")
-"""First ``myst-parser`` release that ships the native ``"alert"`` syntax
+"""First `myst-parser` release that ships the native `"alert"` syntax
 extension.
 
-Below this version, :mod:`click_extra.sphinx.alerts` patches GitHub alert
-syntax into MyST admonitions via a ``source-read`` / ``include-read``
+Below this version, {mod}`click_extra.sphinx.alerts` patches GitHub alert
+syntax into MyST admonitions via a `source-read` / `include-read`
 hook. At or above this version, the converter is skipped at
-:func:`setup` time and projects should add ``"alert"`` to
-``myst_enable_extensions`` instead.
+{func}`setup` time and projects should add `"alert"` to
+`myst_enable_extensions` instead.
 """
 
 
 EXEC_DIRECTIVES_OPT_IN = "click_extra_enable_exec_directives"
-"""Name of the ``conf.py`` config flag that gates every code-execution directive.
+"""Name of the `conf.py` config flag that gates every code-execution directive.
 
-Default is ``False``. A project that adds ``click_extra.sphinx`` to its
-``extensions`` list gets the ANSI Pygments formatter unconditionally, plus
-the GitHub-alerts converter when ``myst-parser`` is below
-:data:`MYST_NATIVE_ALERTS_VERSION` (see :mod:`.alerts` for the deprecation
-rationale), but does *not* gain access to either the ``click:*`` or the
-``python:*`` directive families until the maintainer opts in explicitly.
-Both families ``exec`` user-supplied Python at build time with full
+Default is `False`. A project that adds `click_extra.sphinx` to its
+`extensions` list gets the ANSI Pygments formatter unconditionally, plus
+the GitHub-alerts converter when `myst-parser` is below
+{data}`MYST_NATIVE_ALERTS_VERSION` (see {mod}`.alerts` for the deprecation
+rationale), but does *not* gain access to either the `click:*` or the
+`python:*` directive families until the maintainer opts in explicitly.
+Both families `exec` user-supplied Python at build time with full
 Sphinx-process privileges; gating them behind a single explicit flag keeps
 a transitive import or a doc-only pull request from silently expanding
 the build's attack surface.
@@ -84,35 +85,36 @@ the build's attack surface.
 
 
 RUN_CAPTURE_CONFIG = "click_extra_run_capture"
-"""Name of the ``conf.py`` value selecting the stream-capture mode for the CLIs that
-``click:run`` and ``click:tree`` execute.
+"""Name of the `conf.py` value selecting the stream-capture mode for the CLIs that
+`click:run` and `click:tree` execute.
 
-Maps to the ``capture`` parameter of Click's :class:`~click.testing.CliRunner`,
-``"sys"`` or ``"fd"`` (added in Click 8.4). Defaults to ``"fd"`` so a command writing
-through ``sys.stdout.fileno()`` is captured at the file-descriptor level and renders,
-instead of aborting the build with :exc:`io.UnsupportedOperation`. Ignored on Click
+Maps to the `capture` parameter of Click's {class}`~click.testing.CliRunner`,
+`"sys"` or `"fd"` (added in Click 8.4). Defaults to `"fd"` so a command writing
+through `sys.stdout.fileno()` is captured at the file-descriptor level and renders,
+instead of aborting the build with {exc}`io.UnsupportedOperation`. Ignored on Click
 releases older than 8.4, which lack the parameter.
 """
 
 
 def _register_exec_directives(app: Sphinx, config: Config) -> None:
-    """Register the ``click:*`` and ``python:*`` directives if opted in.
+    """Register the `click:*` and `python:*` directives if opted in.
 
-    Connected to the ``config-inited`` event so the user's ``conf.py``
+    Connected to the `config-inited` event so the user's `conf.py`
     value is merged before this runs. Without the opt-in, neither
-    :class:`~click_extra.sphinx.click.ClickDomain` nor
-    :class:`~click_extra.sphinx.python.PythonDomain` is registered:
+    {class}`~click_extra.sphinx.click.ClickDomain` nor
+    {class}`~click_extra.sphinx.python.PythonDomain` is registered:
     referencing any of their directives in a document raises an
     "Unknown directive type" warning, exactly as if the extension were
     not installed.
 
-    .. danger::
-        Both directive families execute arbitrary Python at build time
-        with the full privileges of the Sphinx process: filesystem,
-        network, environment variables, secrets. Auto-enabling them on
-        every project that imports ``click_extra.sphinx`` (transitively
-        or otherwise) would silently expand the attack surface of every
-        consumer. See ``docs/sphinx.md`` for the full trust boundary.
+    ```{danger}
+    Both directive families execute arbitrary Python at build time
+    with the full privileges of the Sphinx process: filesystem,
+    network, environment variables, secrets. Auto-enabling them on
+    every project that imports `click_extra.sphinx` (transitively
+    or otherwise) would silently expand the attack surface of every
+    consumer. See `docs/sphinx.md` for the full trust boundary.
+    ```
     """
     if not getattr(config, EXEC_DIRECTIVES_OPT_IN, False):
         logger.info(
@@ -142,40 +144,41 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     Always-on features (no execution surface):
 
     - The ANSI-capable HTML formatter for Pygments (replaces
-      ``sphinx.highlighting.PygmentsBridge`` with one that renders ANSI
+      `sphinx.highlighting.PygmentsBridge` with one that renders ANSI
       colors in code blocks).
-    - GitHub-flavored alert syntax (``> [!NOTE]``, etc.) in *included*
+    - GitHub-flavored alert syntax (`> [!NOTE]`, etc.) in *included*
       and regular *source* files, converted to MyST/reST admonitions.
-      Registered only when the installed ``myst-parser`` is below
-      :data:`MYST_NATIVE_ALERTS_VERSION` (``5.1.0``). On newer versions,
+      Registered only when the installed `myst-parser` is below
+      {data}`MYST_NATIVE_ALERTS_VERSION` (`5.1.0`). On newer versions,
       the converter is skipped and a one-shot info message points users
-      at ``myst-parser``'s native ``"alert"`` extension. See
-      :mod:`click_extra.sphinx.alerts` for the deprecation plan.
-    - The ``matrix`` directive, which renders a package's compatibility grid
+      at `myst-parser`'s native `"alert"` extension. See
+      {mod}`click_extra.sphinx.alerts` for the deprecation plan.
+    - The `matrix` directive, which renders a package's compatibility grid
       (``{matrix} python`` or ``{matrix} <distribution>``) from its git tag
       history. It runs a canned generator rather than user-supplied Python, so
       it carries no execution surface and needs no opt-in. See
-      :mod:`click_extra.sphinx.matrix`.
+      {mod}`click_extra.sphinx.matrix`.
 
-    Opt-in features (gated behind ``click_extra_enable_exec_directives``):
+    Opt-in features (gated behind `click_extra_enable_exec_directives`):
 
-    - ``click:source`` / ``click:run`` to define and execute Click CLIs
+    - `click:source` / `click:run` to define and execute Click CLIs
       at build time.
-    - ``python:source`` / ``python:run`` to execute arbitrary Python at
-      build time and render its source or captured ``stdout``.
-    - ``python:render`` / ``python:render-myst`` / ``python:render-rst``
-      to execute arbitrary Python and parse the captured ``stdout`` as
+    - `python:source` / `python:run` to execute arbitrary Python at
+      build time and render its source or captured `stdout`.
+    - `python:render` / `python:render-myst` / `python:render-rst`
+      to execute arbitrary Python and parse the captured `stdout` as
       live document content.
 
     All directives in the opt-in group execute user-supplied Python with
     the same privileges as the Sphinx process. They are therefore
-    disabled by default. Set ``click_extra_enable_exec_directives = True``
-    in ``conf.py`` to register them.
+    disabled by default. Set `click_extra_enable_exec_directives = True`
+    in `conf.py` to register them.
 
-    .. caution::
-        This function forces the Sphinx app to use
-        ``sphinx.highlighting.PygmentsBridge`` instead of the default
-        HTML formatter to add support for ANSI colors in code blocks.
+    ```{caution}
+    This function forces the Sphinx app to use
+    `sphinx.highlighting.PygmentsBridge` instead of the default
+    HTML formatter to add support for ANSI colors in code blocks.
+    ```
     """
     # Set Sphinx's default HTML formatter to an ANSI capable one.
     PygmentsBridge.html_formatter = AnsiHtmlFormatter

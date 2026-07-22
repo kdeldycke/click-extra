@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Our own flavor of ``Option``, ``Argument`` and ``parameters``."""
+"""Our own flavor of `Option`, `Argument` and `parameters`."""
 
 from __future__ import annotations
 
@@ -44,31 +44,32 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 P = TypeVar("P", bound=click.Parameter)
-"""Type variable bound to :class:`click.Parameter`, letting
-:func:`require_sibling_param` return the exact subclass it was asked to find."""
+"""Type variable bound to {class}`click.Parameter`, letting
+{func}`require_sibling_param` return the exact subclass it was asked to find."""
 
 #: Separator joining the keys of a parameter's fully-qualified path
-#: (``cli.subcommand.param``).
+#: (`cli.subcommand.param`).
 PARAM_PATH_SEP = "."
 
 
 @contextmanager
 def patch_attr(obj: object, name: str, value: Any) -> Iterator[None]:
-    """Temporarily set ``obj.name`` to ``value``, restoring the original on exit.
+    """Temporarily set `obj.name` to `value`, restoring the original on exit.
 
-    A minimal, dependency-free stand-in for ``unittest.mock.patch.object`` for
+    A minimal, dependency-free stand-in for `unittest.mock.patch.object` for
     the simple save-set-restore monkeypatching Click Extra performs at runtime
-    (in :mod:`~click_extra.logging`, :mod:`~click_extra.parameters` and
-    :mod:`~click_extra.testing`).
+    (in {mod}`~click_extra.logging`, {mod}`~click_extra.parameters` and
+    {mod}`~click_extra.testing`).
 
-    .. note::
-        ``unittest.mock`` drags the whole test framework, and its heavy
-        transitive imports, into the startup path of every CLI built with Click
-        Extra. Reimplementing the single feature actually used keeps that cost
-        out of import time. Do not swap this back for ``unittest.mock``.
+    ```{note}
+    `unittest.mock` drags the whole test framework, and its heavy
+    transitive imports, into the startup path of every CLI built with Click
+    Extra. Reimplementing the single feature actually used keeps that cost
+    out of import time. Do not swap this back for `unittest.mock`.
+    ```
 
-    Like ``patch.object`` without ``create=True``, the attribute must already
-    exist: a missing ``name`` raises :exc:`AttributeError`.
+    Like `patch.object` without `create=True`, the attribute must already
+    exist: a missing `name` raises {exc}`AttributeError`.
     """
     original = getattr(obj, name)
     setattr(obj, name, value)
@@ -88,11 +89,11 @@ def search_params(
 
     :param params: list of parameter instances to search in.
     :param klass: the class of the parameters to look for.
-    :param include_subclasses: if ``True``, includes in the results all parameters subclassing
-        the provided ``klass``. If ``False``, only matches parameters which are strictly instances of ``klass``.
-        Defaults to ``True``.
-    :param unique: if ``True``, raise an error if more than one parameter of the
-        provided ``klass`` is found. Defaults to ``True``.
+    :param include_subclasses: if `True`, includes in the results all parameters subclassing
+        the provided `klass`. If `False`, only matches parameters which are strictly instances of `klass`.
+        Defaults to `True`.
+    :param unique: if `True`, raise an error if more than one parameter of the
+        provided `klass` is found. Defaults to `True`.
     """
     param_list = [
         p
@@ -116,11 +117,11 @@ def last_param(
     params: Iterable[click.Parameter],
     klass: type[click.Parameter],
 ) -> click.Parameter | None:
-    """Return the last parameter of exactly ``klass`` in *params*, or ``None``.
+    """Return the last parameter of exactly `klass` in *params*, or `None`.
 
-    Unlike :func:`search_params`, this matches the exact ``klass`` (no subclasses)
+    Unlike {func}`search_params`, this matches the exact `klass` (no subclasses)
     and tolerates duplicates: when an option is declared more than once (like an
-    explicit ``@verbosity_option`` stacked on a Click Extra command that already
+    explicit `@verbosity_option` stacked on a Click Extra command that already
     ships one), Click keeps the last occurrence, so this mirrors that here instead
     of erroring out on the ambiguity.
 
@@ -139,10 +140,10 @@ def require_sibling_param(
     """Return the sibling *klass* parameter declared on the same command, or raise.
 
     Some options are inert on their own: they drive machinery owned by a sibling
-    option. ``--no-config`` and ``--validate-config``, for instance, both depend on
-    the ``--config`` option (:class:`~click_extra.config.option.ConfigOption`). This
+    option. `--no-config` and `--validate-config`, for instance, both depend on
+    the `--config` option ({class}`~click_extra.config.option.ConfigOption`). This
     helper centralizes the lookup so every such option raises the same
-    ``RuntimeError`` when its required sibling is missing, naming the offending flag.
+    `RuntimeError` when its required sibling is missing, naming the offending flag.
 
     :param params: the command's parameter list to scan.
     :param requester: the parameter requiring the sibling, used to build the error
@@ -164,20 +165,20 @@ def require_sibling_param(
 def full_short_help(command: click.Command) -> str:
     """Return the command's canonical one-line short help, untruncated.
 
-    Click's :meth:`click.Command.get_short_help_str` truncates to 45 characters by
-    default with a trailing ``"..."`` so subcommand listings fit a terminal column.
+    Click's {meth}`click.Command.get_short_help_str` truncates to 45 characters by
+    default with a trailing `"..."` so subcommand listings fit a terminal column.
     That bound is wrong for generated documentation and completion specs, where the
     NAME / COMMANDS sections carry the full description and the renderer wraps text
     on its own.
 
-    The lookup mirrors Click's order: an explicit ``short_help`` wins, otherwise the
-    first paragraph of ``command.help`` is joined into one line. A truthy
-    ``deprecated`` flag prepends ``(Deprecated)`` so the flag stays visible.
+    The lookup mirrors Click's order: an explicit `short_help` wins, otherwise the
+    first paragraph of `command.help` is joined into one line. A truthy
+    `deprecated` flag prepends `(Deprecated)` so the flag stays visible.
     """
     if command.short_help:
         text = command.short_help.strip()
     elif command.help:
-        # Click already stores ``help`` after ``inspect.cleandoc``: split on the
+        # Click already stores `help` after `inspect.cleandoc`: split on the
         # first blank line to grab the leading paragraph, then squash internal
         # newlines so the result is one line.
         paragraph = command.help.split("\n\n", 1)[0]
@@ -190,16 +191,16 @@ def full_short_help(command: click.Command) -> str:
 
 
 def param_spellings(param: click.Parameter) -> tuple[str, ...]:
-    """All literal spellings of a parameter: primary ``opts`` then ``secondary_opts``.
+    """All literal spellings of a parameter: primary `opts` then `secondary_opts`.
 
-    A boolean flag pair yields both forms (``--foo``, ``--no-foo``); a plain option
+    A boolean flag pair yields both forms (`--foo`, `--no-foo`); a plain option
     yields just its declared names.
     """
     return tuple(param.opts) + tuple(param.secondary_opts)
 
 
 def short_long_opts(opts: Sequence[str]) -> tuple[str, str]:
-    """Split option spellings into the first short (``-x``) and long (``--xy``) form.
+    """Split option spellings into the first short (`-x`) and long (`--xy`) form.
 
     Either element is the empty string when that form is absent.
     """
@@ -213,18 +214,19 @@ def option_value_kind(
 ) -> Literal["flag", "optional", "required"]:
     """Classify how an option consumes a value, the basis for rendering its metavar.
 
-    - ``"flag"``: takes no value. A boolean switch (``--foo``, ``--foo/--no-foo``), a
-      flag with a custom ``flag_value`` (``--no-config``), or a counter (``-v``).
-    - ``"optional"``: the value may be omitted. Click models this as
-      ``is_flag=False`` with a ``flag_value`` set, so a bare ``--color`` stands for
-      the flag value while ``--color=never`` passes an explicit one.
-    - ``"required"``: consumes a value (``--config CONFIG_PATH``).
+    - `"flag"`: takes no value. A boolean switch (`--foo`, `--foo/--no-foo`), a
+      flag with a custom `flag_value` (`--no-config`), or a counter (`-v`).
+    - `"optional"`: the value may be omitted. Click models this as
+      `is_flag=False` with a `flag_value` set, so a bare `--color` stands for
+      the flag value while `--color=never` passes an explicit one.
+    - `"required"`: consumes a value (`--config CONFIG_PATH`).
 
-    .. note::
-        The discriminator is Click's ``is_flag`` (plus ``count``), not
-        ``is_bool_flag``: a flag carrying a custom ``flag_value`` such as
-        :class:`~click_extra.config.option.NoConfigOption` reports
-        ``is_bool_flag=False`` yet still takes no value.
+    ```{note}
+    The discriminator is Click's `is_flag` (plus `count`), not
+    `is_bool_flag`: a flag carrying a custom `flag_value` such as
+    {class}`~click_extra.config.option.NoConfigOption` reports
+    `is_bool_flag=False` yet still takes no value.
+    ```
     """
     if getattr(param, "count", False) or getattr(param, "is_flag", False):
         return "flag"
@@ -239,7 +241,7 @@ def option_value_kind(
 
 
 def is_repeatable(param: click.Parameter) -> bool:
-    """Whether the parameter may be supplied several times (``multiple`` or ``count``)."""
+    """Whether the parameter may be supplied several times (`multiple` or `count`)."""
     return bool(getattr(param, "multiple", False) or getattr(param, "count", False))
 
 
@@ -251,11 +253,11 @@ def missing_extra_message(
 ) -> str:
     """Build the uniform "install the optional extra" error message.
 
-    ``subject`` names what needs the dependency, ``extra`` is the optional
-    dependency group and ``package`` its distribution name. Every feature gated
+    `subject` names what needs the dependency, `extra` is the optional
+    dependency group and `package` its distribution name. Every feature gated
     behind an extra (the documentation integrations, the Carapace exporter, the
     table formatters) routes through this so they all point at the same canonical
-    ``pip install package[extra]`` target, with the hyphenated distribution name.
+    `pip install package[extra]` target, with the hyphenated distribution name.
     """
     return (
         f"{subject} requires an optional dependency. "
@@ -264,7 +266,7 @@ def missing_extra_message(
 
 
 def generator_tag() -> str:
-    """Provenance tag for generated artifacts: ``Click Extra <version>``.
+    """Provenance tag for generated artifacts: `Click Extra <version>`.
 
     Stamped into the header comments of the documents Click Extra generates
     from a CLI (man pages, Carapace completion specs). This is Click Extra's
@@ -281,35 +283,36 @@ def generator_tag() -> str:
 class _ParameterMixin:
     """Mixin providing shared functionality for Click Extra parameters.
 
-    .. warning::
-        If we want to override any method from Click's ``Parameter`` class, we have to
-        use that mixin and have it inherited first in the ``Option`` and ``Argument``
-        classes below.
+    ```{warning}
+    If we want to override any method from Click's `Parameter` class, we have to
+    use that mixin and have it inherited first in the `Option` and `Argument`
+    classes below.
 
-        Because:
-        - Cloup does not provide its own ``Parameter`` class.
-        - Multiple inheritance cannot be used because of MRO issues.
+    Because:
+    - Cloup does not provide its own `Parameter` class.
+    - Multiple inheritance cannot be used because of MRO issues.
+    ```
     """
 
-    # Attributes provided by the ``click.Parameter`` subclass this mixin is always
+    # Attributes provided by the `click.Parameter` subclass this mixin is always
     # combined with. Declared here so the methods below can reference them without
     # mypy flagging them as undefined on the standalone mixin.
     multiple: bool
     nargs: int
 
     def get_default(self, ctx: click.Context, call: bool = True):
-        """Override ``click.Parameter.get_default()`` to support ``EnumChoice`` types.
+        """Override `click.Parameter.get_default()` to support `EnumChoice` types.
 
-        Reuse the ``EnumChoice.get_choice_string()`` method to convert an ``Enum``
-        default value to its string representation, to bypass `Click's default behavior
-        of returning the Enum.name <https://github.com/pallets/click/pull/3004>`_.
+        Reuse the `EnumChoice.get_choice_string()` method to convert an `Enum`
+        default value to its string representation, to bypass [Click's default behavior of returning the Enum.name](https://github.com/pallets/click/pull/3004).
 
-        .. note::
-            A ``multiple`` option or a variadic (``nargs=-1``) parameter carries a
-            *sequence* of members as its default, so each member is resolved on its
-            own. Converting the sequence as a whole would stringify the tuple itself
-            (``str((MyEnum.FOO,))``) and later trip Click's ``Value must be an
-            iterable`` check on the default-value path.
+        ```{note}
+        A `multiple` option or a variadic (`nargs=-1`) parameter carries a
+        *sequence* of members as its default, so each member is resolved on its
+        own. Converting the sequence as a whole would stringify the tuple itself
+        (`str((MyEnum.FOO,))`) and later trip Click's ``Value must be an
+        iterable`` check on the default-value path.
+        ```
         """
         default_value = super().get_default(ctx, call)  # type: ignore[misc]
 
@@ -320,7 +323,7 @@ class _ParameterMixin:
             and default_value is not UNSET
         ):
             if self.multiple or self.nargs == -1:
-                # A ``None`` default is not iterable; leave it for Click to turn
+                # A `None` default is not iterable; leave it for Click to turn
                 # into an empty tuple.
                 if default_value is not None:
                     default_value = tuple(
@@ -333,114 +336,117 @@ class _ParameterMixin:
 
 
 class Argument(_ParameterMixin, cloup.Argument):
-    """Wrap ``cloup.Argument``, itself inheriting from ``click.Argument``.
+    """Wrap `cloup.Argument`, itself inheriting from `click.Argument`.
 
-    Inherits first from ``_ParameterMixin`` to allow future overrides of Click's
-    ``Parameter`` methods.
+    Inherits first from `_ParameterMixin` to allow future overrides of Click's
+    `Parameter` methods.
     """
 
 
 class Option(_ParameterMixin, cloup.Option):
-    """Wrap ``cloup.Option``, itself inheriting from ``click.Option``.
+    """Wrap `cloup.Option`, itself inheriting from `click.Option`.
 
-    Inherits first from ``_ParameterMixin`` to allow future overrides of Click's
-    ``Parameter`` methods.
+    Inherits first from `_ParameterMixin` to allow future overrides of Click's
+    `Parameter` methods.
     """
 
 
 class ExtraOption(Option):
-    """Dedicated to option implemented by ``click-extra`` itself.
+    """Dedicated to option implemented by `click-extra` itself.
 
     Provides a way to identify Click Extra's own options with certainty, and
     restores the pre-Click-8.4.0 contract that a callback (or a type's
-    ``convert()``) can introspect its own parameter source from within itself.
+    `convert()`) can introspect its own parameter source from within itself.
 
-    .. note::
-        This is the one click-extra class that deliberately keeps the ``Extra``
-        prefix. The ``8.0.0`` cleanup dropped it everywhere else (``ExtraCommand``
-        became ``Command``, ``ExtraContext`` became ``Context``, and so on), shadowing
-        the matching Cloup or Click class. Here the plain ``Option`` name is already
-        taken by the user-facing enhanced wrapper this class subclasses, so the prefix
-        is not legacy baggage but a real distinction: ``ExtraOption`` marks
-        click-extra's *own* built-in options. That marker is load-bearing, since
-        :class:`~click_extra.commands.Command` sorts parameters with
-        ``isinstance(param, ExtraOption)`` to push the built-in options to the end.
+    ```{note}
+    This is the one click-extra class that deliberately keeps the `Extra`
+    prefix. The `8.0.0` cleanup dropped it everywhere else (`ExtraCommand`
+    became `Command`, `ExtraContext` became `Context`, and so on), shadowing
+    the matching Cloup or Click class. Here the plain `Option` name is already
+    taken by the user-facing enhanced wrapper this class subclasses, so the prefix
+    is not legacy baggage but a real distinction: `ExtraOption` marks
+    click-extra's *own* built-in options. That marker is load-bearing, since
+    {class}`~click_extra.commands.Command` sorts parameters with
+    `isinstance(param, ExtraOption)` to push the built-in options to the end.
+    ```
 
-    .. note::
-        Bracket fields (envvar, default, range, required) cannot be pre-styled in
-        ``get_help_record()`` because Click's text wrapper splits lines *after* the
-        record is returned, which would break ANSI codes that span wrapped boundaries.
-        Styling is instead applied post-wrapping in
-        ``HelpFormatter._style_bracket_fields()``, which uses the structured data
-        from ``Option.get_help_extra()`` to identify each field by its label.
+    ```{note}
+    Bracket fields (envvar, default, range, required) cannot be pre-styled in
+    `get_help_record()` because Click's text wrapper splits lines *after* the
+    record is returned, which would break ANSI codes that span wrapped boundaries.
+    Styling is instead applied post-wrapping in
+    `HelpFormatter._style_bracket_fields()`, which uses the structured data
+    from `Option.get_help_extra()` to identify each field by its label.
+    ```
 
-    .. note::
-        Built-in option subclasses share a common shape: their ``__init__``
-        defaults ``param_decls`` to the option's canonical flags and wires an
-        eager callback via ``kwargs.setdefault("callback", self.<callback>)``.
-        Every callback name encodes its role with a verb prefix. The common
-        roles are:
+    ```{note}
+    Built-in option subclasses share a common shape: their `__init__`
+    defaults `param_decls` to the option's canonical flags and wires an
+    eager callback via `kwargs.setdefault("callback", self.<callback>)`.
+    Every callback name encodes its role with a verb prefix. The common
+    roles are:
 
-        - ``set_<key>`` publishes a resolved value to ``ctx.meta`` (``set_color``,
-          ``set_no_color``, ``set_theme``, ``set_telemetry``, ``set_progress``,
-          ``set_accessible``, ``set_zero_exit``, the verbosity options'
-          ``set_level``);
-        - ``init_<system>`` additionally installs a ``ctx`` helper or records a
-          snapshot (``init_timer``, ``init_formatter``, ``init_columns``,
-          ``init_sort``);
-        - ``validate_<thing>`` coerces and validates the raw input
-          (``validate_jobs``, ``validate_config``);
-        - ``print_*`` renders output and exits (``print_man``, ``print_params``,
-          ``print_and_exit``).
+    - `set_<key>` publishes a resolved value to `ctx.meta` (`set_color`,
+      `set_no_color`, `set_theme`, `set_telemetry`, `set_progress`,
+      `set_accessible`, `set_zero_exit`, the verbosity options'
+      `set_level`);
+    - `init_<system>` additionally installs a `ctx` helper or records a
+      snapshot (`init_timer`, `init_formatter`, `init_columns`,
+      `init_sort`);
+    - `validate_<thing>` coerces and validates the raw input
+      (`validate_jobs`, `validate_config`);
+    - `print_*` renders output and exits (`print_man`, `print_params`,
+      `print_and_exit`).
 
-        A few options own a richer operation and name it with its own verb
-        rather than forcing one of the above. ``ConfigOption`` wires
-        ``load_conf`` to read, parse, and merge a configuration file, and
-        ``NoConfigOption`` wires ``check_sibling_config_option`` to assert that
-        a sibling ``--config`` option exists.
+    A few options own a richer operation and name it with its own verb
+    rather than forcing one of the above. `ConfigOption` wires
+    `load_conf` to read, parse, and merge a configuration file, and
+    `NoConfigOption` wires `check_sibling_config_option` to assert that
+    a sibling `--config` option exists.
+    ```
     """
 
     def handle_parse_result(self, ctx, opts, args):
         """Record the parameter source before delegating to the base implementation.
 
-        .. warning::
-            Click ``8.4.0`` (PR `pallets/click#3404
-            <https://github.com/pallets/click/pull/3404>`_) reordered
-            ``Parameter.handle_parse_result`` so ``ctx.set_parameter_source`` runs
-            *after* ``process_value``. Callbacks that introspect their own
-            provenance via ``ctx.get_parameter_source(self.name)`` therefore read
-            ``None`` instead of the actual source. ``ColorOption``, ``ConfigOption``,
-            and ``ShowParamsOption`` rely on this introspection (from their eager
-            callback) to decide whether an env var should override the default
-            (``--color``), whether the ``--config`` path was user-supplied, and what
-            to render in the ``Source`` column of ``--params``. ``JobsOption``
-            relies on the same introspection from its type's non-eager ``convert()``
-            (:class:`~click_extra.execution.JobCount`), to decide whether an
-            ``auto``/``max`` collapsing to a single job logs as a warning (explicit
-            request) or at info level (the option's own default).
+        ```{warning}
+        Click `8.4.0` (PR [pallets/click#3404](https://github.com/pallets/click/pull/3404)) reordered
+        `Parameter.handle_parse_result` so `ctx.set_parameter_source` runs
+        *after* `process_value`. Callbacks that introspect their own
+        provenance via `ctx.get_parameter_source(self.name)` therefore read
+        `None` instead of the actual source. `ColorOption`, `ConfigOption`,
+        and `ShowParamsOption` rely on this introspection (from their eager
+        callback) to decide whether an env var should override the default
+        (`--color`), whether the `--config` path was user-supplied, and what
+        to render in the `Source` column of `--params`. `JobsOption`
+        relies on the same introspection from its type's non-eager `convert()`
+        ({class}`~click_extra.execution.JobCount`), to decide whether an
+        `auto`/`max` collapsing to a single job logs as a warning (explicit
+        request) or at info level (the option's own default).
 
-            Click ``8.4.1`` restored the pre-``8.4.0`` contract upstream (PR
-            `pallets/click#3484 <https://github.com/pallets/click/pull/3484>`_), so
-            this override only matters for Click ``8.4.0`` itself, which sits inside
-            click-extra's supported ``>= 8.3.1`` range. Pre-recording the source here,
-            for every option regardless of eagerness, keeps that contract on every
-            supported Click. ``super().handle_parse_result`` re-records the same
-            value at the canonical time, so the slot arbitration logic introduced by
-            #3404 is unaffected: ``slot_empty`` is computed from ``ctx.params``, not
-            from ``_parameter_source``.
+        Click `8.4.1` restored the pre-`8.4.0` contract upstream (PR
+        [pallets/click#3484](https://github.com/pallets/click/pull/3484)), so
+        this override only matters for Click `8.4.0` itself, which sits inside
+        click-extra's supported `>= 8.3.1` range. Pre-recording the source here,
+        for every option regardless of eagerness, keeps that contract on every
+        supported Click. `super().handle_parse_result` re-records the same
+        value at the canonical time, so the slot arbitration logic introduced by
+        #3404 is unaffected: `slot_empty` is computed from `ctx.params`, not
+        from `_parameter_source`.
 
-            ``consume_value`` runs twice as a side effect: once here and once in
-            ``super``. Both calls are pure for click-extra's existing options (no
-            env var side effects, no prompt): ``consume_value`` only resolves the raw
-            value and its source, it never invokes the parameter's ``type.convert()``,
-            so this pre-record cannot itself trigger a callback's or a type's logging
-            or validation twice. Should a future subclass need prompt behavior, this
-            override would need to cache the result instead.
+        `consume_value` runs twice as a side effect: once here and once in
+        `super`. Both calls are pure for click-extra's existing options (no
+        env var side effects, no prompt): `consume_value` only resolves the raw
+        value and its source, it never invokes the parameter's `type.convert()`,
+        so this pre-record cannot itself trigger a callback's or a type's logging
+        or validation twice. Should a future subclass need prompt behavior, this
+        override would need to cache the result instead.
 
-            The pre-record is skipped when the slot already carries a source from
-            an earlier option sharing the same ``name`` (Click's feature-switch
-            pattern), so the arbitration logic in ``super`` still sees the original
-            ``existing_source`` rather than a stale rewrite from this option.
+        The pre-record is skipped when the slot already carries a source from
+        an earlier option sharing the same `name` (Click's feature-switch
+        pattern), so the arbitration logic in `super` still sees the original
+        `existing_source` rather than a stale rewrite from this option.
+        ```
         """
         if ctx.get_parameter_source(self.name) is None:
             _value, source = self.consume_value(ctx, opts)
@@ -451,33 +457,33 @@ class ExtraOption(Option):
 class ParamStructure:
     """Utilities to introspect CLI options and commands structure.
 
-    Structures are represented by a tree-like ``dict``.
+    Structures are represented by a tree-like `dict`.
 
     Access to a node is available using a serialized path string composed of the keys to
-    descend to that node, separated by a dot ``.``.
+    descend to that node, separated by a dot `.`.
     """
 
     excluded_params: frozenset[str]
     """Fully-qualified IDs of the parameters to block from the structure.
 
-    Set by subclasses: :class:`ShowParamsOption` freezes an empty set, while
-    ``ConfigOption`` resolves a dynamic default (or the user-provided list) within
+    Set by subclasses: {class}`ShowParamsOption` freezes an empty set, while
+    `ConfigOption` resolves a dynamic default (or the user-provided list) within
     the active context. The two filters are mutually exclusive, a constraint each
     subclass enforces in its own constructor.
     """
 
     included_params: frozenset[str] | None
-    """Allowlist of parameter IDs, mutually exclusive with ``excluded_params``.
+    """Allowlist of parameter IDs, mutually exclusive with `excluded_params`.
 
-    ``None`` disables the allowlist. It is resolved into ``excluded_params`` by
-    :meth:`~click_extra.parameters.ParamStructure.build_param_trees`, once every
+    `None` disables the allowlist. It is resolved into `excluded_params` by
+    {meth}`~click_extra.parameters.ParamStructure.build_param_trees`, once every
     parameter ID is known.
     """
 
     @staticmethod
     def init_tree_dict(*path: str, leaf: Any = None) -> Any:
         """Utility method to recursively create a nested dict structure whose keys are
-        provided by ``path`` list and at the end is populated by a copy of ``leaf``."""
+        provided by `path` list and at the end is populated by a copy of `leaf`."""
 
         def dive(levels):
             if levels:
@@ -488,9 +494,9 @@ class ParamStructure:
 
     @staticmethod
     def get_tree_value(tree_dict: dict[str, Any], *path: str) -> Any:
-        """Get in the ``tree_dict`` the value located at the ``path``.
+        """Get in the `tree_dict` the value located at the `path`.
 
-        Raises ``KeyError`` if no item is found at the provided ``path``.
+        Raises `KeyError` if no item is found at the provided `path`.
         """
         return reduce(getitem, path, tree_dict)
 
@@ -504,7 +510,7 @@ class ParamStructure:
             - a tuple of keys leading to the parameter;
             - the parameter object itself.
 
-        Thin adapter over :func:`~click_extra.parameters.walk_command_params`: it
+        Thin adapter over {func}`~click_extra.parameters.walk_command_params`: it
         resolves the root CLI from the active context and drops the per-parameter
         context that the free function also yields.
         """
@@ -531,10 +537,10 @@ class ParamStructure:
     }
     """Map Click types to their Python equivalent.
 
-    Keys are subclasses of ``click.types.ParamType``. Values are expected to be simple
+    Keys are subclasses of `click.types.ParamType`. Values are expected to be simple
     builtins Python types.
 
-    This mapping can be seen as a reverse of the ``click.types.convert_type()`` method.
+    This mapping can be seen as a reverse of the `click.types.convert_type()` method.
     """
 
     @staticmethod
@@ -543,11 +549,11 @@ class ParamStructure:
     ) -> type[str | int | float | bool | list]:
         """Get the Python type of a Click parameter.
 
-        Returns ``str`` for unrecognised custom types, since command-line
+        Returns `str` for unrecognised custom types, since command-line
         parameters are strings by default.
 
         See the list of
-        `custom types provided by Click <https://click.palletsprojects.com/en/stable/api/#types>`_.
+        [custom types provided by Click](https://click.palletsprojects.com/en/stable/api/#types).
         """
         if param.multiple or param.nargs != 1:
             return list
@@ -573,10 +579,10 @@ class ParamStructure:
     def build_param_trees(self) -> None:
         """Build the parameters tree structure and cache it.
 
-        This removes parameters whose fully-qualified IDs are in the ``excluded_params``
+        This removes parameters whose fully-qualified IDs are in the `excluded_params`
         blocklist.
 
-        If ``included_params`` was provided, it is resolved into ``excluded_params``
+        If `included_params` was provided, it is resolved into `excluded_params`
         here, where all parameter IDs are available.
         """
         # Resolve included_params into excluded_params before filtering.
@@ -600,7 +606,7 @@ class ParamStructure:
 
     @staticmethod
     def _nullify_leaves(tree: dict[str, Any]) -> dict[str, Any]:
-        """Derive a template shape from a tree by replacing all leaves with ``None``."""
+        """Derive a template shape from a tree by replacing all leaves with `None`."""
         return {
             k: ParamStructure._nullify_leaves(v) if isinstance(v, dict) else None
             for k, v in tree.items()
@@ -609,7 +615,7 @@ class ParamStructure:
     @cached_property
     def params_template(self) -> dict[str, Any]:
         """Returns a tree-like dictionary whose keys shadows the CLI options and
-        subcommands and values are ``None``.
+        subcommands and values are `None`.
 
         Perfect to serve as a template for configuration files.
         """
@@ -627,18 +633,20 @@ class ParamStructure:
 
 
 def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
-    """Extract the option-spec string (like ``-v, --verbose``) from a parameter.
+    """Extract the option-spec string (like `-v, --verbose`) from a parameter.
 
     Temporarily unhides hidden options so their help record can be produced.
 
-    .. note::
-        The ``hidden`` property is only supported by ``Option``, not ``Argument``.
+    ```{note}
+    The `hidden` property is only supported by `Option`, not `Argument`.
+    ```
 
-    .. todo::
-        Submit a PR to Click to separate production of param spec and help
-        record. That way we can always produce the param spec even if the
-        parameter is hidden.
-        See: https://github.com/kdeldycke/click-extra/issues/689
+    ```{todo}
+    Submit a PR to Click to separate production of param spec and help
+    record. That way we can always produce the param spec even if the
+    parameter is hidden.
+    See: https://github.com/kdeldycke/click-extra/issues/689
+    ```
     """
     if not hasattr(param, "hidden"):
         return None
@@ -650,10 +658,10 @@ def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
 def _structured_value(value: Any) -> Any:
     """Coerce a value to a natively serializable form for structured output.
 
-    Scalars and lists (``str``, ``int``, ``float``, ``bool``, ``list``, ``None``)
+    Scalars and lists (`str`, `int`, `float`, `bool`, `list`, `None`)
     pass through unchanged so JSON, YAML and TOML renderers keep their native
-    types. Anything else (a Click ``ParamType``, a ``Path``, an arbitrary
-    object) is rendered with :func:`repr` so it survives serialization as a
+    types. Anything else (a Click `ParamType`, a `Path`, an arbitrary
+    object) is rendered with {func}`repr` so it survives serialization as a
     readable string.
     """
     if isinstance(value, (str, int, float, bool, list, type(None))):
@@ -669,24 +677,24 @@ def format_param_row(
 ) -> dict[str, Any]:
     """Compute the *structural* table cells for a Click parameter.
 
-    Returns a ``dict[column_id, cell]`` covering every column that can be
+    Returns a `dict[column_id, cell]` covering every column that can be
     derived from the parameter object alone (no runtime invocation state or
-    config-file context). Specifically: ``id``, ``spec``, ``class``,
-    ``param_type``, ``python_type``, ``hidden``, ``exposed``, ``envvars``,
-    ``default``, ``is_flag``, ``flag_value``, ``is_bool_flag``, ``multiple``,
-    ``nargs``, ``prompt``, and ``confirmation_prompt``.
+    config-file context). Specifically: `id`, `spec`, `class`,
+    `param_type`, `python_type`, `hidden`, `exposed`, `envvars`,
+    `default`, `is_flag`, `flag_value`, `is_bool_flag`, `multiple`,
+    `nargs`, `prompt`, and `confirmation_prompt`.
 
-    Attributes only defined on ``click.Option`` (``hidden``, ``is_flag``,
-    ``flag_value``, ``is_bool_flag``, ``prompt``, ``confirmation_prompt``)
-    yield ``None`` for ``click.Argument`` parameters: empty cell in visual
-    formats, ``null`` in structured ones.
+    Attributes only defined on `click.Option` (`hidden`, `is_flag`,
+    `flag_value`, `is_bool_flag`, `prompt`, `confirmation_prompt`)
+    yield `None` for `click.Argument` parameters: empty cell in visual
+    formats, `null` in structured ones.
 
     For structured formats (JSON, YAML, etc.), values are native Python types.
     For visual formats, values are themed strings matching help-screen styling.
 
-    The remaining table columns (``allowed_in_conf``, ``value``, ``source``)
+    The remaining table columns (`allowed_in_conf`, `value`, `source`)
     require live context and are filled in by
-    :func:`~click_extra.parameters.render_params_table`.
+    {func}`~click_extra.parameters.render_params_table`.
     """
     param_spec = get_param_spec(param, ctx)
     param_class = param.__class__
@@ -745,7 +753,7 @@ def format_param_row(
     active_theme = get_current_theme()
 
     def styled_bool(value):
-        """Render a boolean attribute as a themed glyph, or ``None`` if absent."""
+        """Render a boolean attribute as a themed glyph, or `None` if absent."""
         if value is None:
             return None
         return (
@@ -783,9 +791,9 @@ def make_resilient_context(
 ) -> click.Context:
     """Build an introspection context for a command.
 
-    Parses no arguments and sets ``resilient_parsing=True`` so required-argument
+    Parses no arguments and sets `resilient_parsing=True` so required-argument
     errors, prompts and eager-option side effects stay dormant: the canonical way
-    to materialize a :class:`click.Context` purely to read a command's structure
+    to materialize a {class}`click.Context` purely to read a command's structure
     (its parameters, env-var prefix and subcommands), shared by the man-page and
     Carapace exporters.
     """
@@ -798,13 +806,13 @@ def iter_subcommands(
     *,
     skip_hidden: bool = True,
 ) -> Iterator[tuple[str, click.Command]]:
-    """Yield a group's direct subcommands as ``(name, command)`` pairs.
+    """Yield a group's direct subcommands as `(name, command)` pairs.
 
     Subcommands are discovered dynamically through
-    :meth:`click.Group.list_commands` / :meth:`~click.Group.get_command`, in
+    {meth}`click.Group.list_commands` / {meth}`~click.Group.get_command`, in
     listing order, so lazily-registered commands are included. A non-group yields
-    nothing, a name resolving to ``None`` is skipped, and hidden subcommands are
-    skipped unless ``skip_hidden`` is ``False`` (completion specs keep them,
+    nothing, a name resolving to `None` is skipped, and hidden subcommands are
+    skipped unless `skip_hidden` is `False` (completion specs keep them,
     flagged hidden; documentation drops them).
     """
     if not isinstance(command, click.Group):
@@ -825,11 +833,11 @@ def walk_command_params(
 ) -> Iterator[tuple[tuple[str, ...], click.Parameter, click.Context]]:
     """Walk the parameter tree of a Click command and all its subcommands.
 
-    Yields ``(path_keys, param, owning_ctx)`` for every parameter found on
+    Yields `(path_keys, param, owning_ctx)` for every parameter found on
     *cmd* and, recursively, on each subcommand. Each subcommand is walked under
     its own freshly-built child context, so context-sensitive metadata (notably
     the auto-generated environment variable, which derives from
-    ``Context.auto_envvar_prefix``) is computed at the correct nesting level
+    `Context.auto_envvar_prefix`) is computed at the correct nesting level
     rather than inherited from the root.
 
     A subcommand whose name collides with a sibling parameter at the same level
@@ -864,10 +872,10 @@ def replay_raw_args(subject_ctx: click.Context) -> dict[str, Any]:
 
     Click discards the pre-parsed arguments once processing is done, so the
     value and provenance of each parameter cannot be read back directly. When
-    :data:`~click_extra.context.RAW_ARGS` was captured on the context (by
-    ``Command``/``Group``), replaying it through a fresh parser rebuilds the
-    ``opts`` mapping that ``Parameter.consume_value`` consults, without re-firing
-    eager callbacks: ``handle_parse_result`` is never called here, only the
+    {data}`~click_extra.context.RAW_ARGS` was captured on the context (by
+    `Command`/`Group`), replaying it through a fresh parser rebuilds the
+    `opts` mapping that `Parameter.consume_value` consults, without re-firing
+    eager callbacks: `handle_parse_result` is never called here, only the
     parser.
 
     Returns an empty mapping when no raw arguments were captured, so callers can
@@ -886,33 +894,34 @@ def render_params_table(
     *,
     default_columns: Sequence[str] | None = None,
 ) -> None:
-    """Introspect ``subject_ctx.command`` and print its parameter metadata table.
+    """Introspect `subject_ctx.command` and print its parameter metadata table.
 
     Walks the command and any nested subcommands, emitting one row per
     parameter. The table format and column selection are read from
-    ``subject_ctx.meta`` (see :data:`~click_extra.context.TABLE_FORMAT` and
-    :data:`~click_extra.context.COLUMNS`); when neither is set, a sibling
-    ``--table-format`` / ``--columns`` option on the command is consulted, then
+    `subject_ctx.meta` (see {data}`~click_extra.context.TABLE_FORMAT` and
+    {data}`~click_extra.context.COLUMNS`); when neither is set, a sibling
+    `--table-format` / `--columns` option on the command is consulted, then
     the *default_columns* fallback, then the canonical order.
 
-    When ``subject_ctx.meta`` carries pre-parsed
-    :data:`~click_extra.context.RAW_ARGS`, the ``value`` and ``source`` columns
+    When `subject_ctx.meta` carries pre-parsed
+    {data}`~click_extra.context.RAW_ARGS`, the `value` and `source` columns
     are resolved by replaying those arguments against the command parser;
     otherwise they fall back to the parameter defaults.
 
     This is the shared rendering core behind both
-    :meth:`~click_extra.parameters.ShowParamsOption.print_params` (introspecting
-    the live CLI) and the ``click-extra wrap --params`` path (introspecting a
+    {meth}`~click_extra.parameters.ShowParamsOption.print_params` (introspecting
+    the live CLI) and the `click-extra wrap --params` path (introspecting a
     foreign target).
     The caller is responsible for exiting the context afterwards.
 
-    .. important::
-        Click does not keep the raw, pre-parsed arguments around, so values and
-        their provenance cannot be read back directly. The workaround replays
-        :data:`~click_extra.context.RAW_ARGS` (captured on the context by
-        ``Command``/``Group``) through the command parser, calling
-        ``consume_value()`` rather than ``handle_parse_result()`` so eager
-        callbacks are not re-triggered.
+    ```{important}
+    Click does not keep the raw, pre-parsed arguments around, so values and
+    their provenance cannot be read back directly. The workaround replays
+    {data}`~click_extra.context.RAW_ARGS` (captured on the context by
+    `Command`/`Group`) through the command parser, calling
+    `consume_value()` rather than `handle_parse_result()` so eager
+    callbacks are not re-triggered.
+    ```
     """
     # Imported here to avoid circular imports with the config, table and theme
     # modules, which all import from this one.
@@ -1058,20 +1067,21 @@ def render_params_table(
 
 
 class ShowParamsOption(ExtraOption, ParamStructure):
-    """A pre-configured option adding a ``--params`` option.
+    """A pre-configured option adding a `--params` option.
 
     Between configuration files, default values and environment variables, it might be
     hard to guess under which set of parameters the CLI will be executed. This option
     print information about the parameters that will be fed to the CLI.
 
-    .. note::
-        The flag is named ``--params``, not ``--show-params``. It names the view it
-        prints, matching the neighbouring bare-noun informational flags (``--help``,
-        ``--version``, ``--man``, ``--tree``), none of which carry a ``show-`` verb
-        prefix. The class and :func:`@show_params_option
-        <click_extra.decorators.show_params_option>` decorator keep their historical
-        names: the class is named for what it does (show the parameters), while the
-        flag and the parameter's ID use the bare noun.
+    ```{note}
+    The flag is named `--params`, not `--show-params`. It names the view it
+    prints, matching the neighbouring bare-noun informational flags (`--help`,
+    `--version`, `--man`, `--tree`), none of which carry a `show-` verb
+    prefix. The class and {func}`@show_params_option
+    <click_extra.decorators.show_params_option>` decorator keep their historical
+    names: the class is named for what it does (show the parameters), while the
+    flag and the parameter's ID use the bare noun.
+    ```
     """
 
     from .table import ColumnSpec as _ColumnSpec
@@ -1296,31 +1306,31 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             ),
         ),
     )
-    """Rich column registry for the ``--params`` table.
+    """Rich column registry for the `--params` table.
 
-    Each entry is a :class:`click_extra.table.ColumnSpec` carrying the column's
-    stable ``id`` (used by ``--columns`` and as structured-format key), its
-    display ``label``, and a MyST/Markdown ``description`` consumed by the
+    Each entry is a {class}`click_extra.table.ColumnSpec` carrying the column's
+    stable `id` (used by `--columns` and as structured-format key), its
+    display `label`, and a MyST/Markdown `description` consumed by the
     documentation's auto-generated *Available columns* section. Iteration
     yields columns in canonical display order.
     """
 
     @classmethod
     def column_labels(cls) -> tuple[str, ...]:
-        """Return just the display labels of :data:`TABLE_HEADERS` (in order)."""
+        """Return just the display labels of {data}`TABLE_HEADERS` (in order)."""
         return tuple(col.label for col in cls.TABLE_HEADERS)
 
     @classmethod
     def column_ids(cls) -> tuple[str, ...]:
-        """Return just the stable IDs of :data:`TABLE_HEADERS` (in order)."""
+        """Return just the stable IDs of {data}`TABLE_HEADERS` (in order)."""
         return tuple(col.id for col in cls.TABLE_HEADERS)
 
     @classmethod
     def find_column(cls, column_id: str):
-        """Return the :class:`~click_extra.table.ColumnSpec` matching ``column_id``.
+        """Return the {class}`~click_extra.table.ColumnSpec` matching `column_id`.
 
-        Raises ``KeyError`` if no column has this ID; callers should convert
-        the error into a :class:`click.UsageError` when surfaced to a user.
+        Raises `KeyError` if no column has this ID; callers should convert
+        the error into a {class}`click.UsageError` when surfaced to a user.
         """
         for col in cls.TABLE_HEADERS:
             if col.id == column_id:
@@ -1330,12 +1340,12 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
     @classmethod
     def render_doc_table(cls) -> str:
-        """Render :data:`TABLE_HEADERS` as a Markdown table for documentation.
+        """Render {data}`TABLE_HEADERS` as a Markdown table for documentation.
 
-        Used by the ``show_params_columns_table`` MyST substitution in
-        ``docs/conf.py`` to feed the *Available columns* section of
-        ``docs/parameters.md``: editing a description here automatically
-        rebuilds the docs table on the next ``sphinx-build``.
+        Used by the `show_params_columns_table` MyST substitution in
+        `docs/conf.py` to feed the *Available columns* section of
+        `docs/parameters.md`: editing a description here automatically
+        rebuilds the docs table on the next `sphinx-build`.
         """
         # Imported here to avoid a circular import: table imports from this module.
         from .table import render_columns_markdown_table
@@ -1382,12 +1392,12 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         """Introspect the current CLI and print its parameter metadata table.
 
         Thin wrapper over
-        :func:`~click_extra.parameters.render_params_table`, the shared rendering core
-        also driving ``click-extra wrap --params`` for foreign CLIs. The
+        {func}`~click_extra.parameters.render_params_table`, the shared rendering core
+        also driving `click-extra wrap --params` for foreign CLIs. The
         live invocation context carries everything the core needs: the captured
-        :data:`~click_extra.context.RAW_ARGS` (attached by
-        ``Command``/``Group``) for value and source resolution, plus
-        any sibling ``--table-format`` / ``--columns`` options.
+        {data}`~click_extra.context.RAW_ARGS` (attached by
+        `Command`/`Group`) for value and source resolution, plus
+        any sibling `--table-format` / `--columns` options.
         """
         # Exit early if the callback was processed but the option wasn't set.
         if not value:

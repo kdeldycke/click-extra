@@ -15,13 +15,11 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Export a Click command tree as a Carapace completion spec.
 
-`Carapace <https://carapace.sh>`_ is a multi-shell completion engine: a single
+[Carapace](https://carapace.sh) is a multi-shell completion engine: a single
 spec file drives identical completions across Bash, Zsh, Fish, Nushell,
 PowerShell, Elvish, Xonsh, Oil and more. This module walks a Click/Cloup command
-tree and serializes it to the YAML `carapace-spec
-<https://github.com/carapace-sh/carapace-spec>`_ format, answering the request
-for native Carapace support in `Click issue #3188
-<https://github.com/pallets/click/issues/3188>`_ (closed as out of scope for core
+tree and serializes it to the YAML [carapace-spec](https://github.com/carapace-sh/carapace-spec) format, answering the request
+for native Carapace support in [Click issue #3188](https://github.com/pallets/click/issues/3188) (closed as out of scope for core
 Click, redirected here).
 
 Two completion strategies cooperate:
@@ -31,23 +29,23 @@ Two completion strategies cooperate:
   in every shell Carapace supports, which is the advantage a spec has over
   Carapace's existing bridge to a single shell's native Click completion.
 
-- **Dynamic.** A parameter carrying a custom ``shell_complete`` (a callback, or a
-  :class:`~click.ParamType` that overrides
-  :meth:`~click.ParamType.shell_complete`) cannot be frozen into the spec, so its
+- **Dynamic.** A parameter carrying a custom `shell_complete` (a callback, or a
+  {class}`~click.ParamType` that overrides
+  {meth}`~click.ParamType.shell_complete`) cannot be frozen into the spec, so its
   action calls back into the CLI through Carapace's shell macro. The callback
-  reuses Click's own completion machinery via :class:`CarapaceComplete`.
+  reuses Click's own completion machinery via {class}`CarapaceComplete`.
 
-.. note::
-    Dynamic completion needs the :class:`CarapaceComplete` class registered in
-    the target process, which happens on ``import click_extra``. A CLI built with
-    Click Extra gets it for free; a plain Click CLI would have to import
-    ``click_extra`` for the dynamic callback to resolve. Static completion has no
-    such requirement.
+```{note}
+Dynamic completion needs the {class}`CarapaceComplete` class registered in
+the target process, which happens on `import click_extra`. A CLI built with
+Click Extra gets it for free; a plain Click CLI would have to import
+`click_extra` for the dynamic callback to resolve. Static completion has no
+such requirement.
+```
 
-The dataclasses below mirror the upstream ``carapace-spec`` `JSON schema
-<https://github.com/carapace-sh/carapace-spec/blob/master/schema.json>`_; the
-flag-key grammar and macro contract are taken from that project's ``flag.go`` and
-``core.go``.
+The dataclasses below mirror the upstream `carapace-spec` [JSON schema](https://github.com/carapace-sh/carapace-spec/blob/master/schema.json); the
+flag-key grammar and macro contract are taken from that project's `flag.go` and
+`core.go`.
 """
 
 from __future__ import annotations
@@ -80,7 +78,7 @@ from .parameters import (
 try:
     import yaml
 except ImportError:
-    # PyYAML ships behind the ``carapace`` extra: importing this module stays
+    # PyYAML ships behind the `carapace` extra: importing this module stays
     # cheap, and only the YAML-serializing entry points raise (see _require_yaml).
     yaml = None  # type: ignore[assignment]
 
@@ -92,10 +90,10 @@ if TYPE_CHECKING:
 CARAPACE_SPECS_DIR = Path("~/.config/carapace/specs").expanduser()
 """User spec directory Carapace loads on startup.
 
-Writing ``<prog>.yaml`` here (see :func:`install_carapace_spec`) is all it takes
-for Carapace to pick up a CLI's completions. Mirrors the ``$XDG_CONFIG_HOME``
-default documented by Carapace; an explicit ``XDG_CONFIG_HOME`` is honored by
-:func:`install_carapace_spec` at call time rather than baked in here.
+Writing `<prog>.yaml` here (see {func}`install_carapace_spec`) is all it takes
+for Carapace to pick up a CLI's completions. Mirrors the `$XDG_CONFIG_HOME`
+default documented by Carapace; an explicit `XDG_CONFIG_HOME` is honored by
+{func}`install_carapace_spec` at call time rather than baked in here.
 """
 
 CARAPACE_DOCS_URL = "https://kdeldycke.github.io/click-extra/carapace.html"
@@ -115,7 +113,7 @@ def _clean_description(text: str | None) -> str:
     """Collapse a help string to a single Carapace-friendly description line.
 
     Strips reST inline-literal backticks (Click stores docstrings verbatim, so
-    ``"``...``"`` markup leaks through), keeps only the first paragraph and
+    `"`...`"` markup leaks through), keeps only the first paragraph and
     squashes internal whitespace. Carapace truncates long descriptions itself.
     """
     if not text:
@@ -136,12 +134,12 @@ def _flag_key(
 ) -> str:
     """Build a Carapace flag key from option spellings and modifiers.
 
-    Reproduces ``carapace-spec``'s own ``Flag.format()`` grammar: the short
-    spelling first, then the long spelling joined by ``", "``, then ``?`` for an
-    optional value or ``=`` for a mandatory one, then a trailing ``*`` when the
-    flag is repeatable. So a plain switch is ``--foo``, a valued option
-    ``--foo=``, an optional-value option ``--foo?``, a counter ``--foo*`` and a
-    repeatable valued option ``--foo=*``.
+    Reproduces `carapace-spec`'s own `Flag.format()` grammar: the short
+    spelling first, then the long spelling joined by `", "`, then `?` for an
+    optional value or `=` for a mandatory one, then a trailing `*` when the
+    flag is repeatable. So a plain switch is `--foo`, a valued option
+    `--foo=`, an optional-value option `--foo?`, a counter `--foo*` and a
+    repeatable valued option `--foo=*`.
     """
     short, long = short_long_opts(opts)
     key = short
@@ -167,41 +165,41 @@ def _flag_name(opts: list[str]) -> str:
 
 
 def _env_var(prog_name: str) -> str:
-    """Completion env var Click derives from a program name (``_FOO_COMPLETE``)."""
+    """Completion env var Click derives from a program name (`_FOO_COMPLETE`)."""
     return f"_{prog_name}_COMPLETE".replace("-", "_").upper()
 
 
 def _dynamic_action(command_path: tuple[str, ...], option: str | None = None) -> str:
     """A Carapace shell-macro action that calls back into the CLI for completion.
 
-    Carapace's default ``$(...)`` macro runs ``sh -c '<script>' -- <words>``,
-    exposing the already-typed words as ``$*`` and parsing each output line as
-    ``value\\tdescription``. The script re-invokes the program in Click's
-    completion mode (:class:`CarapaceComplete`, registered as the ``carapace``
+    Carapace's default `$(...)` macro runs `sh -c '<script>' -- <words>`,
+    exposing the already-typed words as `$*` and parsing each output line as
+    `value\\tdescription`. The script re-invokes the program in Click's
+    completion mode ({class}`CarapaceComplete`, registered as the `carapace`
     shell), which prints exactly that. Carapace prefix-filters the result, so the
     callback returns the full candidate set.
 
-    ``COMP_WORDS`` is rebuilt so :class:`CarapaceComplete` hands Click the command
+    `COMP_WORDS` is rebuilt so {class}`CarapaceComplete` hands Click the command
     line it needs to resolve the completed parameter. Two pieces must be baked in,
-    because Carapace withholds them from ``$*``:
+    because Carapace withholds them from `$*`:
 
-    - ``command_path``: the chain of command names from the root program down to
-      the command owning the parameter, like ``("weather", "forecast")``.
-      Carapace's ``traverse`` descends into each subcommand with only the remaining
-      words, so ``$*`` never carries the parent command names. Without the baked
-      prefix the callback would reconstruct ``weather --city`` and resolve against
+    - `command_path`: the chain of command names from the root program down to
+      the command owning the parameter, like `("weather", "forecast")`.
+      Carapace's `traverse` descends into each subcommand with only the remaining
+      words, so `$*` never carries the parent command names. Without the baked
+      prefix the callback would reconstruct `weather --city` and resolve against
       the root command.
 
-    - ``option``: the spelling of the flag whose value is being completed, for an
+    - `option`: the spelling of the flag whose value is being completed, for an
       option (not an argument). Carapace routes a flag's value completion to this
-      per-flag action and keeps the flag in its own ``inFlag`` state rather than
-      ``c.Args``, so ``$*`` does not contain it; Click would not know which value
-      to resolve. It is appended after ``$*`` so it stays the trailing token Click
+      per-flag action and keeps the flag in its own `inFlag` state rather than
+      `c.Args`, so `$*` does not contain it; Click would not know which value
+      to resolve. It is appended after `$*` so it stays the trailing token Click
       reads as the option awaiting a value.
 
-    So a subcommand option ``--city`` yields ``COMP_WORDS=weather forecast $*
-    --city``, while a subcommand argument yields ``COMP_WORDS=weather forecast
-    $*``. The env var and the invoked binary stay rooted at ``command_path[0]``,
+    So a subcommand option `--city` yields ``COMP_WORDS=weather forecast $*
+    --city`, while a subcommand argument yields `COMP_WORDS=weather forecast
+    $*`. The env var and the invoked binary stay rooted at `command_path[0]``,
     the executable Carapace dispatches and the name Click derives its completion
     variable from.
     """
@@ -216,12 +214,12 @@ def _dynamic_action(command_path: tuple[str, ...], option: str | None = None) ->
 
 
 def _static_action(param_type: click.ParamType) -> list[str] | None:
-    """Inline completion action for a statically-knowable type, else ``None``.
+    """Inline completion action for a statically-knowable type, else `None`.
 
     Maps choice-like types to their literal values and path/file types to
-    Carapace's ``$files`` / ``$directories`` macros, mirroring how Click's own
-    :meth:`Choice.shell_complete <click.Choice.shell_complete>` and
-    :meth:`Path.shell_complete <click.Path.shell_complete>` behave.
+    Carapace's `$files` / `$directories` macros, mirroring how Click's own
+    {meth}`Choice.shell_complete <click.Choice.shell_complete>` and
+    {meth}`Path.shell_complete <click.Path.shell_complete>` behave.
     """
     choices = getattr(param_type, "choices", None)
     if choices:
@@ -236,7 +234,7 @@ def _static_action(param_type: click.ParamType) -> list[str] | None:
 
 
 def _overrides_shell_complete(param_type: click.ParamType) -> bool:
-    """Whether a type provides a non-static custom ``shell_complete`` override."""
+    """Whether a type provides a non-static custom `shell_complete` override."""
     if isinstance(param_type, (click.Choice, click.Path, click.File)):
         return False
     if getattr(param_type, "choices", None):
@@ -249,13 +247,13 @@ def _param_action(
 ) -> list[str]:
     """Resolve the Carapace completion action for one parameter.
 
-    An explicit ``shell_complete=`` callback always routes to the dynamic macro;
+    An explicit `shell_complete=` callback always routes to the dynamic macro;
     otherwise a statically-knowable type is inlined; otherwise a type that
-    overrides ``shell_complete`` falls back to the dynamic macro. Anything else
-    yields an empty action (no completion offered). ``option`` carries the flag
+    overrides `shell_complete` falls back to the dynamic macro. Anything else
+    yields an empty action (no completion offered). `option` carries the flag
     spelling when the parameter is an option, so the dynamic macro can name the
-    flag whose value is being completed (see :func:`_dynamic_action`); arguments
-    leave it ``None``.
+    flag whose value is being completed (see {func}`_dynamic_action`); arguments
+    leave it `None`.
     """
     if getattr(param, "_custom_shell_complete", None) is not None:
         return [_dynamic_action(command_path, option)]
@@ -272,7 +270,7 @@ def _param_action(
 
 @dataclass
 class CarapaceCompletion:
-    """The ``completion`` block of a command: per-flag and positional actions."""
+    """The `completion` block of a command: per-flag and positional actions."""
 
     flag: dict[str, list[str]] = field(default_factory=dict)
     """Map of flag name (long spelling, no dashes) to its completion action."""
@@ -284,7 +282,7 @@ class CarapaceCompletion:
     """Completion action repeated for every trailing variadic argument."""
 
     def to_dict(self) -> dict:
-        """Serialize to the ``carapace-spec`` ``completion`` mapping, dropping
+        """Serialize to the `carapace-spec` `completion` mapping, dropping
         empty members and trailing empty positional slots."""
         out: dict = {}
         if self.flag:
@@ -302,7 +300,7 @@ class CarapaceCompletion:
 @dataclass
 class CarapaceCommand:
     """One node of a Carapace spec: a command and its flags, completions and
-    subcommands, mirroring the upstream ``Command`` schema."""
+    subcommands, mirroring the upstream `Command` schema."""
 
     name: str
     """The command's invocation name (the root carries the program name)."""
@@ -332,9 +330,9 @@ class CarapaceCommand:
     """Nested subcommands."""
 
     def to_dict(self) -> dict:
-        """Serialize to a ``carapace-spec`` command mapping, dropping empties.
+        """Serialize to a `carapace-spec` command mapping, dropping empties.
 
-        Only ``name`` is required by the schema, so every other member is
+        Only `name` is required by the schema, so every other member is
         omitted when empty to keep the YAML compact.
         """
         out: dict = {"name": self.name}
@@ -364,10 +362,10 @@ class CarapaceCommand:
 def _default_param_opts() -> frozenset[str]:
     """All option spellings injected on every Click Extra command by default.
 
-    Used to route the root command's default options into ``persistentflags``
+    Used to route the root command's default options into `persistentflags`
     (so Carapace offers them under every subcommand) and to skip the same
     options on subcommands, where they would otherwise be duplicated. A plain
-    Click CLI carries none of these, so its ``persistentflags`` stays empty.
+    Click CLI carries none of these, so its `persistentflags` stays empty.
     """
     opts = set(DEFAULT_HELP_NAMES)
     for param in default_params():
@@ -378,9 +376,9 @@ def _default_param_opts() -> frozenset[str]:
 def _exclusive_flag_groups(command: Command) -> list[list[str]]:
     """Mutually-exclusive flag-name groups from Cloup option-group constraints.
 
-    Only ``@option_group(..., constraint=mutually_exclusive)`` is exported:
-    Carapace's ``exclusiveflags`` has no equivalent for Cloup's richer
-    constraints (``RequireAtLeast``, ``RequireExactly``, ``If``), which are
+    Only `@option_group(..., constraint=mutually_exclusive)` is exported:
+    Carapace's `exclusiveflags` has no equivalent for Cloup's richer
+    constraints (`RequireAtLeast`, `RequireExactly`, `If`), which are
     dropped.
     """
     groups: list[list[str]] = []
@@ -404,14 +402,14 @@ def _add_option(
     persistent: bool,
     command_path: tuple[str, ...],
 ) -> None:
-    """Encode one Click option into ``flags``/``persistentflags`` and completion.
+    """Encode one Click option into `flags`/`persistentflags` and completion.
 
-    A boolean flag with a secondary spelling (``--foo`` / ``--no-foo``) is split
+    A boolean flag with a secondary spelling (`--foo` / `--no-foo`) is split
     into two independent Carapace flags, since the spec has no negation primitive.
-    Only value-taking options contribute a ``completion.flag`` action. Dynamic
-    actions reference ``command_path`` (the chain of command names down to this
+    Only value-taking options contribute a `completion.flag` action. Dynamic
+    actions reference `command_path` (the chain of command names down to this
     command) and the option's own spelling, both baked into the callback so Click
-    can resolve the right flag's value (see :func:`_dynamic_action`).
+    can resolve the right flag's value (see {func}`_dynamic_action`).
     """
     flags = node.persistentflags if persistent else node.flags
     description = _clean_description(getattr(param, "help", None))
@@ -445,20 +443,20 @@ def extract_carapace_command(
     inherited_opts: frozenset[str],
     command_path: tuple[str, ...],
 ) -> CarapaceCommand:
-    """Build a :class:`CarapaceCommand` from a Click command and its context.
+    """Build a {class}`CarapaceCommand` from a Click command and its context.
 
-    The context must have been created for ``command`` (typically via
-    :meth:`click.Command.make_context` with ``resilient_parsing=True``).
+    The context must have been created for `command` (typically via
+    {meth}`click.Command.make_context` with `resilient_parsing=True`).
     Subcommands are discovered dynamically and recursed into.
 
-    ``default_opts`` is the abstract set of spellings Click Extra injects on every
-    command; on the root, options drawn from it become ``persistentflags``.
-    ``inherited_opts`` is what an ancestor actually published as persistent, so a
+    `default_opts` is the abstract set of spellings Click Extra injects on every
+    command; on the root, options drawn from it become `persistentflags`.
+    `inherited_opts` is what an ancestor actually published as persistent, so a
     subcommand drops exactly those (Carapace already offers them) and keeps the
-    rest, including a same-named option the root never carried. ``command_path``
+    rest, including a same-named option the root never carried. `command_path`
     is the chain of command names from the root down to this command, grown by one
     name per recursion and baked into dynamic callback macros (see
-    :func:`_dynamic_action`).
+    {func}`_dynamic_action`).
     """
     node = CarapaceCommand(
         name=ctx.info_name or command.name or "",
@@ -516,9 +514,9 @@ def to_carapace_spec(
 ) -> dict:
     """Build the Carapace spec for a command tree as a plain dict.
 
-    Reuses ``ctx`` when given (the live invocation context), otherwise builds a
-    throwaway one with ``resilient_parsing=True``. The returned mapping conforms
-    to the ``carapace-spec`` schema and is ready to hand to ``yaml.safe_dump``.
+    Reuses `ctx` when given (the live invocation context), otherwise builds a
+    throwaway one with `resilient_parsing=True`. The returned mapping conforms
+    to the `carapace-spec` schema and is ready to hand to `yaml.safe_dump`.
     """
     name = prog_name or command.name or ""
     if ctx is None:
@@ -545,10 +543,10 @@ def dump_carapace_spec(
 ) -> str:
     """Serialize a command tree to a Carapace spec YAML string.
 
-    Requires the optional PyYAML dependency (``click-extra[carapace]``). The
+    Requires the optional PyYAML dependency (`click-extra[carapace]`). The
     output keeps Click's declaration order rather than sorting keys, so flags and
     subcommands line up with the help screen, and is prefixed with a provenance
-    header: the generator version, the ``invocation`` command line that produced
+    header: the generator version, the `invocation` command line that produced
     it (when given), and a link to the documentation.
     """
     _require_yaml()
@@ -569,10 +567,10 @@ def write_carapace_spec(
     *,
     invocation: str | None = None,
 ) -> Path:
-    """Render the spec and write it to ``target``, returning the written path.
+    """Render the spec and write it to `target`, returning the written path.
 
-    Creates parent directories as needed. ``invocation`` is recorded in the
-    header comment (see :func:`dump_carapace_spec`).
+    Creates parent directories as needed. `invocation` is recorded in the
+    header comment (see {func}`dump_carapace_spec`).
     """
     path = Path(target)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -591,8 +589,8 @@ def install_carapace_spec(
 ) -> Path:
     """Write the spec into Carapace's user spec directory.
 
-    Targets ``$XDG_CONFIG_HOME/carapace/specs/<prog>.yaml`` (honoring an explicit
-    ``XDG_CONFIG_HOME``), which Carapace loads on startup. Returns the path.
+    Targets `$XDG_CONFIG_HOME/carapace/specs/<prog>.yaml` (honoring an explicit
+    `XDG_CONFIG_HOME`), which Carapace loads on startup. Returns the path.
     """
     name = prog_name or command.name or "cli"
     xdg = os.environ.get("XDG_CONFIG_HOME")
@@ -609,19 +607,19 @@ def install_carapace_spec(
 class CarapaceComplete(ShellComplete):
     """Click completion backend that emits Carapace's value/description lines.
 
-    Registered as the ``carapace`` shell, so ``_FOO_COMPLETE=carapace_complete``
-    makes a Click CLI print completions in the ``value\\tdescription`` text format
+    Registered as the `carapace` shell, so `_FOO_COMPLETE=carapace_complete`
+    makes a Click CLI print completions in the `value\\tdescription` text format
     Carapace's shell macro parses. This is the callback target of the dynamic
-    actions emitted by :func:`_dynamic_action`; it reuses Click's own
-    :meth:`~click.shell_completion.ShellComplete.get_completions`, so a parameter's
-    custom ``shell_complete`` is honored verbatim.
+    actions emitted by {func}`_dynamic_action`; it reuses Click's own
+    {meth}`~click.shell_completion.ShellComplete.get_completions`, so a parameter's
+    custom `shell_complete` is honored verbatim.
 
     The current word is left to Carapace to filter, so completion args are the
     already-typed words with an empty incomplete value.
     """
 
     name = "carapace"
-    """Shell name Click registers this backend under (the ``carapace_complete``
+    """Shell name Click registers this backend under (the `carapace_complete`
     completion instruction)."""
 
     source_template = ""
@@ -631,7 +629,7 @@ class CarapaceComplete(ShellComplete):
         return ""
 
     def get_completion_args(self) -> tuple[list[str], str]:
-        """Read the words Carapace passed via ``COMP_WORDS`` (program name first).
+        """Read the words Carapace passed via `COMP_WORDS` (program name first).
 
         Returns the typed arguments with an empty incomplete value; Carapace
         applies its own prefix filtering to the candidates we return.
@@ -641,7 +639,7 @@ class CarapaceComplete(ShellComplete):
         return args, ""
 
     def format_completion(self, item) -> str:
-        """Render one completion as Carapace's ``value`` or ``value\\tdescription``."""
+        """Render one completion as Carapace's `value` or `value\\tdescription`."""
         if item.help:
             return f"{item.value}\t{item.help}"
         return str(item.value)

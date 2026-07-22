@@ -30,6 +30,7 @@ from click_extra.myst_converter import (
     convert_file,
     convert_inline_code,
     convert_links,
+    convert_source,
     convert_xrefs,
     detect_source_package,
 )
@@ -48,10 +49,24 @@ from click_extra.myst_converter import (
         ),
         # F-string interpolation targets are excluded.
         ('f":func:`~{self.id}`"', 'f":func:`~{self.id}`"'),
+        # A backtick right before the role means the role-shaped text sits
+        # inside a literal span, not a cross-reference.
+        ("(`:param:`, `:return:`)", "(`:param:`, `:return:`)"),
+        # Domain-qualified roles stay reST: converting the inner role alone
+        # would leave a mangled hybrid.
+        (":py:class:`Basket`", ":py:class:`Basket`"),
         # Already-MyST input is untouched (idempotence).
         ("{func}`foo`", "{func}`foo`"),
     ],
-    ids=["simple", "tilde", "multiple", "fstring-excluded", "idempotent"],
+    ids=[
+        "simple",
+        "tilde",
+        "multiple",
+        "fstring-excluded",
+        "backtick-preceded-excluded",
+        "domain-qualified-excluded",
+        "idempotent",
+    ],
 )
 def test_convert_xrefs(rst, expected):
     assert convert_xrefs(rst) == expected
@@ -91,10 +106,24 @@ def test_convert_links(rst, expected):
         ("mix of ``a`` and ``b``", "mix of `a` and `b`"),
         # Braces are excluded so f-string interpolations survive.
         ("``{self.id}``", "``{self.id}``"),
+        # A brace-bearing literal is consumed whole: its closing backticks
+        # must not pair with the next literal across the gap.
+        (
+            "``size``  ``{width}: {height}``  ``%(width)s``",
+            "`size`  ``{width}: {height}``  `%(width)s`",
+        ),
+        ("``{``  ``%``", "``{``  `%`"),
         # Already-MyST input is untouched (idempotence).
         ("`True`", "`True`"),
     ],
-    ids=["simple", "multiple", "brace-excluded", "idempotent"],
+    ids=[
+        "simple",
+        "multiple",
+        "brace-excluded",
+        "brace-gap-not-paired",
+        "bare-brace-gap",
+        "idempotent",
+    ],
 )
 def test_convert_inline_code(rst, expected):
     assert convert_inline_code(rst) == expected
@@ -128,6 +157,67 @@ def test_convert_directives(rst, expected_fragments):
         assert fragment in result
 
 
+def test_convert_directives_keeps_fenced_body():
+    """A directive body already holding a fence cannot nest: it stays reST."""
+    rst = dedent("""\
+        .. code-block:: markdown
+
+            ```{python:render}
+            print("kiwi")
+            ```
+        """)
+    assert convert_directives(rst) == rst
+
+
+def test_convert_directives_skips_fence_interiors():
+    """A reST directive inside a fence is prior nested-conversion output: keep it."""
+    myst = dedent("""\
+        ```{tip}
+        Ripen at room temperature.
+
+        .. note::
+
+            Bananas brown faster in the fridge.
+        ```
+        """)
+    assert convert_directives(myst) == myst
+
+
+def test_convert_source_nested_directives_idempotent():
+    """Nested directives convert the outer level only, and re-runs are no-ops."""
+    source = dedent('''\
+        def store(fruit):
+            """Store a fruit.
+
+            .. tip::
+                Check the skin first.
+
+                .. note::
+                    Thick skins keep longer.
+            """
+        ''')
+    converted = convert_source(source)
+    assert "```{tip}" in converted
+    # The inner directive stays reST inside the fence, and stays stable.
+    assert ".. note::" in converted
+    assert "```{note}" not in converted
+    assert convert_source(converted) == converted
+
+
+def test_convert_source_fenced_samples_untouched():
+    """Fence bodies are sample code: reST markup inside them is data."""
+    source = dedent('''\
+        def brew(tea):
+            """Brew a cup.
+
+            ```markdown
+            See :func:`steep` and ``leaves``.
+            ```
+            """
+        ''')
+    assert convert_source(source) == source
+
+
 def test_convert_comment_blocks():
     """`#:` blocks are unwrapped, converted, and re-wrapped."""
     rst = "#: .. note::\n#:\n#:     Ripe bananas only."
@@ -135,6 +225,51 @@ def test_convert_comment_blocks():
     assert "#: ```{note}" in result
     assert "#: Ripe bananas only." in result
     assert "#: ```" in result
+
+
+# ---- Scoping: only docstrings and comments are converted --------------------
+
+
+def test_convert_source_scopes_to_docstrings_and_comments():
+    source = dedent('''\
+        """Sort ``apples`` before :func:`peel`."""
+
+        # Ripeness is checked by :func:`peel` on ``green`` fruits.
+        RIPE_RE = re.compile(r"``(\\w+)``")
+        MESSAGE = "Use ``ripe`` fruit, see :func:`peel`."
+        count = 3  # Twice the ``basket`` size.
+        ''')
+    converted = convert_source(source)
+
+    assert '"""Sort `apples` before {func}`peel`."""' in converted
+    assert "# Ripeness is checked by {func}`peel` on `green` fruits." in converted
+    assert "# Twice the `basket` size." in converted
+    # String literals and regex patterns are runtime code: byte-for-byte.
+    assert 'RIPE_RE = re.compile(r"``(\\w+)``")' in converted
+    assert 'MESSAGE = "Use ``ripe`` fruit, see :func:`peel`."' in converted
+
+
+def test_convert_source_attribute_docstrings():
+    source = dedent('''\
+        FRUIT = "banana"
+        """Default fruit, in its ``ripe`` state, see :data:`FRUIT`."""
+        ''')
+    converted = convert_source(source)
+    assert 'FRUIT = "banana"' in converted
+    assert '"""Default fruit, in its `ripe` state, see {data}`FRUIT`."""' in converted
+
+
+def test_convert_source_sharp_colon_comment_blocks():
+    source = dedent("""\
+        #: .. note::
+        #:
+        #:     Ripe ``bananas`` only.
+        BASKET = ["banana"]
+        """)
+    converted = convert_source(source)
+    assert "#: ```{note}" in converted
+    assert "#: Ripe `bananas` only." in converted
+    assert '\nBASKET = ["banana"]' in converted
 
 
 # ---- File and directory pipeline -------------------------------------------

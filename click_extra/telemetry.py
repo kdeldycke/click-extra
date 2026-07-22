@@ -31,27 +31,26 @@ if TYPE_CHECKING:
 
 
 class TelemetryOption(ExtraOption):
-    """A pre-configured ``--telemetry``/``--no-telemetry`` option flag.
+    """A pre-configured `--telemetry`/`--no-telemetry` option flag.
 
     Respects the
-    `proposed DO_NOT_TRACK environment variable <https://consoledonottrack.com>`_ as a
+    [proposed DO_NOT_TRACK environment variable](https://consoledonottrack.com) as a
     unified standard to opt-out of telemetry for TUI/console apps.
 
-    The ``DO_NOT_TRACK`` convention takes precedence over the user-defined environment
+    The `DO_NOT_TRACK` convention takes precedence over the user-defined environment
     variables and the auto-generated values.
 
     The resolved value is stored in
-    :data:`ctx.meta[click_extra.context.TELEMETRY] <click_extra.context.TELEMETRY>`,
+    {data}`ctx.meta[click_extra.context.TELEMETRY] <click_extra.context.TELEMETRY>`,
     aligning with every other Click Extra option's per-invocation context-meta
     storage pattern.
 
-    .. seealso::
+    ```{seealso}
 
-        - A `knowledge base of telemetry disabling configuration options
-          <https://github.com/beatcracker/toptout>`_.
+    - A [knowledge base of telemetry disabling configuration options](https://github.com/beatcracker/toptout).
 
-        - And another `list of environment variable to disable telemetry in desktop apps
-          <https://telemetry.timseverien.com/opt-out/>`_.
+    - And another [list of environment variable to disable telemetry in desktop apps](https://telemetry.timseverien.com/opt-out/).
+    ```
     """
 
     def set_telemetry(
@@ -60,11 +59,11 @@ class TelemetryOption(ExtraOption):
         param: click.Parameter,
         value: bool,
     ) -> None:
-        """Store the resolved telemetry opt-in flag on the context's ``meta`` dict.
+        """Store the resolved telemetry opt-in flag on the context's `meta` dict.
 
-        Reads via :func:`click_extra.context.get(ctx, click_extra.context.TELEMETRY)
-        <click_extra.context.get>`. Renamed from ``save_telemetry`` to align
-        with the ``set_<key>`` convention used by every other ctx.meta-writing
+        Reads via {func}`click_extra.context.get(ctx, click_extra.context.TELEMETRY)
+        <click_extra.context.get>`. Renamed from `save_telemetry` to align
+        with the `set_<key>` convention used by every other ctx.meta-writing
         callback.
         """
         context.set(ctx, context.TELEMETRY, value)

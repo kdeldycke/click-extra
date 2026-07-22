@@ -13,18 +13,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Shared scaffolding for the ``click:*`` and ``python:*`` directive families.
+"""Shared scaffolding for the `click:*` and `python:*` directive families.
 
-Holds the small bits of plumbing that both :mod:`click_extra.sphinx.click` and
-:mod:`click_extra.sphinx.python` need verbatim: directive-content compilation,
-per-document runner cleanup, and the stateless ``Domain`` boilerplate Sphinx
+Holds the small bits of plumbing that both {mod}`click_extra.sphinx.click` and
+{mod}`click_extra.sphinx.python` need verbatim: directive-content compilation,
+per-document runner cleanup, and the stateless `Domain` boilerplate Sphinx
 demands of any domain that ships only directives (no roles or objects).
 
 Also hosts the offline self-updating block toolkit shared by the ``{matrix}``
-directive (:mod:`click_extra.sphinx.matrix`) and the ``python:render``
-``:mirror:`` flag (:mod:`click_extra.sphinx.python`): fence-aware Markdown
-scanning, the ``<!-- name … --> / <!-- name-end -->`` marker grammar, and the
-walk-rewrite-write loop behind the ``click-extra refresh-directives`` command.
+directive ({mod}`click_extra.sphinx.matrix`) and the `python:render`
+`:mirror:` flag ({mod}`click_extra.sphinx.python`): fence-aware Markdown
+scanning, the `<!-- name … --> / <!-- name-end -->` marker grammar, and the
+walk-rewrite-write loop behind the `click-extra refresh-directives` command.
 """
 
 from __future__ import annotations
@@ -51,12 +51,12 @@ if TYPE_CHECKING:
 
 
 def directive_source(directive: SphinxDirective) -> tuple[str, str]:
-    """Return the ``(source_code, location)`` pair for ``directive``.
+    """Return the `(source_code, location)` pair for `directive`.
 
     Centralizes the "join the content lines, fetch the Sphinx-reported source
-    location" preamble shared by every ``exec``-based directive in this
+    location" preamble shared by every `exec`-based directive in this
     package, so callers needing the raw source (for an AST conflict check, say)
-    do not re-derive it independently of :func:`compile_directive`.
+    do not re-derive it independently of {func}`compile_directive`.
     """
     # Use directive.content instead of directive.block_text as the latter
     # includes the directive text itself in rST.
@@ -67,24 +67,25 @@ def directive_source(directive: SphinxDirective) -> tuple[str, str]:
 
 
 def compile_directive(directive: SphinxDirective) -> CodeType:
-    """Compile the body of ``directive`` for later ``exec``.
+    """Compile the body of `directive` for later `exec`.
 
     Joins the directive's content lines, labels them with the directive's
-    source location (via :func:`directive_source`), and hands the result to
-    :func:`compile`.
+    source location (via {func}`directive_source`), and hands the result to
+    {func}`compile`.
 
-    .. danger::
-        The compiled code object is intended to run via :func:`exec` in the
-        runner's full module namespace. It executes with the same privileges
-        as the Sphinx process: filesystem, network, environment variables,
-        and any secrets the build environment holds. There is no sandbox.
+    ```{danger}
+    The compiled code object is intended to run via {func}`exec` in the
+    runner's full module namespace. It executes with the same privileges
+    as the Sphinx process: filesystem, network, environment variables,
+    and any secrets the build environment holds. There is no sandbox.
 
-        Only build documentation from trusted source. Both the
-        :class:`~click_extra.sphinx.click.ClickDomain` and the
-        :class:`~click_extra.sphinx.python.PythonDomain` are gated behind
-        the ``click_extra_enable_exec_directives`` opt-in for exactly this
-        reason. See ``docs/sphinx.md`` under the Setup section for the
-        full trust boundary.
+    Only build documentation from trusted source. Both the
+    {class}`~click_extra.sphinx.click.ClickDomain` and the
+    {class}`~click_extra.sphinx.python.PythonDomain` are gated behind
+    the `click_extra_enable_exec_directives` opt-in for exactly this
+    reason. See `docs/sphinx.md` under the Setup section for the
+    full trust boundary.
+    ```
     """
     source_code, location = directive_source(directive)
     return compile(source_code, location, "exec")
@@ -98,7 +99,7 @@ def parse_into_section(
 
     Nested directives inside *lines* execute during this pass and share the
     directive's runner namespace. Returns the parsed children, ready to be
-    returned from the directive's ``run()``.
+    returned from the directive's `run()`.
     """
     section = nodes.section()
     source_file, _ = directive.get_source_info()
@@ -111,9 +112,9 @@ def parse_into_section(
 
 
 def make_cleanup(attr: str) -> Callable[[Sphinx, nodes.document], None]:
-    """Build a ``doctree-read`` callback that drops ``attr`` from the doctree.
+    """Build a `doctree-read` callback that drops `attr` from the doctree.
 
-    Per-document runners live as attributes on ``state.document`` so they
+    Per-document runners live as attributes on `state.document` so they
     persist across directive invocations within the same page. Without an
     explicit cleanup, the runner namespace would leak into the next document
     Sphinx parses in the same process.
@@ -129,12 +130,12 @@ def make_cleanup(attr: str) -> Callable[[Sphinx, nodes.document], None]:
 
 
 class StatelessDomain(Domain):
-    """:class:`~sphinx.domains.Domain` base for directive-only domains.
+    """{class}`~sphinx.domains.Domain` base for directive-only domains.
 
-    Sphinx requires :meth:`merge_domaindata` on any domain declaring
-    ``parallel_read_safe = True``, and MyST-Parser warns when
-    :meth:`resolve_any_xref` is missing. Both stubs are no-ops here because
-    ``click:*`` and ``python:*`` register directives only: no roles, no
+    Sphinx requires {meth}`merge_domaindata` on any domain declaring
+    `parallel_read_safe = True`, and MyST-Parser warns when
+    {meth}`resolve_any_xref` is missing. Both stubs are no-ops here because
+    `click:*` and `python:*` register directives only: no roles, no
     cross-references, no shared state to merge.
     """
 
@@ -152,7 +153,8 @@ class StatelessDomain(Domain):
     ) -> list[tuple[str, nodes.reference]]:
         """No-op: this domain provides no objects to cross-reference.
 
-        .. seealso:: https://github.com/kdeldycke/click-extra/issues/1502
+        ```{seealso} https://github.com/kdeldycke/click-extra/issues/1502
+        ```
         """
         return []
 
@@ -167,14 +169,14 @@ class StatelessDomain(Domain):
 
 
 OPTION_LINE_RE = re.compile(r"^[ \t]*:(?P<key>[\w+-]+):[ \t]*(?P<value>.*?)[ \t]*$")
-"""A ``:key: value`` MyST directive option line (value optional for flags)."""
+"""A `:key: value` MyST directive option line (value optional for flags)."""
 
 _FENCE_OPEN_RE = re.compile(r"^(?P<indent>[ \t]*)(?P<fence>`{3,})")
 """Opening line of a backtick code fence, of any length and indentation.
 
-Colon (``:::``) fences are deliberately not treated as fences here: in MyST
+Colon (`:::`) fences are deliberately not treated as fences here: in MyST
 they delimit directives whose body *is* parsed (an admonition can legitimately
-host a live ``{matrix}`` or ``python:render`` block), while backtick-fence
+host a live ``{matrix}`` or `python:render` block), while backtick-fence
 content is always literal.
 """
 
@@ -186,17 +188,17 @@ class FenceSpan(NamedTuple):
     """Index of the opening fence line."""
 
     close: int | None
-    """Index of the closing fence line, or ``None`` when unterminated."""
+    """Index of the closing fence line, or `None` when unterminated."""
 
 
 def fence_spans(lines: list[str]) -> dict[int, FenceSpan]:
     """Map each top-level backtick fence's opening line index to its span.
 
     Fences are consumed as opaque units: a fence line *inside* an outer fence
-    (a documented example wrapped in a longer ``code-block`` fence) never
+    (a documented example wrapped in a longer `code-block` fence) never
     starts a span of its own. A close requires a bare run of the same
     character, at least as long as the opener, at the same indentation. An
-    unterminated fence spans to the end of the file with ``close=None``.
+    unterminated fence spans to the end of the file with `close=None`.
     """
     spans: dict[int, FenceSpan] = {}
     index = 0
@@ -227,12 +229,12 @@ def fence_spans(lines: list[str]) -> dict[int, FenceSpan]:
 
 
 def marker_res(name: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
-    """Build the ``(open, close)`` regexes of a ``<!-- name -->`` region.
+    """Build the `(open, close)` regexes of a `<!-- name -->` region.
 
     The grammar is shared by every self-updating marker region: the opening
-    comment is ``<!-- name [args] -->`` (``args`` optional, whitespace
-    separated), the closing comment is ``<!-- name-end -->``. Both capture
-    their leading indentation as ``indent``.
+    comment is `<!-- name [args] -->` (`args` optional, whitespace
+    separated), the closing comment is `<!-- name-end -->`. Both capture
+    their leading indentation as `indent`.
     """
     escaped = re.escape(name)
     open_re = re.compile(
@@ -243,7 +245,7 @@ def marker_res(name: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
 
 
 def iter_markdown_files(paths: Iterable[Path]) -> Iterable[Path]:
-    """Yield the Markdown sources under ``paths`` (files as-is, dirs recursed)."""
+    """Yield the Markdown sources under `paths` (files as-is, dirs recursed)."""
     for path in paths:
         if path.is_dir():
             yield from sorted(path.rglob("*.md"))
@@ -257,15 +259,15 @@ def update_blocks(
     *,
     check: bool = False,
 ) -> list[Path]:
-    """Rewrite self-updating blocks in the Markdown sources under ``paths``.
+    """Rewrite self-updating blocks in the Markdown sources under `paths`.
 
-    Walks ``paths`` (files, or directories recursed for ``*.md``), applies
-    ``rewrite(text, path)`` to each, and writes the file back when its content
-    changed. In ``check`` mode nothing is written; the return value still
+    Walks `paths` (files, or directories recursed for `*.md`), applies
+    `rewrite(text, path)` to each, and writes the file back when its content
+    changed. In `check` mode nothing is written; the return value still
     lists the files that would change, so a caller can exit non-zero to flag
     stale documentation in CI.
 
-    :return: the files whose blocks were (or, under ``check``, would be)
+    :return: the files whose blocks were (or, under `check`, would be)
         updated.
     """
     changed: list[Path] = []

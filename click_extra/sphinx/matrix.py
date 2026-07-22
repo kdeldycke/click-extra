@@ -15,29 +15,29 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Release compatibility matrices derived from a project's git history.
 
-Walk every ``vX.Y.Z`` tag in a project's git repository, extract each release's
+Walk every `vX.Y.Z` tag in a project's git repository, extract each release's
 declared support for some axis, group consecutive tags that agree, and render a
-GitHub-flavored markdown matrix suitable for a project's ``install.md``.
+GitHub-flavored markdown matrix suitable for a project's `install.md`.
 
 Two axes are supported:
 
 - **Python** (``{matrix} python``): per-tag support comes from the
-  ``Programming Language :: Python :: X.Y`` classifier list in
-  ``pyproject.toml`` (the explicit tested grid), falling back in priority order
-  to PEP 621 ``requires-python``, Poetry ``[tool.poetry.dependencies].python``,
-  and ``setup.py``'s ``python_requires``. A floor-only declaration is capped at
-  the latest Python released while the range was current, so the ``✅`` set does
+  `Programming Language :: Python :: X.Y` classifier list in
+  `pyproject.toml` (the explicit tested grid), falling back in priority order
+  to PEP 621 `requires-python`, Poetry `[tool.poetry.dependencies].python`,
+  and `setup.py`'s `python_requires`. A floor-only declaration is capped at
+  the latest Python released while the range was current, so the `✅` set does
   not over-claim support for Pythons that did not yet exist.
 - **A dependency** (``{matrix} <distribution>``, like ``{matrix} click``): the
   per-tag constraint is that distribution's requirement specifier; columns are
-  auto-derived from the specifier boundaries plus the ``uv.lock`` resolved
-  version, and each ✅ / ❌ cell is computed with :mod:`packaging`.
+  auto-derived from the specifier boundaries plus the `uv.lock` resolved
+  version, and each ✅ / ❌ cell is computed with {mod}`packaging`.
 
-The rendered tables back the always-on ``matrix`` Sphinx directive (see
-:class:`MatrixDirective`), so a project's ``install.md`` can embed a live matrix
-kept current by the ``click-extra refresh-directives`` command instead of a
-static table maintained by hand. The generation functions shell out to ``git``;
-they carry no runtime CLI relevance and are kept out of the ``click_extra``
+The rendered tables back the always-on `matrix` Sphinx directive (see
+{class}`MatrixDirective`), so a project's `install.md` can embed a live matrix
+kept current by the `click-extra refresh-directives` command instead of a
+static table maintained by hand. The generation functions shell out to `git`;
+they carry no runtime CLI relevance and are kept out of the `click_extra`
 public API.
 """
 
@@ -95,43 +95,43 @@ PYTHON_RELEASE_DATES: dict[str, str] = {
     "3.13": "2024-10-07",
     "3.14": "2025-10-07",
 }
-"""ISO release date of each ``X.Y`` Python final release.
+"""ISO release date of each `X.Y` Python final release.
 
-Used to cap ``✅`` cells when a release range's Python support is derived from
-a ``requires-python``-style floor rather than an explicit classifier list: a
+Used to cap `✅` cells when a release range's Python support is derived from
+a `requires-python`-style floor rather than an explicit classifier list: a
 floor without upper bound would otherwise over-claim support for Pythons that
 did not yet exist while the range was current. Update this table each October
 when a new final release ships.
 """
 
 DEFAULT_TAG_PATTERN: str = r"^v\d+\.\d+\.\d+$"
-"""Default regex for release tags (``vMAJOR.MINOR.PATCH``)."""
+"""Default regex for release tags (`vMAJOR.MINOR.PATCH`)."""
 
 DEFAULT_TAGS_SORT: str = "version:refname"
-"""Default ``git tag --sort`` argument."""
+"""Default `git tag --sort` argument."""
 
 
 class PythonMatrixGroup(NamedTuple):
     """A contiguous run of release tags sharing the same Python support set."""
 
     first_tag: str
-    """First tag in the group (in ``git tag --sort=version:refname`` order)."""
+    """First tag in the group (in `git tag --sort=version:refname` order)."""
 
     last_tag: str
     """Last tag in the group."""
 
     first_date: str
-    """ISO ``YYYY-MM-DD`` date of the first tag's commit."""
+    """ISO `YYYY-MM-DD` date of the first tag's commit."""
 
     python_versions: tuple[str, ...]
-    """The ``X.Y`` Python versions this range supports, sorted ascending."""
+    """The `X.Y` Python versions this range supports, sorted ascending."""
 
 
 def _version_sort_key(version: str) -> tuple[int, ...]:
-    """Numeric sort key for ``X.Y`` version strings.
+    """Numeric sort key for `X.Y` version strings.
 
-    A leading ``v`` tag namespace is tolerated so the same helper compares both
-    bare versions (``3.10``) and release tags (``v3.10.2``).
+    A leading `v` tag namespace is tolerated so the same helper compares both
+    bare versions (`3.10`) and release tags (`v3.10.2`).
     """
     return tuple(int(part) for part in version.lstrip("v").split("."))
 
@@ -140,12 +140,12 @@ def python_versions_released_by(
     cutoff_date: str,
     release_dates: dict[str, str] | None = None,
 ) -> list[str]:
-    """Return Python ``X.Y`` versions released on or before ``cutoff_date``.
+    """Return Python `X.Y` versions released on or before `cutoff_date`.
 
-    :param cutoff_date: ISO ``YYYY-MM-DD`` date.
-    :param release_dates: mapping of ``X.Y`` → ISO release date. Defaults to
-        :data:`PYTHON_RELEASE_DATES`.
-    :return: sorted list of ``X.Y`` strings.
+    :param cutoff_date: ISO `YYYY-MM-DD` date.
+    :param release_dates: mapping of `X.Y` → ISO release date. Defaults to
+        {data}`PYTHON_RELEASE_DATES`.
+    :return: sorted list of `X.Y` strings.
     """
     if release_dates is None:
         release_dates = PYTHON_RELEASE_DATES
@@ -156,30 +156,30 @@ def python_versions_released_by(
 
 
 def parse_python_spec(spec: str) -> tuple[str, str, set[str]]:
-    """Parse a Python version spec into ``(floor, ceiling, excluded)``.
+    """Parse a Python version spec into `(floor, ceiling, excluded)`.
 
     Supports:
 
-    - PEP 440: ``>=3.10``, ``>=3.10,<3.14``, ``>=2.7, !=3.0.*, !=3.1.*``.
-    - Poetry caret: ``^3.7`` expands to ``>=3.7, <4.0``.
-    - Poetry tilde: ``~3.7`` expands to ``>=3.7, <3.8``.
-    - ``setup.py``'s ``python_requires`` (uses the same PEP 440 syntax as
-      ``requires-python``).
+    - PEP 440: `>=3.10`, `>=3.10,<3.14`, `>=2.7, !=3.0.*, !=3.1.*`.
+    - Poetry caret: `^3.7` expands to `>=3.7, <4.0`.
+    - Poetry tilde: `~3.7` expands to `>=3.7, <3.8`.
+    - `setup.py`'s `python_requires` (uses the same PEP 440 syntax as
+      `requires-python`).
 
-    :return: ``(floor, ceiling, excluded)`` where each of ``floor`` and
-        ``ceiling`` is a bare ``"X.Y"`` string (empty if unspecified) and
-        ``excluded`` is the set of bare ``"X.Y"`` values one per ``!=X.Y.*``
-        clause. The ceiling is *exclusive*: ``<3.14`` means 3.14 itself is
-        not supported. Returns ``("", "", set())`` when no floor is found.
+    :return: `(floor, ceiling, excluded)` where each of `floor` and
+        `ceiling` is a bare `"X.Y"` string (empty if unspecified) and
+        `excluded` is the set of bare `"X.Y"` values one per `!=X.Y.*`
+        clause. The ceiling is *exclusive*: `<3.14` means 3.14 itself is
+        not supported. Returns `("", "", set())` when no floor is found.
     """
     spec = spec.strip()
     if not spec:
         return "", "", set()
-    # Poetry caret: ``^X.Y`` → floor X.Y, ceiling (X+1).0 (exclusive).
+    # Poetry caret: `^X.Y` → floor X.Y, ceiling (X+1).0 (exclusive).
     m = re.match(r"^\^(\d+)\.(\d+)", spec)
     if m:
         return f"{m.group(1)}.{m.group(2)}", f"{int(m.group(1)) + 1}.0", set()
-    # Poetry tilde: ``~X.Y`` → floor X.Y, ceiling X.(Y+1) (exclusive).
+    # Poetry tilde: `~X.Y` → floor X.Y, ceiling X.(Y+1) (exclusive).
     m = re.match(r"^~(\d+)\.(\d+)", spec)
     if m:
         return (
@@ -208,17 +208,17 @@ def parse_python_spec(spec: str) -> tuple[str, str, set[str]]:
 
 
 def _git(project_root: Path, *args: str, check: bool = True) -> str:
-    """Run a ``git`` command in ``project_root`` and return its captured stdout.
+    """Run a `git` command in `project_root` and return its captured stdout.
 
     The single place the module shells out to git, so every history read uses
-    the same working tree and text decoding. ``check`` defaults to raising on a
-    non-zero exit; the ``git show`` blob lookups pass ``check=False`` so a tag
+    the same working tree and text decoding. `check` defaults to raising on a
+    non-zero exit; the `git show` blob lookups pass `check=False` so a tag
     that lacks the file yields an empty string instead of an error.
 
     A missing git binary or a non-repository path surfaces as an
-    :class:`OSError` / :class:`subprocess.SubprocessError`, which callers let
-    propagate: :class:`MatrixDirective` turns it into a build warning, and
-    :func:`_regenerate` swallows it to leave a block untouched.
+    {class}`OSError` / {class}`subprocess.SubprocessError`, which callers let
+    propagate: {class}`MatrixDirective` turns it into a build warning, and
+    {func}`_regenerate` swallows it to leave a block untouched.
     """
     return subprocess.run(
         ["git", *args],
@@ -241,11 +241,11 @@ def _walk_tags(
     tags_sort: str = DEFAULT_TAGS_SORT,
     version_floor: str = "",
 ) -> list[tuple[str, str, str, str]]:
-    """Return ``(tag, iso_date, pyproject, setup_py)`` for each release tag.
+    """Return `(tag, iso_date, pyproject, setup_py)` for each release tag.
 
-    Walks ``git tag`` in ``tags_sort`` order, keeps the tags matching
-    ``tag_pattern`` and at or above ``version_floor``, and fetches each tag's
-    ``pyproject.toml`` and ``setup.py`` blobs (empty string when absent). Shared
+    Walks `git tag` in `tags_sort` order, keeps the tags matching
+    `tag_pattern` and at or above `version_floor`, and fetches each tag's
+    `pyproject.toml` and `setup.py` blobs (empty string when absent). Shared
     by the Python and dependency axes so both read history identically.
     """
     tag_re = re.compile(tag_pattern)
@@ -272,20 +272,20 @@ def python_matrix_groups(
     version_floor: str = "",
     release_dates: dict[str, str] | None = None,
 ) -> list[PythonMatrixGroup]:
-    """Walk every release tag in ``project_root`` and group consecutive
+    """Walk every release tag in `project_root` and group consecutive
     releases that declare the same effective set of Python versions.
 
     :param project_root: git working tree to walk.
     :param tag_pattern: regex matching release tags. Defaults to
-        :data:`DEFAULT_TAG_PATTERN` (``vMAJOR.MINOR.PATCH``).
-    :param tags_sort: value passed to ``git tag --sort``. Defaults to
-        :data:`DEFAULT_TAGS_SORT` (``version:refname``).
+        {data}`DEFAULT_TAG_PATTERN` (`vMAJOR.MINOR.PATCH`).
+    :param tags_sort: value passed to `git tag --sort`. Defaults to
+        {data}`DEFAULT_TAGS_SORT` (`version:refname`).
     :param version_floor: drop every release tag below this bare version
-        (``"4.9.0"``, ``"4.9"``). Empty (the default) keeps all tags. Applied
+        (`"4.9.0"`, `"4.9"`). Empty (the default) keeps all tags. Applied
         before grouping so the oldest surviving group starts at the floor.
     :param release_dates: Python-version release-date table used for the
-        cap. Defaults to :data:`PYTHON_RELEASE_DATES`.
-    :return: List of :class:`PythonMatrixGroup`, in chronological order.
+        cap. Defaults to {data}`PYTHON_RELEASE_DATES`.
+    :return: List of {class}`PythonMatrixGroup`, in chronological order.
         Tags with no Python declaration in any recognized form are skipped.
     """
     if release_dates is None:
@@ -330,7 +330,7 @@ def python_matrix_groups(
 
     # Pass 2: group consecutive tags with same raw (classifiers, spec).
     # Same-classifier neighbours with different spec strings (a floor bump
-    # from ``>=3.8`` to ``>=3.8.6``) get split here and re-merge in Pass 4
+    # from `>=3.8` to `>=3.8.6`) get split here and re-merge in Pass 4
     # when their effective versions coincide.
     raw_groups: list[list] = []
     for tag, iso_date, cls, spec in tag_data:
@@ -387,13 +387,13 @@ def python_matrix_groups(
 def _spans_full_major(
     first_tag: str, last_tag: str, next_first_tag: str | None
 ) -> bool:
-    """Whether a group covers an entire major series (so it labels as ``X.x``).
+    """Whether a group covers an entire major series (so it labels as `X.x`).
 
-    True when the group stays within one major, starts at that major's ``.0``
+    True when the group stays within one major, starts at that major's `.0`
     minor, and the chronologically newer group has moved on to a higher major
-    (or there is none, for the latest group). ``next_first_tag`` is the first
-    tag of that newer group, or ``None``. The ``.0`` start guards against a
-    floored partial major (``4.9.x`` onward is not ``4.x``), and the higher-major
+    (or there is none, for the latest group). `next_first_tag` is the first
+    tag of that newer group, or `None`. The `.0` start guards against a
+    floored partial major (`4.9.x` onward is not `4.x`), and the higher-major
     successor guards against a major that is split across several groups.
     """
     first = first_tag.lstrip("v").split(".")
@@ -414,11 +414,11 @@ def _range_label(
 ) -> str:
     """Render the version-range label for a matrix group.
 
-    A group covering an entire major series collapses to ``X.x`` (see
-    ``full_major``). For the most recent multi-major group, the upper bound
-    collapses to the major-version wildcard (like ``8.x``) so the label is
+    A group covering an entire major series collapses to `X.x` (see
+    `full_major`). For the most recent multi-major group, the upper bound
+    collapses to the major-version wildcard (like `8.x`) so the label is
     stable across new minor releases. A single-release group shows its exact
-    ``X.Y.Z`` version rather than a patch wildcard, so two adjacent patch
+    `X.Y.Z` version rather than a patch wildcard, so two adjacent patch
     releases never collapse to the same ambiguous label. Other closed groups
     keep precise minor-version bounds.
     """
@@ -453,16 +453,16 @@ def python_matrix_table(
 
     :param project_root: git working tree to walk.
     :param label: the header column name (usually the package name, like
-        ``"click-extra"`` or ``"repomatic"``). Rendered in backticks.
-    :param tag_pattern: passed to :func:`python_matrix_groups`.
-    :param tags_sort: passed to :func:`python_matrix_groups`.
-    :param python_floor: drop every Python ``X.Y`` column below this bare
-        version (``"3.9"``). Empty (the default) keeps all columns. Trims
-        columns only; combine with ``version_floor`` to also drop the old
+        `"click-extra"` or `"repomatic"`). Rendered in backticks.
+    :param tag_pattern: passed to {func}`python_matrix_groups`.
+    :param tags_sort: passed to {func}`python_matrix_groups`.
+    :param python_floor: drop every Python `X.Y` column below this bare
+        version (`"3.9"`). Empty (the default) keeps all columns. Trims
+        columns only; combine with `version_floor` to also drop the old
         release rows that supported nothing above the floor.
-    :param version_floor: passed to :func:`python_matrix_groups` to drop
+    :param version_floor: passed to {func}`python_matrix_groups` to drop
         release rows below a bare package version.
-    :param release_dates: passed to :func:`python_matrix_groups`.
+    :param release_dates: passed to {func}`python_matrix_groups`.
     :return: rendered markdown table, or the empty string when no group
         was collected.
     """
@@ -523,20 +523,20 @@ class DependencyMatrixGroup(NamedTuple):
     """A contiguous run of release tags declaring the same dependency spec."""
 
     first_tag: str
-    """First tag in the group (in ``git tag --sort=version:refname`` order)."""
+    """First tag in the group (in `git tag --sort=version:refname` order)."""
 
     last_tag: str
     """Last tag in the group."""
 
     first_date: str
-    """ISO ``YYYY-MM-DD`` date of the first tag's commit."""
+    """ISO `YYYY-MM-DD` date of the first tag's commit."""
 
     spec: str
     """The raw requirement specifier declared for the dependency at this range."""
 
 
 def _safe_version(text: str) -> Version | None:
-    """Parse ``text`` into a :class:`~packaging.version.Version`, or ``None``."""
+    """Parse `text` into a {class}`~packaging.version.Version`, or `None`."""
     try:
         return Version(text)
     except InvalidVersion:
@@ -544,11 +544,11 @@ def _safe_version(text: str) -> Version | None:
 
 
 def _extract_requirement(pyproject: str, setup_py: str, dep_name: str) -> str:
-    """Return the version specifier declared for ``dep_name``, or ``""``.
+    """Return the version specifier declared for `dep_name`, or `""`.
 
-    Reads a PEP 621 / ``setup.py`` requirement string (``click>=8.3.1``,
-    ``click (>=8.3.1)``) first, then a Poetry ``[tool.poetry.dependencies]``
-    entry (``click = "^8.1"``).
+    Reads a PEP 621 / `setup.py` requirement string (`click>=8.3.1`,
+    `click (>=8.3.1)`) first, then a Poetry `[tool.poetry.dependencies]`
+    entry (`click = "^8.1"`).
     """
     name = re.escape(dep_name)
     for content in (pyproject, setup_py):
@@ -564,11 +564,11 @@ def _extract_requirement(pyproject: str, setup_py: str, dep_name: str) -> str:
 
 
 def _to_specifier_set(spec: str) -> SpecifierSet | None:
-    """Convert a specifier (PEP 440 or Poetry caret/tilde) to a ``SpecifierSet``.
+    """Convert a specifier (PEP 440 or Poetry caret/tilde) to a `SpecifierSet`.
 
-    Poetry ``^X.Y`` expands to ``>=X.Y,<(X+1).0.0`` and ``~X.Y`` to
-    ``>=X.Y,<X.(Y+1).0``. PEP 440 specifiers (``>=``, ``~=``, ``==``, commas)
-    pass through. Returns ``None`` for an unparsable specifier.
+    Poetry `^X.Y` expands to `>=X.Y,<(X+1).0.0` and `~X.Y` to
+    `>=X.Y,<X.(Y+1).0`. PEP 440 specifiers (`>=`, `~=`, `==`, commas)
+    pass through. Returns `None` for an unparsable specifier.
     """
     spec = spec.strip()
     caret = re.match(r"^\^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$", spec)
@@ -588,10 +588,10 @@ def _to_specifier_set(spec: str) -> SpecifierSet | None:
 
 
 def _spec_floor_open(spec: str) -> tuple[Version | None, bool]:
-    """Return ``(floor_version, is_open)`` for a specifier.
+    """Return `(floor_version, is_open)` for a specifier.
 
-    ``is_open`` is ``True`` for an unbounded-above floor (``>=`` / ``>``) and
-    ``False`` for a capped range (``~=``, Poetry ``^`` / ``~``, or any ``<``).
+    `is_open` is `True` for an unbounded-above floor (`>=` / `>`) and
+    `False` for a capped range (`~=`, Poetry `^` / `~`, or any `<`).
     The floor drives column placement; openness drives whether a minor series
     is split into patch columns.
     """
@@ -609,7 +609,7 @@ def _spec_floor_open(spec: str) -> tuple[Version | None, bool]:
 
 
 def _latest_locked_version(project_root: Path, dep_name: str) -> str:
-    """Return ``dep_name``'s resolved version from ``uv.lock``, or ``""``.
+    """Return `dep_name`'s resolved version from `uv.lock`, or `""`.
 
     Offline: reads the lockfile in the working tree (not per tag), only to
     anchor the right-most column at the version the project resolves today.
@@ -623,7 +623,7 @@ def _latest_locked_version(project_root: Path, dep_name: str) -> str:
 
 
 def _minor_intersects(spec_set: SpecifierSet, major: int, minor: int) -> bool:
-    """Does ``spec_set`` allow any release in the ``major.minor`` series?"""
+    """Does `spec_set` allow any release in the `major.minor` series?"""
     low = Version(f"{major}.{minor}.0")
     high = Version(f"{major}.{minor}.99999")
     return spec_set.contains(low, prereleases=True) or spec_set.contains(
@@ -633,11 +633,11 @@ def _minor_intersects(spec_set: SpecifierSet, major: int, minor: int) -> bool:
 
 
 def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bool]]:
-    """Derive the ordered ``(version, is_minor)`` columns for a dependency axis.
+    """Derive the ordered `(version, is_minor)` columns for a dependency axis.
 
-    A minor series gets a single ``X.Y`` column unless an open (``>=``) spec
-    pins a patch-level floor within it, in which case it is split into ``X.Y.0``
-    plus each such floor. The ``latest`` locked version anchors the right edge.
+    A minor series gets a single `X.Y` column unless an open (`>=`) spec
+    pins a patch-level floor within it, in which case it is split into `X.Y.0`
+    plus each such floor. The `latest` locked version anchors the right edge.
     """
     floors = [
         (floor, is_open)
@@ -684,12 +684,12 @@ def dependency_matrix_groups(
     tags_sort: str = DEFAULT_TAGS_SORT,
     version_floor: str = "",
 ) -> list[DependencyMatrixGroup]:
-    """Group consecutive release tags declaring the same ``dep_name`` spec.
+    """Group consecutive release tags declaring the same `dep_name` spec.
 
     :param dep_name: the distribution whose requirement specifier is tracked
-        (like ``"click"``).
-    :return: :class:`DependencyMatrixGroup` list in chronological order; tags
-        with no declared requirement for ``dep_name`` are skipped.
+        (like `"click"`).
+    :return: {class}`DependencyMatrixGroup` list in chronological order; tags
+        with no declared requirement for `dep_name` are skipped.
     """
     groups: list[DependencyMatrixGroup] = []
     for tag, iso_date, pyproject, setup_py in _walk_tags(
@@ -718,17 +718,17 @@ def dependency_matrix_table(
     tags_sort: str = DEFAULT_TAGS_SORT,
     version_floor: str = "",
 ) -> str:
-    """Render the ``dep_name`` compatibility matrix as a markdown table.
+    """Render the `dep_name` compatibility matrix as a markdown table.
 
     Columns are auto-derived from the requirement specifiers across history
-    (see :func:`_dependency_columns`) plus the ``uv.lock`` resolved version;
-    each ✅ / ❌ cell is computed with :mod:`packaging`. Consecutive ranges
+    (see {func}`_dependency_columns`) plus the `uv.lock` resolved version;
+    each ✅ / ❌ cell is computed with {mod}`packaging`. Consecutive ranges
     whose cells coincide are re-merged into one row.
 
     :param label: header column name (the documented package, in backticks).
-    :param dep_name: the tracked distribution (``"click"``).
-    :param show_spec: add a ``Spec`` column with each range's raw specifier.
-    :return: rendered markdown table, or ``""`` when nothing was collected.
+    :param dep_name: the tracked distribution (`"click"`).
+    :param show_spec: add a `Spec` column with each range's raw specifier.
+    :return: rendered markdown table, or `""` when nothing was collected.
     """
     groups = dependency_matrix_groups(
         project_root,
@@ -798,9 +798,9 @@ def dependency_matrix_table(
 
 
 def _find_git_root(start: Path) -> Path:
-    """Walk up from ``start`` to the first directory holding a ``.git`` entry.
+    """Walk up from `start` to the first directory holding a `.git` entry.
 
-    Falls back to ``start`` when none is found; the caller then gets an empty
+    Falls back to `start` when none is found; the caller then gets an empty
     matrix (no tags) rather than an exception.
     """
     for candidate in (start, *start.parents):
@@ -810,16 +810,16 @@ def _find_git_root(start: Path) -> Path:
 
 
 def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
-    """Resolve the git working tree to walk from a ``:path:`` option value.
+    """Resolve the git working tree to walk from a `:path:` option value.
 
-    ``base_dir`` anchors both the git-root search and any relative
-    ``path_opt``: the docs source directory for the live directive, the
-    Markdown file's parent for the offline updater. An absolute ``path_opt``
+    `base_dir` anchors both the git-root search and any relative
+    `path_opt`: the docs source directory for the live directive, the
+    Markdown file's parent for the offline updater. An absolute `path_opt`
     is used verbatim.
     """
-    # Resolve to an absolute path so a relative ``base_dir`` (like the ``docs``
-    # the CLI passes) yields a git root whose ``.name`` is the real repo folder,
-    # not an empty string from ``Path(".")``.
+    # Resolve to an absolute path so a relative `base_dir` (like the `docs`
+    # the CLI passes) yields a git root whose `.name` is the real repo folder,
+    # not an empty string from `Path(".")`.
     git_root = _find_git_root(base_dir.resolve())
     if not path_opt:
         return git_root
@@ -832,9 +832,9 @@ def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
 def _render_block(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
     """Render the table for a ``{matrix} <axis>`` block.
 
-    Dispatches on ``axis``: ``"python"`` renders the interpreter matrix; any
+    Dispatches on `axis`: `"python"` renders the interpreter matrix; any
     other value names a distribution and renders its dependency matrix. Shared
-    by :class:`MatrixDirective` (live rendering) and :func:`update_matrix_blocks`
+    by {class}`MatrixDirective` (live rendering) and {func}`update_matrix_blocks`
     (offline source refresh) so both resolve the package, path, and floors
     identically.
     """
@@ -868,28 +868,28 @@ class MatrixDirective(SphinxDirective):
     dependency matrix (release ranges × that dependency's versions, from its
     requirement specifier across the git history). Both emit a GitHub-flavored
     table parsed by the host document's parser, so it lands as a real
-    ``<table>``.
+    `<table>`.
 
     The table normally lives *inside* the block as its content, kept current by
-    the offline updater (:func:`update_matrix_blocks`, exposed as the
-    ``click-extra refresh-directives`` command). Rendering that embedded copy
+    the offline updater ({func}`update_matrix_blocks`, exposed as the
+    `click-extra refresh-directives` command). Rendering that embedded copy
     needs no git access at build time, so shallow clones and read-only build
     hosts still show the matrix. An empty block falls back to generating from
     the working tree's git tags, so a freshly authored block renders before its
     first refresh.
 
-    Argument: the axis, ``python`` or a distribution name.
+    Argument: the axis, `python` or a distribution name.
 
     Options:
 
-    - ``:package:`` — header column label. Defaults to the repository name.
-    - ``:path:`` — git working tree to walk, absolute or relative to the
+    - `:package:` — header column label. Defaults to the repository name.
+    - `:path:` — git working tree to walk, absolute or relative to the
       documented project's git root. Defaults to that git root.
-    - ``:version-floor:`` — drop release rows below this package version.
-    - ``:tag-pattern:`` — regex selecting release tags. Defaults to
-      :data:`DEFAULT_TAG_PATTERN`.
-    - ``:python-floor:`` — (python axis) drop Python columns below ``X.Y``.
-    - ``:show-spec:`` — (dependency axis) add a raw-specifier ``Spec`` column.
+    - `:version-floor:` — drop release rows below this package version.
+    - `:tag-pattern:` — regex selecting release tags. Defaults to
+      {data}`DEFAULT_TAG_PATTERN`.
+    - `:python-floor:` — (python axis) drop Python columns below `X.Y`.
+    - `:show-spec:` — (dependency axis) add a raw-specifier `Spec` column.
 
     The git fallback is resilient: a missing git binary, a non-repository path,
     or a tag-less repository logs a build warning and renders nothing rather
@@ -951,11 +951,11 @@ class MatrixDirective(SphinxDirective):
 
 
 def setup(app: Sphinx) -> None:
-    """Register the always-on ``matrix`` directive on ``app``.
+    """Register the always-on `matrix` directive on `app`.
 
-    Called from :func:`click_extra.sphinx.setup` so projects only need to list
-    ``"click_extra.sphinx"`` in their ``extensions``. Unlike the ``click:*`` /
-    ``python:*`` families, the directive is registered unconditionally: it runs
+    Called from {func}`click_extra.sphinx.setup` so projects only need to list
+    `"click_extra.sphinx"` in their `extensions`. Unlike the `click:*` /
+    `python:*` families, the directive is registered unconditionally: it runs
     a canned matrix generator, not user-supplied Python, so it needs no opt-in.
     """
     app.add_directive("matrix", MatrixDirective)
@@ -975,7 +975,7 @@ _MARKER_OPEN_RE, _MARKER_CLOSE_RE = marker_res("matrix")
 
 
 def _parse_marker_options(tokens: Iterable[str]) -> dict[str, str]:
-    """Parse a marker's ``key=value`` / bare-flag option tokens into a mapping."""
+    """Parse a marker's `key=value` / bare-flag option tokens into a mapping."""
     options: dict[str, str] = {}
     for token in tokens:
         key, _, value = token.partition("=")
@@ -984,7 +984,7 @@ def _parse_marker_options(tokens: Iterable[str]) -> dict[str, str]:
 
 
 def _regenerate(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
-    """Render a block, returning ``""`` on any git/OS failure (non-destructive)."""
+    """Render a block, returning `""` on any git/OS failure (non-destructive)."""
     try:
         return _render_block(axis, options, base_dir)
     except (OSError, subprocess.SubprocessError):
@@ -998,7 +998,7 @@ def _refresh_fence_block(
     close: int,
     base_dir: Path,
 ) -> list[str]:
-    """Regenerate one ``{matrix} <axis>`` directive fence closing at ``close``.
+    """Regenerate one ``{matrix} <axis>`` directive fence closing at `close`.
 
     Returns the replacement lines. Keeps the block verbatim when generation
     fails.
@@ -1034,12 +1034,12 @@ def _refresh_marker_region(
     spans: Mapping[int, FenceSpan],
     base_dir: Path,
 ) -> tuple[list[str], int]:
-    """Regenerate one ``<!-- matrix <axis> -->`` region starting at ``index``.
+    """Regenerate one `<!-- matrix <axis> -->` region starting at `index`.
 
     The start marker is kept verbatim; the raw table between the markers is
-    replaced, blank-line padded so ``mdformat`` does not ping-pong on the
+    replaced, blank-line padded so `mdformat` does not ping-pong on the
     surrounding HTML comments. The closing-marker search skips fence spans, so
-    a ``<!-- matrix-end -->`` shown inside a code example cannot close a live
+    a `<!-- matrix-end -->` shown inside a code example cannot close a live
     region. Kept verbatim when unterminated, axis-less, or on failure.
     """
     indent = match.group("indent")
@@ -1077,10 +1077,10 @@ def _refresh_marker_region(
 
 
 def _rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
-    """Return ``text`` with every ``matrix`` block's table regenerated.
+    """Return `text` with every `matrix` block's table regenerated.
 
     Handles both forms: the ``{matrix} <axis>`` directive fence (rendered by
-    Sphinx) and the ``<!-- matrix <axis> -->`` comment region (which renders as a
+    Sphinx) and the `<!-- matrix <axis> -->` comment region (which renders as a
     real table on GitHub too). Each keeps its axis and options; only the embedded
     table is replaced. The walk is fence-aware: a ``{matrix}`` example nested
     inside a longer code fence is a documented illustration, copied verbatim and
@@ -1129,10 +1129,10 @@ def _rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
 def update_matrix_blocks(paths: Iterable[Path], *, check: bool = False) -> list[Path]:
     """Refresh every ``{matrix}`` block in the given Markdown sources.
 
-    See :func:`click_extra.sphinx._base.update_blocks` for the walk, write, and
-    ``check``-mode contract.
+    See {func}`click_extra.sphinx._base.update_blocks` for the walk, write, and
+    `check`-mode contract.
 
-    :return: the files whose ``{matrix}`` blocks were (or, under ``check``,
+    :return: the files whose ``{matrix}`` blocks were (or, under `check`,
         would be) updated.
     """
     return update_blocks(

@@ -93,7 +93,7 @@ logger = logging.getLogger(__name__)
 _XREF_RE = re.compile(r"(?<!``)\{([\w-]+)\}`([^`]*?)`")
 
 # Colon fences are recognized for legacy docstrings; new content uses
-# backtick fences (see ``_BACKTICK_FENCE_RE`` below).
+# backtick fences (see `_BACKTICK_FENCE_RE` below).
 # :::{directive} optional-title
 # body
 # :::
@@ -133,18 +133,37 @@ def _convert_link(match: re.Match) -> str:
     return f"`{label} <{url}>`_"
 
 
-# Single-backtick inline code `text` -> ``text`` (after protected spans are
-# placeholdered out).
+# Single-backtick inline code spans are doubled for reST (after protected
+# spans are placeholdered out).
 _INLINE_CODE_RE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
 
-# Backtick spans that must NOT be treated as inline code.  Matches:
-#   {role}`target`   — reST cross-references (from step 1)
+# A reST double-backtick literal on a single line.  The lookarounds pin the
+# match to exactly two backticks on each side, so triple-backtick fence lines
+# and longer backtick runs are never mistaken for literal delimiters.
+_RST_LITERAL_RE = re.compile(r"(?<!`)``(?!`)[^`\n]+``(?!`)")
+
+# Backtick spans that must NOT be treated as plain inline code, lexed in one
+# left-to-right pass so each alternative consumes its span before a later
+# alternative can restart inside it.  In priority order:
+#   {role}`target`   — reST cross-references (from step 1), kept verbatim
 #   `text`_          — reST hyperlink references (idempotent pass-through)
-# The hyperlink alternative anchors its opening backtick at a non-word, non-backtick
-# boundary so it cannot start at the *closing* backtick of a preceding inline-code
-# span. Without the lookbehind, `` `Foo` and `_bar` `` lets `` `[^`]+`_ `` match the
-# inter-span gap (`` ` and ` `` plus the leading `_` of `_bar`), corrupting both spans.
-_PROTECTED_RE = re.compile(r":[\w-]+:`[^`]*`|(?<![\w`])`[^`]+`_{1,2}")
+#   `:role-shaped:`  — a code span holding a literal role or option name
+#                      (like `:tag-pattern:`), doubled for reST on the spot
+# The single pass is what makes adjacency safe: when two converted roles
+# abut with no separator, the first role consumes the backtick that the
+# role-shaped-span alternative would otherwise claim as its opening
+# delimiter.  Without the last alternative, the role pattern would read a
+# role-shaped span's closing backtick as a role's target delimiter and
+# swallow everything up to the next backtick, corrupting the span and any
+# cross-reference after it.
+# The hyperlink alternative anchors its opening backtick at a non-word,
+# non-backtick boundary so it cannot start at the *closing* backtick of a
+# preceding inline-code span.
+_PROTECTED_RE = re.compile(
+    r":[\w-]+:`[^`]*`"
+    r"|(?<![\w`])`[^`]+`_{1,2}"
+    r"|(?<!`)`(:[\w-]+:[^`\n]*)`(?!`)"
+)
 
 
 def _convert_plain_code_fence(match: re.Match) -> str:
@@ -207,6 +226,33 @@ def myst_to_rst(lines: list[str]) -> None:
     """
     text = "\n".join(lines)
 
+    placeholders: dict[str, str] = {}
+    counter = 0
+
+    def _stash(value: str) -> str:
+        nonlocal counter
+        key = f"\x00P{counter}\x00"
+        counter += 1
+        placeholders[key] = value
+        return key
+
+    def _save(m: re.Match) -> str:
+        return _stash(m.group(0))
+
+    def _save_protected(m: re.Match) -> str:
+        # A role-shaped code span (group 1) is doubled for reST on its way
+        # into the placeholder; other protected spans are kept verbatim.
+        if m.group(1):
+            return _stash(f"``{m.group(1)}``")
+        return _stash(m.group(0))
+
+    # 0. Protect reST double-backtick literals from every following step.
+    # Their content is verbatim by definition, and a brace-bearing literal
+    # abutting its closing backticks (like ``{levelname}:{message}``) would
+    # otherwise be misread by the cross-reference pattern as a {role} with an
+    # empty target, mangling the literal.
+    text = _RST_LITERAL_RE.sub(_save, text)
+
     # 1. Cross-references: {role}`target` -> {role}`target`.
     text = _XREF_RE.sub(r":\1:`\2`", text)
 
@@ -228,23 +274,12 @@ def myst_to_rst(lines: list[str]) -> None:
     text = _FOOTNOTE_DEF_RE.sub(r".. [#\1] \2", text)
 
     # 5. Single-backtick inline code -> double-backtick.
-    # Protect reST backtick spans (cross-references from step 1, and reST
-    # hyperlink references in idempotent pass-through) with placeholders so
+    # Protect reST backtick spans (cross-references from step 1, reST
+    # hyperlink references in idempotent pass-through, and role-shaped code
+    # spans, which are doubled as they are stashed) with placeholders so
     # their backticks are not mistaken for inline code boundaries.
-    placeholders: dict[str, str] = {}
-    counter = 0
-
-    def _save(m: re.Match) -> str:
-        nonlocal counter
-        key = f"\x00P{counter}\x00"
-        counter += 1
-        placeholders[key] = m.group(0)
-        return key
-
-    text = _PROTECTED_RE.sub(_save, text)
+    text = _PROTECTED_RE.sub(_save_protected, text)
     text = _INLINE_CODE_RE.sub(r"``\1``", text)
-    for key, value in placeholders.items():
-        text = text.replace(key, value)
 
     # 6. Footnote references: [^label] -> [#label]_.
     # Runs after inline code (no backticks involved) and before links so that
@@ -258,6 +293,10 @@ def myst_to_rst(lines: list[str]) -> None:
     # nested markup (inline code inside hyperlinks).  This lets authors write
     # idiomatic MyST like [`sys.platform`](url) and get a clean reST link.
     text = _LINK_RE.sub(_convert_link, text)
+
+    # Restore the spans protected in steps 0 and 5, byte-for-byte.
+    for key, value in placeholders.items():
+        text = text.replace(key, value)
 
     lines[:] = text.split("\n")
 

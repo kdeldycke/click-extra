@@ -15,7 +15,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """The bundled catalog of terminal spinner presets.
 
-Ported from `cli-spinners <https://github.com/sindresorhus/cli-spinners>`_,
+Ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners),
 with frame intervals converted from milliseconds to seconds.
 """
 
@@ -35,17 +35,17 @@ SPINNER_FRAMES: Final = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧",
 """Default animation frames: the ubiquitous Braille-dots spinner.
 
 Ten frames give a smooth rotation in any UTF-8 terminal. Fall back to
-:data:`ASCII_SPINNER_FRAMES` where Braille glyphs are unavailable.
+{data}`ASCII_SPINNER_FRAMES` where Braille glyphs are unavailable.
 """
 
 
 class SpinnerPreset(NamedTuple):
     """A named spinner animation: its frames and the interval they look best at.
 
-    The :data:`~click_extra.spinner_presets.SPINNERS` catalog is ported from
-    `cli-spinners <https://github.com/sindresorhus/cli-spinners>`_, with intervals
+    The {data}`~click_extra.spinner_presets.SPINNERS` catalog is ported from
+    [cli-spinners](https://github.com/sindresorhus/cli-spinners), with intervals
     converted from milliseconds to seconds. Pass one to
-    :class:`~click_extra.spinner.Spinner` via its ``spinner`` argument.
+    {class}`~click_extra.spinner.Spinner` via its `spinner` argument.
     """
 
     frames: tuple[str, ...]
@@ -55,7 +55,7 @@ class SpinnerPreset(NamedTuple):
     """Seconds between two frames, tuned per spinner upstream."""
 
 
-# Single-code-point animations are packed as ``tuple("frames")`` to stay
+# Single-code-point animations are packed as `tuple("frames")` to stay
 # one-liners; animations with multi-character frames keep an explicit tuple.
 SPINNERS: Final = {
     "dots": SpinnerPreset(SPINNER_FRAMES, 0.08),
@@ -741,15 +741,15 @@ SPINNERS: Final = {
 }
 """Named spinner animations ported from cli-spinners, keyed by name.
 
-Each value is a :class:`SpinnerPreset` bundling frames and a tuned interval.
-Select one with :class:`~click_extra.spinner.Spinner`'s ``spinner`` argument::
+Each value is a {class}`SpinnerPreset` bundling frames and a tuned interval.
+Select one with {class}`~click_extra.spinner.Spinner`'s `spinner` argument::
 
     from click_extra import Spinner, SPINNERS
 
     with Spinner("Brewing tea", spinner=SPINNERS["moon"]):
         ...
 
-Unlike the upstream ``\\b``-based renderers, :class:`~click_extra.spinner.Spinner` redraws the whole
-line, so the multi-character animations (``bouncingBar``, ``pong``, ``shark``, …)
+Unlike the upstream `\\b`-based renderers, {class}`~click_extra.spinner.Spinner` redraws the whole
+line, so the multi-character animations (`bouncingBar`, `pong`, `shark`, …)
 render correctly here.
 """

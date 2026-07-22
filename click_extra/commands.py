@@ -67,69 +67,71 @@ logger = logging.getLogger(__name__)
 DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
 
 EXTRA_OPTION_SETTINGS: tuple[str, ...] = ("show_choices", "show_envvar")
-"""Click Extra context settings forced onto every option when set to non-``None``."""
+"""Click Extra context settings forced onto every option when set to non-`None`."""
 
 
 def default_params() -> list[click.Option]:
-    """Default additional options added to ``@command`` and ``@group``.
+    """Default additional options added to `@command` and `@group`.
 
-    .. caution::
-        The order of options has been carefully crafted to handle subtle edge-cases and
-        avoid leaky states in unit tests.
+    ```{caution}
+    The order of options has been carefully crafted to handle subtle edge-cases and
+    avoid leaky states in unit tests.
 
-        You can still override this hard-coded order for aesthetic reasons and it
-        should be fine. Your end-users are unlikely to be affected by these sneaky
-        bugs, as the CLI context is going to be naturally reset after each
-        invocation (which is not the case in unit tests).
+    You can still override this hard-coded order for aesthetic reasons and it
+    should be fine. Your end-users are unlikely to be affected by these sneaky
+    bugs, as the CLI context is going to be naturally reset after each
+    invocation (which is not the case in unit tests).
+    ```
 
-    #. ``--time`` / ``--no-time``
-        .. hint::
-            ``--time`` is placed at the top of all other eager options so all other
-            options' processing time can be measured.
-    #. ``--config CONFIG_PATH``
-        .. hint::
-            ``--config`` is at the top so it can have a direct influence on the default
-            behavior and value of the other options.
-    #. ``--no-config``
-    #. ``--validate-config CONFIG_PATH``
-    #. ``--export-config FORMAT``
-    #. ``--accessible``
-        .. hint::
-            ``--accessible`` is placed before ``--color`` and ``--table-format`` so it
-            can lower their defaults (via ``default_map``) before they are resolved.
-    #. ``--color`` / ``--no-color``
-    #. ``--progress`` / ``--no-progress``
-    #. ``--theme``
-    #. ``--params``
-    #. ``--table-format FORMAT``
-    #. ``--verbosity LEVEL``
-    #. ``-v``, ``--verbose``
-    #. ``-q``, ``--quiet``
-    #. ``--tree``
-    #. ``--man``
-    #. ``--version``
-    #. ``-h``, ``--help``
-        .. attention::
-            This is the option produced by the `@click.decorators.help_option
-            <https://click.palletsprojects.com/en/stable/api/#click.help_option>`_
-            decorator.
+    #. `--time` / `--no-time`
+        ```{hint}
+        `--time` is placed at the top of all other eager options so all other
+        options' processing time can be measured.
+        ```
+    #. `--config CONFIG_PATH`
+        ```{hint}
+        `--config` is at the top so it can have a direct influence on the default
+        behavior and value of the other options.
+        ```
+    #. `--no-config`
+    #. `--validate-config CONFIG_PATH`
+    #. `--export-config FORMAT`
+    #. `--accessible`
+        ```{hint}
+        `--accessible` is placed before `--color` and `--table-format` so it
+        can lower their defaults (via `default_map`) before they are resolved.
+        ```
+    #. `--color` / `--no-color`
+    #. `--progress` / `--no-progress`
+    #. `--theme`
+    #. `--params`
+    #. `--table-format FORMAT`
+    #. `--verbosity LEVEL`
+    #. `-v`, `--verbose`
+    #. `-q`, `--quiet`
+    #. `--tree`
+    #. `--man`
+    #. `--version`
+    #. `-h`, `--help`
+        ```{attention}
+        This is the option produced by the [@click.decorators.help_option](https://click.palletsprojects.com/en/stable/api/#click.help_option)
+        decorator.
 
-            It is not explicitly referenced in the implementation of this function.
+        It is not explicitly referenced in the implementation of this function.
 
-            That's because it's `going to be added by Click itself
-            <https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L966-L969>`_,
-            at the end of the list of options. By letting Click handle this, we ensure
-            that the help option will take into account the `help_option_names
-            <https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization>`_
-            setting.
+        That's because it's [going to be added by Click itself](https://github.com/pallets/click/blob/c9f7d9d/src/click/core.py#L966-L969),
+        at the end of the list of options. By letting Click handle this, we ensure
+        that the help option will take into account the [help_option_names](https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization)
+        setting.
+        ```
 
-    .. todo::
-        For bullet-proof handling of edge-cases, we should probably add an indirection
-        layer to have the processing order of options (the one below) different from
-        the presentation order of options in the help screen.
+    ```{todo}
+    For bullet-proof handling of edge-cases, we should probably add an indirection
+    layer to have the processing order of options (the one below) different from
+    the presentation order of options in the help screen.
 
-        This is probably something that has been `requested in issue #544
-        <https://github.com/kdeldycke/click-extra/issues/544>`_.
+    This is probably something that has been [requested in issue #544](https://github.com/kdeldycke/click-extra/issues/544).
+    ```
     """
     return [
         TimerOption(),
@@ -154,7 +156,7 @@ def default_params() -> list[click.Option]:
 
 
 class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
-    """Like ``cloup.command``, with sane defaults and extra help screen colorization."""
+    """Like `cloup.command`, with sane defaults and extra help screen colorization."""
 
     context_class: type[cloup.Context] = Context
 
@@ -176,106 +178,99 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         """List of extra parameters:
 
         :param version_fields: dictionary of
-            ``VersionOption`` template field overrides forwarded to the
+            `VersionOption` template field overrides forwarded to the
             version option. Accepts any field from
-            ``VersionOption.template_fields`` (like ``prog_name``,
-            ``version``, ``git_branch``). Lets you customize ``--version``
+            `VersionOption.template_fields` (like `prog_name`,
+            `version`, `git_branch`). Lets you customize `--version`
             output from the command decorator without replacing the default
-            ``params`` list.
-        :param extra_keywords: a ``HelpKeywords`` instance whose entries are
+            `params` list.
+        :param extra_keywords: a `HelpKeywords` instance whose entries are
             merged into the auto-collected keyword set. Use this to inject
             additional strings for help screen highlighting.
-        :param excluded_keywords: a ``HelpKeywords`` instance whose entries are
+        :param excluded_keywords: a `HelpKeywords` instance whose entries are
             removed from the auto-collected keyword set. Use this to suppress
             highlighting of specific strings.
-        :param extra_option_at_end: `reorders all parameters attached to the command
-            <https://kdeldycke.github.io/click-extra/commands.html#option-order>`_, by
-            moving all instances of ``ExtraOption`` at the end of the parameter list.
+        :param extra_option_at_end: [reorders all parameters attached to the command](https://kdeldycke.github.io/click-extra/commands.html#option-order), by
+            moving all instances of `ExtraOption` at the end of the parameter list.
             The original order of the options is preserved among themselves.
         :param populate_auto_envvars: forces all parameters to have their auto-generated
-            environment variables registered. This address the shortcoming of ``click``
+            environment variables registered. This address the shortcoming of `click`
             which only evaluates them dynamically. By forcing their registration, the
             auto-generated environment variables gets displayed in the help screen,
-            fixing `click#2483 issue <https://github.com/pallets/click/issues/2483>`_.
+            fixing [click#2483 issue](https://github.com/pallets/click/issues/2483).
             On Windows, environment variable names are case-insensitive, so we normalize
             them to uppercase.
 
-        By default, these `Click context settings
-        <https://click.palletsprojects.com/en/stable/api/#click.Context>`_ are applied:
+        By default, these [Click context settings](https://click.palletsprojects.com/en/stable/api/#click.Context) are applied:
 
-        - ``auto_envvar_prefix = self.name`` (*Click feature*)
+        - `auto_envvar_prefix = self.name` (*Click feature*)
 
           Auto-generate environment variables for all options, using the command ID as
           prefix. The prefix is normalized to be uppercased and all non-alphanumerics
           replaced by underscores.
 
-        - ``help_option_names = ("--help", "-h")`` (*Click feature*)
+        - `help_option_names = ("--help", "-h")` (*Click feature*)
 
-          `Allow help screen to be invoked with either --help or -h options
-          <https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization>`_.
+          [Allow help screen to be invoked with either --help or -h options](https://click.palletsprojects.com/en/stable/documentation/#help-parameter-customization).
 
-        - ``show_default = True`` (*Click feature*)
+        - `show_default = True` (*Click feature*)
 
-          `Show all default values
-          <https://click.palletsprojects.com/en/stable/api/#click.Context.show_default>`_
+          [Show all default values](https://click.palletsprojects.com/en/stable/api/#click.Context.show_default)
           in help screen.
 
-        Additionally, these `Cloup context settings
-        <https://cloup.readthedocs.io/en/stable/pages/formatting.html#formatting-settings>`_
+        Additionally, these [Cloup context settings](https://cloup.readthedocs.io/en/stable/pages/formatting.html#formatting-settings)
         are set:
 
-        - ``align_option_groups = False`` (*Cloup feature*)
+        - `align_option_groups = False` (*Cloup feature*)
 
-          `Aligns option groups in help screen
-          <https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups>`_.
+          [Aligns option groups in help screen](https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups).
 
-        - ``show_constraints = True`` (*Cloup feature*)
+        - `show_constraints = True` (*Cloup feature*)
 
-          `Show all constraints in help screen
-          <https://cloup.readthedocs.io/en/stable/pages/constraints.html#the-constraint-decorator>`_.
+          [Show all constraints in help screen](https://cloup.readthedocs.io/en/stable/pages/constraints.html#the-constraint-decorator).
 
-        - ``show_subcommand_aliases = True`` (*Cloup feature*)
+        - `show_subcommand_aliases = True` (*Cloup feature*)
 
-          `Show all subcommand aliases in help screen
-          <https://cloup.readthedocs.io/en/stable/pages/aliases.html?highlight=show_subcommand_aliases#help-output-of-the-group>`_.
+          [Show all subcommand aliases in help screen](https://cloup.readthedocs.io/en/stable/pages/aliases.html?highlight=show_subcommand_aliases#help-output-of-the-group).
 
-        Click Extra also adds its own ``context_settings``:
+        Click Extra also adds its own `context_settings`:
 
-        - ``show_choices = None`` (*Click Extra feature*)
+        - `show_choices = None` (*Click Extra feature*)
 
-          If set to ``True`` or ``False``, will force that value on all options, so we
+          If set to `True` or `False`, will force that value on all options, so we
           can globally show or hide choices when prompting a user for input. Only makes
-          sense for options whose ``prompt`` property is set.
+          sense for options whose `prompt` property is set.
 
-          Defaults to ``None``, which will leave all options untouched, and let them
-          decide of their own ``show_choices`` setting.
+          Defaults to `None`, which will leave all options untouched, and let them
+          decide of their own `show_choices` setting.
 
-        - ``show_envvar = None`` (*Click Extra feature*)
+        - `show_envvar = None` (*Click Extra feature*)
 
-          If set to ``True`` or ``False``, will force that value on all options, so we
+          If set to `True` or `False`, will force that value on all options, so we
           can globally enable or disable the display of environment variables in help
           screen.
 
-          Defaults to ``None``, which will leave all options untouched, and let them
-          decide of their own ``show_envvar`` setting. The rationale being that
-          discoverability of environment variables is enabled by the ``--params``
+          Defaults to `None`, which will leave all options untouched, and let them
+          decide of their own `show_envvar` setting. The rationale being that
+          discoverability of environment variables is enabled by the `--params`
           option, which is active by default on extra commands. So there is no need to
           surcharge the help screen.
 
           This addresses the
-          `click#2313 issue <https://github.com/pallets/click/issues/2313>`_.
+          [click#2313 issue](https://github.com/pallets/click/issues/2313).
 
         To override these defaults, you can pass your own settings with the
-        ``context_settings`` parameter:
+        `context_settings` parameter:
 
-        .. code-block:: python
+        ```{code-block} python
 
-            @command(
-                context_settings={
-                    "show_default": False,
-                    ...
-                }
-            )
+        @command(
+            context_settings={
+                "show_default": False,
+                ...
+            }
+        )
+        ```
         """
         super().__init__(*args, **kwargs)
 
@@ -385,17 +380,18 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         prog_name: str | None = None,
         **kwargs: Any,
     ) -> Any:
-        """Pre-invocation step that is instantiating the context, then call ``invoke()``
+        """Pre-invocation step that is instantiating the context, then call `invoke()`
         within it.
 
-        .. caution::
-            During context instantiation, each option's callbacks are called. These
-            might break the execution flow (like ``--help`` or ``--version``).
+        ```{caution}
+        During context instantiation, each option's callbacks are called. These
+        might break the execution flow (like `--help` or `--version`).
+        ```
 
-        Sets the default CLI's ``prog_name`` to the command's name if not provided,
+        Sets the default CLI's `prog_name` to the command's name if not provided,
         instead of relying on Click's auto-detection via the
-        ``_detect_program_name()`` method. This is to avoid the CLI being called
-        ``python -m <module_name>``, which is not very user-friendly.
+        `_detect_program_name()` method. This is to avoid the CLI being called
+        `python -m <module_name>`, which is not very user-friendly.
         """
         if not prog_name and self.name:
             prog_name = self.name
@@ -409,48 +405,49 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         parent: click.Context | None = None,
         **extra: Any,
     ) -> Any:
-        """Intercept the call to the original ``click.core.Command.make_context`` so
+        """Intercept the call to the original `click.core.Command.make_context` so
         we can keep a copy of the raw, pre-parsed arguments provided to the CLI.
 
-        The result are passed to our own ``Context`` constructor which is able to
-        initialize the context's ``meta`` property under our own
-        :data:`click_extra.context.RAW_ARGS` entry. This will be used in
-        ``ShowParamsOption.print_params()`` to print the table of parameters fed to the
+        The result are passed to our own `Context` constructor which is able to
+        initialize the context's `meta` property under our own
+        {data}`click_extra.context.RAW_ARGS` entry. This will be used in
+        `ShowParamsOption.print_params()` to print the table of parameters fed to the
         CLI.
 
-        .. seealso::
-            See :data:`click_extra.context.RAW_ARGS` for the full rationale and
-            the upstream-proposal notes (related: `click#1279
-            <https://github.com/pallets/click/issues/1279#issuecomment-1493348208>`_).
+        ```{seealso}
+        See {data}`click_extra.context.RAW_ARGS` for the full rationale and
+        the upstream-proposal notes (related: [click#1279](https://github.com/pallets/click/issues/1279#issuecomment-1493348208)).
+        ```
         """
-        # ``args`` needs to be copied: its items are consumed by the parsing process.
+        # `args` needs to be copied: its items are consumed by the parsing process.
         extra.update({"meta": {context.RAW_ARGS: args.copy()}})
         return super().make_context(info_name, args, parent, **extra)
 
     def _resolve_color_eagerly(self, ctx: click.Context, args: list[str]) -> None:
         """Settle the color options before any other eager option can render.
 
-        Click processes eager options in command-line order, so a ``--color`` /
-        ``--no-color`` placed *after* ``--help`` or ``--version`` would pin
-        ``ctx.color`` too late: the help or version screen renders and exits first,
+        Click processes eager options in command-line order, so a `--color` /
+        `--no-color` placed *after* `--help` or `--version` would pin
+        `ctx.color` too late: the help or version screen renders and exits first,
         ignoring it. This pre-pass resolves the
-        :class:`~click_extra.color.ColorOption` and
-        :class:`~click_extra.color.NoColorOption` ahead of the regular parameter
+        {class}`~click_extra.color.ColorOption` and
+        {class}`~click_extra.color.NoColorOption` ahead of the regular parameter
         loop, so an explicit color choice colorizes those eager screens whatever its
         position on the command line.
 
         This is the command-line counterpart to the environment pre-seed in
-        :meth:`click_extra.context.Context.__init__`, which already settles
-        ``FORCE_COLOR`` / ``NO_COLOR`` at context-construction time. Configuration
-        files and ``--accessible`` are deliberately left to the regular loop, matching
+        {meth}`click_extra.context.Context.__init__`, which already settles
+        `FORCE_COLOR` / `NO_COLOR` at context-construction time. Configuration
+        files and `--accessible` are deliberately left to the regular loop, matching
         that pre-seed's scope.
 
-        .. note::
-            The color options are resolved a second time by
-            ``super().parse_args()``. Their callbacks are idempotent (no env-var side
-            effects, no prompt), so re-running them lands the exact same ``ctx.color``,
-            and :meth:`click_extra.parameters.ExtraOption.handle_parse_result` skips its
-            source pre-record once the slot already carries one.
+        ```{note}
+        The color options are resolved a second time by
+        `super().parse_args()`. Their callbacks are idempotent (no env-var side
+        effects, no prompt), so re-running them lands the exact same `ctx.color`,
+        and {meth}`click_extra.parameters.ExtraOption.handle_parse_result` skips its
+        source pre-record once the slot already carries one.
+        ```
         """
         color_params = [
             param
@@ -483,12 +480,12 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             return
 
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
-        """Like parent's ``parse_args`` but with better error messages for
+        """Like parent's `parse_args` but with better error messages for
         single-dash multi-character tokens.
 
-        Also settles the color options before delegating, so ``--color`` /
-        ``--no-color`` colorize the eager help and version screens regardless of their
-        position on the command line. See ``_resolve_color_eagerly``.
+        Also settles the color options before delegating, so `--color` /
+        `--no-color` colorize the eager help and version screens regardless of their
+        position on the command line. See `_resolve_color_eagerly`.
         """
         original_args = args.copy()
         self._resolve_color_eagerly(ctx, args)
@@ -506,7 +503,7 @@ def _enhance_short_option_error(
     """Re-raise *exc* with the full token and close-match suggestions when
     appropriate, or re-raise it unchanged.
 
-    Click's parser treats ``-dbgwrong`` as stacked short flags ``-d -b -g -w
+    Click's parser treats `-dbgwrong` as stacked short flags ``-d -b -g -w
     -r -o -n -g``, then reports "No such option: -d" on the first unregistered
     character. That is technically correct (short-option combining is POSIX
     behavior) but confusing when the user meant it as a single option name.
@@ -514,27 +511,28 @@ def _enhance_short_option_error(
     This function detects that situation by checking whether the failed character
     is the *first* character of a multi-char single-dash token from the original
     argument list. If so, it collects every registered option name and uses
-    ``difflib.get_close_matches`` to suggest alternatives, then raises a new
-    ``NoSuchOption`` with the full token.
+    `difflib.get_close_matches` to suggest alternatives, then raises a new
+    `NoSuchOption` with the full token.
 
     When the failed character is *not* the leading character (the user was
     genuinely combining short flags and one of them doesn't exist), the original
     exception is re-raised as-is: Click's per-character diagnostic is already
     the right message.
 
-    .. seealso::
-        - Upstream issue: https://github.com/pallets/click/issues/2779
-        - ``_match_short_opt`` in Click's ``parser.py`` raises ``NoSuchOption``
-          with only the single failed character.
-        - ``_match_long_opt`` already provides ``get_close_matches`` suggestions,
-          but its exception is discarded when ``_process_opts`` falls through to
-          the short-option path.
-        - Upstream docs PR: https://github.com/pallets/click/pull/3179
-        - Rejected upstream code PRs (all tried to patch ``parser.py`` instead of
-          adding the requested docs):
-          https://github.com/pallets/click/pull/3207 ,
-          https://github.com/pallets/click/pull/3236 ,
-          https://github.com/pallets/click/pull/3339
+    ```{seealso}
+    - Upstream issue: https://github.com/pallets/click/issues/2779
+    - `_match_short_opt` in Click's `parser.py` raises `NoSuchOption`
+      with only the single failed character.
+    - `_match_long_opt` already provides `get_close_matches` suggestions,
+      but its exception is discarded when `_process_opts` falls through to
+      the short-option path.
+    - Upstream docs PR: https://github.com/pallets/click/pull/3179
+    - Rejected upstream code PRs (all tried to patch `parser.py` instead of
+      adding the requested docs):
+      https://github.com/pallets/click/pull/3207 ,
+      https://github.com/pallets/click/pull/3236 ,
+      https://github.com/pallets/click/pull/3339
+    ```
     """
     option_name = exc.option_name
 
@@ -575,13 +573,13 @@ def _enhance_short_option_error(
 class ColorizedCommand(_HelpColorsMixin, click.Command):  # type: ignore[misc]
     """Click Command with help colorization but no extra params.
 
-    Mixes in ``_HelpColorsMixin`` for keyword
-    highlighting and uses :class:`~click_extra.context.Context` for the colorized
-    formatter, without inheriting from ``Command`` (which would inject
-    ``default_params``).
+    Mixes in `_HelpColorsMixin` for keyword
+    highlighting and uses {class}`~click_extra.context.Context` for the colorized
+    formatter, without inheriting from `Command` (which would inject
+    `default_params`).
 
-    Use this as a base for lightweight subcommands (like ``help``) or for
-    monkey-patching third-party CLIs (via :func:`~click_extra.cli_wrapper.patch_click`).
+    Use this as a base for lightweight subcommands (like `help`) or for
+    monkey-patching third-party CLIs (via {func}`~click_extra.cli_wrapper.patch_click`).
     """
 
     context_class: type[cloup.Context] = Context
@@ -590,7 +588,7 @@ class ColorizedCommand(_HelpColorsMixin, click.Command):  # type: ignore[misc]
 class ColorizedGroup(_HelpColorsMixin, click.Group):  # type: ignore[misc]
     """Click Group with help colorization but no extra params.
 
-    Same as :class:`ColorizedCommand` but for groups.
+    Same as {class}`ColorizedCommand` but for groups.
     """
 
     context_class: type[cloup.Context] = Context
@@ -599,9 +597,9 @@ class ColorizedGroup(_HelpColorsMixin, click.Group):  # type: ignore[misc]
 class HelpCommand(ColorizedCommand):
     """Synthetic subcommand that displays help for the parent group or a subcommand.
 
-    Auto-injected into every ``Group``. Supports nested resolution:
-    ``mycli help subgroup subcmd`` shows the help for ``subcmd`` within
-    ``subgroup``.
+    Auto-injected into every `Group`. Supports nested resolution:
+    `mycli help subgroup subcmd` shows the help for `subcmd` within
+    `subgroup`.
     """
 
     def invoke(self, ctx: click.Context) -> None:
@@ -725,7 +723,7 @@ class HelpCommand(ColorizedCommand):
 
 
 def _make_help_command() -> HelpCommand:
-    """Create the synthetic ``help`` subcommand for an ``Group``."""
+    """Create the synthetic `help` subcommand for an `Group`."""
     return HelpCommand(
         name="help",
         help="Show help for a command.",
@@ -744,9 +742,9 @@ def _make_help_command() -> HelpCommand:
 def _descend_to_group_config(ctx: click.Context) -> dict[str, Any] | None:
     """Return the loaded config section for the current group's command path.
 
-    Reads the full configuration document from ``ctx.meta``, descends into the
-    root command's section, then walks from the root context down to ``ctx``
-    following each group name. Returns the resolved mapping, or ``None`` when no
+    Reads the full configuration document from `ctx.meta`, descends into the
+    root command's section, then walks from the root context down to `ctx`
+    following each group name. Returns the resolved mapping, or `None` when no
     configuration was loaded or any segment along the path is missing.
     """
     full_config = context.get(ctx, context.CONF_FULL)
@@ -778,7 +776,7 @@ def _descend_to_group_config(ctx: click.Context) -> dict[str, Any] | None:
 def _dedupe_subcommands(raw: list[str], key: str) -> list[str]:
     """Drop duplicate subcommand names, keeping the first occurrence.
 
-    Warns when duplicates are dropped, naming the configuration ``key`` they
+    Warns when duplicates are dropped, naming the configuration `key` they
     came from.
     """
     seen: set[str] = set()
@@ -797,19 +795,19 @@ def _dedupe_subcommands(raw: list[str], key: str) -> list[str]:
 
 
 class Group(Command, cloup.Group):  # type: ignore[misc]
-    """Like ``cloup.Group``, with sane defaults and extra help screen colorization."""
+    """Like `cloup.Group`, with sane defaults and extra help screen colorization."""
 
     command_class = Command
-    """Makes commands of a ``Group`` be instances of ``Command``.
+    """Makes commands of a `Group` be instances of `Command`.
 
-    That way all subcommands created from a ``Group`` benefits from the same
+    That way all subcommands created from a `Group` benefits from the same
     defaults and extra help screen colorization.
 
     See: https://click.palletsprojects.com/en/stable/api/#click.Group.command_class
     """
 
     group_class = type
-    """Let ``Group`` produce sub-groups that are also of ``Group`` type.
+    """Let `Group` produce sub-groups that are also of `Group` type.
 
     See: https://click.palletsprojects.com/en/stable/api/#click.Group.group_class
     """
@@ -820,11 +818,11 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         help_command: bool = True,
         **kwargs: Any,
     ) -> None:
-        """Like ``Command.__init__``, but auto-injects a ``help`` subcommand.
+        """Like `Command.__init__`, but auto-injects a `help` subcommand.
 
-        :param help_command: when ``True`` (the default), a ``help`` subcommand is
-            automatically registered. Set to ``False`` to suppress it, or register
-            your own ``help`` subcommand to override it.
+        :param help_command: when `True` (the default), a `help` subcommand is
+            automatically registered. Set to `False` to suppress it, or register
+            your own `help` subcommand to override it.
         """
         super().__init__(*args, **kwargs)
         if help_command and "help" not in self.commands:
@@ -836,8 +834,8 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         name: str | None = None,
         **kwargs: Any,
     ) -> None:
-        """Like ``cloup.Group.add_command``, but replaces an auto-injected
-        ``HelpCommand`` when the user registers their own ``help`` subcommand.
+        """Like `cloup.Group.add_command`, but replaces an auto-injected
+        `HelpCommand` when the user registers their own `help` subcommand.
         """
         cmd_name = name or cmd.name
         if cmd_name and cmd_name in self.commands:
@@ -856,16 +854,16 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         super().add_command(cmd, name, **kwargs)
 
     def invoke(self, ctx: click.Context) -> Any:
-        """Inject ``_default_subcommands`` and ``_prepend_subcommands`` from config.
+        """Inject `_default_subcommands` and `_prepend_subcommands` from config.
 
         If the user has not provided any subcommands explicitly, and the loaded
-        configuration contains a ``_default_subcommands`` list for this group, those
-        subcommands are injected into ``ctx.protected_args`` so that Click's normal
-        ``Group.invoke()`` dispatches them.
+        configuration contains a `_default_subcommands` list for this group, those
+        subcommands are injected into `ctx.protected_args` so that Click's normal
+        `Group.invoke()` dispatches them.
 
-        ``_prepend_subcommands`` always prepends subcommands to the invocation,
+        `_prepend_subcommands` always prepends subcommands to the invocation,
         regardless of whether CLI subcommands were provided. Only works with
-        ``chain=True`` groups.
+        `chain=True` groups.
         """
         if not ctx._protected_args and not ctx.args:
             default_subcmds = self._get_default_subcommands(ctx)
@@ -893,10 +891,10 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
     def _read_subcommand_list(self, ctx: click.Context, key: str) -> list[str] | None:
         """Read, validate, dedupe, and existence-check a subcommand-list config key.
 
-        Returns the deduplicated list of subcommand names declared under ``key``
-        in the loaded configuration, or ``None`` when the key is absent or empty.
-        Shared by :meth:`_get_default_subcommands` and
-        :meth:`_get_prepend_subcommands`; each caller layers on its own chain-mode
+        Returns the deduplicated list of subcommand names declared under `key`
+        in the loaded configuration, or `None` when the key is absent or empty.
+        Shared by {meth}`_get_default_subcommands` and
+        {meth}`_get_prepend_subcommands`; each caller layers on its own chain-mode
         rule (the only behavior that differs between the two keys).
 
         :raises click.UsageError: when the value is not a list of strings, or when
@@ -929,7 +927,7 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         return raw
 
     def _get_default_subcommands(self, ctx: click.Context) -> list[str] | None:
-        """Read and validate ``_default_subcommands`` from the loaded configuration."""
+        """Read and validate `_default_subcommands` from the loaded configuration."""
         raw = self._read_subcommand_list(ctx, DEFAULT_SUBCOMMANDS_KEY)
         if raw is None:
             return None
@@ -944,7 +942,7 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         return raw
 
     def _get_prepend_subcommands(self, ctx: click.Context) -> list[str] | None:
-        """Read and validate ``_prepend_subcommands`` from the loaded configuration."""
+        """Read and validate `_prepend_subcommands` from the loaded configuration."""
         raw = self._read_subcommand_list(ctx, PREPEND_SUBCOMMANDS_KEY)
         if raw is None:
             return None
@@ -959,16 +957,15 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
 
 
 class LazyGroup(Group):
-    """A ``Group`` that supports lazy loading of subcommands.
+    """A `Group` that supports lazy loading of subcommands.
 
-    .. hint::
-        This implementation is based on the snippet from Click's documentation:
-        `Defining the lazy group
-        <https://click.palletsprojects.com/en/stable/complex/#defining-the-lazy-group>`_.
+    ```{hint}
+    This implementation is based on the snippet from Click's documentation:
+    [Defining the lazy group](https://click.palletsprojects.com/en/stable/complex/#defining-the-lazy-group).
 
-        It has been extended to work with Click Extra's ``config_option`` in
-        `click_extra#1332 issue
-        <https://github.com/kdeldycke/click-extra/issues/1332#issuecomment-3299486142>`_.
+    It has been extended to work with Click Extra's `config_option` in
+    [click_extra#1332 issue](https://github.com/kdeldycke/click-extra/issues/1332#issuecomment-3299486142).
+    ```
     """
 
     def __init__(
@@ -977,20 +974,21 @@ class LazyGroup(Group):
         lazy_subcommands: dict[str, str] | None = None,
         **kwargs: Any,
     ) -> None:
-        """``lazy_subcommands`` maps command names to their import paths.
+        """`lazy_subcommands` maps command names to their import paths.
 
-        .. tip::
-            ``lazy_subcommands`` is a map of the form:
+        ```{tip}
+        `lazy_subcommands` is a map of the form:
 
-            .. code-block:: python
+        .. code-block:: python
 
-                {"<command-name>": "<module-name>.<command-object-name>"}
+            {"<command-name>": "<module-name>.<command-object-name>"}
 
-            For example:
+        For example:
 
-            .. code-block:: python
+        .. code-block:: python
 
-                {"mycmd": "my_cli.commands.mycmd"}
+            {"mycmd": "my_cli.commands.mycmd"}
+        ```
         """
         super().__init__(*args, **kwargs)
         # Sort for predictable and stable lazy loading order.
@@ -1009,15 +1007,16 @@ class LazyGroup(Group):
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         """Get a command by name, loading lazily if necessary.
 
-        .. todo::
-            Allow passing extra parameters to the ``self.lazy_subcommands`` so we can
-            register commands with custom settings like Cloup's ``section`` or
-            ``fallback_to_default_section``:
+        ```{todo}
+        Allow passing extra parameters to the `self.lazy_subcommands` so we can
+        register commands with custom settings like Cloup's `section` or
+        `fallback_to_default_section`:
 
-            - section: Section | None = None,
-            - fallback_to_default_section: bool = True,
+        - section: Section | None = None,
+        - fallback_to_default_section: bool = True,
 
-            See: https://github.com/janluke/cloup/blob/master/cloup/_sections.py#L169
+        See: https://github.com/janluke/cloup/blob/master/cloup/_sections.py#L169
+        ```
         """
         if cmd_name in self.lazy_subcommands and cmd_name not in self.commands:
             cmd_object = self._lazy_load(cmd_name)
@@ -1030,7 +1029,7 @@ class LazyGroup(Group):
         return super().get_command(ctx, cmd_name)
 
     def _lazy_load(self, cmd_name: str) -> click.Command:
-        """Import and return the command object for ``cmd_name``."""
+        """Import and return the command object for `cmd_name`."""
         import_path = self.lazy_subcommands[cmd_name]
 
         if "." not in import_path:
@@ -1056,14 +1055,14 @@ class LazyGroup(Group):
     def _apply_config_to_parent_context(
         self, ctx: click.Context, cmd_name: str
     ) -> None:
-        """Inject a lazy command's config into ``ctx.default_map``.
+        """Inject a lazy command's config into `ctx.default_map`.
 
-        Lazy commands are not yet registered when ``ConfigOption.merge_default_map``
-        builds ``params_template``, so their config sections get filtered out. This
-        method compensates by reading the full config from ``ctx.meta`` and placing
-        the lazy command's section into ``ctx.default_map[cmd_name]``.
+        Lazy commands are not yet registered when `ConfigOption.merge_default_map`
+        builds `params_template`, so their config sections get filtered out. This
+        method compensates by reading the full config from `ctx.meta` and placing
+        the lazy command's section into `ctx.default_map[cmd_name]`.
 
-        Click will then pass that dict as the ``default_map`` of the command's own
+        Click will then pass that dict as the `default_map` of the command's own
         context.
         """
         config_branch = _descend_to_group_config(ctx)

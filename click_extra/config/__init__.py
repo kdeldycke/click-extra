@@ -15,21 +15,21 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Configuration file loading, format parsing, and schema validation.
 
-This package gathers the layers behind ``--config``, ``--no-config``, and
-``--validate-config``:
+This package gathers the layers behind `--config`, `--no-config`, and
+`--validate-config`:
 
-- :mod:`~click_extra.config.formats`: the supported file formats and the
+- {mod}`~click_extra.config.formats`: the supported file formats and the
   generic, stateless helpers to read, serialize, auto-detect, and resolve them.
-- :mod:`~click_extra.config.schema`: the generic schema-building and validation
+- {mod}`~click_extra.config.schema`: the generic schema-building and validation
   engine, applicable to any dataclass.
-- :mod:`~click_extra.config.builtin`: click-extra's own configuration schema and
+- {mod}`~click_extra.config.builtin`: click-extra's own configuration schema and
   the validators it registers by default (one concrete application of the
   engine).
-- :mod:`~click_extra.config.option`: the ``--config`` / ``--no-config`` /
-  ``--validate-config`` option classes.
+- {mod}`~click_extra.config.option`: the `--config` / `--no-config` /
+  `--validate-config` option classes.
 
 Every public symbol is re-exported here so consumers can keep importing from
-``click_extra.config``.
+`click_extra.config`.
 """
 
 from __future__ import annotations

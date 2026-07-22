@@ -13,16 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""The ``click-extra wrap`` command and the machinery to wrap a foreign Click CLI.
+"""The `click-extra wrap` command and the machinery to wrap a foreign Click CLI.
 
 Monkey-patches Click's decorator functions before importing (or running) a
-target module so its ``@click.command()`` / ``@click.group()`` produce
+target module so its `@click.command()` / `@click.group()` produce
 colorized, keyword-highlighted, themed variants. Also resolves and invokes the
-target, and introspects it for ``--params``, ``--man`` and ``--tree``
+target, and introspects it for `--params`, `--man` and `--tree`
 without firing its callbacks.
 
-Not to be confused with text wrapping: that is :func:`click.wrap_text`, exposed
-at the package root as ``click_extra.wrap_text``.
+Not to be confused with text wrapping: that is {func}`click.wrap_text`, exposed
+at the package root as `click_extra.wrap_text`.
 """
 
 from __future__ import annotations
@@ -85,10 +85,10 @@ _original_format_help = click.Command.format_help
 
 
 class WrapperGroup(Group):
-    """Group that falls back to the ``wrap`` subcommand for unknown names.
+    """Group that falls back to the `wrap` subcommand for unknown names.
 
     Known subcommands and their aliases are dispatched normally. Anything
-    else is treated as a target script and forwarded to ``wrap``.
+    else is treated as a target script and forwarded to `wrap`.
     """
 
     def resolve_command(
@@ -103,7 +103,7 @@ class WrapperGroup(Group):
             cmd = self.get_command(ctx, resolved)
             if cmd is not None:
                 return cmd_name, cmd, args[1:]
-        # Unknown name: delegate the entire arg list to ``wrap``.
+        # Unknown name: delegate the entire arg list to `wrap`.
         wrap_cmd = self.get_command(ctx, "wrap")
         if wrap_cmd is not None:
             return "wrap", wrap_cmd, args
@@ -114,12 +114,12 @@ def _make_patched_decorator(
     original: Callable[..., Any],
     default_cls: type[click.Command],
 ) -> Callable[..., Any]:
-    """Build a drop-in replacement for ``click.command`` / ``click.group``.
+    """Build a drop-in replacement for `click.command` / `click.group`.
 
-    The returned wrapper defaults its ``cls`` to ``default_cls`` (a colorized
-    variant) while forwarding to ``original``. It handles both the parenthesized
-    form (``@command(...)``) and the bare form (``@command``), where the decorated
-    function arrives as the first positional ``name`` argument.
+    The returned wrapper defaults its `cls` to `default_cls` (a colorized
+    variant) while forwarding to `original`. It handles both the parenthesized
+    form (`@command(...)`) and the bare form (`@command`), where the decorated
+    function arrives as the first positional `name` argument.
     """
 
     def _patched(name=None, cls=None, **attrs):
@@ -140,18 +140,19 @@ def patch_click(
     """Replace Click's decorator functions with colorized variants.
 
     Must be called before importing the target CLI module so that
-    ``@click.command()`` and ``@click.group()`` decorators produce colorized
+    `@click.command()` and `@click.group()` decorators produce colorized
     commands.
 
-    .. note::
-        Only the decorator functions are replaced, not the class names
-        (``click.Command``, ``click.Group``). Replacing class names would
-        break ``isinstance`` and ``issubclass`` checks in Click internals
-        (``_param_memo``) and Cloup's decorator validators.
+    ```{note}
+    Only the decorator functions are replaced, not the class names
+    (`click.Command`, `click.Group`). Replacing class names would
+    break `isinstance` and `issubclass` checks in Click internals
+    (`_param_memo`) and Cloup's decorator validators.
+    ```
 
-    :param theme: Color theme to use. ``None`` keeps the current default.
-    :param color: Tri-state ANSI control mirroring ``ctx.color``: ``True`` forces
-        colors on, ``False`` strips them, and ``None`` (the GNU ``auto`` default)
+    :param theme: Color theme to use. `None` keeps the current default.
+    :param color: Tri-state ANSI control mirroring `ctx.color`: `True` forces
+        colors on, `False` strips them, and `None` (the GNU `auto` default)
         defers to the output stream's TTY status.
     """
     if color is False:
@@ -177,8 +178,8 @@ def patch_click(
     )
     _patched_group_func = _make_patched_decorator(_original_click_group, ColorizedGroup)
 
-    # Replace decorator functions in both namespaces so both ``click.command``
-    # and ``from click.decorators import command`` resolve to the wrappers.
+    # Replace decorator functions in both namespaces so both `click.command`
+    # and `from click.decorators import command` resolve to the wrappers.
     click.command = _patched_command_func
     click.group = _patched_group_func
     click.decorators.command = _patched_command_func
@@ -186,8 +187,8 @@ def patch_click(
     logger.debug("Patched click.command and click.group decorators.")
 
     # Patch Command methods to colorize ALL commands, including those with
-    # explicit ``cls=`` (like Flask's ``FlaskGroup``). Commands that already
-    # have ``_HelpColorsMixin`` skip this path to avoid double-processing.
+    # explicit `cls=` (like Flask's `FlaskGroup`). Commands that already
+    # have `_HelpColorsMixin` skip this path to avoid double-processing.
     color_flag = color
 
     def _patched_get_help(self, ctx):
@@ -232,7 +233,7 @@ def patch_click(
 def unpatch_click() -> None:
     """Restore Click's original decorator functions and methods.
 
-    Reverses the changes made by :func:`patch_click`. Useful in tests to
+    Reverses the changes made by {func}`patch_click`. Useful in tests to
     avoid leaking global state between test cases.
     """
     click.command = _original_click_command
@@ -254,11 +255,11 @@ def unpatch_click() -> None:
 def _read_project_scripts(directory: Path) -> dict[str, str]:
     """Read the console-script entry points declared by a local project.
 
-    Inspects PEP 621 ``[project.scripts]`` in ``pyproject.toml`` first, then
-    ``console_scripts`` under ``[options.entry_points]`` in ``setup.cfg``. The
-    dynamic ``setup.py`` form cannot be parsed statically and is ignored.
+    Inspects PEP 621 `[project.scripts]` in `pyproject.toml` first, then
+    `console_scripts` under `[options.entry_points]` in `setup.cfg`. The
+    dynamic `setup.py` form cannot be parsed statically and is ignored.
 
-    :returns: a mapping of each console-script name to its ``module:function``
+    :returns: a mapping of each console-script name to its `module:function`
         target. Empty when the project declares none.
     """
     pyproject = directory / "pyproject.toml"
@@ -286,13 +287,13 @@ def _read_project_scripts(directory: Path) -> dict[str, str]:
 
 
 def _locate_package_root(directory: Path, top_package: str) -> Path | None:
-    """Find which directory must be on ``sys.path`` to import *top_package*.
+    """Find which directory must be on `sys.path` to import *top_package*.
 
     Handles the two common project layouts: the flat layout (the package sits
-    directly under the project root) and the src layout (under a ``src/``
+    directly under the project root) and the src layout (under a `src/`
     subdirectory).
 
-    :returns: the directory to prepend to ``sys.path``, or ``None`` when the
+    :returns: the directory to prepend to `sys.path`, or `None` when the
         package cannot be located on disk.
     """
     for root in (directory, directory / "src"):
@@ -311,11 +312,11 @@ def _resolve_project_dir(directory: Path) -> tuple[str, str, Path]:
 
     Reads the project's packaging metadata to find its console-script entry
     point, then locates the top-level package on disk so it can be imported
-    without an install step. This lets ``wrap`` target a checked-out project by
+    without an install step. This lets `wrap` target a checked-out project by
     its directory, the way an editable install plus its console script would.
 
-    :returns: ``(module_path, function_name, syspath_entry)``. *syspath_entry*
-        is the directory to prepend to ``sys.path`` so *module_path* resolves.
+    :returns: `(module_path, function_name, syspath_entry)`. *syspath_entry*
+        is the directory to prepend to `sys.path` so *module_path* resolves.
     :raises click.ClickException: when no entry point can be determined, or the
         package backing it cannot be found on disk.
     """
@@ -354,23 +355,24 @@ def resolve_target(script: str) -> tuple[str, str]:
 
     Resolution order:
 
-    1. ``console_scripts`` entry points from installed packages.
-    2. A local project directory: its ``console_scripts`` entry point is read
-       from ``pyproject.toml`` / ``setup.cfg`` and its package is added to
-       ``sys.path``.
-    3. ``.py`` file path.
-    4. Explicit ``module:function`` notation.
+    1. `console_scripts` entry points from installed packages.
+    2. A local project directory: its `console_scripts` entry point is read
+       from `pyproject.toml` / `setup.cfg` and its package is added to
+       `sys.path`.
+    3. `.py` file path.
+    4. Explicit `module:function` notation.
     5. Bare Python module or package name.
 
-    :returns: ``(module_path, function_name)`` tuple. *function_name* is
+    :returns: `(module_path, function_name)` tuple. *function_name* is
         empty when the target should be invoked as a module or script file.
     :raises click.ClickException: If the script cannot be resolved.
 
-    .. note::
-        Resolving a local project directory has a side effect: the directory
-        holding its top-level package is prepended to ``sys.path`` so the
-        subsequent import succeeds. The target's own dependencies must still be
-        importable in the current environment.
+    ```{note}
+    Resolving a local project directory has a side effect: the directory
+    holding its top-level package is prepended to `sys.path` so the
+    subsequent import succeeds. The target's own dependencies must still be
+    importable in the current environment.
+    ```
     """
     logger.debug("Resolving target %r.", script)
 
@@ -406,8 +408,8 @@ def resolve_target(script: str) -> tuple[str, str]:
         return module_path, function_name
 
     # 3. .py file path. Checked before the module:function heuristic so that
-    # Windows absolute paths (like ``C:\...\foo.py``) are not mistaken for
-    # ``module:function`` notation: the drive-letter colon would otherwise
+    # Windows absolute paths (like `C:\...\foo.py`) are not mistaken for
+    # `module:function` notation: the drive-letter colon would otherwise
     # split the path at the wrong position.
     if script.endswith(".py"):
         if Path(script).is_file():
@@ -454,11 +456,11 @@ def invoke_target(
 ) -> None:
     """Import and call the target CLI.
 
-    Reconstructs ``sys.argv`` so Click's argument parsing sees the
+    Reconstructs `sys.argv` so Click's argument parsing sees the
     target's program name and arguments.
 
-    :param script: Original script name (used as ``sys.argv[0]``).
-    :param module_path: Dotted module path or ``.py`` file path.
+    :param script: Original script name (used as `sys.argv[0]`).
+    :param module_path: Dotted module path or `.py` file path.
     :param function_name: Function to call, or empty for module execution.
     :param args: Arguments to pass to the target CLI.
     """
@@ -494,15 +496,15 @@ def resolve_target_command(
 ) -> tuple[click.Command, click.Context]:
     """Import SCRIPT and return its Click command object and a matching context.
 
-    Resolves SCRIPT through :func:`resolve_target`, imports the module, then
+    Resolves SCRIPT through {func}`resolve_target`, imports the module, then
     obtains the command object without running the CLI: the entry-point
     attribute when it is itself a command, otherwise by scanning the module's
     namespace for Click command instances (preferring groups). Optional
-    ``subcommands`` navigate into nested groups, mirroring the path a user would
+    `subcommands` navigate into nested groups, mirroring the path a user would
     type.
 
-    Shared by the ``wrap`` command's introspection modes (``--params``,
-    ``--man``, ``--carapace``, ``--tree``) so all describe the exact same
+    Shared by the `wrap` command's introspection modes (`--params`,
+    `--man`, `--carapace`, `--tree`) so all describe the exact same
     resolved command.
 
     :raises click.ClickException: when no unambiguous Click command can be
@@ -511,7 +513,7 @@ def resolve_target_command(
     module_path, function_name = resolve_target(script)
     if module_path.endswith(".py"):
         # Load the file as a module. exec_module runs it under a synthetic
-        # name, so the target's ``if __name__ == "__main__"`` guard does not
+        # name, so the target's `if __name__ == "__main__"` guard does not
         # fire: the command objects are defined, not executed.
         spec = importlib.util.spec_from_file_location(
             "_click_extra_target", module_path
@@ -562,14 +564,14 @@ def resolve_target_command(
     # Navigate to the requested subcommand, if any.
     assert isinstance(cli_obj, click.Command)
     cmd: click.Command = cli_obj
-    # Propagate ``context_settings`` (notably ``auto_envvar_prefix``) so
+    # Propagate `context_settings` (notably `auto_envvar_prefix`) so
     # introspection sees the same envvar layout the CLI exposes at runtime.
-    # Click reads these only through ``make_context``; the raw ``Context``
-    # constructor ignores them. Build through ``cmd.context_class`` (not
-    # ``click.Context``) exactly as ``make_context`` does: a Cloup command's
-    # ``context_settings`` carry Cloup-only keys (``align_option_groups``,
-    # ``show_constraints``, …) that a plain ``click.Context`` rejects with a
-    # ``TypeError``. Child contexts inherit ``auto_envvar_prefix`` from their
+    # Click reads these only through `make_context`; the raw `Context`
+    # constructor ignores them. Build through `cmd.context_class` (not
+    # `click.Context`) exactly as `make_context` does: a Cloup command's
+    # `context_settings` carry Cloup-only keys (`align_option_groups`,
+    # `show_constraints`, …) that a plain `click.Context` rejects with a
+    # `TypeError`. Child contexts inherit `auto_envvar_prefix` from their
     # parent automatically.
     cmd_ctx = cmd.context_class(
         cmd, info_name=cmd.name or script, **dict(cmd.context_settings)
@@ -589,43 +591,44 @@ def resolve_target_command(
 
 
 class _WrapCommand(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
-    """Cloup Command for the ``wrap`` subcommand.
+    """Cloup Command for the `wrap` subcommand.
 
     Uses Cloup (not vanilla Click) to support aliases. Like
-    :class:`~click_extra.commands.ColorizedCommand` but based on
-    ``cloup.Command``.
+    {class}`~click_extra.commands.ColorizedCommand` but based on
+    `cloup.Command`.
 
-    .. note::
-        This extends ``cloup.Command`` instead of
-        :class:`~click_extra.commands.Command`, so it does **not** inherit
-        the full :func:`~click_extra.commands.default_params` set. ``wrap``
-        carries only the options that act on the *target* CLI rather than on
-        click-extra itself:
+    ```{note}
+    This extends `cloup.Command` instead of
+    {class}`~click_extra.commands.Command`, so it does **not** inherit
+    the full {func}`~click_extra.commands.default_params` set. `wrap`
+    carries only the options that act on the *target* CLI rather than on
+    click-extra itself:
 
-        - **Action flags** (``--params``, ``--man``, ``--tree``) describe
-          and exit without running the target. Their group-level twins
-          (``click-extra --params``) introspect the ``click-extra`` CLI
-          itself, so they cannot reach a wrapped foreign command: the subject
-          differs, which is why these are *not* redundant with the group
-          versions. They route through the same rendering cores as the
-          group-level options (:func:`~click_extra.parameters.render_params_table`,
-          :func:`~click_extra.man_page.render_manpage`,
-          :func:`~click_extra.tree.render_command_tree`), so a new introspection
-          feature only has to add one option here, never a parallel subcommand.
+    - **Action flags** (`--params`, `--man`, `--tree`) describe
+      and exit without running the target. Their group-level twins
+      (`click-extra --params`) introspect the `click-extra` CLI
+      itself, so they cannot reach a wrapped foreign command: the subject
+      differs, which is why these are *not* redundant with the group
+      versions. They route through the same rendering cores as the
+      group-level options ({func}`~click_extra.parameters.render_params_table`,
+      {func}`~click_extra.man_page.render_manpage`,
+      {func}`~click_extra.tree.render_command_tree`), so a new introspection
+      feature only has to add one option here, never a parallel subcommand.
 
-        - **Modifiers** (``--table-format``, ``--columns``, ``--output-dir``)
-          shape the action output and are inert in the default run mode.
+    - **Modifiers** (`--table-format`, `--columns`, `--output-dir`)
+      shape the action output and are inert in the default run mode.
 
-        Presentation flags that style the *wrapping* (``--color``, ``--theme``,
-        ``--verbosity``) stay on the parent :class:`WrapperGroup` and are
-        inherited through the context, so they are deliberately absent here.
+    Presentation flags that style the *wrapping* (`--color`, `--theme`,
+    `--verbosity`) stay on the parent {class}`WrapperGroup` and are
+    inherited through the context, so they are deliberately absent here.
+    ```
     """
 
     context_class: type[cloup.Context] = Context
 
 
-#: Default columns for the standalone ``wrap --params``: the full registry
-#: minus ``allowed_in_conf``, which only a click-extra ``--config`` option can
+#: Default columns for the standalone `wrap --params`: the full registry
+#: minus `allowed_in_conf`, which only a click-extra `--config` option can
 #: populate and a foreign CLI therefore always leaves empty.
 _FOREIGN_PARAM_COLUMNS: tuple[str, ...] = tuple(
     col.id for col in ShowParamsOption.TABLE_HEADERS if col.id != "allowed_in_conf"
@@ -638,9 +641,9 @@ def _split_navigation(args: tuple[str, ...]) -> tuple[tuple[str, ...], tuple[str
     Leading tokens that do not look like options are treated as subcommand
     names to descend into; everything from the first option-like token onward
     is returned separately, to be replayed against the resolved command so the
-    ``value`` and ``source`` columns reflect those arguments.
+    `value` and `source` columns reflect those arguments.
 
-    ``("run", "--port", "8080")`` splits into ``(("run",), ("--port", "8080"))``.
+    `("run", "--port", "8080")` splits into `(("run",), ("--port", "8080"))`.
     """
     nav = []
     rest = list(args)
@@ -659,23 +662,23 @@ def _wrap_show_params(
     """Resolve a foreign target and print its parameter table.
 
     Re-roots the parameter walk at the resolved (sub)command while preserving
-    the ``auto_envvar_prefix`` computed along the navigation path, then defers
-    to the shared :func:`~click_extra.parameters.render_params_table` core.
+    the `auto_envvar_prefix` computed along the navigation path, then defers
+    to the shared {func}`~click_extra.parameters.render_params_table` core.
 
-    The table format resolves in priority order: the ``wrap --table-format``
-    flag when given explicitly, then the click-extra group's ``--table-format``
+    The table format resolves in priority order: the `wrap --table-format`
+    flag when given explicitly, then the click-extra group's `--table-format`
     (shared through the context), then the default.
     """
     cmd, drill_ctx = resolve_target_command(script, nav)
 
-    # ``render_params_table`` walks from ``subject_ctx.command`` downward, so a
+    # `render_params_table` walks from `subject_ctx.command` downward, so a
     # fresh root context scopes the table to the resolved node (matching what
     # the user navigated to). The drilled context already carries the nested
     # envvar prefix, so copy it over.
     subject_ctx = click.Context(cmd, info_name=cmd.name or script)
     subject_ctx.auto_envvar_prefix = drill_ctx.auto_envvar_prefix
 
-    # An explicit ``wrap --table-format`` wins; otherwise defer to the group's
+    # An explicit `wrap --table-format` wins; otherwise defer to the group's
     # value (threaded through the shared context meta), then the default.
     if ctx.get_parameter_source("table_format") == ParameterSource.DEFAULT:
         resolved_format = context.get(ctx, context.TABLE_FORMAT) or table_format
@@ -698,7 +701,7 @@ def _wrap_man(
 ) -> None:
     """Resolve a foreign target and render its man page (roff).
 
-    With ``output_dir`` set, writes one ``.1`` file per (sub)command of the
+    With `output_dir` set, writes one `.1` file per (sub)command of the
     tree rooted at SCRIPT; otherwise prints a single page to stdout.
     """
     cmd, _ = resolve_target_command(script, nav)
@@ -728,7 +731,7 @@ def _wrap_carapace(
 
     Unlike the man page, the whole command tree serializes into a single spec, so
     there is no per-subcommand output mode: the spec is printed to stdout, or with
-    ``install`` written into Carapace's user spec directory (its path is echoed).
+    `install` written into Carapace's user spec directory (its path is echoed).
     The reconstructed wrap command is recorded in the spec's header comment.
     """
     cmd, _ = resolve_target_command(script, nav)
@@ -757,10 +760,10 @@ def _wrap_tree(
 
     Roots the tree at the resolved (sub)command, labeled with the navigation
     path the user typed, and defers to the shared
-    :func:`~click_extra.tree.render_command_tree` core. Accessibility mode is
+    {func}`~click_extra.tree.render_command_tree` core. Accessibility mode is
     carried over from the wrapping context so the rail degrades to ASCII (the
-    resolved target gets a fresh root context whose ``meta`` would otherwise
-    lose the :data:`~click_extra.context.ACCESSIBLE` entry).
+    resolved target gets a fresh root context whose `meta` would otherwise
+    lose the {data}`~click_extra.context.ACCESSIBLE` entry).
     """
     cmd, _ = resolve_target_command(script, nav)
     prog_name = " ".join((script, *nav))
@@ -774,23 +777,24 @@ def _config_args_for_target(
     ctx: click.Context,
     script: str,
 ) -> tuple[str, ...]:
-    """Read the ``[wrap.<script>]`` config section and convert to CLI args.
+    """Read the `[wrap.<script>]` config section and convert to CLI args.
 
-    Looks for a config section named after the target script under ``wrap``.
-    For example, ``click-extra wrap -- flask`` reads ``[tool.click-extra.wrap.flask]``
-    in ``pyproject.toml``. All keys in that section are converted to CLI
+    Looks for a config section named after the target script under `wrap`.
+    For example, `click-extra wrap -- flask` reads `[tool.click-extra.wrap.flask]`
+    in `pyproject.toml`. All keys in that section are converted to CLI
     arguments and prepended to the target's invocation.
 
     Invalid options are naturally caught by the target CLI itself, producing
     standard Click error messages like "No such option: --foo".
 
-    .. code-block:: toml
+    ```{code-block} toml
 
-        [tool.click-extra.wrap.flask]
-        app = "myapp:create_app"
-        debug = true
+    [tool.click-extra.wrap.flask]
+    app = "myapp:create_app"
+    debug = true
+    ```
     """
-    # ``ctx.meta`` is shared across the parent/child hierarchy, so reading
+    # `ctx.meta` is shared across the parent/child hierarchy, so reading
     # from the local context is sufficient. The root command's name is still
     # needed below to locate the right TOML section.
     full_conf = context.get(ctx, context.CONF_FULL)
@@ -963,9 +967,9 @@ def wrap(
     # has already processed --color/--no-color flags and environment variables
     # (NO_COLOR, CLICOLOR, etc.), and ThemeOption has recorded the user's --theme
     # pick on the shared context meta. The wrapped target runs under its own fresh
-    # context with no meta, so ``get_current_theme`` (reading that meta, or the
+    # context with no meta, so `get_current_theme` (reading that meta, or the
     # dark default when --theme was omitted) resolves the pick here and hands it to
-    # ``patch_click``, which installs it as the process-wide default the target's
+    # `patch_click`, which installs it as the process-wide default the target's
     # help then renders with.
     patch_click(theme=get_current_theme(), color=ctx.color)
     invoke_target(script, module_path, function_name, args)

@@ -494,6 +494,44 @@ def test_leading_underscore_span_not_a_hyperlink_ref(myst, expected):
     assert _convert(myst) == expected
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        # A braced word abutting the literal's closing backticks must not be
+        # misread as a {role} with an empty target.
+        "``{levelname}:{message}`` and ``%(levelname)s``",
+        # Same shape inside a reST table row.
+        "``format``  ``{levelname}:{message}``  the default",
+        # A literal ending in a braced word, followed by more prose.
+        "set to ``{version}`` before the build",
+    ],
+    ids=["brace-abuts-close", "table-row", "trailing-prose"],
+)
+def test_rst_literals_are_opaque(text):
+    """Double-backtick reST literals pass through every step verbatim."""
+    assert _convert(text) == text
+
+
+@pytest.mark.parametrize(
+    ("myst", "expected"),
+    [
+        # Role-shaped text inside a code span is an option name, not a role:
+        # it must not swallow the cross-reference that follows.
+        (
+            "`:tag-pattern:` defaults to {data}`DEFAULT_TAG_PATTERN`.",
+            "``:tag-pattern:`` defaults to :data:`DEFAULT_TAG_PATTERN`.",
+        ),
+        ("the `:manpage:` role", "the ``:manpage:`` role"),
+        # A real role right after prose still converts.
+        ("see {data}`X` and `:path:`", "see :data:`X` and ``:path:``"),
+    ],
+    ids=["span-then-xref", "span-alone", "xref-then-span"],
+)
+def test_role_shaped_code_span_not_protected_as_role(myst, expected):
+    """A backtick-preceded role pattern sits inside a code span, not a role."""
+    assert _convert(myst) == expected
+
+
 # ---- Idempotent pass-through for reST docstrings ---------------------------
 
 

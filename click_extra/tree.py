@@ -15,26 +15,26 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Render Click command hierarchies as trees.
 
-Provides the ``--tree`` flag: a constant-cost overview of a CLI's nested
-subcommands, where the only alternative is walking ``--help`` screens one
+Provides the `--tree` flag: a constant-cost overview of a CLI's nested
+subcommands, where the only alternative is walking `--help` screens one
 level at a time or generating a full man page or completion spec dump.
 
-This is the command-level, hierarchical companion of ``--params``:
-where the parameter table flattens the hierarchy into dotted ``id`` paths
-(``cli.subcommand.param``), the tree renders the skeleton those paths hang
-off. Both share the same dynamic discovery (:meth:`click.Group.list_commands`
-/ :meth:`click.Group.get_command` via
-:func:`~click_extra.parameters.iter_subcommands`) and the same one-line
-descriptions (:func:`~click_extra.parameters.full_short_help`).
+This is the command-level, hierarchical companion of `--params`:
+where the parameter table flattens the hierarchy into dotted `id` paths
+(`cli.subcommand.param`), the tree renders the skeleton those paths hang
+off. Both share the same dynamic discovery ({meth}`click.Group.list_commands`
+/ {meth}`click.Group.get_command` via
+{func}`~click_extra.parameters.iter_subcommands`) and the same one-line
+descriptions ({func}`~click_extra.parameters.full_short_help`).
 
 The tree is a human rendering only: machine-readable hierarchies are already
-served by ``--params --table-format json`` (parameters with dotted
-paths) and the Carapace exporter (:mod:`click_extra.carapace`, a YAML
+served by `--params --table-format json` (parameters with dotted
+paths) and the Carapace exporter ({mod}`click_extra.carapace`, a YAML
 command-and-flag tree).
 
 Subcommands are discovered through a live-context walk, so lazily-registered
 commands are included, and the view hides behind a dedicated eager flag, so
-the plain help screen stays untouched. See :doc:`/upstream` for how this
+the plain help screen stays untouched. See {doc}`/upstream` for how this
 compares to the tree views of neighboring packages.
 """
 
@@ -76,24 +76,24 @@ class TreeGlyphs:
     """Connector of the last subcommand of its level."""
 
     pipe: str
-    """Rail continuation under a :attr:`branch` connector."""
+    """Rail continuation under a {attr}`branch` connector."""
 
     space: str
-    """Rail continuation under a :attr:`last` connector."""
+    """Rail continuation under a {attr}`last` connector."""
 
 
 BOX_GLYPHS = TreeGlyphs(branch="├── ", last="└── ", pipe="│   ", space="    ")
-"""Unicode box-drawing rail, the same set drawn by ``tree(1)``.
+"""Unicode box-drawing rail, the same set drawn by `tree(1)`.
 
-The default table format (``rounded-outline``) already emits box-drawing
+The default table format (`rounded-outline`) already emits box-drawing
 characters, so the tree matches the rest of Click Extra's terminal output.
 """
 
 ASCII_GLYPHS = TreeGlyphs(branch="|-- ", last="`-- ", pipe="|   ", space="    ")
-"""Pure-ASCII rail, the same set drawn by ``tree(1)`` under ``--charset=ascii``.
+"""Pure-ASCII rail, the same set drawn by `tree(1)` under `--charset=ascii`.
 
 Selected when accessibility mode is active
-(:data:`~click_extra.context.ACCESSIBLE`): box-drawing characters are hostile
+({data}`~click_extra.context.ACCESSIBLE`): box-drawing characters are hostile
 to screen readers, which either skip them or spell out their Unicode names.
 """
 
@@ -120,15 +120,15 @@ def _command_labels(
 
     The label is the command *name*, followed by its parenthesized aliases when
     the command declares any (a Cloup feature), mirroring the group help-screen
-    listing (like ``wrap (run)``), then the metavars of its operands (like
-    ``CITY`` or ``[ARGS]...``), mirroring the usage line. Option synopses are
-    deliberately left out: they are ``--params``' job. The plain variant
+    listing (like `wrap (run)`), then the metavars of its operands (like
+    `CITY` or `[ARGS]...`), mirroring the usage line. Option synopses are
+    deliberately left out: they are `--params`' job. The plain variant
     is used to measure column widths, the styled one to print.
 
-    Aliases render through Cloup's own ``format_subcommand_aliases``: the
-    alias words take the ``alias`` theme slot and the parentheses and
-    separators the ``alias_secondary`` slot, exactly like the help-screen
-    keyword pass (:class:`~click_extra.highlight.HelpFormatter`), which
+    Aliases render through Cloup's own `format_subcommand_aliases`: the
+    alias words take the `alias` theme slot and the parentheses and
+    separators the `alias_secondary` slot, exactly like the help-screen
+    keyword pass ({class}`~click_extra.highlight.HelpFormatter`), which
     routes through the same formatter.
     """
     theme = get_current_theme()
@@ -155,17 +155,17 @@ def _tree_rows(
     glyphs: TreeGlyphs,
     prefix: str = "",
 ) -> Iterator[tuple[str, str, str, str, str]]:
-    """Depth-first walk yielding a ``(rail, cont, plain, styled, help)`` row per
+    """Depth-first walk yielding a `(rail, cont, plain, styled, help)` row per
     node.
 
-    ``rail`` is the accumulated glyph prefix of the node's own line and
-    ``cont`` the one drawn under it when its description wraps over several
+    `rail` is the accumulated glyph prefix of the node's own line and
+    `cont` the one drawn under it when its description wraps over several
     lines: the ancestors' continuation, plus the bar dropping to the node's
     first child when it has any, so the child connector below stays visually
-    attached through the wrapped lines. ``plain`` and ``styled`` are the two
-    label variants, ``help`` the one-line description. Subcommands are
+    attached through the wrapped lines. `plain` and `styled` are the two
+    label variants, `help` the one-line description. Subcommands are
     discovered dynamically and hidden ones skipped, like help screens (see
-    :func:`~click_extra.parameters.iter_subcommands`). Each level is walked
+    {func}`~click_extra.parameters.iter_subcommands`). Each level is walked
     under its own resilient child context, like the man-page and Carapace
     exporters.
     """
@@ -189,39 +189,41 @@ def render_command_tree(
     ctx: click.Context | None = None,
     width: int | None = None,
 ) -> str:
-    """Render the hierarchy rooted at ``command`` as a tree with descriptions.
+    """Render the hierarchy rooted at `command` as a tree with descriptions.
 
-    Reuses ``ctx`` when given (like the live invocation context), otherwise
-    builds a throwaway one with ``resilient_parsing=True``. The root line is
-    labeled with ``prog_name`` when given, else the context's command path.
+    Reuses `ctx` when given (like the live invocation context), otherwise
+    builds a throwaway one with `resilient_parsing=True`. The root line is
+    labeled with `prog_name` when given, else the context's command path.
 
     Each node carries the command name, its aliases, its operand metavars
     (mirroring the usage line) and a column-aligned description from
-    :func:`~click_extra.parameters.full_short_help`, so deprecated commands
-    carry their ``(Deprecated)`` marker. Everything is styled with the same
-    theme slots as help screens (``invoked_command`` for the root,
-    ``subcommand`` and ``alias`` for children, ``metavar`` for operands), so
-    the tree follows ``--theme`` and ``--color``. The rail switches from
+    {func}`~click_extra.parameters.full_short_help`, so deprecated commands
+    carry their `(Deprecated)` marker. Everything is styled with the same
+    theme slots as help screens (`invoked_command` for the root,
+    `subcommand` and `alias` for children, `metavar` for operands), so
+    the tree follows `--theme` and `--color`. The rail switches from
     box-drawing to ASCII when accessibility mode is active on the context
-    (see :data:`~click_extra.context.ACCESSIBLE`).
+    (see {data}`~click_extra.context.ACCESSIBLE`).
 
-    Descriptions wrap at ``width``, resolved like help screens when not given
-    (``ctx.make_formatter()``, honoring the ``terminal_width`` and
-    ``max_content_width`` context settings). Wrapped lines keep the tree rail
+    Descriptions wrap at `width`, resolved like help screens when not given
+    (`ctx.make_formatter()`, honoring the `terminal_width` and
+    `max_content_width` context settings). Wrapped lines keep the tree rail
     running through the description column. A label wider than the column
-    (typically a long script path as the root, under ``wrap --tree``) keeps
+    (typically a long script path as the root, under `wrap --tree`) keeps
     its line to itself and hangs its description underneath, at the column.
 
-    .. note::
-        The tree is a point-in-time snapshot: groups computing their
-        subcommands from external state (plugins, scanned directories) render
-        exactly what :meth:`click.Group.list_commands` returns at that moment,
-        in listing order. Cloup section groupings are not rendered.
+    ```{note}
+    The tree is a point-in-time snapshot: groups computing their
+    subcommands from external state (plugins, scanned directories) render
+    exactly what {meth}`click.Group.list_commands` returns at that moment,
+    in listing order. Cloup section groupings are not rendered.
+    ```
 
-    .. caution::
-        A non-group command renders as a single root line: valid, just not
-        very interesting. Like a man page, the output stays meaningful for
-        every command type.
+    ```{caution}
+    A non-group command renders as a single root line: valid, just not
+    very interesting. Like a man page, the output stays meaningful for
+    every command type.
+    ```
     """
     if ctx is None:
         ctx = make_resilient_context(command, prog_name or command.name)
@@ -243,7 +245,7 @@ def render_command_tree(
     rows.extend(child_rows)
 
     # The root is left out of the column measurement (when it has children):
-    # it can be an arbitrarily long script path under ``wrap --tree``, and
+    # it can be an arbitrarily long script path under `wrap --tree`, and
     # letting it drive the column would crush every description against the
     # right edge. An over-wide label hangs its description on the next line
     # instead (see below).
@@ -275,30 +277,31 @@ def render_command_tree(
 
 
 class TreeOption(ExtraOption):
-    """A pre-configured ``--tree`` flag that prints the hierarchy of nested
+    """A pre-configured `--tree` flag that prints the hierarchy of nested
     subcommands and exits.
 
-    Eager and value-less, like :class:`~click_extra.man_page.ManOption`. Part
+    Eager and value-less, like {class}`~click_extra.man_page.ManOption`. Part
     of the default option set injected by
-    :func:`~click_extra.commands.default_params`, so every ``@command`` and
-    ``@group`` exposes it. Use
-    :func:`@tree_option <click_extra.decorators.tree_option>` to add it to a
+    {func}`~click_extra.commands.default_params`, so every `@command` and
+    `@group` exposes it. Use
+    {func}`@tree_option <click_extra.decorators.tree_option>` to add it to a
     plain Click CLI.
 
-    .. note::
-        The flag is named ``--tree``, not ``--show-tree`` or ``--commands``.
+    ```{note}
+    The flag is named `--tree`, not `--show-tree` or `--commands`.
 
-        Rendering a hierarchy as a tree is conventionally named ``tree``
-        across ecosystems: ``eza --tree``, ``lsblk --tree``,
-        ``poetry show --tree``, ``cargo tree``, ``pstree(1)`` and ``tree(1)``
-        itself (``ps --forest`` being the lone dissenter). ``--commands``
-        would suggest the flat listing ``--help`` already provides.
+    Rendering a hierarchy as a tree is conventionally named `tree`
+    across ecosystems: `eza --tree`, `lsblk --tree`,
+    `poetry show --tree`, `cargo tree`, `pstree(1)` and `tree(1)`
+    itself (`ps --forest` being the lone dissenter). `--commands`
+    would suggest the flat listing `--help` already provides.
 
-        The bare noun also lines up with the neighbouring ``--man``,
-        ``--version`` and ``--help`` informational flags; ``--params`` is
-        the historical outlier, not the pattern. A flag was preferred over a
-        registered ``tree`` subcommand, which could collide with the user's
-        own command namespace.
+    The bare noun also lines up with the neighbouring `--man`,
+    `--version` and `--help` informational flags; `--params` is
+    the historical outlier, not the pattern. A flag was preferred over a
+    registered `tree` subcommand, which could collide with the user's
+    own command namespace.
+    ```
     """
 
     def __init__(
