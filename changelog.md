@@ -1,9 +1,6 @@
 # Changelog
 
-## [`8.5.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.4.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`8.5.0` (2026-07-22)](https://github.com/kdeldycke/click-extra/compare/v8.4.0...v8.5.0)
 
 - **Breaking:** Rename the `--show-params` flag to `--params`. Its parameter ID changes from `show_params` to `params`, its environment variable suffix from `_SHOW_PARAMS` to `_PARAMS`, and `click-extra wrap --show-params` becomes `click-extra wrap --params`. `ShowParamsOption` and `@show_params_option` keep their names.
 - Add the `click_extra.sphinx.myst_docstrings` Sphinx extension: write Python docstrings in MyST markdown, transparently converted to reST at build time, keeping `sphinx.ext.autodoc` and `sphinx_autodoc_typehints` unmodified. Absorbed from `repomatic.myst_docstrings`.
