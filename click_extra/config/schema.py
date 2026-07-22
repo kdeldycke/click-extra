@@ -779,6 +779,7 @@ def _apply_nested_schema(
     value: dict[str, Any],
     strict: bool,
     do_normalize: bool = True,
+    warn_unknown: bool = False,
 ) -> Any:
     """Recursively apply a schema callable to a dict value if the hint is a dataclass.
 
@@ -786,7 +787,9 @@ def _apply_nested_schema(
     but normalization is requested. Returns ``value`` unchanged otherwise.
     """
     if is_dataclass(hint):
-        sub = make_schema_callable(hint, strict=strict, normalize=do_normalize)
+        sub = make_schema_callable(
+            hint, strict=strict, normalize=do_normalize, warn_unknown=warn_unknown
+        )
         return sub(value) if sub else value
     if do_normalize:
         return normalize_config_keys(value)
@@ -799,11 +802,13 @@ def _from_dataclass(
     *,
     strict: bool = False,
     normalize: bool = True,
+    warn_unknown: bool = False,
 ) -> Any:
     """Build a dataclass instance from a raw configuration dict.
 
     Handles explicit ``config_path`` metadata, type-aware normalization and
-    flattening, nested dataclass recursion, and strict validation. Called by
+    flattening, nested dataclass recursion, and strict validation (raising in
+    strict mode, logging a warning in ``warn_unknown`` mode). Called by
     ``make_schema_callable`` for dataclass schemas.
     """
     all_fields = dc_fields(schema)
@@ -826,7 +831,7 @@ def _from_dataclass(
 
         hint = hints.get(f.name)
         if isinstance(value, dict):
-            value = _apply_nested_schema(hint, value, strict, do_normalize)
+            value = _apply_nested_schema(hint, value, strict, do_normalize, warn_unknown)
         result[f.name] = value
 
     # --- Phase 2: type-aware normalize + flatten. ---
@@ -861,7 +866,11 @@ def _from_dataclass(
             and f.name in flattened
             and isinstance(flattened[f.name], dict)
         ):
-            sub = make_schema_callable(hint, strict=strict)  # type: ignore[arg-type]
+            sub = make_schema_callable(
+                hint,  # type: ignore[arg-type]
+                strict=strict,
+                warn_unknown=warn_unknown,
+            )
             flattened[f.name] = sub(flattened[f.name]) if sub else flattened[f.name]
 
     # --- Phase 4: merge and validate. ---
@@ -869,7 +878,7 @@ def _from_dataclass(
         if k in known and k not in result:
             result[k] = v
 
-    if strict:
+    if strict or warn_unknown:
         all_keys = set(result) | set(flattened)
         unknown = sorted(all_keys - known)
         if unknown:
@@ -878,7 +887,9 @@ def _from_dataclass(
                 f"{', '.join(unknown)}. "
                 f"Valid options: {', '.join(sorted(known))}"
             )
-            raise ValueError(msg)
+            if strict:
+                raise ValueError(msg)
+            logger.warning(msg)
 
     return schema(**{k: v for k, v in result.items() if k in known})
 
@@ -888,6 +899,7 @@ def make_schema_callable(
     *,
     strict: bool = False,
     normalize: bool = True,
+    warn_unknown: bool = False,
 ) -> Callable[[dict[str, Any]], Any] | None:
     """Wrap a schema type into a callable that accepts a raw config dict.
 
@@ -919,6 +931,12 @@ def make_schema_callable(
     :param strict: If ``True``, raise ``ValueError`` when the config
         contains keys that do not match any dataclass field (after
         normalization and flattening).
+    :param warn_unknown: If ``True`` (and ``strict`` is ``False``), log a
+        warning naming those same unknown keys instead of silently dropping
+        them. Meant for configs whose section is schema-only (no CLI
+        parameter is merged from it, i.e. ``included_params=()``), where any
+        unrecognized key can only be a typo. Applies recursively to nested
+        dataclasses.
     :param normalize: If ``False``, skip ``normalize_config_keys`` on
         the remaining config dict. Used internally when recursing into
         nested dataclasses whose parent opted out of normalization via
@@ -932,6 +950,7 @@ def make_schema_callable(
             schema,
             strict=strict,
             normalize=normalize,
+            warn_unknown=warn_unknown,
         )
     # Already a callable (Pydantic .model_validate, custom function, etc.).
     return schema
@@ -1062,6 +1081,7 @@ def run_config_validation(
     config_validators: Sequence[ConfigValidator] = (),
     fallback_sections: Sequence[str] = (),
     schema_strict: bool = False,
+    schema_warn_unknown: bool = False,
     strict: bool = False,
     collect_all: bool = True,
 ) -> ValidationReport:
@@ -1102,6 +1122,10 @@ def run_config_validation(
     :param fallback_sections: Legacy section names to try when ``app_name`` is
         absent or empty.
     :param schema_strict: Reject keys the dataclass schema does not recognize.
+    :param schema_warn_unknown: In lax mode, log a warning naming keys the
+        dataclass schema does not recognize (see ``warn_unknown`` in
+        :func:`make_schema_callable`). Ignored when ``schema_strict`` rejects
+        them outright.
     :param strict: Reject keys the CLI-parameter template does not recognize.
     :param collect_all: When ``True`` (default), run every stage and collect all
         errors. When ``False``, the first error short-circuits the rest.
@@ -1147,7 +1171,9 @@ def run_config_validation(
 
     # Stage 4: build the typed schema instance from the app section.
     schema_instance = None
-    schema_callable = make_schema_callable(config_schema, strict=schema_strict)
+    schema_callable = make_schema_callable(
+        config_schema, strict=schema_strict, warn_unknown=schema_warn_unknown
+    )
     if schema_callable is not None:
         try:
             schema_instance = schema_callable(app_section)

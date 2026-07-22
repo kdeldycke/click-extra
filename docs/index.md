@@ -27,6 +27,7 @@ execution
 telemetry
 pygments
 sphinx
+myst-docstrings
 mkdocs
 screenshots
 envvar

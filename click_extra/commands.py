@@ -343,6 +343,9 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                 if isinstance(param, ConfigOption):
                     if included_params is not None:
                         param.included_params = frozenset(included_params)
+                        # Schema-only section: see the same inference in
+                        # ConfigOption.__init__.
+                        param.schema_warn_unknown = not param.included_params
                     if schema_strict:
                         param.schema_strict = schema_strict
                     if config_schema is not None:
@@ -350,6 +353,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                         param._config_schema_callable = make_schema_callable(
                             config_schema,
                             strict=param.schema_strict,
+                            warn_unknown=param.schema_warn_unknown,
                         )
                     if fallback_sections:
                         param.fallback_sections = tuple(fallback_sections)

@@ -26,7 +26,7 @@ def table_command(ctx):
     ctx.print_table(data, headers)
 ```
 
-As you can see above, this option registers a ready-to-use `print_table()` method to the context object.
+As you can see above, the selected format feeds the ready-to-use `print_table()` method carried by the context object. The context's `meta` is shared along the command chain, so a `--table-format` declared on a group reaches `ctx.print_table` in every subcommand. On a plain `click` or `cloup` command (whose context lacks the click-extra methods), the option injects an equivalent bound `print_table` attribute instead.
 
 The default help message for this option list all available table formats:
 
@@ -76,7 +76,7 @@ This example has been selected so you can see how `print_table()` handles:
 ```
 
 ```{hint}
-There's another method called `render_table()` that is registered in the context alongside `print_table()`.
+There's another method called `render_table()` carried by the context alongside `print_table()`.
 
 It works the same way, but instead of printing the table to the console, it returns the rendered table as a string.
 ```
@@ -542,7 +542,7 @@ The `@sort_by_option` decorator adds a `--sort-by` CLI option whose choices are 
 
 The option can be repeated to define a multi-column sort priority: `--sort-by name --sort-by age` sorts by name first, then breaks ties by age.
 
-When active, `SortByOption` replaces `ctx.print_table` with a sorted variant, so the command body doesn't need any sorting logic.
+When active, `SortByOption` publishes the derived sort key on the context, where `ctx.print_table` picks it up, so the command body doesn't need any sorting logic.
 
 ```{click:source}
 from click_extra import command, pass_context, sort_by_option
@@ -628,7 +628,7 @@ assert result.stdout.index("Apple") < result.stdout.index("Cherry")
 
 ### One `--sort-by` across subcommands
 
-A CLI whose subcommands render different tables can still share a single `--sort-by`, declared once on the group. Pass bare column IDs instead of column definitions: they declare a **field vocabulary** untied to any single table layout, so nothing is baked into `ctx.print_table` at declaration time.
+A CLI whose subcommands render different tables can still share a single `--sort-by`, declared once on the group. Pass bare column IDs instead of column definitions: they declare a **field vocabulary** untied to any single table layout, so no sort key is published at declaration time.
 
 Each table then declares which field its columns carry, by passing `(label, column_id)` pairs (or `ColumnSpec` instances) as `print_table()` headers. The selection is resolved per table: rows sort by the selected fields the table carries (in selection order, remaining columns breaking ties left to right), and keep their original order when the table carries none of them.
 

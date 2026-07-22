@@ -959,8 +959,12 @@ class TableFormatOption(ExtraOption):
     the rendering style of a table.
 
     The selected table format ID is made available in the context in
-    ``ctx.meta[click_extra.context.TABLE_FORMAT]``, and two helper methods
-    are added to the context:
+    ``ctx.meta[click_extra.context.TABLE_FORMAT]``, where the
+    :meth:`~click_extra.context.Context.render_table` and
+    :meth:`~click_extra.context.Context.print_table` context methods pick it
+    up as their default format. ``ctx.meta`` is shared along the context
+    chain, so declaring this option on a group makes the selected format reach
+    every subcommand:
 
     - ``ctx.render_table(table_data, headers, **kwargs)``: renders and returns
       the table as a string,
@@ -1006,21 +1010,30 @@ class TableFormatOption(ExtraOption):
         param: click.Parameter,
         table_format: TableFormat | None,
     ) -> None:
-        """Save in the context: ``table_format``, ``render_table`` & ``print_table``."""
+        """Save the resolved ``table_format`` in the context's shared ``meta``.
+
+        The :meth:`~click_extra.context.Context.render_table` and
+        :meth:`~click_extra.context.Context.print_table` context methods read
+        it back at call time.
+        """
         if ctx.resilient_parsing:
             return
 
         context.set(ctx, context.TABLE_FORMAT, table_format)
 
-        ctx.render_table = partial(  # type: ignore[attr-defined]
-            render_table,
-            table_format=table_format,
-        )
-
-        ctx.print_table = partial(  # type: ignore[attr-defined]
-            print_table,
-            table_format=table_format,
-        )
+        # Foreign click/cloup commands run with a plain click.Context, which
+        # lacks the enhanced Context.render_table/print_table methods: give
+        # them bound equivalents as instance attributes so this option stays a
+        # drop-in on any Click CLI.
+        if not isinstance(ctx, context.Context):
+            ctx.render_table = partial(  # type: ignore[attr-defined]
+                render_table,
+                table_format=table_format,
+            )
+            ctx.print_table = partial(  # type: ignore[attr-defined]
+                print_table,
+                table_format=table_format,
+            )
 
 
 def _row_sort_key(
@@ -1089,9 +1102,9 @@ def _column_sort_key(
 
     When none of the ``sort_columns`` is carried by ``header_defs`` (or none
     is requested), rows still sort, comparing every column in natural
-    left-to-right order. This is the key :class:`SortByOption` bakes into
-    ``ctx.print_table`` when its column definitions are known at declaration
-    time.
+    left-to-right order. This is the key :class:`SortByOption` publishes on
+    the context (``click_extra.context.TABLE_SORT_KEY``) when its column
+    definitions are known at declaration time.
     """
     key = column_sort_key(header_defs, sort_columns, cell_key)
     if key is None:
@@ -1303,10 +1316,12 @@ def _normalize_column_def(column: ColumnSpec | tuple[str | None, str | None] | s
 class SortByOption(ExtraOption):
     """A ``--sort-by`` option whose choices are derived from column definitions.
 
-    Stores the selected column IDs in ``ctx.meta[click_extra.context.SORT_BY]`` and
-    bakes a row sort into ``ctx.print_table`` so that table output is automatically
-    sorted, without changing its ``(table_data, headers)`` call contract. The option
-    accepts ``multiple=True``, so users can repeat ``--sort-by`` to define a
+    Stores the selected column IDs in ``ctx.meta[click_extra.context.SORT_BY]``
+    and publishes the derived row sort key in
+    ``ctx.meta[click_extra.context.TABLE_SORT_KEY]``, which ``ctx.print_table``
+    picks up so that table output is automatically sorted, without changing its
+    ``(table_data, headers)`` call contract. The option accepts
+    ``multiple=True``, so users can repeat ``--sort-by`` to define a
     multi-column sort priority.
 
     Column definitions may be ``ColumnSpec`` instances or raw
@@ -1335,11 +1350,11 @@ class SortByOption(ExtraOption):
     Definitions may instead be bare column ID strings, declaring a
     **field vocabulary** untied to any single table layout. This fits a
     ``--sort-by`` declared once on a group whose subcommands render
-    heterogeneous tables: nothing is baked into ``ctx.print_table`` since no
-    layout is known up front. The selection is resolved per table by
-    :func:`print_table`, from the column IDs its headers carry — each table
-    sorts by the selected fields it knows (remaining columns breaking ties
-    left to right) and keeps its original row order when it knows none.
+    heterogeneous tables: no sort key is published since no layout is known up
+    front. The selection is resolved per table by :func:`print_table`, from
+    the column IDs its headers carry — each table sorts by the selected fields
+    it knows (remaining columns breaking ties left to right) and keeps its
+    original row order when it knows none.
 
     .. code-block:: python
 
@@ -1429,17 +1444,18 @@ class SortByOption(ExtraOption):
         param: click.Parameter,
         sort_columns: tuple[str, ...],
     ) -> None:
-        """Bake the row sort key into ``ctx.print_table``.
+        """Publish the row sort key on the context's shared ``meta``.
 
         Builds the sort key from this option's column definitions and the
-        selected ``sort_columns``, then rebinds ``ctx.print_table`` to
-        :func:`print_table` with that key applied. The call contract is the same
-        sorted or not: ``ctx.print_table(table_data, headers)``.
+        selected ``sort_columns``, then stores it under
+        ``ctx.meta[click_extra.context.TABLE_SORT_KEY]``, where
+        ``ctx.print_table`` picks it up. The call contract is the same sorted
+        or not: ``ctx.print_table(table_data, headers)``.
 
         In field-vocabulary mode no table layout is known at declaration time,
-        so nothing is baked: the selection is only published on the context
-        (``ctx.meta`` is shared with every subcommand), and resolved per table
-        by :func:`print_table` from the column IDs its headers carry.
+        so no key is published: only the selection lands on the context
+        (``ctx.meta`` is shared with every subcommand), resolved per table by
+        :func:`print_table` from the column IDs its headers carry.
         """
         if ctx.resilient_parsing:
             return
@@ -1450,9 +1466,14 @@ class SortByOption(ExtraOption):
             return
 
         sort_key = _column_sort_key(self.header_defs, sort_columns, self.cell_key)
-        table_format = context.get(ctx, context.TABLE_FORMAT)
-        ctx.print_table = partial(  # type: ignore[attr-defined]
-            print_table,
-            table_format=table_format,
-            sort_key=sort_key,
-        )
+        context.set(ctx, context.TABLE_SORT_KEY, sort_key)
+
+        # Same foreign-command escape hatch as TableFormatOption.init_formatter:
+        # rebind the instance attribute with the sort baked in, since a plain
+        # click.Context has no meta-reading print_table method.
+        if not isinstance(ctx, context.Context):
+            ctx.print_table = partial(  # type: ignore[attr-defined]
+                print_table,
+                table_format=context.get(ctx, context.TABLE_FORMAT),
+                sort_key=sort_key,
+            )

@@ -58,7 +58,6 @@ from .spinner import (
 )
 from .spinner_presets import SPINNERS
 from .styling import _nearest_256
-from .table import print_table
 from .test_suite import (
     DEFAULT_TEST_SUITE,
     CLITestCase,
@@ -471,23 +470,9 @@ def _render_gradient() -> str:
     return "\n".join(lines)
 
 
-def _find_print_table(ctx: click.Context):
-    """Walk up the context chain to find the table printer.
-
-    Falls back to the bare ``print_table`` for standalone invocation (like in
-    docs).
-    """
-    ancestor: click.Context | None = ctx
-    while ancestor:
-        if hasattr(ancestor, "print_table"):
-            return ancestor.print_table
-        ancestor = ancestor.parent
-    return print_table
-
-
 @demo.command(name="colors", section=_demo_section)
 @pass_context
-def demo_colors(ctx: click.Context) -> None:
+def demo_colors(ctx: context.Context) -> None:
     """Render every foreground color against every background color."""
     styled_headers = [style(c, bg=c) for c in _ALL_COLORS]
     headers = ["Foreground \u21b4 \\ Background \u2192"] + styled_headers
@@ -496,12 +481,12 @@ def demo_colors(ctx: click.Context) -> None:
         row = [style(fg, fg=fg)]
         row.extend(style(fg, fg=fg, bg=bg) for bg in _ALL_COLORS)
         table.append(row)
-    _find_print_table(ctx)(table, headers=headers)
+    ctx.print_table(table, headers=headers)
 
 
 @demo.command(name="styles", section=_demo_section)
 @pass_context
-def demo_styles(ctx: click.Context) -> None:
+def demo_styles(ctx: context.Context) -> None:
     """Render every color with each text style (bold, dim, italic, etc.)."""
     styled_headers = [style(s, **{s: True}) for s in _ALL_STYLES]
     headers = ["Color \u21b4 \\ Style \u2192"] + styled_headers
@@ -512,7 +497,7 @@ def demo_styles(ctx: click.Context) -> None:
             style(color_name, fg=color_name, **{prop: True}) for prop in _ALL_STYLES
         )
         table.append(row)
-    _find_print_table(ctx)(table, headers=headers)
+    ctx.print_table(table, headers=headers)
 
 
 @demo.command(name="palette", section=_demo_section)
@@ -563,7 +548,7 @@ def demo_gradient() -> None:
 )
 @pass_context
 def demo_spinner(
-    ctx: click.Context,
+    ctx: context.Context,
     every: bool,
     sample_size: int | None,
     names: str | None,
@@ -612,7 +597,7 @@ def demo_spinner(
                 f"{preset.interval}s",
                 f"{_tour_duration(preset):.1f}s",
             ])
-        _find_print_table(ctx)(
+        ctx.print_table(
             rows,
             headers=["Name", "Frames", "Interval", "Tour"],
             # Right-align Tour so its single-decimal values line up on the dot.

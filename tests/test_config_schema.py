@@ -29,6 +29,7 @@ from click_extra import (
     config_option,
     echo,
     group,
+    make_schema_callable,
     option,
     pass_context,
     validate_config_option,
@@ -560,6 +561,118 @@ def test_config_schema_strict_with_nested(invoke, create_config):
     )
     assert result.exit_code == 1
     assert "section_unknown" in result.stderr
+
+
+def test_config_schema_lax_warns_unknown_when_schema_only(invoke, create_config):
+    """A schema-only section warns on unknown keys instead of dropping them silently.
+
+    ``included_params=()`` means no CLI parameter is merged from the app's
+    section, so any key the schema does not know can only be a typo: lax mode
+    then logs a warning while still loading the known fields.
+    """
+
+    @dataclass
+    class AppConfig:
+        known_field: str = "default"
+
+    @group(config_schema=AppConfig, included_params=())
+    @pass_context
+    def lax_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"known_field is {config.known_field!r}")
+
+    @lax_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "lax.toml",
+        dedent("""\
+            [lax-cli]
+            known-field = "good"
+            typo-field = "oops"
+            """),
+    )
+
+    result = invoke(lax_cli, "--config", str(conf_path), "subcommand", color=False)
+    assert result.exit_code == 0
+    assert "typo_field" in result.stderr
+    assert "known_field is 'good'" in result.stdout
+
+
+def test_config_schema_lax_silent_when_params_merged(invoke, create_config):
+    """Without ``included_params=()``, lax mode stays silent on unknown keys.
+
+    The section may legitimately mix CLI parameter keys with schema fields,
+    so a key unknown to the schema is not necessarily a typo.
+    """
+
+    @dataclass
+    class AppConfig:
+        known_field: str = "default"
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def mixed_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"known_field is {config.known_field!r}")
+
+    @mixed_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "mixed.toml",
+        dedent("""\
+            [mixed-cli]
+            known-field = "good"
+            typo-field = "oops"
+            """),
+    )
+
+    result = invoke(mixed_cli, "--config", str(conf_path), "subcommand", color=False)
+    assert result.exit_code == 0
+    assert "typo_field" not in result.stderr
+    assert "known_field is 'good'" in result.stdout
+
+
+def test_make_schema_callable_warn_unknown(caplog):
+    """``warn_unknown=True`` logs unknown keys, recursing into nested dataclasses."""
+
+    @dataclass
+    class SubConfig:
+        depth: int = 0
+
+    @dataclass
+    class AppConfig:
+        known_field: str = "default"
+        sub: SubConfig = field(default_factory=SubConfig)
+
+    schema_callable = make_schema_callable(AppConfig, warn_unknown=True)
+    assert schema_callable is not None
+    config = schema_callable({
+        "known-field": "x",
+        "typo-field": 1,
+        "sub": {"depth": 2, "sub-typo": 3},
+    })
+    assert config.known_field == "x"
+    assert config.sub.depth == 2
+    assert "typo_field" in caplog.text
+    assert "sub_typo" in caplog.text
+
+
+def test_make_schema_callable_lax_default_is_silent(caplog):
+    """Without ``warn_unknown``, lax mode keeps dropping unknown keys silently."""
+
+    @dataclass
+    class AppConfig:
+        known_field: str = "default"
+
+    schema_callable = make_schema_callable(AppConfig)
+    assert schema_callable is not None
+    config = schema_callable({"known-field": "x", "typo-field": 1})
+    assert config.known_field == "x"
+    assert "typo_field" not in caplog.text
 
 
 def test_pyproject_toml_cwd_discovery(invoke, tmp_path, monkeypatch):

@@ -411,7 +411,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         - If ``True``, raise ``ValueError`` when the config section contains keys
           that do not match any dataclass field (after normalization and
           flattening). Only applies when ``config_schema`` is a dataclass.
-        - If ``False``, silently ignore unrecognized keys.
+        - If ``False``, ignore unrecognized keys. When the section is
+          schema-only (``included_params=()``), a warning still names them:
+          see ``warn_unknown`` in
+          :func:`~click_extra.config.schema.make_schema_callable`.
 
         .. note::
             This is distinct from ``strict``, which controls whether
@@ -429,9 +432,23 @@ class ConfigOption(ExtraOption, ParamStructure):
         Works with all configuration formats.
         """
 
+        self.schema_warn_unknown: bool = (
+            self.included_params is not None and not self.included_params
+        )
+        """Warn on config keys unknown to the schema, in lax mode.
+
+        Inferred, not user-supplied: an explicitly empty ``included_params``
+        means no CLI parameter is merged from the app's config section, so the
+        section is schema-only and any key the schema does not know is a typo
+        worth a warning. Forwarded to
+        :func:`~click_extra.config.schema.make_schema_callable` and the
+        validation pipeline as ``warn_unknown``.
+        """
+
         self._config_schema_callable = make_schema_callable(
             config_schema,
             strict=schema_strict,
+            warn_unknown=self.schema_warn_unknown,
         )
 
         self.config_validators: tuple[ConfigValidator, ...] = (
@@ -1379,6 +1396,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 config_validators=self.config_validators,
                 fallback_sections=self.fallback_sections,
                 schema_strict=self.schema_strict,
+                schema_warn_unknown=self.schema_warn_unknown,
                 strict=self.strict,
                 collect_all=False,
             )

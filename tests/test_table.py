@@ -1256,7 +1256,7 @@ def test_sort_by_option_choices_and_default(
 
 
 def test_sort_by_option_wires_context(invoke):
-    """SortByOption replaces ctx.print_table with the sorted variant."""
+    """SortByOption publishes the sort key that ctx.print_table applies."""
     sort_opt = SortByOption(("Fruit", "fruit"), ("Count", "count"))
 
     @command(params=[sort_opt])
@@ -1271,6 +1271,66 @@ def test_sort_by_option_wires_context(invoke):
     assert result.exit_code == 0
     parsed = json.loads(result.stdout)
     assert [r["Fruit"] for r in parsed] == ["apple", "banana", "cherry"]
+
+
+def test_print_table_from_subcommand_context(invoke):
+    """A group-level --table-format reaches ctx.print_table in subcommands.
+
+    ``ctx.meta`` is shared along the context chain, so the ``print_table``
+    context method works from a subcommand without reaching for the root
+    context.
+    """
+
+    @group
+    @table_format_option
+    def cli():
+        pass
+
+    @cli.command()
+    @pass_context
+    def sub(ctx):
+        ctx.print_table([["a", "1"]], ("Letter", "Number"))
+
+    result = invoke(cli, "--table-format", "json", "sub", color=False)
+    assert result.exit_code == 0
+    assert json.loads(result.stdout) == [{"Letter": "a", "Number": "1"}]
+
+
+def test_print_table_without_table_option(invoke):
+    """ctx.print_table works with no --table-format in the chain.
+
+    Falls back to the default rendering format, like the module-level
+    :func:`print_table` invoked without an explicit format.
+    """
+
+    @command
+    @pass_context
+    def cli(ctx):
+        ctx.print_table([["a", "1"]], ("Letter", "Number"))
+
+    result = invoke(cli, color=False)
+    assert result.exit_code == 0
+    assert "Letter" in result.stdout
+    assert "a" in result.stdout
+
+
+def test_render_table_context_method_honors_sort_by(invoke):
+    """ctx.render_table applies the --sort-by selection, like ctx.print_table."""
+    sort_opt = SortByOption(("Fruit", "fruit"), ("Count", "count"))
+
+    @command(params=[sort_opt])
+    @table_format_option
+    @pass_context
+    def cli(ctx):
+        rendered = ctx.render_table(
+            [["banana", "3"], ["apple", "1"]], ("Fruit", "Count")
+        )
+        echo(rendered)
+
+    result = invoke(cli, "--table-format", "json", "--sort-by", "fruit", color=False)
+    assert result.exit_code == 0
+    parsed = json.loads(result.stdout)
+    assert [r["Fruit"] for r in parsed] == ["apple", "banana"]
 
 
 def test_sort_by_option_multi_column(invoke):

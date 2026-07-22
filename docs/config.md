@@ -1700,7 +1700,7 @@ By default, `ConfigOption` only feeds configuration values that match CLI option
 The `config_schema` parameter solves this by extracting the app's configuration section, normalizing its keys, and producing a typed object available to all commands via `ctx.meta["click_extra.tool_config"]`.
 
 ```{tip}
-[repomatic](https://kdeldycke.github.io/repomatic/) is a production CLI that uses all of the features below: a [48-field Config dataclass](https://kdeldycke.github.io/repomatic/configuration.html) with nested sub-dataclasses, opaque dict fields for GitHub Actions matrices, `config_path` metadata for kebab-case TOML keys, and `schema_strict=True` to catch typos. It can serve as a reference for building complex typed configuration.
+[repomatic](https://kdeldycke.github.io/repomatic/) is a production CLI that uses all of the features below: a [48-field Config dataclass](https://kdeldycke.github.io/repomatic/configuration.html) with nested sub-dataclasses, opaque dict fields for GitHub Actions matrices, `config_path` metadata for kebab-case TOML keys, and a schema-only section (`included_params=()`) so unknown keys warn. It can serve as a reference for building complex typed configuration.
 ```
 
 ### Dataclass schema
@@ -1989,7 +1989,10 @@ Nested dataclass fields without `config_path` metadata are matched by their norm
 
 ### Schema validation
 
-By default, configuration keys that don't match any dataclass field are silently ignored. The `schema_strict` parameter changes this to report a validation error, catching typos and stale configuration entries:
+By default, configuration keys that don't match any dataclass field are ignored: the section may legitimately mix CLI parameter keys with schema fields, so an unrecognized key is not necessarily a typo. Two mechanisms tighten this:
+
+- When the section is schema-only (`included_params=()`, so no CLI parameter is merged from it), any unknown key can only be a typo: lax mode then logs a warning naming it, while still loading the known fields.
+- The `schema_strict` parameter goes further and reports a validation error, catching typos and stale configuration entries:
 
 ```python
 @group(config_schema=AppConfig, schema_strict=True)

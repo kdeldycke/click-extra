@@ -60,8 +60,10 @@ from .highlight import HelpFormatter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
     from typing import Concatenate, Final
+
+    from .table import ColumnSpec, TableFormat
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -130,6 +132,71 @@ class Context(cloup.Context):
         # Update the context's meta property with the one provided by user.
         if meta:
             self._meta.update(meta)
+
+    def render_table(
+        self,
+        table_data: Sequence[Sequence[str | None]],
+        headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None]
+        | None = None,
+        table_format: TableFormat | None = None,
+        sort_key: Callable[[Sequence[str | None]], Any] | None = None,
+        **kwargs: Any,
+    ) -> str:
+        """Render a table honoring the invocation's table options, and return it.
+
+        Same contract as :func:`click_extra.table.render_table`, with
+        ``table_format`` and ``sort_key`` defaulting to the values resolved by
+        the ``--table-format`` and ``--sort-by`` options (read from
+        :data:`TABLE_FORMAT` and :data:`TABLE_SORT_KEY`). ``ctx.meta`` is
+        shared along the context chain, so this works from any subcommand
+        without reaching for the root context. Without those options in the
+        chain, falls back to the default format and no sort.
+        """
+        # Imported here because the table module depends on this one.
+        from .table import render_table
+
+        if table_format is None:
+            table_format = get(self, TABLE_FORMAT)
+        if sort_key is None:
+            sort_key = get(self, TABLE_SORT_KEY)
+        return render_table(
+            table_data,
+            headers,
+            table_format=table_format,
+            sort_key=sort_key,
+            **kwargs,
+        )
+
+    def print_table(
+        self,
+        table_data: Sequence[Sequence[str | None]],
+        headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None]
+        | None = None,
+        table_format: TableFormat | None = None,
+        sort_key: Callable[[Sequence[str | None]], Any] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Render a table honoring the invocation's table options, and print it.
+
+        The printing counterpart of :meth:`render_table`: same defaulting of
+        ``table_format`` and ``sort_key`` from the context's shared ``meta``,
+        delegating to :func:`click_extra.table.print_table` (which also
+        handles ANSI translation and colorization policy).
+        """
+        # Imported here because the table module depends on this one.
+        from .table import print_table
+
+        if table_format is None:
+            table_format = get(self, TABLE_FORMAT)
+        if sort_key is None:
+            sort_key = get(self, TABLE_SORT_KEY)
+        print_table(
+            table_data,
+            headers,
+            table_format=table_format,
+            sort_key=sort_key,
+            **kwargs,
+        )
 
 
 META_NAMESPACE: Final[str] = "click_extra."
@@ -335,14 +402,25 @@ TABLE_FORMAT: Final[str] = "click_extra.table_format"
 """The :class:`~click_extra.table.TableFormat` chosen via ``--table-format``.
 
 Written by :class:`click_extra.table.TableFormatOption.init_formatter`. Read
-by :class:`click_extra.table.SortByOption` to thread the same format through
-``ctx.print_table``.
+by :meth:`Context.render_table` and :meth:`Context.print_table` as their
+default format.
 """
 
 SORT_BY: Final[str] = "click_extra.sort_by"
 """Tuple of column IDs picked via ``--sort-by`` (in priority order).
 
 Written by :class:`click_extra.table.SortByOption.init_sort`.
+"""
+
+TABLE_SORT_KEY: Final[str] = "click_extra.table_sort_key"
+"""Row sort key derived from the ``--sort-by`` selection.
+
+Written by :class:`click_extra.table.SortByOption.init_sort` when its column
+definitions are known at declaration time (labeled mode). Read by
+:meth:`Context.render_table` and :meth:`Context.print_table` as their default
+``sort_key``. Absent in field-vocabulary mode, where the sort is resolved per
+table by :func:`click_extra.table.print_table` from the column IDs its headers
+carry.
 """
 
 COLUMNS: Final[str] = "click_extra.columns"

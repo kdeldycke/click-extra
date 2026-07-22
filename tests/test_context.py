@@ -62,6 +62,7 @@ KEY_CONSTANTS: tuple[tuple[str, str], ...] = (
     ("JOBS", "click_extra.jobs"),
     ("TABLE_FORMAT", "click_extra.table_format"),
     ("SORT_BY", "click_extra.sort_by"),
+    ("TABLE_SORT_KEY", "click_extra.table_sort_key"),
     ("COLUMNS", "click_extra.columns"),
     ("THEME", "click_extra.theme.active"),
     ("THEME_OVERRIDES", "click_extra.theme.overrides"),
