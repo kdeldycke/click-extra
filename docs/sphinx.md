@@ -831,7 +831,7 @@ for name in sorted(sys.builtin_module_names)[:5]:
 
 ### Self-updating source with `:mirror:`
 
-`python:render` accepts a `:mirror:` flag. On top of rendering live, a mirror block writes its generated Markdown back into the source `.md`, between two HTML-comment markers directly below the fence. The file self-updates on every build, and the output stays reviewable in the raw file, in diffs, and on GitHub, which renders the mirrored Markdown even though it never executes the block. This revives the `docs_update.py` marker-region pattern with the generator inlined into the page: no separate regenerator script, and no drift.
+`python:render` accepts a `:mirror:` flag. On top of rendering live, a mirror block keeps a copy of its generated Markdown in the source `.md`, between two HTML-comment markers directly below the fence. The output stays reviewable in the raw file, in diffs, and on GitHub, which renders the mirrored Markdown even though it never executes the block. This revives the `docs_update.py` marker-region pattern with the generator inlined into the page: no separate regenerator script, and no drift.
 
 Add `:mirror:` to a `python:render` fence:
 
@@ -848,7 +848,7 @@ print(render_table(
 ```
 ````
 
-After a build the file gains a mirrored region, refreshed in place each time:
+Running [`click-extra refresh-directives`](#keeping-the-tables-current) on the file inserts the mirrored region below the fence, and refreshes it in place on every later run:
 
 ````{code-block} markdown
 ```{python:render}
@@ -856,21 +856,21 @@ After a build the file gains a mirrored region, refreshed in place each time:
 ...
 ```
 
-<!-- python:render:mirror: auto-generated, do not edit -->
+<!-- mirror -->
 
 | City   | Local time |
 | :----- | :--------- |
 | Lisbon | 12:00      |
 | Denver | 05:00      |
 
-<!-- python:render:mirror: end -->
+<!-- mirror-end -->
 ````
 
 A few properties follow from the mirror being real Markdown:
 
 - The mirrored region is the single rendered copy, so the directive emits nothing of its own in mirror mode: otherwise the table would render twice. Add `:show-source:` to also show the Python block above the region.
-- The rewrite runs before the page is parsed, so the same build that updates the file also renders the fresh output. There is no one-build lag.
-- The disk write is best effort. On a read-only checkout the page still renders from the in-memory mirror; it just is not persisted to the file.
+- Sphinx builds regenerate the region in memory before parsing the page, so the rendered HTML is always fresh, even when the committed region is stale. The build never writes to the source file: the committed copy is refreshed by `click-extra refresh-directives`, typically from the same automation that keeps `{matrix}` blocks current.
+- The `<!-- mirror -->` … `<!-- mirror-end -->` pair follows the same marker grammar as the [`<!-- matrix … -->` regions](#matrix-directives), and a mirror example nested inside a longer code fence (like the ones on this page) is never executed or refreshed.
 - The region is reformatted by `mdformat` like any other Markdown, so a mirror block must print `mdformat`-canonical Markdown. `render_table` in `GITHUB` mode already does; a hand-built table may be re-aligned by the formatter and then fight the generator.
 
 `:mirror:` is scoped to `python:render` in a Markdown host, and shares the `click_extra_enable_exec_directives` opt-in with the rest of the executing directives.
@@ -911,7 +911,7 @@ The `python:source` block ran silently to seed `dedent` and `GREETING`; the subs
 | ----------------------------------- | ----------------------------------------------------------------------------------------- | ------- |
 | `:show-source:` / `:hide-source:`   | Render the directive's source block, or omit it.                                          | hidden  |
 | `:show-results:` / `:hide-results:` | Render the captured output block, or omit it.                                             | shown   |
-| `:mirror:`                          | Write the generated Markdown back into the source below the fence (`python:render` only). | off     |
+| `:mirror:`                          | Keep a refreshable copy of the generated Markdown below the fence (`python:render` only). | off     |
 | `:linenos:`                         | Display line numbers in both blocks.                                                      | off     |
 | `:lineno-start:`                    | Starting line number when `:linenos:` is on. Applies to source.                           | 1       |
 | `:emphasize-lines:`                 | Highlight lines in the source block. Syntax: `1,3-5`.                                     | none    |
@@ -955,16 +955,6 @@ This project uses it for the [Python compatibility table in `install.md`](instal
 ````{code-block} markdown
 ```{matrix} python
 :package: click-extra
-
-| `click-extra`       | Released   | `3.7` | `3.8` | `3.9` | `3.10` | `3.11` | `3.12` | `3.13` | `3.14` |
-| :------------------ | :--------- | :---: | :---: | :---: | :----: | :----: | :----: | :----: | :----: |
-| `6.2.x` → `8.x`     | 2025-11-04 |  ❌   |  ❌   |  ❌   |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |
-| `6.0.x` → `6.1.x`   | 2025-10-08 |  ❌   |  ❌   |  ❌   |   ❌   |   ✅   |   ✅   |   ✅   |   ✅   |
-| `5.0.x` → `6.0.x`   | 2025-05-13 |  ❌   |  ❌   |  ❌   |   ❌   |   ✅   |   ✅   |   ✅   |   ❌   |
-| `4.11.x` → `4.15.x` | 2024-10-08 |  ❌   |  ❌   |  ❌   |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |
-| `4.9.x` → `4.10.x`  | 2024-07-25 |  ❌   |  ❌   |  ✅   |   ✅   |   ✅   |   ✅   |   ❌   |   ❌   |
-| `4.0.x` → `4.8.x`   | 2023-05-08 |  ❌   |  ✅   |  ✅   |   ✅   |   ✅   |   ✅   |   ❌   |   ❌   |
-| `0.0.x` → `3.10.x`  | 2021-10-18 |  ✅   |  ✅   |  ✅   |   ✅   |   ✅   |   ❌   |   ❌   |   ❌   |
 ```
 ````
 
@@ -1032,7 +1022,9 @@ The embedded tables are refreshed offline, formatter-style, by the `refresh-dire
 $ click-extra refresh-directives docs/
 ```
 
-It walks the given Markdown files or directories, regenerates each matrix block's table (both the `{matrix}` directive fences and the `<!-- matrix … -->` marker regions) from that block's axis, options, and the project's git tags, and rewrites the block in place. Only blocks that already exist are refreshed: nothing is added. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching data) is left untouched, so a transient failure never wipes a good table.
+It walks the given Markdown files or directories, regenerates each matrix block's table (both the `{matrix}` directive fences and the `<!-- matrix … -->` marker regions) from that block's axis, options, and the project's git tags, and rewrites the block in place. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching data) is left untouched, so a transient failure never wipes a good table. Examples nested inside longer code fences (like the ones on this page) are documented illustrations and are never refreshed.
+
+The same command also refreshes the [`python:render` `:mirror:` regions](#self-updating-source-with-mirror) found in the same files, by executing each mirror block's Python (`click_extra.sphinx.python.update_mirror_blocks(paths, check=...)` is the importable form). One invocation therefore keeps every self-updating block of a documentation tree current, whatever its kind.
 
 ```{note}
 Only the updater (and the empty-block fallback) needs the release tags, since it is the part that shells out to `git`. Run it wherever the full tag history is available. The HTML build renders the embedded table verbatim and needs no git access, so shallow clones and read-only build hosts render the matrix fine.

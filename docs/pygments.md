@@ -242,7 +242,7 @@ print(
 )
 ```
 
-<!-- python:render:mirror: auto-generated, do not edit -->
+<!-- mirror -->
 
 | Original Lexer                                                                                             | Original IDs                                     | ANSI variants                                                   |
 | :--------------------------------------------------------------------------------------------------------- | :----------------------------------------------- | :-------------------------------------------------------------- |
@@ -264,7 +264,7 @@ print(
 | [`SqliteConsoleLexer`](https://pygments.org/docs/lexers/#pygments.lexers.sql.SqliteConsoleLexer)           | `sqlite3`                                        | `ansi-sqlite3`                                                  |
 | [`TcshSessionLexer`](https://pygments.org/docs/lexers/#pygments.lexers.shell.TcshSessionLexer)             | `tcshcon`                                        | `ansi-tcshcon`                                                  |
 
-<!-- python:render:mirror: end -->
+<!-- mirror-end -->
 
 ### Lexers usage
 

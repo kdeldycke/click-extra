@@ -57,6 +57,13 @@ from sphinx.directives import SphinxDirective, directives
 from sphinx.util import logging
 
 from ..table import TableFormat, render_table
+from ._base import (
+    OPTION_LINE_RE,
+    FenceSpan,
+    fence_spans,
+    marker_res,
+    update_blocks,
+)
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -959,30 +966,18 @@ _FENCE_OPEN_RE = re.compile(
 )
 """Opening fence of a ``{matrix} <axis>`` directive block in a Markdown source."""
 
-_FENCE_CLOSE_RE = re.compile(r"^(?P<indent>[ \t]*)(?P<fence>`{3,})[ \t]*$")
-"""A bare code fence, candidate for closing an open ``{matrix}`` block."""
-
-_OPTION_RE = re.compile(r"^[ \t]*:(?P<key>[\w-]+):[ \t]*(?P<value>.*?)[ \t]*$")
-"""A ``:key: value`` directive option line (value optional for flags)."""
-
-_MARKER_OPEN_RE = re.compile(
-    r"^(?P<indent>[ \t]*)<!--\s*matrix\s+(?P<axis>\S+)\s*(?P<opts>.*?)\s*-->[ \t]*$",
-)
-"""Opening HTML-comment marker of a ``<!-- matrix <axis> [opts] -->`` region.
-
-Unlike the directive fence (which GitHub shows as a code block), this marker
-form renders as a real table on GitHub and natively in Sphinx. ``opts`` is
-whitespace-separated ``key=value`` pairs and bare flags (like ``show-spec``).
-"""
-
-_MARKER_CLOSE_RE = re.compile(r"^(?P<indent>[ \t]*)<!--\s*matrix-end\s*-->[ \t]*$")
-"""Closing marker of a ``<!-- matrix ... -->`` region."""
+# `<!-- matrix <axis> [opts] -->` … `<!-- matrix-end -->` region markers, in the
+# shared grammar from `_base.marker_res`. Unlike the directive fence (which
+# GitHub shows as a code block), this marker form renders as a real table on
+# GitHub and natively in Sphinx. Args are the axis followed by
+# whitespace-separated `key=value` pairs and bare flags (like `show-spec`).
+_MARKER_OPEN_RE, _MARKER_CLOSE_RE = marker_res("matrix")
 
 
-def _parse_marker_options(opts: str) -> dict[str, str]:
-    """Parse a marker's ``key=value`` / bare-flag option string into a mapping."""
+def _parse_marker_options(tokens: Iterable[str]) -> dict[str, str]:
+    """Parse a marker's ``key=value`` / bare-flag option tokens into a mapping."""
     options: dict[str, str] = {}
-    for token in opts.split():
+    for token in tokens:
         key, _, value = token.partition("=")
         options[key] = value
     return options
@@ -1000,43 +995,28 @@ def _refresh_fence_block(
     match: re.Match[str],
     lines: list[str],
     index: int,
+    close: int,
     base_dir: Path,
-) -> tuple[list[str], int]:
-    """Regenerate one ``{matrix} <axis>`` directive fence starting at ``index``.
+) -> list[str]:
+    """Regenerate one ``{matrix} <axis>`` directive fence closing at ``close``.
 
-    Returns the replacement lines and the index just past the block. Keeps the
-    block verbatim when the closing fence is missing or generation fails.
+    Returns the replacement lines. Keeps the block verbatim when generation
+    fails.
     """
     indent = match.group("indent")
     fence = match.group("fence")
     axis = match.group("axis")
-    total = len(lines)
 
     options: dict[str, str] = {}
-    cursor = index + 1
-    while cursor < total:
-        option_match = _OPTION_RE.match(lines[cursor])
+    for cursor in range(index + 1, close):
+        option_match = OPTION_LINE_RE.match(lines[cursor])
         if not option_match:
             break
         options[option_match.group("key")] = option_match.group("value")
-        cursor += 1
-
-    close = None
-    for probe in range(cursor, total):
-        close_match = _FENCE_CLOSE_RE.match(lines[probe])
-        if (
-            close_match
-            and close_match.group("indent") == indent
-            and len(close_match.group("fence")) >= len(fence)
-        ):
-            close = probe
-            break
-    if close is None:
-        return [lines[index]], index + 1
 
     table = _regenerate(axis, options, base_dir)
     if not table:
-        return lines[index : close + 1], close + 1
+        return lines[index : close + 1]
 
     out = [f"{indent}{fence}{{matrix}} {axis}"]
     for key, value in options.items():
@@ -1044,31 +1024,45 @@ def _refresh_fence_block(
     out.append("")
     out.extend(f"{indent}{row}" if row else row for row in table.splitlines())
     out.append(f"{indent}{fence}")
-    return out, close + 1
+    return out
 
 
 def _refresh_marker_region(
     match: re.Match[str],
     lines: list[str],
     index: int,
+    spans: Mapping[int, FenceSpan],
     base_dir: Path,
 ) -> tuple[list[str], int]:
     """Regenerate one ``<!-- matrix <axis> -->`` region starting at ``index``.
 
     The start marker is kept verbatim; the raw table between the markers is
     replaced, blank-line padded so ``mdformat`` does not ping-pong on the
-    surrounding HTML comments. Kept verbatim when unterminated or on failure.
+    surrounding HTML comments. The closing-marker search skips fence spans, so
+    a ``<!-- matrix-end -->`` shown inside a code example cannot close a live
+    region. Kept verbatim when unterminated, axis-less, or on failure.
     """
     indent = match.group("indent")
-    axis = match.group("axis")
-    options = _parse_marker_options(match.group("opts"))
+    tokens = (match.group("args") or "").split()
+    if not tokens:
+        return [lines[index]], index + 1
+    axis = tokens[0]
+    options = _parse_marker_options(tokens[1:])
 
     close = None
-    for probe in range(index + 1, len(lines)):
+    probe = index + 1
+    while probe < len(lines):
+        span = spans.get(probe)
+        if span is not None:
+            if span.close is None:
+                break
+            probe = span.close + 1
+            continue
         close_match = _MARKER_CLOSE_RE.match(lines[probe])
         if close_match and close_match.group("indent") == indent:
             close = probe
             break
+        probe += 1
     if close is None:
         return [lines[index]], index + 1
 
@@ -1088,22 +1082,39 @@ def _rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
     Handles both forms: the ``{matrix} <axis>`` directive fence (rendered by
     Sphinx) and the ``<!-- matrix <axis> -->`` comment region (which renders as a
     real table on GitHub too). Each keeps its axis and options; only the embedded
-    table is replaced. A block whose generation fails (non-repository path,
+    table is replaced. The walk is fence-aware: a ``{matrix}`` example nested
+    inside a longer code fence is a documented illustration, copied verbatim and
+    never refreshed. A block whose generation fails (non-repository path,
     missing git, no data) is left byte-for-byte untouched.
     """
     lines = text.splitlines()
+    spans = fence_spans(lines)
     out: list[str] = []
     index = 0
     total = len(lines)
     while index < total:
-        fence_match = _FENCE_OPEN_RE.match(lines[index])
-        if fence_match:
-            chunk, index = _refresh_fence_block(fence_match, lines, index, base_dir)
-            out.extend(chunk)
+        span = spans.get(index)
+        if span is not None:
+            if span.close is None:
+                # Unterminated fence: leave the tail untouched.
+                out.extend(lines[index:])
+                break
+            fence_match = _FENCE_OPEN_RE.match(lines[index])
+            if fence_match:
+                out.extend(
+                    _refresh_fence_block(
+                        fence_match, lines, index, span.close, base_dir
+                    )
+                )
+            else:
+                out.extend(lines[index : span.close + 1])
+            index = span.close + 1
             continue
         marker_match = _MARKER_OPEN_RE.match(lines[index])
         if marker_match:
-            chunk, index = _refresh_marker_region(marker_match, lines, index, base_dir)
+            chunk, index = _refresh_marker_region(
+                marker_match, lines, index, spans, base_dir
+            )
             out.extend(chunk)
             continue
         out.append(lines[index])
@@ -1115,33 +1126,17 @@ def _rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
     return result
 
 
-def _iter_markdown_files(paths: Iterable[Path]) -> Iterable[Path]:
-    """Yield the Markdown sources under ``paths`` (files as-is, dirs recursed)."""
-    for path in paths:
-        if path.is_dir():
-            yield from sorted(path.rglob("*.md"))
-        else:
-            yield path
-
-
 def update_matrix_blocks(paths: Iterable[Path], *, check: bool = False) -> list[Path]:
     """Refresh every ``{matrix}`` block in the given Markdown sources.
 
-    Walks ``paths`` (files, or directories recursed for ``*.md``), regenerates
-    each block's table from its axis and options, and rewrites the file when its
-    content changed. In ``check`` mode nothing is written; the return value
-    still lists the files that would change, so a caller can exit non-zero to
-    flag stale documentation in CI.
+    See :func:`click_extra.sphinx._base.update_blocks` for the walk, write, and
+    ``check``-mode contract.
 
     :return: the files whose ``{matrix}`` blocks were (or, under ``check``,
         would be) updated.
     """
-    changed: list[Path] = []
-    for path in _iter_markdown_files(paths):
-        original = path.read_text(encoding="utf-8")
-        updated = _rewrite_matrix_blocks(original, base_dir=path.parent)
-        if updated != original:
-            changed.append(path)
-            if not check:
-                path.write_text(updated, encoding="utf-8")
-    return changed
+    return update_blocks(
+        paths,
+        lambda text, path: _rewrite_matrix_blocks(text, base_dir=path.parent),
+        check=check,
+    )

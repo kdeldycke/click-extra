@@ -403,6 +403,34 @@ def test_update_matrix_blocks_leaves_bad_path_untouched(tmp_path) -> None:
     assert doc.read_text(encoding="utf-8") == original
 
 
+def test_update_matrix_blocks_skips_examples_nested_in_code_block(
+    synthetic_repo, tmp_path
+) -> None:
+    """Matrix examples shown inside a longer code fence are never refreshed.
+
+    Both forms are documented illustrations here, not live blocks, even though
+    their generation would succeed: the fence-aware walk copies them verbatim.
+    """
+    doc = tmp_path / "page.md"
+    documented = dedent(f"""
+        ````{{code-block}} markdown
+        ```{{matrix}} python
+        :package: my-project
+        :path: {synthetic_repo}
+        ```
+        ````
+
+        ````{{code-block}} markdown
+        <!-- matrix python path={synthetic_repo} -->
+
+        <!-- matrix-end -->
+        ````
+    """)
+    doc.write_text(documented, encoding="utf-8")
+    assert update_matrix_blocks([doc]) == []
+    assert doc.read_text(encoding="utf-8") == documented
+
+
 def test_refresh_directives_cli(synthetic_repo, tmp_path) -> None:
     """`click-extra refresh-directives` refreshes in place; --check gates CI."""
     doc = tmp_path / "page.md"

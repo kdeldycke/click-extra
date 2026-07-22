@@ -299,32 +299,44 @@ def refresh_directives_cmd(
     paths: tuple[Path, ...],
     check: bool,
 ) -> None:
-    """Refresh the self-updating directive blocks embedded in Markdown files.
+    """Refresh the self-updating blocks embedded in Markdown files.
 
     Walks each PATH (a Markdown file, or a directory scanned recursively for
-    Markdown sources) and regenerates the content of every supported
-    self-updating directive from its own options, rewriting the block in place.
-    Only blocks that already exist are refreshed: nothing is added or removed.
+    Markdown sources) and rewrites every supported self-updating block in
+    place:
+
+    - matrix blocks (directive fences and marker regions alike), regenerated
+      from the project git history;
+
+    - python:render blocks carrying the :mirror: flag, whose Python code is
+      executed to regenerate the mirrored region below the fence (inserted on
+      first refresh).
+
+    Examples nested inside longer code fences are never refreshed or executed.
 
     Pass --check to report stale blocks without writing; the command then exits
     with a non-zero status, so a continuous-integration job can fail on
     out-of-date documentation.
 
     Refreshing reads the project git history and needs the sphinx extra:
-    install it with click-extra[sphinx].
+    install it with click-extra[sphinx]. Beware: mirror blocks are arbitrary
+    Python executed with the privileges of this process, so only refresh
+    documentation you trust, exactly as you would only build trusted docs.
     """
     # Imported lazily so the sphinx extra stays optional: this is the only CLI
     # command that needs it. Importing it eagerly would break the rest of the
     # CLI when sphinx is absent, and slow every invocation with a heavy import.
     try:
         from .sphinx.matrix import update_matrix_blocks
+        from .sphinx.python import update_mirror_blocks
     except ImportError as error:
         raise ClickException(
             missing_extra_message("sphinx", subject="Refreshing directives"),
         ) from error
 
-    changed = update_matrix_blocks(paths, check=check)
-    for path in changed:
+    changed = set(update_matrix_blocks(paths, check=check))
+    changed.update(update_mirror_blocks(paths, check=check))
+    for path in sorted(changed):
         echo(f"{'would refresh' if check else 'refreshed'}: {path}")
     if check and changed:
         ctx.exit(1)

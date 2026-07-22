@@ -36,12 +36,15 @@ Each render variant has a clear parser contract:
   of host. Lets ``.md`` documents embed reST-generated content.
 
 On top of live rendering, ``python:render`` accepts a ``:mirror:`` flag. A
-mirror block also writes its generated Markdown back into the source ``.md``,
+mirror block keeps a copy of its generated Markdown in the source ``.md``,
 between :data:`MIRROR_MARKER_START` / :data:`MIRROR_MARKER_END` markers
-directly below the fence, rewritten on every build by
-:func:`rewrite_python_mirror_regions`. The document then self-updates and its
-output is reviewable in place and on GitHub, reviving the ``docs_update.py``
-marker-region pattern with the generator inlined into the page.
+directly below the fence, so the output is reviewable in place and renders on
+GitHub. The committed region is refreshed by :func:`update_mirror_blocks`
+(behind the ``click-extra refresh-directives`` command, alongside the
+``{matrix}`` blocks of :mod:`click_extra.sphinx.matrix`), while Sphinx builds
+always render the fresh output by regenerating the region in memory at
+``source-read`` time. This revives the ``docs_update.py`` marker-region
+pattern with the generator inlined into the page.
 """
 
 from __future__ import annotations
@@ -49,26 +52,28 @@ from __future__ import annotations
 import contextlib
 import io
 import re
-from pathlib import Path
 
 from docutils import nodes
 from docutils.parsers.rst import Parser as RstParser, directives
 from docutils.statemachine import StringList
 from docutils.utils import new_document
-from sphinx.util import logging
 
 from ._base import (
+    OPTION_LINE_RE,
     StatelessDomain,
     compile_directive,
+    fence_spans,
     make_cleanup,
+    marker_res,
     parse_into_section,
+    update_blocks,
 )
 from .click import ClickDirective
 
-logger = logging.getLogger(__name__)
-
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
     from typing import ClassVar
 
     from docutils.frontend import Values
@@ -77,38 +82,29 @@ if TYPE_CHECKING:
     from sphinx.util.typing import OptionSpec
 
 
-MIRROR_MARKER_START = "<!-- python:render:mirror: auto-generated, do not edit -->"
+MIRROR_MARKER_START = "<!-- mirror -->"
 """Opening marker of a ``python:render`` ``:mirror:`` region.
 
 Written on its own line, directly below the fence, and paired with
 :data:`MIRROR_MARKER_END`. Everything between the two markers is regenerated
-on every build by :func:`rewrite_python_mirror_regions`: edit the Python block
-above the marker, never the mirrored region itself.
+by :func:`update_mirror_blocks`: edit the Python block above the marker, never
+the mirrored region itself. Same ``<!-- name --> / <!-- name-end -->`` grammar
+as the ``<!-- matrix … -->`` regions of :mod:`click_extra.sphinx.matrix`.
 """
 
-MIRROR_MARKER_END = "<!-- python:render:mirror: end -->"
+MIRROR_MARKER_END = "<!-- mirror-end -->"
 """Closing marker of a ``:mirror:`` region. See :data:`MIRROR_MARKER_START`."""
 
-_MIRROR_FENCE_OPEN = re.compile(
-    r"^[ \t]*(?P<fence>`{3,}|:{3,})\{python:render\}[ \t]*\S*[ \t]*$"
-)
-"""Match a MyST ``python:render`` fence opening line (backtick or colon fence).
+# Reading-side regexes of the marker pair above, in the shared grammar from
+# `_base.marker_res`.
+_MIRROR_OPEN_RE, _MIRROR_CLOSE_RE = marker_res("mirror")
+
+_MIRROR_FENCE_OPEN = re.compile(r"^[ \t]*`{3,}\{python:render\}[ \t]*\S*[ \t]*$")
+"""Match a MyST ``python:render`` backtick-fence opening line.
 
 Anchored on ``{python:render}`` so the sibling ``python:render-myst`` and
 ``python:render-rst`` directives never match: ``:mirror:`` writes Markdown
 back into a Markdown host, so it is scoped to the plain ``python:render`` form.
-"""
-
-_MIRROR_OPTION_LINE = re.compile(r"^:(?P<key>[A-Za-z0-9_+-]+):[ \t]*(?P<value>.*)$")
-"""Match a MyST directive option line (``:key:`` or ``:key: value``)."""
-
-_ANY_FENCE_OPEN = re.compile(r"^[ \t]*(?P<fence>`{3,}|:{3,})")
-"""Match the opening line of any MyST fence (backtick or colon).
-
-Lets :func:`_rewrite_mirror_regions` treat every fence as a unit and skip over
-its content, so a ``python:render :mirror:`` example *shown inside* a longer
-``code-block`` fence (as the documentation does) is copied verbatim rather
-than executed.
 """
 
 
@@ -331,10 +327,11 @@ class PythonRenderDirective(PythonRenderBaseDirective):
     and :class:`PythonRenderRstDirective`.
 
     Accepts an extra ``:mirror:`` flag on top of the shared option spec. When
-    set, the block also writes its generated Markdown back into the source
-    file, between :data:`MIRROR_MARKER_START` / :data:`MIRROR_MARKER_END`
-    markers, so the ``.md`` self-updates and the output is reviewable in
-    place (and on GitHub). See :func:`rewrite_python_mirror_regions`.
+    set, the block keeps a copy of its generated Markdown in the source file,
+    between :data:`MIRROR_MARKER_START` / :data:`MIRROR_MARKER_END` markers,
+    so the output is reviewable in place and renders on GitHub. The committed
+    region is refreshed by :func:`update_mirror_blocks`; builds render fresh
+    output via :func:`rewrite_python_mirror_regions`.
     """
 
     forced_parser = None
@@ -384,16 +381,6 @@ class PythonRenderRstDirective(PythonRenderBaseDirective):
     forced_parser = RstParser
 
 
-def _is_mirror_close_fence(line: str, fence: str) -> bool:
-    """Return whether ``line`` closes a fence opened with ``fence``.
-
-    A closing fence is a run of the same fence character, at least as long as
-    the opener, optionally surrounded by whitespace and nothing else.
-    """
-    stripped = line.strip()
-    return bool(stripped) and set(stripped) == {fence[0]} and len(stripped) >= len(fence)
-
-
 def _split_mirror_options(inner: list[str]) -> tuple[set[str], list[str]]:
     """Split a fence's inner lines into its option keys and its Python body.
 
@@ -403,7 +390,7 @@ def _split_mirror_options(inner: list[str]) -> tuple[set[str], list[str]]:
     """
     options: set[str] = set()
     index = 0
-    while index < len(inner) and (match := _MIRROR_OPTION_LINE.match(inner[index])):
+    while index < len(inner) and (match := OPTION_LINE_RE.match(inner[index])):
         options.add(match.group("key"))
         index += 1
     if index < len(inner) and not inner[index].strip():
@@ -421,8 +408,8 @@ def _skip_existing_mirror_region(lines: list[str], index: int) -> int:
     cursor = index
     while cursor < len(lines) and not lines[cursor].strip():
         cursor += 1
-    if cursor < len(lines) and lines[cursor].strip() == MIRROR_MARKER_START:
-        while cursor < len(lines) and lines[cursor].strip() != MIRROR_MARKER_END:
+    if cursor < len(lines) and _MIRROR_OPEN_RE.match(lines[cursor]):
+        while cursor < len(lines) and not _MIRROR_CLOSE_RE.match(lines[cursor]):
             cursor += 1
         if cursor < len(lines):
             return cursor + 1
@@ -437,9 +424,10 @@ def _execute_mirror_block(
     """Execute a mirror block's Python body and return its captured stdout lines.
 
     Mirrors :meth:`PythonRunner.run_python` but works from raw source lines:
-    the ``source-read`` pass runs before any directive instance exists. Shares
-    ``namespace`` across the blocks of one document so a later block can reuse
-    an earlier block's imports and variables.
+    the offline refresher and the ``source-read`` pass both run before any
+    directive instance exists. Shares ``namespace`` across the blocks of one
+    document so a later block can reuse an earlier block's imports and
+    variables.
     """
     buffer = io.StringIO()
     code = compile("\n".join(body), location, "exec")
@@ -451,42 +439,45 @@ def _execute_mirror_block(
 def _rewrite_mirror_regions(text: str, location: str) -> str:
     """Return ``text`` with every ``python:render :mirror:`` region refreshed.
 
-    Walks the document fence by fence. Every fence is consumed as a unit (so
-    a ``python:render`` example nested inside a longer ``code-block`` fence is
-    left untouched); only a top-level ``python:render`` fence carrying a
+    Walks the document fence by fence via
+    :func:`click_extra.sphinx._base.fence_spans`, so a ``python:render``
+    example nested inside a longer ``code-block`` fence is copied verbatim,
+    never executed. Only a top-level ``python:render`` fence carrying a
     ``:mirror:`` option is executed, its output written into the marker region
     directly below it (a region is inserted on first sight). Idempotent: a
     region whose source is unchanged round-trips to the same text.
+
+    .. note::
+        The mirrored region is raw Markdown, re-parsed by the host on every
+        build and reformatted by ``mdformat`` in the autofix pipeline. A
+        mirror block must therefore ``print`` ``mdformat``-canonical Markdown
+        (like :func:`click_extra.table.render_table` in ``GITHUB`` mode) or
+        the generator and the formatter will fight over the region.
     """
     lines = text.split("\n")
+    spans = fence_spans(lines)
     total = len(lines)
     out: list[str] = []
     namespace: dict[str, object] = {"__file__": "dummy.py"}
     index = 0
     while index < total:
-        line = lines[index]
-        fence_match = _ANY_FENCE_OPEN.match(line)
-        if not fence_match:
-            out.append(line)
+        span = spans.get(index)
+        if span is None:
+            out.append(lines[index])
             index += 1
             continue
-
-        fence = fence_match.group("fence")
-        close = index + 1
-        while close < total and not _is_mirror_close_fence(lines[close], fence):
-            close += 1
-        if close >= total:
+        if span.close is None:
             # Unterminated fence: leave the tail untouched.
             out.extend(lines[index:])
             break
 
         options: set[str] = set()
         body: list[str] = []
-        if _MIRROR_FENCE_OPEN.match(line):
-            options, body = _split_mirror_options(lines[index + 1 : close])
+        if _MIRROR_FENCE_OPEN.match(lines[index]):
+            options, body = _split_mirror_options(lines[index + 1 : span.close])
         # Emit the whole fence unit (source and close line) verbatim.
-        out.extend(lines[index : close + 1])
-        index = close + 1
+        out.extend(lines[index : span.close + 1])
+        index = span.close + 1
         if "mirror" not in options:
             continue
 
@@ -502,57 +493,49 @@ def _rewrite_mirror_regions(text: str, location: str) -> str:
     return "\n".join(out)
 
 
+def update_mirror_blocks(paths: Iterable[Path], *, check: bool = False) -> list[Path]:
+    """Refresh every ``python:render`` ``:mirror:`` region in the given sources.
+
+    See :func:`click_extra.sphinx._base.update_blocks` for the walk, write, and
+    ``check``-mode contract.
+
+    .. danger::
+        Refreshing executes each mirror block's Python with the privileges of
+        the current process, exactly as a documentation build would. Only run
+        it on trusted sources.
+
+    :return: the files whose mirror regions were (or, under ``check``, would
+        be) updated.
+    """
+    return update_blocks(
+        paths,
+        lambda text, path: _rewrite_mirror_regions(text, str(path)),
+        check=check,
+    )
+
+
 def rewrite_python_mirror_regions(
     app: Sphinx,
     docname: str,
     source: list[str],
 ) -> None:
-    """``source-read`` handler mirroring ``python:render :mirror:`` output.
+    """``source-read`` handler refreshing ``:mirror:`` regions in memory.
 
-    For each ``python:render`` block flagged ``:mirror:``, execute it before
-    the document is parsed and write its generated Markdown back into a
-    :data:`MIRROR_MARKER_START` / :data:`MIRROR_MARKER_END` region directly
-    below the fence. The rewrite is applied both to the in-memory ``source``
-    (so the *same* build renders the fresh output with zero lag) and, best
-    effort, to the file on disk (so the ``.md`` self-updates and the region is
-    reviewable on GitHub and in diffs).
+    Applies :func:`_rewrite_mirror_regions` to the in-memory ``source`` before
+    the document is parsed, so every build renders the fresh output even when
+    the committed region is stale. Nothing is written to disk: the committed
+    region is refreshed offline by :func:`update_mirror_blocks`, behind the
+    ``click-extra refresh-directives`` command.
 
     .. danger::
         Like the ``python:*`` directives, this executes arbitrary Python at
         build time with the full privileges of the Sphinx process. It is
-        registered only when ``click_extra_enable_exec_directives`` is set,
-        and must run before any other ``source-read`` transformer (it is
-        connected at a low priority) so the persisted file mirrors the
-        on-disk source rather than a downstream in-memory conversion.
-
-    .. note::
-        The mirrored region is raw Markdown, re-parsed by the host on every
-        build and reformatted by ``mdformat`` in the autofix pipeline. A
-        mirror block must therefore ``print`` ``mdformat``-canonical Markdown
-        (like :func:`click_extra.table.render_table` in ``GITHUB`` mode) or
-        the generator and the formatter will fight over the region.
+        registered only when ``click_extra_enable_exec_directives`` is set.
     """
     text = source[0]
     if "python:render" not in text or ":mirror:" not in text:
         return
-
-    location = app.env.doc2path(docname)
-    rewritten = _rewrite_mirror_regions(text, location)
-    if rewritten == text:
-        return
-    source[0] = rewritten
-
-    try:
-        path = Path(location)
-        if path.read_text(encoding="utf-8") != rewritten:
-            path.write_text(rewritten, encoding="utf-8")
-    except OSError as error:
-        logger.warning(
-            "click_extra.sphinx: could not persist python:render:mirror region "
-            "for %s: %s",
-            docname,
-            error,
-        )
+    source[0] = _rewrite_mirror_regions(text, str(app.env.doc2path(docname)))
 
 
 class PythonDomain(StatelessDomain):

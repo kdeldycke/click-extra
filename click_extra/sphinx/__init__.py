@@ -127,11 +127,12 @@ def _register_exec_directives(app: Sphinx, config: Config) -> None:
     app.connect("doctree-read", cleanup_runner)
     app.add_domain(PythonDomain)
     app.connect("doctree-read", cleanup_python_runner)
-    # Mirror `python:render :mirror:` output back into the source before it is
-    # parsed. Priority 100 (below the default 500) runs it ahead of any other
-    # source-read transformer (like the GitHub-alerts converter) so the file
-    # persisted to disk mirrors the on-disk source, not a downstream in-memory
-    # conversion. See rewrite_python_mirror_regions for the full contract.
+    # Refresh `python:render :mirror:` regions in memory before the document
+    # is parsed, so builds always render fresh output even when the committed
+    # region is stale (the disk copy is refreshed offline by the click-extra
+    # refresh-directives command). Priority 100 (below the default 500) runs
+    # it ahead of any other source-read transformer (like the GitHub-alerts
+    # converter) so generated content participates in later transforms.
     app.connect("source-read", rewrite_python_mirror_regions, priority=100)
 
 

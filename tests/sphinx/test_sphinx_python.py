@@ -27,10 +27,14 @@ from __future__ import annotations
 from pathlib import Path
 from textwrap import dedent
 
+from click.testing import CliRunner
+
+from click_extra.cli import refresh_directives_cmd
 from click_extra.sphinx.python import (
     MIRROR_MARKER_END,
     MIRROR_MARKER_START,
     _rewrite_mirror_regions,
+    update_mirror_blocks,
 )
 
 from .conftest import FormatType, SphinxAppWrapper
@@ -405,20 +409,60 @@ def test_mirror_rewrite_skips_example_nested_in_code_block():
     assert out == documented
 
 
-def test_python_render_mirror_writes_region_to_source(sphinx_app_myst):
-    """`:mirror:` renders the table once and writes it into the source `.md`."""
+def test_python_render_mirror_renders_fresh_without_touching_source(sphinx_app_myst):
+    """`:mirror:` renders the table once; the build never writes to the source."""
     html = sphinx_app_myst.build_document(_MIRROR_TABLE_BLOCK)
     assert html is not None
-    # Rendered exactly once (from the mirrored region; the directive itself
-    # emits nothing in mirror mode, so there is no second copy).
+    # Rendered exactly once (from the in-memory mirrored region; the directive
+    # itself emits nothing in mirror mode, so there is no second copy).
     assert html.count("<table") == 1
     for fruit in ("apple", "banana", "cherry"):
         assert fruit in html
-    # The source file on disk now carries the mirrored region.
+    # The build is read-only: the committed source is byte-for-byte untouched
+    # (the disk region is refreshed offline by update_mirror_blocks).
     source = (Path(sphinx_app_myst.srcdir) / "index.md").read_text(encoding="utf-8")
+    assert source == _MIRROR_TABLE_BLOCK
+
+
+def test_update_mirror_blocks_populates_and_idempotent(tmp_path):
+    """The offline refresher inserts the region, then round-trips clean."""
+    doc = tmp_path / "page.md"
+    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="utf-8")
+    # First pass inserts the region on disk.
+    assert update_mirror_blocks([doc]) == [doc]
+    source = doc.read_text(encoding="utf-8")
     assert MIRROR_MARKER_START in source
     assert MIRROR_MARKER_END in source
     assert "| apple | 3 |" in source
+    # Second pass is a no-op.
+    assert update_mirror_blocks([doc]) == []
+
+
+def test_update_mirror_blocks_check_mode(tmp_path):
+    """`check=True` reports the stale file without writing it."""
+    doc = tmp_path / "page.md"
+    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="utf-8")
+    assert update_mirror_blocks([doc], check=True) == [doc]
+    assert doc.read_text(encoding="utf-8") == _MIRROR_TABLE_BLOCK
+
+
+def test_refresh_directives_cli_refreshes_mirror_blocks(tmp_path):
+    """`click-extra refresh-directives` covers mirror regions too."""
+    doc = tmp_path / "page.md"
+    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="utf-8")
+    runner = CliRunner()
+    # A missing region exits non-zero under --check, without writing.
+    result = runner.invoke(refresh_directives_cmd, ["--check", str(doc)])
+    assert result.exit_code == 1
+    assert doc.read_text(encoding="utf-8") == _MIRROR_TABLE_BLOCK
+    # Write mode inserts the region and names the file.
+    result = runner.invoke(refresh_directives_cmd, [str(doc)])
+    assert result.exit_code == 0
+    assert "refreshed" in result.output
+    assert MIRROR_MARKER_START in doc.read_text(encoding="utf-8")
+    # A freshly refreshed region is clean.
+    result = runner.invoke(refresh_directives_cmd, ["--check", str(doc)])
+    assert result.exit_code == 0
 
 
 def test_python_render_mirror_show_source_still_single_table(sphinx_app_myst):
