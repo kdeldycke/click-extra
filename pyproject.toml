@@ -401,6 +401,13 @@ default.extend-ignore-identifiers-re = [
   # 112 │ ...all keyword arguments match a known field, so typos like `optoin=...` raise immediately.
   #     ╰╴                                                             ━━━━━━
   "optoin",
+  # astroid is the AST-parsing library sphinx-autodoc2 depends on, not a typo.
+  # error: `astroid` should be `asteroid`
+  #     ╭▸ ./docs/myst-docstrings.md:201:389
+  #     │
+  # 201 │ ...vember 2023; incompatible with Sphinx 8+, docutils 0.21+, and astroid 4+).
+  #     ╰╴                                                                ━━━━━━━
+  "astroid",
 ]
 
 [tool.pytest]

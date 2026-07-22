@@ -652,7 +652,7 @@ def _split_navigation(args: tuple[str, ...]) -> tuple[tuple[str, ...], tuple[str
     return tuple(nav), tuple(rest)
 
 
-def _wrap_show_params(
+def _wrap_params(
     ctx: click.Context,
     script: str,
     nav: tuple[str, ...],
@@ -950,7 +950,7 @@ def wrap(
         elif tree:
             _wrap_tree(ctx, script, nav)
         else:
-            _wrap_show_params(ctx, script, nav, target_args, table_format)
+            _wrap_params(ctx, script, nav, target_args, table_format)
         ctx.exit(0)
 
     # Default mode: run the target with colorized help.

@@ -526,7 +526,7 @@ Options:
                         Support/wrap.py/*.{toml,yaml,yml,json,ini,xml}]
   --no-config           Ignore all configuration files and only use command line
                         parameters and environment variables.
-  --params         Show all CLI parameters, their provenance, defaults and
+  --params              Show all CLI parameters, their provenance, defaults and
                         value, then exit.
   --table-format [asciidoc|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|html|jira|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|tsv|unsafehtml|vertical|youtrack]
                         Rendering style of tables.  [default: rounded-outline]
