@@ -1009,6 +1009,8 @@ and the updater fills in the table below the options, regenerated from every `vM
 | `:path:`          | Git working tree to walk, absolute or relative to the documented project's root. | project's git root     |
 | `:version-floor:` | Drop release rows below this package version.                                    | none (all tags)        |
 | `:tag-pattern:`   | Regex selecting release tags.                                                    | `^v\d+\.\d+\.\d+$`     |
+| `:column-order:`  | Left-to-right ordering of the version columns: `newest-first` or `oldest-first`. | `newest-first`         |
+| `:row-order:`     | Top-to-bottom ordering of the release rows: `newest-first` or `oldest-first`.    | `newest-first`         |
 | `:python-floor:`  | (`python` axis) Drop Python `X.Y` columns below this version.                    | none (all columns)     |
 | `:show-spec:`     | (dependency axis) Add a `Spec` column with each range's raw specifier.           | off                    |
 

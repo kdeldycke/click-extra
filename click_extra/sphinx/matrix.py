@@ -110,6 +110,15 @@ DEFAULT_TAG_PATTERN: str = r"^v\d+\.\d+\.\d+$"
 DEFAULT_TAGS_SORT: str = "version:refname"
 """Default `git tag --sort` argument."""
 
+NEWEST_FIRST: str = "newest-first"
+"""Ordering value: highest version / most recent release first."""
+
+OLDEST_FIRST: str = "oldest-first"
+"""Ordering value: lowest version / oldest release first."""
+
+ORDER_CHOICES: tuple[str, ...] = (NEWEST_FIRST, OLDEST_FIRST)
+"""Allowed values of the `column-order` and `row-order` matrix options."""
+
 
 class PythonMatrixGroup(NamedTuple):
     """A contiguous run of release tags sharing the same Python support set."""
@@ -125,6 +134,18 @@ class PythonMatrixGroup(NamedTuple):
 
     python_versions: tuple[str, ...]
     """The `X.Y` Python versions this range supports, sorted ascending."""
+
+
+def _validate_order(value: str, option: str) -> None:
+    """Raise {class}`ValueError` when `value` is not a recognized ordering.
+
+    `option` names the offending option in its hyphenated, user-facing form
+    (`column-order` / `row-order`), shared by the directive, the marker
+    region, and the Python keyword arguments.
+    """
+    if value not in ORDER_CHOICES:
+        msg = f"invalid {option} {value!r}: choose from {', '.join(ORDER_CHOICES)}"
+        raise ValueError(msg)
 
 
 def _version_sort_key(version: str) -> tuple[int, ...]:
@@ -444,13 +465,16 @@ def python_matrix_table(
     tags_sort: str = DEFAULT_TAGS_SORT,
     python_floor: str = "",
     version_floor: str = "",
+    column_order: str = NEWEST_FIRST,
+    row_order: str = NEWEST_FIRST,
     release_dates: dict[str, str] | None = None,
 ) -> str:
     """Render the Python compatibility matrix as a GitHub-flavored markdown table.
 
-    Newest releases sit on top and newest Python versions on the left, so the
-    most recent compatibility information always sits in the upper-left corner
-    of the table.
+    By default newest releases sit on top and newest Python versions on the
+    left, so the most recent compatibility information always sits in the
+    upper-left corner of the table; `row_order` and `column_order` flip
+    either axis.
 
     :param project_root: git working tree to walk.
     :param label: the header column name (usually the package name, like
@@ -463,10 +487,17 @@ def python_matrix_table(
         release rows that supported nothing above the floor.
     :param version_floor: passed to {func}`python_matrix_groups` to drop
         release rows below a bare package version.
+    :param column_order: left-to-right ordering of the Python columns:
+        {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
+    :param row_order: top-to-bottom ordering of the release rows:
+        {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
     :param release_dates: passed to {func}`python_matrix_groups`.
     :return: rendered markdown table, or the empty string when no group
         was collected.
+    :raises ValueError: on an unrecognized `column_order` or `row_order`.
     """
+    _validate_order(column_order, "column-order")
+    _validate_order(row_order, "row-order")
     groups = python_matrix_groups(
         project_root,
         tag_pattern=tag_pattern,
@@ -480,7 +511,7 @@ def python_matrix_table(
     all_versions = sorted(
         {v for g in groups for v in g.python_versions},
         key=_version_sort_key,
-        reverse=True,
+        reverse=column_order == NEWEST_FIRST,
     )
     if python_floor:
         python_floor_key = _version_sort_key(python_floor)
@@ -511,6 +542,8 @@ def python_matrix_table(
                 *cells,
             ],
         )
+    if row_order == OLDEST_FIRST:
+        rows.reverse()
     headers = [f"`{label}`", "Released", *(f"`{v}`" for v in all_versions)]
     colalign = ("left", "left", *("center",) * len(all_versions))
     return render_table(
@@ -720,20 +753,30 @@ def dependency_matrix_table(
     tag_pattern: str = DEFAULT_TAG_PATTERN,
     tags_sort: str = DEFAULT_TAGS_SORT,
     version_floor: str = "",
+    column_order: str = NEWEST_FIRST,
+    row_order: str = NEWEST_FIRST,
 ) -> str:
     """Render the `dep_name` compatibility matrix as a markdown table.
 
     Columns are auto-derived from the requirement specifiers across history
     (see {func}`_dependency_columns`) plus the `uv.lock` resolved version;
     each ✅ / ❌ cell is computed with {mod}`packaging`. Consecutive ranges
-    whose cells coincide are re-merged into one row. Newest releases sit on
-    top and newest dependency versions on the left, matching the Python axis.
+    whose cells coincide are re-merged into one row. By default newest
+    releases sit on top and newest dependency versions on the left, matching
+    the Python axis; `row_order` and `column_order` flip either axis.
 
     :param label: header column name (the documented package, in backticks).
     :param dep_name: the tracked distribution (`"click"`).
     :param show_spec: add a `Spec` column with each range's raw specifier.
+    :param column_order: left-to-right ordering of the version columns:
+        {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
+    :param row_order: top-to-bottom ordering of the release rows:
+        {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
     :return: rendered markdown table, or `""` when nothing was collected.
+    :raises ValueError: on an unrecognized `column_order` or `row_order`.
     """
+    _validate_order(column_order, "column-order")
+    _validate_order(row_order, "row-order")
     groups = dependency_matrix_groups(
         project_root,
         dep_name,
@@ -749,6 +792,8 @@ def dependency_matrix_table(
     )
     if not columns:
         return ""
+    if column_order == OLDEST_FIRST:
+        columns.reverse()
 
     # Resolve each range's ✅ / ❌ vector, then re-merge consecutive ranges
     # whose vectors coincide (a floor bump that changes no visible cell).
@@ -785,6 +830,8 @@ def dependency_matrix_table(
         )
         spec_cell = [f"`{spec.replace(' ', '')}`"] if show_spec else []
         rows.append([label_cell, first_date, *spec_cell, *cells])
+    if row_order == OLDEST_FIRST:
+        rows.reverse()
     spec_header = ["Spec"] if show_spec else []
     headers = [f"`{label}`", "Released", *spec_header, *(f"`{v}`" for v, _ in columns)]
     colalign = (
@@ -846,6 +893,8 @@ def _render_block(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
     package = options.get("package") or root.name
     tag_pattern = options.get("tag-pattern") or DEFAULT_TAG_PATTERN
     version_floor = options.get("version-floor", "")
+    column_order = options.get("column-order") or NEWEST_FIRST
+    row_order = options.get("row-order") or NEWEST_FIRST
     if axis == "python":
         return python_matrix_table(
             root,
@@ -853,6 +902,8 @@ def _render_block(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
             python_floor=options.get("python-floor", ""),
             version_floor=version_floor,
             tag_pattern=tag_pattern,
+            column_order=column_order,
+            row_order=row_order,
         )
     return dependency_matrix_table(
         root,
@@ -861,7 +912,14 @@ def _render_block(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
         show_spec="show-spec" in options,
         version_floor=version_floor,
         tag_pattern=tag_pattern,
+        column_order=column_order,
+        row_order=row_order,
     )
+
+
+def _order_option(argument: str) -> str:
+    """Validate a `column-order` / `row-order` directive option value."""
+    return directives.choice(argument, ORDER_CHOICES)  # type: ignore[no-any-return]
 
 
 class MatrixDirective(SphinxDirective):
@@ -892,6 +950,10 @@ class MatrixDirective(SphinxDirective):
     - `:version-floor:` — drop release rows below this package version.
     - `:tag-pattern:` — regex selecting release tags. Defaults to
       {data}`DEFAULT_TAG_PATTERN`.
+    - `:column-order:` — left-to-right ordering of the version columns:
+      `newest-first` (default) or `oldest-first`.
+    - `:row-order:` — top-to-bottom ordering of the release rows:
+      `newest-first` (default) or `oldest-first`.
     - `:python-floor:` — (python axis) drop Python columns below `X.Y`.
     - `:show-spec:` — (dependency axis) add a raw-specifier `Spec` column.
 
@@ -909,6 +971,8 @@ class MatrixDirective(SphinxDirective):
         "python-floor": directives.unchanged,
         "version-floor": directives.unchanged,
         "tag-pattern": directives.unchanged,
+        "column-order": _order_option,
+        "row-order": _order_option,
         "show-spec": directives.flag,
     }
 

@@ -236,6 +236,30 @@ def test_python_matrix_table_synthetic(synthetic_repo: Path) -> None:
     assert "❌" in table
 
 
+@pytest.mark.parametrize("column_order", ["newest-first", "oldest-first"])
+def test_python_matrix_table_column_order(
+    synthetic_repo: Path, column_order: str
+) -> None:
+    table = python_matrix_table(synthetic_repo, "my-project", column_order=column_order)
+    newest_first = table.index("`3.12`") < table.index("`3.11`")
+    assert newest_first == (column_order == "newest-first")
+
+
+@pytest.mark.parametrize("row_order", ["newest-first", "oldest-first"])
+def test_python_matrix_table_row_order(synthetic_repo: Path, row_order: str) -> None:
+    # Each tag forms its own single-release group, labeled by its bare version.
+    table = python_matrix_table(synthetic_repo, "my-project", row_order=row_order)
+    newest_on_top = table.index("`2.0.0`") < table.index("`1.0.0`")
+    assert newest_on_top == (row_order == "newest-first")
+
+
+def test_python_matrix_table_invalid_order(synthetic_repo: Path) -> None:
+    with pytest.raises(ValueError, match="column-order"):
+        python_matrix_table(synthetic_repo, "my-project", column_order="sideways")
+    with pytest.raises(ValueError, match="row-order"):
+        python_matrix_table(synthetic_repo, "my-project", row_order="sideways")
+
+
 def test_python_matrix_table_python_floor(synthetic_repo: Path) -> None:
     """``python_floor`` trims the low Python columns from the header."""
     table = python_matrix_table(synthetic_repo, "my-project", python_floor="3.12")
@@ -289,6 +313,23 @@ def test_matrix_python_directive_respects_floors(sphinx_app_myst, synthetic_repo
     assert ">3.12<" in html
     assert ">3.10<" not in html
     assert ">3.11<" not in html
+
+
+def test_matrix_python_directive_order_options(sphinx_app_myst, synthetic_repo):
+    """The `:column-order:` / `:row-order:` options flip both axes."""
+    content = dedent(f"""
+        ```{{matrix}} python
+        :package: my-project
+        :path: {synthetic_repo}
+        :column-order: oldest-first
+        :row-order: oldest-first
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    assert "<table" in html
+    assert html.index(">3.11<") < html.index(">3.12<")
+    assert html.index("1.0.0") < html.index("2.0.0")
 
 
 def test_matrix_python_directive_no_tags_renders_nothing(sphinx_app_myst, tmp_path):
@@ -550,6 +591,28 @@ def test_dependency_matrix_table_columns_and_cells(synthetic_dep_repo: Path) -> 
     assert "✅" in table and "❌" in table
 
 
+@pytest.mark.parametrize("column_order", ["newest-first", "oldest-first"])
+def test_dependency_matrix_table_column_order(
+    synthetic_dep_repo: Path, column_order: str
+) -> None:
+    table = dependency_matrix_table(
+        synthetic_dep_repo, "proj", "widget", column_order=column_order
+    )
+    newest_first = table.index("`2.1.3`") < table.index("`1.0`")
+    assert newest_first == (column_order == "newest-first")
+
+
+@pytest.mark.parametrize("row_order", ["newest-first", "oldest-first"])
+def test_dependency_matrix_table_row_order(
+    synthetic_dep_repo: Path, row_order: str
+) -> None:
+    table = dependency_matrix_table(
+        synthetic_dep_repo, "proj", "widget", row_order=row_order
+    )
+    newest_on_top = table.index("`2.0.0`") < table.index("`1.0.0`")
+    assert newest_on_top == (row_order == "newest-first")
+
+
 def test_dependency_matrix_table_empty(tmp_path: Path) -> None:
     repo = tmp_path / "empty"
     repo.mkdir()
@@ -594,6 +657,21 @@ def test_update_matrix_blocks_marker_form(synthetic_repo, tmp_path) -> None:
     assert "```{matrix}" not in text
     # Idempotent.
     assert update_matrix_blocks([doc]) == []
+
+
+def test_update_matrix_blocks_marker_order_options(synthetic_repo, tmp_path) -> None:
+    """`column-order` / `row-order` marker options flip the refreshed table."""
+    doc = tmp_path / "page.md"
+    doc.write_text(
+        f"<!-- matrix python package=my-project path={synthetic_repo} "
+        "column-order=oldest-first row-order=oldest-first -->\n"
+        "<!-- matrix-end -->\n",
+        encoding="utf-8",
+    )
+    assert update_matrix_blocks([doc]) == [doc]
+    text = doc.read_text(encoding="utf-8")
+    assert text.index("`3.11`") < text.index("`3.12`")
+    assert text.index("`1.0.0`") < text.index("`2.0.0`")
 
 
 def test_marker_form_renders_natively_in_sphinx(sphinx_app_myst) -> None:

@@ -334,7 +334,12 @@ def refresh_directives_cmd(
             missing_extra_message("sphinx", subject="Refreshing directives"),
         ) from error
 
-    changed = set(update_matrix_blocks(paths, check=check))
+    # A matrix block carrying an invalid option value (like a misspelled
+    # column-order) raises ValueError: surface it as a clean CLI error.
+    try:
+        changed = set(update_matrix_blocks(paths, check=check))
+    except ValueError as error:
+        raise ClickException(str(error)) from error
     changed.update(update_mirror_blocks(paths, check=check))
     for path in sorted(changed):
         echo(f"{'would refresh' if check else 'refreshed'}: {path}")
