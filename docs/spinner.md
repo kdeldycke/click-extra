@@ -133,6 +133,31 @@ with Spinner("Fetching forecasts") as spinner:
 
 Both `label` and `echo()` are safe to touch while the animation runs, so a worker thread can stream its own progress mid-task rather than only reporting on completion. A genuine spinner *per* task, several rotating at once on their own lines, is a separate capability: it needs a coordinated multi-line region, which `Spinner` does not attempt.
 
+### The operation trail
+
+The two idioms above (a running `done/total` label, plus one echoed line per finished task) are packaged together as {py:class}`~click_extra.spinner.OperationTrail`, the batch-reporting companion of the [concurrency primitives](execution.md) `run_jobs` and `run_lanes`. Each completed operation leaves a persistent `✓`/`✘` {py:func}`~click_extra.spinner.trail_line` on screen, and {py:meth}`~click_extra.spinner.OperationTrail.finish` closes the batch with a kept summary line:
+
+```python
+from click_extra.execution import run_jobs
+from click_extra.spinner import OperationTrail
+
+jobs = 4
+
+with OperationTrail(label="Fetching", unit="feeds", total=len(feeds), jobs=jobs) as trail:
+    def fetch(feed):
+        trail.mark(*pull(feed))  # pull() returns (ok, message).
+
+    list(run_jobs(fetch, feeds, jobs=jobs))
+    trail.finish(
+        trail.ok_count == len(feeds),
+        f"Fetched {trail.ok_count}/{len(feeds)} feeds",
+    )
+```
+
+The rendering adapts to the batch's concurrency. Run concurrently (`jobs > 1`), one aggregate spinner carries the `Fetching 3/5 feeds` tally while the trail lines stream above it, and the finisher becomes the spinner's kept [`ok()`/`fail()`](#success-and-failure) line, elapsed time included; outcomes landing before the spinner first draws are buffered so nothing leaks onto a stream the (possibly delayed or disabled) spinner never touches. Run sequentially (`jobs <= 1`), there is no aggregate spinner to collide with, so each outcome echoes as a plain line and the finisher appends the elapsed time itself: each operation stays free to keep its own per-call `Spinner`.
+
+Like the spinner, the trail renders only on an interactive stream unless `enabled` forces the matter, so pipes and CI logs stay clean, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.spinner.OperationTrail.ok_count` tally.
+
 ## Styling and color
 
 The spinner's glyph, label and timer are painted with a [`Style`](styling.md) instance: the very type Click Extra's [theme system](theme.md) is built on. The simplest customization is a foreground color:

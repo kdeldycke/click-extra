@@ -643,6 +643,211 @@ class Spinner:
         return wrapper
 
 
+def trail_glyph(ok: bool) -> str:
+    """Return the themed `✓` or `✘` glyph for a trail line or finisher.
+
+    The success glyph {data}`~click_extra.theme.OK_GLYPH` painted with the active
+    theme's `success` slot, or the failure glyph
+    {data}`~click_extra.theme.KO_GLYPH` painted with its `error` slot.
+    """
+    # Lazy import to avoid a circular dependency with theme, as Spinner._finalize
+    # does; the active theme is resolved at call time, not import time.
+    from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
+
+    theme = get_current_theme()
+    return theme.success(OK_GLYPH) if ok else theme.error(KO_GLYPH)
+
+
+def trail_line(ok: bool, message: str) -> str:
+    """Format one `✓`/`✘` trail line: a status glyph followed by `message`."""
+    return f"{trail_glyph(ok)} {message}"
+
+
+class OperationTrail:
+    """A `✓`/`✘` progress trail and finisher for a batch of operations.
+
+    Where {class}`Spinner` narrates *one* long-running call,
+    `OperationTrail` reports a *batch* of them: each completed operation
+    leaves a persistent {func}`trail_line` on screen, a running `done/total`
+    tally keeps the batch's pulse visible, and {meth}`finish` closes with a
+    persistent summary line. The natural reporting companion of the concurrency
+    primitives {func}`~click_extra.execution.run_jobs` and
+    {func}`~click_extra.execution.run_lanes`, rendered one of two ways:
+
+    - **sequential** (`jobs <= 1`): echo each outcome as it lands, with no
+      aggregate spinner (each operation is free to keep its own per-call
+      {class}`Spinner`). {meth}`finish` appends the elapsed time.
+    - **concurrent** (`jobs > 1`): drive one aggregate {class}`Spinner`
+      (per-call spinners would collide on the shared stream), buffering
+      outcomes until it first draws, then streaming the rest live above it.
+
+    Both render only on an interactive stream unless `enabled` forces the
+    matter, so pipes, CI logs and captured test buffers stay clean. The running
+    `✓` tally is kept as outcomes land ({attr}`ok_count`), so a caller computes
+    no counts of its own.
+
+    Thread-safe: {meth}`mark` may be called from worker threads. Use it as a
+    context manager whenever it may run concurrently, to bound the aggregate
+    spinner's life; a purely sequential caller may construct it bare.
+
+    ```{code-block} python
+
+    from click_extra.execution import run_jobs
+    from click_extra.spinner import OperationTrail
+
+    with OperationTrail(label="Fetching", unit="feeds", total=len(feeds),
+                        jobs=jobs) as trail:
+        def fetch(feed):
+            trail.mark(*pull(feed))  # pull() returns (ok, message).
+
+        list(run_jobs(fetch, feeds, jobs=jobs))
+        trail.finish(
+            trail.ok_count == len(feeds),
+            f"Fetched {trail.ok_count}/{len(feeds)} feeds",
+        )
+    ```
+    """
+
+    def __init__(
+        self,
+        *,
+        label: str = "",
+        unit: str = "",
+        total: int = 0,
+        jobs: int = 1,
+        enabled: bool | None = None,
+        echo_sequential: bool = True,
+        delay: float = 0.0,
+        stream: IO[str] | None = None,
+    ) -> None:
+        """Configure (but do not start) the trail.
+
+        :param label: present-tense verb for the running aggregate spinner
+            (`"Fetching"`), composed into its ``{label} {done}/{total} {unit}``
+            tally.
+        :param unit: the noun counted in the spinner tally (`"files"`,
+            `"feeds"`).
+        :param total: how many outcomes are expected, for the `done/total`
+            count.
+        :param jobs: the batch's worker count; `> 1` selects the concurrent
+            rendering (one aggregate spinner), `<= 1` the sequential one
+            (plain echoed lines).
+        :param enabled: force the trail on or off. `None` (the default)
+            auto-detects: the sequential echo renders only on an interactive
+            stream, and the aggregate spinner applies its own TTY gate.
+        :param echo_sequential: whether a sequential batch echoes its outcome
+            lines and finisher at all. Turn it off when the batch has another
+            output that is the real product (a result table) and the trail
+            would be noise; the concurrent spinner is unaffected.
+        :param delay: seconds before the aggregate spinner first draws,
+            forwarded to {class}`Spinner`: a fast batch then completes without
+            ever flashing one.
+        :param stream: where to render; defaults to {data}`sys.stderr` so the
+            trail never mixes into `stdout` data.
+        """
+        self.label = label
+        self.unit = unit
+        self.total = total
+        self.concurrent = jobs > 1
+        self.enabled = enabled
+        self.stream = stream
+        self._delay = delay
+        self._lock = threading.Lock()
+        self._done = 0
+        self._ok = 0
+        self._start = time.monotonic()
+        self._spinner: Spinner | None = None
+        self._buffer: list[str] = []
+        # Sequential rendering echoes plain lines: gate them on an interactive
+        # stream unless `enabled` forces the matter, mirroring the spinner's own
+        # TTY gate on the concurrent side.
+        if self.concurrent or not echo_sequential or enabled is False:
+            self._echo = False
+        elif enabled is True:
+            self._echo = True
+        else:
+            resolved = stream if stream is not None else sys.stderr
+            isatty = getattr(resolved, "isatty", None)
+            self._echo = bool(isatty and isatty())
+
+    def __enter__(self) -> Self:
+        if self.concurrent:
+            self._spinner = Spinner(
+                f"{self.label} 0/{self.total} {self.unit}",
+                delay=self._delay,
+                enabled=self.enabled,
+                timer=True,
+                stream=self.stream,
+            )
+            self._spinner.__enter__()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        if self._spinner is not None:
+            self._spinner.__exit__(exc_type, exc_val, exc_tb)
+            self._spinner = None
+
+    @property
+    def ok_count(self) -> int:
+        """How many marked outcomes have succeeded so far."""
+        return self._ok
+
+    def _echo_line(self, message: str) -> None:
+        """Print one rendered line to the trail's stream."""
+        if self.stream is not None:
+            click.echo(message, file=self.stream)
+        else:
+            click.echo(message, err=True)
+
+    def mark(self, ok: bool, message: str) -> None:
+        """Record one `✓`/`✘` outcome: tally it and render its trail line."""
+        with self._lock:
+            self._done += 1
+            if ok:
+                self._ok += 1
+            if self._spinner is not None:
+                self._buffer.append(trail_line(ok, message))
+                self._spinner.label = (
+                    f"{self.label} {self._done}/{self.total} {self.unit}"
+                )
+                self._flush()
+            elif self._echo:
+                self._echo_line(trail_line(ok, message))
+
+    def _flush(self) -> None:
+        # Caller holds the lock. Drain buffered lines once the spinner is
+        # drawing; before that, writing would leak into a stream the delayed
+        # (or disabled) spinner may never touch.
+        if self._spinner is None or not self._spinner.shown:
+            return
+        for text in self._buffer:
+            self._spinner.echo(text)
+        self._buffer.clear()
+
+    def finish(self, ok: bool, summary: str) -> None:
+        """Render the persistent `✓`/`✘` ``{summary}`` finisher.
+
+        Concurrent, it becomes the aggregate spinner's kept {meth}`Spinner.ok`
+        / {meth}`Spinner.fail` line (with its elapsed time, from the spinner's
+        own timer); sequential, a plain echoed line suffixed with the elapsed
+        time since construction.
+        """
+        if self._spinner is not None:
+            with self._lock:
+                self._flush()
+            if self._spinner.shown:
+                self._spinner.label = summary
+                (self._spinner.ok if ok else self._spinner.fail)()
+        elif self._echo:
+            elapsed = time.monotonic() - self._start
+            self._echo_line(trail_line(ok, f"{summary} ({elapsed:.1f}s)"))
+
+
 class ProgressOption(ExtraOption):
     """A pre-configured `--progress`/`--no-progress` flag gating spinner display.
 

@@ -20,6 +20,7 @@ import io
 import itertools
 import re
 import sys
+import threading
 import time
 from collections.abc import Callable
 
@@ -42,8 +43,10 @@ from click_extra.spinner import (
     _TOUR_CAP,
     _TOUR_CYCLES,
     _TOUR_MIN,
+    OperationTrail,
     _tour_duration,
     active_spinner,
+    trail_line,
 )
 from click_extra.spinner_presets import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
 from click_extra.theme import KO_GLYPH, OK_GLYPH
@@ -777,3 +780,114 @@ def test_active_spinner_ignores_disabled_spinner():
         assert active_spinner() is None
     finally:
         spinner.stop()
+
+
+def test_operation_trail_exported_from_root():
+    assert click_extra.OperationTrail is OperationTrail
+
+
+def test_trail_line_carries_themed_glyphs():
+    assert OK_GLYPH in trail_line(True, "backup saved")
+    assert "backup saved" in trail_line(True, "backup saved")
+    assert KO_GLYPH in trail_line(False, "backup failed")
+
+
+def test_sequential_trail_echoes_lines_and_finisher():
+    """A sequential batch on a TTY echoes each outcome, then a timed finisher."""
+    stream = TTYStringIO()
+    trail = OperationTrail(label="Fetching", unit="feeds", total=2, stream=stream)
+    trail.mark(True, "feed-a fetched")
+    trail.mark(False, "feed-b failed")
+    trail.finish(False, "Fetched 1/2 feeds")
+    lines = stream.getvalue().splitlines()
+    assert len(lines) == 3
+    assert "feed-a fetched" in lines[0] and OK_GLYPH in lines[0]
+    assert "feed-b failed" in lines[1] and KO_GLYPH in lines[1]
+    assert re.search(r"Fetched 1/2 feeds \(\d+\.\ds\)", lines[2])
+    assert trail.ok_count == 1
+
+
+def test_sequential_trail_silent_off_tty():
+    """A non-interactive stream gets no trail at all by default."""
+    stream = io.StringIO()
+    trail = OperationTrail(label="Fetching", unit="feeds", total=1, stream=stream)
+    trail.mark(True, "feed-a fetched")
+    trail.finish(True, "Fetched 1/1 feeds")
+    assert stream.getvalue() == ""
+    # The tally is kept regardless of rendering.
+    assert trail.ok_count == 1
+
+
+def test_sequential_trail_forced_on_pipe():
+    """`enabled=True` forces the sequential echo onto a non-interactive stream."""
+    stream = io.StringIO()
+    trail = OperationTrail(total=1, enabled=True, stream=stream)
+    trail.mark(True, "done")
+    assert "done" in stream.getvalue()
+
+
+def test_sequential_trail_echo_opt_out():
+    """`echo_sequential=False` silences a sequential batch, even on a TTY."""
+    stream = TTYStringIO()
+    trail = OperationTrail(total=1, echo_sequential=False, stream=stream)
+    trail.mark(True, "done")
+    trail.finish(True, "Done 1/1")
+    assert stream.getvalue() == ""
+    assert trail.ok_count == 1
+
+
+def test_concurrent_trail_buffers_until_spinner_draws():
+    """Outcomes marked before the aggregate spinner first draws are buffered,
+    then flushed above it; the finisher becomes the spinner's kept line.
+
+    The draw delay guarantees the first mark lands before the first frame, making
+    the buffering deterministic instead of racing the animation thread.
+    """
+    stream = TTYStringIO()
+    with OperationTrail(
+        label="Syncing",
+        unit="repos",
+        total=2,
+        jobs=2,
+        delay=0.2,
+        stream=stream,
+    ) as trail:
+        # Marked before the first frame: buffered, nothing rendered yet beyond
+        # at most a frame of the spinner itself.
+        trail.mark(True, "repo-a synced")
+        assert "repo-a synced" not in stream.getvalue()
+        assert wait_until(lambda: trail._spinner is not None and trail._spinner.shown)
+        trail.mark(True, "repo-b synced")
+        trail.finish(True, "Synced 2/2 repos")
+    output = stream.getvalue()
+    assert "repo-a synced" in output
+    assert "repo-b synced" in output
+    assert "Synced 2/2 repos" in output
+    assert OK_GLYPH in output
+    assert trail.ok_count == 2
+
+
+def test_concurrent_trail_disabled_stays_silent():
+    """`enabled=False` keeps the concurrent spinner and its buffer off screen."""
+    stream = TTYStringIO()
+    with OperationTrail(total=1, jobs=4, enabled=False, stream=stream) as trail:
+        trail.mark(False, "repo-a failed")
+        trail.finish(False, "Synced 0/1 repos")
+    assert stream.getvalue() == ""
+    assert trail.ok_count == 0
+
+
+def test_concurrent_trail_marks_are_thread_safe():
+    """Concurrent mark() calls from worker threads all land in the tally."""
+    stream = TTYStringIO()
+    with OperationTrail(label="Crunching", total=32, jobs=8, stream=stream) as trail:
+        workers = [
+            threading.Thread(target=trail.mark, args=(True, f"item-{i} done"))
+            for i in range(32)
+        ]
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join()
+        trail.finish(True, "Crunched 32/32 items")
+    assert trail.ok_count == 32

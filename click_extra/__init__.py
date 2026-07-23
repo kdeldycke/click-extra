@@ -194,6 +194,7 @@ from .rst_to_myst import (
 )
 from .spinner import (  # type: ignore[no-redef]
     SPINNERS,
+    OperationTrail,
     ProgressOption,
     Spinner,
     SpinnerPreset,
@@ -323,6 +324,7 @@ __all__ = [
     "NoConfigOption",
     "NoSuchCommand",
     "NoSuchOption",
+    "OperationTrail",
     "Option",
     "OptionGroup",
     "OptionGroupMixin",
