@@ -5,9 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Add `OperationTrail`, a `✓`/`✘` progress trail and finisher for a batch of operations: the batch-reporting companion of `run_jobs`/`run_lanes` and the plural counterpart of `Spinner`. Sequential batches echo one persistent outcome line per operation plus a timed summary; concurrent batches drive a single aggregate spinner carrying a `done/total` tally, stream the outcome lines above it, and keep the summary as the spinner's final `ok()`/`fail()` line. Renders only on an interactive stream unless forced, is thread-safe, and exposes the running success count. The `trail_glyph` and `trail_line` helpers render the themed glyph lines on their own. Extracted from [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager)'s concurrent fan-out reporting.
-- Run each `python:render` `:mirror:` block refreshed by `click-extra refresh-directives` with the source file's directory on `sys.path`, matching the Sphinx build where the `conf.py` directory is importable: a block importing a sibling helper module (a `docs_update.py` next to the page) now works offline too.
+- Add `OperationTrail`, the batch-reporting companion of `run_jobs`/`run_lanes`: each operation leaves a persistent `✓`/`✘` line and the batch closes with a timed summary. Adds the `trail_glyph` and `trail_line` helpers.
 - Add `column-order` and `row-order` options to `{matrix}` blocks (`newest-first`/`oldest-first`), defaulting both axes to `newest-first` so the most recent compatibility information reads from the upper-left corner.
+- Refresh each `python:render` `:mirror:` block through `click-extra refresh-directives` with the source file's directory on `sys.path`, so a block importing a sibling helper module resolves offline as it does at build time.
 - Upload coverage from the once-only test job to Codecov, and move the package-install CLI checks to a dedicated CI job skipped on pull requests.
 
 ## [`8.5.0` (2026-07-22)](https://github.com/kdeldycke/click-extra/compare/v8.4.0...v8.5.0)

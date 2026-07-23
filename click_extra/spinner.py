@@ -112,6 +112,17 @@ def active_spinner(stream: IO[str] | None = None) -> Spinner | None:
     return None
 
 
+def _is_a_tty(stream: IO[str]) -> bool:
+    """Whether `stream` reports itself as an interactive terminal.
+
+    Probes `isatty` defensively through {func}`getattr`: not every stream object
+    exposes the method (a bare buffer, a test double), and a plain
+    `stream.isatty()` would raise there instead of answering "not a terminal".
+    """
+    isatty = getattr(stream, "isatty", None)
+    return bool(isatty and isatty())
+
+
 class Spinner:
     """A thread-animated, indeterminate progress spinner usable as a context
     manager.
@@ -277,8 +288,7 @@ class Spinner:
             return self.enabled
         if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
             return False
-        isatty = getattr(stream, "isatty", None)
-        return bool(isatty and isatty())
+        return _is_a_tty(stream)
 
     def _resolve_color_enabled(self, stream: IO[str]) -> bool:
         """Decide whether to apply ANSI color, orthogonally to whether it animates.
@@ -305,8 +315,7 @@ class Spinner:
             return False
         if "NO_COLOR" in os.environ:
             return False
-        isatty = getattr(stream, "isatty", None)
-        return bool(isatty and isatty())
+        return _is_a_tty(stream)
 
     def _style(self, text: str) -> str:
         """Apply the configured {class}`~click_extra.styling.Style`, or return bare.
@@ -668,10 +677,11 @@ class OperationTrail:
 
     Where {class}`Spinner` narrates *one* long-running call,
     `OperationTrail` reports a *batch* of them: each completed operation
-    leaves a persistent {func}`trail_line` on screen, a running `done/total`
-    tally keeps the batch's pulse visible, and {meth}`finish` closes with a
-    persistent summary line. The natural reporting companion of the concurrency
-    primitives {func}`~click_extra.execution.run_jobs` and
+    leaves a persistent {func}`~click_extra.spinner.trail_line` on screen, a
+    running `done/total` tally keeps the batch's pulse visible, and
+    {meth}`finish` closes with a persistent summary line. The natural
+    reporting companion of the concurrency primitives
+    {func}`~click_extra.execution.run_jobs` and
     {func}`~click_extra.execution.run_lanes`, rendered one of two ways:
 
     - **sequential** (`jobs <= 1`): echo each outcome as it lands, with no
@@ -766,9 +776,7 @@ class OperationTrail:
         elif enabled is True:
             self._echo = True
         else:
-            resolved = stream if stream is not None else sys.stderr
-            isatty = getattr(resolved, "isatty", None)
-            self._echo = bool(isatty and isatty())
+            self._echo = _is_a_tty(stream if stream is not None else sys.stderr)
 
     def __enter__(self) -> Self:
         if self.concurrent:
