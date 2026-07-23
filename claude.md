@@ -55,8 +55,11 @@ $ uv run -- click-extra --help
 
 When making changes:
 
-- **`changelog.md`**: Add a bullet point describing **what** changed (new features, bug fixes, behavior changes), not **why**. Keep entries concise and actionable. Justifications and rationale belong in documentation (`docs/`) or code comments, not in the changelog.
-- **`docs/`**: Update relevant sections when adding/modifying CLI commands, configuration options, or behavior.
+- **`changelog.md`**: Add a bullet point describing **what** changed (new features, bug fixes, behavior changes), not **why**. Justifications and rationale belong in documentation (`docs/`) or code comments, not in the changelog.
+  - **Order within a release section:** `**Breaking:**` entries first, then new features, other changes, bug fixes, and finally docs and tests.
+  - **One sentence per entry, roughly 10-25 words.** Name the change, don't narrate it. A bullet past ~40 words is a smell (`lint-changelog` warns past the `changelog.bullet-word-threshold`).
+  - **Do not mention:** mechanical test updates that accompany a change, short-shelf-life workarounds, or commentary on upstream issues.
+- **`docs/`**: Update relevant sections when adding/modifying CLI commands, configuration options, or behavior. Installation examples use `uv` as the primary installer (`uv tool install` for CLI usage, `uv pip install` for the library); other installers may appear as secondary options.
 
 ### Knowledge placement
 
@@ -260,7 +263,9 @@ GitHub autolinks the bare `owner/repo#N` form only inside conversations (issues,
 
 - All comments in Python files must end with a period.
 - Docstrings and comments use MyST markdown: single-backtick inline code, `` {role}`target` `` cross-references, `[text](url)` links, and backtick-fenced admonitions and code blocks. The `click_extra.sphinx.myst_docstrings` extension converts them back to reST at build time; Sphinx field lists (`:param:`, `:return:`, `:raises:`) keep their reST syntax. Constructs the build-time converter cannot round-trip stay in reST: inline code containing `{` keeps double backticks, and a directive whose body holds a triple-backtick fence stays a reST directive. See the limitations section of `docs/myst-docstrings.md`.
+- **No Google-style docstring sections** (`Args:`, `Returns:`, `Raises:`) and no `sphinx.ext.napoleon`. Use Sphinx field lists: `:param name:`, `:return:` (not `:returns:`), `:raises ExceptionType:`.
 - Documentation in `./docs/` uses MyST markdown format where possible. Fallback to reStructuredText if necessary.
+- **Heading anchors:** use the natural auto-generated heading anchor for cross-references. Add an explicit MyST anchor (`(my-anchor)=`) only when the natural one is unavailable: duplicate headings, non-heading targets.
 - Keep lines within 88 characters in Python files, including docstrings and comments (ruff default). When adding a trailing `# type: ignore[...]` comment would push a line past the limit, reformat the code block (break the expression across multiple lines) so that the ignore comment fits within 88 characters. Markdown files have no line-length limit — do not hard-wrap prose in markdown. Each sentence or logical clause should flow as a single long line; let the renderer handle wrapping.
 - Titles in markdown use sentence case.
 - **Dataclass field docs:** In dataclasses, document fields with attribute docstrings (a string literal immediately after the field declaration), not `:param:` entries in the class docstring. Attribute docstrings are co-located with the field they describe, recognized by Sphinx, and stay in sync when fields are added or reordered. The class docstring should contain only a summary of the class purpose.
@@ -303,6 +308,8 @@ Always prefer long-form options over short-form for readability when invoking co
 
 For single-line commands, use plain inline `run:`. For multi-line, use the folded block scalar (`>`) which joins lines with spaces — no backslash continuations needed. Use literal block scalar (`|`) only when preserved newlines are required (multi-statement scripts, heredocs).
 
+YAML lines may run to 120 characters (yamllint's `line-length` is set to 120 by the upstream lint workflow): do not carry Python's 88-character limit into workflow files.
+
 ### uv flags in CI workflows
 
 When invoking `uv` and `uvx` commands in GitHub Actions workflows:
@@ -317,13 +324,15 @@ When invoking `uv` and `uvx` commands in GitHub Actions workflows:
 ## Testing guidelines
 
 - Use `@pytest.mark.parametrize` when testing the same logic for multiple inputs. Prefer parametrize over copy-pasted test functions that differ only in their data — it deduplicates test logic, improves readability, and makes it trivial to add new cases.
+- **Write conformance tests when fixing a class of bugs.** For a bug that is a *category* (not a one-off), add a generic test locking in the invariant: enumerate the whole population (via `@pytest.mark.parametrize` or a loop), assert the property uniformly on each member, and fail naming the violator.
 - Keep test logic simple with straightforward asserts.
 - Tests should be sorted logically and alphabetically where applicable.
 - Test coverage is tracked with `pytest-cov` and reported to Codecov.
 - Do not use classes for grouping tests. Write test functions as top-level module functions. Only use test classes when they provide shared fixtures, setup/teardown methods, or class-level state.
 - **`@pytest.mark.once` for run-once tests.** Define a custom `once` marker (in `[tool.pytest].markers`) to tag tests that only need to run once — not across the full CI matrix. Typical candidates: CLI entry point invocability, plugin registration, package metadata checks. The main test matrix filters them out with `pytest -m "not once"`, while a dedicated `once-tests` job runs them on a single runner. This avoids wasting CI minutes on redundant cross-platform runs.
-- **CI-only pytest flags belong in workflow steps, not `[tool.pytest].addopts`.** Flags like `--cov-report=xml`, `--junitxml=junit.xml`, and `--override-ini=junit_family=legacy` produce artifacts only needed in CI. Placing them in `addopts` pollutes local test runs with `junit.xml` files and XML coverage reports. Keep `addopts` for flags that apply everywhere (`--cov`, `--cov-report=term`, `--durations`, `--numprocesses`). Pass CI-specific flags in the workflow `run:` step.
-- **Coverage configuration belongs in `[tool.coverage]`.** Use the `[tool.coverage]` section in `pyproject.toml` for `run.branch`, `run.source`, and `report.precision` instead of `--cov=<source>`, `--cov-branch`, and `--cov-precision` flags in `addopts`. This keeps coverage configuration canonical and `addopts` clean. The pytest `addopts` should only contain `--cov` (to activate the plugin) and `--cov-report=term` (for local feedback).
+- **Coverage flags belong in workflow steps, not `[tool.pytest].addopts`.** `addopts` carries only the flags that apply everywhere (`--durations`, `--import-mode=importlib`), so local `uv run pytest` iterations stay fast and coverage-free. Coverage activation and report flags (`--cov`, `--cov-report=term`, `--cov-report=xml`) are passed in the `tests.yaml` `run:` steps, alongside CI-only artifact flags like `--junitxml=junit.xml`.
+- **Coverage configuration belongs in `[tool.coverage]`.** Use the `[tool.coverage]` section in `pyproject.toml` for `run.branch`, `run.source`, and `report.precision` instead of `--cov=<source>`, `--cov-branch`, and `--cov-precision` flags.
+- **The suite is not `pytest-xdist`-safe.** Some tests depend on process-global state (logging configuration, default theme) and fail when run in isolation or reordered. Do not add `--numprocesses` or otherwise parallelize the suite without fixing that isolation first.
 - **Pass `encoding="UTF-8"` to `subprocess.run(..., text=True)` when output may contain non-ASCII bytes.** `text=True` alone uses the platform default (`cp1252` on Windows), raising `UnicodeDecodeError` only in Windows CI.
 - **Pass `encoding="utf-8"` to every text-mode `open()`, `read_text()`, and `write_text()` in tests, same as production.** The same Windows cp1252 default applies to file I/O, and the failure hides until content grows a non-ASCII character (✅/❌ in test fixtures already bit this repo). When a change touches file I/O, run the suite once with `PYTHONWARNDEFAULTENCODING=1` ([PEP 597](https://peps.python.org/pep-0597/)) to surface every bare call at runtime, on any platform.
 
@@ -366,6 +375,10 @@ Do not inline named constants during refactors. If a constant has a name and a d
 - **Type-checking divergence.** Code that passes `mypy` locally may fail in CI where `--python-version 3.10` is used. Always consider the minimum supported Python version.
 - **Simplify before adding.** When asked to improve something, first ask whether existing code or tools already cover the case. Remove dead code and unused abstractions before introducing new ones.
 - **Generator/formatter ping-pong is recurrent.** Any code that writes a checked-in Markdown file competes with the autofix format-markdown job for the canonical layout. After touching such code, run the generator, then `uvx -- repomatic run mdformat -- {file}`, then the generator again, confirming `git diff` stays empty across all three states; if not, align the generator with mdformat. Checked-in JSON has the same trap with format-json: Biome indents JSON with tabs, so generated JSON must serialize with tab indents (`docs/assets/virustotal-scans.json`, written by repomatic's release pipeline, already does).
+- **Trace to root cause before coding a fix.** Audit a bug's scope before writing the patch. If the same pattern appears in multiple places, fix it at the shared layer; if only one call site is affected, check whether the data is on the wrong code path before handling it where it lands.
+- **Route through existing infrastructure, don't bypass it.** Before writing a new helper, check whether the codebase already has a mechanism for the same operation. A bug caused by data taking the wrong code path is better fixed by routing the data to the right path than by duplicating logic at the wrong one.
+- **Angle-bracket placeholders in bash code blocks.** `mdformat-shfmt` runs `shfmt` on ```` ```bash ```` fences, and `shfmt` parses `<foo>` as input redirection and `>foo` as output redirection, then reorders the command. Use curly braces (`{foo}`) for placeholders in bash examples.
+- **`repomatic run {tool} --check` is unreliable for tools with a post-process fixup.** `--check` can report drift the write path would reconcile (false positive) or pass on files it would still rewrite (false negative). To verify or gate formatting, run the write path and inspect `git diff`, never `--check`.
 
 ### Agent behavior policy
 

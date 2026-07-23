@@ -69,9 +69,75 @@ jobs:
 
   once-tests:
     name: 🔂 Once tests
+    needs:
+      - metadata
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - name: Install Python
+        run: uv --no-progress venv --python 3.14
+      - name: Install project
+        run: uv --no-progress sync --frozen --all-extras --group test
+
+      - name: Test wrapper on Click CLIs
+        run: |
+          uv --no-progress run --frozen --with flask -- click-extra             wrap  flask --help
+          uv --no-progress run --frozen --with flask -- click-extra --no-color  wrap  flask --help
+          uv --no-progress run --frozen --with flask -- click-extra             run   flask --help
+          uv --no-progress run --frozen --with flask -- click-extra                   flask --help
+          uv --no-progress run --frozen --with quart -- click-extra             wrap  quart --help
+          uv --no-progress run --frozen --with quart -- click-extra                   quart --help
+
+      - name: Self-test the CLI against its test suite
+        # Dogfood both the test-suite engine and click-extra's own config: the
+        # suite path is resolved from the [tool.click-extra.test-suite] section in
+        # pyproject.toml, discovered from the repo root, then run against the
+        # installed click-extra CLI.
+        run: uv --no-progress run --frozen -- click-extra test-suite --command click-extra --jobs max
+      - name: Self-test the CLI against its test suite via python -m
+        # Same suite as above, driven through the interpreter's `-m` entry
+        # point, so `__main__` stays exercised against the checkout.
+        run: uv --no-progress run --frozen -- click-extra test-suite --command "python -m click_extra" --jobs max
+
+      - name: Run once-only tests
+        # Produce the coverage XML artifact consumed by the Codecov upload below.
+        run: >
+          uv --no-progress run --frozen --
+          pytest -m once
+          --cov
+          --cov-report=term
+          --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        # Same skip conditions as the matrix cells (data-only sync-repomatic
+        # PRs, fork PRs without secrets). No `coverage_cells` membership test:
+        # this job runs exactly once, and its upload keeps the lines only
+        # `once` tests cover counted in the merged report.
+        if: >
+          github.head_ref != 'sync-repomatic'
+          && env.CODECOV_TOKEN != ''
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        shell: bash
+        run: >
+          uvx --no-progress 'codecov-cli==11.3.1'
+          --auto-load-params-from githubactions
+          upload-process
+          --git-service github
+          --report-type coverage
+          --token "${CODECOV_TOKEN}"
+
+  test-package-install:
+    name: 📦 Package install
+    needs:
+      - metadata
+    # Installs click-extra from PyPI and GitHub (released and main branch
+    # versions), never the PR code, so running on pull requests would only
+    # couple PR status to external state.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-slim
+    steps:
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
       - name: Install Python
         run: uv --no-progress venv --python 3.14
@@ -109,36 +175,16 @@ jobs:
           pipx run --spec git+https://github.com/kdeldycke/click-extra  click-extra --version
           uv --no-progress tool uninstall pipx
 
-      - name: Run CLI via pip
+      - name: Run stable CLI via pip
         run: |
-          pip install click-extra
-          click-extra --version
-
-      - name: Install project
-        run: uv --no-progress sync --frozen --all-extras --group test
-
-      - name: Test wrapper on Click CLIs
+          uv --no-progress pip install click-extra
+          .venv/bin/click-extra --version
+          uv --no-progress pip uninstall click-extra
+      - name: Run dev CLI via pip
         run: |
-          uv --no-progress run --frozen --with flask -- click-extra             wrap  flask --help
-          uv --no-progress run --frozen --with flask -- click-extra --no-color  wrap  flask --help
-          uv --no-progress run --frozen --with flask -- click-extra             run   flask --help
-          uv --no-progress run --frozen --with flask -- click-extra                   flask --help
-          uv --no-progress run --frozen --with quart -- click-extra             wrap  quart --help
-          uv --no-progress run --frozen --with quart -- click-extra                   quart --help
-
-      - name: Self-test the CLI against its test suite
-        # Dogfood both the test-suite engine and click-extra's own config: the
-        # suite path is resolved from the [tool.click-extra.test-suite] section in
-        # pyproject.toml, discovered from the repo root, then run against the
-        # installed click-extra CLI.
-        run: uv --no-progress run --frozen -- click-extra test-suite --command click-extra --jobs max
-
-      - name: Run once-only tests
-        run: >
-          uv --no-progress run --frozen --
-          pytest -m once
-          --cov
-          --cov-report=term
+          uv --no-progress pip install git+https://github.com/kdeldycke/click-extra
+          .venv/bin/click-extra --version
+          uv --no-progress pip uninstall click-extra
 
   tests:
     needs:
