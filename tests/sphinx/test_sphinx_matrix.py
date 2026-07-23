@@ -229,6 +229,8 @@ def test_python_matrix_table_synthetic(synthetic_repo: Path) -> None:
     assert "Released" in table
     assert "`3.11`" in table
     assert "`3.12`" in table
+    # Columns run newest-first so the current support sits in the upper-left.
+    assert table.index("`3.12`") < table.index("`3.11`")
     # The table body contains ✅ / ❌ glyphs.
     assert "✅" in table
     assert "❌" in table
@@ -539,6 +541,8 @@ def test_dependency_matrix_table_columns_and_cells(synthetic_dep_repo: Path) -> 
     assert "`1.0`" in table
     assert "`2.1.0`" in table
     assert "`2.1.3`" in table
+    # Columns run newest-first, like the Python axis.
+    assert table.index("`2.1.3`") < table.index("`2.1.0`") < table.index("`1.0`")
     # The Spec column carries each range's raw specifier.
     assert "Spec" in table
     assert "`>=1.0`" in table

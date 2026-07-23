@@ -448,8 +448,9 @@ def python_matrix_table(
 ) -> str:
     """Render the Python compatibility matrix as a GitHub-flavored markdown table.
 
-    Newest releases sit on top so the supported-version streak progresses
-    from the upper-left toward the lower-right corner over time.
+    Newest releases sit on top and newest Python versions on the left, so the
+    most recent compatibility information always sits in the upper-left corner
+    of the table.
 
     :param project_root: git working tree to walk.
     :param label: the header column name (usually the package name, like
@@ -479,6 +480,7 @@ def python_matrix_table(
     all_versions = sorted(
         {v for g in groups for v in g.python_versions},
         key=_version_sort_key,
+        reverse=True,
     )
     if python_floor:
         python_floor_key = _version_sort_key(python_floor)
@@ -637,7 +639,8 @@ def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bo
 
     A minor series gets a single `X.Y` column unless an open (`>=`) spec
     pins a patch-level floor within it, in which case it is split into `X.Y.0`
-    plus each such floor. The `latest` locked version anchors the right edge.
+    plus each such floor. Columns are sorted newest-first, so the `latest`
+    locked version anchors the left edge.
     """
     floors = [
         (floor, is_open)
@@ -656,7 +659,7 @@ def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bo
         split.setdefault((latest_version.major, latest_version.minor), False)
 
     columns: list[tuple[Version, bool]] = []
-    for key in sorted(split):
+    for key in sorted(split, reverse=True):
         major, minor = key
         if not split[key]:
             columns.append((Version(f"{major}.{minor}"), True))
@@ -672,7 +675,7 @@ def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bo
             and (latest_version.major, latest_version.minor) == key
         ):
             patches.add(latest_version)
-        columns.extend((patch, False) for patch in sorted(patches))
+        columns.extend((patch, False) for patch in sorted(patches, reverse=True))
     return columns
 
 
@@ -723,7 +726,8 @@ def dependency_matrix_table(
     Columns are auto-derived from the requirement specifiers across history
     (see {func}`_dependency_columns`) plus the `uv.lock` resolved version;
     each ✅ / ❌ cell is computed with {mod}`packaging`. Consecutive ranges
-    whose cells coincide are re-merged into one row.
+    whose cells coincide are re-merged into one row. Newest releases sit on
+    top and newest dependency versions on the left, matching the Python axis.
 
     :param label: header column name (the documented package, in backticks).
     :param dep_name: the tracked distribution (`"click"`).
