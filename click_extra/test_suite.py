@@ -374,8 +374,15 @@ class CLITestCase:
             command = which(command)  # type: ignore[assignment]
             assert command is not None
 
-        # Check the binary exists and is executable.
-        binary = Path(command).resolve()
+        # Check the binary exists and is executable. `.absolute()`, not
+        # `.resolve()`: resolving a venv interpreter symlink (e.g.
+        # `.venv/bin/python` -> `.../uv/python/cpython-.../bin/python3.14`)
+        # strips the venv context at exec time, since CPython locates its
+        # venv's `pyvenv.cfg` relative to the path it was invoked as. Running
+        # the fully-resolved target directly falls back to the base install
+        # with no site-packages, surfacing as a spurious "No module named
+        # 'click'".
+        binary = Path(command).absolute()
         assert binary.exists()
         assert binary.is_file()
         assert os.access(binary, os.X_OK)

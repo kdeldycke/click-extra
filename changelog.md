@@ -8,6 +8,7 @@
 - Add `OperationTrail`, the batch-reporting companion of `run_jobs`/`run_lanes`: each operation leaves a persistent `✓`/`✘` line and the batch closes with a timed summary. Adds the `trail_glyph` and `trail_line` helpers.
 - Add `column-order` and `row-order` options to `{matrix}` blocks (`newest-first`/`oldest-first`), defaulting both axes to `newest-first` so the most recent compatibility information reads from the upper-left corner.
 - Refresh each `python:render` `:mirror:` block through `click-extra refresh-directives` with the source file's directory on `sys.path`, so a block importing a sibling helper module resolves offline as it does at build time.
+- Fix `test-suite --command` resolving a venv's symlinked Python interpreter (`.venv/bin/python`) to its base target, silently dropping the venv's installed packages.
 - Upload coverage from the once-only test job to Codecov, and move the package-install CLI checks to a dedicated CI job skipped on pull requests.
 
 ## [`8.5.0` (2026-07-22)](https://github.com/kdeldycke/click-extra/compare/v8.4.0...v8.5.0)
