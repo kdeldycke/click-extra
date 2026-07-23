@@ -143,7 +143,10 @@ from click_extra.spinner import OperationTrail
 
 jobs = 4
 
-with OperationTrail(label="Fetching", unit="feeds", total=len(feeds), jobs=jobs) as trail:
+with OperationTrail(
+    label="Fetching", unit="feeds", total=len(feeds), jobs=jobs
+) as trail:
+
     def fetch(feed):
         trail.mark(*pull(feed))  # pull() returns (ok, message).
 
