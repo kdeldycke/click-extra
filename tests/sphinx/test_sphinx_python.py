@@ -24,6 +24,7 @@ Covers ``python:source``, ``python:run``, and the three render variants:
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from textwrap import dedent
 
@@ -444,6 +445,34 @@ def test_update_mirror_blocks_check_mode(tmp_path):
     doc.write_text(_MIRROR_TABLE_BLOCK, encoding="utf-8")
     assert update_mirror_blocks([doc], check=True) == [doc]
     assert doc.read_text(encoding="utf-8") == _MIRROR_TABLE_BLOCK
+
+
+def test_update_mirror_blocks_imports_sibling_module(tmp_path):
+    """A mirror block imports a helper module living next to the page.
+
+    Matches the Sphinx build, where the `conf.py` directory is importable, so
+    a `docs_update.py`-style generator module works offline too. The path
+    entry is scoped to the execution and removed afterwards.
+    """
+    (tmp_path / "sibling_helper_module.py").write_text(
+        'VALUE = "sibling-import-works"\n',
+        encoding="utf-8",
+    )
+    doc = tmp_path / "page.md"
+    doc.write_text(
+        dedent("""\
+            ```{python:render}
+            :mirror:
+            from sibling_helper_module import VALUE
+
+            print(VALUE)
+            ```
+            """),
+        encoding="utf-8",
+    )
+    assert update_mirror_blocks([doc]) == [doc]
+    assert "sibling-import-works" in doc.read_text(encoding="utf-8")
+    assert str(tmp_path) not in sys.path
 
 
 def test_refresh_directives_cli_refreshes_mirror_blocks(tmp_path):

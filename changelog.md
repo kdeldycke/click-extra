@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Run each `python:render` `:mirror:` block refreshed by `click-extra refresh-directives` with the source file's directory on `sys.path`, matching the Sphinx build where the `conf.py` directory is importable: a block importing a sibling helper module (a `docs_update.py` next to the page) now works offline too.
+
 ## [`8.5.0` (2026-07-22)](https://github.com/kdeldycke/click-extra/compare/v8.4.0...v8.5.0)
 
 - **Breaking:** Rename the `--show-params` flag to `--params`. Its parameter ID changes from `show_params` to `params`, its environment variable suffix from `_SHOW_PARAMS` to `_PARAMS`, and `click-extra wrap --show-params` becomes `click-extra wrap --params`. `ShowParamsOption` and `@show_params_option` keep their names.

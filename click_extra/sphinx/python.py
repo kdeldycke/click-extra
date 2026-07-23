@@ -52,6 +52,8 @@ from __future__ import annotations
 import contextlib
 import io
 import re
+import sys
+from pathlib import Path
 
 from docutils import nodes
 from docutils.parsers.rst import Parser as RstParser, directives
@@ -73,7 +75,6 @@ from .click import ClickDirective
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from pathlib import Path
     from typing import ClassVar
 
     from docutils.frontend import Values
@@ -428,11 +429,22 @@ def _execute_mirror_block(
     directive instance exists. Shares `namespace` across the blocks of one
     document so a later block can reuse an earlier block's imports and
     variables.
+
+    The source file's directory is importable while the block runs, matching
+    the Sphinx build where the `conf.py` directory rides `sys.path`: a block
+    importing a sibling helper module (a `docs_update.py` next to the page)
+    behaves the same offline as it does at build time.
     """
     buffer = io.StringIO()
     code = compile("\n".join(body), location, "exec")
-    with contextlib.redirect_stdout(buffer):
-        exec(code, namespace)  # noqa: S102
+    directory = str(Path(location).resolve().parent)
+    sys.path.insert(0, directory)
+    try:
+        with contextlib.redirect_stdout(buffer):
+            exec(code, namespace)  # noqa: S102
+    finally:
+        with contextlib.suppress(ValueError):
+            sys.path.remove(directory)
     return buffer.getvalue().splitlines()
 
 
