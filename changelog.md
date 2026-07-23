@@ -9,6 +9,9 @@
 
 ## [`8.5.0` (2026-07-22)](https://github.com/kdeldycke/click-extra/compare/v8.4.0...v8.5.0)
 
+> [!NOTE]
+> `8.5.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.5.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.5.0).
+
 - **Breaking:** Rename the `--show-params` flag to `--params`. Its parameter ID changes from `show_params` to `params`, its environment variable suffix from `_SHOW_PARAMS` to `_PARAMS`, and `click-extra wrap --show-params` becomes `click-extra wrap --params`. `ShowParamsOption` and `@show_params_option` keep their names.
 - Add the `click_extra.sphinx.myst_docstrings` Sphinx extension: write Python docstrings in MyST markdown, transparently converted to reST at build time, keeping `sphinx.ext.autodoc` and `sphinx_autodoc_typehints` unmodified. Absorbed from `repomatic.myst_docstrings`.
 - Add a `convert-to-myst` subcommand migrating a package's reST docstrings and comments to MyST in place, idempotently: string literals and other runtime code pass through byte-for-byte. Absorbed from `repomatic`, along with the `sphinx-apidoc` stub converter `click_extra.rst_to_myst` and the public `convert_source()`.
