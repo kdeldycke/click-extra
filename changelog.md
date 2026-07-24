@@ -7,6 +7,9 @@
 
 ## [`8.6.0` (2026-07-24)](https://github.com/kdeldycke/click-extra/compare/v8.5.0...v8.6.0)
 
+> [!NOTE]
+> `8.6.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.6.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.6.0).
+
 - Add `OperationTrail`, the batch-reporting companion of `run_jobs`/`run_lanes`: each operation leaves a persistent `✓`/`✘` line and the batch closes with a timed summary. Adds the `trail_glyph` and `trail_line` helpers.
 - Add `column-order` and `row-order` options to `{matrix}` blocks (`newest-first`/`oldest-first`), defaulting both axes to `newest-first` so the most recent compatibility information reads from the upper-left corner.
 - Refresh each `python:render` `:mirror:` block through `click-extra refresh-directives` with the source file's directory on `sys.path`, so a block importing a sibling helper module resolves offline as it does at build time.
