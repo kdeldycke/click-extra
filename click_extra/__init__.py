@@ -508,7 +508,7 @@ del annotations
 del warnings  # noqa: F821
 
 
-__version__ = "8.6.0.dev0"
+__version__ = "8.6.0"
 __git_branch__ = ""
 __git_date__ = ""
 __git_long_hash__ = ""
