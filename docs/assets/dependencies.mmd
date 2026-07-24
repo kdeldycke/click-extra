@@ -3,6 +3,7 @@ flowchart LR
 
     subgraph primary-deps [Primary dependencies]
         extra_platforms{{"`extra-platforms`"}}
+        requests{{"`requests`"}}
         cloup{{"`cloup`"}}
         click_0{{"`click`"}}
         tabulate{{"`tabulate`"}}
@@ -14,8 +15,39 @@ flowchart LR
     end
 
     colorama(["`colorama`"])
+    mkdocs_get_deps(["`mkdocs-get-deps`"])
+    jinja2(["`jinja2`"])
+    packaging(["`packaging`"])
+    exceptiongroup(["`exceptiongroup`"])
+    ghp_import(["`ghp-import`"])
+    markdown(["`markdown`"])
+    markupsafe(["`markupsafe`"])
+    mergedeep(["`mergedeep`"])
+    python_dateutil(["`python-dateutil`"])
+    pyyaml_env_tag(["`pyyaml-env-tag`"])
     typing_extensions(["`typing-extensions`"])
+    alabaster(["`alabaster`"])
+    babel(["`babel`"])
     bracex(["`bracex`"])
+    certifi(["`certifi`"])
+    charset_normalizer(["`charset-normalizer`"])
+    idna(["`idna`"])
+    imagesize(["`imagesize`"])
+    iniconfig(["`iniconfig`"])
+    pathspec(["`pathspec`"])
+    platformdirs(["`platformdirs`"])
+    pluggy(["`pluggy`"])
+    roman_numerals(["`roman-numerals`"])
+    six(["`six`"])
+    snowballstemmer(["`snowballstemmer`"])
+    sphinxcontrib_applehelp(["`sphinxcontrib-applehelp`"])
+    sphinxcontrib_devhelp(["`sphinxcontrib-devhelp`"])
+    sphinxcontrib_htmlhelp(["`sphinxcontrib-htmlhelp`"])
+    sphinxcontrib_jsmath(["`sphinxcontrib-jsmath`"])
+    sphinxcontrib_qthelp(["`sphinxcontrib-qthelp`"])
+    sphinxcontrib_serializinghtml(["`sphinxcontrib-serializinghtml`"])
+    urllib3(["`urllib3`"])
+    watchdog(["`watchdog`"])
 
     subgraph ext_carapace [--extra carapace]
         pyyaml{{"`pyyaml >=6.0.3`"}}
@@ -35,20 +67,7 @@ flowchart LR
 
     subgraph ext_mkdocs [--extra mkdocs]
         mkdocs{{"`mkdocs >=1.4`"}}
-        mkdocs_get_deps(["`mkdocs-get-deps`"])
-        jinja2(["`jinja2`"])
-        packaging(["`packaging`"])
-        ghp_import(["`ghp-import`"])
-        markdown(["`markdown`"])
-        markupsafe(["`markupsafe`"])
-        mergedeep(["`mergedeep`"])
         pymdown_extensions{{"`pymdown-extensions >=10`"}}
-        python_dateutil(["`python-dateutil`"])
-        pyyaml_env_tag(["`pyyaml-env-tag`"])
-        pathspec(["`pathspec`"])
-        platformdirs(["`platformdirs`"])
-        six(["`six`"])
-        watchdog(["`watchdog`"])
         ext_mkdocs_pygments{{"`pygments >=2.14`"}}
     end
 
@@ -58,31 +77,12 @@ flowchart LR
 
     subgraph ext_pytest [--extra pytest]
         pytest{{"`pytest >=9`"}}
-        exceptiongroup(["`exceptiongroup`"])
-        iniconfig(["`iniconfig`"])
-        pluggy(["`pluggy`"])
     end
 
     subgraph ext_sphinx [--extra sphinx]
         sphinx{{"`sphinx >=8`"}}
-        requests{{"`requests`"}}
         pygments{{"`pygments >=2.14`"}}
-        alabaster(["`alabaster`"])
-        babel(["`babel`"])
-        certifi(["`certifi`"])
-        charset_normalizer(["`charset-normalizer`"])
         docutils{{"`docutils >=0.20`"}}
-        idna(["`idna`"])
-        imagesize(["`imagesize`"])
-        roman_numerals(["`roman-numerals`"])
-        snowballstemmer(["`snowballstemmer`"])
-        sphinxcontrib_applehelp(["`sphinxcontrib-applehelp`"])
-        sphinxcontrib_devhelp(["`sphinxcontrib-devhelp`"])
-        sphinxcontrib_htmlhelp(["`sphinxcontrib-htmlhelp`"])
-        sphinxcontrib_jsmath(["`sphinxcontrib-jsmath`"])
-        sphinxcontrib_qthelp(["`sphinxcontrib-qthelp`"])
-        sphinxcontrib_serializinghtml(["`sphinxcontrib-serializinghtml`"])
-        urllib3(["`urllib3`"])
     end
 
     subgraph ext_toml [--extra toml]
@@ -97,6 +97,7 @@ flowchart LR
         ext_yaml_pyyaml{{"`pyyaml >=6.0.3`"}}
     end
 
+    click_extra ==>|" >=2.34 "| requests
     click_extra ==>|" >=8.3.1 "| click_0
     click_extra ==>|" >=3.0.7 "| cloup
     click_extra ==>|" >=2 "| tomli
@@ -112,9 +113,9 @@ flowchart LR
     sphinx --> packaging
     sphinx --> pygments
     sphinx --> tomli
+    sphinx --> docutils
     sphinx --> alabaster
     sphinx --> babel
-    sphinx --> docutils
     sphinx --> imagesize
     sphinx --> roman_numerals
     sphinx --> snowballstemmer
@@ -124,10 +125,10 @@ flowchart LR
     sphinx --> sphinxcontrib_jsmath
     sphinx --> sphinxcontrib_qthelp
     sphinx --> sphinxcontrib_serializinghtml
-    mkdocs --> mkdocs_get_deps
     mkdocs --> pyyaml
     mkdocs --> click_0
     mkdocs --> colorama
+    mkdocs --> mkdocs_get_deps
     mkdocs --> jinja2
     mkdocs --> packaging
     mkdocs --> ghp_import
@@ -139,31 +140,31 @@ flowchart LR
     mkdocs --> watchdog
     pytest --> colorama
     pytest --> packaging
-    pytest --> exceptiongroup
     pytest --> pygments
     pytest --> tomli
+    pytest --> exceptiongroup
     pytest --> iniconfig
     pytest --> pluggy
     requests --> certifi
     requests --> charset_normalizer
     requests --> idna
     requests --> urllib3
-    mkdocs_get_deps --> pyyaml
-    mkdocs_get_deps --> mergedeep
-    mkdocs_get_deps --> platformdirs
     click_0 --> colorama
-    jinja2 --> markupsafe
     cloup --> click_0
     cloup --> typing_extensions
-    exceptiongroup --> typing_extensions
-    ghp_import --> python_dateutil
     pymdown_extensions --> pyyaml
     pymdown_extensions --> markdown
-    python_dateutil --> six
-    pyyaml_env_tag --> pyyaml
     extra_platforms --> pytest
     tabulate --> wcwidth
     wcmatch --> bracex
+    mkdocs_get_deps --> pyyaml
+    mkdocs_get_deps --> mergedeep
+    mkdocs_get_deps --> platformdirs
+    jinja2 --> markupsafe
+    exceptiongroup --> typing_extensions
+    ghp_import --> python_dateutil
+    pyyaml_env_tag --> pyyaml
+    python_dateutil --> six
     click_extra -.-> ext_carapace
     click_extra -.-> ext_hjson
     click_extra -.-> ext_json5
@@ -243,7 +244,6 @@ flowchart LR
     style click_extra stroke-width:3px
     style boltons stroke-width:3px
     style click_0 stroke-width:3px
-    style click_extra stroke-width:3px
     style cloup stroke-width:3px
     style deepmerge stroke-width:3px
     style docutils stroke-width:3px
