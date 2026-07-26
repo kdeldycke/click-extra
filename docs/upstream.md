@@ -297,6 +297,7 @@ PRs and issues still pending upstream.
 
 - [`#1119` - Batch syntax for consecutive same-type directives](https://github.com/executablebooks/MyST-Parser/issues/1119)
 - `content_offset` is inflated by one when a directive's option block precedes a body ending in blank line(s), shifting the reported source line of every body element. Worked around for `myst-parser <= 5.1.0` in `click_extra.sphinx.click._myst_content_offset_inflation`; a root-cause fix is prepared upstream. (The earlier `block_text` alignment [`#1048`](https://github.com/executablebooks/MyST-Parser/pull/1048) was superseded and merged as [`#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164), still unreleased.)
+- The open rework [`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) makes a directive's `content_offset` document-relative (the rST convention) but does not fix the inflation above. When it releases, the MyST branch of the `click:run` error-line math must converge on the rST formula (`content_offset + python_lineno`) instead of adding `directive.lineno`; see the sketch tracked for that migration.
 
 ### [`click-contrib/click-log`](https://github.com/click-contrib/click-log)
 

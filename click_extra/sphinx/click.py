@@ -84,9 +84,14 @@ line(s): the parsed body is rebuilt through a string round-trip that drops
 one trailing blank line, so the option-block line count comes out one too
 high. This shifts the reported source line of every body element down by one.
 
-The bug is fixed upstream in `myst-parser`. Once a fixed release ships and is
-pinned as the floor, delete {func}`_myst_content_offset_inflation`, this
-constant, and the subtraction in {meth}`ClickRunner.run_cli`.
+This fix is not yet upstream: the open rework in
+[`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) does not
+include it, and also makes `content_offset` document-relative. So the release
+that eventually lands the fix requires the MyST branch of
+{meth}`ClickRunner.run_cli` to converge on the rST formula
+(`content_offset + python_lineno`), not merely drop this compensation. Once
+that release is the pinned floor, delete {func}`_myst_content_offset_inflation`
+and this constant. See `docs/upstream.md`.
 """
 
 
