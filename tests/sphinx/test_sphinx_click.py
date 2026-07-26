@@ -849,7 +849,7 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             1,
             5,
         ),
-        pytest.param(
+        (
             FormatType.MYST,
             """\
             ```{{click:run}}
@@ -863,12 +863,6 @@ def test_sphinx_directive_state_persistence(sphinx_app):
             """,
             1,
             4,
-            marks=pytest.mark.xfail(
-                reason="MyST line reporting is off: "
-                "https://github.com/executablebooks/MyST-Parser/pull/1048",
-                # This is going to fail unless MyST is fixed upstream.
-                strict=True,
-            ),
         ),
     ],
     indirect=["sphinx_app_for_format"],

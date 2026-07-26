@@ -46,6 +46,7 @@ from functools import cached_property, partial
 import click
 from click.testing import CliRunner, EchoingStdin
 from docutils import nodes
+from packaging.version import Version
 from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.util import logging
@@ -72,6 +73,47 @@ logger = logging.getLogger(__name__)
 
 RST_INDENT = " " * 3
 """The indentation used for rST code blocks lines."""
+
+
+MYST_CONTENT_OFFSET_INFLATED_MAX = Version("5.1.0")
+"""Last `myst-parser` release that miscomputes a directive's `content_offset`.
+
+Up to and including this version, `myst-parser` over-counts `content_offset`
+by one whenever an option block is followed by a body ending in blank
+line(s): the parsed body is rebuilt through a string round-trip that drops
+one trailing blank line, so the option-block line count comes out one too
+high. This shifts the reported source line of every body element down by one.
+
+The bug is fixed upstream in `myst-parser`. Once a fixed release ships and is
+pinned as the floor, delete {func}`_myst_content_offset_inflation`, this
+constant, and the subtraction in {meth}`ClickRunner.run_cli`.
+"""
+
+
+def _myst_content_offset_inflation(directive: SphinxDirective) -> int:
+    """Lines to subtract from the MyST error-line computation (`0` or `1`).
+
+    Works around the {data}`MYST_CONTENT_OFFSET_INFLATED_MAX` bug so the
+    variable-conflict error points at the true source line. Only engages on an
+    affected `myst-parser`, and only when the directive carries both an option
+    block and a body ending in a blank line: the two conditions that together
+    trigger the inflation.
+
+    ```{caution}
+    The round-trip behind the bug consumes the *first* trailing blank line, so
+    a body ending in exactly one blank line inflates `content_offset` without
+    leaving a trace in `directive.content`. That single-blank case therefore
+    stays off by one until the upstream fix is adopted; bodies ending in two or
+    more blank lines are corrected.
+    ```
+    """
+    myst = sys.modules.get("myst_parser")
+    if myst is None or Version(myst.__version__) > MYST_CONTENT_OFFSET_INFLATED_MAX:
+        return 0
+    body = list(directive.content)
+    if directive.options and body and not body[-1].strip():
+        return 1
+    return 0
 
 
 _CLIRUNNER_HAS_CAPTURE = "capture" in inspect.signature(CliRunner.__init__).parameters
@@ -311,9 +353,12 @@ class ClickRunner(CliRunner):
                     doc_lineno = (
                         directive.lineno + directive.content_offset + python_lineno
                     )
-                    # XXX MyST absolute error line reporting is broken in some
-                    # situations, see:
-                    # https://github.com/executablebooks/MyST-Parser/pull/1048
+                    # Correct a myst-parser <= 5.1.0 bug that inflates
+                    # content_offset by one when an option block precedes a body
+                    # ending in blank line(s). See the mechanism and the
+                    # single-trailing-blank caveat in
+                    # _myst_content_offset_inflation().
+                    doc_lineno -= _myst_content_offset_inflation(directive)
                 else:
                     # In rST, the content offset is the absolute position at which
                     # the source code starts in the document.

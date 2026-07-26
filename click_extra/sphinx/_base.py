@@ -58,8 +58,14 @@ def directive_source(directive: SphinxDirective) -> tuple[str, str]:
     package, so callers needing the raw source (for an AST conflict check, say)
     do not re-derive it independently of {func}`compile_directive`.
     """
-    # Use directive.content instead of directive.block_text as the latter
-    # includes the directive text itself in rST.
+    # Use directive.content, not directive.block_text: block_text is body-only
+    # in myst-parser <= 5.1.0, and includes the directive header and options in
+    # rST. executablebooks/MyST-Parser#1164 (merged, not yet released) aligns
+    # MyST's block_text with rST's full-directive form. Once a myst-parser
+    # release ships #1164, block_text could anchor a robust line-number
+    # computation and retire the content_offset workaround in click.py (see
+    # click.MYST_CONTENT_OFFSET_INFLATED_MAX); until then, stay on
+    # directive.content.
     source_code = "\n".join(directive.content)
     # The location string Sphinx reports in tracebacks for this directive.
     location = directive.get_location()
