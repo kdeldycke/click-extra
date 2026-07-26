@@ -297,6 +297,13 @@ typing = [
   "types-xmltodict>=1.0.1.20250920",
 ]
 
+[tool.setuptools]
+# Distributors like Guix that lack uv-build fall back to setuptools, which
+# installs only *.py and would drop the bundled themes.toml and py.typed. This
+# section is a compatibility shim for those builds; uv-build ignores it (it uses
+# [tool.uv].build-backend.module-root instead).
+package-data.click_extra = [ "*.toml", "py.typed" ]
+
 [tool.uv]
 # We rely on recent Python features in some of our {click:run} directives.
 dependency-groups.docs = { requires-python = ">= 3.14" }
@@ -306,6 +313,25 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 exclude-newer = "1 week"
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
+# Ship the test suite (and the docs and CI files it reads) in the sdist so
+# distribution packagers can build and test straight from the PyPI sdist instead
+# of fetching a GitHub tag tarball. source-include feeds the sdist only; the
+# wheel stays module-only. Git-ignored build output is pruned via source-exclude.
+build-backend.source-include = [
+  ".github/**",
+  "changelog.md",
+  "docs/**",
+  "tests/**",
+]
+build-backend.source-exclude = [
+  "**/*.bak",
+  "**/.DS_Store",
+  "**/__pycache__",
+  "docs/_build",
+  "docs/_linkcheck",
+  "docs/html",
+  "tests/.coverage",
+]
 required-version = ">=0.11.23,<0.12"
 
 [tool.nuitka]

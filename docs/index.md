@@ -51,6 +51,7 @@ benchmark
 :maxdepth: 2
 :hidden:
 contributing
+packaging
 API <click_extra>
 tests
 genindex
