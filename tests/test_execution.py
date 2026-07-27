@@ -925,11 +925,31 @@ def test_run_cli_new_session_makes_child_group_leader():
     assert pgid != os.getpgid(0)
 
 
+def _is_unreaped_zombie(pid: int) -> bool:
+    """Return whether ``pid`` is a zombie: killed but not yet reaped.
+
+    A build sandbox with no init to reap orphans (e.g. an Alpine ``abuild``
+    container) leaves a SIGKILL'd process lingering as a zombie, which
+    ``os.kill(pid, 0)`` still reports as alive. Only Linux exposes the state
+    through ``/proc``; elsewhere a real reaper collects the process, so the
+    plain existence check is enough.
+    """
+    try:
+        with open(f"/proc/{pid}/stat", encoding="ascii") as stat_file:
+            # The state letter follows the ")" that closes the comm field,
+            # which may itself contain spaces or parentheses.
+            return stat_file.read().rpartition(")")[2].split()[0] == "Z"
+    except OSError:
+        return False
+
+
 def _assert_process_dies(pid: int, deadline_seconds: float = 5.0) -> None:
     """Poll until ``pid`` is gone, killing it and failing if it survives.
 
     Signal delivery and the reparenting of orphans to the reaper are
-    asynchronous, so the check retries briefly instead of asserting at once.
+    asynchronous, so the check retries briefly instead of asserting at once. A
+    zombie counts as gone: it has already been killed, only its reaping is
+    pending (which never comes in a reaper-less sandbox).
     """
     deadline = monotonic() + deadline_seconds
     while monotonic() < deadline:
@@ -939,6 +959,8 @@ def _assert_process_dies(pid: int, deadline_seconds: float = 5.0) -> None:
             return
         except PermissionError:
             # Very unlikely PID reuse by another user: consider it gone.
+            return
+        if _is_unreaped_zombie(pid):
             return
         sleep(0.05)
     os.kill(pid, signal.SIGKILL)  # Don't leak the sleeper past the test.

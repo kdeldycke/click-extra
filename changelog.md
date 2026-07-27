@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Treat an unreaped zombie as a dead process in the `run_cli` process-group teardown tests, so they pass in a build sandbox with no init to reap orphans (like Alpine's `abuild` container).
+
 ## [`8.6.1` (2026-07-27)](https://github.com/kdeldycke/click-extra/compare/v8.6.0...v8.6.1)
 
 > [!NOTE]
