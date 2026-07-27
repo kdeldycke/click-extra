@@ -56,7 +56,8 @@ $ uv run -- click-extra --help
 When making changes:
 
 - **`changelog.md`**: Add a bullet point describing **what** changed (new features, bug fixes, behavior changes), not **why**. Justifications and rationale belong in documentation (`docs/`) or code comments, not in the changelog.
-  - **Order within a release section:** `**Breaking:**` entries first, then new features, other changes, bug fixes, and finally docs and tests.
+  - **Order within a release section:** `**Breaking:**` entries first, then `**Deprecated:**` entries, then new features, other changes, bug fixes, and finally docs and tests.
+  - **`**Breaking:**` vs `**Deprecated:**`:** use `**Breaking:**` when the old symbol or behavior is gone and code must change to keep working; use `**Deprecated:**` when the old surface still resolves but emits a `DeprecationWarning` and is scheduled for removal in a named future release (like `9.0.0`). See `click_extra/_deprecated.py` for the alias registry backing the latter.
   - **One sentence per entry, roughly 10-25 words.** Name the change, don't narrate it. A bullet past ~40 words is a smell (`lint-changelog` warns past the `changelog.bullet-word-threshold`).
   - **Do not mention:** mechanical test updates that accompany a change, short-shelf-life workarounds, or commentary on upstream issues.
 - **`docs/`**: Update relevant sections when adding/modifying CLI commands, configuration options, or behavior. Installation examples use `uv` as the primary installer (`uv tool install` for CLI usage, `uv pip install` for the library); other installers may appear as secondary options.

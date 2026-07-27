@@ -1241,3 +1241,14 @@ class VersionOption(ExtraOption):
 
         echo(self.render_message(), color=ctx.color)
         ctx.exit()
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve deprecated `version` symbols via the PEP 562 `__getattr__` hook.
+
+    The pre-baking helpers moved to {mod}`click_extra.prebake`. Fires only for
+    names not defined in this module. See {mod}`click_extra._deprecated`.
+    """
+    from ._deprecated import resolve_deprecated
+
+    return resolve_deprecated(__name__, name)

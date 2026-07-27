@@ -24,6 +24,8 @@ TYPE_CHECKING = False
 # before the star imports, makes mypy treat the later bindings as no-redefs and keeps
 # click-extra's subclasses canonical for consumers of this package.
 if TYPE_CHECKING:
+    from typing import Any
+
     from .commands import Command, Group
     from .context import Context, pass_context
     from .highlight import HelpFormatter
@@ -515,3 +517,14 @@ __git_long_hash__ = ""
 __git_short_hash__ = ""
 __git_tag__ = ""
 __git_tag_sha__ = ""
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve deprecated top-level symbols via the PEP 562 `__getattr__` hook.
+
+    Fires only for names not defined in this module, so live exports stay
+    zero-overhead. See {mod}`click_extra._deprecated`.
+    """
+    from ._deprecated import resolve_deprecated
+
+    return resolve_deprecated(__name__, name)

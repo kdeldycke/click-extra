@@ -428,23 +428,38 @@ def test_cli_frame_fallback(monkeypatch):
     """``cli_frame()`` falls back to the outermost frame when all frames are
     from the Click ecosystem."""
     original_stack = inspect.stack
+    # Rewriting f_globals["__name__"] mutates real module dicts (the frame
+    # running cli_frame() lives in click_extra.version). Record each dict's
+    # original __name__ so the patch is undone; otherwise the bogus name leaks
+    # into every later test that reads that module's __name__.
+    saved_names: dict[int, tuple[dict, object]] = {}
+    missing = object()
 
     def patched_stack():
         """Make every frame look like it belongs to click_extra."""
         frames = original_stack()
         for frame_info in frames:
-            frame_info.frame.f_globals.setdefault("__name__", "")
-            # Temporarily override __name__ so the heuristic skips all frames.
-            frame_info.frame.f_globals["__name__"] = (
-                "click_extra." + frame_info.function
+            frame_globals = frame_info.frame.f_globals
+            saved_names.setdefault(
+                id(frame_globals),
+                (frame_globals, frame_globals.get("__name__", missing)),
             )
+            # Temporarily override __name__ so the heuristic skips all frames.
+            frame_globals["__name__"] = "click_extra." + frame_info.function
         return frames
 
     monkeypatch.setattr(inspect, "stack", patched_stack)
 
-    # Should not raise RuntimeError; instead falls back to outermost frame.
-    frame = VersionOption.cli_frame()
-    assert frame is not None
+    try:
+        # Should not raise RuntimeError; instead falls back to outermost frame.
+        frame = VersionOption.cli_frame()
+        assert frame is not None
+    finally:
+        for frame_globals, original in saved_names.values():
+            if original is missing:
+                frame_globals.pop("__name__", None)
+            else:
+                frame_globals["__name__"] = original
 
 
 @pytest.mark.parametrize(

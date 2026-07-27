@@ -34,13 +34,16 @@ from boltons.tbutils import ExceptionInfo
 from cloup import Color
 
 # The CLI-invocation serialization and disclosure atoms moved to
-# click_extra.execution once production code (subprocess wrappers, not just tests)
-# started depending on them. This module still consumes them, which keeps their
-# historical click_extra.testing import path working.
+# click_extra.execution once production code (subprocess wrappers, not just
+# tests) started depending on them. They are imported here under private names
+# for this module's own use; their historical public click_extra.testing names
+# (INDENT, PROMPT, args_cleanup, format_cli_prompt) still resolve through the
+# deprecated-alias __getattr__ hook at the bottom of this module. See
+# click_extra._deprecated.
 from .execution import (
-    INDENT,
-    args_cleanup,
-    format_cli_prompt,
+    INDENT as _INDENT,
+    args_cleanup as _args_cleanup,
+    format_cli_prompt as _format_cli_prompt,
 )
 from .parameters import patch_attr
 from .styling import Style
@@ -148,7 +151,7 @@ def render_cli_run(
 
     Mostly used to print debug traces to user or in test results.
     """
-    prompt = format_cli_prompt(args, env)
+    prompt = _format_cli_prompt(args, env)
 
     if isinstance(result, click.testing.Result):
         view = StreamView.from_result(result)
@@ -168,7 +171,7 @@ def render_cli_run(
         content = getattr(view, attr)
         if content:
             trace.append(f"{Style(fg=stream_colors[label])(label)} stream:")
-            trace.append(indent(content, INDENT))
+            trace.append(indent(content, _INDENT))
     if view.exit_code is not None:
         trace.append(f"{Style(fg=Color.yellow)(EXIT_CODE_LABEL)}: {view.exit_code}")
     return "\n".join(trace)
@@ -283,7 +286,7 @@ class CliRunner(click.testing.CliRunner):
         if "args" in extra:
             cli_args.extend(extra.pop("args"))
         # Flatten and filters out CLI arguments.
-        clean_args = args_cleanup(*cli_args)
+        clean_args = _args_cleanup(*cli_args)
 
         if color == "forced":
             # Pass the color argument as an extra parameter to the invoked CLI.
@@ -430,3 +433,15 @@ def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:
             )
         else:
             raise RegexLineMismatch(regex_line, content_line, i + 1)
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve deprecated `testing` symbols via the PEP 562 `__getattr__` hook.
+
+    INDENT, PROMPT, args_cleanup and format_cli_prompt moved to
+    {mod}`click_extra.execution`. Fires only for names not defined in this
+    module. See {mod}`click_extra._deprecated`.
+    """
+    from ._deprecated import resolve_deprecated
+
+    return resolve_deprecated(__name__, name)
