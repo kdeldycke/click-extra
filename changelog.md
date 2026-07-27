@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.6.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.6.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.6.1` (2026-07-27)](https://github.com/kdeldycke/click-extra/compare/v8.6.0...v8.6.1)
 
 - **Deprecated:** `ClickExtraConfig`, `PrebakeConfig` and `TestSuiteConfig` resolve again from the top-level `click_extra` namespace, warning and redirecting to `click_extra.config`; removed in `9.0.0`.
