@@ -7,6 +7,9 @@
 
 ## [`8.6.1` (2026-07-27)](https://github.com/kdeldycke/click-extra/compare/v8.6.0...v8.6.1)
 
+> [!NOTE]
+> `8.6.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.6.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.6.1).
+
 - **Deprecated:** `ClickExtraConfig`, `PrebakeConfig` and `TestSuiteConfig` resolve again from the top-level `click_extra` namespace, warning and redirecting to `click_extra.config`; removed in `9.0.0`.
 - **Deprecated:** The `click_extra.test_plan` module and the top-level `TestPlanConfig`, `parse_test_plan`, `run_test_plan` and `DEFAULT_TEST_PLAN` names warn and resolve to their `test_suite` replacements; removed in `9.0.0`.
 - **Deprecated:** `prebake_dunder`, `prebake_version` and `discover_package_init_files` resolve again from `click_extra.version`, warning and redirecting to `click_extra.prebake`; removed in `9.0.0`.
