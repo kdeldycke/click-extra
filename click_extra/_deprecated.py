@@ -73,6 +73,24 @@ Replacement paths are relative to the top-level `click_extra` package, which
 """
 
 
+def deprecation_message(subject: str, replacement: str) -> str:
+    """Standard deprecation notice for `subject`, pointing at `replacement`.
+
+    Single source for the wording every deprecation warning in the package
+    shares: the module `__getattr__` hooks (through {func}`resolve_deprecated`)
+    and the {mod}`click_extra.test_plan` import shim. Threads in
+    {data}`REMOVAL_VERSION` so the announced removal release lives in one place.
+
+    :param subject: dotted name of the deprecated symbol or module.
+    :param replacement: dotted name of what to use instead.
+    :return: the warning message text.
+    """
+    return (
+        f"{subject} is deprecated and will be removed in click-extra "
+        f"{REMOVAL_VERSION}, use {replacement} instead."
+    )
+
+
 def resolve_deprecated(module_id: str, name: str) -> Any:
     """Resolve an attribute access delegated from a module's `__getattr__` hook.
 
@@ -102,8 +120,7 @@ def resolve_deprecated(module_id: str, name: str) -> Any:
         raise AttributeError(f"module {module_id!r} has no attribute {name!r}")
     full_target = f"{module_id.split('.', 1)[0]}.{target}"
     warnings.warn(
-        f"{module_id}.{name} is deprecated and will be removed in click-extra "
-        f"{REMOVAL_VERSION}, use {full_target} instead.",
+        deprecation_message(f"{module_id}.{name}", full_target),
         DeprecationWarning,
         stacklevel=3,
     )

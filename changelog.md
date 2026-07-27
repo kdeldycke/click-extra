@@ -9,7 +9,10 @@
 - **Deprecated:** The `click_extra.test_plan` module and the top-level `TestPlanConfig`, `parse_test_plan`, `run_test_plan` and `DEFAULT_TEST_PLAN` names warn and resolve to their `test_suite` replacements; removed in `9.0.0`.
 - **Deprecated:** `prebake_dunder`, `prebake_version` and `discover_package_init_files` resolve again from `click_extra.version`, warning and redirecting to `click_extra.prebake`; removed in `9.0.0`.
 - **Deprecated:** Importing `INDENT`, `PROMPT`, `args_cleanup` or `format_cli_prompt` from `click_extra.testing` now warns and redirects to `click_extra.execution`; removed in `9.0.0`.
+- Ship the test suite and the docs and CI files it reads in the PyPI sdist, so downstream packagers can build and test without a Git checkout.
+- Add a `[tool.setuptools]` shim so builds that fall back to setuptools still bundle the `themes.toml` and `py.typed` data files.
 - Fix the source line reported in `click:run` variable-conflict errors when a MyST directive's body ends in blank lines.
+- Fix the MkDocs test tree erroring instead of self-skipping when `mkdocs-click` is absent but `mkdocs` and `pymdown-extensions` are present.
 
 ## [`8.6.0` (2026-07-24)](https://github.com/kdeldycke/click-extra/compare/v8.5.0...v8.6.0)
 

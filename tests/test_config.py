@@ -345,7 +345,7 @@ PYPROJECT_TOML_FILE, PYPROJECT_TOML_DATA = (
 
 all_config_formats = pytest.mark.parametrize(
     ("conf_name, conf_text, conf_data"),
-    (
+    [
         pytest.param(f"configuration.{ext}", content, data, id=ext)
         for ext, content, data in (
             ("toml", TOML_FILE, TOML_DATA),
@@ -354,7 +354,7 @@ all_config_formats = pytest.mark.parametrize(
             ("ini", INI_FILE, INI_DATA),
             ("xml", XML_FILE, XML_DATA),
         )
-    ),
+    ],
 )
 
 
@@ -765,9 +765,9 @@ def test_conf_metadata(
         assert result.stdout == (
             f"conf_source={conf_path}\n"
             f"conf_full={conf_data}\n"
-            # No configuration values match the CLI's parameter structure, so default
-            # map is left untouched.
-            "default_map={}\n"
+            # No configuration values match the CLI's parameter structure, so the
+            # ChainMap layered onto the existing default_map holds two empty maps.
+            "default_map=ChainMap({}, {})\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path}\n"
         assert result.exit_code == 0

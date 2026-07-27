@@ -30,5 +30,7 @@ import importlib.util
 # skip the whole tree through ``collect_ignore_glob`` rather than failing
 # collection on ``test_mkdocs.py``'s imports. Downstream packagers therefore no
 # longer need ``--ignore=tests/mkdocs``.
-if any(importlib.util.find_spec(m) is None for m in ("mkdocs", "pymdownx")):
+if any(
+    importlib.util.find_spec(m) is None for m in ("mkdocs", "mkdocs_click", "pymdownx")
+):
     collect_ignore_glob = ["*.py"]

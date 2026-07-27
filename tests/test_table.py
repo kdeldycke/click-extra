@@ -732,10 +732,10 @@ def _table_format_marks(format_name):
 )
 @pytest.mark.parametrize(
     ("format_name", "expected"),
-    (
+    [
         pytest.param(k, v, id=str(k), marks=_table_format_marks(k))
         for k, v in expected_renderings.items()
-    ),
+    ],
 )
 def test_all_table_rendering(
     invoke, cmd_decorator, option_decorator, format_name, expected
@@ -766,11 +766,11 @@ def test_all_table_rendering(
 
 @pytest.mark.parametrize(
     "format_id",
-    (
+    [
         pytest.param(f, id=str(f))
         for f in TableFormat
         if f.is_markup and not f.supports_styling
-    ),
+    ],
 )
 def test_markup_strips_ansi_by_default(invoke, format_id):
     """Markup formats without native styling strip ANSI codes by default."""
@@ -791,11 +791,11 @@ def test_markup_strips_ansi_by_default(invoke, format_id):
 
 @pytest.mark.parametrize(
     "format_id",
-    (
+    [
         pytest.param(f, id=str(f))
         for f in TableFormat
         if f.is_markup and not f.supports_styling and f not in SERIALIZATION_FORMATS
-    ),
+    ],
 )
 def test_markup_preserves_ansi_with_color_flag(invoke, format_id):
     """``--color`` overrides ANSI stripping for non-styled markup formats."""
@@ -857,7 +857,7 @@ def test_styled_formats_all_have_samples():
 @pytest.mark.parametrize("flags", ((), ("--color",)), ids=("default", "forced-color"))
 @pytest.mark.parametrize(
     ("format_id", "styled_cell"),
-    (pytest.param(k, v, id=str(k)) for k, v in STYLED_MARKUP_SAMPLES.items()),
+    [pytest.param(k, v, id=str(k)) for k, v in STYLED_MARKUP_SAMPLES.items()],
 )
 def test_styled_formats_translate_ansi(invoke, format_id, styled_cell, flags):
     """Styled formats translate ANSI codes to native markup, by default and
@@ -879,7 +879,7 @@ def test_styled_formats_translate_ansi(invoke, format_id, styled_cell, flags):
 
 @pytest.mark.parametrize(
     "format_id",
-    (pytest.param(f, id=str(f)) for f in STYLED_FORMATS),
+    [pytest.param(f, id=str(f)) for f in STYLED_FORMATS],
 )
 def test_styled_formats_strip_ansi_with_no_color(invoke, format_id):
     """Disabling colors renders styled formats plain, with no translation."""

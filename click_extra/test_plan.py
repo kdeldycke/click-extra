@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import warnings
 
-from ._deprecated import REMOVAL_VERSION
+from ._deprecated import deprecation_message
 from .test_suite import (
     DEFAULT_TEST_SUITE as DEFAULT_TEST_PLAN,
     CLITestCase,
@@ -36,8 +36,7 @@ from .test_suite import (
 )
 
 warnings.warn(
-    f"click_extra.test_plan is deprecated and will be removed in click-extra "
-    f"{REMOVAL_VERSION}, use click_extra.test_suite instead.",
+    deprecation_message("click_extra.test_plan", "click_extra.test_suite"),
     DeprecationWarning,
     stacklevel=2,
 )

@@ -892,7 +892,7 @@ def test_integrated_show_params_option(invoke, create_config):
 
 @pytest.mark.parametrize(
     "args_order",
-    permutations(("--params", "--table-format=csv", "--no-color")),
+    tuple(permutations(("--params", "--table-format=csv", "--no-color"))),
     ids=lambda p: " ".join(p),
 )
 def test_show_params_table_format_ordering(invoke, args_order):
@@ -1281,7 +1281,7 @@ def test_nested_subcommand_no_false_conflict_with_root_param(invoke):
 # Shuffle the order of declaration to ensure behavior stability.
 @pytest.mark.parametrize(
     ("opt1", "opt2"),
-    permutations((show_params_option, table_format_option)),
+    tuple(permutations((show_params_option, table_format_option))),
 )
 @pytest.mark.parametrize("table_format", TableFormat)
 def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
@@ -1485,7 +1485,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
 # Shuffle the order of declaration to ensure behavior stability.
 @pytest.mark.parametrize(
     ("opt1", "opt2", "opt3"),
-    permutations((show_params_option, table_format_option, color_option)),
+    tuple(permutations((show_params_option, table_format_option, color_option))),
 )
 @pytest.mark.parametrize("table_format", TableFormat)
 def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):

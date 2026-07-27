@@ -1,6 +1,6 @@
 # Downstream packaging
 
-This page is for distribution packagers building `click-extra` from source, either a PyPI sdist or a Git tag. To install it on your own system, use `pip install click-extra` or your distribution's package.
+This page is for distribution packagers building `click-extra` from source, either a PyPI sdist or a Git tag. To install it on your own system, use `uv pip install click-extra` or your distribution's package.
 
 ## Building
 
@@ -14,8 +14,8 @@ A plain `pytest` run is friendly to a hermetic build sandbox:
 
 - **Network tests are marked.** Exclude them with `-m "not network"`: the build sandbox has no outbound network.
 - **Configuration-discovery tests are `HOME`-independent.** The `runner` fixture pins `HOME` (and its platform equivalents) to an isolated directory, so the handful of tests asserting on the config-search debug output stay deterministic even where `HOME=/homeless-shelter` (Guix, Nixpkgs).
-- **The MkDocs tests self-skip when their extras are missing.** `tests/mkdocs/` needs `mkdocs-click` and `pymdown-extensions`; `tests/mkdocs/conftest.py` skips the whole tree through `collect_ignore_glob` when either is absent, so no `--ignore=tests/mkdocs` is needed.
-- **The Sphinx tests self-skip too**, when the `[sphinx]` documentation extra is not installed.
+- **The MkDocs tests self-skip when their extras are missing.** `tests/mkdocs/` needs the MkDocs documentation extras (`mkdocs`, `mkdocs-click`, `pymdown-extensions`); `tests/mkdocs/conftest.py` skips the whole tree through `collect_ignore_glob` when any of them is absent, so no `--ignore=tests/mkdocs` is needed.
+- **The Sphinx tests self-skip too**, when `sphinx` or `myst-parser` is absent.
 
 The recommended invocation for a hermetic builder is therefore:
 
@@ -23,7 +23,7 @@ The recommended invocation for a hermetic builder is therefore:
 $ pytest -m "not network"
 ```
 
-Several test modules import optional libraries at collection time (`hjson`, `jsonschema`, `pygments`, `pytest-httpserver`, `tomlkit`, `xmltodict`, and others) to exercise the matching features. Install them to run the full suite, as the [project's own CI](https://github.com/kdeldycke/click-extra/actions) does.
+Several test modules import optional libraries at collection time (`hjson`, `jsonschema`, `pygments`, `tomlkit`, `xmltodict`, and others) to exercise the matching features. Install them to run the full suite, as the [project's own CI](https://github.com/kdeldycke/click-extra/actions) does.
 
 ## Test helpers for downstream projects
 
