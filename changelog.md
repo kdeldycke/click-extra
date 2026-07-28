@@ -5,6 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix the `myst_docstrings` MyST-to-reST converter mispairing inline-code backticks: a code span whose content ends in a non-word character (`<stdout>`, `func()`) followed by an underscore-led span (`_render()`) collapsed into one malformed reST literal.
+- The `myst_docstrings` converter now strips whitespace adjacent to an inline-code span's delimiters before doubling it, so a padded prompt like `> ` no longer yields a reST inline literal with illegal edge whitespace.
+
 ## [`8.6.2` (2026-07-27)](https://github.com/kdeldycke/click-extra/compare/v8.6.1...v8.6.2)
 
 - Treat an unreaped zombie as a dead process in the `run_cli` process-group teardown tests, so they pass in a build sandbox with no init to reap orphans (like Alpine's `abuild` container).

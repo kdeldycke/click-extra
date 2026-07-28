@@ -411,6 +411,10 @@ def test_link_strips_backticks_from_label(myst, expected):
         # At line boundaries.
         ("`start`", "``start``"),
         ("end `here`", "end ``here``"),
+        # Content whitespace against the delimiters is stripped: reST inline
+        # literals cannot hold it (a `> ` PowerShell prompt, a padded span).
+        ("use `> ` prompt", "use ``>`` prompt"),
+        ("a ` x ` here", "a ``x`` here"),
     ],
     ids=[
         "simple",
@@ -424,6 +428,8 @@ def test_link_strips_backticks_from_label(myst, expected):
         "in-parens",
         "start-of-line",
         "end-of-line",
+        "trailing-space-stripped",
+        "surrounding-space-stripped",
     ],
 )
 def test_inline_code_conversion(myst, expected):
@@ -441,12 +447,15 @@ def test_inline_code_conversion(myst, expected):
         "```not inline```",
         # Backtick span across newlines must not match.
         "`start\nend`",
+        # An all-whitespace span has no reST literal to become: left as-is.
+        "a ` ` span",
     ],
     ids=[
         "double-backtick-passthrough",
         "braces-in-double-backticks",
         "triple-backticks",
         "across-newlines",
+        "all-whitespace-content",
     ],
 )
 def test_inline_code_not_converted(text):
@@ -474,12 +483,23 @@ def test_inline_code_no_cross_contamination_with_xref(myst, expected):
         ("a `Foo` then {func}`_bar` end", "a ``Foo`` then :func:`_bar` end"),
         ("a `_bar` then `Foo` end", "a ``_bar`` then ``Foo`` end"),
         ("see `apple`, `_pear`, `cherry`", "see ``apple``, ``_pear``, ``cherry``"),
+        # The first span's content ends in a non-word character, so its
+        # *closing* backtick clears the opening-boundary lookbehind too. Only
+        # the trailing-marker check keeps `_render()`/`_g` from being read as
+        # the reference marker of a link spanning the gap.
+        (
+            "captures `<stdout>` via `_render()` here",
+            "captures ``<stdout>`` via ``_render()`` here",
+        ),
+        ("call `f()` then `_g` now", "call ``f()`` then ``_g`` now"),
     ],
     ids=[
         "code-then-underscore-code",
         "code-then-underscore-xref",
         "underscore-code-first",
         "underscore-code-middle",
+        "angle-bracket-close-then-underscore",
+        "paren-close-then-underscore",
     ],
 )
 def test_leading_underscore_span_not_a_hyperlink_ref(myst, expected):
@@ -488,8 +508,12 @@ def test_leading_underscore_span_not_a_hyperlink_ref(myst, expected):
     The reST hyperlink-reference pattern ``` `label`_ ``` would otherwise let
     the protection regex span the gap between two inline-code spans (consuming
     the first span's closing backtick and the second span's leading underscore),
-    corrupting both. The opening backtick of a hyperlink ref is anchored at a
-    word boundary to prevent this.
+    corrupting both. A hyperlink ref's opening backtick is anchored at a
+    non-word boundary, but that alone is not enough: when the first span's
+    content ends in a non-word character (`` `<stdout>` ``, `` `f()` ``), its
+    closing backtick also clears that lookbehind. The ref's trailing marker
+    (`_`/`__`) not being glued to an identifier is what rejects the false
+    match while still matching real ``` `label`_ ``` references.
     """
     assert _convert(myst) == expected
 
