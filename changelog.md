@@ -10,6 +10,9 @@
 
 ## [`8.6.2` (2026-07-27)](https://github.com/kdeldycke/click-extra/compare/v8.6.1...v8.6.2)
 
+> [!NOTE]
+> `8.6.2` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.6.2/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.6.2).
+
 - Treat an unreaped zombie as a dead process in the `run_cli` process-group teardown tests, so they pass in a build sandbox with no init to reap orphans (like Alpine's `abuild` container).
 
 ## [`8.6.1` (2026-07-27)](https://github.com/kdeldycke/click-extra/compare/v8.6.0...v8.6.1)
