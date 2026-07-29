@@ -1,9 +1,6 @@
 # Changelog
 
-## [`8.6.3.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.6.2...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`8.6.3` (2026-07-29)](https://github.com/kdeldycke/click-extra/compare/v8.6.2...v8.6.3)
 
 - Stop importing the test tooling at package import time: the `click_extra.testing` and `click_extra.test_suite` exports now resolve lazily, keeping Click's debugger stack out of importing programs and compiled binaries.
 - Scrub the submodule objects star imports leaked into the package namespace: foreign modules like `click_extra.core` and `click_extra.termui` no longer hand out Click's un-enhanced classes or shadow the `globals` builtin.
