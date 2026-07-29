@@ -7,6 +7,9 @@
 
 ## [`8.6.3` (2026-07-29)](https://github.com/kdeldycke/click-extra/compare/v8.6.2...v8.6.3)
 
+> [!NOTE]
+> `8.6.3` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.6.3/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.6.3).
+
 - Stop importing the test tooling at package import time: the `click_extra.testing` and `click_extra.test_suite` exports now resolve lazily, keeping Click's debugger stack out of importing programs and compiled binaries.
 - Scrub the submodule objects star imports leaked into the package namespace: foreign modules like `click_extra.core` and `click_extra.termui` no longer hand out Click's un-enhanced classes or shadow the `globals` builtin.
 - Pin `[tool.repomatic]` `nuitka.nofollow-imports` to its bare `["tkinter"]` default, ahead of the repomatic release introducing the setting.
