@@ -23,6 +23,9 @@ TYPE_CHECKING = False
 # which hides click-extra's own attributes. Declaring the correct types here first,
 # before the star imports, makes mypy treat the later bindings as no-redefs and keeps
 # click-extra's subclasses canonical for consumers of this package.
+# The .test_suite and .testing entries have no runtime counterpart: those
+# symbols are served lazily by the module __getattr__ hook at the bottom of
+# this file, so this block is also what keeps them visible to type checkers.
 if TYPE_CHECKING:
     from typing import Any
 
@@ -31,6 +34,17 @@ if TYPE_CHECKING:
     from .highlight import HelpFormatter
     from .parameters import Argument, Option
     from .styling import Style
+    from .test_suite import (
+        DEFAULT_TEST_SUITE,
+        SUITE_FORMATS,
+        CLITestCase,
+        SkippedTest,
+        cases_from_data,
+        load_test_suite,
+        parse_test_suite,
+        run_test_suite,
+    )
+    from .testing import CliRunner, Result
     from .theme import HelpTheme
 
 # Import all click's module-level content to allow for drop-in replacement.
@@ -231,17 +245,14 @@ from .table import (
     serialize_data,
 )
 from .telemetry import TelemetryOption
-from .test_suite import (
-    DEFAULT_TEST_SUITE,
-    SUITE_FORMATS,
-    CLITestCase,
-    SkippedTest,
-    cases_from_data,
-    load_test_suite,
-    parse_test_suite,
-    run_test_suite,
-)
-from .testing import CliRunner, Result
+
+# The test tooling (.testing, .test_suite) is deliberately NOT imported here:
+# click_extra.testing imports click.testing, whose module-level `import pdb`
+# drags asyncio and the _pyrepl machinery (Python 3.13+) into every program
+# that merely imports click_extra. That debugger stack is pure dead weight in
+# production CLIs, and Nuitka bundles it into every compiled binary. The
+# symbols stay in __all__ and resolve on first access through the module
+# __getattr__ hook below; see _LAZY_TEST_TOOLING.
 from .theme import (
     BUILTIN_THEMES,
     HelpTheme,
@@ -488,8 +499,11 @@ __all__ = [
 """Expose all of Click, Cloup and Click Extra.
 
 ```{note}
-The content of `__all__` is checked by a unittest and sorted by
-`ruff` via [RUF022](https://docs.astral.sh/ruff/rules/unsorted-dunder-all/).
+The content of `__all__` is checked for completeness by unittests: it covers
+click's and cloup's public members, every public binding of this namespace is
+declared here, every declared name resolves, and no foreign module leaks in.
+Sorting is enforced by `ruff` via
+[RUF022](https://docs.astral.sh/ruff/rules/unsorted-dunder-all/).
 ```
 """
 
@@ -503,11 +517,37 @@ del _HAS_CLICK_8_4_EXPORTS
 
 # Scrub namespace artifacts that are not part of the public API: `annotations`
 # is this module's own `from __future__ import annotations` binding (deleting
-# it does not affect postponed evaluation, which is settled at compile time),
-# and `warnings` is the stdlib module leaked through `from cloup import *`
-# (cloup lists it in its `__all__`).
+# it does not affect postponed evaluation, which is settled at compile time).
 del annotations
-del warnings  # noqa: F821
+
+
+def _scrub_foreign_modules() -> None:
+    """Drop the module objects the star imports above leaked into this namespace.
+
+    click ships no `__all__`, so `from click import *` copies every submodule
+    its own `__init__` binds (`click.core`, `click.globals`, `click.termui`,
+    ...), and cloup's `__all__` leaks the stdlib `warnings` module. These
+    bindings are traps: `click_extra.core.Group` would resolve to click's
+    original class instead of click-extra's override, and `globals` even
+    shadows the builtin. The package's genuine submodules, bound by the
+    relative imports above, are kept. A unittest checks none of this
+    regresses.
+    """
+    import sys
+    from types import ModuleType
+
+    namespace = vars(sys.modules[__name__])
+    for name in [
+        module_id
+        for module_id, value in namespace.items()
+        if isinstance(value, ModuleType)
+        and not value.__name__.startswith(f"{__name__}.")
+    ]:
+        del namespace[name]
+
+
+_scrub_foreign_modules()
+del _scrub_foreign_modules
 
 
 __version__ = "8.6.3.dev0"
@@ -519,12 +559,52 @@ __git_tag__ = ""
 __git_tag_sha__ = ""
 
 
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated top-level symbols via the PEP 562 `__getattr__` hook.
+_LAZY_TEST_TOOLING = {
+    "CLITestCase": "test_suite",
+    "CliRunner": "testing",
+    "DEFAULT_TEST_SUITE": "test_suite",
+    "Result": "testing",
+    "SUITE_FORMATS": "test_suite",
+    "SkippedTest": "test_suite",
+    "cases_from_data": "test_suite",
+    "load_test_suite": "test_suite",
+    "parse_test_suite": "test_suite",
+    "run_test_suite": "test_suite",
+}
+"""Test-tooling symbols served lazily by `__getattr__`, keyed to their module.
 
-    Fires only for names not defined in this module, so live exports stay
-    zero-overhead. See {mod}`click_extra._deprecated`.
+Keeps `import click_extra` free of `click.testing` and the pdb/asyncio/_pyrepl
+debugger stack it pulls in (see the note above the `.theme` import). The names
+remain listed in `__all__`: plain attribute access and
+`from click_extra import ...` resolve them on first use, and a star-import
+materializes them all, at the cost of loading the test tooling.
+"""
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve lazy and deprecated top-level symbols via PEP 562.
+
+    Test-tooling names registered in {data}`_LAZY_TEST_TOOLING` are imported
+    from their hosting module on first access, then cached in the module
+    namespace so later accesses bypass this hook. Every other unknown name is
+    delegated to the deprecated-aliases resolver. Fires only for names not
+    defined in this module, so live exports stay zero-overhead. See
+    {mod}`click_extra._deprecated`.
     """
+    lazy_module = _LAZY_TEST_TOOLING.get(name)
+    if lazy_module:
+        from importlib import import_module
+
+        value = getattr(import_module(f"{__name__}.{lazy_module}"), name)
+        # Cache the symbol on the module so later accesses bypass this hook.
+        globals()[name] = value
+        return value
+
     from ._deprecated import resolve_deprecated
 
     return resolve_deprecated(__name__, name)
+
+
+def __dir__() -> list[str]:
+    """Expose the lazy test-tooling names to `dir()` before their first access."""
+    return sorted(set(globals()) | set(_LAZY_TEST_TOOLING))

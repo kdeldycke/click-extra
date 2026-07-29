@@ -638,6 +638,12 @@ manpages.script = "click_extra.cli:demo"
 # Align the sync updaters' stabilization cooldown (default 8 days) with uv's
 # 7-day `exclude-newer` window configured in [tool.uv] above.
 minimum-release-age = "7 days"
+# click-extra's own binary is the fleet's test runner: its `test-suite`
+# command embeds click_extra.test_suite, whose click.testing import chains
+# into pdb and asyncio. Pin the exclusions to the bare tkinter default so a
+# leaner repomatic default never strips the debugger stack this binary needs.
+# Read by repomatic >= 7.4.0; earlier releases warn on the unknown key.
+nuitka.nofollow-imports = [ "tkinter" ]
 # Full test matrix (25 jobs; runs on push-to-main and the monthly schedule,
 # never on PRs). It composes from two parts: a shipped cross-product for
 # cross-platform coverage, and explicit `full-include` rows for forward-looking

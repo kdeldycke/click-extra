@@ -22,6 +22,7 @@ import inspect
 import os
 import sys
 from contextlib import nullcontext
+from subprocess import run
 from textwrap import dedent
 
 import click
@@ -77,6 +78,86 @@ def test_module_root_declarations():
         m for m in cloup.__all__ if not m.startswith("_") and m not in artifacts
     }
     assert cloup_members <= click_extra_members
+
+
+@pytest.mark.once
+def test_public_namespace_integrity():
+    """The package namespace and ``__all__`` agree: nothing missing or extra.
+
+    click ships no ``__all__``, so its star import would otherwise leak every
+    submodule bound by click's ``__init__`` (``click.core``, ``click.globals``,
+    ...) into the package namespace, handing out click's un-enhanced classes
+    and shadowing the ``globals`` builtin. Those bindings are scrubbed at the
+    end of ``click_extra/__init__.py``: verify the scrub held, that every
+    public binding is declared in ``__all__``, and that every declared name
+    resolves (eagerly, lazily, or as one of our own submodules).
+    """
+    foreign_modules = {
+        name
+        for name, value in vars(click_extra).items()
+        if inspect.ismodule(value) and not value.__name__.startswith("click_extra.")
+    }
+    assert not foreign_modules
+
+    # TYPE_CHECKING is the module's own typing idiom, not API. Lazy test
+    # tooling cached by an earlier access is fine: those names are declared.
+    public = {
+        name
+        for name, value in vars(click_extra).items()
+        if not name.startswith("_")
+        and not inspect.ismodule(value)
+        and name != "TYPE_CHECKING"
+    }
+    assert public <= set(click_extra.__all__)
+
+    for name in click_extra.__all__:
+        getattr(click_extra, name)
+
+
+@pytest.mark.once
+def test_no_debugger_ballast_on_import():
+    """Importing the package must not load the test tooling nor the debugger stack.
+
+    ``click_extra.testing`` imports ``click.testing``, whose module-level
+    ``import pdb`` cascades into asyncio and the ``_pyrepl`` machinery on
+    Python 3.13+. That chain used to load eagerly with ``import click_extra``,
+    and ended up bundled into every Nuitka-compiled CLI binary. The test
+    tooling is exported lazily now: check from a pristine interpreter that
+    none of it leaks at import time.
+    """
+    ballast = (
+        "click.testing",
+        "click_extra.test_suite",
+        "click_extra.testing",
+        "pdb",
+        "bdb",
+        "asyncio",
+        "_pyrepl",
+    )
+    probe = (
+        "import sys; import click_extra; "
+        f"leaked = [m for m in {ballast!r} if m in sys.modules]; "
+        "assert not leaked, f'leaked at import time: {leaked}'"
+    )
+    process = run(
+        (sys.executable, "-c", probe), capture_output=True, text=True, check=False
+    )
+    assert process.returncode == 0, process.stderr
+
+
+@pytest.mark.once
+def test_lazy_test_tooling_exports():
+    """The lazy test-tooling names resolve, cache, and show up in ``dir()``."""
+    assert "CliRunner" in dir(click_extra)
+    assert "run_test_suite" in dir(click_extra)
+
+    from click_extra import CliRunner, testing
+
+    assert CliRunner is testing.CliRunner
+    # First access caches the symbol in the module namespace, bypassing the
+    # PEP 562 hook for later lookups.
+    assert "CliRunner" in vars(click_extra)
+    assert click_extra.run_test_suite is click_extra.test_suite.run_test_suite
 
 
 @pytest.fixture
