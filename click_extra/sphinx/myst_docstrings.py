@@ -128,7 +128,7 @@ _FOOTNOTE_DEF_RE = re.compile(r"^\[\^([\w-]+)\]:\s?(.*)$", re.MULTILINE)
 _LINK_RE = re.compile(r"(?<!!)\[([^\]]+)\]\(([^)]+)\)")
 
 
-def _convert_link(match: re.Match) -> str:
+def _convert_link(match: re.Match[str]) -> str:
     """Convert a markdown link to reST, stripping backticks from the label."""
     label = match.group(1).replace("`", "")
     url = match.group(2)
@@ -176,7 +176,7 @@ _PROTECTED_RE = re.compile(
 )
 
 
-def _convert_plain_code_fence(match: re.Match) -> str:
+def _convert_plain_code_fence(match: re.Match[str]) -> str:
     """Convert a plain triple-backtick code fence to a reST `code-block`."""
     indent = match.group(1)
     lang = match.group(2) or ""
@@ -201,7 +201,7 @@ def _convert_plain_code_fence(match: re.Match) -> str:
     return header + "\n" + "\n".join(converted_lines) + "\n"
 
 
-def _convert_fence(match: re.Match) -> str:
+def _convert_fence(match: re.Match[str]) -> str:
     """Convert a single colon-fenced directive to reST."""
     indent = match.group(1)
     directive = match.group(2)
@@ -228,7 +228,7 @@ def _convert_fence(match: re.Match) -> str:
     return header + "\n" + "\n".join(converted_lines) + "\n"
 
 
-def _double_inline_code(m: re.Match) -> str:
+def _double_inline_code(m: re.Match[str]) -> str:
     """Double a MyST inline-code span's backticks for reST.
 
     reST inline literals cannot carry whitespace adjacent to their delimiters,
@@ -260,10 +260,10 @@ def myst_to_rst(lines: list[str]) -> None:
         placeholders[key] = value
         return key
 
-    def _save(m: re.Match) -> str:
+    def _save(m: re.Match[str]) -> str:
         return _stash(m.group(0))
 
-    def _save_protected(m: re.Match) -> str:
+    def _save_protected(m: re.Match[str]) -> str:
         # A role-shaped code span (group 1) is doubled for reST on its way
         # into the placeholder; other protected spans are kept verbatim.
         if m.group(1):

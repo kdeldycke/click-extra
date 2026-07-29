@@ -5,11 +5,10 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Fix the `myst_docstrings` MyST-to-reST converter mispairing inline-code backticks: a code span whose content ends in a non-word character (`<stdout>`, `func()`) followed by an underscore-led span (`_render()`) collapsed into one malformed reST literal.
-- The `myst_docstrings` converter now strips whitespace adjacent to an inline-code span's delimiters before doubling it, so a padded prompt like `> ` no longer yields a reST inline literal with illegal edge whitespace.
-- Stop importing the test tooling at package import time: the `click_extra.testing` and `click_extra.test_suite` exports (`CliRunner`, `run_test_suite`, ...) now resolve lazily through the module `__getattr__` hook. Their eager import chained into `click.testing`, whose module-level `import pdb` drags asyncio and the `_pyrepl` machinery (Python 3.13+) into every program importing `click_extra`, and bundled that debugger stack into every Nuitka-compiled CLI binary. All names stay in `__all__` and keep resolving through plain attribute access, `from click_extra import ...`, and star-imports.
-- Scrub the module objects star imports leak into the package namespace: click ships no `__all__`, so every submodule bound by its `__init__` surfaced as a click-extra attribute (`click_extra.core`, `click_extra.termui`, ...), handing out click's un-enhanced classes and shadowing the `globals` builtin with the `click.globals` submodule. A unittest now enforces the namespace and `__all__` agree: no foreign module, no undeclared public binding, no declared name that fails to resolve.
-- Pin `[tool.repomatic]` `nuitka.nofollow-imports` to its bare `["tkinter"]` default, ahead of the repomatic release introducing the setting: click-extra's own binary embeds the test tooling behind the `test-suite` command, so its exclusion list must never grow the debugger modules a leaner fleet default may exclude.
+- Stop importing the test tooling at package import time: the `click_extra.testing` and `click_extra.test_suite` exports now resolve lazily, keeping Click's debugger stack out of importing programs and compiled binaries.
+- Scrub the submodule objects star imports leaked into the package namespace: foreign modules like `click_extra.core` and `click_extra.termui` no longer hand out Click's un-enhanced classes or shadow the `globals` builtin.
+- Pin `[tool.repomatic]` `nuitka.nofollow-imports` to its bare `["tkinter"]` default, ahead of the repomatic release introducing the setting.
+- Fix the `myst_docstrings` MyST-to-reST converter mispairing inline-code backticks and emitting reST literals with illegal edge whitespace from padded code spans.
 
 ## [`8.6.2` (2026-07-27)](https://github.com/kdeldycke/click-extra/compare/v8.6.1...v8.6.2)
 
