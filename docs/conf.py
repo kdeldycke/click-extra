@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import tomllib  # type: ignore[import-not-found]  # stdlib >=3.11; docs require >=3.14.
-from docutils.nodes import container, make_id
+from docutils.nodes import container
 from sphinxcontrib.mermaid import MermaidClassDiagram
 
 project_path = Path(__file__).parent.parent.resolve()
@@ -24,15 +24,15 @@ project = " ".join(word.title() for word in project_id.split("-"))
 # Addons.
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.todo",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     # Adds a copy button to code blocks.
     "sphinx_copybutton",
     "sphinx_design",
     "sphinxext.opengraph",
     "myst_parser",
-    "sphinx.ext.autosectionlabel",
     # myst_docstrings hooks autodoc-process-docstring at priority 400 (vs default
     # 500) so it always runs before sphinx_autodoc_typehints. Listing it first
     # makes the intent explicit; the extension enforces this at load time.
@@ -160,8 +160,10 @@ myst_heading_anchors = 6
 # GitHub-style slugifier keeps leading digits, "--" prefixes, dots and
 # underscores that docutils strips or collapses (e.g. "`--params` option"
 # → "params-option", "solarized_dark" → "solarized-dark"), which otherwise
-# leaves every cross-reference to such a heading unresolved.
-myst_heading_slug_func = make_id
+# leaves every cross-reference to such a heading unresolved. The dotted-path
+# string form (not the function object) keeps the config value picklable, so
+# Sphinx can cache it between builds.
+myst_heading_slug_func = "docutils.nodes.make_id"
 # XXX Allow ```mermaid``` directive to be used without curly braces (```{mermaid}```), see:
 # https://github.com/mgaitan/sphinxcontrib-mermaid/issues/99#issuecomment-2339587001
 myst_fence_as_directive = ["mermaid"]
@@ -188,7 +190,7 @@ class NoZoomClassDiagram(MermaidClassDiagram):
         return [container("", *super().run(), classes=["autoclasstree"])]
 
 
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "_linkcheck", "html", "Thumbs.db", ".DS_Store"]
 
 nitpicky = True
 
@@ -222,8 +224,11 @@ suppress_warnings = [
 # here, which reference upstream-internal names and private types absent from any
 # intersphinx inventory.
 nitpick_ignore_regex = [
-    # External packages without an intersphinx inventory, plus click/cloup
-    # internals not exposed in their public docs.
+    # External packages without a usable intersphinx inventory, plus click/cloup
+    # internals not exposed in their public docs. Cloup stays blanketed because
+    # cloup.readthedocs.io sits behind a Cloudflare bot challenge (HTTP 429,
+    # `cf-mitigated: challenge`, probed 2026-07-30): Sphinx's intersphinx
+    # fetcher cannot retrieve its objects.inv, so the docs cannot link there.
     (
         r"py:.*",
         r"(boltons|cloup|docutils|extra_platforms|mkdocs|pygments|sphinx|_pytest)\..*",
@@ -283,6 +288,8 @@ autodoc_default_options = {
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+github_user = "kdeldycke"
+
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "click": ("https://click.palletsprojects.com", None),
@@ -297,33 +304,44 @@ html_theme = "furo"
 html_title = project
 html_logo = "assets/logo-square.svg"
 html_favicon = "assets/favicon.svg"
+# Without this, sphinxext.opengraph falls back to the favicon for social
+# previews, which scales poorly.
+ogp_image = "assets/banner-gradient-light.png"
+# ogp_image is relative to ogp_site_url, not to the page. Without a site URL,
+# sphinxext.opengraph emits the image path as-is, which social crawlers can't
+# resolve since they only ever see the raw HTML.
+ogp_site_url = f"https://{github_user}.github.io/{project_id}/"
 html_theme_options = {
     "sidebar_hide_name": True,
     # Activates edit links.
-    "source_repository": f"https://github.com/kdeldycke/{project_id}",
+    "source_repository": f"https://github.com/{github_user}/{project_id}",
     "source_branch": "main",
     "source_directory": "docs/",
     "announcement": (
         f"{project} works fine, but is <em>maintained by only one person</em> "
         "😶‍🌫️.<br/>You can help if you "
         "<strong><a class='reference external' "
-        "href='https://github.com/sponsors/kdeldycke'>"
+        f"href='https://github.com/sponsors/{github_user}'>"
         "purchase business support 🤝</a></strong> or "
         "<strong><a class='reference external' "
-        "href='https://github.com/sponsors/kdeldycke'>"
+        f"href='https://github.com/sponsors/{github_user}'>"
         "sponsor the project 🫶</a></strong>."
     ),
 }
 
 # Linkcheck configuration.
 # GitHub renders issue comments, README tab anchors and blob line anchors with
-# JavaScript, so the linkcheck builder cannot find them in the static HTML.
-linkcheck_anchors_ignore = [
-    r"issuecomment-\d+",
-    r"a-simple-example",
-    r"readme",
-    r"L\d+",
+# JavaScript, so the linkcheck builder cannot find them in the static HTML:
+# skip anchor checks for the whole host instead of stacking per-anchor patterns.
+linkcheck_anchors_ignore_for_url = [
+    r"https://github\.com/",
+    # star-history.com builds its chart and anchor with JavaScript.
+    r"https://star-history\.com/",
 ]
+
+# Some links time out the linkcheck bot intermittently; retry before reporting
+# them as broken.
+linkcheck_retries = 3
 
 linkcheck_ignore = [
     # These sites return 403 to bots but are valid.
@@ -340,8 +358,6 @@ linkcheck_ignore = [
     # binaries catalog links one per released binary. Also excluded from the
     # lychee run (see [tool.lychee] in pyproject.toml).
     r"https://www\.virustotal\.com/gui/.*",
-    # star-history uses client-side hash routing; fragments are not real HTML anchors.
-    r"https://star-history\.com/#.*",
     # Telemetry opt-out endpoint is slow and times out from CI.
     r"https://telemetry\.timseverien\.com/.*",
     # Hacker News rate-limits automated checkers with HTTP 429. Already excluded

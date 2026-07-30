@@ -1,4 +1,4 @@
-# {octicon}`terminal` Carapace completion
+# {octicon}`chevron-right` Carapace completion
 
 ## Generating a spec
 

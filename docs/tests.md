@@ -1,4 +1,4 @@
-# tests package
+# `tests` package
 
 ```{eval-rst}
 .. automodule:: tests

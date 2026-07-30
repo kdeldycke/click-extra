@@ -1,4 +1,4 @@
-# {octicon}`book` MkDocs
+# {octicon}`markdown` MkDocs
 
 [MkDocs](https://www.mkdocs.org) can render ANSI-colored terminal output using Click Extra's [Pygments lexers](pygments.md). Without this, raw escape codes show up as garbage text in documentation.
 

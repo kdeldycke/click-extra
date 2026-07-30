@@ -1,4 +1,4 @@
-# click\_extra package
+# `click_extra` package
 
 ```{eval-rst}
 .. automodule:: click_extra

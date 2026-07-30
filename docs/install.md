@@ -4,6 +4,8 @@
 [![Packaging status](https://repology.org/badge/vertical-allrepos/python%3Aclick-extra.svg)](https://repology.org/project/python%3Aclick-extra/versions)
 ```
 
+## Quick start
+
 Click Extra is [distributed on PyPI](https://pypi.org/project/click-extra/).
 
 So you can install the latest stable release with your favorite package manager [like `uv`](https://docs.astral.sh/uv/):
@@ -30,14 +32,6 @@ $ uv tool install click-extra
 ```
 ````
 
-````{tab-item} pipx
-[`pipx`](https://pipx.pypa.io/stable/how-to/install-pipx.html) is a great way to install the demo CLI globally:
-
-```{code-block} shell-session
-$ pipx install click-extra
-```
-````
-
 ````{tab-item} pip
 You can install the latest stable release and its dependencies with a simple `pip` call:
 
@@ -48,6 +42,14 @@ $ python -m pip install click-extra
 If you have difficulties to use `pip`, see
 [`pip`'s own installation instructions](https://pip.pypa.io/en/stable/installation/).
 ````
+
+````{tab-item} pipx
+[`pipx`](https://pipx.pypa.io/stable/how-to/install-pipx.html) is a great way to install the demo CLI globally:
+
+```{code-block} shell-session
+$ pipx install click-extra
+```
+````
 `````
 
 ## Demo CLI
@@ -55,7 +57,7 @@ If you have difficulties to use `pip`, see
 You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/):
 
 `````{tab-set}
-````{tab-item} Latest version
+````{tab-item} Latest release
 ```shell-session
 $ uvx click-extra
 ```
@@ -63,7 +65,7 @@ $ uvx click-extra
 
 ````{tab-item} Specific version
 ```shell-session
-$ uvx click-extra@7.2.0
+$ uvx click-extra@8.6.3
 ```
 ````
 
@@ -84,25 +86,28 @@ This will download and run `click-extra`, a demo CLI included in the package.
 
 The demo CLI showcases various features of Click Extra, such as enhanced help formatting, colored output, and more.
 
-By default it will display the help message of the demo application:
+Here is the help screen of the demo application, rendered at build time so it always matches the current code:
 
-```{code-block} shell-session
-$ uvx click-extra
-Installed 16 packages in 14ms
-Usage: click-extra [OPTIONS] COMMAND [ARGS]...
+```{click:source}
+:hide-source:
+from click_extra.cli import demo
+```
+
+```{click:run}
+result = invoke(demo, args=["--help"])
+assert result.exit_code == 0
+assert "Usage:" in result.output
 ```
 
 And so you can explore the various possibilities of the demo application, like showing the current version:
 
-```{code-block} shell-session
+```shell-session
 $ uvx click-extra --version
-Installed 16 packages in 14ms
-Click Extra demo, version 7.2.0
 ```
 
 This is a great way to play with Click Extra and check that it runs fine on your system, and renders properly in your terminal.
 
-The demo CLI is also compiled into standalone executables for Linux, macOS, and Windows, so you can try it without Python or `uv`. Binaries of all past releases, with their VirusTotal analyses, are cataloged on the [binaries page](binaries.md).
+The demo CLI is also compiled into [standalone executables](#executables) for Linux, macOS, and Windows, so you can try it without Python or `uv`.
 
 ## Try the library
 
@@ -115,7 +120,7 @@ Python 3.14.0 free-threading build (main, Oct 28 2025, 11:52:40) [Clang 20.1.4 ]
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import click_extra
 >>> click_extra.__version__
-'7.2.0'
+'8.6.3'
 >>>
 ```
 
@@ -158,6 +163,30 @@ Click Extra wraps Click, so the two are tightly coupled and the matrix of suppor
 | `0.0.x` → `1.6.x`   | 2021-10-18 | `^8.0.2`  |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ✅   |
 
 <!-- matrix-end -->
+
+## Executables
+
+Standalone executables of the demo CLI's latest release are available as direct downloads for several platforms and architectures:
+
+| Platform    | `arm64`                                                                                                                                     | `x86_64`                                                                                                                                |
+| :---------- | :------------------------------------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| **Linux**   | [Download `click-extra-linux-arm64.bin`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-linux-arm64.bin)     | [Download `click-extra-linux-x64.bin`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-linux-x64.bin)     |
+| **macOS**   | [Download `click-extra-macos-arm64.bin`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-macos-arm64.bin)     | [Download `click-extra-macos-x64.bin`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-macos-x64.bin)     |
+| **Windows** | [Download `click-extra-windows-arm64.exe`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-windows-arm64.exe) | [Download `click-extra-windows-x64.exe`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-windows-x64.exe) |
+
+Binaries of all past releases, with their VirusTotal analyses, are cataloged on the [binaries page](binaries.md).
+
+## Release verification
+
+Every binary is signed with a [build provenance attestation](https://docs.github.com/en/actions/security-guides/using-artifact-attestations) at release time. After downloading one, verify it with the [`gh` CLI](https://cli.github.com):
+
+```shell-session
+$ gh attestation verify click-extra-linux-x64.bin --repo kdeldycke/click-extra --signer-repo kdeldycke/repomatic
+```
+
+`--signer-repo kdeldycke/repomatic` is required because the release runs from [repomatic](https://github.com/kdeldycke/repomatic)'s reusable release workflow, whose signing identity is `kdeldycke/repomatic`.
+
+The PyPI distributions carry their own [PEP 740](https://peps.python.org/pep-0740/) attestations, visible and verifiable on the [PyPI project page](https://pypi.org/project/click-extra/).
 
 ## Default dependencies
 
