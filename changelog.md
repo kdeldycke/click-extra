@@ -11,6 +11,7 @@
 - Forward `config_strict` and additive `excluded_params` from `@command`/`@group` to the default `--config` option.
 - Load the configuration file before `--params` and `--export-config` render, so both reflect it whatever the order of the flags.
 - Export parameters without a value in `--export-config`: empty lists for multi-value options, `null` in YAML and JSON, commented-out keys in TOML.
+- Render `--export-config` keys in kebab-case, the canonical spelling for configuration files, matching the CLI flags.
 - Exclude `--validate-config` from configuration files, like the other self-referential config options.
 - Reword the unknown-configuration-key error, and report parameters blocked from configuration files as not allowed instead of unknown.
 

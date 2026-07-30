@@ -124,9 +124,48 @@ int_parameter is 3
 
 ## Key spelling
 
-Configuration keys address CLI parameters by their internal ID, which Click derives from the flag by replacing hyphens with underscores: the `--dummy-flag` option is the `dummy_flag` parameter. Keys written in kebab-case, the conventional spelling in TOML and YAML, are accepted too and resolve to the same parameter: `dummy-flag` and `dummy_flag` both set `--dummy-flag`.
+Configuration keys address CLI parameters by name, in either of two spellings:
 
-When both spellings of the same key coexist in a file, the last one in file order wins and a warning names both.
+- **kebab-case** is the canonical presentation: it matches the spelling of the CLI flags and the convention of TOML and YAML files. It is what [`--export-config`](#exporting-the-configuration) emits.
+- **snake_case** is the parameter's internal ID, which Click derives from the flag by replacing hyphens with underscores: the `--dummy-flag` option is the `dummy_flag` parameter. This ID is what [`--params`](parameters.md#params-option) reports, and what roots the auto-generated environment variable (`CLI_DUMMY_FLAG`), since neither Python identifiers nor environment variables can carry dashes.
+
+Both spellings resolve to the same parameter: `dummy-flag` and `dummy_flag` both set `--dummy-flag`. When the two coexist in a file, the last one in file order wins and a warning names both.
+
+```{note}
+Click also accepts snake_case flags: `--my_option` is legal and derives the same `my_option` parameter ID as `--my-option` would. For such a CLI the canonical config key is still the kebab-cased `my-option`, which loads back to the same parameter.
+```
+
+### Decoupling the flag from the configuration key
+
+Click's third positional declaration names the parameter explicitly, decoupling it from the flags. This is handy for repeatable options, where the flag names one occurrence but the configuration key holds the whole collection: keep the flag singular and pluralize the parameter, so the config key, the environment variable and the callback argument all read as the list they are.
+
+```{click:source}
+from click_extra import command, echo, option
+
+@command
+@option("--hash-header", "hash_headers", multiple=True)
+def scanner(hash_headers):
+    echo(f"headers = {hash_headers!r}")
+```
+
+The `--hash-header` flag is repeated once per value:
+
+```{click:run}
+result = invoke(scanner, args=["--hash-header", "Date", "--hash-header", "From"])
+assert "headers = ('Date', 'From')" in result.stdout
+```
+
+While the configuration key, shown here by exporting the values just set, is the plural `hash-headers` list:
+
+```{click:run}
+result = invoke(
+    scanner,
+    args=["--hash-header", "Date", "--hash-header", "From", "--export-config", "toml"],
+)
+assert 'hash-headers = ["Date", "From"]' in result.stdout
+```
+
+The environment variable follows the parameter ID too, so a single `SCANNER_HASH_HEADERS` value feeds the whole list.
 
 ## Dotted keys
 
@@ -532,6 +571,8 @@ $ weather --city Oslo --export-config toml > ~/.config/weather/config.toml
 ```
 
 The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
+
+Exported keys use the canonical kebab-case spelling (see [Key spelling](#key-spelling)), so the generated file reads like the CLI flags it mirrors.
 
 Parameters without a value are exported too, so the generated file names every key a configuration file can set. Multi-value parameters read as empty lists, and unset scalars render as `null`, except in TOML which has no null type and comments them out:
 
@@ -965,7 +1006,7 @@ The `_prepend_subcommands` key always prepends subcommands to every invocation, 
 ```
 
 ```{code-block} toml
-:emphasize-lines: 2-3
+:emphasize-lines: 2
 [my-cli]
 _prepend_subcommands = ["debug"]
 ```

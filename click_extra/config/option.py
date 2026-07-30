@@ -1848,7 +1848,9 @@ class ExportConfigOption(ExtraOption):
         command did not capture them), drops the
         {attr}`~click_extra.parameters.ParamStructure.excluded_params`, and
         layers the coerced values into the ``{cli-name: {param: value, ...}}``
-        shape a configuration file uses.
+        shape a configuration file uses. Parameter keys are rendered in their
+        kebab-case spelling, the canonical presentation for configuration
+        files; either spelling loads back to the same parameter.
 
         Parameters without a default are kept as `None` leaves so the export
         names every key a configuration file can set: serializers render them
@@ -1880,8 +1882,15 @@ class ExportConfigOption(ExtraOption):
             else:
                 resolved = target.get_default(ctx)
             leaf = _config_dump_value(target, resolved)
+            # Render the option under its kebab-case spelling, the canonical
+            # presentation for configuration files (matching the CLI flags and
+            # the TOML/YAML convention). Loading normalizes either spelling
+            # back to the parameter ID. Section keys (the CLI and subcommand
+            # names) are kept verbatim: the app-section lookup matches the
+            # root exactly, and command names are displayed as invoked.
+            file_keys = (*keys[:-1], keys[-1].replace("_", "-"))
             tree = always_merger.merge(
-                tree, ParamStructure.init_tree_dict(*keys, leaf=leaf)
+                tree, ParamStructure.init_tree_dict(*file_keys, leaf=leaf)
             )
 
         return _remove_blanks(tree, remove_none=False, remove_str=False)

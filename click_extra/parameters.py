@@ -1091,11 +1091,12 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             id="id",
             label="ID",
             description=(
-                "Fully-qualified parameter path (`cli.subcommand.param-name`) "
+                "Fully-qualified parameter path (`cli.subcommand.param_name`) "
                 "derived from the [`click.Command`]"
                 "(https://click.palletsprojects.com/en/stable/api/#click.Command) "
                 "tree. Doubles as the key used to address the parameter from a "
-                "configuration file."
+                "configuration file, which also accepts the kebab-case "
+                "spelling of the last segment."
             ),
         ),
         _ColumnSpec(

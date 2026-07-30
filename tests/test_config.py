@@ -783,6 +783,33 @@ def test_export_config_includes_unset_params(invoke):
     assert '"regexp": null' in result.stdout
 
 
+def test_export_config_kebab_case_keys(invoke, tmp_path):
+    """Exported keys use the kebab-case spelling, the canonical form for files.
+
+    Either spelling loads back to the same parameter, so the kebab-cased
+    export still round-trips through --config.
+    """
+
+    @command
+    @option("--dry-run", is_flag=True)
+    @option("--int-param", type=int, default=10)
+    def kebab_dump_cli(dry_run, int_param):
+        echo(f"int_param = {int_param!r}")
+
+    result = invoke(kebab_dump_cli, "--export-config", "toml", color=False)
+    assert result.exit_code == 0
+    assert "dry-run = false" in result.stdout
+    assert "int-param = 10" in result.stdout
+    assert "dry_run" not in result.stdout
+    assert "int_param" not in result.stdout
+
+    conf_path = tmp_path / "kebab_dump.toml"
+    conf_path.write_text(result.stdout, encoding="utf-8")
+    reloaded = invoke(kebab_dump_cli, "--config", str(conf_path), color=False)
+    assert reloaded.exit_code == 0
+    assert "int_param = 10" in reloaded.stdout
+
+
 def test_introspection_flags_load_config_first(invoke, create_config):
     """--params and --export-config reflect the config file regardless of the
     order in which Click processes the eager options.
@@ -835,7 +862,7 @@ def test_introspection_flags_load_config_first(invoke, create_config):
         color=False,
     )
     assert result.exit_code == 0
-    assert "int_param = 42" in result.stdout
+    assert "int-param = 42" in result.stdout
 
 
 @all_config_formats
