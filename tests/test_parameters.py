@@ -806,7 +806,7 @@ def test_integrated_show_params_option(invoke, create_config):
             "str",
             "✘",
             "✘",
-            "✓",
+            "✘",
             "SHOW_PARAMS_CLI_VALIDATE_CONFIG",
             "None",
             "✘",

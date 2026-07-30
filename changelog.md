@@ -5,6 +5,15 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Accept kebab-case keys in configuration files: `dummy-flag` and `dummy_flag` both address the `--dummy-flag` option, the last spelling winning on collision with a warning.
+- Scope the configuration strict check and merge to the app's own section, ignoring other tools' sections in shared files like `pyproject.toml`.
+- Honor legacy `fallback_sections` when merging configuration values into `default_map`, not only in the schema path.
+- Forward `config_strict` and additive `excluded_params` from `@command`/`@group` to the default `--config` option.
+- Load the configuration file before `--params` and `--export-config` render, so both reflect it whatever the order of the flags.
+- Export parameters without a value in `--export-config`: empty lists for multi-value options, `null` in YAML and JSON, commented-out keys in TOML.
+- Exclude `--validate-config` from configuration files, like the other self-referential config options.
+- Reword the unknown-configuration-key error, and report parameters blocked from configuration files as not allowed instead of unknown.
+
 ## [`8.6.3` (2026-07-29)](https://github.com/kdeldycke/click-extra/compare/v8.6.2...v8.6.3)
 
 > [!NOTE]

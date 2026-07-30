@@ -55,6 +55,7 @@ from .option import (
     ExportConfigOption,
     NoConfigOption,
     ValidateConfigOption,
+    ensure_config_loaded,
 )
 from .schema import (
     CONFIG_PATH_METADATA_KEY,
@@ -97,6 +98,7 @@ __all__ = [
     "ValidateConfigOption",
     "ValidationError",
     "ValidationReport",
+    "ensure_config_loaded",
     "field_docstrings",
     "flatten_config_keys",
     "format_from_path",

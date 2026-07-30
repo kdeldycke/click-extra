@@ -66,7 +66,7 @@ from click._utils import UNSET
 from click.core import ParameterSource
 from deepmerge import always_merger
 from extra_platforms import is_windows
-from extra_platforms._utils import _recursive_update, _remove_blanks
+from extra_platforms._utils import _remove_blanks
 from wcmatch import fnmatch, glob
 
 from .. import context
@@ -76,6 +76,7 @@ from ..parameters import (
     ParamStructure,
     replay_raw_args,
     require_sibling_param,
+    search_params,
 )
 from ..types import EnumChoice
 from .builtin import THEMES_CONFIG_KEY, _builtin_config_validators
@@ -88,8 +89,10 @@ from .formats import (
 )
 from .schema import (
     ConfigValidator,
+    _merge_into_template,
     _normalize_conf,
     _opaque_paths,
+    _scope_app_sections,
     _select_app_section,
     _strip_opaque_subtrees,
     make_schema_callable,
@@ -132,6 +135,7 @@ DEFAULT_EXCLUDED_PARAMS = (
     CONFIG_OPTION_NAME,
     "export_config",
     "params",
+    "validate_config",
     "version",
 )
 """Default parameter IDs to exclude from the configuration file.
@@ -143,6 +147,8 @@ Defaults to:
 - `--export-config` flag, which like `--params` introspects the CLI and exits,
   so it has no place in the configuration it would export.
 - `--params` flag, which is like `--help` and stops the CLI execution.
+- `--validate-config` option, which belongs to the same self-referential
+  config machinery as `--config` and `--export-config`.
 - `--version`, which is not a configurable option *per-se*.
 
 `--help` is excluded too (it makes no sense to have a configuration file always
@@ -365,6 +371,16 @@ class ConfigOption(ExtraOption, ParamStructure):
         if excluded_params is not None and included_params is not None:
             msg = "excluded_params and included_params are mutually exclusive."
             raise ValueError(msg)
+
+        self.extra_excluded_params: frozenset[str] = frozenset()
+        """Additional exclusions merged into the dynamic `excluded_params` default.
+
+        Populated by `Command`'s `excluded_params` forwarding, which is
+        additive: the default blocklist (`--config`, `--version`, `--help`,
+        ...) is preserved and the forwarded IDs are unioned into it when the
+        property resolves. Ignored when an explicit `excluded_params` was
+        frozen on the instance, as the property is then never consulted.
+        """
 
         # If the user provided its own excluded params, freeze them now and store it
         # to prevent the dynamic default property to be called.
@@ -613,7 +629,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         help_option = cli.get_help_option(ctx)
         if help_option is not None and help_option.name is not None:
             excluded_ids.append(help_option.name)
-        return frozenset(f"{cli.name}{PARAM_PATH_SEP}{p}" for p in excluded_ids)
+        return (
+            frozenset(f"{cli.name}{PARAM_PATH_SEP}{p}" for p in excluded_ids)
+            | self.extra_excluded_params
+        )
 
     @cached_property
     def file_pattern(self) -> str:
@@ -1247,8 +1266,20 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         normalized_conf = _normalize_conf(user_conf, strict=self.strict)
         normalized_conf = self._strip_opaque_from_conf(ctx, normalized_conf)
-        filtered_conf = _recursive_update(
-            copy.deepcopy(self.params_template), normalized_conf, self.strict
+        # Scope the merge (and its strict check) to the app's own section, so
+        # foreign sections in a shared file are ignored and legacy fallback
+        # sections are honored.
+        app_name = self._app_section_name(ctx)
+        scoped_conf = (
+            _scope_app_sections(normalized_conf, app_name, self.fallback_sections)
+            if app_name
+            else normalized_conf
+        )
+        filtered_conf = _merge_into_template(
+            copy.deepcopy(self.params_template),
+            scoped_conf,
+            self.strict,
+            blocked=self.excluded_params,
         )
         self._install_default_map(ctx, filtered_conf)
 
@@ -1409,6 +1440,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 schema_strict=self.schema_strict,
                 schema_warn_unknown=self.schema_warn_unknown,
                 strict=self.strict,
+                blocked_params=self.excluded_params,
                 collect_all=False,
             )
             if not report.ok:
@@ -1597,6 +1629,7 @@ class ValidateConfigOption(ExtraOption):
             fallback_sections=config_option.fallback_sections,
             schema_strict=config_option.schema_strict,
             strict=True,
+            blocked_params=config_option.excluded_params,
             collect_all=True,
         )
 
@@ -1621,6 +1654,71 @@ accepted tokens are exactly the formats
 """
 
 
+def ensure_config_loaded(ctx: click.Context) -> None:
+    """Run the sibling {class}`ConfigOption`'s resolution if it has not run yet.
+
+    Click processes eager parameters given on the command line before eager
+    parameters left at their defaults, so an explicitly-passed introspection
+    flag (`--params`, `--export-config`) fires before the `--config`
+    option had a chance to discover and load the configuration file. The views
+    those flags render would then miss the configuration layer entirely,
+    showing defaults where the user's config applies.
+
+    Idempotent: does nothing when the config option already resolved (its
+    callback stamps {data}`~click_extra.context.CONF_SOURCE` on the context
+    even when no file was found), when the command has no config option, or
+    when the option carries no callback.
+    """
+    if context.get(ctx, context.CONF_SOURCE, UNSET) is not UNSET:
+        return
+    config_option = search_params(ctx.command.params, ConfigOption)
+    if config_option is None:
+        return
+    assert isinstance(config_option, ConfigOption)
+    if config_option.callback is None:
+        return
+    opts = replay_raw_args(ctx)
+    value, source = config_option.consume_value(ctx, opts)
+    if value is UNSET:
+        return
+    # Record the provenance so the callback's explicit-vs-discovery logic sees
+    # the same source as it would under normal parameter processing.
+    if config_option.name is not None and source is not None:
+        ctx.set_parameter_source(config_option.name, source)
+    config_option.callback(ctx, config_option, value)
+
+
+def _serialize_toml_with_unset(tree: dict[str, Any]) -> str:
+    """Render *tree* as TOML, emitting `None` leaves as commented-out keys.
+
+    TOML has no null type, so parameters without a value cannot round-trip as
+    real entries. Instead of dropping them from the export, each one is
+    rendered as a `# key =` comment line: the generated file documents every
+    key that can be set, while leaving the unset ones inert.
+
+    Relies on `tomlkit` (the `[toml]` extra), like
+    {func}`~click_extra.config.formats.serialize_content` does for TOML.
+
+    :raises ImportError: when `tomlkit` is not installed.
+    """
+    import tomlkit
+
+    def fill(container: Any, mapping: dict[str, Any]) -> None:
+        for key, value in mapping.items():
+            if isinstance(value, dict):
+                table = tomlkit.table()
+                fill(table, value)
+                container[key] = table
+            elif value is None:
+                container.add(tomlkit.comment(f"{key} ="))
+            else:
+                container[key] = value
+
+    doc = tomlkit.document()
+    fill(doc, tree)
+    return str(tomlkit.dumps(doc))
+
+
 def _config_dump_value(param: click.Parameter, value: Any) -> Any:
     """Coerce a resolved parameter value into a config-serializable form.
 
@@ -1639,6 +1737,10 @@ def _config_dump_value(param: click.Parameter, value: Any) -> Any:
     - anything else (a {class}`~pathlib.Path`, a custom object) is stringified.
     """
     if value is None:
+        # An unset multi-value parameter reads naturally as an empty list,
+        # which also survives serialization in null-less formats like TOML.
+        if ParamStructure.get_param_type(param) is list:
+            return []
         return None
     if isinstance(value, (list, tuple, set, frozenset)):
         return [_config_dump_value(param, item) for item in value]
@@ -1746,8 +1848,14 @@ class ExportConfigOption(ExtraOption):
         command did not capture them), drops the
         {attr}`~click_extra.parameters.ParamStructure.excluded_params`, and
         layers the coerced values into the ``{cli-name: {param: value, ...}}``
-        shape a configuration file uses. Blank values are removed, mirroring the
-        clean-up {meth}`ConfigOption._install_default_map` applies on load.
+        shape a configuration file uses.
+
+        Parameters without a default are kept as `None` leaves so the export
+        names every key a configuration file can set: serializers render them
+        as `null`, except TOML which comments them out (see
+        :py:func:`_serialize_toml_with_unset`). Loading `null` back is
+        harmless: {meth}`ConfigOption._install_default_map` cleans blank
+        values out of the merged result.
         """
         # Force the included_params -> excluded_params resolution that happens
         # the first time the parameter tree is built.
@@ -1776,7 +1884,7 @@ class ExportConfigOption(ExtraOption):
                 tree, ParamStructure.init_tree_dict(*keys, leaf=leaf)
             )
 
-        return _remove_blanks(tree, remove_str=False)
+        return _remove_blanks(tree, remove_none=False, remove_str=False)
 
     def export_config(
         self,
@@ -1791,12 +1899,21 @@ class ExportConfigOption(ExtraOption):
         if not value or ctx.resilient_parsing:
             return
 
+        # Load the configuration file first, so the export reflects the full
+        # precedence chain the docstring promises (config file included) even
+        # when this flag was processed ahead of the --config option.
+        ensure_config_loaded(ctx)
+
         fmt = _EXPORT_FORMAT_BY_TOKEN[value.lower()]
         config_option = require_sibling_param(ctx.command.params, param, ConfigOption)
         tree = self.build_config(ctx, config_option)
 
         try:
-            output = serialize_content(fmt, tree)
+            # TOML cannot hold nulls: unset parameters are commented out.
+            if fmt is ConfigFormat.TOML:
+                output = _serialize_toml_with_unset(tree)
+            else:
+                output = serialize_content(fmt, tree)
         except ImportError:
             echo(disabled_format_message(fmt), err=True)
             ctx.exit(1)

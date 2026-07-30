@@ -1403,6 +1403,14 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         if not value:
             return
 
+        # Load the configuration file first, so the value and source columns
+        # reflect it even when this flag was processed ahead of the --config
+        # option. Imported here to avoid a circular import with the config
+        # module, which imports from this one.
+        from .config import ensure_config_loaded
+
+        ensure_config_loaded(ctx)
+
         # Warn when the live command is not a Command: without the captured
         # raw arguments, the value/source columns fall back to defaults.
         if context.get(ctx, context.RAW_ARGS) is None:

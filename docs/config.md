@@ -122,6 +122,12 @@ my_list       is ('item 1', 'item #2', 'Very Last Item!')
 int_parameter is 3
 ```
 
+## Key spelling
+
+Configuration keys address CLI parameters by their internal ID, which Click derives from the flag by replacing hyphens with underscores: the `--dummy-flag` option is the `dummy_flag` parameter. Keys written in kebab-case, the conventional spelling in TOML and YAML, are accepted too and resolve to the same parameter: `dummy-flag` and `dummy_flag` both set `--dummy-flag`.
+
+When both spellings of the same key coexist in a file, the last one in file order wins and a warning names both.
+
 ## Dotted keys
 
 Configuration files support dotted keys as a shorthand for nested structures. Instead of writing:
@@ -364,10 +370,27 @@ Will stop the CLI execution on the unrecognized `random_param` value, before the
 :emphasize-lines: 3
 $ cli --config "cli.toml"
 Load configuration matching cli.toml
-Configuration validation error: Parameter 'random_param' found in second dict but not in first.
+Configuration validation error: Unknown configuration key 'random_param'.
 ```
 
 The error is reported at critical level and the process exits with code 1, the same failure mode as [`--validate-config`](#validating-configuration-files) and the [extension validators](#extending-validation). All three share the single `ValidationError` type.
+
+A parameter deliberately kept out of configuration files (see [Excluding parameters](#excluding-parameters)) is reported with a dedicated message, so users are not led to believe the option does not exist:
+
+```{code-block} shell-session
+Configuration validation error: Configuration key 'version' is not allowed in configuration files.
+```
+
+The strict check only polices the app's own section: other tools' sections in a shared file (like the `[tool.*]` tables of a `pyproject.toml`, or a multi-app configuration file) are ignored.
+
+On the default `@command` and `@group` decorators, activate strict mode with the `config_strict` keyword instead of replacing the whole default parameter list:
+
+```{code-block} python
+from click_extra import command
+
+@command(config_strict=True)
+def cli(): ...
+```
 
 ```{tip}
 If you want to check a configuration file for unrecognized keys without running the CLI, see the [`--validate-config` option](#validating-configuration-files) below.
@@ -436,7 +459,7 @@ unknown_key = "oops"
 ```{code-block} shell-session
 :emphasize-lines: 2
 $ my-cli --validate-config bad.toml
-Configuration validation error: Parameter 'unknown_key' found in second dict but not in first.
+Configuration validation error: Unknown configuration key 'unknown_key'.
 $ echo $?
 1
 ```
@@ -510,8 +533,29 @@ $ weather --city Oslo --export-config toml > ~/.config/weather/config.toml
 
 The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
 
+Parameters without a value are exported too, so the generated file names every key a configuration file can set. Multi-value parameters read as empty lists, and unset scalars render as `null`, except in TOML which has no null type and comments them out:
+
+```{click:source}
+from click_extra import command, echo, option
+
+@command
+@option("--regexp")
+@option("--tags", multiple=True)
+def filters(regexp, tags):
+    echo(f"{regexp!r} {tags!r}")
+```
+
+```{click:run}
+result = invoke(filters, args=["--export-config", "toml"])
+assert result.exit_code == 0
+assert "tags = []" in result.stdout
+assert "# regexp =" in result.stdout
+```
+
+If a configuration file is discovered or passed via `--config`, its values are loaded before the export renders, so the output reflects the full precedence chain regardless of the order of the flags on the command line. The same guarantee applies to [`--params`](commands.md).
+
 ```{note}
-`--export-config` is itself excluded from the export, like the other [introspection options](#excluding-parameters) (`--help`, `--version`, `--params`). It requires a sibling `@config_option` decorator to be present on the same command.
+`--export-config` is itself excluded from the export, like the other [introspection options](#excluding-parameters) (`--help`, `--version`, `--params`, `--validate-config`). It requires a sibling `@config_option` decorator to be present on the same command.
 ```
 
 ## Extending validation
@@ -664,7 +708,7 @@ Now `[my-cli.plugins.*]` content passes through to `accept_anything`, even thoug
 ```{code-block} shell-session
 :emphasize-lines: 2-3
 $ my-cli --validate-config bad.toml
-Configuration validation error: Parameter 'unknown_flag' found in second dict but not in first.
+Configuration validation error: Unknown configuration key 'unknown_flag'.
 Configuration validation error: my-cli.managers.winget.bad_key: unknown field 'bad_key'
 $ echo $?
 1
@@ -741,6 +785,17 @@ You need to provide the fully-qualified ID of the option you're looking to block
 
 If you have difficulties identifying your options and their IDs, run your CLI with the [`--params` option](parameters.md#params-option) for introspection.
 ```
+
+On the default `@command` and `@group` decorators, the `excluded_params` keyword extends the blocklist without replacing the whole default parameter list. Unlike the option-level argument above, it is additive: the built-in exclusions (`--config`, `--version`, `--help`, ...) are preserved and your IDs are unioned into them.
+
+```{code-block} python
+from click_extra import command
+
+@command(excluded_params=["my-cli.dangerous_param"])
+def my_cli(): ...
+```
+
+Under [strict mode](#strictness), a blocked parameter found in a configuration file is refused with a dedicated message naming it as not allowed, rather than unknown.
 
 ## Including parameters
 

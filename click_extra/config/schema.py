@@ -36,10 +36,9 @@ from typing import NamedTuple, get_origin, get_type_hints
 
 from click import get_current_context
 from deepmerge import always_merger
-from extra_platforms._utils import _recursive_update
 
 from .. import context
-from ..parameters import ParamStructure
+from ..parameters import PARAM_PATH_SEP, ParamStructure
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -298,6 +297,95 @@ def _normalize_conf(conf: dict, strict: bool = False) -> dict:
     both at once instead of risking drift between the two call sites.
     """
     return _expand_dotted_keys(_strip_reserved_keys(conf), strict=strict)
+
+
+def _merge_into_template(
+    template: dict[str, Any],
+    conf: dict[str, Any],
+    strict: bool = False,
+    blocked: frozenset[str] = frozenset(),
+    _path: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Merge *conf* into *template* in place, bounded by the template's structure.
+
+    Like a recursive {meth}`dict.update` restricted to the keys already present
+    in *template*. A key absent from the template is retried with hyphens
+    replaced by underscores, so the kebab-case spelling conventional in TOML and
+    YAML files (`hash-body`) reaches the CLI parameter Click names with
+    underscores (`hash_body`). The same tolerance Click applies when deriving
+    parameter names from option declarations (`--hash-body` becomes
+    `hash_body`), extended to configuration files.
+
+    When two spellings of the same key coexist (`hash-body` and
+    `hash_body`), the last one wins and a warning names both.
+
+    Keys matching nothing in the template are silently ignored, or raise
+    `ValueError` when `strict` is `True`. The error distinguishes parameters
+    deliberately blocked from configuration files (their fully-qualified IDs
+    passed via `blocked`) from keys matching no CLI parameter at all.
+
+    :param blocked: fully-qualified parameter IDs excluded from configuration
+        files, used only to sharpen strict-mode error messages.
+    :param _path: internal accumulator tracking the qualified path of the
+        level being merged. Callers should not set this.
+    """
+    spellings: dict[str, str] = {}
+    for key, value in conf.items():
+        target_key = key
+        if target_key not in template:
+            normalized = key.replace("-", "_")
+            if normalized in template:
+                target_key = normalized
+        if target_key in template:
+            if target_key in spellings:
+                logger.warning(
+                    f"Configuration keys {spellings[target_key]!r} and {key!r} "
+                    f"both resolve to {target_key!r}. Last value wins."
+                )
+            spellings[target_key] = key
+            if isinstance(value, dict) and isinstance(template[target_key], dict):
+                template[target_key] = _merge_into_template(
+                    template[target_key],
+                    value,
+                    strict=strict,
+                    blocked=blocked,
+                    _path=(*_path, target_key),
+                )
+            else:
+                template[target_key] = value
+        elif strict:
+            qualified = PARAM_PATH_SEP.join((*_path, key.replace("-", "_")))
+            if qualified in blocked:
+                raise ValueError(
+                    f"Configuration key {key!r} is not allowed in "
+                    f"configuration files."
+                )
+            raise ValueError(f"Unknown configuration key {key!r}.")
+    return template
+
+
+def _scope_app_sections(
+    conf: dict[str, Any],
+    app_name: str,
+    fallback_sections: Sequence[str] = (),
+    warn: bool = True,
+) -> dict[str, Any]:
+    """Reduce a parsed config document to the app's own section.
+
+    Returns ``{app_name: section}`` where the section is resolved by
+    :py:func:`_select_app_section` (so legacy `fallback_sections` are honored,
+    with their deprecation warning), or an empty dict when the document holds
+    no section for the app.
+
+    Foreign sections are dropped: a shared configuration file (like a
+    `pyproject.toml` carrying other tools' `[tool.*]` tables, or a global
+    config file with several apps' sections) must not trip the CLI-parameter
+    strict check over keys that were never addressed to this app.
+    """
+    section = _select_app_section(conf, app_name, fallback_sections, warn=warn)
+    if not section:
+        return {}
+    return {app_name: section}
 
 
 def normalize_config_keys(
@@ -746,8 +834,29 @@ def _strip_opaque_subtrees(
     return result
 
 
+def _match_dotted_segment(conf: dict[str, Any], part: str) -> str | None:
+    """Resolve a dotted-path segment to the key actually used in *conf*.
+
+    Prefers the exact spelling, then retries with the same hyphen tolerance as
+    :py:func:`_merge_into_template`: a path segment declared in snake_case
+    (`dependency_graph`, the Python-identifier form schema fields and
+    validators use) also matches the kebab-case spelling conventional in
+    configuration files (`dependency-graph`). Returns `None` when neither
+    spelling is present.
+    """
+    if part in conf:
+        return part
+    for key in conf:
+        if isinstance(key, str) and key.replace("-", "_") == part:
+            return key
+    return None
+
+
 def _extract_dotted(conf: dict[str, Any], path: str) -> tuple[Any, bool]:
     """Extract a value at a dotted path from a nested dict.
+
+    Path segments match kebab-case spellings too, see
+    :py:func:`_match_dotted_segment`.
 
     :param conf: Nested dict to search.
     :param path: Dotted path (like `"test-matrix.replace"`).
@@ -755,22 +864,29 @@ def _extract_dotted(conf: dict[str, Any], path: str) -> tuple[Any, bool]:
     """
     current: Any = conf
     for part in path.split("."):
-        if not isinstance(current, dict) or part not in current:
+        if not isinstance(current, dict):
             return None, False
-        current = current[part]
+        key = _match_dotted_segment(current, part)
+        if key is None:
+            return None, False
+        current = current[key]
     return current, True
 
 
 def _remove_dotted(conf: dict[str, Any], path: str) -> dict[str, Any]:
     """Remove a value at a dotted path, returning a modified shallow copy.
 
-    Parent dicts that become empty after removal are also pruned.
+    Parent dicts that become empty after removal are also pruned. Path
+    segments match kebab-case spellings too, see
+    :py:func:`_match_dotted_segment`.
     """
     parts = path.split(".")
+    top = _match_dotted_segment(conf, parts[0])
+    if top is None:
+        return conf
     if len(parts) == 1:
-        return {k: v for k, v in conf.items() if k != parts[0]}
-    top = parts[0]
-    if top not in conf or not isinstance(conf[top], dict):
+        return {k: v for k, v in conf.items() if k != top}
+    if not isinstance(conf[top], dict):
         return conf
     sub = _remove_dotted(conf[top], ".".join(parts[1:]))
     if not sub:
@@ -966,12 +1082,15 @@ def _select_app_section(
     conf: dict[str, Any],
     app_name: str,
     fallback_sections: Sequence[str] = (),
+    warn: bool = True,
 ) -> dict[str, Any]:
     """Extract the app's configuration section from a parsed config document.
 
     Looks for `conf[app_name]` first. If it is missing or empty, tries each
     name in `fallback_sections` in order, logging a deprecation warning on
-    match. Works identically for all configuration formats.
+    match. Works identically for all configuration formats. Set `warn` to
+    `False` when the caller already resolved the section once and the
+    deprecation warning would repeat itself.
 
     Free-function form of :py:meth:`~click_extra.config.option.ConfigOption._resolve_app_section`, shared
     with :py:func:`run_config_validation` so both resolve the section (and warn
@@ -980,20 +1099,23 @@ def _select_app_section(
     section = conf.get(app_name)
     if isinstance(section, dict) and section:
         # Warn about leftover legacy sections.
-        for old_name in fallback_sections:
-            if old_name in conf:
-                logger.warning(
-                    f"Config section [{old_name}] is deprecated and "
-                    f"should be removed. Using [{app_name}]."
-                )
+        if warn:
+            for old_name in fallback_sections:
+                if old_name in conf:
+                    logger.warning(
+                        f"Config section [{old_name}] is deprecated and "
+                        f"should be removed. Using [{app_name}]."
+                    )
         return section
 
     for old_name in fallback_sections:
         section = conf.get(old_name)
         if isinstance(section, dict) and section:
-            logger.warning(
-                f"Config section [{old_name}] is deprecated, migrate to [{app_name}]."
-            )
+            if warn:
+                logger.warning(
+                    f"Config section [{old_name}] is deprecated, "
+                    f"migrate to [{app_name}]."
+                )
             return section
     return {}
 
@@ -1090,6 +1212,7 @@ def run_config_validation(
     schema_strict: bool = False,
     schema_warn_unknown: bool = False,
     strict: bool = False,
+    blocked_params: Iterable[str] = (),
     collect_all: bool = True,
 ) -> ValidationReport:
     """Validate a parsed configuration document in one schema-driven pass.
@@ -1134,6 +1257,9 @@ def run_config_validation(
         {func}`make_schema_callable`). Ignored when `schema_strict` rejects
         them outright.
     :param strict: Reject keys the CLI-parameter template does not recognize.
+    :param blocked_params: Fully-qualified IDs of parameters excluded from
+        configuration files, used to sharpen strict-mode error messages (a
+        blocked parameter is reported as such, not as unknown).
     :param collect_all: When `True` (default), run every stage and collect all
         errors. When `False`, the first error short-circuits the rest.
     :return: A {class}`ValidationReport`. `ValidationError` is the single error
@@ -1166,9 +1292,20 @@ def run_config_validation(
             f"{app_name}.{path}" if app_name else path for path in opaque_paths
         )
         stripped = _strip_opaque_subtrees(normalized, prefixed_paths)
+        # Scope the strict check to the app's own section: foreign sections in
+        # a shared file are not ours to police. Stage 2 already resolved the
+        # section once, so the legacy-section warning is muted here.
+        scoped = (
+            _scope_app_sections(stripped, app_name, fallback_sections, warn=False)
+            if app_name
+            else stripped
+        )
         try:
-            merged_conf = _recursive_update(
-                copy.deepcopy(params_template), stripped, strict
+            merged_conf = _merge_into_template(
+                copy.deepcopy(params_template),
+                scoped,
+                strict,
+                blocked=frozenset(blocked_params),
             )
         except ValueError as exc:
             # Path-1 error. Empty path keeps str(ValidationError) == str(exc),

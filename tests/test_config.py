@@ -599,8 +599,8 @@ def test_strict_conf(invoke, create_config, conf_text, expect_error):
         assert result.exit_code == 1
         assert not result.stdout
         assert (
-            "Configuration validation error: Parameter 'random_stuff' found in "
-            "second dict but not in first." in result.stderr
+            "Configuration validation error: "
+            "Unknown configuration key 'random_stuff'." in result.stderr
         )
     else:
         assert result.exit_code == 0
@@ -608,6 +608,234 @@ def test_strict_conf(invoke, create_config, conf_text, expect_error):
         assert "int_parameter is 3" in result.stdout
 
     assert f"Load configuration matching {conf_path}\n" in result.stderr
+
+
+def test_kebab_case_keys(invoke, create_config):
+    """Kebab-case config keys reach the snake_case-named CLI parameters."""
+
+    @command
+    @option("--dummy-flag/--no-flag")
+    @option("--int-param", type=int, default=10)
+    def kebab_cli(dummy_flag, int_param):
+        echo(f"dummy_flag = {dummy_flag!r}")
+        echo(f"int_param = {int_param!r}")
+
+    conf_path = create_config(
+        "kebab.toml",
+        dedent("""\
+            [kebab-cli]
+            dummy-flag = true
+            int-param = 3
+        """),
+    )
+    result = invoke(kebab_cli, "--config", str(conf_path), color=False)
+
+    assert result.exit_code == 0
+    assert "dummy_flag = True" in result.stdout
+    assert "int_param = 3" in result.stdout
+
+
+def test_kebab_case_spelling_collision(invoke, create_config):
+    """Both spellings of the same key: last one wins, a warning names both."""
+
+    @command
+    @option("--int-param", type=int, default=10)
+    def collision_cli(int_param):
+        echo(f"int_param = {int_param!r}")
+
+    conf_path = create_config(
+        "collision.toml",
+        dedent("""\
+            [collision-cli]
+            int_param = 3
+            int-param = 7
+        """),
+    )
+    result = invoke(collision_cli, "--config", str(conf_path), color=False)
+
+    assert result.exit_code == 0
+    assert "int_param = 7" in result.stdout
+    assert "both resolve to 'int_param'. Last value wins." in result.stderr
+
+
+def test_strict_conf_ignores_foreign_sections(invoke, create_config):
+    """Other tools' sections in a shared config file do not trip strict mode."""
+
+    @click.command
+    @config_option(strict=True)
+    @option("--int-param", type=int, default=10)
+    def scoped_cli(int_param):
+        echo(f"int_param = {int_param!r}")
+
+    conf_path = create_config(
+        "shared.toml",
+        dedent("""\
+            [scoped-cli]
+            int_param = 3
+
+            [other-tool]
+            unknown_stuff = true
+        """),
+    )
+    result = invoke(scoped_cli, "--config", str(conf_path), color=False)
+
+    assert result.exit_code == 0
+    assert "int_param = 3" in result.stdout
+
+
+def test_command_forwards_config_strict(invoke, create_config):
+    """@command(config_strict=True) activates strict mode on the default option."""
+
+    @command(config_strict=True)
+    @option("--int-param", type=int, default=10)
+    def strict_forward_cli(int_param):
+        echo(f"int_param = {int_param!r}")
+
+    conf_path = create_config(
+        "typo.toml",
+        dedent("""\
+            [strict-forward-cli]
+            int_pram = 3
+        """),
+    )
+    result = invoke(strict_forward_cli, "--config", str(conf_path), color=False)
+
+    assert result.exit_code == 1
+    assert (
+        "Configuration validation error: "
+        "Unknown configuration key 'int_pram'." in result.stderr
+    )
+
+
+def test_command_excluded_params_additive(invoke, create_config):
+    """@command(excluded_params=...) extends the default blocklist.
+
+    The forwarded exclusion applies on top of the built-in ones, and a blocked
+    parameter found in a config file is reported as blocked, not unknown.
+    """
+
+    @command(
+        config_strict=True,
+        excluded_params=["excluded-cli.secret"],
+    )
+    @option("--secret")
+    @option("--int-param", type=int, default=10)
+    def excluded_cli(secret, int_param):
+        echo(f"int_param = {int_param!r}")
+
+    config_opt = search_params(excluded_cli.params, ConfigOption)
+    assert config_opt.extra_excluded_params == frozenset({"excluded-cli.secret"})
+
+    # The blocked parameter is refused with a dedicated message.
+    conf_path = create_config(
+        "blocked.toml",
+        dedent("""\
+            [excluded-cli]
+            secret = "hunter2"
+        """),
+    )
+    result = invoke(excluded_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 1
+    assert (
+        "Configuration validation error: Configuration key 'secret' "
+        "is not allowed in configuration files." in result.stderr
+    )
+
+    # The default exclusions survive the addition: a config key targeting
+    # --version is still blocked.
+    conf_path = create_config(
+        "version.toml",
+        dedent("""\
+            [excluded-cli]
+            version = true
+        """),
+    )
+    result = invoke(excluded_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 1
+    assert (
+        "Configuration validation error: Configuration key 'version' "
+        "is not allowed in configuration files." in result.stderr
+    )
+
+
+def test_export_config_includes_unset_params(invoke):
+    """Parameters without a default are exported instead of silently dropped.
+
+    TOML has no null type so unset parameters are commented out; multi-value
+    parameters read as empty lists; JSON renders unset parameters as null.
+    """
+
+    @command
+    @option("--tag", multiple=True)
+    @option("--regexp")
+    def unset_cli(tag, regexp):
+        echo("run")
+
+    result = invoke(unset_cli, "--export-config", "toml", color=False)
+    assert result.exit_code == 0
+    assert "[unset-cli]" in result.stdout
+    assert "tag = []" in result.stdout
+    assert "# regexp =" in result.stdout
+
+    result = invoke(unset_cli, "--export-config", "json", color=False)
+    assert result.exit_code == 0
+    assert '"tag": []' in result.stdout
+    assert '"regexp": null' in result.stdout
+
+
+def test_introspection_flags_load_config_first(invoke, create_config):
+    """--params and --export-config reflect the config file regardless of the
+    order in which Click processes the eager options.
+
+    Click processes eager parameters given on the command line ahead of eager
+    parameters left at their defaults, so these flags used to render before
+    the configuration file was discovered and loaded.
+    """
+
+    @command
+    @option("--int-param", type=int, default=10)
+    def ordering_cli(int_param):
+        echo(f"int_param = {int_param!r}")
+
+    conf_path = create_config(
+        "ordering.toml",
+        dedent("""\
+            [ordering-cli]
+            int_param = 42
+        """),
+    )
+
+    # The --params flag comes first on the command line, so it is processed
+    # before --config: the table must still show the config-sourced value.
+    result = invoke(
+        ordering_cli,
+        "--params",
+        "--table-format",
+        "csv",
+        "--config",
+        str(conf_path),
+        color=False,
+    )
+    assert result.exit_code == 0
+    param_row = [
+        line
+        for line in result.stdout.splitlines()
+        if line.startswith("ordering-cli.int_param,")
+    ]
+    assert len(param_row) == 1
+    assert ",42,DEFAULT_MAP" in param_row[0]
+
+    # Same ordering trap for --export-config.
+    result = invoke(
+        ordering_cli,
+        "--export-config",
+        "toml",
+        "--config",
+        str(conf_path),
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert "int_param = 42" in result.stdout
 
 
 @all_config_formats

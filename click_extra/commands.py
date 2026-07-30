@@ -165,10 +165,12 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         *args,
         version_fields: dict[str, Any] | None = None,
         config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
+        config_strict: bool = False,
         schema_strict: bool = False,
         fallback_sections: Sequence[str] = (),
         config_validators: Sequence[ConfigValidator] = (),
         included_params: Sequence[str] | None = None,
+        excluded_params: Sequence[str] | None = None,
         extra_option_at_end: bool = True,
         populate_auto_envvars: bool = True,
         extra_keywords: HelpKeywords | None = None,
@@ -184,6 +186,21 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             `version`, `git_branch`). Lets you customize `--version`
             output from the command decorator without replacing the default
             `params` list.
+        :param config_strict: forwarded to the default
+            {class}`~click_extra.config.option.ConfigOption`'s `strict`
+            setting: configuration keys not matching any CLI parameter raise
+            an error instead of being silently ignored. Like the other
+            `config_*` and `*_params` forwards, it spares you from
+            replacing the whole default `params` list to customize the
+            config option.
+        :param excluded_params: additional parameter IDs to block from
+            configuration files, merged into the default
+            {class}`~click_extra.config.option.ConfigOption`'s
+            `excluded_params` blocklist. Additive, unlike the option-level
+            `excluded_params` which replaces the default blocklist
+            entirely. Items are fully-qualified parameter IDs (like
+            `mycli.mail_sources`). Mutually exclusive with
+            `included_params`.
         :param extra_keywords: a `HelpKeywords` instance whose entries are
             merged into the auto-collected keyword set. Use this to inject
             additional strings for help screen highlighting.
@@ -327,12 +344,17 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                         setattr(param, field_id, field_value)
 
         # Forward config option parameters to the ConfigOption instance.
+        if included_params is not None and excluded_params is not None:
+            msg = "excluded_params and included_params are mutually exclusive."
+            raise ValueError(msg)
         if (
             config_schema is not None
+            or config_strict
             or schema_strict
             or fallback_sections
             or config_validators
             or included_params is not None
+            or excluded_params is not None
         ):
             for param in self.params:
                 if isinstance(param, ConfigOption):
@@ -341,6 +363,28 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                         # Schema-only section: see the same inference in
                         # ConfigOption.__init__.
                         param.schema_warn_unknown = not param.included_params
+                    if excluded_params is not None:
+                        if param.included_params is not None:
+                            msg = (
+                                "excluded_params conflicts with the config "
+                                "option's own included_params."
+                            )
+                            raise ValueError(msg)
+                        if "excluded_params" in param.__dict__:
+                            # The option carries an explicit blocklist: extend
+                            # the frozen instance value directly.
+                            param.excluded_params = param.excluded_params | (
+                                frozenset(excluded_params)
+                            )
+                        else:
+                            # Stash the additions for the dynamic default
+                            # property to merge at resolution time, when the
+                            # runtime context is available.
+                            param.extra_excluded_params = frozenset(
+                                excluded_params
+                            )
+                    if config_strict:
+                        param.strict = config_strict
                     if schema_strict:
                         param.schema_strict = schema_strict
                     if config_schema is not None:
