@@ -10,6 +10,7 @@ hide-toc: true
 :hidden:
 install
 binaries
+cli
 tutorial
 commands
 parameters

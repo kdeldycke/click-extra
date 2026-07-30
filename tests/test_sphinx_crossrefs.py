@@ -101,6 +101,19 @@ def test_install_page_internal_anchor(built_docs):
     assert 'href="#executables"' in html, "no in-page link to executables"
 
 
+@pytest.mark.parametrize("anchor", ("click-extra-wrap", "test-suite-file"))
+def test_cli_reference_anchors(built_docs, anchor):
+    """The CLI page's tree and config summary tables deep-link their sections.
+
+    One anchor per directive: `click-extra-wrap` comes from `{click:tree}`,
+    `test-suite-file` from `{click:config}`. Their presence is also the canary
+    for the directives themselves staying on the page.
+    """
+    html = read_html(built_docs, "cli.html")
+    assert f'id="{anchor}"' in html, f"missing section anchor for {anchor}"
+    assert f'href="#{anchor}"' in html, f"summary table does not link to {anchor}"
+
+
 @pytest.mark.parametrize(
     ("source_page", "href", "target_page", "anchor"),
     (

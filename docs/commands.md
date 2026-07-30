@@ -1,4 +1,4 @@
-# {octicon}`command-palette` Commands & groups
+# {octicon}`apps` Commands & groups
 
 ## Drop-in replacement
 

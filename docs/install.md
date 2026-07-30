@@ -84,7 +84,7 @@ $ uvx --from file:///Users/me/code/click-extra -- click-extra
 
 This will download and run `click-extra`, a demo CLI included in the package.
 
-The demo CLI showcases various features of Click Extra, such as enhanced help formatting, colored output, and more.
+The demo CLI showcases various features of Click Extra, such as enhanced help formatting, colored output, and more. The [CLI reference](cli.md) documents every command with its live help screen.
 
 Here is the help screen of the demo application, rendered at build time so it always matches the current code:
 

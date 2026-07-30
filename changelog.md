@@ -18,6 +18,7 @@
 - Reword the unknown-configuration-key error, and report parameters blocked from configuration files as not allowed instead of unknown.
 - Add an executables download table and a release-verification section to the installation guide.
 - Render the demo CLI help screen live in the installation guide, replacing captured output stuck on `7.2.0`.
+- Add a CLI reference page rendering the command tree and the `[tool.click-extra]` configuration schema live.
 - Add cross-reference render tests asserting anchors and intersphinx links in the built documentation.
 
 ## [`8.6.3` (2026-07-29)](https://github.com/kdeldycke/click-extra/compare/v8.6.2...v8.6.3)
