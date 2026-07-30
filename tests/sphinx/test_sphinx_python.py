@@ -395,6 +395,21 @@ def test_mirror_src_via_update_mirror_blocks(tmp_path):
     assert update_mirror_blocks([doc]) == []
 
 
+def test_mirror_src_rewrite_skips_example_nested_in_code_block():
+    """A mirror-src comment shown inside a longer code-block fence is never run."""
+    documented = dedent("""
+        ````{code-block} markdown
+        <!-- mirror-src
+        print("MUST-NOT-RUN")
+        -->
+        ````
+    """)
+    out = _rewrite_mirror_src_regions(documented, "<test>")
+    # No region is generated: the commented block was copied verbatim, not run.
+    assert MIRROR_SRC_MARKER_END not in out
+    assert out == documented
+
+
 def test_mirror_rewrite_inserts_region():
     """A mirror block with no region yet gets one inserted below the fence."""
     out = _rewrite_mirror_regions(_MIRROR_TABLE_BLOCK, "<test>")

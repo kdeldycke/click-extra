@@ -534,13 +534,31 @@ def _rewrite_mirror_src_regions(text: str, location: str) -> str:
     way it does for a fence), and its output is written between the comment's
     closing `-->` and {data}`MIRROR_SRC_MARKER_END`, which is inserted on first
     sight. Idempotent: a region whose generator is unchanged round-trips.
+
+    Like {func}`_rewrite_mirror_regions`, the walk skips backtick fences via
+    {func}`click_extra.sphinx._base.fence_spans`, so a `<!-- mirror-src -->`
+    example nested inside a longer `code-block` fence (a documented illustration)
+    is copied verbatim, never executed or refreshed.
     """
     lines = text.split("\n")
+    spans = fence_spans(lines)
     total = len(lines)
     out: list[str] = []
     namespace: dict[str, object] = {"__file__": "dummy.py"}
     index = 0
     while index < total:
+        span = spans.get(index)
+        if span is not None:
+            # A backtick fence: emit it as an opaque unit, never scanning inside
+            # for a mirror-src marker (a documented example must not run).
+            if span.close is None:
+                # Unterminated fence: leave the tail untouched.
+                out.extend(lines[index:])
+                break
+            out.extend(lines[index : span.close + 1])
+            index = span.close + 1
+            continue
+
         if not _MIRROR_SRC_OPEN_RE.match(lines[index]):
             out.append(lines[index])
             index += 1

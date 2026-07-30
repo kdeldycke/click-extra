@@ -875,6 +875,45 @@ A few properties follow from the mirror being real Markdown:
 
 `:mirror:` is scoped to `python:render` in a Markdown host, and shares the `click_extra_enable_exec_directives` opt-in with the rest of the executing directives.
 
+(mirror-src)=
+
+### Hiding the generator with `<!-- mirror-src -->`
+
+A `:mirror:` fence renders live and mirrors its output into the source, but the generator fence itself stays visible: on GitHub or PyPI, which show the raw Markdown without running Sphinx, the reader sees the `python:render` code block above the table. When the output is the whole point (a table or diagram in `readme.md`) and the generator is just plumbing, the `<!-- mirror-src -->` comment form moves the generator into an HTML comment, so only its output renders.
+
+The generator Python lives between an opening `<!-- mirror-src` line and a closing `-->`, each on its own line:
+
+```{code-block} markdown
+<!-- mirror-src
+from click_extra.table import TableFormat, render_table
+
+print(render_table(
+    [["Lisbon", "12:00"], ["Denver", "05:00"]],
+    headers=["City", "Local time"],
+    table_format=TableFormat.GITHUB,
+))
+-->
+```
+
+Running [`click-extra refresh-directives`](#keeping-the-tables-current) executes the generator and writes its output just below the comment, closed by a `<!-- mirror-src-end -->` marker:
+
+```{code-block} markdown
+<!-- mirror-src
+...
+-->
+
+| City   | Local time |
+| :----- | :--------- |
+| Lisbon | 12:00      |
+| Denver | 05:00      |
+
+<!-- mirror-src-end -->
+```
+
+Both markers are HTML comments, so GitHub, PyPI, and any plain Markdown renderer show only the generated table while the generator stays out of sight. Everything else matches the `:mirror:` fence: Sphinx regenerates the region in memory on each build so the rendered HTML is never stale, the committed copy is refreshed offline by `click-extra refresh-directives`, the region is reformatted by `mdformat` (so the generator must print `mdformat`-canonical Markdown), and an example nested inside a longer code fence (like the two above) is copied verbatim, never executed.
+
+Choose between the two forms by what should be on the page: the `:mirror:` fence when the generator belongs there, like a docs example teaching `python:render` itself; the `<!-- mirror-src -->` comment when the page should read as its output alone, like a `readme.md` rendered on PyPI.
+
 ### Cross-format rendering
 
 `python:render-myst` and `python:render-rst` let a host file embed content authored in the other markup. This page is MyST, but the following block prints reST and parses it as such:
@@ -1026,11 +1065,19 @@ $ click-extra refresh-directives docs/
 
 It walks the given Markdown files or directories, regenerates each matrix block's table (both the `{matrix}` directive fences and the `<!-- matrix … -->` marker regions) from that block's axis, options, and the project's git tags, and rewrites the block in place. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching data) is left untouched, so a transient failure never wipes a good table. Examples nested inside longer code fences (like the ones on this page) are documented illustrations and are never refreshed.
 
-The same command also refreshes the [`python:render` `:mirror:` regions](#self-updating-source-with-mirror) found in the same files, by executing each mirror block's Python (`click_extra.sphinx.python.update_mirror_blocks(paths, check=...)` is the importable form). One invocation therefore keeps every self-updating block of a documentation tree current, whatever its kind.
+The same command also refreshes the `python:render` `:mirror:` regions found in the same files, in both the visible [fence](#self-updating-source-with-mirror) and the invisible [`<!-- mirror-src -->` comment](#mirror-src) forms, by executing each block's Python (`click_extra.sphinx.python.update_mirror_blocks(paths, check=...)` is the importable form). One invocation therefore keeps every self-updating block of a documentation tree current, whatever its kind.
 
 ```{note}
 Only the updater (and the empty-block fallback) needs the release tags, since it is the part that shells out to `git`. Run it wherever the full tag history is available. The HTML build renders the embedded table verbatim and needs no git access, so shallow clones and read-only build hosts render the matrix fine.
 ```
+
+For content a directive cannot produce on its own, like a shared registry dumped into several files or an external generator's output, the same marker machinery is exposed as three primitives, importable from `click_extra.sphinx`:
+
+- `marker_res(name)` builds the `(open, close)` regexes of a `<!-- name … -->` / `<!-- name-end -->` region, the grammar every self-updating marker shares.
+- `replace_region(text, name, content)` swaps the body between those markers for `content`, keeping the markers so the region round-trips. It returns the text unchanged when either marker is absent, so it is safe to fan out over files that do not all carry the region.
+- `update_blocks(paths, rewrite, check=...)` applies a `rewrite(text, path)` callback to every Markdown file under `paths`, writing back only the ones it changed (or, under `check`, returning the ones it would change). It is the read-rewrite-report loop behind both `update_matrix_blocks` and `update_mirror_blocks`.
+
+`replace_region` is the counterpart to those two refreshers for content that originates outside the document rather than from an inline directive.
 
 ## Man pages
 
