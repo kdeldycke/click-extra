@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.7.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.7.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.7.0` (2026-07-30)](https://github.com/kdeldycke/click-extra/compare/v8.6.3...v8.7.0)
 
 - Add a `<!-- mirror-src -->` comment form of `python:render` `:mirror:`: the generator Python lives inside an HTML comment, so its output renders on GitHub and PyPI while the generator stays invisible.
