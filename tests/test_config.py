@@ -1274,7 +1274,7 @@ def test_params_template_not_mutated_across_invocations(invoke, create_config):
 
     ``params_template`` is a ``@cached_property`` of the ``ConfigOption`` instance
     bound at decoration time, so it lives for the lifetime of the CLI object.
-    ``_recursive_update`` mutates its first argument in place; without a defensive
+    ``_merge_into_template`` mutates its first argument in place; without a defensive
     copy, the cached template would accumulate values from earlier ``--config``
     loads and leak them into ``default_map`` on subsequent invocations.
     """

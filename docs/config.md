@@ -593,7 +593,7 @@ assert "tags = []" in result.stdout
 assert "# regexp =" in result.stdout
 ```
 
-If a configuration file is discovered or passed via `--config`, its values are loaded before the export renders, so the output reflects the full precedence chain regardless of the order of the flags on the command line. The same guarantee applies to [`--params`](commands.md).
+If a configuration file is discovered or passed via `--config`, its values are loaded before the export renders, so the output reflects the full precedence chain regardless of the order of the flags on the command line. The same guarantee applies to [`--params`](parameters.md#params-option).
 
 ```{note}
 `--export-config` is itself excluded from the export, like the other [introspection options](#excluding-parameters) (`--help`, `--version`, `--params`, `--validate-config`). It requires a sibling `@config_option` decorator to be present on the same command.

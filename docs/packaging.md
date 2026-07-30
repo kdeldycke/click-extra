@@ -8,7 +8,7 @@ The wheel is built with [`uv_build`](https://docs.astral.sh/uv/), declared as th
 
 ## Test suite
 
-Since `click-extra` > `8.6.0`, the PyPI sdist ships `tests/`, `docs/` and the `.github/` files the tests read, so the suite runs straight from the sdist. Earlier releases shipped no tests; those builds must start from [a Git tag tarball](https://github.com/kdeldycke/click-extra/tags) instead.
+Since `click-extra` `8.6.1`, the PyPI sdist ships `tests/`, `docs/` and the `.github/` files the tests read, so the suite runs straight from the sdist. Earlier releases shipped no tests; those builds must start from [a Git tag tarball](https://github.com/kdeldycke/click-extra/tags) instead.
 
 A plain `pytest` run is friendly to a hermetic build sandbox:
 
