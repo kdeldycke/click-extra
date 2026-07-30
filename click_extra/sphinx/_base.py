@@ -250,6 +250,46 @@ def marker_res(name: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
     return open_re, close_re
 
 
+def replace_region(text: str, name: str, content: str) -> str:
+    """Return `text` with the body of a `<!-- name -->` region swapped for `content`.
+
+    Finds the `<!-- name [args] -->` opening and `<!-- name-end -->` closing
+    markers (the grammar of {func}`marker_res`) and replaces everything between
+    them with `content`, padded by one blank line on each side. The markers
+    themselves are preserved, so the region round-trips: a second call with the
+    same `content` is a no-op.
+
+    When either marker is missing the text is returned unchanged, so the call is
+    safe to fan out over every file of an {func}`update_blocks` rewrite even when
+    only some carry the region. This is the generic counterpart to the
+    fence-driven refreshers of {mod}`click_extra.sphinx.matrix` and
+    {mod}`click_extra.sphinx.python`: use it when the content is produced outside
+    the document (a registry dump, an external generator) rather than by an
+    inline directive.
+    """
+    open_re, close_re = marker_res(name)
+    lines = text.split("\n")
+
+    open_idx = next((i for i, line in enumerate(lines) if open_re.match(line)), None)
+    if open_idx is None:
+        return text
+    close_idx = next(
+        (i for i in range(open_idx + 1, len(lines)) if close_re.match(lines[i])),
+        None,
+    )
+    if close_idx is None:
+        return text
+
+    rebuilt = [
+        *lines[: open_idx + 1],
+        "",
+        *content.split("\n"),
+        "",
+        *lines[close_idx:],
+    ]
+    return "\n".join(rebuilt)
+
+
 def iter_markdown_files(paths: Iterable[Path]) -> Iterable[Path]:
     """Yield the Markdown sources under `paths` (files as-is, dirs recursed)."""
     for path in paths:

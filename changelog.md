@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add a `<!-- mirror-src -->` comment form of `python:render` `:mirror:`: the generator Python lives inside an HTML comment, so its output renders on GitHub and PyPI while the generator stays invisible. Refreshed by `refresh-directives` and at build time, like the fenced form.
+- Export `update_blocks`, `marker_res`, and a new `replace_region` helper from `click_extra.sphinx` for downstream self-updating documentation scripts.
 - Accept kebab-case keys in configuration files: `dummy-flag` and `dummy_flag` both address the `--dummy-flag` option, the last spelling winning on collision with a warning.
 - Scope the configuration strict check and merge to the app's own section, ignoring other tools' sections in shared files like `pyproject.toml`.
 - Honor legacy `fallback_sections` when merging configuration values into `default_map`, not only in the schema path.

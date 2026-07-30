@@ -34,7 +34,9 @@ from click_extra.cli import refresh_directives_cmd
 from click_extra.sphinx.python import (
     MIRROR_MARKER_END,
     MIRROR_MARKER_START,
+    MIRROR_SRC_MARKER_END,
     _rewrite_mirror_regions,
+    _rewrite_mirror_src_regions,
     update_mirror_blocks,
 )
 
@@ -344,6 +346,53 @@ _MIRROR_TABLE_BLOCK = dedent("""
 
     Trailing prose.
 """)
+
+
+_MIRROR_SRC_BLOCK = dedent("""
+    # Title
+
+    <!-- mirror-src
+    rows = [("apple", 3), ("banana", 5)]
+    print("| Fruit  | Count |")
+    print("| :----- | ----: |")
+    for name, count in rows:
+        print(f"| {name} | {count} |")
+    -->
+
+    Trailing prose.
+""")
+
+
+def test_mirror_src_rewrite_inserts_region():
+    """A mirror-src comment with no region yet gets one, generator kept hidden."""
+    out = _rewrite_mirror_src_regions(_MIRROR_SRC_BLOCK, "<test>")
+    assert out.count(MIRROR_SRC_MARKER_END) == 1
+    assert "| apple | 3 |" in out
+    # The generator lives in an HTML comment (invisible on GitHub); the generated
+    # body renders below it, before the trailing prose.
+    assert "<!-- mirror-src" in out
+    assert out.index("<!-- mirror-src") < out.index("| apple | 3 |")
+    assert out.index("| apple | 3 |") < out.index(MIRROR_SRC_MARKER_END)
+    assert out.index(MIRROR_SRC_MARKER_END) < out.index("Trailing prose.")
+
+
+def test_mirror_src_rewrite_is_idempotent():
+    """Re-running over an already-filled mirror-src region is a no-op."""
+    once = _rewrite_mirror_src_regions(_MIRROR_SRC_BLOCK, "<test>")
+    twice = _rewrite_mirror_src_regions(once, "<test>")
+    assert once == twice
+    assert twice.count(MIRROR_SRC_MARKER_END) == 1
+
+
+def test_mirror_src_via_update_mirror_blocks(tmp_path):
+    """The offline refresher fills a mirror-src region, then round-trips clean."""
+    doc = tmp_path / "readme.md"
+    doc.write_text(_MIRROR_SRC_BLOCK, encoding="utf-8")
+    assert update_mirror_blocks([doc]) == [doc]
+    source = doc.read_text(encoding="utf-8")
+    assert MIRROR_SRC_MARKER_END in source
+    assert "| apple | 3 |" in source
+    assert update_mirror_blocks([doc]) == []
 
 
 def test_mirror_rewrite_inserts_region():
