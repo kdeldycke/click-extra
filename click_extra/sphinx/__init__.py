@@ -38,9 +38,11 @@ from sphinx.util import logging
 from .. import __version__
 from ..pygments import AnsiHtmlFormatter
 from . import manpages, matrix
-from ._base import marker_res as marker_res
-from ._base import replace_region as replace_region
-from ._base import update_blocks as update_blocks
+from ._base import (
+    marker_res as marker_res,
+    replace_region as replace_region,
+    update_blocks as update_blocks,
+)
 from .alerts import convert_github_alerts
 from .click import ClickDomain, cleanup_runner
 from .python import (

@@ -357,8 +357,7 @@ def _merge_into_template(
             qualified = PARAM_PATH_SEP.join((*_path, key.replace("-", "_")))
             if qualified in blocked:
                 raise ValueError(
-                    f"Configuration key {key!r} is not allowed in "
-                    f"configuration files."
+                    f"Configuration key {key!r} is not allowed in configuration files."
                 )
             raise ValueError(f"Unknown configuration key {key!r}.")
     return template

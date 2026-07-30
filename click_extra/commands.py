@@ -380,9 +380,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                             # Stash the additions for the dynamic default
                             # property to merge at resolution time, when the
                             # runtime context is available.
-                            param.extra_excluded_params = frozenset(
-                                excluded_params
-                            )
+                            param.extra_excluded_params = frozenset(excluded_params)
                     if config_strict:
                         param.strict = config_strict
                     if schema_strict:
