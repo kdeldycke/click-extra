@@ -724,6 +724,7 @@ def test_command_excluded_params_additive(invoke, create_config):
         echo(f"int_param = {int_param!r}")
 
     config_opt = search_params(excluded_cli.params, ConfigOption)
+    assert isinstance(config_opt, ConfigOption)
     assert config_opt.extra_excluded_params == frozenset({"excluded-cli.secret"})
 
     # The blocked parameter is refused with a dedicated message.

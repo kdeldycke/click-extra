@@ -17,10 +17,13 @@
 
 from __future__ import annotations
 
+import os
+from configparser import RawConfigParser
 from gettext import gettext as _
 
+from click.core import ParameterSource
+
 from . import context
-from .envvar import merge_envvar_ids
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -35,10 +38,10 @@ class TelemetryOption(ExtraOption):
 
     Respects the
     [proposed DO_NOT_TRACK environment variable](https://consoledonottrack.com) as a
-    unified standard to opt-out of telemetry for TUI/console apps.
-
-    The `DO_NOT_TRACK` convention takes precedence over the user-defined environment
-    variables and the auto-generated values.
+    unified standard to opt-out of telemetry for TUI/console apps: a truthy
+    `DO_NOT_TRACK` forces telemetry off, overriding the user-defined environment
+    variables, the auto-generated values, and configuration files. Only an
+    explicit `--telemetry` on the command line outranks it.
 
     The resolved value is stored in
     {data}`ctx.meta[click_extra.context.TELEMETRY] <click_extra.context.TELEMETRY>`,
@@ -59,13 +62,31 @@ class TelemetryOption(ExtraOption):
         param: click.Parameter,
         value: bool,
     ) -> None:
-        """Store the resolved telemetry opt-in flag on the context's `meta` dict.
+        """Reconcile the flag with `DO_NOT_TRACK` and store the result on `ctx.meta`.
 
-        Reads via {func}`click_extra.context.get(ctx, click_extra.context.TELEMETRY)
-        <click_extra.context.get>`. Renamed from `save_telemetry` to align
-        with the `set_<key>` convention used by every other ctx.meta-writing
-        callback.
+        An explicit `--telemetry`/`--no-telemetry` on the command line wins.
+        Otherwise a truthy `DO_NOT_TRACK` (bare presence, or any value not
+        parseable as false, in the permissive spirit of the color environment
+        variables) forces telemetry off. Read via
+        {func}`click_extra.context.get(ctx, click_extra.context.TELEMETRY)
+        <click_extra.context.get>`.
+
+        ```{note}
+        `DO_NOT_TRACK` is read here rather than wired through the option's
+        `envvar`: Click's environment plumbing feeds the raw value straight
+        to the boolean flag, so `DO_NOT_TRACK=1` would *enable* telemetry,
+        inverting the convention. Reading it manually keeps the opt-out
+        meaning, mirroring how {class}`~click_extra.color.ColorOption` reads
+        `NO_COLOR` and friends.
+        ```
         """
+        assert self.name is not None  # Always set for Option subclasses.
+        if ctx.get_parameter_source(self.name) is not ParameterSource.COMMANDLINE:
+            raw = os.environ.get("DO_NOT_TRACK")
+            if raw is not None and RawConfigParser.BOOLEAN_STATES.get(
+                raw.lower(), True
+            ):
+                value = False
         context.set(ctx, context.TELEMETRY, value)
 
     def __init__(
@@ -80,8 +101,6 @@ class TelemetryOption(ExtraOption):
     ) -> None:
         if not param_decls:
             param_decls = ("--telemetry/--no-telemetry",)
-
-        envvar = merge_envvar_ids("DO_NOT_TRACK", envvar)
 
         kwargs.setdefault("callback", self.set_telemetry)
 

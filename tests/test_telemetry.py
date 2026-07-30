@@ -28,29 +28,27 @@ from click_extra import command, context, echo, pass_context, telemetry_option
 @pytest.mark.parametrize(
     ("cmd_decorator", "telemetry_help"),
     (
-        # Click and Cloup do not show the auto-generated envvar in the help screen.
+        # DO_NOT_TRACK is read manually by the callback (not wired through
+        # Click's envvar plumbing), so it never shows up in the help screen.
+        # Click and Cloup do not show the auto-generated envvar either.
         (
             click.command,
-            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                DO_NOT_TRACK]\n",
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.\n",
         ),
         (
             click.command(),
-            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                DO_NOT_TRACK]\n",
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.\n",
         ),
         (
             cloup.command(),
-            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                DO_NOT_TRACK]\n",
+            "  --telemetry / --no-telemetry  Collect telemetry and usage data.\n",
         ),
         # Click Extra always adds the auto-generated envvar to the help screen
         # (and show the defaults).
         (
             command,
             "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                DO_NOT_TRACK, CLI_TELEMETRY; default: no-\n"
-            "                                telemetry]\n",
+            "                                CLI_TELEMETRY; default: no-telemetry]\n",
         ),
     ),
 )
@@ -84,26 +82,28 @@ def test_standalone_telemetry_option(
 @pytest.mark.parametrize(
     ("cmd_decorator", "telemetry_help"),
     (
-        # Click and Cloup do not show the auto-generated envvar in the help screen.
+        # With no explicit envvar wired on the option (DO_NOT_TRACK is read
+        # manually by the callback), Click and Cloup display the auto-generated
+        # envvar, whose prefix the Context upper-cases.
         (
             click.command,
             "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                DO_NOT_TRACK; default: no-telemetry]\n",
+            "                                YO_TELEMETRY; default: no-telemetry]\n",
         ),
         (
             cloup.command,
             "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                DO_NOT_TRACK; default: no-telemetry]\n",
+            "                                YO_TELEMETRY; default: no-telemetry]\n",
         ),
-        # Click Extra always adds the auto-generated envvar to the help screen
-        # (and show the defaults).
+        # Click Extra pre-registers the auto-generated envvar at command
+        # creation, where the prefix keeps its declared case (except on
+        # Windows, whose environment is case-insensitive and normalized).
         (
             command,
             "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                DO_NOT_TRACK, "
+            "                                "
             + ("YO_TELEMETRY" if os.name == "nt" else "yo_TELEMETRY")
-            + "; default: no-\n"
-            "                                telemetry]\n",
+            + "; default: no-telemetry]\n",
         ),
     ),
 )
@@ -120,7 +120,35 @@ def test_multiple_envvars(invoke, cmd_decorator, telemetry_help):
     assert not result.stderr
     assert result.exit_code == 0
 
+    # A truthy DO_NOT_TRACK forces telemetry off.
     result = invoke(standalone_telemetry, env={"DO_NOT_TRACK": "1"})
+    assert result.stdout == "It works!\nTelemetry value: False\n"
+    assert not result.stderr
+    assert result.exit_code == 0
+
+    # DO_NOT_TRACK outranks the option's other environment variables. Both
+    # spellings of the auto-generated envvar are set so the check holds for
+    # every framework and platform (Click upper-cases the prefix at context
+    # time, Click Extra keeps its declared case outside Windows).
+    result = invoke(
+        standalone_telemetry,
+        env={"DO_NOT_TRACK": "1", "yo_TELEMETRY": "true", "YO_TELEMETRY": "true"},
+    )
+    assert result.stdout == "It works!\nTelemetry value: False\n"
+    assert not result.stderr
+    assert result.exit_code == 0
+
+    # A false-parsing DO_NOT_TRACK leaves the other sources in charge.
+    result = invoke(
+        standalone_telemetry,
+        env={"DO_NOT_TRACK": "0", "yo_TELEMETRY": "true", "YO_TELEMETRY": "true"},
+    )
+    assert result.stdout == "It works!\nTelemetry value: True\n"
+    assert not result.stderr
+    assert result.exit_code == 0
+
+    # An explicit command-line flag outranks the convention.
+    result = invoke(standalone_telemetry, "--telemetry", env={"DO_NOT_TRACK": "1"})
     assert result.stdout == "It works!\nTelemetry value: True\n"
     assert not result.stderr
     assert result.exit_code == 0

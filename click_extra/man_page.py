@@ -48,6 +48,7 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from gettext import gettext as _
 from importlib import metadata
 from pathlib import Path
 
@@ -765,7 +766,7 @@ class ManOption(ExtraOption):
         is_flag: bool = True,
         expose_value: bool = False,
         is_eager: bool = True,
-        help: str = "Show the command's man page (roff) and exit.",
+        help: str = _("Show the command's man page (roff) and exit."),
         **kwargs,
     ) -> None:
         if not param_decls:

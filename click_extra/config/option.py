@@ -364,7 +364,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Boundary for parent directory walking.
 
         - `None`: walk up to filesystem root.
-        - `VCS`: stop at the nearest VCS root (`.git` or `.hg`) (default).
+        - `VCS`: stop at the nearest VCS root, whichever system marks it (see
+          {data}`~click_extra.config.option.VCS_DIRS`) (default).
         - A `Path` or `str`: stop at that directory.
         """
 
@@ -980,7 +981,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
             logger.debug(f"Found {candidate}, parsing as pyproject.toml.")
             try:
-                content = candidate.read_text(encoding="UTF-8")
+                content = candidate.read_text(encoding="utf-8")
             except OSError as ex:
                 logger.debug(f"Cannot read {candidate}: {ex}")
                 continue

@@ -16,6 +16,7 @@
 - Render `--export-config` keys in kebab-case, the canonical spelling for configuration files, matching the CLI flags.
 - Exclude `--validate-config` from configuration files, like the other self-referential config options.
 - Reword the unknown-configuration-key error, and report parameters blocked from configuration files as not allowed instead of unknown.
+- Fix `DO_NOT_TRACK` handling: a truthy value now forces `--telemetry` off; it previously fed the boolean flag verbatim and enabled telemetry.
 - Add an executables download table and a release-verification section to the installation guide.
 - Render the demo CLI help screen live in the installation guide, replacing captured output stuck on `7.2.0`.
 - Add a CLI reference page rendering the command tree and the `[tool.click-extra]` configuration schema live.

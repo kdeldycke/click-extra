@@ -545,11 +545,6 @@ class TimerOption(ExtraOption):
         :py:meth:`print_timer` as a context-close callback so the elapsed
         duration is printed even when a sibling eager option (`--version`,
         `--params`…) short-circuits the command body.
-
-        Renamed from `register_timer_on_close` to align with the
-        `init_<system>` convention shared with
-        {class}`~click_extra.table.TableFormatOption.init_formatter` and
-        {class}`~click_extra.table.SortByOption.init_sort`.
         """
         if not value or ctx.resilient_parsing:
             return
