@@ -5,6 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Move the self-updating block primitives (`update_blocks`, `marker_res`, `replace_region`) to a new dependency-light `click_extra.blocks` module, importable without the `sphinx` extra; they stay re-exported from `click_extra.sphinx`.
+- Add a `pad` option to `replace_region` to keep the closing marker flush against the body, for regions constrained by `mdformat-footnote`.
+
 ## [`8.7.0` (2026-07-30)](https://github.com/kdeldycke/click-extra/compare/v8.6.3...v8.7.0)
 
 - Add a `<!-- mirror-src -->` comment form of `python:render` `:mirror:`: the generator Python lives inside an HTML comment, so its output renders on GitHub and PyPI while the generator stays invisible.

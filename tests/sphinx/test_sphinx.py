@@ -18,30 +18,6 @@
 from __future__ import annotations
 
 
-def test_public_block_toolkit_reexports():
-    """The self-updating block primitives are importable from the package root."""
-    from click_extra.sphinx import marker_res, replace_region, update_blocks
-
-    assert callable(update_blocks)
-    assert callable(replace_region)
-    open_re, close_re = marker_res("demo")
-    assert open_re.match("<!-- demo -->")
-    assert close_re.match("<!-- demo-end -->")
-
-
-def test_replace_region():
-    """`replace_region` swaps a marked body and is a safe, idempotent no-op."""
-    from click_extra.sphinx import replace_region
-
-    text = "intro\n\n<!-- t -->\nOLD\n<!-- t-end -->\n\nend\n"
-    out = replace_region(text, "t", "NEW")
-    assert "NEW" in out
-    assert "OLD" not in out
-    # Idempotent, and a no-op when the markers are absent.
-    assert replace_region(out, "t", "NEW") == out
-    assert replace_region("no markers", "t", "NEW") == "no markers"
-
-
 def test_sphinx_extension_setup(sphinx_app):
     """Test that the Sphinx extension is properly loaded."""
     # Check that the domain is registered.

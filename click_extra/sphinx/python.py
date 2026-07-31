@@ -60,15 +60,17 @@ from docutils.parsers.rst import Parser as RstParser, directives
 from docutils.statemachine import StringList
 from docutils.utils import new_document
 
-from ._base import (
+from ..blocks import (
     OPTION_LINE_RE,
+    fence_spans,
+    marker_res,
+    update_blocks,
+)
+from ._base import (
     StatelessDomain,
     compile_directive,
-    fence_spans,
     make_cleanup,
-    marker_res,
     parse_into_section,
-    update_blocks,
 )
 from .click import ClickDirective
 
@@ -97,7 +99,7 @@ MIRROR_MARKER_END = "<!-- mirror-end -->"
 """Closing marker of a `:mirror:` region. See {data}`MIRROR_MARKER_START`."""
 
 # Reading-side regexes of the marker pair above, in the shared grammar from
-# `_base.marker_res`.
+# `blocks.marker_res`.
 _MIRROR_OPEN_RE, _MIRROR_CLOSE_RE = marker_res("mirror")
 
 _MIRROR_FENCE_OPEN = re.compile(r"^[ \t]*`{3,}\{python:render\}[ \t]*\S*[ \t]*$")
@@ -469,7 +471,7 @@ def _rewrite_mirror_regions(text: str, location: str) -> str:
     """Return `text` with every ``python:render {mirror}`` region refreshed.
 
     Walks the document fence by fence via
-    {func}`click_extra.sphinx._base.fence_spans`, so a `python:render`
+    {func}`click_extra.blocks.fence_spans`, so a `python:render`
     example nested inside a longer `code-block` fence is copied verbatim,
     never executed. Only a top-level `python:render` fence carrying a
     `:mirror:` option is executed, its output written into the marker region
@@ -536,7 +538,7 @@ def _rewrite_mirror_src_regions(text: str, location: str) -> str:
     sight. Idempotent: a region whose generator is unchanged round-trips.
 
     Like {func}`_rewrite_mirror_regions`, the walk skips backtick fences via
-    {func}`click_extra.sphinx._base.fence_spans`, so a `<!-- mirror-src -->`
+    {func}`click_extra.blocks.fence_spans`, so a `<!-- mirror-src -->`
     example nested inside a longer `code-block` fence (a documented illustration)
     is copied verbatim, never executed or refreshed.
     """
@@ -605,7 +607,7 @@ def _rewrite_mirror_src_regions(text: str, location: str) -> str:
 def update_mirror_blocks(paths: Iterable[Path], *, check: bool = False) -> list[Path]:
     """Refresh every `python:render` `:mirror:` region in the given sources.
 
-    See {func}`click_extra.sphinx._base.update_blocks` for the walk, write, and
+    See {func}`click_extra.blocks.update_blocks` for the walk, write, and
     `check`-mode contract.
 
     ```{danger}

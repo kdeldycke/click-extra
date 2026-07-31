@@ -18,6 +18,15 @@ click_extra.sphinx
 
 ## Submodules
 
+## click_extra.blocks module
+
+```{eval-rst}
+.. automodule:: click_extra.blocks
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.cli module
 
 ```{eval-rst}

@@ -20,18 +20,14 @@ Holds the small bits of plumbing that both {mod}`click_extra.sphinx.click` and
 per-document runner cleanup, and the stateless `Domain` boilerplate Sphinx
 demands of any domain that ships only directives (no roles or objects).
 
-Also hosts the offline self-updating block toolkit shared by the ``{matrix}``
-directive ({mod}`click_extra.sphinx.matrix`) and the `python:render`
-`:mirror:` flag ({mod}`click_extra.sphinx.python`): fence-aware Markdown
-scanning, the `<!-- name … --> / <!-- name-end -->` marker grammar, and the
-walk-rewrite-write loop behind the `click-extra refresh-directives` command.
+The offline self-updating block toolkit those directives share (fence-aware
+Markdown scanning, the `<!-- name … --> / <!-- name-end -->` marker grammar,
+and the walk-rewrite-write loop behind the `click-extra refresh-directives`
+command) now lives in the dependency-light {mod}`click_extra.blocks` module, so
+it stays importable without the `sphinx` extra.
 """
 
 from __future__ import annotations
-
-import re
-from pathlib import Path
-from typing import NamedTuple
 
 from docutils import nodes
 from docutils.statemachine import StringList
@@ -39,7 +35,7 @@ from sphinx.domains import Domain
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable
     from types import CodeType
 
     from docutils.nodes import Element
@@ -163,165 +159,3 @@ class StatelessDomain(Domain):
         ```
         """
         return []
-
-
-# --- Offline self-updating block toolkit --------------------------------------
-#
-# Shared by the `{matrix}` refresher (matrix.py) and the `python:render`
-# `:mirror:` refresher (python.py). Both rewrite committed Markdown sources in
-# place, so they share one fence-aware scanner (documented examples nested in
-# longer code fences must never be rewritten or executed), one HTML-comment
-# marker grammar, and one walk-rewrite-write loop.
-
-
-OPTION_LINE_RE = re.compile(r"^[ \t]*:(?P<key>[\w+-]+):[ \t]*(?P<value>.*?)[ \t]*$")
-"""A `:key: value` MyST directive option line (value optional for flags)."""
-
-_FENCE_OPEN_RE = re.compile(r"^(?P<indent>[ \t]*)(?P<fence>`{3,})")
-"""Opening line of a backtick code fence, of any length and indentation.
-
-Colon (`:::`) fences are deliberately not treated as fences here: in MyST
-they delimit directives whose body *is* parsed (an admonition can legitimately
-host a live ``{matrix}`` or `python:render` block), while backtick-fence
-content is always literal.
-"""
-
-
-class FenceSpan(NamedTuple):
-    """A top-level backtick fence in a Markdown source, as line indices."""
-
-    start: int
-    """Index of the opening fence line."""
-
-    close: int | None
-    """Index of the closing fence line, or `None` when unterminated."""
-
-
-def fence_spans(lines: list[str]) -> dict[int, FenceSpan]:
-    """Map each top-level backtick fence's opening line index to its span.
-
-    Fences are consumed as opaque units: a fence line *inside* an outer fence
-    (a documented example wrapped in a longer `code-block` fence) never
-    starts a span of its own. A close requires a bare run of the same
-    character, at least as long as the opener, at the same indentation. An
-    unterminated fence spans to the end of the file with `close=None`.
-    """
-    spans: dict[int, FenceSpan] = {}
-    index = 0
-    total = len(lines)
-    while index < total:
-        open_match = _FENCE_OPEN_RE.match(lines[index])
-        if not open_match:
-            index += 1
-            continue
-        indent = open_match.group("indent")
-        fence = open_match.group("fence")
-        close = None
-        for probe in range(index + 1, total):
-            stripped = lines[probe].strip()
-            if (
-                lines[probe].startswith(indent)
-                and stripped
-                and set(stripped) == {"`"}
-                and len(stripped) >= len(fence)
-            ):
-                close = probe
-                break
-        spans[index] = FenceSpan(index, close)
-        if close is None:
-            break
-        index = close + 1
-    return spans
-
-
-def marker_res(name: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
-    """Build the `(open, close)` regexes of a `<!-- name -->` region.
-
-    The grammar is shared by every self-updating marker region: the opening
-    comment is `<!-- name [args] -->` (`args` optional, whitespace
-    separated), the closing comment is `<!-- name-end -->`. Both capture
-    their leading indentation as `indent`.
-    """
-    escaped = re.escape(name)
-    open_re = re.compile(
-        rf"^(?P<indent>[ \t]*)<!--\s*{escaped}(?:[ \t]+(?P<args>.*?))?\s*-->[ \t]*$",
-    )
-    close_re = re.compile(rf"^(?P<indent>[ \t]*)<!--\s*{escaped}-end\s*-->[ \t]*$")
-    return open_re, close_re
-
-
-def replace_region(text: str, name: str, content: str) -> str:
-    """Return `text` with the body of a `<!-- name -->` region swapped for `content`.
-
-    Finds the `<!-- name [args] -->` opening and `<!-- name-end -->` closing
-    markers (the grammar of {func}`marker_res`) and replaces everything between
-    them with `content`, padded by one blank line on each side. The markers
-    themselves are preserved, so the region round-trips: a second call with the
-    same `content` is a no-op.
-
-    When either marker is missing the text is returned unchanged, so the call is
-    safe to fan out over every file of an {func}`update_blocks` rewrite even when
-    only some carry the region. This is the generic counterpart to the
-    fence-driven refreshers of {mod}`click_extra.sphinx.matrix` and
-    {mod}`click_extra.sphinx.python`: use it when the content is produced outside
-    the document (a registry dump, an external generator) rather than by an
-    inline directive.
-    """
-    open_re, close_re = marker_res(name)
-    lines = text.split("\n")
-
-    open_idx = next((i for i, line in enumerate(lines) if open_re.match(line)), None)
-    if open_idx is None:
-        return text
-    close_idx = next(
-        (i for i in range(open_idx + 1, len(lines)) if close_re.match(lines[i])),
-        None,
-    )
-    if close_idx is None:
-        return text
-
-    rebuilt = [
-        *lines[: open_idx + 1],
-        "",
-        *content.split("\n"),
-        "",
-        *lines[close_idx:],
-    ]
-    return "\n".join(rebuilt)
-
-
-def iter_markdown_files(paths: Iterable[Path]) -> Iterable[Path]:
-    """Yield the Markdown sources under `paths` (files as-is, dirs recursed)."""
-    for path in paths:
-        if path.is_dir():
-            yield from sorted(path.rglob("*.md"))
-        else:
-            yield path
-
-
-def update_blocks(
-    paths: Iterable[Path],
-    rewrite: Callable[[str, Path], str],
-    *,
-    check: bool = False,
-) -> list[Path]:
-    """Rewrite self-updating blocks in the Markdown sources under `paths`.
-
-    Walks `paths` (files, or directories recursed for `*.md`), applies
-    `rewrite(text, path)` to each, and writes the file back when its content
-    changed. In `check` mode nothing is written; the return value still
-    lists the files that would change, so a caller can exit non-zero to flag
-    stale documentation in CI.
-
-    :return: the files whose blocks were (or, under `check`, would be)
-        updated.
-    """
-    changed: list[Path] = []
-    for path in iter_markdown_files(paths):
-        original = path.read_text(encoding="utf-8")
-        updated = rewrite(original, path)
-        if updated != original:
-            changed.append(path)
-            if not check:
-                path.write_text(updated, encoding="utf-8")
-    return changed

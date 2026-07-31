@@ -56,14 +56,14 @@ from packaging.version import InvalidVersion, Version
 from sphinx.directives import SphinxDirective, directives
 from sphinx.util import logging
 
-from ..table import TableFormat, render_table
-from ._base import (
+from ..blocks import (
     OPTION_LINE_RE,
     FenceSpan,
     fence_spans,
     marker_res,
     update_blocks,
 )
+from ..table import TableFormat, render_table
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -1035,7 +1035,7 @@ _FENCE_OPEN_RE = re.compile(
 """Opening fence of a ``{matrix} <axis>`` directive block in a Markdown source."""
 
 # `<!-- matrix <axis> [opts] -->` … `<!-- matrix-end -->` region markers, in the
-# shared grammar from `_base.marker_res`. Unlike the directive fence (which
+# shared grammar from `blocks.marker_res`. Unlike the directive fence (which
 # GitHub shows as a code block), this marker form renders as a real table on
 # GitHub and natively in Sphinx. Args are the axis followed by
 # whitespace-separated `key=value` pairs and bare flags (like `show-spec`).
@@ -1197,7 +1197,7 @@ def _rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
 def update_matrix_blocks(paths: Iterable[Path], *, check: bool = False) -> list[Path]:
     """Refresh every ``{matrix}`` block in the given Markdown sources.
 
-    See {func}`click_extra.sphinx._base.update_blocks` for the walk, write, and
+    See {func}`click_extra.blocks.update_blocks` for the walk, write, and
     `check`-mode contract.
 
     :return: the files whose ``{matrix}`` blocks were (or, under `check`,
