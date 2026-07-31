@@ -161,6 +161,46 @@ The rendering adapts to the batch's concurrency. Run concurrently (`jobs > 1`), 
 
 Like the spinner, the trail renders only on an interactive stream unless `enabled` forces the matter, so pipes and CI logs stay clean, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.spinner.OperationTrail.ok_count` tally.
 
+Off a terminal the trail is silent, so it cannot render in a captured build unless `enabled` forces it. Passing `enabled=True` echoes the trail regardless of the stream, which is how this page shows a live sequential run (a real CLI leaves `enabled=None` and lets the terminal decide, as the `--progress` section below covers):
+
+```{click:source}
+from click_extra import command
+from click_extra.spinner import OperationTrail
+
+
+@command
+def roast():
+    """Roast a tray of vegetables, tracing each outcome as it lands."""
+    vegetables = ["carrots", "fennel", "leeks", "peppers"]
+    # enabled=True forces the trail on so this page can render it; a real CLI
+    # leaves enabled=None to auto-detect the terminal (see --progress below).
+    with OperationTrail(jobs=1, enabled=True) as trail:
+        for vegetable in vegetables:
+            roasted = vegetable != "leeks"  # The leeks caught the heat.
+            trail.mark(
+                roasted,
+                f"{vegetable} roasted" if roasted else f"{vegetable} scorched",
+            )
+        trail.finish(
+            trail.ok_count == len(vegetables),
+            f"Roasted {trail.ok_count}/{len(vegetables)} vegetables",
+        )
+```
+
+```{click:run}
+result = invoke(roast, args=[])
+assert result.exit_code == 0
+# Each finished operation echoes a persistent ✓/✘ trail line.
+assert "✓" in result.output
+assert "carrots roasted" in result.output
+assert "✘" in result.output
+assert "leeks scorched" in result.output
+# The finisher is the ✘ summary, its elapsed time appended, one having scorched.
+assert "Roasted 3/4 vegetables" in result.output
+```
+
+The lines echo in order as each outcome lands, and the run closes on the `✘` finisher because one vegetable scorched: the same trail a sequential batch leaves in a real terminal, without the live redraw.
+
 ## Styling and color
 
 The spinner's glyph, label and timer are painted with a [`Style`](styling.md) instance: the very type Click Extra's [theme system](theme.md) is built on. The simplest customization is a foreground color:
