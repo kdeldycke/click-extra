@@ -196,6 +196,7 @@ exit_code = 0
 strip_ansi = true
 stdout_contains = [
   "Trace a simulated batch of operations",
+  "--eta / --elapsed",
   "--jobs",
   "--progress-bar",
   "--spinner",

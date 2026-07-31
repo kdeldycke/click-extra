@@ -11,7 +11,8 @@
 - Add a `spinner` argument to `OperationTrail` to pick its concurrent aggregate spinner from the `SPINNERS` catalog. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
 - Add a `progress_bar` argument to `OperationTrail` to render its aggregate indicator as a determinate progress bar instead of a spinner. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
 - Add an `OperationTrail.operation()` handle whose `mark()` records an outcome timed from when the operation began.
-- Gate the estimated-time display of `click_extra.progressbar` on `--time` through a new tri-state `show_eta` argument (default `None`), and follow the trail's `timer` for the `OperationTrail` progress bar.
+- Add a `clock` argument to `OperationTrail` (`"elapsed"` by default, or `"eta"`) choosing whether a running spinner or bar counts elapsed time up or estimated time remaining down; the spinner reuses Click's progress-bar estimator.
+- Gate the estimated-time display of `click_extra.progressbar` on `--time` through a new tri-state `show_eta` argument (default `None`; Click's own default is `True`).
 - Add a `trail` demo subcommand to the `click-extra` CLI, running a simulated batch behind an `OperationTrail` to showcase its sequential, spinner and progress-bar renderings in a real terminal.
 - Work around [pallets/click#3571](https://github.com/pallets/click/issues/3571) in `click_extra.progressbar`: a bar with `show_pos=True` and an `update_min_steps` that does not divide its length now renders its final position instead of freezing below it.
 - Add a `click_extra.humanize` module with `format_size`, rendering a byte count as a compact human-readable string, in one of three unit systems: IEC binary (`KiB`, `MiB`, the default), SI decimal (`kB`, `MB`), or the customary JEDEC binary (`KB`, `MB`).

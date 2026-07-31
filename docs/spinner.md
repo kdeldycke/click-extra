@@ -213,6 +213,8 @@ def roast(vegetable):
     )
 ```
 
+While the batch runs, the aggregate indicator counts the elapsed time *up* from zero by default; pass `clock="eta"` to count *down* an estimate of the time remaining instead. A determinate bar reads that estimate from Click natively, and the concurrent spinner borrows the same `click.progressbar` estimator since the trail knows its `total`. The per-operation and finisher times stay elapsed either way.
+
 The bundled CLI wraps all three renderings in one command, to watch in a terminal what this page can only echo: `click-extra trail` roasts a batch behind a concurrent aggregate spinner, `--jobs 1` drops to the sequential plain-line trail above, and `--progress-bar` swaps the spinner for a determinate bar.
 
 ```{click:run}

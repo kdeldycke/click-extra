@@ -974,6 +974,30 @@ def test_concurrent_trail_uses_chosen_spinner_preset():
         assert trail._indicator._spinner.interval == preset.interval
 
 
+def test_concurrent_spinner_eta_mode():
+    """clock='eta' drives the concurrent spinner's estimate from a hidden Click
+    bar (stepped per outcome), and the finisher still shows the elapsed total."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        label="Fetching",
+        unit="feeds",
+        total=4,
+        jobs=4,
+        enabled=True,
+        stream=stream,
+        timer=True,
+        clock="eta",
+    ) as trail:
+        indicator = trail._indicator
+        assert indicator._eta_bar is not None  # A hidden bar drives the estimate.
+        assert indicator._spinner.timer is False  # No elapsed clock while running.
+        trail.mark(True, "feed-a fetched", seconds=0.1)
+        assert indicator._eta_bar.pos == 1  # advance() steps the hidden bar.
+        trail.finish(True, "Fetched 4/4 feeds")
+    # A finished batch has no ETA: the finisher carries the elapsed total.
+    assert re.search(r"Fetched 4/4 feeds \(\d", stream.getvalue())
+
+
 def test_operation_trail_appends_per_operation_timing():
     """With timer on (the default), a `seconds` value appends each operation's
     own duration to its trail line, independent of the others."""

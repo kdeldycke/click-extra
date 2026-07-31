@@ -785,16 +785,25 @@ class _SpinnerIndicator:
         stream: IO[str] | None,
         spinner: SpinnerPreset | None = None,
         timer: bool | Callable[[float], str] = True,
+        clock: Literal["elapsed", "eta"] = "elapsed",
     ) -> None:
         self._label = label
         self._unit = unit
         self._total = total
+        self._timer = timer
+        # In eta mode a hidden Click bar supplies the rolling-average estimate,
+        # shown in the spinner's label; the spinner's own elapsed timer is then
+        # off, and finish() appends the total elapsed itself (a done batch has no
+        # ETA). Reuses Click's make_step/format_eta rather than reimplementing it.
+        self._eta_bar: ProgressBar[int] | None = None
+        if timer and clock == "eta" and total > 0:
+            self._eta_bar = click.progressbar(range(total))
         self._spinner = Spinner(
             f"{label} 0/{total} {unit}",
             spinner=spinner,
             delay=delay,
             enabled=enabled,
-            timer=timer,
+            timer=False if self._eta_bar is not None else timer,
             stream=stream,
         )
 
@@ -815,17 +824,29 @@ class _SpinnerIndicator:
         self._spinner.__exit__(exc_type, exc_val, exc_tb)
 
     def advance(self, done: int) -> None:
-        """Re-label the spinner with the ``{label} {done}/{total} {unit}`` tally."""
-        self._spinner.label = f"{self._label} {done}/{self._total} {self._unit}"
+        """Re-label the spinner with the tally, adding the ETA in eta mode."""
+        label = f"{self._label} {done}/{self._total} {self._unit}"
+        if self._eta_bar is not None:
+            self._eta_bar.make_step(done - self._eta_bar.pos)
+            eta = self._eta_bar.format_eta()  # "" until a step lets it estimate.
+            if eta:
+                label = f"{label}  {eta}"
+        self._spinner.label = label
 
     def echo(self, message: str) -> None:
         self._spinner.echo(message)
 
     def finish(self, ok: bool, summary: str) -> None:
         """Leave the spinner's kept `✓`/`✘` ``summary`` line, elapsed included."""
-        if self._spinner.shown:
-            self._spinner.label = summary
-            (self._spinner.ok if ok else self._spinner.fail)()
+        if not self._spinner.shown:
+            return
+        if self._eta_bar is not None:
+            # eta mode runs the spinner's own timer off, so append the batch's
+            # total elapsed here (a finished batch has no time remaining).
+            clock = _format_timer(self._timer, self._spinner.elapsed_time)
+            summary = f"{summary} ({clock})"
+        self._spinner.label = summary
+        (self._spinner.ok if ok else self._spinner.fail)()
 
 
 # How often the bar refreshes to keep its running elapsed clock ticking. The bar
@@ -1144,11 +1165,11 @@ class OperationTrail:
             {meth}`operation` handle.
         :param clock: whether a running aggregate indicator shows *elapsed* time
             (`"elapsed"`, the default: a stopwatch counting up, visible from the
-            start) or *remaining* time (`"eta"`: a determinate bar's estimate,
-            which only appears once an outcome lets Click compute it). Only the
-            progress-bar rendering honors `"eta"`; a spinner has no total to
-            estimate from and always shows elapsed, and the per-operation and
-            finisher times are always elapsed too.
+            start) or *remaining* time (`"eta"`: an estimate from the batch's
+            rate, appearing only once an outcome lets it be computed). Both the
+            progress bar and the concurrent spinner honor `"eta"` (the spinner
+            reuses Click's progress-bar estimate, since the trail knows its
+            `total`). Per-operation and finisher times are always elapsed.
         :param enabled: force the trail on or off. `None` (the default)
             auto-detects: the sequential echo renders only on an interactive
             stream, and the aggregate indicator applies its own TTY gate.
@@ -1221,6 +1242,7 @@ class OperationTrail:
                 stream=self.stream,
                 spinner=self.spinner_preset,
                 timer=self.timer,
+                clock=self.clock,
             )
         if self._indicator is not None:
             self._indicator.__enter__()

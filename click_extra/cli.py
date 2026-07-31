@@ -705,7 +705,7 @@ _TRAIL_BATCH = (
 def demo_trail(
     ctx: context.Context,
     use_bar: bool,
-    eta: bool,
+    eta: bool | None,
     spinner_name: str | None,
 ) -> None:
     """Trace a simulated batch of operations behind an operation trail.
@@ -715,13 +715,16 @@ def demo_trail(
     with --jobs 1 each outcome echoes as a plain line; with two or more jobs a
     spinner carries the running tally while outcomes stream above it;
     --progress-bar swaps that spinner for a determinate progress bar. Add --time
-    to append each vegetable's roast time and the batch total; the bar then
-    counts up the elapsed time, or the remaining time under --eta. Honors
+    to append each vegetable's roast time and the batch total; --elapsed and
+    --eta turn that on too, counting up from zero or down as an estimate. Honors
     --progress / --no-progress and stays silent off an interactive terminal.
     """
     worker_count = context.get(ctx, context.JOBS, 1)
     progress_on = context.get(ctx, context.PROGRESS, True)
     total = len(_TRAIL_BATCH)
+    # Choosing a clock mode with --eta / --elapsed turns timing on too, so they
+    # work without --time; left unset, timing follows --time (timer=None).
+    timer = True if eta is not None else None
 
     with OperationTrail(
         label="Roasting",
@@ -732,9 +735,8 @@ def demo_trail(
         # An unset --spinner uses the trail's built-in default; the bar and a
         # spinner are mutually exclusive. Both map to spinner=None.
         spinner=None if use_bar or spinner_name is None else SPINNERS[spinner_name],
+        timer=timer,
         clock="eta" if eta else "elapsed",
-        # timer is left at its default None, so the per-item and total times
-        # follow the --time / --no-time flag on their own.
         enabled=None if progress_on else False,
     ) as trail:
 

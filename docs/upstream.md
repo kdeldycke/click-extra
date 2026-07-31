@@ -191,6 +191,12 @@ click-extra's [`Spinner`](spinner.md) is a thread-animated, indeterminate progre
 - [`click-spinner#41` - Fix output in corner cases](https://github.com/click-contrib/click-spinner/pull/41): open; click-extra always erases on exit and never rings the bell on a disabled or redirected stream.
 - [`click-spinner#42` - Printing to stdout breaks the spinner](https://github.com/click-contrib/click-spinner/issues/42): open; click-extra defaults to `stderr` so `stdout` data stays clean, and its `echo()` method prints above the animation without corrupting it.
 
+### Progress bar
+
+click-extra's [`progressbar`](spinner.md#progress-bars) is a drop-in for `click.progressbar` that also repairs a rendering bug in Click's own bar:
+
+- [`click#3571` - `click.progressbar` doesn't show full completion when using `show_pos=True` combined with `update_min_steps`](https://github.com/pallets/click/issues/3571): open; a bar whose length is not a multiple of `update_min_steps` freezes its position below completion (`14/20` instead of `20/20`). click-extra's wrapper flushes the trailing sub-threshold steps on finish so the final position renders.
+
 ### Option parsing
 
 - [`click#2779` - Wrong error message when wrong multicharacter short option is passed](https://github.com/pallets/click/issues/2779)
