@@ -45,6 +45,7 @@ stdout_contains = [
   "palette",
   "spinner",
   "styles",
+  "trail",
   "help",
   "prebake",
   "run",
@@ -186,4 +187,16 @@ stdout_contains = [
   "--random",
   "--select",
   "--table",
+]
+
+
+[[cases]]
+cli_parameters = ["trail", "--help"]
+exit_code = 0
+strip_ansi = true
+stdout_contains = [
+  "Trace a simulated batch of operations",
+  "--jobs",
+  "--progress-bar",
+  "--spinner",
 ]

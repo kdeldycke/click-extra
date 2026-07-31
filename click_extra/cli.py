@@ -21,6 +21,7 @@ import colorsys
 import os
 import random
 import sys
+import time
 from pathlib import Path
 
 import click
@@ -44,6 +45,7 @@ from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
 from .context import pass_context
 from .decorators import argument, command, group, jobs_option, option
 from .envvar import merge_envvar_ids
+from .execution import run_jobs
 from .myst_converter import convert_directory, detect_source_package
 from .parameters import make_resilient_context, missing_extra_message
 from .prebake import (
@@ -54,6 +56,7 @@ from .prebake import (
 )
 from .spinner import (
     _DEFAULT_SHOWCASE,
+    OperationTrail,
     _animate_spinners,
     _spinner_preview,
     _tour_duration,
@@ -651,6 +654,102 @@ def demo_spinner(
     # --progress / --accessible. A no-op when captured or piped.
     if is_a_tty(sys.stderr) and context.get(ctx, context.PROGRESS, True):
         _animate_spinners(selection)
+
+
+# A make-believe batch for the trail demo: each entry is one roasting operation.
+# Durations are a few seconds each and staggered, so the live spinner, bar and
+# streaming outcomes stay watchable (the leeks scorch to leave a ✘ in the trail).
+# Tests stub time.sleep, so these never slow the suite.
+_TRAIL_BATCH = (
+    ("carrots", 2.4, True),
+    ("fennel", 3.2, True),
+    ("leeks", 2.7, False),
+    ("peppers", 3.6, True),
+    ("shallots", 2.2, True),
+    ("squash", 3.0, True),
+)
+"""Vegetables roasted by the `trail` demo, as `(name, seconds, roasted_ok)`."""
+
+
+@demo.command(name="trail", section=_demo_section)
+@option(
+    "--progress-bar",
+    "use_bar",
+    is_flag=True,
+    help="Drive the batch with a determinate progress bar instead of a spinner.",
+)
+@option(
+    "--eta/--elapsed",
+    "eta",
+    default=None,
+    help="For --progress-bar, show the time remaining (--eta) or elapsed "
+    "(--elapsed); either one turns timing on, like --time. A spinner always "
+    "shows elapsed time.",
+)
+@option(
+    "--spinner",
+    "spinner_name",
+    # Validate against the catalog and enable completion, but keep the metavar a
+    # plain NAME: the ~90-entry choice list would otherwise bloat --help (and the
+    # help render in the docs). The help text points to the spinner command,
+    # whose --all lists every name.
+    type=Choice(sorted(SPINNERS)),
+    metavar="NAME",
+    default=None,
+    help="Aggregate spinner animation for concurrent runs (see the spinner "
+    "command for names). Defaults to the built-in spinner; ignored with "
+    "--progress-bar.",
+)
+@jobs_option
+@pass_context
+def demo_trail(
+    ctx: context.Context,
+    use_bar: bool,
+    eta: bool,
+    spinner_name: str | None,
+) -> None:
+    """Trace a simulated batch of operations behind an operation trail.
+
+    Roasts a handful of make-believe vegetables (each a short pause, the leeks
+    scorching) and reports them as they land. The display follows the batch:
+    with --jobs 1 each outcome echoes as a plain line; with two or more jobs a
+    spinner carries the running tally while outcomes stream above it;
+    --progress-bar swaps that spinner for a determinate progress bar. Add --time
+    to append each vegetable's roast time and the batch total; the bar then
+    counts up the elapsed time, or the remaining time under --eta. Honors
+    --progress / --no-progress and stays silent off an interactive terminal.
+    """
+    worker_count = context.get(ctx, context.JOBS, 1)
+    progress_on = context.get(ctx, context.PROGRESS, True)
+    total = len(_TRAIL_BATCH)
+
+    with OperationTrail(
+        label="Roasting",
+        unit="vegetables",
+        total=total,
+        jobs=worker_count,
+        progress_bar=use_bar,
+        # An unset --spinner uses the trail's built-in default; the bar and a
+        # spinner are mutually exclusive. Both map to spinner=None.
+        spinner=None if use_bar or spinner_name is None else SPINNERS[spinner_name],
+        clock="eta" if eta else "elapsed",
+        # timer is left at its default None, so the per-item and total times
+        # follow the --time / --no-time flag on their own.
+        enabled=None if progress_on else False,
+    ) as trail:
+
+        def roast(item: tuple[str, float, bool]) -> None:
+            name, duration, roasted = item
+            op = trail.operation()
+            time.sleep(duration)
+            verb = "roasted" if roasted else "scorched"
+            op.mark(roasted, f"{name} {verb}")
+
+        list(run_jobs(roast, _TRAIL_BATCH, jobs=worker_count))
+        trail.finish(
+            trail.ok_count == total,
+            f"Roasted {trail.ok_count}/{total} vegetables",
+        )
 
 
 # A throwaway CLI used only by `demo themes` to showcase each palette on a real

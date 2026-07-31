@@ -77,7 +77,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
     from types import TracebackType
-    from typing import IO, Any, Protocol, TextIO
+    from typing import IO, Any, Literal, Protocol, TextIO
 
     from click._termui_impl import ProgressBar
     from typing_extensions import Self
@@ -727,6 +727,44 @@ def trail_line(ok: bool, message: str) -> str:
     return f"{trail_glyph(ok)} {message}"
 
 
+def _format_timer(timer: bool | Callable[[float], str], seconds: float) -> str:
+    """Format `seconds` for a trail's timer suffix.
+
+    Uses {func}`~click_extra.humanize.format_duration` for `True` (the default
+    compact clock: `2.3s`, `1:05`, `1:02:03`), or the given callable for a
+    custom format. Callers guard on a truthy `timer` before calling.
+    """
+    formatter = timer if callable(timer) else format_duration
+    return formatter(seconds)
+
+
+def _time_flag_active() -> bool:
+    """Whether the active command's `--time` flag is on.
+
+    `True` when a command context is active and carries the
+    {data}`~click_extra.context.START_TIME` marker that
+    {class}`~click_extra.execution.TimerOption` sets under `--time`; `False`
+    under `--no-time` (its default) or outside any command. The shared signal
+    behind `timer=None` on {class}`OperationTrail` and `show_eta=None` on
+    {func}`progressbar`, so a trail and a bare bar agree on when to show timing.
+    """
+    ctx = click.get_current_context(silent=True)
+    return ctx is not None and context.get(ctx, context.START_TIME) is not None
+
+
+def _resolve_timer(
+    timer: bool | Callable[[float], str] | None,
+) -> bool | Callable[[float], str]:
+    """Resolve a trail's `timer` setting, auto-detecting `--time` for `None`.
+
+    An explicit `bool` or callable is returned unchanged; `None` (the trail
+    default) follows the CLI's `--time` / `--no-time` flag via
+    {func}`_time_flag_active`, mirroring how `enabled=None` auto-detects the
+    terminal.
+    """
+    return _time_flag_active() if timer is None else timer
+
+
 class _SpinnerIndicator:
     """An {class}`OperationTrail` aggregate indicator backed by a {class}`Spinner`.
 
@@ -746,6 +784,7 @@ class _SpinnerIndicator:
         enabled: bool | None,
         stream: IO[str] | None,
         spinner: SpinnerPreset | None = None,
+        timer: bool | Callable[[float], str] = True,
     ) -> None:
         self._label = label
         self._unit = unit
@@ -755,7 +794,7 @@ class _SpinnerIndicator:
             spinner=spinner,
             delay=delay,
             enabled=enabled,
-            timer=True,
+            timer=timer,
             stream=stream,
         )
 
@@ -789,6 +828,13 @@ class _SpinnerIndicator:
             (self._spinner.ok if ok else self._spinner.fail)()
 
 
+# How often the bar refreshes to keep its running elapsed clock ticking. The bar
+# has no animation thread of its own (unlike the spinner), so a daemon ticker
+# redraws it at this cadence in `clock="elapsed"` mode; matches the spinner's
+# default frame interval.
+_BAR_TICK_INTERVAL = 0.1
+
+
 class _BarIndicator:
     """An {class}`OperationTrail` aggregate indicator backed by a determinate
     {func}`click.progressbar`.
@@ -818,6 +864,8 @@ class _BarIndicator:
         delay: float,
         enabled: bool | None,
         stream: IO[str] | None,
+        timer: bool | Callable[[float], str] = True,
+        clock: Literal["elapsed", "eta"] = "elapsed",
     ) -> None:
         self._label = label
         self._unit = unit
@@ -825,12 +873,16 @@ class _BarIndicator:
         self._delay = delay
         self._enabled = enabled
         self._stream = stream
+        self._timer = timer
+        self._clock = clock
         self._lock = threading.Lock()
         self._on = False
         self._drawn = False
         self._finished = False
         self._start = 0.0
         self._bar: ProgressBar[int] | None = None
+        self._stop_tick = threading.Event()
+        self._ticker: threading.Thread | None = None
 
     def _resolve_stream(self) -> IO[str]:
         return self._stream if self._stream is not None else sys.stderr
@@ -840,15 +892,19 @@ class _BarIndicator:
         self._on = _stream_enabled(self._enabled, stream)
         self._start = time.monotonic()
         # show_pos renders the `{done}/{total}` tally; item_show_func appends the
-        # counted unit after it, echoing the spinner's `3/5 feeds` phrasing. The
-        # `range(total)` iterable is never consumed (advance() drives the bar
-        # directly); it just fixes the length and satisfies the typed overload
-        # that carries item_show_func.
+        # counted unit after it (and, in elapsed mode, a running clock), echoing
+        # the spinner's `3/5 feeds` phrasing. The `range(total)` iterable is never
+        # consumed (advance() drives the bar directly); it just fixes the length
+        # and satisfies the typed overload that carries item_show_func.
         self._bar = click.progressbar(
             range(self._total),
             label=self._label,
             show_pos=True,
-            item_show_func=lambda _: self._unit or None,
+            # Click's ETA (remaining time) is shown only in `clock="eta"` mode;
+            # `clock="elapsed"` renders a running elapsed clock through
+            # item_show_func instead, and a `timer`-off bar shows no time at all.
+            show_eta=bool(self._timer) and self._clock == "eta",
+            item_show_func=self._render_info,
             file=cast("TextIO", stream),
             hidden=not self._on,
         )
@@ -857,6 +913,19 @@ class _BarIndicator:
             # interpret rather than echo them, as Spinner.start does.
             Spinner._enable_windows_ansi(stream)
             _register_line(self)
+            # Draw the empty bar right away (unless a delay defers the first
+            # render), so its `0/total` state is visible from the start, like the
+            # spinner indicator's animated tally: without this the bar appears
+            # only when the first outcome advances it, leaving the screen blank
+            # while the batch is already running.
+            if self._delay <= 0:
+                with self._lock:
+                    self._draw()
+            # An elapsed clock must keep ticking between outcomes; the bar has no
+            # animation thread, so drive periodic redraws from a daemon ticker.
+            if self._elapsed_clock():
+                self._ticker = threading.Thread(target=self._tick, daemon=True)
+                self._ticker.start()
         return self
 
     def __exit__(
@@ -877,6 +946,41 @@ class _BarIndicator:
         self._bar._last_line = None
         self._bar.render_progress()
         self._drawn = True
+
+    def _elapsed_clock(self) -> bool:
+        """Whether a running elapsed clock is drawn (timing on, `clock="elapsed"`)."""
+        return bool(self._timer) and self._clock == "elapsed"
+
+    def _render_info(self, item: int | None) -> str | None:
+        """The `item_show_func`: a running elapsed clock plus the unit, or the unit.
+
+        In `clock="elapsed"` mode with timing on, the elapsed time since the bar
+        started is prepended to the counted unit (`5.0s  feeds`); an ETA bar or a
+        timer-off bar shows just the unit (Click renders any ETA itself).
+        """
+        if self._elapsed_clock():
+            clock = _format_timer(self._timer, time.monotonic() - self._start)
+            return f"{clock}  {self._unit}" if self._unit else clock
+        return self._unit or None
+
+    def _tick(self) -> None:
+        """Redraw periodically so the running elapsed clock keeps ticking.
+
+        The bar, unlike the spinner, has no animation thread; without this the
+        elapsed clock would freeze between outcomes. Runs only in elapsed mode:
+        an ETA needs no ticking, since Click recomputes it on each step.
+        """
+        while not self._stop_tick.wait(_BAR_TICK_INTERVAL):
+            with self._lock:
+                if self._drawn and not self._finished:
+                    self._draw()
+
+    def _stop_ticker(self) -> None:
+        """Stop and join the elapsed-clock ticker. Idempotent."""
+        if self._ticker is not None:
+            self._stop_tick.set()
+            self._ticker.join()
+            self._ticker = None
 
     def advance(self, done: int) -> None:
         """Step the bar to `done` and redraw it, once past the initial delay."""
@@ -906,12 +1010,17 @@ class _BarIndicator:
     def finish(self, ok: bool, summary: str) -> None:
         """Replace the bar with a kept `✓`/`✘` ``summary`` line, elapsed included."""
         _deregister_line(self)
+        self._stop_ticker()
         with self._lock:
             self._finished = True
             if not self._drawn:
                 return
             stream = self._resolve_stream()
-            clock = f" ({format_duration(time.monotonic() - self._start)})"
+            clock = (
+                f" ({_format_timer(self._timer, time.monotonic() - self._start)})"
+                if self._timer
+                else ""
+            )
             # Erase the bar, keep the finisher in its place, restore the cursor
             # Click hid via BEFORE_BAR.
             stream.write(f"\r\x1b[K{trail_line(ok, summary)}{clock}\n\x1b[?25h")
@@ -925,6 +1034,7 @@ class _BarIndicator:
         `with` block, where {meth}`finish` never ran).
         """
         _deregister_line(self)
+        self._stop_ticker()
         with self._lock:
             if self._finished or not self._drawn:
                 self._finished = True
@@ -997,6 +1107,8 @@ class OperationTrail:
         jobs: int = 1,
         spinner: SpinnerPreset | None = None,
         progress_bar: bool = False,
+        timer: bool | Callable[[float], str] | None = None,
+        clock: Literal["elapsed", "eta"] = "elapsed",
         enabled: bool | None = None,
         echo_sequential: bool = True,
         delay: float = 0.0,
@@ -1022,6 +1134,21 @@ class OperationTrail:
             {func}`click.progressbar` instead of a spinner, for a sequential or
             concurrent batch alike. Requires a positive `total` (a bar needs a
             length) and is mutually exclusive with `spinner`.
+        :param timer: append each operation's and the batch's elapsed time to
+            the trail lines and the finisher. `None` (the default) follows the
+            CLI's `--time` / `--no-time` flag; `True` forces timing on with
+            {func}`~click_extra.humanize.format_duration`'s compact clock, a
+            callable `(seconds: float) -> str` forces it on with a custom
+            format, and `False` forces it off. Per-operation times come from a
+            `seconds` argument to {meth}`mark`, filled in automatically by an
+            {meth}`operation` handle.
+        :param clock: whether a running aggregate indicator shows *elapsed* time
+            (`"elapsed"`, the default: a stopwatch counting up, visible from the
+            start) or *remaining* time (`"eta"`: a determinate bar's estimate,
+            which only appears once an outcome lets Click compute it). Only the
+            progress-bar rendering honors `"eta"`; a spinner has no total to
+            estimate from and always shows elapsed, and the per-operation and
+            finisher times are always elapsed too.
         :param enabled: force the trail on or off. `None` (the default)
             auto-detects: the sequential echo renders only on an interactive
             stream, and the aggregate indicator applies its own TTY gate.
@@ -1034,17 +1161,23 @@ class OperationTrail:
         :param stream: where to render; defaults to {data}`sys.stderr` so the
             trail never mixes into `stdout` data.
         :raises ValueError: if `progress_bar` is set without a positive
-            `total`, or together with `spinner`.
+            `total`, or together with `spinner`, or if `clock` is neither
+            `"elapsed"` nor `"eta"`.
         """
         if progress_bar and total <= 0:
             raise ValueError("progress_bar=True requires a positive total.")
         if progress_bar and spinner is not None:
             raise ValueError("progress_bar= and spinner= are mutually exclusive.")
+        if clock not in ("elapsed", "eta"):
+            raise ValueError('clock must be "elapsed" or "eta".')
         self.label = label
         self.unit = unit
         self.total = total
         self.concurrent = jobs > 1
         self.progress_bar = progress_bar
+        # None auto-detects the --time flag; a bool or callable forces it.
+        self.timer = _resolve_timer(timer)
+        self.clock = clock
         self.spinner_preset = spinner
         self.enabled = enabled
         self.stream = stream
@@ -1075,6 +1208,8 @@ class OperationTrail:
                 delay=self._delay,
                 enabled=self.enabled,
                 stream=self.stream,
+                timer=self.timer,
+                clock=self.clock,
             )
         elif self.concurrent:
             self._indicator = _SpinnerIndicator(
@@ -1085,6 +1220,7 @@ class OperationTrail:
                 enabled=self.enabled,
                 stream=self.stream,
                 spinner=self.spinner_preset,
+                timer=self.timer,
             )
         if self._indicator is not None:
             self._indicator.__enter__()
@@ -1112,8 +1248,16 @@ class OperationTrail:
         else:
             click.echo(message, err=True)
 
-    def mark(self, ok: bool, message: str) -> None:
-        """Record one `✓`/`✘` outcome: tally it and render its trail line."""
+    def mark(self, ok: bool, message: str, seconds: float | None = None) -> None:
+        """Record one `✓`/`✘` outcome: tally it and render its trail line.
+
+        :param seconds: the operation's own elapsed time. When `timer` is on it
+            is formatted and appended to `message` as ` (2.3s)`. An
+            {meth}`operation` handle fills this in from when it was created;
+            pass it yourself when you already hold a duration.
+        """
+        if self.timer and seconds is not None:
+            message = f"{message} ({_format_timer(self.timer, seconds)})"
         with self._lock:
             self._done += 1
             if ok:
@@ -1140,16 +1284,55 @@ class OperationTrail:
 
         With an aggregate indicator, it becomes the indicator's kept line (a
         spinner's {meth}`Spinner.ok` / {meth}`Spinner.fail` line, or the bar's
-        replacement line), elapsed time included. Sequential without one, a
-        plain echoed line suffixed with the elapsed time since construction.
+        replacement line); sequential without one, a plain echoed line. The
+        batch's elapsed time since construction is appended when `timer` is on
+        (the default).
         """
         if self._indicator is not None:
             with self._lock:
                 self._flush()
             self._indicator.finish(ok, summary)
         elif self._echo:
-            elapsed = time.monotonic() - self._start
-            self._echo_line(trail_line(ok, f"{summary} ({format_duration(elapsed)})"))
+            if self.timer:
+                elapsed = time.monotonic() - self._start
+                summary = f"{summary} ({_format_timer(self.timer, elapsed)})"
+            self._echo_line(trail_line(ok, summary))
+
+    def operation(self) -> _Operation:
+        """Start a timed operation, returning a handle to record its outcome.
+
+        The handle captures the current time; call {meth}`_Operation.mark` when
+        the work finishes to record its `✓`/`✘` outcome with the elapsed time
+        appended (when `timer` is on). This is how a batch reports
+        per-operation timings under concurrency, where the trail itself never
+        sees when an operation began:
+
+        ```{code-block} python
+
+        def fetch(feed):
+            op = trail.operation()
+            ok, message = pull(feed)
+            op.mark(ok, message)
+        ```
+        """
+        return _Operation(self)
+
+
+class _Operation:
+    """A single timed operation issued by {meth}`OperationTrail.operation`.
+
+    Captures its start time on creation; {meth}`mark` reports the outcome to the
+    parent trail with the elapsed time, so per-operation timings work under
+    concurrency where the trail cannot know when each operation began.
+    """
+
+    def __init__(self, trail: OperationTrail) -> None:
+        self._trail = trail
+        self._start = time.monotonic()
+
+    def mark(self, ok: bool, message: str) -> None:
+        """Record this operation's `✓`/`✘` outcome, timed from its start."""
+        self._trail.mark(ok, message, seconds=time.monotonic() - self._start)
 
 
 class ProgressOption(ExtraOption):
@@ -1235,20 +1418,47 @@ class ProgressOption(ExtraOption):
 V = TypeVar("V")
 
 
+def _flush_final_position(bar: ProgressBar[Any]) -> None:
+    """Make the bar render its true final position on finish.
+
+    Works around [pallets/click#3571](https://github.com/pallets/click/issues/3571):
+    Click's {meth}`~click._termui_impl.ProgressBar.update` only applies and
+    redraws accumulated steps once they reach `update_min_steps`, dropping the
+    trailing sub-threshold batch. A bar whose `length` is not a multiple of
+    `update_min_steps` (with `show_pos=True`) then freezes below completion:
+    `14/20`, not `20/20`, for `length=20` and `update_min_steps=7`. Wrapping
+    {meth}`render_finish` flushes those pending steps and redraws once more, so
+    the kept line shows the real final position. A no-op for the default
+    `update_min_steps=1`, where nothing is ever left pending.
+    """
+    inner_render_finish = bar.render_finish
+
+    def render_finish() -> None:
+        pending = bar._completed_intervals
+        if pending:
+            bar.make_step(pending)
+            bar._completed_intervals = 0
+            bar.render_progress()
+        inner_render_finish()
+
+    bar.render_finish = render_finish  # type: ignore[method-assign]
+
+
 def progressbar(
     iterable: Iterable[V] | None = None,
     length: int | None = None,
     label: str | None = None,
     hidden: bool | None = None,
+    show_eta: bool | None = None,
     **kwargs: Any,
 ) -> ProgressBar[V]:
-    """Drop-in for {func}`click.progressbar` honoring `--progress` / `--no-progress`.
+    """Drop-in for {func}`click.progressbar` honoring `--progress` and `--time`.
 
     Click's own progress bar is *determinate*, the counterpart to the
-    indeterminate {class}`Spinner`. This thin wrapper gates it on the same
-    {data}`~click_extra.context.PROGRESS` flag the spinner uses, so a single
+    indeterminate {class}`Spinner`. This thin wrapper gates its visibility on the
+    same {data}`~click_extra.context.PROGRESS` flag the spinner uses, so a single
     `--no-progress` (or `--accessible`, which lowers the `progress` default)
-    silences both.
+    silences both, and gates its estimated-time display on `--time`.
 
     :param hidden: tri-state. Left at its default `None`, the bar follows the
         resolved `--progress` flag: hidden when the user (or `--accessible`)
@@ -1256,20 +1466,38 @@ def progressbar(
         forces the bar regardless, mirroring how an explicit `color=` argument
         overrides `ctx.color` on {func}`click.echo`. With no active context (the
         bar used outside a Click command) it defaults to shown.
+    :param show_eta: tri-state, like `hidden`. Left at its default `None`, the
+        estimated-time-remaining display follows the `--time` / `--no-time`
+        flag: shown under `--time`, hidden otherwise (its default, or outside a
+        command). An explicit `True` or `False` forces it, keeping a bare bar's
+        timing in step with an {class}`OperationTrail`'s `timer`. Click's own
+        default is `True`.
 
     ```{note}
-    Only `--no-progress` is wired here. Color is already handled upstream:
-    Click renders the bar through {func}`click.echo`, whose `color=None`
-    resolves against `ctx.color`, so `--no-color` / `NO_COLOR` strip the
-    bar's ANSI without any work from this wrapper.
+    The `--progress` flag gates visibility and `--time` the ETA. Color is
+    already handled upstream: Click renders the bar through {func}`click.echo`,
+    whose `color=None` resolves against `ctx.color`, so `--no-color` /
+    `NO_COLOR` strip the bar's ANSI without any work from this wrapper.
     ```
     """
     if hidden is None:
         ctx = click.get_current_context(silent=True)
         hidden = ctx is not None and not context.get(ctx, context.PROGRESS, True)
-    return click.progressbar(
-        iterable, length=length, label=label, hidden=hidden, **kwargs
+    if show_eta is None:
+        # The ETA follows --time / --no-time, like a trail's timer, so a bare
+        # bar and a trail agree on when to show timing.
+        show_eta = _time_flag_active()
+    bar = click.progressbar(
+        iterable,
+        length=length,
+        label=label,
+        hidden=hidden,
+        show_eta=show_eta,
+        **kwargs,
     )
+    # Repair the final-position freeze of pallets/click#3571 (harmless otherwise).
+    _flush_final_position(bar)
+    return bar
 
 
 # Max display width (terminal cells) of the frame preview column.

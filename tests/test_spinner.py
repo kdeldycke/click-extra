@@ -24,6 +24,7 @@ import threading
 import time
 from collections.abc import Callable
 
+import click
 import pytest
 
 import click_extra
@@ -38,13 +39,14 @@ from click_extra import (
     pass_context,
 )
 from click_extra.cli import demo
-from click_extra.context import PROGRESS
+from click_extra.context import PROGRESS, START_TIME
 from click_extra.spinner import (
     _TOUR_CAP,
     _TOUR_CYCLES,
     _TOUR_MIN,
     OperationTrail,
     _active_line,
+    _resolve_timer,
     _SpinnerIndicator,
     _tour_duration,
     active_spinner,
@@ -403,6 +405,33 @@ def test_progressbar_label_emission_off_tty(invoke, args, label_shown):
     assert ("Brewing tea" in result.output) is label_shown
 
 
+def test_progressbar_shows_final_position_with_update_min_steps():
+    """Work around pallets/click#3571: with show_pos and an update_min_steps that
+    does not divide the length, the bar must still land on total/total instead of
+    freezing at the last multiple (14/20 for length 20, update_min_steps 7)."""
+    stream = TTYStringIO()
+    with click_extra.progressbar(
+        range(20), show_pos=True, update_min_steps=7, file=stream
+    ) as bar:
+        for _ in bar:
+            pass
+    output = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
+    assert "20/20" in output
+
+
+def test_progressbar_show_eta_follows_time_flag():
+    """The bar's ETA follows --time by default; an explicit show_eta wins."""
+    # No command context: ETA off.
+    assert click_extra.progressbar([1, 2, 3]).show_eta is False
+    with click.Context(click.Command("noop")) as ctx:
+        # --no-time / default: no marker → off.
+        assert click_extra.progressbar([1, 2, 3]).show_eta is False
+        ctx.meta[START_TIME] = 1.0  # --time sets the marker.
+        assert click_extra.progressbar([1, 2, 3]).show_eta is True
+    # An explicit value overrides the flag.
+    assert click_extra.progressbar([1, 2, 3], show_eta=False).show_eta is False
+
+
 @pytest.mark.parametrize("term", ("dumb", "unknown"))
 def test_dumb_terminal_disables_spinner(monkeypatch, term):
     """A cursor-less terminal self-disables the spinner even on a TTY."""
@@ -730,6 +759,42 @@ def test_demo_spinner_options_are_mutually_exclusive(invoke):
     assert "mutually exclusive" in result.output
 
 
+def test_demo_trail_help_lists_renderings(invoke):
+    """`trail --help` documents its purpose and the rendering-selecting options."""
+    result = invoke(demo, "trail", "--help")
+    assert result.exit_code == 0
+    assert "Trace a simulated batch of operations" in result.stdout
+    for token in ("--progress-bar", "--eta", "--elapsed", "--spinner", "--jobs"):
+        assert token in result.stdout
+
+
+def test_demo_trail_rejects_unknown_spinner(invoke):
+    """An unknown --spinner name is rejected by the Choice type before any work."""
+    result = invoke(demo, "trail", "--spinner", "nope")
+    assert result.exit_code != 0
+    assert "'nope' is not one of" in result.output
+    assert "moon" in result.output  # The valid names are listed.
+
+
+@pytest.mark.parametrize(
+    "extra_args",
+    (
+        pytest.param((), id="concurrent-spinner"),
+        pytest.param(("--jobs", "1"), id="sequential"),
+        pytest.param(("--progress-bar",), id="progress-bar"),
+        pytest.param(("--progress-bar", "--eta"), id="progress-bar-eta"),
+    ),
+)
+def test_demo_trail_runs_silently_off_tty(invoke, monkeypatch, extra_args):
+    """Every rendering runs the batch to completion and, off a TTY, stays silent."""
+    # Skip the real per-vegetable pauses so the batch completes instantly.
+    monkeypatch.setattr(time, "sleep", lambda _seconds: None)
+    result = invoke(demo, "trail", *extra_args)
+    assert result.exit_code == 0
+    # Off a TTY the trail draws no indicator and echoes no lines.
+    assert result.output == ""
+
+
 def test_tour_duration_bounds_dwell():
     """The tour dwell aims for three cycles, clamped to [_TOUR_MIN, _TOUR_CAP],
     and never trims a huge spinner below one full cycle."""
@@ -797,7 +862,9 @@ def test_trail_line_carries_themed_glyphs():
 def test_sequential_trail_echoes_lines_and_finisher():
     """A sequential batch on a TTY echoes each outcome, then a timed finisher."""
     stream = TTYStringIO()
-    trail = OperationTrail(label="Fetching", unit="feeds", total=2, stream=stream)
+    trail = OperationTrail(
+        label="Fetching", unit="feeds", total=2, stream=stream, timer=True
+    )
     trail.mark(True, "feed-a fetched")
     trail.mark(False, "feed-b failed")
     trail.finish(False, "Fetched 1/2 feeds")
@@ -907,11 +974,91 @@ def test_concurrent_trail_uses_chosen_spinner_preset():
         assert trail._indicator._spinner.interval == preset.interval
 
 
+def test_operation_trail_appends_per_operation_timing():
+    """With timer on (the default), a `seconds` value appends each operation's
+    own duration to its trail line, independent of the others."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        total=2, jobs=1, enabled=True, stream=stream, timer=True
+    ) as trail:
+        trail.mark(True, "carrots roasted", seconds=2.4)
+        trail.mark(False, "leeks scorched", seconds=0.7)
+        trail.finish(trail.ok_count == 2, "Roasted 1/2 vegetables")
+    output = stream.getvalue()
+    assert "carrots roasted (2.4s)" in output
+    assert "leeks scorched (0.7s)" in output
+
+
+def test_operation_handle_times_from_its_creation():
+    """An operation() handle marks its outcome with the elapsed since it began."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        total=1, jobs=1, enabled=True, stream=stream, timer=True
+    ) as trail:
+        op = trail.operation()
+        op.mark(True, "carrots roasted")
+        trail.finish(True, "Roasted 1/1 vegetables")
+    # The value is wall-clock, so match the appended-clock shape, not a number.
+    assert re.search(r"carrots roasted \(\d+\.\ds\)", stream.getvalue())
+
+
+def test_operation_trail_timer_false_drops_all_timing():
+    """timer=False silences both the per-item and the finisher clock."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        total=1, jobs=1, enabled=True, stream=stream, timer=False
+    ) as trail:
+        trail.mark(True, "carrots roasted", seconds=2.4)
+        trail.finish(True, "Roasted 1/1 vegetables")
+    output = stream.getvalue()
+    assert "carrots roasted" in output and "(2.4s)" not in output
+    assert not re.search(r"vegetables \(\d", output)  # No finisher clock.
+
+
+def test_operation_trail_timer_callable_formats_durations():
+    """A callable timer formats the per-item durations it is handed."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        total=1,
+        jobs=1,
+        enabled=True,
+        stream=stream,
+        timer=lambda seconds: f"{seconds * 1000:.0f}ms",
+    ) as trail:
+        trail.mark(True, "carrots roasted", seconds=2.4)
+        trail.finish(True, "Roasted 1/1 vegetables")
+    assert "carrots roasted (2400ms)" in stream.getvalue()
+
+
+def test_resolve_timer_follows_time_flag():
+    """`timer=None` follows the --time flag; explicit settings pass through."""
+    # Explicit settings are returned unchanged, in or out of a context.
+    assert _resolve_timer(True) is True
+    assert _resolve_timer(False) is False
+
+    def custom(seconds):
+        return f"{seconds}s"
+
+    assert _resolve_timer(custom) is custom
+    # None outside any command context: off.
+    assert _resolve_timer(None) is False
+    # None inside a command: off without the --time marker, on with it.
+    with click.Context(click.Command("noop")) as ctx:
+        assert _resolve_timer(None) is False
+        ctx.meta[START_TIME] = 1.0  # Set by TimerOption under --time.
+        assert _resolve_timer(None) is True
+
+
 def test_progress_bar_trail_renders_bar_and_finisher():
     """`progress_bar=True` drives a determinate bar with outcomes above it."""
     stream = TTYStringIO()
     with OperationTrail(
-        label="Fetching", unit="feeds", total=3, progress_bar=True, stream=stream
+        label="Fetching",
+        unit="feeds",
+        total=3,
+        progress_bar=True,
+        stream=stream,
+        timer=True,
     ) as trail:
         trail.mark(True, "feed-a fetched")
         trail.mark(False, "feed-b failed")
@@ -929,6 +1076,72 @@ def test_progress_bar_trail_renders_bar_and_finisher():
     assert re.search(r"Fetched 2/3 feeds \(\d+\.\ds\)", output)
     assert SHOW_CURSOR in output
     assert trail.ok_count == 2
+
+
+def test_progress_bar_trail_shows_empty_bar_on_entry():
+    """The bar's 0/total state draws on entry, not only once the first outcome
+    advances it, matching the spinner indicator that animates its tally at once."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        label="Fetching", unit="feeds", total=4, progress_bar=True, stream=stream
+    ) as trail:
+        # No outcome marked yet, but the empty bar is already drawn.
+        assert trail._indicator is not None and trail._indicator.shown
+        assert "0/4" in stream.getvalue()
+        trail.mark(True, "feed-a fetched")
+    assert "1/4" in stream.getvalue()
+
+
+def test_progress_bar_clock_defaults_to_elapsed():
+    """clock='elapsed' (the default) draws a stopwatch from the start via
+    item_show_func, with Click's ETA off and a ticker to keep it moving."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        total=3, progress_bar=True, enabled=True, stream=stream, timer=True
+    ) as trail:
+        assert trail._indicator._bar.show_eta is False  # No Click ETA.
+        assert trail._indicator._ticker is not None  # A ticker drives the clock.
+        # The elapsed clock is on screen from the start, before any outcome.
+        plain = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
+        assert re.search(r"0/3\s+\d\.\ds", plain)
+
+
+def test_progress_bar_clock_eta_uses_click_eta():
+    """clock='eta' keeps Click's estimated-time display and runs no ticker."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        total=3,
+        progress_bar=True,
+        enabled=True,
+        stream=stream,
+        timer=True,
+        clock="eta",
+    ) as trail:
+        assert trail._indicator._bar.show_eta is True
+        assert trail._indicator._ticker is None
+
+
+def test_progress_bar_elapsed_clock_ticks_between_marks():
+    """The elapsed clock advances on its own between outcomes, with no mark."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        total=3, progress_bar=True, enabled=True, stream=stream, timer=True
+    ):
+        # No mark is made: only the ticker moves the clock past 0.0s.
+        assert wait_until(
+            lambda: bool(
+                re.search(
+                    r"0/3\s+0\.[1-9]s",
+                    re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue()),
+                )
+            )
+        )
+
+
+def test_operation_trail_rejects_invalid_clock():
+    """`clock` must be 'elapsed' or 'eta'."""
+    with pytest.raises(ValueError, match='"elapsed" or "eta"'):
+        OperationTrail(total=1, progress_bar=True, clock="nope")  # type: ignore[arg-type]
 
 
 def test_progress_bar_trail_works_concurrently():

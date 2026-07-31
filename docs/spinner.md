@@ -195,31 +195,62 @@ assert "✓" in result.output
 assert "carrots roasted" in result.output
 assert "✘" in result.output
 assert "leeks scorched" in result.output
-# The finisher is the ✘ summary, its elapsed time appended, one having scorched.
+# The finisher is the ✘ summary, one vegetable having scorched.
 assert "Roasted 3/4 vegetables" in result.output
 ```
 
 The lines echo in order as each outcome lands, and the run closes on the `✘` finisher because one vegetable scorched: the same trail a sequential batch leaves in a real terminal, without the live redraw.
 
-#### A progress bar instead of a spinner
-
-Because the trail knows its `total`, it can carry a *determinate* [progress bar](#progress-bars) rather than an indeterminate spinner. Pass `progress_bar=True` (mutually exclusive with `spinner=`, and requiring a positive `total`) and the aggregate indicator becomes a bar holding the `done/total` tally, with the same `✓`/`✘` outcomes streaming above it and a kept summary replacing the bar on `finish()`. It serves sequential and concurrent batches alike:
+The trail's `timer` follows the `--time` / `--no-time` flag by default (`timer=None`), so this untimed run shows no clocks. Under `--time` the `✘` finisher gains the batch's total, and each operation can report its own elapsed time: wrap the work in an {py:meth}`~click_extra.spinner.OperationTrail.operation` handle, whose `mark()` times itself, so the lines read `✓ carrots roasted (2.4s)`. Force it either way with `timer=True` or `timer=False`, or hand `timer` a `lambda seconds: …` callable to format the clock.
 
 ```python
-from click_extra.spinner import OperationTrail
-
-with OperationTrail(
-    label="Fetching", unit="feeds", total=len(feeds), progress_bar=True
-) as trail:
-    for feed in feeds:
-        trail.mark(*pull(feed))  # pull() returns (ok, message).
-    trail.finish(
-        trail.ok_count == len(feeds),
-        f"Fetched {trail.ok_count}/{len(feeds)} feeds",
+def roast(vegetable):
+    op = trail.operation()  # Start this operation's clock.
+    roasted = vegetable != "leeks"
+    op.mark(
+        roasted,
+        f"{vegetable} roasted" if roasted else f"{vegetable} scorched",
     )
 ```
 
-Like the spinner, the bar is driven by cursor-control codes, so it draws only on an interactive terminal (unless `enabled` forces it) and cannot be captured cleanly in this build. A log record emitted mid-batch still lands on its own line above the bar, through the same cooperation the spinner uses.
+The bundled CLI wraps all three renderings in one command, to watch in a terminal what this page can only echo: `click-extra trail` roasts a batch behind a concurrent aggregate spinner, `--jobs 1` drops to the sequential plain-line trail above, and `--progress-bar` swaps the spinner for a determinate bar.
+
+```{click:run}
+from click_extra.cli import demo
+
+result = invoke(demo, args=["trail", "--help"])
+assert result.exit_code == 0
+assert "Trace a simulated batch of operations" in result.stdout
+assert "--progress-bar" in result.stdout
+```
+
+### A progress bar instead of a spinner
+
+Because the trail knows its `total`, it can carry a *determinate* [progress bar](#progress-bars) rather than an indeterminate spinner. Give the `roast` command above a bar by adding `progress_bar=True` (mutually exclusive with `spinner=`, and requiring a positive `total`), plus the `label` and `unit` its tally reads:
+
+```python
+with OperationTrail(
+    label="Roasting",
+    unit="vegetables",
+    total=len(vegetables),
+    progress_bar=True,
+) as trail:
+    ...  # mark() each outcome, then finish(), exactly as above.
+```
+
+The aggregate indicator becomes a bar holding the `done/total` count, the same `✓`/`✘` outcomes streaming above it, and a kept summary replaces the bar on `finish()`. It serves sequential and concurrent batches alike.
+
+Unlike the sequential trail above, the bar is driven by cursor-control codes, so it draws only on an interactive terminal (unless `enabled` forces it) and this page cannot render it live. Mid-batch, the landed outcomes sit above a bar tracking the tally:
+
+```console
+$ roast
+✓ carrots roasted
+✓ fennel roasted
+✘ leeks scorched
+Roasting  [###########################---------]  3/4  vegetables
+```
+
+When the last vegetable lands, `finish()` replaces the bar with the kept `✘ Roasted 3/4 vegetables (0.0s)` summary, the same trail a sequential run leaves behind. A log record emitted mid-batch still lands on its own line above the bar, through the same cooperation the spinner uses. To watch a bar drive a live batch, run `click-extra trail --progress-bar` in a terminal.
 
 ## Styling and color
 
@@ -340,6 +371,8 @@ assert "Picking apples" not in result.output
 ```
 
 The `hidden` argument stays authoritative: pass an explicit `hidden=True` or `hidden=False` to force the bar regardless of the flag, mirroring how an explicit `color=` overrides `ctx.color` on `click.echo`. Color is handled upstream too, since Click renders the bar through `click.echo`: `--no-color` and `NO_COLOR` strip its ANSI without any extra wiring.
+
+The bar's estimated-time display is gated the same way, but on `--time` rather than `--progress`: `show_eta` defaults to `None`, shown under `--time` and hidden otherwise, so a bare bar and an [operation trail](#the-operation-trail) agree on when to surface timing. An explicit `show_eta=True` or `show_eta=False` overrides it (Click's own default is `True`).
 
 ## `click_extra.spinner` API
 

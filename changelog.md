@@ -5,10 +5,15 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Breaking:** `OperationTrail` now gates its per-item and finisher elapsed times on a new `timer` argument that defaults to `None`, following `--time` / `--no-time`; its finisher no longer always shows a clock (pass `timer=True` to restore it).
 - Move the self-updating block primitives (`update_blocks`, `marker_res`, `replace_region`) to a new dependency-light `click_extra.blocks` module, importable without the `sphinx` extra; they stay re-exported from `click_extra.sphinx`.
 - Add a `pad` option to `replace_region` to keep the closing marker flush against the body, for regions constrained by `mdformat-footnote`.
 - Add a `spinner` argument to `OperationTrail` to pick its concurrent aggregate spinner from the `SPINNERS` catalog. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
 - Add a `progress_bar` argument to `OperationTrail` to render its aggregate indicator as a determinate progress bar instead of a spinner. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
+- Add an `OperationTrail.operation()` handle whose `mark()` records an outcome timed from when the operation began.
+- Gate the estimated-time display of `click_extra.progressbar` on `--time` through a new tri-state `show_eta` argument (default `None`), and follow the trail's `timer` for the `OperationTrail` progress bar.
+- Add a `trail` demo subcommand to the `click-extra` CLI, running a simulated batch behind an `OperationTrail` to showcase its sequential, spinner and progress-bar renderings in a real terminal.
+- Work around [pallets/click#3571](https://github.com/pallets/click/issues/3571) in `click_extra.progressbar`: a bar with `show_pos=True` and an `update_min_steps` that does not divide its length now renders its final position instead of freezing below it.
 - Add a `click_extra.humanize` module with `format_size`, rendering a byte count as a compact human-readable string, in one of three unit systems: IEC binary (`KiB`, `MiB`, the default), SI decimal (`kB`, `MB`), or the customary JEDEC binary (`KB`, `MB`).
 - Add `format_duration` to `click_extra.humanize`, rendering an elapsed number of seconds or a `timedelta` compactly, as `2.3s`, `1:05` or `1:02:03`.
 - Render the `OperationTrail` sequential finish-line elapsed time with the same compact clock format as the spinner timer, so a run past a minute reads `1:15`, not `75.3s`.
