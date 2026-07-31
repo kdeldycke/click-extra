@@ -57,7 +57,7 @@ import sys
 import threading
 import time
 from gettext import gettext as _
-from typing import TypeVar
+from typing import TypeVar, cast
 
 import click
 from wcwidth import wcswidth
@@ -76,39 +76,104 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
     from types import TracebackType
-    from typing import IO, Any
+    from typing import IO, Any, Protocol, TextIO
 
     from click._termui_impl import ProgressBar
     from typing_extensions import Self
 
+    class _LiveLine(Protocol):
+        """A live terminal line other output must cooperate with.
 
-_ACTIVE_SPINNERS: list[Spinner] = []
-"""Stack of the spinners currently animating, innermost last.
+        The shared surface {func}`_active_line` exposes so a concurrent writer
+        (the logging bridge, a trail) can print above whichever live line owns
+        the terminal right now, be it a {class}`Spinner` or an
+        {class}`OperationTrail`'s progress-bar indicator.
+        """
 
-A spinner registers itself when {meth}`Spinner.start` actually begins an
-animation (a disabled spinner never registers) and deregisters on
-{meth}`Spinner.stop`. Guarded by {data}`_ACTIVE_SPINNERS_LOCK`, since spinners
-are started and stopped from worker threads too.
+        def _resolve_stream(self) -> IO[str]: ...
+        def echo(self, message: str) -> None: ...
+
+    class _AggregateIndicator(Protocol):
+        """The live aggregate indicator an {class}`OperationTrail` drives.
+
+        Both the spinner-backed and bar-backed indicators expose this surface,
+        so the trail drives either one the same way: enter it, {meth}`advance`
+        the tally as outcomes land, {meth}`echo` a persistent line per outcome,
+        then {meth}`finish` with a kept summary.
+        """
+
+        @property
+        def shown(self) -> bool: ...
+        def __enter__(self) -> Self: ...
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_val: BaseException | None,
+            exc_tb: TracebackType | None,
+        ) -> None: ...
+        def advance(self, done: int) -> None: ...
+        def echo(self, message: str) -> None: ...
+        def finish(self, ok: bool, summary: str) -> None: ...
+
+
+_ACTIVE_LINES: list[_LiveLine] = []
+"""Stack of the live terminal lines currently drawing, innermost last.
+
+A {class}`Spinner` or an {class}`OperationTrail` progress-bar indicator
+registers itself when it actually begins drawing (a disabled one never
+registers) and deregisters when it stops. Guarded by
+{data}`_ACTIVE_LINES_LOCK`, since these are started and stopped from worker
+threads too.
 """
 
 
-_ACTIVE_SPINNERS_LOCK = threading.Lock()
-"""Guards {data}`_ACTIVE_SPINNERS` against concurrent mutation."""
+_ACTIVE_LINES_LOCK = threading.Lock()
+"""Guards {data}`_ACTIVE_LINES` against concurrent mutation."""
+
+
+def _register_line(line: _LiveLine) -> None:
+    """Advertise `line` as a live terminal line. Idempotent."""
+    with _ACTIVE_LINES_LOCK:
+        if line not in _ACTIVE_LINES:
+            _ACTIVE_LINES.append(line)
+
+
+def _deregister_line(line: _LiveLine) -> None:
+    """Withdraw `line` from the live-line registry. Idempotent."""
+    with _ACTIVE_LINES_LOCK:
+        if line in _ACTIVE_LINES:
+            _ACTIVE_LINES.remove(line)
+
+
+def _active_line(stream: IO[str] | None = None) -> _LiveLine | None:
+    """Return the innermost live terminal line drawing, or `None`.
+
+    With `stream` given, only a line drawing on that very stream matches. This
+    is how output producers cooperate with a running animation or progress bar
+    instead of garbling it: {class}`click_extra.logging.StreamHandler` checks
+    here and routes its records through the line's `echo`, which erases the
+    in-progress render, prints the line, and redraws underneath.
+    """
+    with _ACTIVE_LINES_LOCK:
+        for line in reversed(_ACTIVE_LINES):
+            if stream is None or line._resolve_stream() is stream:
+                return line
+    return None
 
 
 def active_spinner(stream: IO[str] | None = None) -> Spinner | None:
-    """Return the innermost spinner currently animating, or `None`.
+    """Return the innermost {class}`Spinner` currently animating, or `None`.
 
-    With `stream` given, only a spinner drawing on that very stream matches.
-    This is how output producers cooperate with a running animation instead of
-    garbling it: {class}`click_extra.logging.StreamHandler` checks here and
-    routes its records through {meth}`Spinner.echo`, which erases the in-progress
-    frame, prints the line, and lets the next tick redraw the spinner underneath.
+    A spinner-typed view of {func}`_active_line`, skipping any progress-bar
+    indicator that may own the line instead. With `stream` given, only a
+    spinner drawing on that very stream matches.
     """
-    with _ACTIVE_SPINNERS_LOCK:
-        for spinner in reversed(_ACTIVE_SPINNERS):
-            if stream is None or spinner._resolve_stream() is stream:
-                return spinner
+    with _ACTIVE_LINES_LOCK:
+        for line in reversed(_ACTIVE_LINES):
+            if isinstance(line, Spinner) and (
+                stream is None or line._resolve_stream() is stream
+            ):
+                return line
     return None
 
 
@@ -121,6 +186,23 @@ def _is_a_tty(stream: IO[str]) -> bool:
     """
     isatty = getattr(stream, "isatty", None)
     return bool(isatty and isatty())
+
+
+def _stream_enabled(enabled: bool | None, stream: IO[str]) -> bool:
+    """Resolve whether a cursor-driven display may draw on `stream`.
+
+    Honors an explicit `enabled` override; otherwise auto-detects, drawing only
+    on an interactive terminal that can move the cursor. That rules out
+    non-interactive streams (a pipe, file or captured buffer, which are not a
+    TTY) and `TERM=dumb` / `TERM=unknown` terminals, whose lack of cursor
+    control would smear the output instead of updating it in place. Shared by
+    {class}`Spinner` and the {class}`OperationTrail` progress-bar indicator.
+    """
+    if enabled is not None:
+        return enabled
+    if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
+        return False
+    return _is_a_tty(stream)
 
 
 class Spinner:
@@ -284,11 +366,7 @@ class Spinner:
         `TERM=unknown` terminals, whose lack of cursor control would smear a trail
         of frames down the screen instead of animating in place.
         """
-        if self.enabled is not None:
-            return self.enabled
-        if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
-            return False
-        return _is_a_tty(stream)
+        return _stream_enabled(self.enabled, stream)
 
     def _resolve_color_enabled(self, stream: IO[str]) -> bool:
         """Decide whether to apply ANSI color, orthogonally to whether it animates.
@@ -438,10 +516,8 @@ class Spinner:
         self._drawn = False
         self._cursor_hidden = False
         # Advertise the animation so concurrent writers (the logging bridge, see
-        # active_spinner()) print through echo() instead of over the frame.
-        with _ACTIVE_SPINNERS_LOCK:
-            if self not in _ACTIVE_SPINNERS:
-                _ACTIVE_SPINNERS.append(self)
+        # _active_line()) print through echo() instead of over the frame.
+        _register_line(self)
         self._thread = threading.Thread(
             target=self._animate,
             args=(stream,),
@@ -461,9 +537,7 @@ class Spinner:
         self._stop_time = time.monotonic()
         # Withdraw from the active registry first, so a concurrent log record
         # emitted during the teardown below goes through the plain path.
-        with _ACTIVE_SPINNERS_LOCK:
-            if self in _ACTIVE_SPINNERS:
-                _ACTIVE_SPINNERS.remove(self)
+        _deregister_line(self)
         if self._thread is None:
             return
         self._stop.set()
@@ -672,6 +746,215 @@ def trail_line(ok: bool, message: str) -> str:
     return f"{trail_glyph(ok)} {message}"
 
 
+class _SpinnerIndicator:
+    """An {class}`OperationTrail` aggregate indicator backed by a {class}`Spinner`.
+
+    Carries the running ``{label} {done}/{total} {unit}`` tally on one animated
+    line while completed outcomes stream above it, and closes on the spinner's
+    kept {meth}`~Spinner.ok` / {meth}`~Spinner.fail` line. Used for a concurrent
+    batch, where per-call spinners would collide on the shared stream.
+    """
+
+    def __init__(
+        self,
+        *,
+        label: str,
+        unit: str,
+        total: int,
+        delay: float,
+        enabled: bool | None,
+        stream: IO[str] | None,
+        spinner: SpinnerPreset | None = None,
+    ) -> None:
+        self._label = label
+        self._unit = unit
+        self._total = total
+        self._spinner = Spinner(
+            f"{label} 0/{total} {unit}",
+            spinner=spinner,
+            delay=delay,
+            enabled=enabled,
+            timer=True,
+            stream=stream,
+        )
+
+    @property
+    def shown(self) -> bool:
+        return self._spinner.shown
+
+    def __enter__(self) -> Self:
+        self._spinner.__enter__()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        self._spinner.__exit__(exc_type, exc_val, exc_tb)
+
+    def advance(self, done: int) -> None:
+        """Re-label the spinner with the ``{label} {done}/{total} {unit}`` tally."""
+        self._spinner.label = f"{self._label} {done}/{self._total} {self._unit}"
+
+    def echo(self, message: str) -> None:
+        self._spinner.echo(message)
+
+    def finish(self, ok: bool, summary: str) -> None:
+        """Leave the spinner's kept `✓`/`✘` ``summary`` line, elapsed included."""
+        if self._spinner.shown:
+            self._spinner.label = summary
+            (self._spinner.ok if ok else self._spinner.fail)()
+
+
+class _BarIndicator:
+    """An {class}`OperationTrail` aggregate indicator backed by a determinate
+    {func}`click.progressbar`.
+
+    Where {class}`_SpinnerIndicator` narrates an *indeterminate* pulse, this
+    carries a real ``{label} [####----] {done}/{total}`` bar (the trail knows
+    its `total`), with completed outcomes streaming above it exactly as they
+    do over a spinner. It drives Click's bar directly rather than iterating it:
+    {meth}`advance` steps and redraws it, {meth}`echo` erases it to slip a
+    persistent line above, then redraws it below.
+
+    ```{note}
+    Click's {meth}`~click._termui_impl.ProgressBar.render_progress` skips a
+    redraw whose line is unchanged, so {meth}`_draw` clears the bar's
+    `_last_line` cache to force the post-`echo` redraw. Cursor hiding is left
+    to Click (its `BEFORE_BAR` / `AFTER_BAR`); this only restores the cursor
+    when it tears the bar down early.
+    ```
+    """
+
+    def __init__(
+        self,
+        *,
+        label: str,
+        unit: str,
+        total: int,
+        delay: float,
+        enabled: bool | None,
+        stream: IO[str] | None,
+    ) -> None:
+        self._label = label
+        self._unit = unit
+        self._total = total
+        self._delay = delay
+        self._enabled = enabled
+        self._stream = stream
+        self._lock = threading.Lock()
+        self._on = False
+        self._drawn = False
+        self._finished = False
+        self._start = 0.0
+        self._bar: ProgressBar[int] | None = None
+
+    def _resolve_stream(self) -> IO[str]:
+        return self._stream if self._stream is not None else sys.stderr
+
+    def __enter__(self) -> Self:
+        stream = self._resolve_stream()
+        self._on = _stream_enabled(self._enabled, stream)
+        self._start = time.monotonic()
+        # show_pos renders the `{done}/{total}` tally; item_show_func appends the
+        # counted unit after it, echoing the spinner's `3/5 feeds` phrasing. The
+        # `range(total)` iterable is never consumed (advance() drives the bar
+        # directly); it just fixes the length and satisfies the typed overload
+        # that carries item_show_func.
+        self._bar = click.progressbar(
+            range(self._total),
+            label=self._label,
+            show_pos=True,
+            item_show_func=lambda _: self._unit or None,
+            file=cast("TextIO", stream),
+            hidden=not self._on,
+        )
+        if self._on:
+            # The bar emits ANSI control codes: make a legacy Windows console
+            # interpret rather than echo them, as Spinner.start does.
+            Spinner._enable_windows_ansi(stream)
+            _register_line(self)
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        self.stop()
+
+    @property
+    def shown(self) -> bool:
+        return self._drawn
+
+    def _draw(self) -> None:
+        """Force a bar redraw, defeating Click's unchanged-line dedup."""
+        assert self._bar is not None
+        self._bar._last_line = None
+        self._bar.render_progress()
+        self._drawn = True
+
+    def advance(self, done: int) -> None:
+        """Step the bar to `done` and redraw it, once past the initial delay."""
+        if not self._on:
+            return
+        assert self._bar is not None
+        with self._lock:
+            # A batch that finishes within `delay` never draws: remember the
+            # position and stay silent, as the spinner does for a quick batch.
+            if (time.monotonic() - self._start) < self._delay:
+                self._bar.pos = done
+                return
+            self._bar.make_step(done - self._bar.pos)
+            self._draw()
+
+    def echo(self, message: str) -> None:
+        """Print `message` as a persistent line above the bar, then redraw it."""
+        stream = self._resolve_stream()
+        with self._lock:
+            if self._drawn:
+                stream.write("\r\x1b[K")  # Erase the bar line.
+            stream.write(f"{message}\n")  # Persistent line above.
+            if self._drawn:
+                self._draw()  # Redraw the bar below.
+            stream.flush()
+
+    def finish(self, ok: bool, summary: str) -> None:
+        """Replace the bar with a kept `✓`/`✘` ``summary`` line, elapsed included."""
+        _deregister_line(self)
+        with self._lock:
+            self._finished = True
+            if not self._drawn:
+                return
+            stream = self._resolve_stream()
+            clock = f" ({Spinner._format_elapsed(time.monotonic() - self._start)})"
+            # Erase the bar, keep the finisher in its place, restore the cursor
+            # Click hid via BEFORE_BAR.
+            stream.write(f"\r\x1b[K{trail_line(ok, summary)}{clock}\n\x1b[?25h")
+            stream.flush()
+            self._drawn = False
+
+    def stop(self) -> None:
+        """Erase the bar and restore the cursor with no kept line. Idempotent.
+
+        The teardown path for an abnormal exit (an exception inside the trail's
+        `with` block, where {meth}`finish` never ran).
+        """
+        _deregister_line(self)
+        with self._lock:
+            if self._finished or not self._drawn:
+                self._finished = True
+                return
+            stream = self._resolve_stream()
+            stream.write("\r\x1b[K\x1b[?25h")
+            stream.flush()
+            self._drawn = False
+            self._finished = True
+
+
 class OperationTrail:
     """A `✓`/`✘` progress trail and finisher for a batch of operations.
 
@@ -682,16 +965,22 @@ class OperationTrail:
     {meth}`finish` closes with a persistent summary line. The natural
     reporting companion of the concurrency primitives
     {func}`~click_extra.execution.run_jobs` and
-    {func}`~click_extra.execution.run_lanes`, rendered one of two ways:
+    {func}`~click_extra.execution.run_lanes`, rendered one of three ways:
 
     - **sequential** (`jobs <= 1`): echo each outcome as it lands, with no
-      aggregate spinner (each operation is free to keep its own per-call
+      aggregate indicator (each operation is free to keep its own per-call
       {class}`Spinner`). {meth}`finish` appends the elapsed time.
     - **concurrent** (`jobs > 1`): drive one aggregate {class}`Spinner`
       (per-call spinners would collide on the shared stream), buffering
       outcomes until it first draws, then streaming the rest live above it.
+      Pick the animation from the
+      {data}`~click_extra.spinner_presets.SPINNERS` catalog with `spinner=`.
+    - **progress bar** (`progress_bar=True`): drive one aggregate *determinate*
+      bar carrying the `{done}/{total}` tally, with outcomes streaming above
+      it. Serves sequential and concurrent batches alike, and needs a known
+      `total`.
 
-    Both render only on an interactive stream unless `enabled` forces the
+    All render only on an interactive stream unless `enabled` forces the
     matter, so pipes, CI logs and captured test buffers stay clean. The running
     `✓` tally is kept as outcomes land ({attr}`ok_count`), so a caller computes
     no counts of its own.
@@ -725,6 +1014,8 @@ class OperationTrail:
         unit: str = "",
         total: int = 0,
         jobs: int = 1,
+        spinner: SpinnerPreset | None = None,
+        progress_bar: bool = False,
         enabled: bool | None = None,
         echo_sequential: bool = True,
         delay: float = 0.0,
@@ -732,33 +1023,48 @@ class OperationTrail:
     ) -> None:
         """Configure (but do not start) the trail.
 
-        :param label: present-tense verb for the running aggregate spinner
+        :param label: present-tense verb for the running aggregate indicator
             (`"Fetching"`), composed into its ``{label} {done}/{total} {unit}``
             tally.
-        :param unit: the noun counted in the spinner tally (`"files"`,
-            `"feeds"`).
+        :param unit: the noun counted in the tally (`"files"`, `"feeds"`).
         :param total: how many outcomes are expected, for the `done/total`
             count.
         :param jobs: the batch's worker count; `> 1` selects the concurrent
             rendering (one aggregate spinner), `<= 1` the sequential one
             (plain echoed lines).
+        :param spinner: a {class}`~click_extra.spinner_presets.SpinnerPreset`
+            from the {data}`~click_extra.spinner_presets.SPINNERS` catalog
+            (`spinner=SPINNERS["moon"]`) for the concurrent aggregate spinner.
+            Ignored by the sequential and progress-bar renderings, and mutually
+            exclusive with `progress_bar`.
+        :param progress_bar: render the aggregate indicator as a determinate
+            {func}`click.progressbar` instead of a spinner, for a sequential or
+            concurrent batch alike. Requires a positive `total` (a bar needs a
+            length) and is mutually exclusive with `spinner`.
         :param enabled: force the trail on or off. `None` (the default)
             auto-detects: the sequential echo renders only on an interactive
-            stream, and the aggregate spinner applies its own TTY gate.
+            stream, and the aggregate indicator applies its own TTY gate.
         :param echo_sequential: whether a sequential batch echoes its outcome
             lines and finisher at all. Turn it off when the batch has another
             output that is the real product (a result table) and the trail
-            would be noise; the concurrent spinner is unaffected.
-        :param delay: seconds before the aggregate spinner first draws,
-            forwarded to {class}`Spinner`: a fast batch then completes without
-            ever flashing one.
+            would be noise; an aggregate indicator is unaffected.
+        :param delay: seconds before the aggregate indicator first draws: a
+            fast batch then completes without ever flashing one.
         :param stream: where to render; defaults to {data}`sys.stderr` so the
             trail never mixes into `stdout` data.
+        :raises ValueError: if `progress_bar` is set without a positive
+            `total`, or together with `spinner`.
         """
+        if progress_bar and total <= 0:
+            raise ValueError("progress_bar=True requires a positive total.")
+        if progress_bar and spinner is not None:
+            raise ValueError("progress_bar= and spinner= are mutually exclusive.")
         self.label = label
         self.unit = unit
         self.total = total
         self.concurrent = jobs > 1
+        self.progress_bar = progress_bar
+        self.spinner_preset = spinner
         self.enabled = enabled
         self.stream = stream
         self._delay = delay
@@ -766,12 +1072,13 @@ class OperationTrail:
         self._done = 0
         self._ok = 0
         self._start = time.monotonic()
-        self._spinner: Spinner | None = None
+        self._indicator: _AggregateIndicator | None = None
         self._buffer: list[str] = []
-        # Sequential rendering echoes plain lines: gate them on an interactive
-        # stream unless `enabled` forces the matter, mirroring the spinner's own
-        # TTY gate on the concurrent side.
-        if self.concurrent or not echo_sequential or enabled is False:
+        # An aggregate indicator (a progress bar, or a spinner for a concurrent
+        # batch) owns the live line; the plain sequential echo runs only when
+        # there is none. Gate it on an interactive stream unless `enabled`
+        # forces the matter, mirroring the indicator's own TTY gate.
+        if self.concurrent or progress_bar or not echo_sequential or enabled is False:
             self._echo = False
         elif enabled is True:
             self._echo = True
@@ -779,15 +1086,27 @@ class OperationTrail:
             self._echo = _is_a_tty(stream if stream is not None else sys.stderr)
 
     def __enter__(self) -> Self:
-        if self.concurrent:
-            self._spinner = Spinner(
-                f"{self.label} 0/{self.total} {self.unit}",
+        if self.progress_bar:
+            self._indicator = _BarIndicator(
+                label=self.label,
+                unit=self.unit,
+                total=self.total,
                 delay=self._delay,
                 enabled=self.enabled,
-                timer=True,
                 stream=self.stream,
             )
-            self._spinner.__enter__()
+        elif self.concurrent:
+            self._indicator = _SpinnerIndicator(
+                label=self.label,
+                unit=self.unit,
+                total=self.total,
+                delay=self._delay,
+                enabled=self.enabled,
+                stream=self.stream,
+                spinner=self.spinner_preset,
+            )
+        if self._indicator is not None:
+            self._indicator.__enter__()
         return self
 
     def __exit__(
@@ -796,9 +1115,9 @@ class OperationTrail:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        if self._spinner is not None:
-            self._spinner.__exit__(exc_type, exc_val, exc_tb)
-            self._spinner = None
+        if self._indicator is not None:
+            self._indicator.__exit__(exc_type, exc_val, exc_tb)
+            self._indicator = None
 
     @property
     def ok_count(self) -> int:
@@ -818,39 +1137,35 @@ class OperationTrail:
             self._done += 1
             if ok:
                 self._ok += 1
-            if self._spinner is not None:
+            if self._indicator is not None:
                 self._buffer.append(trail_line(ok, message))
-                self._spinner.label = (
-                    f"{self.label} {self._done}/{self.total} {self.unit}"
-                )
+                self._indicator.advance(self._done)
                 self._flush()
             elif self._echo:
                 self._echo_line(trail_line(ok, message))
 
     def _flush(self) -> None:
-        # Caller holds the lock. Drain buffered lines once the spinner is
+        # Caller holds the lock. Drain buffered lines once the indicator is
         # drawing; before that, writing would leak into a stream the delayed
-        # (or disabled) spinner may never touch.
-        if self._spinner is None or not self._spinner.shown:
+        # (or disabled) indicator may never touch.
+        if self._indicator is None or not self._indicator.shown:
             return
         for text in self._buffer:
-            self._spinner.echo(text)
+            self._indicator.echo(text)
         self._buffer.clear()
 
     def finish(self, ok: bool, summary: str) -> None:
         """Render the persistent `✓`/`✘` ``{summary}`` finisher.
 
-        Concurrent, it becomes the aggregate spinner's kept {meth}`Spinner.ok`
-        / {meth}`Spinner.fail` line (with its elapsed time, from the spinner's
-        own timer); sequential, a plain echoed line suffixed with the elapsed
-        time since construction.
+        With an aggregate indicator, it becomes the indicator's kept line (a
+        spinner's {meth}`Spinner.ok` / {meth}`Spinner.fail` line, or the bar's
+        replacement line), elapsed time included. Sequential without one, a
+        plain echoed line suffixed with the elapsed time since construction.
         """
-        if self._spinner is not None:
+        if self._indicator is not None:
             with self._lock:
                 self._flush()
-            if self._spinner.shown:
-                self._spinner.label = summary
-                (self._spinner.ok if ok else self._spinner.fail)()
+            self._indicator.finish(ok, summary)
         elif self._echo:
             elapsed = time.monotonic() - self._start
             self._echo_line(trail_line(ok, f"{summary} ({elapsed:.1f}s)"))

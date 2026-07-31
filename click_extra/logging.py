@@ -142,11 +142,12 @@ class StreamHandler(logging.StreamHandler):
     def emit(self, record: LogRecord) -> None:
         """Use {func}`click.echo` to print to the console.
 
-        Cooperates with any {class}`~click_extra.spinner.Spinner` currently
-        animating on the same stream: the record is then printed through
-        {meth}`~click_extra.spinner.Spinner.echo`, which erases the in-progress
-        frame first, so a log line emitted mid-animation lands on its own line
-        instead of garbling the spinner (and vice versa).
+        Cooperates with any live terminal line currently drawing on the same
+        stream (a {class}`~click_extra.spinner.Spinner`, or an
+        {class}`~click_extra.spinner.OperationTrail` progress bar): the record
+        is then printed through its `echo`, which erases the in-progress render
+        first, so a log line emitted mid-draw lands on its own line instead of
+        garbling the indicator (and vice versa).
 
         The color tri-state is resolved through
         {func}`~click_extra.color.invocation_color` rather than left to
@@ -160,16 +161,16 @@ class StreamHandler(logging.StreamHandler):
             # leaves this logging module must not force-load (nor risk an import
             # cycle with) just to emit a record.
             from .color import invocation_color
-            from .spinner import active_spinner
+            from .spinner import _active_line
 
             message = self.format(record)
             color = invocation_color()
-            spinner = active_spinner(self._stream)
-            if spinner is not None:
-                # Spinner.echo writes raw: strip what click.echo would have.
+            line = _active_line(self._stream)
+            if line is not None:
+                # The live line's echo writes raw: strip what click.echo would.
                 if color is False:
                     message = strip_ansi(message)
-                spinner.echo(message)
+                line.echo(message)
             else:
                 click.echo(message, err=self._stderr_output, color=color)
         except RecursionError:

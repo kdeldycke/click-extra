@@ -157,7 +157,7 @@ with OperationTrail(
     )
 ```
 
-The rendering adapts to the batch's concurrency. Run concurrently (`jobs > 1`), one aggregate spinner carries the `Fetching 3/5 feeds` tally while the trail lines stream above it, and the finisher becomes the spinner's kept [`ok()`/`fail()`](#success-and-failure) line, elapsed time included; outcomes landing before the spinner first draws are buffered so nothing leaks onto a stream the (possibly delayed or disabled) spinner never touches. Run sequentially (`jobs <= 1`), there is no aggregate spinner to collide with, so each outcome echoes as a plain line and the finisher appends the elapsed time itself: each operation stays free to keep its own per-call `Spinner`.
+The rendering adapts to the batch's concurrency. Run concurrently (`jobs > 1`), one aggregate spinner carries the `Fetching 3/5 feeds` tally while the trail lines stream above it, and the finisher becomes the spinner's kept [`ok()`/`fail()`](#success-and-failure) line, elapsed time included; outcomes landing before the spinner first draws are buffered so nothing leaks onto a stream the (possibly delayed or disabled) spinner never touches. That spinner's animation is picked from the [catalog](#spinner-catalog) with `spinner=SPINNERS["moon"]`. Run sequentially (`jobs <= 1`), there is no aggregate spinner to collide with, so each outcome echoes as a plain line and the finisher appends the elapsed time itself: each operation stays free to keep its own per-call `Spinner`.
 
 Like the spinner, the trail renders only on an interactive stream unless `enabled` forces the matter, so pipes and CI logs stay clean, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.spinner.OperationTrail.ok_count` tally.
 
@@ -200,6 +200,26 @@ assert "Roasted 3/4 vegetables" in result.output
 ```
 
 The lines echo in order as each outcome lands, and the run closes on the `✘` finisher because one vegetable scorched: the same trail a sequential batch leaves in a real terminal, without the live redraw.
+
+#### A progress bar instead of a spinner
+
+Because the trail knows its `total`, it can carry a *determinate* [progress bar](#progress-bars) rather than an indeterminate spinner. Pass `progress_bar=True` (mutually exclusive with `spinner=`, and requiring a positive `total`) and the aggregate indicator becomes a bar holding the `done/total` tally, with the same `✓`/`✘` outcomes streaming above it and a kept summary replacing the bar on `finish()`. It serves sequential and concurrent batches alike:
+
+```python
+from click_extra.spinner import OperationTrail
+
+with OperationTrail(
+    label="Fetching", unit="feeds", total=len(feeds), progress_bar=True
+) as trail:
+    for feed in feeds:
+        trail.mark(*pull(feed))  # pull() returns (ok, message).
+    trail.finish(
+        trail.ok_count == len(feeds),
+        f"Fetched {trail.ok_count}/{len(feeds)} feeds",
+    )
+```
+
+Like the spinner, the bar is driven by cursor-control codes, so it draws only on an interactive terminal (unless `enabled` forces it) and cannot be captured cleanly in this build. A log record emitted mid-batch still lands on its own line above the bar, through the same cooperation the spinner uses.
 
 ## Styling and color
 

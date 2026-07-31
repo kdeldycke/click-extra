@@ -7,6 +7,8 @@
 
 - Move the self-updating block primitives (`update_blocks`, `marker_res`, `replace_region`) to a new dependency-light `click_extra.blocks` module, importable without the `sphinx` extra; they stay re-exported from `click_extra.sphinx`.
 - Add a `pad` option to `replace_region` to keep the closing marker flush against the body, for regions constrained by `mdformat-footnote`.
+- Add a `spinner` argument to `OperationTrail` to pick its concurrent aggregate spinner from the `SPINNERS` catalog. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
+- Add a `progress_bar` argument to `OperationTrail` to render its aggregate indicator as a determinate progress bar instead of a spinner. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
 
 ## [`8.7.0` (2026-07-30)](https://github.com/kdeldycke/click-extra/compare/v8.6.3...v8.7.0)
 

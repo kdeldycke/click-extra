@@ -44,6 +44,8 @@ from click_extra.spinner import (
     _TOUR_CYCLES,
     _TOUR_MIN,
     OperationTrail,
+    _active_line,
+    _SpinnerIndicator,
     _tour_duration,
     active_spinner,
     trail_line,
@@ -856,7 +858,9 @@ def test_concurrent_trail_buffers_until_spinner_draws():
         # at most a frame of the spinner itself.
         trail.mark(True, "repo-a synced")
         assert "repo-a synced" not in stream.getvalue()
-        assert wait_until(lambda: trail._spinner is not None and trail._spinner.shown)
+        assert wait_until(
+            lambda: trail._indicator is not None and trail._indicator.shown
+        )
         trail.mark(True, "repo-b synced")
         trail.finish(True, "Synced 2/2 repos")
     output = stream.getvalue()
@@ -891,3 +895,94 @@ def test_concurrent_trail_marks_are_thread_safe():
             worker.join()
         trail.finish(True, "Crunched 32/32 items")
     assert trail.ok_count == 32
+
+
+def test_concurrent_trail_uses_chosen_spinner_preset():
+    """`spinner=` picks the concurrent aggregate spinner's animation."""
+    stream = TTYStringIO()
+    preset = SPINNERS["moon"]
+    with OperationTrail(total=2, jobs=2, spinner=preset, stream=stream) as trail:
+        assert isinstance(trail._indicator, _SpinnerIndicator)
+        assert trail._indicator._spinner.frames == preset.frames
+        assert trail._indicator._spinner.interval == preset.interval
+
+
+def test_progress_bar_trail_renders_bar_and_finisher():
+    """`progress_bar=True` drives a determinate bar with outcomes above it."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        label="Fetching", unit="feeds", total=3, progress_bar=True, stream=stream
+    ) as trail:
+        trail.mark(True, "feed-a fetched")
+        trail.mark(False, "feed-b failed")
+        trail.mark(True, "feed-c fetched")
+        trail.finish(trail.ok_count == 3, f"Fetched {trail.ok_count}/3 feeds")
+    output = stream.getvalue()
+    # Each outcome leaves its persistent trail line.
+    assert "feed-a fetched" in output and OK_GLYPH in output
+    assert "feed-b failed" in output and KO_GLYPH in output
+    # The determinate bar renders its fill and the running tally.
+    assert "###" in output  # Click's default fill_char.
+    assert "2/3" in output
+    # The finisher replaces the bar with a kept, timed summary and shows the
+    # cursor Click hid while drawing.
+    assert re.search(r"Fetched 2/3 feeds \(\d+\.\ds\)", output)
+    assert SHOW_CURSOR in output
+    assert trail.ok_count == 2
+
+
+def test_progress_bar_trail_works_concurrently():
+    """`progress_bar=True` also drives a concurrent batch from worker threads."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        label="Crunching",
+        unit="items",
+        total=16,
+        jobs=8,
+        progress_bar=True,
+        stream=stream,
+    ) as trail:
+        workers = [
+            threading.Thread(target=trail.mark, args=(True, f"item-{i} done"))
+            for i in range(16)
+        ]
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join()
+        trail.finish(True, "Crunched 16/16 items")
+    assert trail.ok_count == 16
+    assert "Crunched 16/16 items" in stream.getvalue()
+
+
+def test_progress_bar_trail_disabled_stays_silent():
+    """Off a TTY, the progress-bar trail renders nothing but keeps its tally."""
+    stream = io.StringIO()
+    with OperationTrail(total=2, progress_bar=True, stream=stream) as trail:
+        trail.mark(True, "a done")
+        trail.finish(True, "Done 1/2")
+    assert stream.getvalue() == ""
+    assert trail.ok_count == 1
+
+
+def test_progress_bar_requires_positive_total():
+    """A determinate bar needs a length, so `total` must be positive."""
+    with pytest.raises(ValueError, match="positive total"):
+        OperationTrail(progress_bar=True, total=0)
+
+
+def test_progress_bar_and_spinner_are_mutually_exclusive():
+    """`progress_bar` and `spinner` select different indicators; only one may win."""
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        OperationTrail(progress_bar=True, total=3, spinner=SPINNERS["moon"])
+
+
+def test_progress_bar_registers_as_active_line_not_spinner():
+    """A drawing bar owns the active line (so logs cooperate), but is no spinner."""
+    stream = TTYStringIO()
+    with OperationTrail(total=3, progress_bar=True, stream=stream) as trail:
+        assert _active_line(stream) is trail._indicator
+        # active_spinner() skips a bar indicator: it is not a Spinner.
+        assert active_spinner(stream) is None
+    # The trail deregisters its indicator on exit.
+    assert _active_line(stream) is None
