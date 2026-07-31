@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.8.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.8.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.8.0` (2026-07-31)](https://github.com/kdeldycke/click-extra/compare/v8.7.0...v8.8.0)
 
 - **Breaking:** `OperationTrail` now gates its per-item and finisher elapsed times on a new `timer` argument that defaults to `None`, following `--time` / `--no-time`; its finisher no longer always shows a clock (pass `timer=True` to restore it).

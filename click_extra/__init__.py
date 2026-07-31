@@ -570,7 +570,7 @@ _scrub_foreign_modules()
 del _scrub_foreign_modules
 
 
-__version__ = "8.8.0"
+__version__ = "8.8.1.dev0"
 __git_branch__ = ""
 __git_date__ = ""
 __git_long_hash__ = ""
