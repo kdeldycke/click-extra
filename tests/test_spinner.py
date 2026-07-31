@@ -46,6 +46,7 @@ from click_extra.spinner import (
     _TOUR_MIN,
     OperationTrail,
     _active_line,
+    _BarIndicator,
     _resolve_timer,
     _SpinnerIndicator,
     _tour_duration,
@@ -989,10 +990,18 @@ def test_concurrent_spinner_eta_mode():
         clock="eta",
     ) as trail:
         indicator = trail._indicator
+        assert isinstance(indicator, _SpinnerIndicator)
         assert indicator._eta_bar is not None  # A hidden bar drives the estimate.
         assert indicator._spinner.timer is False  # No elapsed clock while running.
         trail.mark(True, "feed-a fetched", seconds=0.1)
         assert indicator._eta_bar.pos == 1  # advance() steps the hidden bar.
+        # Wait for the spinner's first frame: finish() drops its kept line when
+        # the spinner has not drawn yet (matching the delay semantics), so
+        # without this the summary races the render thread. The GIL usually
+        # serializes that race; free-threaded parallelism exposes it.
+        assert wait_until(
+            lambda: trail._indicator is not None and trail._indicator.shown
+        )
         trail.finish(True, "Fetched 4/4 feeds")
     # A finished batch has no ETA: the finisher carries the elapsed total.
     assert re.search(r"Fetched 4/4 feeds \(\d", stream.getvalue())
@@ -1123,8 +1132,11 @@ def test_progress_bar_clock_defaults_to_elapsed():
     with OperationTrail(
         total=3, progress_bar=True, enabled=True, stream=stream, timer=True
     ) as trail:
-        assert trail._indicator._bar.show_eta is False  # No Click ETA.
-        assert trail._indicator._ticker is not None  # A ticker drives the clock.
+        indicator = trail._indicator
+        assert isinstance(indicator, _BarIndicator)
+        assert indicator._bar is not None
+        assert indicator._bar.show_eta is False  # No Click ETA.
+        assert indicator._ticker is not None  # A ticker drives the clock.
         # The elapsed clock is on screen from the start, before any outcome.
         plain = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
         assert re.search(r"0/3\s+\d\.\ds", plain)
@@ -1141,8 +1153,11 @@ def test_progress_bar_clock_eta_uses_click_eta():
         timer=True,
         clock="eta",
     ) as trail:
-        assert trail._indicator._bar.show_eta is True
-        assert trail._indicator._ticker is None
+        indicator = trail._indicator
+        assert isinstance(indicator, _BarIndicator)
+        assert indicator._bar is not None
+        assert indicator._bar.show_eta is True
+        assert indicator._ticker is None
 
 
 def test_progress_bar_elapsed_clock_ticks_between_marks():
@@ -1165,7 +1180,11 @@ def test_progress_bar_elapsed_clock_ticks_between_marks():
 def test_operation_trail_rejects_invalid_clock():
     """`clock` must be 'elapsed' or 'eta'."""
     with pytest.raises(ValueError, match='"elapsed" or "eta"'):
-        OperationTrail(total=1, progress_bar=True, clock="nope")  # type: ignore[arg-type]
+        OperationTrail(
+            total=1,
+            progress_bar=True,
+            clock="nope",  # type: ignore[arg-type]
+        )
 
 
 def test_progress_bar_trail_works_concurrently():

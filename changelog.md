@@ -6,21 +6,19 @@
 > This version is **not released yet** and is under active development.
 
 - **Breaking:** `OperationTrail` now gates its per-item and finisher elapsed times on a new `timer` argument that defaults to `None`, following `--time` / `--no-time`; its finisher no longer always shows a clock (pass `timer=True` to restore it).
-- Move the self-updating block primitives (`update_blocks`, `marker_res`, `replace_region`) to a new dependency-light `click_extra.blocks` module, importable without the `sphinx` extra; they stay re-exported from `click_extra.sphinx`.
-- Add a `pad` option to `replace_region` to keep the closing marker flush against the body, for regions constrained by `mdformat-footnote`.
-- Add a `spinner` argument to `OperationTrail` to pick its concurrent aggregate spinner from the `SPINNERS` catalog. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
-- Add a `progress_bar` argument to `OperationTrail` to render its aggregate indicator as a determinate progress bar instead of a spinner. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
+- Add `spinner` and `progress_bar` arguments to `OperationTrail` to render its concurrent aggregate indicator as a spinner from the `SPINNERS` catalog or a determinate progress bar. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
+- Add a `clock` argument to `OperationTrail` (`"elapsed"` by default, or `"eta"`), choosing whether a running spinner or bar counts elapsed time up or estimated time remaining down.
 - Add an `OperationTrail.operation()` handle whose `mark()` records an outcome timed from when the operation began.
-- Add a `clock` argument to `OperationTrail` (`"elapsed"` by default, or `"eta"`) choosing whether a running spinner or bar counts elapsed time up or estimated time remaining down; the spinner reuses Click's progress-bar estimator.
+- Render the `OperationTrail` sequential finish-line elapsed time in the compact clock format, so a run past a minute reads `1:15`, not `75.3s`.
 - Gate the estimated-time display of `click_extra.progressbar` on `--time` through a new tri-state `show_eta` argument (default `None`; Click's own default is `True`).
 - Add a `trail` demo subcommand to the `click-extra` CLI, running a simulated batch behind an `OperationTrail` to showcase its sequential, spinner and progress-bar renderings in a real terminal.
-- Work around [pallets/click#3571](https://github.com/pallets/click/issues/3571) in `click_extra.progressbar`: a bar with `show_pos=True` and an `update_min_steps` that does not divide its length now renders its final position instead of freezing below it.
-- Add a `click_extra.humanize` module with `format_size`, rendering a byte count as a compact human-readable string, in one of three unit systems: IEC binary (`KiB`, `MiB`, the default), SI decimal (`kB`, `MB`), or the customary JEDEC binary (`KB`, `MB`).
-- Add `format_duration` to `click_extra.humanize`, rendering an elapsed number of seconds or a `timedelta` compactly, as `2.3s`, `1:05` or `1:02:03`.
-- Render the `OperationTrail` sequential finish-line elapsed time with the same compact clock format as the spinner timer, so a run past a minute reads `1:15`, not `75.3s`.
-- Add `parse_duration`, `parse_friendly_duration` and `parse_iso8601_duration` to `click_extra.types`: the soft, `None`-returning counterparts of the `Duration` parameter type, for parsing durations read from files or other machine sources. `Duration.convert` now delegates to the same shared parsing core.
+- Move the self-updating block primitives (`update_blocks`, `marker_res`, `replace_region`) to a new dependency-light `click_extra.blocks` module, importable without the `sphinx` extra; they stay re-exported from `click_extra.sphinx`.
+- Add a `pad` option to `replace_region` to keep the closing marker flush against the body, for regions constrained by `mdformat-footnote`.
+- Add a `click_extra.humanize` module with `format_size` and `format_duration`, rendering byte counts (IEC binary `KiB`/`MiB`, SI decimal `kB`/`MB`, or JEDEC `KB`/`MB`) and elapsed durations (`2.3s`, `1:05`, `1:02:03`) as compact strings.
+- Add `parse_duration`, `parse_friendly_duration` and `parse_iso8601_duration` to `click_extra.types`: soft, `None`-returning counterparts of the `Duration` parameter type, for parsing durations read from files or other machine sources.
 - Add a `click_extra.output` module with `prep_path` and `is_stdout` (and the `STDOUT_SENTINEL` constant): open an `--output` path for writing as UTF-8, treating `-` as stdout and creating missing parent directories.
 - Add `config_table_to_flags` to `click_extra.config`: translate a `[tool.X]`-style configuration table into long-form CLI flags for tools that mirror their config keys as options but cannot read the table themselves.
+- Work around [pallets/click#3571](https://github.com/pallets/click/issues/3571) in `click_extra.progressbar`: a bar with `show_pos=True` and an `update_min_steps` that does not divide its length now renders its final position instead of freezing below it.
 
 ## [`8.7.0` (2026-07-30)](https://github.com/kdeldycke/click-extra/compare/v8.6.3...v8.7.0)
 

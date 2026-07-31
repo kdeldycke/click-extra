@@ -99,6 +99,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.humanize module
+
+```{eval-rst}
+.. automodule:: click_extra.humanize
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.logging module
 
 ```{eval-rst}
@@ -112,6 +121,15 @@ click_extra.sphinx
 
 ```{eval-rst}
 .. automodule:: click_extra.myst_converter
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.output module
+
+```{eval-rst}
+.. automodule:: click_extra.output
    :members:
    :show-inheritance:
    :undoc-members:

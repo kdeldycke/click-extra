@@ -65,7 +65,7 @@ $ uvx click-extra
 
 ````{tab-item} Specific version
 ```shell-session
-$ uvx click-extra@8.6.3
+$ uvx click-extra@8.7.0
 ```
 ````
 
@@ -120,7 +120,7 @@ Python 3.14.0 free-threading build (main, Oct 28 2025, 11:52:40) [Clang 20.1.4 ]
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import click_extra
 >>> click_extra.__version__
-'8.6.3'
+'8.7.0'
 >>>
 ```
 

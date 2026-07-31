@@ -439,8 +439,7 @@ class Spinner:
         """
         if not self.timer:
             return ""
-        formatter = self.timer if callable(self.timer) else format_duration
-        return f" ({formatter(self.elapsed_time)})"
+        return f" ({_format_timer(self.timer, self.elapsed_time)})"
 
     @staticmethod
     def _enable_windows_ansi(stream: IO[str]) -> None:
