@@ -10,6 +10,9 @@
 
 ## [`8.7.0` (2026-07-30)](https://github.com/kdeldycke/click-extra/compare/v8.6.3...v8.7.0)
 
+> [!NOTE]
+> `8.7.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.7.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.7.0).
+
 - Add a `<!-- mirror-src -->` comment form of `python:render` `:mirror:`: the generator Python lives inside an HTML comment, so its output renders on GitHub and PyPI while the generator stays invisible.
 - Export `update_blocks`, `marker_res`, and a new `replace_region` helper from `click_extra.sphinx` for downstream self-updating documentation scripts.
 - Accept kebab-case keys in configuration files: `dummy-flag` and `dummy_flag` both address the `--dummy-flag` option, the last spelling winning on collision with a warning.
