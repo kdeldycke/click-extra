@@ -16,9 +16,11 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 
-from click_extra import format_size
+from click_extra import format_duration, format_size
 
 
 @pytest.mark.parametrize(
@@ -111,3 +113,41 @@ def test_format_size_negative(size, expected) -> None:
 def test_format_size_unknown_units() -> None:
     with pytest.raises(ValueError, match="Unknown unit system"):
         format_size(1024, units="binary")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("seconds", "expected"),
+    (
+        (0, "0.0s"),
+        (0.0, "0.0s"),
+        (2.34, "2.3s"),
+        (59, "59.0s"),
+        (59.94, "59.9s"),
+        # From a minute up, switch to a clock layout.
+        (60, "1:00"),
+        (65, "1:05"),
+        (600, "10:00"),
+        (3599, "59:59"),
+        # From an hour up, grow an hours field.
+        (3600, "1:00:00"),
+        (3723, "1:02:03"),
+        (36000, "10:00:00"),
+        (90061, "25:01:01"),
+    ),
+)
+def test_format_duration_seconds(seconds, expected) -> None:
+    assert format_duration(seconds) == expected
+
+
+@pytest.mark.parametrize(
+    ("duration", "expected"),
+    (
+        (timedelta(seconds=2.34), "2.3s"),
+        (timedelta(minutes=1, seconds=5), "1:05"),
+        (timedelta(hours=1, minutes=2, seconds=3), "1:02:03"),
+        (timedelta(days=1, hours=1), "25:00:00"),
+    ),
+)
+def test_format_duration_timedelta(duration, expected) -> None:
+    """A timedelta renders the same as its total seconds."""
+    assert format_duration(duration) == expected

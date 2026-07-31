@@ -63,7 +63,8 @@ import click
 from wcwidth import wcswidth
 
 from . import context
-from .color import COLOR_DISABLING_TERMS
+from .color import COLOR_DISABLING_TERMS, is_a_tty
+from .humanize import format_duration
 from .parameters import ExtraOption
 from .spinner_presets import (
     SPINNER_FRAMES,
@@ -177,17 +178,6 @@ def active_spinner(stream: IO[str] | None = None) -> Spinner | None:
     return None
 
 
-def _is_a_tty(stream: IO[str]) -> bool:
-    """Whether `stream` reports itself as an interactive terminal.
-
-    Probes `isatty` defensively through {func}`getattr`: not every stream object
-    exposes the method (a bare buffer, a test double), and a plain
-    `stream.isatty()` would raise there instead of answering "not a terminal".
-    """
-    isatty = getattr(stream, "isatty", None)
-    return bool(isatty and isatty())
-
-
 def _stream_enabled(enabled: bool | None, stream: IO[str]) -> bool:
     """Resolve whether a cursor-driven display may draw on `stream`.
 
@@ -202,7 +192,7 @@ def _stream_enabled(enabled: bool | None, stream: IO[str]) -> bool:
         return enabled
     if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
         return False
-    return _is_a_tty(stream)
+    return is_a_tty(stream)
 
 
 class Spinner:
@@ -271,7 +261,8 @@ class Spinner:
             decoupled from animation: `--no-color` / `NO_COLOR` strip it while
             the spinner keeps spinning (see {class}`ProgressOption`).
         :param timer: append the elapsed wall-clock time to the spinner, and to
-            any final {meth}`ok` / {meth}`fail` line. `True` uses the default
+            any final {meth}`ok` / {meth}`fail` line. `True` uses
+            {func}`~click_extra.humanize.format_duration` for the default
             compact format (`2.3s`, `1:05`, then `1:02:03`). Pass a callable
             `(seconds: float) -> str` to format the duration yourself, like
             ``timer=lambda s: f"{s / 60:.0f}m"`` for whole minutes.
@@ -393,7 +384,7 @@ class Spinner:
             return False
         if "NO_COLOR" in os.environ:
             return False
-        return _is_a_tty(stream)
+        return is_a_tty(stream)
 
     def _style(self, text: str) -> str:
         """Apply the configured {class}`~click_extra.styling.Style`, or return bare.
@@ -439,26 +430,16 @@ class Spinner:
         """
         return self._drawn
 
-    @staticmethod
-    def _format_elapsed(seconds: float) -> str:
-        """Render a duration compactly: `2.3s`, `1:05`, then `1:02:03`."""
-        if seconds < 60:
-            return f"{seconds:.1f}s"
-        minutes, secs = divmod(int(seconds), 60)
-        hours, minutes = divmod(minutes, 60)
-        if hours:
-            return f"{hours}:{minutes:02d}:{secs:02d}"
-        return f"{minutes}:{secs:02d}"
-
     def _clock(self) -> str:
         """The `( elapsed )` timer suffix, or empty when no timer is set.
 
-        `timer=True` uses {meth}`_format_elapsed`; a callable `timer` formats
-        {attr}`elapsed_time` itself. The result is always wrapped the same way.
+        `timer=True` uses {func}`~click_extra.humanize.format_duration`; a
+        callable `timer` formats {attr}`elapsed_time` itself. The result is
+        always wrapped the same way.
         """
         if not self.timer:
             return ""
-        formatter = self.timer if callable(self.timer) else self._format_elapsed
+        formatter = self.timer if callable(self.timer) else format_duration
         return f" ({formatter(self.elapsed_time)})"
 
     @staticmethod
@@ -930,7 +911,7 @@ class _BarIndicator:
             if not self._drawn:
                 return
             stream = self._resolve_stream()
-            clock = f" ({Spinner._format_elapsed(time.monotonic() - self._start)})"
+            clock = f" ({format_duration(time.monotonic() - self._start)})"
             # Erase the bar, keep the finisher in its place, restore the cursor
             # Click hid via BEFORE_BAR.
             stream.write(f"\r\x1b[K{trail_line(ok, summary)}{clock}\n\x1b[?25h")
@@ -1083,7 +1064,7 @@ class OperationTrail:
         elif enabled is True:
             self._echo = True
         else:
-            self._echo = _is_a_tty(stream if stream is not None else sys.stderr)
+            self._echo = is_a_tty(stream if stream is not None else sys.stderr)
 
     def __enter__(self) -> Self:
         if self.progress_bar:
@@ -1168,7 +1149,7 @@ class OperationTrail:
             self._indicator.finish(ok, summary)
         elif self._echo:
             elapsed = time.monotonic() - self._start
-            self._echo_line(trail_line(ok, f"{summary} ({elapsed:.1f}s)"))
+            self._echo_line(trail_line(ok, f"{summary} ({format_duration(elapsed)})"))
 
 
 class ProgressOption(ExtraOption):

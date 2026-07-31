@@ -54,7 +54,7 @@ except ImportError:  # pragma: no cover
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from typing import Any, ClassVar, Literal
+    from typing import IO, Any, ClassVar, Literal
 
     from click.parser import _OptionParser
 
@@ -107,6 +107,18 @@ color-capable streams (subprocesses, some IDEs) where defaulting to off would be
 regression. This matches [Rich](https://github.com/Textualize/rich/blob/master/rich/console.py), which keys its
 own dumb-terminal detection on the same two values and not on absence.
 """
+
+
+def is_a_tty(stream: IO[str]) -> bool:
+    """Whether `stream` reports itself as an interactive terminal.
+
+    Probes `isatty` defensively through {func}`getattr`: not every stream object
+    exposes the method (a bare buffer, an in-memory capture, a test double), and
+    a plain `stream.isatty()` would raise there instead of answering "not a
+    terminal".
+    """
+    isatty = getattr(stream, "isatty", None)
+    return bool(isatty and isatty())
 
 
 def resolve_color_env() -> bool | None:
@@ -309,7 +321,7 @@ def query_osc_background(
     if stdin is None or stdout is None:
         return None
     try:
-        if not stdin.isatty() or not stdout.isatty():
+        if not is_a_tty(stdin) or not is_a_tty(stdout):
             return None
         fd = stdin.fileno()
         old_attributes = termios.tcgetattr(fd)

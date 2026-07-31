@@ -170,7 +170,7 @@ from .highlight import (
     HelpFormatter,
     HelpKeywords,
 )
-from .humanize import format_size
+from .humanize import format_duration, format_size
 from .logging import (
     Formatter,
     LogLevel,
@@ -422,6 +422,7 @@ __all__ = [
     "file_path",
     "flatten_config_keys",
     "format_cli_prompt",
+    "format_duration",
     "format_filename",
     "format_from_path",
     "format_param_row",

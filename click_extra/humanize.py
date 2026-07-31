@@ -23,6 +23,8 @@ value back into a machine type, lives in {mod}`click_extra.types` (see
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import Literal
@@ -75,3 +77,29 @@ def format_size(
     if index == 0:
         return f"{sign}{round(amount):,} {unit}"
     return f"{sign}{amount:,.{precision}f} {unit}"
+
+
+def format_duration(duration: float | timedelta) -> str:
+    """Render an elapsed duration compactly: `2.3s`, `1:05`, then `1:02:03`.
+
+    Below a minute the duration reads as one-decimal seconds (`2.3s`). From a
+    minute up it switches to a clock layout, growing an hours field only once it
+    reaches an hour: `1:05` under an hour, `1:02:03` at or above.
+
+    The reverse direction, parsing a human-written duration back into a
+    {class}`~datetime.timedelta`, lives in {mod}`click_extra.types` (see
+    {class}`~click_extra.types.Duration`).
+
+    :param duration: The elapsed time, as a number of seconds or a
+        {class}`~datetime.timedelta`.
+    :return: The compact rendering described above.
+    """
+    if isinstance(duration, timedelta):
+        duration = duration.total_seconds()
+    if duration < 60:
+        return f"{duration:.1f}s"
+    minutes, secs = divmod(int(duration), 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    return f"{minutes}:{secs:02d}"

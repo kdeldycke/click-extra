@@ -10,6 +10,8 @@
 - Add a `spinner` argument to `OperationTrail` to pick its concurrent aggregate spinner from the `SPINNERS` catalog. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
 - Add a `progress_bar` argument to `OperationTrail` to render its aggregate indicator as a determinate progress bar instead of a spinner. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
 - Add a `click_extra.humanize` module with `format_size`, rendering a byte count as a compact human-readable string, in one of three unit systems: IEC binary (`KiB`, `MiB`, the default), SI decimal (`kB`, `MB`), or the customary JEDEC binary (`KB`, `MB`).
+- Add `format_duration` to `click_extra.humanize`, rendering an elapsed number of seconds or a `timedelta` compactly, as `2.3s`, `1:05` or `1:02:03`.
+- Render the `OperationTrail` sequential finish-line elapsed time with the same compact clock format as the spinner timer, so a run past a minute reads `1:15`, not `75.3s`.
 - Add `parse_duration`, `parse_friendly_duration` and `parse_iso8601_duration` to `click_extra.types`: the soft, `None`-returning counterparts of the `Duration` parameter type, for parsing durations read from files or other machine sources. `Duration.convert` now delegates to the same shared parsing core.
 - Add a `click_extra.output` module with `prep_path` and `is_stdout` (and the `STDOUT_SENTINEL` constant): open an `--output` path for writing as UTF-8, treating `-` as stdout and creating missing parent directories.
 - Add `config_table_to_flags` to `click_extra.config`: translate a `[tool.X]`-style configuration table into long-form CLI flags for tools that mirror their config keys as options but cannot read the table themselves.

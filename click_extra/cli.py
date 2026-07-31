@@ -38,6 +38,7 @@ from extra_platforms import ALL_IDS
 
 from . import context
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
+from .color import is_a_tty
 from .commands import ColorizedCommand
 from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
 from .context import pass_context
@@ -648,7 +649,7 @@ def demo_spinner(
 
     # Otherwise animate a live tour on an interactive terminal, honoring
     # --progress / --accessible. A no-op when captured or piped.
-    if sys.stderr.isatty() and context.get(ctx, context.PROGRESS, True):
+    if is_a_tty(sys.stderr) and context.get(ctx, context.PROGRESS, True):
         _animate_spinners(selection)
 
 

@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import io
 import logging
 import os
 import sys
@@ -44,6 +45,7 @@ from click_extra.color import (
     color_envvars,
     forced_color,
     invocation_color,
+    is_a_tty,
     query_osc_background,
     resolve_background,
     resolve_color_env,
@@ -703,6 +705,22 @@ def test_parse_osc_rgb(response, expected):
 def test_is_dark_rgb(rgb, is_dark):
     """Perceived-lightness classification of background colors."""
     assert _is_dark_rgb(rgb) is is_dark
+
+
+def test_is_a_tty() -> None:
+    """The probe reads `isatty`, guarding streams that do not expose it."""
+
+    class TTYStringIO(io.StringIO):
+        def isatty(self) -> bool:
+            return True
+
+    class BareBuffer:
+        """A stream-like object with no `isatty` method (a raw buffer)."""
+
+    assert is_a_tty(TTYStringIO()) is True
+    assert is_a_tty(io.StringIO()) is False
+    # A stream without `isatty` is reported non-interactive, not an error.
+    assert is_a_tty(BareBuffer()) is False  # type: ignore[arg-type]
 
 
 class _FakeStream:
