@@ -14,7 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Custom `click.ParamType` subclasses for multi-pick, `Enum` choices and
-durations."""
+durations, plus the standalone duration parsers that back `Duration`."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from click.shell_completion import CompletionItem
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
-    from typing import Any, ClassVar
+    from typing import Any
 
 
 class MultiChoice(click.ParamType):
@@ -344,6 +344,220 @@ class EnumChoice(click.Choice):
         return f"EnumChoice{self.choices!r}"
 
 
+_DURATION_UNIT_SECONDS = {
+    "": 86400,
+    "s": 1,
+    "sec": 1,
+    "secs": 1,
+    "second": 1,
+    "seconds": 1,
+    "m": 60,
+    "min": 60,
+    "mins": 60,
+    "minute": 60,
+    "minutes": 60,
+    "h": 3600,
+    "hr": 3600,
+    "hrs": 3600,
+    "hour": 3600,
+    "hours": 3600,
+    "d": 86400,
+    "day": 86400,
+    "days": 86400,
+    "w": 604800,
+    "week": 604800,
+    "weeks": 604800,
+}
+"""Number of seconds each recognized friendly unit represents (empty unit means days)."""
+
+_DURATION_CALENDAR_UNITS = frozenset({
+    "mo",
+    "mon",
+    "month",
+    "months",
+    "y",
+    "yr",
+    "yrs",
+    "year",
+    "years",
+})
+"""Calendar units rejected for ambiguity: months span 28-31 days, years 365-366."""
+
+_DURATION_FRIENDLY_PATTERN = re.compile(r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[a-z]*)")
+
+_DURATION_ISO8601_PATTERN = re.compile(
+    r"P"
+    r"(?:(?P<years>\d+(?:\.\d+)?)Y)?"
+    r"(?:(?P<months>\d+(?:\.\d+)?)M)?"
+    r"(?:(?P<weeks>\d+(?:\.\d+)?)W)?"
+    r"(?:(?P<days>\d+(?:\.\d+)?)D)?"
+    r"(?:T"
+    r"(?:(?P<hours>\d+(?:\.\d+)?)H)?"
+    r"(?:(?P<minutes>\d+(?:\.\d+)?)M)?"
+    r"(?:(?P<seconds>\d+(?:\.\d+)?)S)?"
+    r")?",
+)
+
+_DURATION_EXAMPLES = (
+    "'7 days', '1 week', '12h', '30m', 'P7D', 'PT12H', "
+    "or an RFC 3339 timestamp like '2024-05-01T00:00:00Z'"
+)
+
+_DURATION_CALENDAR_REJECT = (
+    "calendar units (months, years) are rejected because their length is "
+    "ambiguous: months span 28-31 days, years 365-366. Use days or weeks "
+    "instead, like '30 days' or '4 weeks'."
+)
+
+
+def _parse_friendly(text: str, value: Any) -> timedelta | None:
+    """Parse a normalized friendly duration, raising `ValueError` on failure.
+
+    *text* is the stripped, lower-cased input; *value* is the original, quoted
+    verbatim in the error message.
+    """
+    match = _DURATION_FRIENDLY_PATTERN.fullmatch(text)
+    if match:
+        unit = match["unit"]
+        if unit in _DURATION_CALENDAR_UNITS:
+            raise ValueError(f"{value!r}: {_DURATION_CALENDAR_REJECT}")
+        if unit in _DURATION_UNIT_SECONDS:
+            seconds = float(match["value"]) * _DURATION_UNIT_SECONDS[unit]
+            return timedelta(seconds=seconds)
+    raise ValueError(
+        f"{value!r} is not a valid duration (examples: {_DURATION_EXAMPLES})."
+    )
+
+
+def _parse_iso8601(text: str, value: Any) -> timedelta | None:
+    """Parse a normalized ISO 8601 duration, raising `ValueError` on failure.
+
+    *text* is the stripped, upper-cased input; *value* is the original, quoted
+    verbatim in the error message.
+    """
+    match = _DURATION_ISO8601_PATTERN.fullmatch(text)
+    if not match or not any(match.groups()):
+        raise ValueError(
+            f"{value!r} is not a valid ISO 8601 duration "
+            f"(examples: 'P7D', 'PT12H', 'P1WT6H'). Accepted: {_DURATION_EXAMPLES}."
+        )
+    groups = match.groupdict()
+    if groups["years"] or groups["months"]:
+        raise ValueError(f"{value!r}: {_DURATION_CALENDAR_REJECT}")
+    seconds = (
+        float(groups["weeks"] or 0) * 604800
+        + float(groups["days"] or 0) * 86400
+        + float(groups["hours"] or 0) * 3600
+        + float(groups["minutes"] or 0) * 60
+        + float(groups["seconds"] or 0)
+    )
+    return timedelta(seconds=seconds)
+
+
+def _parse_timestamp(
+    text: str, value: Any, *, now: datetime | None = None
+) -> timedelta | None:
+    """Parse an RFC 3339 timestamp into its age, raising `ValueError` on failure.
+
+    The age is `reference - timestamp`, where *reference* defaults to the
+    current UTC time. A timestamp at or after *reference* yields `None`.
+    """
+    normalized = text.upper().replace("Z", "+00:00")
+    try:
+        ts = datetime.fromisoformat(normalized)
+    except ValueError:
+        raise ValueError(
+            f"{value!r} looks like an RFC 3339 timestamp but cannot be "
+            f"parsed. Accepted: {_DURATION_EXAMPLES}."
+        ) from None
+    if ts.tzinfo is None:
+        raise ValueError(
+            f"{value!r} is missing a time zone. Use a fully qualified "
+            "RFC 3339 timestamp with 'Z' or an offset like '+00:00'."
+        )
+    reference = now if now is not None else datetime.now(tz=timezone.utc)
+    delta = reference - ts.astimezone(timezone.utc)
+    return delta if delta.total_seconds() > 0 else None
+
+
+def _parse_duration_strict(
+    value: Any, *, now: datetime | None = None
+) -> timedelta | None:
+    """Dispatch *value* to the matching parser, raising `ValueError` on failure.
+
+    The strict core shared by the {class}`Duration` parameter type, which turns
+    the `ValueError` into a Click parameter error, and by the soft
+    {func}`parse_duration` family, which swallows it and returns `None`.
+    """
+    text = str(value).strip()
+    if not text:
+        return None
+    # RFC 3339 absolute timestamp: starts with a 4-digit year and a dash.
+    if len(text) >= 5 and text[:4].isdigit() and text[4] == "-":
+        return _parse_timestamp(text, value, now=now)
+    # ISO 8601 duration: starts with 'P' (case-insensitive).
+    if text[:1] in ("P", "p"):
+        return _parse_iso8601(text.upper(), value)
+    # Friendly duration.
+    return _parse_friendly(text.lower(), value)
+
+
+def parse_duration(value: Any, *, now: datetime | None = None) -> timedelta | None:
+    """Parse a friendly, ISO 8601 or RFC 3339 duration into a `timedelta`.
+
+    The soft, library-friendly counterpart of the {class}`Duration` parameter
+    type: it accepts the same three input shapes but returns `None` instead of
+    raising when *value* matches none of them, so it suits classifying values
+    read from files or other machine sources. Unlike `Duration`, it does not
+    collapse a zero duration to `None`: `parse_duration("0")` is `timedelta(0)`,
+    letting callers tell a zero duration from an unparseable value. `None` is
+    returned only for an empty value, a future timestamp, or a value matching no
+    known form.
+
+    :param value: The duration to parse. An existing `timedelta` (or `None`) is
+        returned unchanged.
+    :param now: Reference instant for an RFC 3339 timestamp's age; defaults to
+        the current UTC time.
+    :return: The parsed {class}`~datetime.timedelta` (possibly zero), or `None`.
+    """
+    if value is None or isinstance(value, timedelta):
+        return value
+    try:
+        return _parse_duration_strict(value, now=now)
+    except ValueError:
+        return None
+
+
+def parse_friendly_duration(value: Any) -> timedelta | None:
+    """Parse only a friendly duration (`7 days`, `12h`, a bare number of days).
+
+    Returns the parsed {class}`~datetime.timedelta` (possibly zero, so
+    `"0 days"` is `timedelta(0)`), or `None` for anything that is not a friendly
+    duration: ISO 8601 forms, calendar units (months, years), and empty or
+    unrecognized values. See {func}`parse_duration` for the format-detecting
+    umbrella.
+    """
+    try:
+        return _parse_friendly(str(value).strip().lower(), value)
+    except ValueError:
+        return None
+
+
+def parse_iso8601_duration(value: Any) -> timedelta | None:
+    """Parse only an ISO 8601 duration (`P7D`, `PT12H`, `P1WT6H`).
+
+    Returns the parsed {class}`~datetime.timedelta` (possibly zero, so `"PT0S"`
+    is `timedelta(0)`), or `None` for anything that is not an ISO 8601 duration:
+    friendly forms, calendar (year or month) components, and empty or
+    unrecognized values. See {func}`parse_duration` for the format-detecting
+    umbrella.
+    """
+    try:
+        return _parse_iso8601(str(value).strip().upper(), value)
+    except ValueError:
+        return None
+
+
 class Duration(click.ParamType):
     """Parse a duration or an age into a {class}`datetime.timedelta`.
 
@@ -362,6 +576,10 @@ class Duration(click.ParamType):
     a `0` on the command line disables the gate and overrides a value set in
     a configuration file.
 
+    To parse outside a Click parameter (classifying a value read from a file,
+    say), reach for the soft {func}`parse_duration` family, which returns `None`
+    instead of raising on an unrecognized value.
+
     ```{note}
     Durations resolve to a fixed number of seconds, assuming a day is 24
     hours. The local time zone, DST transitions, and calendar boundaries are
@@ -373,158 +591,20 @@ class Duration(click.ParamType):
 
     name = "duration"
 
-    _UNIT_SECONDS: ClassVar[dict[str, int]] = {
-        "": 86400,
-        "s": 1,
-        "sec": 1,
-        "secs": 1,
-        "second": 1,
-        "seconds": 1,
-        "m": 60,
-        "min": 60,
-        "mins": 60,
-        "minute": 60,
-        "minutes": 60,
-        "h": 3600,
-        "hr": 3600,
-        "hrs": 3600,
-        "hour": 3600,
-        "hours": 3600,
-        "d": 86400,
-        "day": 86400,
-        "days": 86400,
-        "w": 604800,
-        "week": 604800,
-        "weeks": 604800,
-    }
-    """Number of seconds each recognized unit represents (empty unit means days)."""
-
-    _CALENDAR_UNITS = frozenset({
-        "mo",
-        "mon",
-        "month",
-        "months",
-        "y",
-        "yr",
-        "yrs",
-        "year",
-        "years",
-    })
-    """Calendar units rejected for ambiguity: months span 28-31 days, years 365-366."""
-
-    _FRIENDLY_PATTERN = re.compile(r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[a-z]*)")
-    _ISO8601_PATTERN = re.compile(
-        r"P"
-        r"(?:(?P<years>\d+(?:\.\d+)?)Y)?"
-        r"(?:(?P<months>\d+(?:\.\d+)?)M)?"
-        r"(?:(?P<weeks>\d+(?:\.\d+)?)W)?"
-        r"(?:(?P<days>\d+(?:\.\d+)?)D)?"
-        r"(?:T"
-        r"(?:(?P<hours>\d+(?:\.\d+)?)H)?"
-        r"(?:(?P<minutes>\d+(?:\.\d+)?)M)?"
-        r"(?:(?P<seconds>\d+(?:\.\d+)?)S)?"
-        r")?",
-    )
-
-    _EXAMPLES = (
-        "'7 days', '1 week', '12h', '30m', 'P7D', 'PT12H', "
-        "or an RFC 3339 timestamp like '2024-05-01T00:00:00Z'"
-    )
-    _CALENDAR_REJECT = (
-        "calendar units (months, years) are rejected because their length is "
-        "ambiguous: months span 28-31 days, years 365-366. Use days or weeks "
-        "instead, like '30 days' or '4 weeks'."
-    )
-
     def convert(
         self, value: Any, param: click.Parameter | None, ctx: click.Context | None
     ) -> timedelta | None:
-        """Coerce `value` to a {class}`datetime.timedelta` (or `None`)."""
+        """Coerce `value` to a {class}`datetime.timedelta` (or `None`).
+
+        Delegates to {func}`_parse_duration_strict`, turning its `ValueError`
+        into a Click parameter error via {meth}`~click.ParamType.fail`. A parsed
+        zero duration collapses to `None`, so `0` disables a cutoff option.
+        """
         if value is None or isinstance(value, timedelta):
             return value
-        text = str(value).strip()
-        if not text:
-            return None
-        # RFC 3339 absolute timestamp: starts with a 4-digit year and a dash.
-        if len(text) >= 5 and text[:4].isdigit() and text[4] == "-":
-            return self._parse_timestamp(text, value, param, ctx)
-        # ISO 8601 duration: starts with 'P' (case-insensitive).
-        if text[:1] in ("P", "p"):
-            return self._parse_iso8601(text.upper(), value, param, ctx)
-        # Friendly duration.
-        return self._parse_friendly(text.lower(), value, param, ctx)
-
-    def _parse_timestamp(
-        self,
-        text: str,
-        value: Any,
-        param: click.Parameter | None,
-        ctx: click.Context | None,
-    ) -> timedelta | None:
-        normalized = text.upper().replace("Z", "+00:00")
         try:
-            ts = datetime.fromisoformat(normalized)
-        except ValueError:
-            self.fail(
-                f"{value!r} looks like an RFC 3339 timestamp but cannot be "
-                f"parsed. Accepted: {self._EXAMPLES}.",
-                param,
-                ctx,
-            )
-        if ts.tzinfo is None:
-            self.fail(
-                f"{value!r} is missing a time zone. Use a fully qualified "
-                "RFC 3339 timestamp with 'Z' or an offset like '+00:00'.",
-                param,
-                ctx,
-            )
-        delta = datetime.now(tz=timezone.utc) - ts.astimezone(timezone.utc)
-        return delta if delta.total_seconds() > 0 else None
-
-    def _parse_iso8601(
-        self,
-        text: str,
-        value: Any,
-        param: click.Parameter | None,
-        ctx: click.Context | None,
-    ) -> timedelta | None:
-        match = self._ISO8601_PATTERN.fullmatch(text)
-        if not match or not any(match.groups()):
-            self.fail(
-                f"{value!r} is not a valid ISO 8601 duration "
-                f"(examples: 'P7D', 'PT12H', 'P1WT6H'). Accepted: {self._EXAMPLES}.",
-                param,
-                ctx,
-            )
-        groups = match.groupdict()
-        if groups["years"] or groups["months"]:
-            self.fail(f"{value!r}: {self._CALENDAR_REJECT}", param, ctx)
-        seconds = (
-            float(groups["weeks"] or 0) * 604800
-            + float(groups["days"] or 0) * 86400
-            + float(groups["hours"] or 0) * 3600
-            + float(groups["minutes"] or 0) * 60
-            + float(groups["seconds"] or 0)
-        )
-        return timedelta(seconds=seconds) if seconds else None
-
-    def _parse_friendly(
-        self,
-        text: str,
-        value: Any,
-        param: click.Parameter | None,
-        ctx: click.Context | None,
-    ) -> timedelta | None:
-        match = self._FRIENDLY_PATTERN.fullmatch(text)
-        if match:
-            unit = match["unit"]
-            if unit in self._CALENDAR_UNITS:
-                self.fail(f"{value!r}: {self._CALENDAR_REJECT}", param, ctx)
-            if unit in self._UNIT_SECONDS:
-                seconds = float(match["value"]) * self._UNIT_SECONDS[unit]
-                return timedelta(seconds=seconds) if seconds else None
-        self.fail(
-            f"{value!r} is not a valid duration (examples: {self._EXAMPLES}).",
-            param,
-            ctx,
-        )
+            result = _parse_duration_strict(value)
+        except ValueError as exc:
+            self.fail(str(exc), param, ctx)
+        # A zero duration reads as "no cutoff": `0` disables the gate.
+        return result or None

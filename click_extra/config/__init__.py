@@ -18,6 +18,9 @@
 This package gathers the layers behind `--config`, `--no-config`, and
 `--validate-config`:
 
+- {mod}`~click_extra.config.flags`: translate a configuration table into
+  command-line flags, for tools that mirror their config keys as options but
+  cannot read the table themselves.
 - {mod}`~click_extra.config.formats`: the supported file formats and the
   generic, stateless helpers to read, serialize, auto-detect, and resolve them.
 - {mod}`~click_extra.config.schema`: the generic schema-building and validation
@@ -40,6 +43,7 @@ from .builtin import (
     PrebakeConfig,
     TestSuiteConfig,
 )
+from .flags import config_table_to_flags
 from .formats import (
     SERIALIZABLE_FORMATS,
     ConfigFormat,
@@ -98,6 +102,7 @@ __all__ = [
     "ValidateConfigOption",
     "ValidationError",
     "ValidationReport",
+    "config_table_to_flags",
     "ensure_config_loaded",
     "field_docstrings",
     "flatten_config_keys",

@@ -36,6 +36,9 @@ from click_extra import (
     EnumChoice,
     MultiChoice,
     echo,
+    parse_duration,
+    parse_friendly_duration,
+    parse_iso8601_duration,
 )
 from click_extra.pytest import command_decorators, option_decorators
 
@@ -1188,3 +1191,85 @@ def test_duration_in_click_option() -> None:
     assert result.exit_code != 0
     assert "'2 fortnights' is not a valid duration" in result.stderr
     assert not captured
+
+
+# --- Soft duration parsers ----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        ("7 days", timedelta(days=7)),
+        ("P1WT6H", timedelta(weeks=1, hours=6)),
+        ("12h", timedelta(hours=12)),
+        # A zero duration parses to timedelta(0); empty and None yield None.
+        ("0", timedelta(0)),
+        ("", None),
+        (None, None),
+        # Unrecognized or ambiguous values are None instead of raising.
+        ("bogus", None),
+        ("2 fortnights", None),
+        ("1 month", None),
+        ("P1Y", None),
+    ),
+)
+def test_parse_duration(value, expected) -> None:
+    assert parse_duration(value) == expected
+
+
+def test_parse_duration_passthrough_timedelta() -> None:
+    """An existing timedelta is returned unchanged, like Duration.convert."""
+    delta = timedelta(hours=3)
+    assert parse_duration(delta) is delta
+
+
+@pytest.mark.parametrize(
+    "value",
+    ("bogus", "2024-05-01", "P3X", "-3d", "not a duration"),
+)
+def test_parse_duration_never_raises(value) -> None:
+    """The umbrella parser mirrors Duration but returns None instead of failing."""
+    assert parse_duration(value) is None
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        ("2 weeks", timedelta(weeks=2)),
+        ("36 hours", timedelta(hours=36)),
+        ("45s", timedelta(seconds=45)),
+        ("7", timedelta(days=7)),
+        # ISO 8601 forms are not friendly durations.
+        ("P7D", None),
+        ("PT12H", None),
+        # Calendar units and junk are None; a zero duration is timedelta(0).
+        ("1 month", None),
+        ("bogus", None),
+        ("0", timedelta(0)),
+    ),
+)
+def test_parse_friendly_duration(value, expected) -> None:
+    assert parse_friendly_duration(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        ("P7D", timedelta(days=7)),
+        ("PT45S", timedelta(seconds=45)),
+        ("P1WT6H", timedelta(weeks=1, hours=6)),
+        # Case-insensitive.
+        ("p7d", timedelta(days=7)),
+        # Friendly forms are not ISO 8601 durations.
+        ("7 days", None),
+        ("12h", None),
+        # A zero duration is timedelta(0).
+        ("PT0S", timedelta(0)),
+        # Calendar components, a bare prefix, and junk are None.
+        ("P1Y", None),
+        ("P", None),
+        ("bogus", None),
+    ),
+)
+def test_parse_iso8601_duration(value, expected) -> None:
+    assert parse_iso8601_duration(value) == expected

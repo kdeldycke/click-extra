@@ -106,6 +106,7 @@ from .config import (
     ValidateConfigOption,
     ValidationError,
     ValidationReport,
+    config_table_to_flags,
     field_docstrings,
     flatten_config_keys,
     format_from_path,
@@ -169,6 +170,7 @@ from .highlight import (
     HelpFormatter,
     HelpKeywords,
 )
+from .humanize import format_size
 from .logging import (
     Formatter,
     LogLevel,
@@ -192,6 +194,7 @@ from .myst_converter import (
     convert_source,
     detect_source_package,
 )
+from .output import STDOUT_SENTINEL, is_stdout, prep_path
 from .parameters import (
     Argument,
     ExtraOption,
@@ -264,7 +267,15 @@ from .theme import (
     theme_registry,
 )
 from .tree import TreeOption, render_command_tree
-from .types import ChoiceSource, Duration, EnumChoice, MultiChoice
+from .types import (
+    ChoiceSource,
+    Duration,
+    EnumChoice,
+    MultiChoice,
+    parse_duration,
+    parse_friendly_duration,
+    parse_iso8601_duration,
+)
 from .version import VersionOption
 
 __all__ = [
@@ -282,6 +293,7 @@ __all__ = [
     "NO_CONFIG",
     "PREPEND_SUBCOMMANDS_KEY",
     "SPINNERS",
+    "STDOUT_SENTINEL",
     "STRING",
     "SUITE_FORMATS",
     "UNPROCESSED",
@@ -389,6 +401,7 @@ __all__ = [
     "columns_option",
     "command",
     "config_option",
+    "config_table_to_flags",
     "confirm",
     "confirmation_option",
     "constrained_params",
@@ -412,6 +425,7 @@ __all__ = [
     "format_filename",
     "format_from_path",
     "format_param_row",
+    "format_size",
     "get_app_dir",
     "get_binary_stream",
     "get_current_context",
@@ -426,6 +440,7 @@ __all__ = [
     "help_option",
     "highlight_bin_name",
     "install_interrupt_handler",
+    "is_stdout",
     "jobs_option",
     "last_param",
     "launch",
@@ -442,12 +457,16 @@ __all__ = [
     "option",
     "option_group",
     "parse_content",
+    "parse_duration",
+    "parse_friendly_duration",
+    "parse_iso8601_duration",
     "parse_test_suite",
     "pass_context",
     "pass_obj",
     "password_option",
     "path",
     "pause",
+    "prep_path",
     "print_data",
     "print_table",
     "progressbar",
