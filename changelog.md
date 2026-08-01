@@ -7,6 +7,9 @@
 
 ## [`8.8.0` (2026-07-31)](https://github.com/kdeldycke/click-extra/compare/v8.7.0...v8.8.0)
 
+> [!NOTE]
+> `8.8.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.8.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.8.0).
+
 - **Breaking:** `OperationTrail` now gates its per-item and finisher elapsed times on a new `timer` argument that defaults to `None`, following `--time` / `--no-time`; its finisher no longer always shows a clock (pass `timer=True` to restore it).
 - Add `spinner` and `progress_bar` arguments to `OperationTrail` to render its concurrent aggregate indicator as a spinner from the `SPINNERS` catalog or a determinate progress bar. Closes [#1860](https://github.com/kdeldycke/click-extra/issues/1860).
 - Add a `clock` argument to `OperationTrail` (`"elapsed"` by default, or `"eta"`), choosing whether a running spinner or bar counts elapsed time up or estimated time remaining down.
