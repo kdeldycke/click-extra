@@ -510,7 +510,7 @@ def parse_duration(value: Any, *, now: datetime | None = None) -> timedelta | No
     raising when *value* matches none of them, so it suits classifying values
     read from files or other machine sources. Unlike `Duration`, it does not
     collapse a zero duration to `None`: `parse_duration("0")` is `timedelta(0)`,
-    letting callers tell a zero duration from an unparseable value. `None` is
+    letting callers tell a zero duration from an unparsable value. `None` is
     returned only for an empty value, a future timestamp, or a value matching no
     known form.
 
