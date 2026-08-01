@@ -54,6 +54,7 @@ def test_blocks_module_needs_no_sphinx_extra():
         capture_output=True,
         text=True,
         encoding="UTF-8",
+        check=False,
     )
     assert result.returncode == 0, result.stderr
 
