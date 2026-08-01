@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "uv_build"
-requires = [ "uv-build>=0.9" ]
+requires = [ "uv-build>=0.8" ]
 
 [project]
 # Docs: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
@@ -337,7 +337,7 @@ build-backend.source-exclude = [
   "docs/html",
   "tests/.coverage",
 ]
-required-version = ">=0.12"
+required-version = ">=0.11.15"
 
 [tool.nuitka]
 # Bundle the package's data files (themes.toml) into the standalone binary.
