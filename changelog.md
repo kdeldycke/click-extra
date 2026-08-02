@@ -7,6 +7,9 @@
 
 ## [`8.8.1` (2026-08-02)](https://github.com/kdeldycke/click-extra/compare/v8.8.0...v8.8.1)
 
+> [!NOTE]
+> `8.8.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.8.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.8.1).
+
 - Widen the `[tool.uv]` `required-version` to `>=0.11.15` and the `[build-system]` `uv-build` floor to `>=0.8`, dropping the previous `<0.13` upper cap.
 
 ## [`8.8.0` (2026-07-31)](https://github.com/kdeldycke/click-extra/compare/v8.7.0...v8.8.0)
