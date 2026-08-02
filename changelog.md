@@ -5,7 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Widen the `[tool.uv]` `required-version` to `>=0.12`, dropping the previous `<0.13` upper cap.
+- Widen the `[tool.uv]` `required-version` to `>=0.11.15` and the `[build-system]` `uv-build` floor to `>=0.8`, dropping the previous `<0.13` upper cap.
 
 ## [`8.8.0` (2026-07-31)](https://github.com/kdeldycke/click-extra/compare/v8.7.0...v8.8.0)
 
