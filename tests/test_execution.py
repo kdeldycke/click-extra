@@ -1030,15 +1030,21 @@ def test_terminate_live_processes_signals_whole_group(tmp_path):
     descendants.
 
     The child reports its grandchild's PID through a sentinel file, polled
-    before tearing down, so the group is never signalled mid-spawn.
+    before tearing down, so the group is never signalled mid-spawn. The sentinel
+    is published by rename: a bare ``open(..., "w")`` creates the file before the
+    write is flushed, so polling for existence could tear the group down between
+    creation and flush, leaving an empty file behind for ``int()`` to choke on.
     """
     pid_file = tmp_path / "grandchild.pid"
     code = dedent(f"""\
-        import subprocess, sys, time
+        import os, subprocess, sys, time
         grandchild = subprocess.Popen(
             (sys.executable, "-c", "import time; time.sleep(30)"),
         )
-        open({str(pid_file)!r}, "w", encoding="utf-8").write(str(grandchild.pid))
+        pid_file = {str(pid_file)!r}
+        with open(pid_file + ".tmp", "w", encoding="utf-8") as f:
+            f.write(str(grandchild.pid))
+        os.replace(pid_file + ".tmp", pid_file)
         time.sleep(30)
         """)
 
