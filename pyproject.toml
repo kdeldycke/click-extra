@@ -312,10 +312,6 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the sync-uv-lock autofix job reverts
 # uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
-# extra-platforms 13.4.0 (published 2026-07-27) adds the skip_hermetic_build
-# decorator cited in docs/packaging.md. Let it through the global cooldown; drop
-# this override once 13.4.0 clears the 1-week window (~2026-08-03).
-exclude-newer-package = { "extra-platforms" = "2026-07-28T00:00:00Z" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 # Ship the test suite (and the docs and CI files it reads) in the sdist so
