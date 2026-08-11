@@ -9,6 +9,7 @@
 - Add a `max_width` field to `ColumnSpec`, declaring the width limit of a column alongside its ID and label.
 - Wrap long cells in the `vertical` format, aligning continuation lines under the label gutter.
 - Add a `WRAPPABLE_FORMATS` registry and a `TableFormat.is_wrappable` property, listing the formats able to render a wrapped cell. Column widths are dropped by all others instead of corrupting their output.
+- Add `wrap_ansi()`, wrapping a string to a visible width without counting its ANSI escapes toward the line length, and keeping each line's styling self-contained.
 
 ## [`8.8.1` (2026-08-02)](https://github.com/kdeldycke/click-extra/compare/v8.8.0...v8.8.1)
 

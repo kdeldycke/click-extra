@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import importlib.metadata
+import textwrap
 
 import click
 import cloup
@@ -34,6 +35,7 @@ from click_extra.styling import (
     render_ansi,
     split_ansi,
     supports_truecolor,
+    wrap_ansi,
 )
 
 CLICK_VERSION = tuple(
@@ -621,7 +623,68 @@ def test_render_ansi_splits_runs_at_newlines():
     assert result == "<two>\n<lines>"
 
 
-# --- 15. ANSI-to-markup converters -------------------------------------------
+# --- 15. wrap_ansi() ---------------------------------------------------------
+
+WRAP_TEXT = "A very long note about the weather that will certainly need wrapping."
+
+
+def test_wrap_ansi_matches_textwrap_on_plain_text():
+    """Unstyled input defers entirely to `textwrap`."""
+    assert wrap_ansi(WRAP_TEXT, 30) == textwrap.wrap(WRAP_TEXT, 30)
+
+
+def test_wrap_ansi_breaks_on_visible_width():
+    """A styled string breaks exactly where its plain counterpart does.
+
+    `textwrap` alone counts the escape bytes toward the line length, which
+    would break a styled string several words early.
+    """
+    styled = f"\x1b[31m{WRAP_TEXT}\x1b[0m"
+    assert len(styled) > len(WRAP_TEXT)
+    assert [strip_ansi(line) for line in wrap_ansi(styled, 30)] == wrap_ansi(
+        WRAP_TEXT, 30
+    )
+
+
+def test_wrap_ansi_closes_styling_on_every_line():
+    """No escape sequence crosses a line boundary."""
+    lines = wrap_ansi(f"\x1b[31m{WRAP_TEXT}\x1b[0m", 20)
+    assert len(lines) > 1
+    for line in lines:
+        assert line.startswith("\x1b[31m")
+        assert line.endswith("\x1b[0m")
+
+
+def test_wrap_ansi_keeps_styling_on_its_own_words():
+    """Each run keeps its style once the text is split across lines."""
+    text = "plain \x1b[32mgreen\x1b[0m middle \x1b[31mred\x1b[0m tail"
+    lines = wrap_ansi(text, 12)
+    # Styled words keep their color, unstyled ones are emitted verbatim.
+    assert lines == [
+        "plain \x1b[32mgreen\x1b[0m",
+        "middle \x1b[31mred\x1b[0m",
+        "tail",
+    ]
+    assert [strip_ansi(line) for line in lines] == wrap_ansi(strip_ansi(text), 12)
+
+
+@pytest.mark.parametrize(
+    ("text", "width", "expected"),
+    (
+        pytest.param("", 10, [""], id="empty"),
+        pytest.param("   ", 10, [""], id="whitespace-only"),
+        pytest.param("short", 30, ["short"], id="fits-on-one-line"),
+        pytest.param("a\tb\nc", 30, ["a b c"], id="whitespace-normalized"),
+        pytest.param(
+            "x" * 25, 10, ["x" * 10, "x" * 10, "x" * 5], id="long-word-broken"
+        ),
+    ),
+)
+def test_wrap_ansi_edge_cases(text, width, expected):
+    assert wrap_ansi(text, width) == expected
+
+
+# --- 16. ANSI-to-markup converters -------------------------------------------
 
 BLUE = "\x1b[34mSummer\x1b[0m"
 BLUE_BOLD = "\x1b[34m\x1b[1mSummer\x1b[0m"

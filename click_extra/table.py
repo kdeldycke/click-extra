@@ -20,7 +20,6 @@ from __future__ import annotations
 import csv
 import re
 import shutil
-import textwrap
 from dataclasses import dataclass
 from enum import Enum
 from functools import cache, partial
@@ -35,7 +34,13 @@ from wcwidth import wcswidth
 from . import context
 from .config.formats import ConfigFormat, serialize_content
 from .parameters import ExtraOption, missing_extra_message
-from .styling import ansi_to_html, ansi_to_jira, ansi_to_latex, ansi_to_textile
+from .styling import (
+    ansi_to_html,
+    ansi_to_jira,
+    ansi_to_latex,
+    ansi_to_textile,
+    wrap_ansi,
+)
 from .types import EnumChoice, MultiChoice
 
 TYPE_CHECKING = False
@@ -590,7 +595,9 @@ def _render_vertical(
     A cell exceeding its `max_column_widths` entry wraps onto extra lines,
     each aligned under the first one so the label column stays readable. Unlike
     the tabulate-backed formats, this layout does the wrapping itself: there is
-    no backend to delegate it to.
+    no backend to delegate it to. {func}`~click_extra.styling.wrap_ansi` does
+    the measuring, so a styled cell breaks on its visible width and keeps its
+    styling across the wrap.
 
     ```{note}
     See [cli-helpers source code for reference](https://github.com/dbcli/cli_helpers/blob/v2.7.0/cli_helpers/tabular_output/vertical_table_adapter.py).
@@ -599,12 +606,6 @@ def _render_vertical(
     ```{caution}
     This layout is [hard-coded to 27 asterisks to separate rows](https://github.com/dbcli/cli_helpers/blob/c34ae9f/cli_helpers/tabular_output/vertical_table_adapter.py#L34),
     as in the original implementation.
-    ```
-
-    ```{warning}
-    Wrapping measures cells with {func}`textwrap.wrap`, which counts ANSI
-    escape bytes toward the width. A styled cell therefore wraps earlier than
-    its visible width warrants. Plain cells, the common case, are unaffected.
     ```
     """
     if not headers:
@@ -628,7 +629,7 @@ def _render_vertical(
             width = _cell_width(max_column_widths, column)
             parts = [text]
             if width and _visible_width(text) > width:
-                parts = textwrap.wrap(text, width=width) or [""]
+                parts = wrap_ansi(text, width)
             table_lines.append(f"{cell_label} | {parts[0]}")
             table_lines.extend(f"{continuation_label} | {part}" for part in parts[1:])
     return "\n".join(table_lines)

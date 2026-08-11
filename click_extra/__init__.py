@@ -231,6 +231,7 @@ from .styling import (
     ansi_to_textile,
     render_ansi,
     split_ansi,
+    wrap_ansi,
 )
 from .table import (
     ColumnsOption,
@@ -512,6 +513,7 @@ __all__ = [
     "verbose_option",
     "verbosity_option",
     "version_option",
+    "wrap_ansi",
     "wrap_text",
     "write_manpages",
     "zero_exit_option",

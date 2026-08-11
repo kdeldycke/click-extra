@@ -178,6 +178,31 @@ assert result == "a [styled] word"
 print(result)
 ```
 
+`wrap_ansi(text, width)` builds on it too, wrapping a styled string to a visible width. `textwrap.wrap()` counts every byte of an escape toward the line length, so it breaks a styled string several words early. Here the breaks are computed on the plain text and mapped back onto the styled runs, and each line opens and closes the styling it needs:
+
+```{python:run}
+from boltons.strutils import strip_ansi
+
+from click_extra import style, wrap_ansi
+
+forecast = "Overcast in the morning, with a light drizzle after midday."
+styled = style(forecast, fg="red")
+
+# The escapes make the string 9 characters longer than it looks.
+assert len(styled) == len(forecast) + 9
+
+lines = wrap_ansi(styled, 30)
+
+# Breaks land where the plain text would break, not 9 characters early.
+assert [strip_ansi(line) for line in lines] == wrap_ansi(forecast, 30)
+
+for line in lines:
+    assert line.endswith("\x1b[0m")
+    print(repr(line))
+```
+
+It powers the wrapping of the [`vertical` table format](table.md#column-widths), which has no rendering backend to delegate its line breaking to.
+
 ## ANSI markup converters
 
 Four ready-made converters translate ANSI styling to markup languages with native styling support. They power the [table styles translation](table.md#colors-and-styles), and are just as useful standalone, to export any styled CLI output:
