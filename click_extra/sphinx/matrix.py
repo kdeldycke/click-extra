@@ -27,7 +27,10 @@ Two axes are supported:
   to PEP 621 `requires-python`, Poetry `[tool.poetry.dependencies].python`,
   and `setup.py`'s `python_requires`. A floor-only declaration is capped at
   the latest Python released while the range was current, so the `✅` set does
-  not over-claim support for Pythons that did not yet exist.
+  not over-claim support for Pythons that did not yet exist. Cells are
+  three-valued: the classifier list drives `✅`, `requires-python` drives
+  `❌`, and a version neither attested nor ruled out renders as `–` (see
+  {data}`UNDECLARED_CELL`).
 - **A dependency** (``{matrix} <distribution>``, like ``{matrix} click``): the
   per-tag constraint is that distribution's requirement specifier; columns are
   auto-derived from the specifier boundaries plus the `uv.lock` resolved
@@ -45,13 +48,16 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
 
 from docutils import nodes
 from docutils.statemachine import StringList
+from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 from sphinx.directives import SphinxDirective, directives
 from sphinx.util import logging
@@ -65,10 +71,15 @@ from ..blocks import (
 )
 from ..table import TableFormat, render_table
 
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib  # type: ignore[import-not-found]
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
-    from typing import ClassVar
+    from collections.abc import Iterable, Iterator, Mapping
+    from typing import Any, ClassVar
 
     from sphinx.application import Sphinx
     from sphinx.util.typing import OptionSpec
@@ -104,6 +115,32 @@ did not yet exist while the range was current. Update this table each October
 when a new final release ships.
 """
 
+SUPPORTED_CELL: str = "✅"
+"""Cell marking a version the release declares support for."""
+
+FORBIDDEN_CELL: str = "❌"
+"""Cell marking a version the release's own metadata rules out.
+
+Reserved for a *hard* incompatibility: a version an installer refuses
+outright because it falls below the declared floor, on or above the declared
+ceiling, or inside an exclusion clause.
+"""
+
+UNDECLARED_CELL: str = "–"
+"""Cell marking a version the release neither supports nor forbids.
+
+Covers the two flavours of *absence of evidence*: a Python that had not been
+released yet when the range shipped, and one that was released but never
+added to the classifier list. Neither is a statement of incompatibility, so
+spelling them {data}`FORBIDDEN_CELL` would over-claim.
+
+```{note}
+Only the `python` axis produces this cell. A dependency's requirement
+specifier is the whole truth about that dependency, with no second,
+informational source to disagree with it, so its cells stay binary.
+```
+"""
+
 DEFAULT_TAG_PATTERN: str = r"^v\d+\.\d+\.\d+$"
 """Default regex for release tags (`vMAJOR.MINOR.PATCH`)."""
 
@@ -134,6 +171,16 @@ class PythonMatrixGroup(NamedTuple):
 
     python_versions: tuple[str, ...]
     """The `X.Y` Python versions this range supports, sorted ascending."""
+
+    spec: str = ""
+    """The range's declared `requires-python`, raw and unparsed.
+
+    Kept alongside the supported set because the two answer different
+    questions: the set is what the release *claims* (its classifier list),
+    while the spec is what an installer *enforces*. A version outside the
+    spec is a hard incompatibility, a version merely missing from the set is
+    an undeclared one. See {data}`UNDECLARED_CELL`.
+    """
 
 
 def _validate_order(value: str, option: str) -> None:
@@ -364,7 +411,7 @@ def python_matrix_groups(
     # Pass 3: resolve effective versions per group. Classifiers win when
     # present; otherwise apply the parsed floor / ceiling / excluded with cap.
     today_iso = datetime.now(tz=timezone.utc).date().isoformat()
-    resolved: list[tuple[str, str, str, tuple[str, ...]]] = []
+    resolved: list[tuple[str, str, str, tuple[str, ...], str]] = []
     for idx, group in enumerate(raw_groups):
         first_tag, last_tag, first_date, (cls, spec) = group
         if cls:
@@ -391,18 +438,22 @@ def python_matrix_groups(
             )
         if not versions:
             continue
-        resolved.append((first_tag, last_tag, first_date, versions))
+        resolved.append((first_tag, last_tag, first_date, versions, spec))
 
     # Pass 4: re-merge consecutive resolved groups whose effective versions
-    # collapsed to identical sets.
+    # collapsed to identical sets. The declared spec has to agree too, since
+    # it is what separates a forbidden version from an undeclared one; it is
+    # compared parsed, so re-spacing `>= 3.10` into `>=3.10` does not split
+    # an otherwise continuous range.
     merged: list[list] = []
-    for first_tag, last_tag, first_date, versions in resolved:
-        if merged and merged[-1][3] == versions:
+    for first_tag, last_tag, first_date, versions, spec in resolved:
+        same = merged and merged[-1][3] == versions
+        if same and parse_python_spec(merged[-1][4]) == parse_python_spec(spec):
             merged[-1][1] = last_tag
         else:
-            merged.append([first_tag, last_tag, first_date, versions])
+            merged.append([first_tag, last_tag, first_date, versions, spec])
 
-    return [PythonMatrixGroup(f, l, d, v) for f, l, d, v in merged]
+    return [PythonMatrixGroup(f, l, d, v, s) for f, l, d, v, s in merged]
 
 
 def _spans_full_major(
@@ -455,6 +506,30 @@ def _range_label(
         last_major = last_tag.lstrip("v").split(".")[0]
         return f"`{first_minor}.x` → `{last_major}.x`"
     return f"`{first_minor}.x` → `{last_minor}.x`"
+
+
+def _python_cell(version: str, group: PythonMatrixGroup) -> str:
+    """Classify one Python version against one release range.
+
+    Three outcomes, from the two independent sources a release declares (see
+    {data}`UNDECLARED_CELL`): the classifier list attests support, the
+    `requires-python` spec rules a version out, or neither says anything.
+
+    A range that declared no spec at all can forbid nothing, so every version
+    it does not claim comes out undeclared.
+    """
+    if version in group.python_versions:
+        return SUPPORTED_CELL
+    floor, ceiling, excluded = parse_python_spec(group.spec)
+    if not floor:
+        return UNDECLARED_CELL
+    version_key = _version_sort_key(version)
+    forbidden = (
+        version_key < _version_sort_key(floor)
+        or version in excluded
+        or (bool(ceiling) and version_key >= _version_sort_key(ceiling))
+    )
+    return FORBIDDEN_CELL if forbidden else UNDECLARED_CELL
 
 
 def python_matrix_table(
@@ -525,7 +600,7 @@ def python_matrix_table(
     ordered = list(reversed(groups))
     for index, group in enumerate(ordered):
         next_first = ordered[index - 1].first_tag if index else None
-        cells = ["✅" if v in group.python_versions else "❌" for v in all_versions]
+        cells = [_python_cell(v, group) for v in all_versions]
         rows.append(
             [
                 _range_label(
@@ -578,69 +653,214 @@ def _safe_version(text: str) -> Version | None:
         return None
 
 
+def _requirement_spec(requirement: str, dep_name: str) -> str:
+    """Return the specifier `requirement` declares for `dep_name`, or `""`.
+
+    `requirement` is a [PEP 508](https://peps.python.org/pep-0508/)
+    dependency string. Parsing it, rather than pattern-matching the file it
+    came from, is what keeps an extras bracket and an environment marker out
+    of the result: `tabulate[widechars]>=0.9` and
+    `tomli>=2; python_version<'3.11'` both yield just their version specifier.
+
+    The specifier is sliced out of the original text instead of read back from
+    {attr}`~packaging.requirements.Requirement.specifier`, which normalizes
+    and re-sorts its clauses: the `Spec` column shows each release's own
+    spelling of the range.
+    """
+    try:
+        parsed = Requirement(requirement)
+    except InvalidRequirement:
+        return ""
+    if canonicalize_name(parsed.name) != canonicalize_name(dep_name):
+        return ""
+    # Drop the environment marker, then take everything from the first
+    # comparison operator on. The parse above guarantees what is left is the
+    # specifier, bar the optional wrapping parentheses core metadata allows.
+    head = requirement.split(";", 1)[0].strip()
+    m = re.search(r"[<>=!~]", head)
+    return head[m.start() :].strip().rstrip(")") if m else ""
+
+
+def _iter_declared_requirements(pyproject: str, setup_py: str) -> Iterator[str]:
+    """Yield every PEP 508 requirement string declared by a release.
+
+    Covers a project's runtime dependencies and the optional ones behind an
+    extra, in that order. Dependency groups
+    ([PEP 735](https://peps.python.org/pep-0735/)) are deliberately skipped:
+    they hold development tooling, which no installer resolves for a consumer
+    and which therefore says nothing about the release's compatibility.
+
+    `setup.py` is Python source rather than a table, so its string literals
+    are harvested wholesale and left for {func}`_requirement_spec` to sort out.
+    """
+    data: dict[str, Any] = {}
+    try:
+        data = tomllib.loads(pyproject)
+    except (tomllib.TOMLDecodeError, ValueError):
+        # An unparsable pyproject.toml only costs this tag its row, the same
+        # as a tag that never declared the dependency at all.
+        pass
+    project = data.get("project", {})
+    yield from project.get("dependencies", [])
+    for extra_deps in project.get("optional-dependencies", {}).values():
+        yield from extra_deps
+    yield from re.findall(r'["\']([^"\']+)["\']', setup_py)
+
+
 def _extract_requirement(pyproject: str, setup_py: str, dep_name: str) -> str:
     """Return the version specifier declared for `dep_name`, or `""`.
 
-    Reads a PEP 621 / `setup.py` requirement string (`click>=8.3.1`,
-    `click (>=8.3.1)`) first, then a Poetry `[tool.poetry.dependencies]`
-    entry (`click = "^8.1"`).
+    Reads the PEP 621 and `setup.py` requirement strings first, then a Poetry
+    `[tool.poetry.dependencies]` entry, which may be a bare version string
+    (`click = "^8.1"`) or an inline table (`click = { version = "^8.1" }`).
+    Poetry's caret and tilde ranges are not PEP 508, so they are returned raw
+    for {func}`_to_specifier_set` to translate.
     """
-    name = re.escape(dep_name)
-    for content in (pyproject, setup_py):
-        m = re.search(rf'["\']{name}\s*\(?\s*([<>=~^!][^"\')]+)', content)
-        if m:
-            return m.group(1).strip()
-    m = re.search(
-        rf'\[tool\.poetry\.dependencies\][^\[]*?\b{name}\s*=\s*["\']([^"\']+)["\']',
-        pyproject,
-        re.DOTALL,
-    )
-    return m.group(1).strip() if m else ""
+    for requirement in _iter_declared_requirements(pyproject, setup_py):
+        spec = _requirement_spec(requirement, dep_name)
+        if spec:
+            return spec
+    try:
+        poetry = tomllib.loads(pyproject)
+    except (tomllib.TOMLDecodeError, ValueError):
+        return ""
+    canonical = canonicalize_name(dep_name)
+    poetry_deps = poetry.get("tool", {}).get("poetry", {}).get("dependencies", {})
+    for name, declaration in poetry_deps.items():
+        if canonicalize_name(name) != canonical:
+            continue
+        if isinstance(declaration, dict):
+            declaration = declaration.get("version", "")
+        return declaration.strip() if isinstance(declaration, str) else ""
+    return ""
+
+
+POETRY_CARET_RE = re.compile(r"^\^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$")
+"""Poetry's [caret range](https://python-poetry.org/docs/dependency-specification/#caret-requirements)."""
+
+POETRY_TILDE_RE = re.compile(r"^~\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$")
+"""Poetry's [tilde range](https://python-poetry.org/docs/dependency-specification/#tilde-requirements).
+
+Deliberately also matches a bare `~X`. It cannot swallow PEP 440's `~=`,
+whose `=` is not a digit.
+"""
+
+POETRY_WILDCARD_RE = re.compile(r"^(?:\*|(\d+)(?:\.(\d+))?\.\*)$")
+"""Poetry's [wildcard range](https://python-poetry.org/docs/dependency-specification/#wildcard-requirements).
+
+A bare `*` allows any version at all. `X.*` and `X.Y.*` pin their series,
+without PEP 440's leading `==`.
+"""
+
+
+def _caret_ceiling(parts: tuple[int, ...]) -> str:
+    """Return the exclusive ceiling of a Poetry caret range.
+
+    Poetry bumps the *leftmost non-zero* component of the declared version
+    and zeroes everything after it. So `^1.2.3` caps at `2.0.0`, but `^0.2.3`
+    caps at `0.3.0` and `^0.0.3` at `0.0.4`: under a `0.` prefix every
+    release is allowed to break compatibility, and a caret there must not
+    claim the whole major series. When every declared component is zero, the
+    last one declared is the one that bumps, so `^0.0` caps at `0.1.0` while
+    `^0` caps at `1.0.0`.
+    """
+    index = next((i for i, part in enumerate(parts) if part), len(parts) - 1)
+    bumped = [*parts[:index], parts[index] + 1]
+    return ".".join(str(part) for part in bumped + [0] * (3 - len(bumped)))
+
+
+def _poetry_to_pep440(spec: str) -> str | None:
+    """Translate a Poetry-only range into PEP 440, or `None` if it is not one.
+
+    `None` means the specifier is already PEP 440 (or is nothing this module
+    recognizes), so it should be handed to {mod}`packaging` untouched.
+    """
+    m = POETRY_CARET_RE.match(spec)
+    if m:
+        parts = tuple(int(part) for part in m.groups() if part is not None)
+        floor = ".".join(str(part) for part in parts)
+        return f">={floor},<{_caret_ceiling(parts)}"
+    m = POETRY_TILDE_RE.match(spec)
+    if m:
+        parts = tuple(int(part) for part in m.groups() if part is not None)
+        floor = ".".join(str(part) for part in parts)
+        # A tilde given only a major bumps that major; given a minor or more,
+        # it bumps the minor.
+        ceiling = (
+            f"{parts[0] + 1}.0.0" if len(parts) == 1 else f"{parts[0]}.{parts[1] + 1}.0"
+        )
+        return f">={floor},<{ceiling}"
+    m = POETRY_WILDCARD_RE.match(spec)
+    if m:
+        parts = tuple(int(part) for part in m.groups() if part is not None)
+        if not parts:
+            # A bare `*`: the empty specifier set allows every version.
+            return ""
+        floor = ".".join(str(part) for part in parts)
+        ceiling = (
+            f"{parts[0] + 1}.0.0" if len(parts) == 1 else f"{parts[0]}.{parts[1] + 1}.0"
+        )
+        return f">={floor},<{ceiling}"
+    return None
 
 
 def _to_specifier_set(spec: str) -> SpecifierSet | None:
-    """Convert a specifier (PEP 440 or Poetry caret/tilde) to a `SpecifierSet`.
+    """Convert a specifier (PEP 440 or Poetry) to a `SpecifierSet`.
 
-    Poetry `^X.Y` expands to `>=X.Y,<(X+1).0.0` and `~X.Y` to
-    `>=X.Y,<X.(Y+1).0`. PEP 440 specifiers (`>=`, `~=`, `==`, commas)
-    pass through. Returns `None` for an unparsable specifier.
+    Poetry's caret, tilde and wildcard ranges are translated first (see
+    {func}`_poetry_to_pep440`); PEP 440 specifiers (`>=`, `~=`, `==`, commas)
+    pass through. Returns `None` for an unparsable specifier, which renders
+    as an all-`❌` row rather than raising out of a documentation build.
     """
     spec = spec.strip()
-    caret = re.match(r"^\^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$", spec)
-    if caret:
-        major = int(caret.group(1))
-        floor = ".".join(p for p in caret.groups() if p is not None)
-        spec = f">={floor},<{major + 1}.0.0"
-    tilde = re.match(r"^~\s*(\d+)\.(\d+)(?:\.(\d+))?$", spec)
-    if tilde:
-        major, minor = int(tilde.group(1)), int(tilde.group(2))
-        floor = ".".join(p for p in tilde.groups() if p is not None)
-        spec = f">={floor},<{major}.{minor + 1}.0"
+    translated = _poetry_to_pep440(spec)
+    if translated is not None:
+        spec = translated
     try:
         return SpecifierSet(spec.replace(" ", ""))
     except InvalidSpecifier:
         return None
 
 
-def _spec_floor_open(spec: str) -> tuple[Version | None, bool]:
-    """Return `(floor_version, is_open)` for a specifier.
+def _spec_floor(spec: str) -> tuple[Version | None, bool]:
+    """Return `(floor_version, patch_precise)` for a specifier.
 
-    `is_open` is `True` for an unbounded-above floor (`>=` / `>`) and
-    `False` for a capped range (`~=`, Poetry `^` / `~`, or any `<`).
-    The floor drives column placement; openness drives whether a minor series
-    is split into patch columns.
+    The floor is where the specifier anchors a column. `patch_precise` says
+    that column has to be a patch-level one, because the specifier
+    distinguishes releases *inside* a minor series: an open `>=X.Y.Z` floor
+    accepts only part of `X.Y`, and an exact pin accepts a single release of
+    it. A range that covers its minor series from some point on, or caps
+    inside it, is served by one `X.Y` column.
+
+    A specifier with no lower bound at all (a lone ceiling) anchors nothing:
+    the versions it allows are whichever columns the other release ranges
+    happen to contribute.
     """
     spec = spec.strip()
-    m = re.match(r"^[\^~]\s*(\d+(?:\.\d+){0,2})", spec)
+    # Poetry ranges all cap at a computed ceiling, so their series stays whole.
+    m = POETRY_CARET_RE.match(spec) or POETRY_TILDE_RE.match(spec)
     if m:
-        return _safe_version(m.group(1)), False
+        return _safe_version(".".join(p for p in m.groups() if p is not None)), False
+    m = POETRY_WILDCARD_RE.match(spec)
+    if m:
+        parts = [p for p in m.groups() if p is not None]
+        return (_safe_version(".".join(parts)) if parts else None), False
     m = re.match(r"^~=\s*(\d+(?:\.\d+){1,2})", spec)
     if m:
         return _safe_version(m.group(1)), False
+    # A wildcard pin covers a whole series, so the series column serves it.
+    m = re.match(r"^==\s*(\d+(?:\.\d+)?)\.\*$", spec)
+    if m:
+        return _safe_version(m.group(1)), False
+    # An exact pin allows exactly one release, so it needs a column of its own
+    # precision: a whole `X.Y` column would read `❌` for the very version the
+    # release pins.
+    m = re.match(r"^={2,3}\s*(\d+(?:\.\d+){0,2})$", spec)
+    if m:
+        return _safe_version(m.group(1)), True
     m = re.search(r">=?\s*(\d+(?:\.\d+){0,2})", spec)
     floor = _safe_version(m.group(1)) if m else None
-    is_open = "<" not in spec and not spec.startswith("==")
-    return floor, is_open
+    return floor, "<" not in spec
 
 
 def _latest_locked_version(project_root: Path, dep_name: str) -> str:
@@ -670,23 +890,23 @@ def _minor_intersects(spec_set: SpecifierSet, major: int, minor: int) -> bool:
 def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bool]]:
     """Derive the ordered `(version, is_minor)` columns for a dependency axis.
 
-    A minor series gets a single `X.Y` column unless an open (`>=`) spec
-    pins a patch-level floor within it, in which case it is split into `X.Y.0`
-    plus each such floor. Columns are sorted newest-first, so the `latest`
-    locked version anchors the left edge.
+    A minor series gets a single `X.Y` column unless some spec distinguishes
+    releases inside it (an open `>=` floor at patch level, or an exact pin),
+    in which case it is split into `X.Y.0` plus each such version. Columns are
+    sorted newest-first, so the `latest` locked version anchors the left edge.
     """
     floors = [
-        (floor, is_open)
-        for floor, is_open in (_spec_floor_open(spec) for spec in specs)
+        (floor, patch_precise)
+        for floor, patch_precise in (_spec_floor(spec) for spec in specs)
         if floor is not None
     ]
     latest_version = _safe_version(latest) if latest else None
 
     split: dict[tuple[int, int], bool] = {}
-    for floor, is_open in floors:
+    for floor, patch_precise in floors:
         key = (floor.major, floor.minor)
         split.setdefault(key, False)
-        if is_open and floor.micro > 0:
+        if patch_precise and floor.micro > 0:
             split[key] = True
     if latest_version is not None:
         split.setdefault((latest_version.major, latest_version.minor), False)
@@ -700,8 +920,8 @@ def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bo
         patches = {Version(f"{major}.{minor}.0")}
         patches.update(
             floor
-            for floor, is_open in floors
-            if is_open and (floor.major, floor.minor) == key
+            for floor, patch_precise in floors
+            if patch_precise and (floor.major, floor.minor) == key
         )
         if (
             latest_version is not None
@@ -801,14 +1021,14 @@ def dependency_matrix_table(
     for group in groups:
         spec_set = _to_specifier_set(group.spec)
         cells = tuple(
-            "✅"
+            SUPPORTED_CELL
             if spec_set is not None
             and (
                 _minor_intersects(spec_set, version.major, version.minor)
                 if is_minor
                 else spec_set.contains(version, prereleases=True)
             )
-            else "❌"
+            else FORBIDDEN_CELL
             for version, is_minor in columns
         )
         if merged and merged[-1][4] == cells:

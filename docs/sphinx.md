@@ -1007,17 +1007,35 @@ and the updater fills in the table below the options, regenerated from every `vM
 | :------------------ | :--------- | :----: | :----: | :----: | :----: | :----: | :---: | :---: | :---: |
 | `6.2.x` → `8.x`     | 2025-11-04 |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
 | `6.0.x` → `6.1.x`   | 2025-10-08 |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `5.0.x` → `6.0.x`   | 2025-05-13 |   ❌   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `4.11.x` → `4.15.x` | 2024-10-08 |   ❌   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `4.9.x` → `4.10.x`  | 2024-07-25 |   ❌   |   ❌   |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
-| `4.0.x` → `4.8.x`   | 2023-05-08 |   ❌   |   ❌   |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
-| `0.0.x` → `3.10.x`  | 2021-10-18 |   ❌   |   ❌   |   ❌   |   ✅   |   ✅   |  ✅   |  ✅   |  ✅   |
+| `5.0.x` → `6.0.x`   | 2025-05-13 |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `4.11.x` → `4.15.x` | 2024-10-08 |   –    |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
+| `4.9.x` → `4.10.x`  | 2024-07-25 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
+| `4.0.x` → `4.8.x`   | 2023-05-08 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
+| `0.0.x` → `3.10.x`  | 2021-10-18 |   –    |   –    |   –    |   ✅   |   ✅   |  ✅   |  ✅   |  ✅   |
 ```
 ````
 
+#### Three states, two sources
+
+A release declares its Python support twice, and the two declarations answer different questions. The classifier list is what the project *claims* to have tested. `requires-python` is what an installer *enforces*: fall outside it and `pip` refuses to install, whatever the classifiers say. The matrix keeps them apart:
+
+| Cell | Meaning                                                                                                 |
+| :--: | :------------------------------------------------------------------------------------------------------ |
+|  ✅  | Declared, via a `Programming Language :: Python :: X.Y` classifier.                                     |
+|  ❌  | Ruled out by `requires-python`: below its floor, on or above its ceiling, or excluded by a `!=` clause. |
+|  –   | Neither. The release never claimed that version, and nothing in its metadata stops you.                 |
+
+The third state is what a two-state table has to lie about. When `4.9.0` shipped in July 2024 it declared `requires-python = ">= 3.9"` with classifiers up to `3.12`, and Python `3.13` did not exist yet. Marking that cell ❌ would assert an incompatibility nobody ever declared, so it renders `–` instead, while `3.8` stays ❌ because the `>= 3.9` floor genuinely rules it out.
+
+The result reads as a staircase: ❌ fills the lower-left as the floor rises over the years, ✅ the middle band, and `–` the upper-right where the future had not happened yet.
+
 ### A dependency axis
 
-`{matrix} <distribution>` tracks a runtime dependency instead. For each release range it reads that distribution's requirement specifier (PEP 621, Poetry, or `setup.py`) and marks ✅ / ❌ for each column version with [`packaging`](https://packaging.pypa.io). Columns are auto-derived: a minor series stays a single `X.Y` column unless an open (`>=`) floor pins a specific patch, in which case it splits into `X.Y.0` plus that floor; the left edge is the version resolved in `uv.lock`. Add `:show-spec:` for a `Spec` column with each range's raw specifier. This project uses it for the [Click compatibility table](install.md#click-compatibility):
+`{matrix} <distribution>` tracks a runtime dependency instead. For each release range it reads that distribution's requirement specifier (PEP 621, Poetry, or `setup.py`) and marks ✅ / ❌ for each column version with [`packaging`](https://packaging.pypa.io). Requirements are parsed as [PEP 508](https://peps.python.org/pep-0508/) strings rather than pattern-matched, so an extras bracket and an environment marker are both transparent: `tabulate[widechars]>=0.9` and `tomli>=2; python_version<'3.11'` each track the plain `>=` range. The distribution is matched on its [PEP 503](https://peps.python.org/pep-0503/) normalized name, looked up in the runtime dependencies then in those behind an extra. Development dependency groups ([PEP 735](https://peps.python.org/pep-0735/)) are skipped, since no installer resolves them for a consumer. Columns are auto-derived: a minor series stays a single `X.Y` column unless an open (`>=`) floor pins a specific patch, in which case it splits into `X.Y.0` plus that floor; the left edge is the version resolved in `uv.lock`. Add `:show-spec:` for a `Spec` column with each range's raw specifier, in the release's own spelling. Cells here stay two-valued: unlike Python, a dependency has no informational second declaration to disagree with its specifier, so there is nothing an undeclared cell could mean.
+
+[Poetry's own range syntax](https://python-poetry.org/docs/dependency-specification/) is translated to PEP 440 before evaluation, since a project's older tags usually predate its move to PEP 621. Carets follow Poetry's rule of bumping the leftmost non-zero component, so `^1.2.3` caps at `2.0.0` while `^0.2.3` caps at `0.3.0` and `^0.0.3` at `0.0.4`: under a `0.` prefix every release may break, and a caret there covers far less than the major series. Tilde and wildcard ranges (`~1`, `~1.2`, `1.*`, `1.2.*`) translate the same way.
+
+This project uses it for the [Click compatibility table](install.md#click-compatibility):
 
 ````{code-block} markdown
 ```{matrix} click

@@ -15,6 +15,14 @@
 - Add `wrap_ansi()`, wrapping a string to a visible width without counting its ANSI escapes toward the line length, and keeping each line's styling self-contained.
 - Read the input of `run_jobs()` and `run_lanes()` lazily, keeping a bounded window of tasks in flight instead of materializing the whole stream.
 - Stop scheduling the rest of a `run_jobs()` or `run_lanes()` stream when the caller breaks early, at any worker count and not only at `--jobs 1`.
+- Render the `{matrix} python` axis in three states: `✅` for a version a release declares, `❌` for one its `requires-python` rules out, and `–` for one it neither claimed nor forbade.
+- Split a Python matrix row when the declared `requires-python` changes, even if the set of supported versions does not.
+- Read a dependency's requirement from a parsed `pyproject.toml` instead of a regex over its raw text, so `{matrix}` follows extras brackets, environment markers and Poetry's inline-table form.
+- Match a tracked dependency on its normalized name, searching runtime and extra dependencies but no longer development dependency groups.
+- Cap a Poetry caret range at the component Poetry documents, so `^0.2.3` no longer claims the whole `0.x` series instead of stopping at `0.3.0`.
+- Translate Poetry's major-only tilde (`~1`) and its wildcard ranges (`*`, `1.*`, `1.2.*`), which used to be unparsable and rendered an all-❌ row.
+- Give an exact `==` pin a column of its own precision, so the single release it accepts no longer renders as all-❌.
+- Test the matrix rendering of exotic dependency specifiers: pins, wildcards, exclusion clauses, epochs, and Poetry caret and tilde ranges.
 
 ## [`8.8.1` (2026-08-02)](https://github.com/kdeldycke/click-extra/compare/v8.8.0...v8.8.1)
 

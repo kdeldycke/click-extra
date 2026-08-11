@@ -126,7 +126,9 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ## Python compatibility
 
-The table below shows which Python versions each `click-extra` release range supports. For `4.9.0` and later, support comes from the `Programming Language :: Python :: 3.X` classifiers in `pyproject.toml`. For earlier releases, the floor comes from the `requires-python` declaration (Poetry `python = "..."` for older tags), capped at the latest Python released within the range. It is regenerated from the release tags by `click-extra refresh-directives` (the [`matrix`](sphinx.md#matrix-directives) mechanism):
+The table below shows which Python versions each `click-extra` release range supports. For `4.9.0` and later, support comes from the `Programming Language :: Python :: 3.X` classifiers in `pyproject.toml`. For earlier releases, the floor comes from the `requires-python` declaration (Poetry `python = "..."` for older tags), capped at the latest Python released within the range. It is regenerated from the release tags by `click-extra refresh-directives` (the [`matrix`](sphinx.md#matrix-directives) mechanism).
+
+Cells are ✅ for a version the release declares support for, ❌ for one its `requires-python` rules out, and `–` for one it neither claimed nor forbade, usually because that Python had not been released yet. See [three states, two sources](sphinx.md#three-states-two-sources).
 
 <!-- matrix python -->
 
@@ -134,11 +136,11 @@ The table below shows which Python versions each `click-extra` release range sup
 | :------------------ | :--------- | :----: | :----: | :----: | :----: | :----: | :---: | :---: | :---: |
 | `6.2.x` → `8.x`     | 2025-11-04 |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
 | `6.0.x` → `6.1.x`   | 2025-10-08 |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `5.0.x` → `6.0.x`   | 2025-05-13 |   ❌   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `4.11.x` → `4.15.x` | 2024-10-08 |   ❌   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `4.9.x` → `4.10.x`  | 2024-07-25 |   ❌   |   ❌   |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
-| `4.0.x` → `4.8.x`   | 2023-05-08 |   ❌   |   ❌   |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
-| `0.0.x` → `3.10.x`  | 2021-10-18 |   ❌   |   ❌   |   ❌   |   ✅   |   ✅   |  ✅   |  ✅   |  ✅   |
+| `5.0.x` → `6.0.x`   | 2025-05-13 |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `4.11.x` → `4.15.x` | 2024-10-08 |   –    |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
+| `4.9.x` → `4.10.x`  | 2024-07-25 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
+| `4.0.x` → `4.8.x`   | 2023-05-08 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
+| `0.0.x` → `3.10.x`  | 2021-10-18 |   –    |   –    |   –    |   ✅   |   ✅   |  ✅   |  ✅   |  ✅   |
 
 <!-- matrix-end -->
 
