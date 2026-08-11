@@ -59,6 +59,7 @@ from click_extra.execution import (
     _GROUP_LEADERS,
     _LIVE_PROCESSES,
     _LIVE_PROCESSES_LOCK,
+    _WORKER_WINDOW_FACTOR,
     CPU_COUNT,
     PROMPT,
     install_interrupt_handler,
@@ -272,6 +273,57 @@ def test_run_jobs_sequential_is_lazy():
     assert seen == [1]
 
 
+@pytest.mark.parametrize("jobs", (1, 2, 5))
+def test_run_jobs_preserves_order_past_its_window(jobs):
+    """Order holds when the stream is longer than the in-flight window."""
+    size = 200
+    assert list(run_jobs(lambda n: n * n, iter(range(size)), jobs=jobs)) == [
+        n * n for n in range(size)
+    ]
+
+
+@pytest.mark.parametrize("jobs", (1, 2, 5))
+def test_run_jobs_handles_empty_and_single_streams(jobs):
+    """The peek that sizes the run does not lose the items it looked at."""
+    assert list(run_jobs(str, iter(()), jobs=jobs)) == []
+    assert list(run_jobs(str, iter((1,)), jobs=jobs)) == ["1"]
+
+
+def test_run_jobs_parallel_reads_no_further_than_its_window():
+    """The parallel path pulls a bounded window instead of draining the stream."""
+    produced = []
+
+    def stream():
+        # Far more than the window: a regression to materializing shows up as a
+        # produced count in the thousands.
+        for n in range(10_000):
+            produced.append(n)
+            yield n
+
+    jobs = 2
+    results = run_jobs(str, stream(), jobs=jobs)
+    assert next(results) == "0"
+    # The window is primed up front, then one slot refills before the first
+    # result is handed over.
+    assert len(produced) == jobs * _WORKER_WINDOW_FACTOR + 1
+    results.close()
+
+
+def test_run_jobs_parallel_stops_scheduling_on_early_exit():
+    """Breaking out of a parallel run leaves the rest of the stream unread."""
+    produced = []
+
+    def stream():
+        for n in range(10_000):
+            produced.append(n)
+            yield n
+
+    for result in run_jobs(str, stream(), jobs=2):
+        if result == "0":
+            break
+    assert len(produced) < 10_000
+
+
 def test_run_jobs_reads_jobs_from_context(invoke):
     """Without an explicit count, run_jobs reads the resolved --jobs value."""
 
@@ -365,6 +417,30 @@ def test_run_lanes_preserves_order(jobs):
     """Results come back in lane-submission order, items within a lane in order."""
     lanes = ([0, 1], [2], [3, 4])
     assert list(run_lanes(lambda n: n * n, lanes, jobs=jobs)) == [0, 1, 4, 9, 16]
+
+
+@pytest.mark.parametrize("jobs", (1, 2, 5))
+def test_run_lanes_preserves_order_past_its_window(jobs):
+    """Lane order holds when there are more lanes than the in-flight window."""
+    expected = [n for pair in range(0, 200, 2) for n in (pair, pair + 1)]
+    lanes = ([pair, pair + 1] for pair in range(0, 200, 2))
+    assert list(run_lanes(lambda n: n, lanes, jobs=jobs)) == expected
+
+
+def test_run_lanes_materializes_lanes_lazily():
+    """A lane becomes a list only when it is about to be scheduled."""
+    built = []
+
+    def lanes():
+        for n in range(10_000):
+            built.append(n)
+            yield [n]
+
+    jobs = 2
+    results = run_lanes(str, lanes(), jobs=jobs)
+    assert next(results) == "0"
+    assert len(built) == jobs * _WORKER_WINDOW_FACTOR + 1
+    results.close()
 
 
 def test_run_lanes_is_run_jobs_with_singleton_lanes():

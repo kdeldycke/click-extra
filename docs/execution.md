@@ -145,7 +145,31 @@ assert result.exit_code == 0
 assert "Baked APPLE" in result.stdout
 ```
 
-The pool is thread-based, which fits the I/O- and subprocess-bound work CLIs usually parallelize (each child releases the GIL). With a single worker the run stays lazy, so a caller can stop on the first result, for example to abort on the first failure.
+The pool is thread-based, which fits the I/O- and subprocess-bound work CLIs usually parallelize (each child releases the GIL).
+
+`items` is never materialized. Only a bounded window of tasks is queued at a time, sized from the worker count, and the stream is pulled one item further each time a slot frees. So an unbounded generator, or one whose items are expensive to produce, stays memory-flat and is read no further than the caller consumes. Stopping early leaves the rest unread and unscheduled at any worker count, not just at `--jobs 1`:
+
+```{click:source}
+from itertools import count
+
+from click import command, echo
+from click_extra import jobs_option, run_jobs
+
+@command
+@jobs_option
+def bake():
+    """Stop at the first batch, however endless the conveyor belt is."""
+    for baked in run_jobs(str, count()):
+        echo(f"Baked {baked}")
+        if baked == "0":
+            break
+```
+
+```{click:run}
+result = invoke(bake, args=["--jobs", "4"])
+assert result.exit_code == 0
+assert result.stdout == "Baked 0\n"
+```
 
 ## Running lanes in parallel
 
@@ -171,6 +195,8 @@ assert "Baked APPLE" in result.stdout
 ```
 
 Concurrency is sized by the number of lanes (one worker per lane), and results are yielded in lane-submission order. Because a lane runs entirely on one worker, a stateful resource bound to that lane (a per-lane cache, a connection) is touched by only one thread and needs no lock.
+
+Lanes are read as lazily as `run_jobs` reads items: a lane is turned into a list only when it is about to be scheduled, and only a window of them is in flight. A stream of lanes never sits in memory all at once.
 
 ## Resolving the job count
 

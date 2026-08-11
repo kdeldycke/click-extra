@@ -13,6 +13,8 @@
 - Wrap long cells in the `vertical` format, aligning continuation lines under the label gutter.
 - Add a `WRAPPABLE_FORMATS` registry and a `TableFormat.is_wrappable` property, listing the formats able to render a wrapped cell. Column widths are dropped by all others instead of corrupting their output.
 - Add `wrap_ansi()`, wrapping a string to a visible width without counting its ANSI escapes toward the line length, and keeping each line's styling self-contained.
+- Read the input of `run_jobs()` and `run_lanes()` lazily, keeping a bounded window of tasks in flight instead of materializing the whole stream.
+- Stop scheduling the rest of a `run_jobs()` or `run_lanes()` stream when the caller breaks early, at any worker count and not only at `--jobs 1`.
 
 ## [`8.8.1` (2026-08-02)](https://github.com/kdeldycke/click-extra/compare/v8.8.0...v8.8.1)
 

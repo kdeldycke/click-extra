@@ -37,11 +37,14 @@ import logging
 import os
 import signal
 import subprocess
+import sys
 import threading
 import time
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from gettext import gettext as _
+from itertools import chain, islice
 from time import perf_counter
 from typing import Final, TypeVar, cast
 
@@ -61,6 +64,7 @@ from .theme import get_current_theme
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
+    from concurrent.futures import Future
     from pathlib import Path
     from types import FrameType
     from typing import IO, Any
@@ -367,6 +371,19 @@ def resolve_jobs(
     return min(jobs, count) if jobs > 1 else 1
 
 
+def _resolve_worker_cap(ctx: click.Context | None, serial_at_debug: bool) -> int:
+    """The resolved `--jobs` count, before it is capped by the number of items.
+
+    {func}`resolve_jobs` caps its answer at the item count, which a lazy stream
+    cannot report without being drained first. Asking for an unbounded count
+    keeps every other part of the policy (no context, `--jobs 1`, or `DEBUG`
+    under `serial_at_debug` all still collapse to sequential) and leaves the
+    sizing to the pool: a {class}`~concurrent.futures.ThreadPoolExecutor` spawns
+    its threads on demand, so a ceiling above the number of items costs nothing.
+    """
+    return resolve_jobs(ctx, sys.maxsize, serial_at_debug=serial_at_debug)
+
+
 @contextmanager
 def _interruptible_pool(max_workers: int) -> Iterator[ThreadPoolExecutor]:
     """Yield a thread pool whose teardown honors a prompt interrupt.
@@ -402,6 +419,45 @@ def _interruptible_pool(max_workers: int) -> Iterator[ThreadPoolExecutor]:
         executor.shutdown(wait=True)
 
 
+_WORKER_WINDOW_FACTOR: Final = 4
+"""How many tasks {func}`run_jobs` and {func}`run_lanes` keep in flight per worker.
+
+One task per worker would leave it idle between finishing its own and the caller
+pulling the next result. A few queued behind each keeps them fed, while staying a
+multiple of the worker count rather than growing with the stream.
+"""
+
+
+def _windowed_map(
+    executor: ThreadPoolExecutor,
+    func: Callable[[T], R],
+    items: Iterable[T],
+    window: int,
+) -> Iterator[R]:
+    """Map `func` over `items`, keeping at most `window` tasks in flight.
+
+    The lazy counterpart of {meth}`~concurrent.futures.Executor.map`, which
+    submits every item up front and so drains whatever iterable it is handed.
+    Here the stream is pulled one item at a time as a slot frees, keeping both
+    the queue and the unread tail of `items` bounded however long the stream is.
+    Results still come out in submission order.
+
+    A caller that stops early therefore leaves the rest of the stream unread and
+    unscheduled, matching what the sequential path already promised.
+    """
+    stream = iter(items)
+    pending: deque[Future[R]] = deque(
+        executor.submit(func, item) for item in islice(stream, window)
+    )
+    while pending:
+        result = pending.popleft().result()
+        # Refill the freed slot before handing the result over, so a worker does
+        # not sit idle while the caller processes what it just got.
+        for item in islice(stream, 1):
+            pending.append(executor.submit(func, item))
+        yield result
+
+
 def run_jobs(
     func: Callable[[T], R],
     items: Iterable[T],
@@ -426,30 +482,42 @@ def run_jobs(
     tools usually parallelize (each child releases the GIL). The count is a
     number of logical CPUs: see {data}`~click_extra.execution.CPU_COUNT`.
 
+    `items` is never materialized: only a bounded window of tasks is queued at a
+    time, so an unbounded or expensive-to-produce stream stays memory-flat and is
+    read no further than the caller consumes.
+
     :param func: Called once per item; its return value is yielded.
-    :param items: The work items. Materialized up front to size the pool.
+    :param items: The work items. Read lazily, a window at a time.
     :param jobs: Override the worker count instead of reading it from the
         context. `1` or fewer forces sequential execution.
     :param serial_at_debug: forwarded to {func}`resolve_jobs` when `jobs` is not
         given: collapse to sequential at `DEBUG` verbosity.
     :return: An iterator over `func`'s results, in the order of `items`.
     """
-    work = list(items)
+    stream = iter(items)
+    # Two items is all it takes to tell an empty or single-item run, which stays
+    # sequential, from a real batch. The rest of the stream is left unread.
+    head = list(islice(stream, 2))
     if jobs is None:
         ctx = click.get_current_context(silent=True)
-        jobs = resolve_jobs(ctx, len(work), serial_at_debug=serial_at_debug)
+        jobs = _resolve_worker_cap(ctx, serial_at_debug) if len(head) > 1 else 1
 
-    if jobs <= 1 or len(work) <= 1:
+    if jobs <= 1 or len(head) <= 1:
         # Sequential and lazy: the caller can break early (for example on the
         # first failure) and the remaining items never run.
-        for item in work:
+        for item in chain(head, stream):
             yield func(item)
     else:
-        # Parallel: every item is submitted up front and results are yielded in
-        # submission order. The pool teardown drops queued work on a prompt
+        # Parallel: a windowful of tasks is kept in flight and results are yielded
+        # in submission order. The pool teardown drops queued work on a prompt
         # interrupt instead of blocking on it (see {func}`_interruptible_pool`).
-        with _interruptible_pool(min(jobs, len(work))) as executor:
-            yield from executor.map(func, work)
+        with _interruptible_pool(jobs) as executor:
+            yield from _windowed_map(
+                executor,
+                func,
+                chain(head, stream),
+                jobs * _WORKER_WINDOW_FACTOR,
+            )
 
 
 def run_lanes(
@@ -473,31 +541,34 @@ def run_lanes(
     lane never splits across workers.
 
     Results are yielded in lane-submission order, a lane's items in order, like
-    {func}`map`. With a single worker the run stays lazy (the caller can break
-    early); otherwise every lane is submitted up front. A lane runs entirely on one
-    worker, so a stateful resource bound to the lane (a per-lane cache, a connection)
-    is touched by only that one thread and needs no lock.
+    {func}`map`. The run stays lazy at any worker count: a lane is materialized
+    only when it is about to be scheduled, and only a bounded window of lanes is
+    in flight, so a caller can break early and the lanes behind it are never read.
+    A lane runs entirely on one worker, so a stateful resource bound to the lane
+    (a per-lane cache, a connection) is touched by only that one thread and needs
+    no lock.
 
     :param func: Called once per item; its return value is yielded.
-    :param lanes: The lanes, each an iterable of items. Materialized up front.
+    :param lanes: The lanes, each an iterable of items. Read lazily, a window of
+        lanes at a time; a lane's own items are materialized when it is scheduled.
     :param jobs: Override the worker count instead of reading it from the context.
         `1` or fewer forces fully sequential execution.
     :param serial_at_debug: forwarded to {func}`resolve_jobs` when `jobs` is not
         given: collapse to sequential at `DEBUG` verbosity.
     :return: An iterator over `func`'s results, lane by lane in submission order.
     """
-    lane_list = [list(lane) for lane in lanes]
-    if not lane_list:
+    # Each lane is materialized only as it is pulled, never all of them at once.
+    lane_stream = (list(lane) for lane in lanes)
+    head = list(islice(lane_stream, 2))
+    if not head:
         return
     if jobs is None:
         ctx = click.get_current_context(silent=True)
-        jobs = resolve_jobs(ctx, len(lane_list), serial_at_debug=serial_at_debug)
-    elif jobs > 1:
-        jobs = min(jobs, len(lane_list))
+        jobs = _resolve_worker_cap(ctx, serial_at_debug) if len(head) > 1 else 1
 
     if jobs <= 1:
         # Sequential and lazy across every lane and item: the caller can break early.
-        for lane in lane_list:
+        for lane in chain(head, lane_stream):
             for item in lane:
                 yield func(item)
     else:
@@ -509,7 +580,12 @@ def run_lanes(
         # The pool teardown drops queued lanes on a prompt interrupt instead of
         # blocking on the in-flight ones (see {func}`_interruptible_pool`).
         with _interruptible_pool(jobs) as executor:
-            for chain_results in executor.map(run_chain, lane_list):
+            for chain_results in _windowed_map(
+                executor,
+                run_chain,
+                chain(head, lane_stream),
+                jobs * _WORKER_WINDOW_FACTOR,
+            ):
                 yield from chain_results
 
 
