@@ -5,6 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add a `transform` argument to `EnumChoice`, reshaping the string produced by any choice source, so `show_aliases` can spell aliases in kebab-case instead of raw Python identifiers.
+- Reject a `transform` collapsing two `EnumChoice` members into the same choice string, instead of silently dropping one from the help screen.
+- Point the `EnumChoice` `show_aliases` error at `transform` and explain why `ChoiceSource.STR` and callable sources cannot see aliases.
 - Add a `max_column_widths` argument to `render_table()` and `print_table()`, capping each column to a character count or to `auto` to absorb the width left on the terminal.
 - Add a `max_width` field to `ColumnSpec`, declaring the width limit of a column alongside its ID and label.
 - Wrap long cells in the `vertical` format, aligning continuation lines under the label gutter.

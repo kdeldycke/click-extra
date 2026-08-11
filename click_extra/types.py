@@ -164,6 +164,12 @@ class EnumChoice(click.Choice):
 
     Defaults to `ChoiceSource.STR`, which only requires you to define the
     `__str__()` method on your `Enum` to produce beautiful choice strings.
+
+    The `transform` parameter takes a callable reshaping the string produced by
+    the source. It composes with every source, and is the only way to spell
+    choices in a CLI-friendly case while `show_aliases` is on: aliases are
+    reachable through `ChoiceSource.KEY`, `ChoiceSource.NAME` and
+    `ChoiceSource.VALUE` alone, which are stuck on raw Python identifiers.
     """
 
     choices: tuple[str, ...]
@@ -188,6 +194,7 @@ class EnumChoice(click.Choice):
         | str
         | Callable[[enum.Enum], str] = ChoiceSource.STR,
         show_aliases: bool = False,
+        transform: Callable[[str], str] | None = None,
     ) -> None:
         """Same as `click.Choice`, but takes an `Enum` as `choices`.
 
@@ -208,8 +215,17 @@ class EnumChoice(click.Choice):
 
         ```{attention}
         Only works with `ChoiceSource.KEY`, `ChoiceSource.NAME` and
-        `ChoiceSource.VALUE`.
+        `ChoiceSource.VALUE`. See `transform` to reshape the identifiers these
+        sources produce.
         ```
+        """
+
+        self._transform = transform
+        """Callable reshaping the string produced by the choice source.
+
+        Applies to every source, aliases included. Because it runs on the choice
+        string and not on the member, it can tell an alias apart from its
+        canonical member, which `ChoiceSource.STR` and a callable source cannot.
         """
 
         # Keep the Enum class around.
@@ -237,39 +253,77 @@ class EnumChoice(click.Choice):
                 )
             else:
                 raise RuntimeError(
-                    f"Cannot use {self._choice_source!r} with show_aliases=True."
+                    f"Cannot use {self._choice_source!r} with show_aliases=True. "
+                    "An alias is the very same object as the member it points to, "
+                    "so it is only distinguishable as a key of the name and value "
+                    "maps: pick ChoiceSource.KEY, NAME or VALUE, and reshape the "
+                    "identifiers they produce with the transform argument."
                 )
 
             for choice, member in member_source.items():
                 self._check_choice_str(member, choice)
-                self._enum_map[choice] = member
+                self._register_choice(
+                    self._transform_choice_str(member, choice), member
+                )
 
         # No need to include aliases in the choices: iterate the Enum to let it
         # provide us with the canonical members.
         else:
             for member in self._enum:
-                choice = self.get_choice_string(member)
-                # Duplicates are still under the responsibility of the user.
-                if choice in self._enum_map:
-                    raise ValueError(
-                        f"{self._enum} has duplicated choice string {choice!r} for "
-                        f"members {self._enum_map[choice]!r} and {member!r} when using "
-                        f"{self._choice_source!r}."
-                    )
-                self._enum_map[choice] = member
+                self._register_choice(self.get_choice_string(member), member)
 
         super().__init__(choices=self._enum_map, case_sensitive=case_sensitive)
 
-    def _check_choice_str(self, member: enum.Enum, choice: Any) -> None:
-        """Check that the derived choice string is indeed a string."""
+    def _check_choice_str(
+        self, member: enum.Enum, choice: Any, origin: Any = None
+    ) -> None:
+        """Check that the derived choice string is indeed a string.
+
+        `origin` names the culprit in the error message, and defaults to the
+        choice source.
+        """
         if not isinstance(choice, str):
+            if origin is None:
+                origin = self._choice_source
             raise TypeError(
                 f"{member!r} produced non-string choice {choice!r} when using "
-                f"{self._choice_source!r}."
+                f"{origin!r}."
             )
 
+    def _transform_choice_str(self, member: enum.Enum, choice: str) -> str:
+        """Reshape a derived choice string with the `transform` callable, if any."""
+        if self._transform is None:
+            return choice
+        try:
+            transformed = self._transform(choice)
+        except Exception as ex:
+            raise ValueError(
+                f"cannot call {self._transform!r} on {choice!r}: {ex}"
+            ) from ex
+        self._check_choice_str(member, transformed, origin=self._transform)
+        return transformed
+
+    def _register_choice(self, choice: str, member: enum.Enum) -> None:
+        """Map a choice string to its `Enum` member, rejecting collisions.
+
+        A `transform` collapsing two spellings into one is caught here: dropping
+        the loser silently would remove a choice from the help screen without a
+        word.
+        """
+        # Duplicates are still under the responsibility of the user.
+        if choice in self._enum_map:
+            raise ValueError(
+                f"{self._enum} has duplicated choice string {choice!r} for "
+                f"members {self._enum_map[choice]!r} and {member!r} when using "
+                f"{self._choice_source!r}."
+            )
+        self._enum_map[choice] = member
+
     def get_choice_string(self, member: enum.Enum) -> str:
-        """Derive the choice string from the given `Enum`'s `member`."""
+        """Derive the choice string from the given `Enum`'s `member`.
+
+        The string produced by the choice source is passed through `transform`.
+        """
         if self._choice_source in (ChoiceSource.KEY, ChoiceSource.NAME):
             choice = member.name
 
@@ -291,7 +345,7 @@ class EnumChoice(click.Choice):
             raise ValueError(f"Unsupported choice source {self._choice_source!r}.")
 
         self._check_choice_str(member, choice)
-        return choice
+        return self._transform_choice_str(member, choice)
 
     def normalize_choice(self, choice: object, ctx: click.Context | None) -> str:
         """Expand the parent's `normalize_choice()` to accept `Enum` members as input.

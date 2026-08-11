@@ -394,6 +394,51 @@ result = invoke(cli, args=["--help"])
 assert "--format [custom-text|custom-html|custom-other-format]" in result.stdout
 ```
 
+### Choice transform
+
+Every choice source above reads its string off the `Enum` member. When the spelling you are after is a reshaping of that string rather than a different source, pass a callable to the `transform` parameter. It runs on the string the source produced, and composes with all of them:
+
+```{click:source}
+:emphasize-lines: 15-17
+from enum import Enum
+
+from click import command, option, echo
+from click_extra import EnumChoice
+
+
+class Format(Enum):
+    PLAIN_TEXT = "plain_text"
+    RICH_HTML = "rich_html"
+
+
+@command
+@option(
+    "--format",
+    type=EnumChoice(
+        Format, choice_source="name", transform=lambda c: c.lower().replace("_", "-")
+    ),
+    show_choices=True,
+    help="Select format.",
+)
+def cli(format):
+    echo(f"Selected format: {format!r}")
+```
+
+```{click:run}
+:emphasize-lines: 5
+result = invoke(cli, args=["--help"])
+assert "--format [plain-text|rich-html]" in result.stdout
+```
+
+Members keep round-tripping through the transformed spelling, so defaults declared as `Enum` members still resolve:
+
+```{click:run}
+result = invoke(cli, args=["--format", "rich-html"])
+assert result.output == "Selected format: <Format.RICH_HTML: 'rich_html'>\n"
+```
+
+A transform that maps two members onto the same string raises a `ValueError` at declaration time, rather than silently dropping one of them from the help screen.
+
 ### Default value
 
 Another limit of `click.Choice` is how the default value is displayed in help messages. Click is [hard-coded to use the `Enum.name` in help messages](https://github.com/pallets/click/pull/3004) for the default value.
@@ -527,6 +572,20 @@ assert "[default: html]" in result.stdout
 
 `EnumChoice` also supports aliases on both names and values.
 
+````{note}
+The example below adds its aliases after the class is created, with
+[`Enum._add_alias_()`](https://docs.python.org/3/library/enum.html#enum.Enum._add_alias_)
+and `Enum._add_value_alias_()`. Both are Python 3.13+.
+
+On older versions, declare the alias in the class body instead, by pointing it at the member it duplicates. That form works on every Python version click-extra supports:
+
+```python
+class State(Enum):
+    IN_PROGRESS = "in_progress"
+    ONGOING = IN_PROGRESS  # Alias for IN_PROGRESS
+```
+````
+
 Here's an example using aliases:
 
 ```{click:source}
@@ -588,6 +647,52 @@ assert result.output == (
     "Selected state-name:  <State.IN_PROGRESS: 'in_progress'>\n"
     "Selected state-value: <State.COMPLETED: 'completed'>\n"
 )
+```
+
+#### Aliases and choice spelling
+
+`show_aliases` is restricted to `ChoiceSource.KEY`, `ChoiceSource.NAME` and `ChoiceSource.VALUE`, and raises a `RuntimeError` on `ChoiceSource.STR` or a callable source. This is not an arbitrary limit: an alias *is* the very same object as the member it points to, so `str(member)` and any callable taking a member return the canonical string for both spellings. Aliases only exist as distinct keys of the name and value maps, which is what those three sources read.
+
+The consequence is that `show_aliases` hands you raw Python identifiers, as `in_progress` above shows. Use [`transform`](#choice-transform) to spell them the way your CLI wants:
+
+```{click:source}
+:emphasize-lines: 8-9,18-19
+from enum import Enum
+
+from click import command, option, echo
+from click_extra import EnumChoice
+
+
+class Strategy(Enum):
+    SELECT_OLDER = 1
+    DISCARD_NEWEST = SELECT_OLDER  # Alias for SELECT_OLDER
+
+
+@command
+@option(
+    "--strategy",
+    type=EnumChoice(
+        Strategy,
+        choice_source="name",
+        show_aliases=True,
+        transform=lambda c: c.lower().replace("_", "-"),
+    ),
+    show_choices=True,
+    help="Selection strategy.",
+)
+def cli(strategy):
+    echo(f"Selected strategy: {strategy!r}")
+```
+
+```{click:run}
+:emphasize-lines: 5
+result = invoke(cli, args=["--help"])
+assert "--strategy [select-older|discard-newest]" in result.stdout
+```
+
+```{click:run}
+result = invoke(cli, args=["--strategy", "discard-newest"])
+assert result.output == "Selected strategy: <Strategy.SELECT_OLDER: 1>\n"
 ```
 
 ## `MultiChoice`

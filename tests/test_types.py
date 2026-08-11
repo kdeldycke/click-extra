@@ -416,9 +416,10 @@ def test_enum_choice_show_aliases(
                 enum_definition, choice_source=choice_source, show_aliases=show_aliases
             )
 
-        assert exc_info.value.args[0] == (
+        assert exc_info.value.args[0].startswith(
             f"Cannot use {choice_source!r} with show_aliases=True."
         )
+        assert "transform argument" in exc_info.value.args[0]
         return
 
     elif result is TypeError:
@@ -454,6 +455,120 @@ def test_enum_choice_show_aliases(
 
         # Conversion from Enum members should be idempotent.
         assert enum_choice.convert(member, None, None) == member
+
+
+def kebab_case(choice: str) -> str:
+    """Reshape a Python identifier into a CLI-friendly choice string."""
+    return choice.lower().replace("_", "-")
+
+
+class AliasedStrategy(Enum):
+    """Aliases declared in the class body, which every supported Python handles.
+
+    Unlike `_add_alias_()`, this needs no Python 3.13.
+    """
+
+    SELECT_OLDER = 1
+    SELECT_NEWEST = 2
+    DISCARD_NEWEST = SELECT_OLDER
+    DISCARD_OLDER = SELECT_NEWEST
+
+
+class TransformedFormat(Enum):
+    PLAIN_TEXT = "plain_text"
+    RICH_HTML = "rich_html"
+
+    def __str__(self) -> str:
+        return f"fmt:{self.name}"
+
+
+@pytest.mark.parametrize(
+    ("choice_source", "transform", "expected"),
+    (
+        (ChoiceSource.NAME, kebab_case, ("plain-text", "rich-html")),
+        (ChoiceSource.KEY, kebab_case, ("plain-text", "rich-html")),
+        (ChoiceSource.VALUE, kebab_case, ("plain-text", "rich-html")),
+        (ChoiceSource.STR, str.lower, ("fmt:plain_text", "fmt:rich_html")),
+        (attrgetter("name"), kebab_case, ("plain-text", "rich-html")),
+    ),
+)
+def test_enum_choice_transform(
+    choice_source: ChoiceSource | Callable[[Enum], str],
+    transform: Callable[[str], str],
+    expected: tuple[str, ...],
+) -> None:
+    """`transform` reshapes the choice string produced by any source."""
+    enum_choice = EnumChoice(
+        TransformedFormat, choice_source=choice_source, transform=transform
+    )
+    assert enum_choice.choices == expected
+
+    for choice_str, member in zip(expected, TransformedFormat):
+        assert enum_choice.convert(choice_str, None, None) == member
+        # Members are normalized through the transform too.
+        assert enum_choice.convert(member, None, None) == member
+
+
+@pytest.mark.parametrize("choice_source", (ChoiceSource.NAME, ChoiceSource.KEY))
+def test_enum_choice_transform_with_aliases(choice_source: ChoiceSource) -> None:
+    """`transform` is what makes `show_aliases` usable with non-identifier choices."""
+    enum_choice = EnumChoice(
+        AliasedStrategy,
+        choice_source=choice_source,
+        show_aliases=True,
+        transform=kebab_case,
+    )
+    assert enum_choice.choices == (
+        "select-older",
+        "select-newest",
+        "discard-newest",
+        "discard-older",
+    )
+
+    # Both spellings resolve to the same canonical member.
+    for alias, canonical in (
+        ("discard-newest", AliasedStrategy.SELECT_OLDER),
+        ("discard-older", AliasedStrategy.SELECT_NEWEST),
+    ):
+        assert enum_choice.convert(alias, None, None) is canonical
+
+    # Aliases are dropped without show_aliases, transform or not.
+    assert EnumChoice(
+        AliasedStrategy, choice_source=choice_source, transform=kebab_case
+    ).choices == ("select-older", "select-newest")
+
+
+@pytest.mark.parametrize("show_aliases", (False, True))
+def test_enum_choice_transform_collision(show_aliases: bool) -> None:
+    """A `transform` collapsing two spellings into one is rejected."""
+    with pytest.raises(ValueError) as exc_info:
+        EnumChoice(
+            AliasedStrategy,
+            choice_source=ChoiceSource.NAME,
+            show_aliases=show_aliases,
+            transform=lambda choice: choice.split("_")[0],
+        )
+    assert "duplicated choice string 'SELECT'" in exc_info.value.args[0]
+
+
+def test_enum_choice_transform_non_string() -> None:
+    """A `transform` returning a non-string blames itself, not the choice source."""
+    with pytest.raises(TypeError) as exc_info:
+        EnumChoice(TransformedFormat, transform=len)  # type: ignore[arg-type]
+    assert "produced non-string choice" in exc_info.value.args[0]
+    assert repr(len) in exc_info.value.args[0]
+
+
+def test_enum_choice_transform_raising() -> None:
+    """A `transform` blowing up is reported with the string it choked on."""
+
+    def explode(choice: str) -> str:
+        raise RuntimeError("nope")
+
+    with pytest.raises(ValueError) as exc_info:
+        EnumChoice(TransformedFormat, choice_source="name", transform=explode)
+    assert "cannot call" in exc_info.value.args[0]
+    assert "'PLAIN_TEXT'" in exc_info.value.args[0]
 
 
 class MyEnum(Enum):
