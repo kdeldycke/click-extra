@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import csv
 import re
+import shutil
+import textwrap
 from dataclasses import dataclass
 from enum import Enum
 from functools import cache, partial
@@ -28,6 +30,7 @@ from io import StringIO
 import click
 from boltons.strutils import strip_ansi
 from click import echo
+from wcwidth import wcswidth
 
 from . import context
 from .config.formats import ConfigFormat, serialize_content
@@ -38,7 +41,13 @@ from .types import EnumChoice, MultiChoice
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping, Sequence
-    from typing import Any
+    from typing import Any, Literal
+
+    ColumnWidth = int | Literal["auto"] | None
+    """Width limit of a single column: a character count, `auto`, or no limit."""
+
+    MaxColumnWidths = Sequence[ColumnWidth] | ColumnWidth
+    """Width limits of a table: one entry per column, or a scalar for all of them."""
 
 
 @cache
@@ -178,6 +187,15 @@ class TableFormat(Enum):
         """
         return self in STYLED_FORMATS
 
+    @property
+    def is_wrappable(self) -> bool:
+        """Whether this format renders a cell wrapped onto several lines.
+
+        See {data}`~click_extra.table.WRAPPABLE_FORMATS` for the registry, and
+        the rationale behind each excluded format.
+        """
+        return self in WRAPPABLE_FORMATS
+
 
 MARKUP_FORMATS = frozenset(
     {
@@ -293,6 +311,68 @@ SERIALIZATION_FORMATS = frozenset(
 )
 """Structured serialization formats whose renderers escape raw ESC bytes, making
 post-render `strip_ansi()` ineffective."""
+
+AUTO_WIDTH = "auto"
+"""Sentinel asking for a column width derived from the space left on the terminal."""
+
+MIN_COLUMN_WIDTH = 8
+"""Floor applied to an {data}`AUTO_WIDTH` column, so a crowded table still renders
+a usable column instead of collapsing it to nothing."""
+
+WRAPPABLE_FORMATS = frozenset(
+    {
+        TableFormat.COLON_GRID,
+        TableFormat.DOUBLE_GRID,
+        TableFormat.DOUBLE_OUTLINE,
+        TableFormat.FANCY_GRID,
+        TableFormat.FANCY_OUTLINE,
+        TableFormat.GRID,
+        TableFormat.HEAVY_GRID,
+        TableFormat.HEAVY_OUTLINE,
+        TableFormat.MIXED_GRID,
+        TableFormat.MIXED_OUTLINE,
+        TableFormat.OUTLINE,
+        TableFormat.PLAIN,
+        TableFormat.PRESTO,
+        TableFormat.PRETTY,
+        TableFormat.PSQL,
+        TableFormat.ROUNDED_GRID,
+        TableFormat.ROUNDED_OUTLINE,
+        TableFormat.RST,
+        TableFormat.SIMPLE,
+        TableFormat.SIMPLE_GRID,
+        TableFormat.SIMPLE_OUTLINE,
+        TableFormat.VERTICAL,
+    },
+)
+"""Formats laying a wrapped cell over several lines while keeping it one cell.
+
+Column widths are a presentation hint: they are honored by the formats listed
+here and silently dropped by every other one, the same way styling degrades per
+format in {data}`~click_extra.table.STYLED_FORMATS`. Dropping is the point, as a
+width forced onto a format below would corrupt its output.
+
+```{important}
+Every format absent from this registry renders `max_column_widths` unusable,
+for one of four reasons:
+
+- `aligned`: this module's own zero-padding format. tabulate does not
+  indent its continuation lines, so a wrapped cell escapes its column.
+- `github`, `jira`, `orgtbl`, `pipe`: continuation lines are emitted
+  as additional table rows. They look right in a terminal, but a Markdown,
+  Jira or Org renderer reads them as extra records.
+- `asciidoc`, `html`, `latex`, `latex-booktabs`,
+  `latex-longtable`, `latex-raw`, `mediawiki`, `moinmoin`,
+  `textile`, `unsafehtml`, `youtrack`: the line break lands raw inside
+  the cell markup, where the target renderer either collapses it back to a
+  space or breaks the row. These formats delegate wrapping to whatever
+  displays them.
+- `csv`, `csv-excel`, `csv-excel-tab`, `csv-unix`, `tsv`, and
+  the {data}`~click_extra.table.SERIALIZATION_FORMATS`: data interchange,
+  where a line break inside a field changes the record rather than its
+  presentation.
+```
+"""
 
 
 def _get_csv_dialect(table_format: TableFormat | None = None) -> str:
@@ -454,14 +534,63 @@ def _render_xml(
     )
 
 
+def _visible_width(cell: object) -> int:
+    """Number of terminal columns a cell occupies once rendered.
+
+    ANSI escapes are discarded and double-width characters counted as two, so
+    the measure matches what a terminal lays out rather than what {func}`len`
+    counts.
+    """
+    if cell is None:
+        return 0
+    return max(wcswidth(strip_ansi(str(cell))), 0)
+
+
+def _natural_column_widths(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None = None,
+) -> list[int]:
+    """Width each column takes when no wrapping is applied.
+
+    Headers participate in the measure, as they widen a column the same way
+    cells do.
+    """
+    widths: list[int] = []
+    rows = [headers, *table_data] if headers else list(table_data)
+    for row in rows:
+        for index, cell in enumerate(row):
+            width = _visible_width(cell)
+            if index < len(widths):
+                widths[index] = max(widths[index], width)
+            else:
+                widths.append(width)
+    return widths
+
+
+def _cell_width(
+    max_column_widths: Sequence[int | None] | None,
+    column: int,
+) -> int | None:
+    """Width limit declared for a column, if the table carries one."""
+    if not max_column_widths or column >= len(max_column_widths):
+        return None
+    return max_column_widths[column]
+
+
 def _render_vertical(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
     sep_character: str = "*",
     sep_length: int = 27,
+    max_column_widths: Sequence[int | None] | None = None,
     **kwargs,
 ) -> str:
     """Re-implements `cli-helpers`'s vertical table layout.
+
+    A cell exceeding its `max_column_widths` entry wraps onto extra lines,
+    each aligned under the first one so the label column stays readable. Unlike
+    the tabulate-backed formats, this layout does the wrapping itself: there is
+    no backend to delegate it to.
 
     ```{note}
     See [cli-helpers source code for reference](https://github.com/dbcli/cli_helpers/blob/v2.7.0/cli_helpers/tabular_output/vertical_table_adapter.py).
@@ -470,6 +599,12 @@ def _render_vertical(
     ```{caution}
     This layout is [hard-coded to 27 asterisks to separate rows](https://github.com/dbcli/cli_helpers/blob/c34ae9f/cli_helpers/tabular_output/vertical_table_adapter.py#L34),
     as in the original implementation.
+    ```
+
+    ```{warning}
+    Wrapping measures cells with {func}`textwrap.wrap`, which counts ANSI
+    escape bytes toward the width. A styled cell therefore wraps earlier than
+    its visible width warrants. Plain cells, the common case, are unaffected.
     ```
     """
     if not headers:
@@ -482,12 +617,20 @@ def _render_vertical(
 
     table_lines = []
     sep = sep_character * sep_length
+    # Continuation lines of a wrapped cell line up under the first one, past
+    # the label column and its separator.
+    continuation_label = " " * max_length
     for index, row in enumerate(table_data):
         table_lines.append(f"{sep}[ {index + 1}. row ]{sep}")
-        for cell_label, cell_value in zip(padded_headers, row):
+        for column, (cell_label, cell_value) in enumerate(zip(padded_headers, row)):
             # Like other formats, render None as an empty string.
-            cell_value = "" if cell_value is None else cell_value
-            table_lines.append(f"{cell_label} | {cell_value}")
+            text = "" if cell_value is None else str(cell_value)
+            width = _cell_width(max_column_widths, column)
+            parts = [text]
+            if width and _visible_width(text) > width:
+                parts = textwrap.wrap(text, width=width) or [""]
+            table_lines.append(f"{cell_label} | {parts[0]}")
+            table_lines.extend(f"{continuation_label} | {part}" for part in parts[1:])
     return "\n".join(table_lines)
 
 
@@ -543,22 +686,28 @@ def _render_tabulate(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
     table_format: TableFormat | None = None,
+    max_column_widths: Sequence[int | None] | None = None,
     **kwargs,
 ) -> str:
     """Render a table with `tabulate`.
 
     Default format is `TableFormat.ROUNDED_OUTLINE`.
+
+    Column widths are handed over to tabulate's own `maxcolwidths`, whose
+    wrapper measures visible width, so cells keep their styling across a wrap.
     """
     if not headers:
         headers = ()
     if not table_format:
         table_format = DEFAULT_FORMAT
-    defaults = {
+    defaults: dict[str, Any] = {
         "disable_numparse": True,
         "numalign": None,
         # tabulate()'s format ID uses underscores instead of dashes.
         "tablefmt": table_format.value.replace("-", "_"),
     }
+    if max_column_widths is not None:
+        defaults["maxcolwidths"] = list(max_column_widths)
     defaults.update(kwargs)
     _setup_tabulate()
     import tabulate
@@ -569,6 +718,155 @@ def _render_tabulate(
     if table_format in (TableFormat.GITHUB, TableFormat.PIPE):
         result = _pad_gfm_separator(result)
     return result
+
+
+def _available_width() -> int:
+    """Total width a table may occupy, resolved like a help screen.
+
+    Reads the formatter of the current context, so the `terminal_width` and
+    `max_content_width` context settings drive tables exactly as they drive
+    help output and {func}`~click_extra.tree.render_command_tree`. Falls back
+    to the raw terminal size outside any Click context.
+    """
+    ctx = click.get_current_context(silent=True)
+    if ctx is not None:
+        return ctx.make_formatter().width
+    return shutil.get_terminal_size().columns
+
+
+def _declared_max_widths(
+    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None,
+) -> list[ColumnWidth] | None:
+    """Per-column width declared by the {class}`ColumnSpec` entries of `headers`.
+
+    Returns `None` when no header carries a `max_width`, which keeps an
+    explicit `max_column_widths` argument as the only source in that case.
+    """
+    if not headers:
+        return None
+    widths: list[ColumnWidth] = [
+        header.max_width if isinstance(header, ColumnSpec) else None
+        for header in headers
+    ]
+    return widths if any(width is not None for width in widths) else None
+
+
+def _normalize_max_widths(
+    max_column_widths: MaxColumnWidths,
+    column_count: int,
+) -> list[ColumnWidth] | None:
+    """Expand a scalar, then pad or trim the result to one entry per column."""
+    if max_column_widths is None:
+        return None
+    if isinstance(max_column_widths, (int, str)):
+        return [max_column_widths] * column_count
+    widths: list[ColumnWidth] = list(max_column_widths)
+    widths.extend([None] * (column_count - len(widths)))
+    return widths[:column_count]
+
+
+def _decoration_width(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None,
+    table_format: TableFormat | None,
+    natural: Sequence[int],
+) -> int:
+    """Columns the borders and padding of a format add to its widest row.
+
+    Measured on a real unconstrained render rather than derived from the
+    box-drawing definition of the format, so every tabulate layout is covered
+    by the same code path, custom registrations included.
+    """
+    baseline = _render_tabulate(table_data, headers, table_format=table_format)
+    widest = max((_visible_width(line) for line in baseline.splitlines()), default=0)
+    return max(widest - sum(natural), 0)
+
+
+def _resolve_auto_widths(
+    widths: Sequence[ColumnWidth],
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None,
+    table_format: TableFormat | None,
+) -> list[int | None]:
+    """Turn every {data}`AUTO_WIDTH` entry into a concrete character count.
+
+    An `auto` column absorbs whatever the terminal has left once the
+    decoration of the format and the width of the other columns are paid for.
+    Several `auto` columns share that remainder evenly, and none is ever
+    resolved below {data}`MIN_COLUMN_WIDTH`.
+    """
+    auto_width = MIN_COLUMN_WIDTH
+    # Measuring the terminal and the natural render is only worth it when a
+    # column actually asked for it.
+    if AUTO_WIDTH in widths:
+        natural = _natural_column_widths(table_data, headers)
+        natural.extend([0] * (len(widths) - len(natural)))
+        available = _available_width()
+
+        if table_format is TableFormat.VERTICAL:
+            # Vertical stacks one cell per line, so a column competes with the
+            # label gutter rather than with its neighbors.
+            label_width = max((_visible_width(h) for h in headers or ()), default=0)
+            budget = available - label_width - len(" | ")
+        else:
+            fixed = 0
+            auto_count = 0
+            for index, width in enumerate(widths):
+                if width == AUTO_WIDTH:
+                    auto_count += 1
+                elif isinstance(width, int):
+                    fixed += min(natural[index], width)
+                else:
+                    fixed += natural[index]
+            decoration = _decoration_width(table_data, headers, table_format, natural)
+            budget = (available - decoration - fixed) // auto_count
+
+        auto_width = max(budget, MIN_COLUMN_WIDTH)
+
+    concrete: list[int | None] = []
+    for width in widths:
+        if width == AUTO_WIDTH:
+            concrete.append(auto_width)
+        else:
+            concrete.append(width if isinstance(width, int) else None)
+    return concrete
+
+
+def _resolve_column_widths(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None,
+    labels: Sequence[str | None] | None,
+    table_format: TableFormat | None,
+    max_column_widths: MaxColumnWidths,
+) -> list[int | None] | None:
+    """Resolve the width limits a render should apply, or `None` for no limit.
+
+    An explicit `max_column_widths` wins over the `max_width` declared by
+    {class}`ColumnSpec` headers. Widths tied to a `ColumnSpec` follow their
+    column through a `--columns` projection, where a positional list would
+    silently shift onto the wrong columns.
+
+    Formats unable to lay a wrapped cell over several lines (everything outside
+    {data}`~click_extra.table.WRAPPABLE_FORMATS`) resolve to `None`: the hint
+    is dropped rather than allowed to corrupt their output.
+    """
+    resolved_format = table_format if table_format is not None else DEFAULT_FORMAT
+    if not resolved_format.is_wrappable:
+        return None
+
+    column_count = max((len(row) for row in table_data), default=0)
+    if labels:
+        column_count = max(column_count, len(labels))
+    if not column_count:
+        return None
+
+    widths = _normalize_max_widths(max_column_widths, column_count)
+    if widths is None:
+        widths = _normalize_max_widths(_declared_max_widths(headers), column_count)
+    if widths is None or all(width is None for width in widths):
+        return None
+
+    return _resolve_auto_widths(widths, table_data, labels, table_format)
 
 
 def _select_table_funcs(
@@ -694,6 +992,7 @@ def render_table(
     headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None = None,
     table_format: TableFormat | None = None,
     sort_key: Callable[[Sequence[str | None]], Any] | None = None,
+    max_column_widths: MaxColumnWidths = None,
     **kwargs,
 ) -> str:
     """Render a table and return it as a string.
@@ -706,10 +1005,21 @@ def render_table(
 
     :param sort_key: Optional callable passed to :py:func:`sorted` as the `key`
         argument. When provided, rows are sorted before rendering.
+    :param max_column_widths: Width limits, as one entry per column or a single
+        value for all of them. Each entry is a character count, `"auto"` to
+        absorb the width left on the terminal, or `None` for no limit.
+        Defaults to the `max_width` declared by {class}`ColumnSpec` headers.
+        Silently dropped by formats outside
+        {data}`~click_extra.table.WRAPPABLE_FORMATS`.
     """
-    table_data, headers = _resolve_table_inputs(table_data, headers, sort_key)
+    table_data, labels = _resolve_table_inputs(table_data, headers, sort_key)
+    widths = _resolve_column_widths(
+        table_data, headers, labels, table_format, max_column_widths
+    )
+    if widths is not None:
+        kwargs["max_column_widths"] = widths
     render_func, _ = _select_table_funcs(table_format)
-    return render_func(table_data, headers, **kwargs)
+    return render_func(table_data, labels, **kwargs)
 
 
 def _strip_ansi_cells(
@@ -762,6 +1072,7 @@ def print_table(
     headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None = None,
     table_format: TableFormat | None = None,
     sort_key: Callable[[Sequence[str | None]], Any] | None = None,
+    max_column_widths: MaxColumnWidths = None,
     **kwargs,
 ) -> None:
     """Render a table and print it to the console.
@@ -785,8 +1096,14 @@ def print_table(
 
     :param sort_key: Optional callable passed to :py:func:`sorted` as the `key`
         argument. When provided, rows are sorted before rendering.
+    :param max_column_widths: Width limits, as one entry per column or a single
+        value for all of them. Each entry is a character count, `"auto"` to
+        absorb the width left on the terminal, or `None` for no limit.
+        Defaults to the `max_width` declared by {class}`ColumnSpec` headers.
+        Silently dropped by formats outside
+        {data}`~click_extra.table.WRAPPABLE_FORMATS`.
     """
-    table_data, headers = _resolve_table_inputs(table_data, headers, sort_key)
+    table_data, labels = _resolve_table_inputs(table_data, headers, sort_key)
 
     ansi_translator: Callable[[str], str] | None = None
     if table_format:
@@ -799,11 +1116,19 @@ def print_table(
             # stripping is necessary because some renderers (JSON, YAML)
             # escape raw ESC bytes, making post-render strip_ansi()
             # ineffective.
-            table_data, headers = _strip_ansi_cells(table_data, headers)
+            table_data, labels = _strip_ansi_cells(table_data, labels)
+
+    # Resolved once cells carry their final content, so an `auto` column is
+    # measured on the text that actually gets rendered.
+    widths = _resolve_column_widths(
+        table_data, headers, labels, table_format, max_column_widths
+    )
+    if widths is not None:
+        kwargs["max_column_widths"] = widths
 
     render_func, print_func = _select_table_funcs(table_format)
     try:
-        output = render_func(table_data, headers, **kwargs)
+        output = render_func(table_data, labels, **kwargs)
     except ImportError:
         assert table_format is not None
         raise SystemExit(f"Error: {_missing_extra_message(table_format)}") from None
@@ -1128,6 +1453,8 @@ class ColumnSpec:
     - `description`: a MyST/Markdown blurb describing what the column represents.
       Used to auto-generate the column reference in the documentation.
 
+    A fourth, `max_width`, is purely optional presentation.
+
     ```{note}
     Frozen + slots: instances are immutable and lightweight. Tuples of
     `ColumnSpec` are intended to be defined as module-level constants
@@ -1147,6 +1474,17 @@ class ColumnSpec:
     Used to auto-generate the *Available columns* section in the docs via the
     `show_params_columns_table` MyST substitution. Plain text without inline
     markup is fine: links and emphasis are optional sugar."""
+
+    max_width: ColumnWidth = None
+    """Width limit of this column, as a character count or {data}`AUTO_WIDTH`.
+
+    Cells longer than the limit wrap onto several lines, in the formats able to
+    render that (see {data}`~click_extra.table.WRAPPABLE_FORMATS`). `None`, the
+    default, lets the column take whatever width its widest cell needs.
+
+    Declaring the width here rather than passing a positional list to
+    {func}`render_table` keeps it attached to its column, so it survives a
+    `--columns` projection that drops or reorders columns."""
 
 
 def render_columns_markdown_table(columns: Iterable[ColumnSpec]) -> str:

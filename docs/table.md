@@ -465,6 +465,114 @@ invoke(table_command, args=["--table-format", "yaml"])
 invoke(table_command, args=["--table-format", "youtrack"])
 ```
 
+## Column widths
+
+A long cell stretches its column until the table runs off the terminal. `max_column_widths` caps it, wrapping the overflow onto extra lines while keeping it a single cell. Pass one entry per column, `None` leaving a column unbounded:
+
+```{click:source}
+from click_extra import command, pass_context
+
+@command
+@pass_context
+def forecast(ctx):
+    """Report the weather of a few cities."""
+    headers = ("City", "Forecast")
+    data = (
+        ("Paris", "Overcast in the morning, with a light drizzle after midday."),
+        ("Oslo", "Clear, turning colder overnight."),
+    )
+    ctx.print_table(data, headers, max_column_widths=[None, 30])
+```
+
+```{click:run}
+result = invoke(forecast)
+assert result.exit_code == 0
+assert "light drizzle" in result.stdout
+```
+
+A single value stands in for the whole table (`max_column_widths=30` caps every column), and a list shorter than the table leaves its trailing columns unbounded.
+
+### Widths on column definitions
+
+A width can also be declared on the {class}`~click_extra.table.ColumnSpec` describing the column, which applies without passing any argument:
+
+```{click:source}
+from click_extra import command, pass_context
+from click_extra.table import ColumnSpec
+
+COLUMNS = (
+    ColumnSpec(id="city", label="City"),
+    ColumnSpec(id="forecast", label="Forecast", max_width=30),
+)
+
+@command
+@pass_context
+def declared_forecast(ctx):
+    """Cap a column from its own definition."""
+    data = (
+        ("Paris", "Overcast in the morning, with a light drizzle after midday."),
+        ("Oslo", "Clear, turning colder overnight."),
+    )
+    ctx.print_table(data, COLUMNS)
+```
+
+```{click:run}
+result = invoke(declared_forecast)
+assert result.exit_code == 0
+assert "light drizzle" in result.stdout
+```
+
+Declaring it here rather than in a positional list keeps the width attached to its column, so it survives a {py:func}`columns_option <click_extra.decorators.columns_option>` projection that drops or reorders columns, where a positional list would shift onto the wrong columns. An explicit `max_column_widths` argument overrides it.
+
+### Auto width
+
+`"auto"` hands a column whatever the terminal has left, once the decoration of the format and the width of the other columns are paid for. Several `auto` columns share that remainder evenly, and none is ever resolved below `MIN_COLUMN_WIDTH`:
+
+```{click:source}
+from click_extra import command, pass_context
+
+@command(context_settings={"terminal_width": 60})
+@pass_context
+def narrow_forecast(ctx):
+    """Fit the forecast to a 60-column terminal."""
+    headers = ("City", "Forecast")
+    data = (
+        ("Paris", "Overcast in the morning, with a light drizzle after midday."),
+        ("Oslo", "Clear, turning colder overnight."),
+    )
+    ctx.print_table(data, headers, max_column_widths=[None, "auto"])
+```
+
+```{click:run}
+result = invoke(narrow_forecast)
+assert result.exit_code == 0
+assert max(len(line) for line in result.stdout.splitlines()) <= 60
+```
+
+The available width is resolved the way a help screen resolves its own, so the `terminal_width` and `max_content_width` context settings drive tables as well.
+
+### Formats honoring widths
+
+Wrapping a cell over several lines only makes sense for a format laying out text. Widths are silently dropped by every other one, the same way styling degrades per format: a width forced into a CSV field or a JSON string would change the data instead of its presentation, and one forced into Markdown would turn the continuation lines into extra rows.
+
+```{click:run}
+:show-source:
+from click_extra.table import TableFormat
+
+# Text layouts wrap.
+assert TableFormat.ROUNDED_OUTLINE.is_wrappable
+assert TableFormat.VERTICAL.is_wrappable
+
+# Data interchange and serialization never do.
+assert not TableFormat.CSV.is_wrappable
+assert not TableFormat.JSON.is_wrappable
+
+# Nor do markups whose continuation lines would read as extra rows.
+assert not TableFormat.GITHUB.is_wrappable
+```
+
+{data}`~click_extra.table.WRAPPABLE_FORMATS` holds the full registry, and documents the verdict format by format.
+
 ## Get table format
 
 You can get the ID of the current table format from the context:

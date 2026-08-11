@@ -5,6 +5,11 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add a `max_column_widths` argument to `render_table()` and `print_table()`, capping each column to a character count or to `auto` to absorb the width left on the terminal.
+- Add a `max_width` field to `ColumnSpec`, declaring the width limit of a column alongside its ID and label.
+- Wrap long cells in the `vertical` format, aligning continuation lines under the label gutter.
+- Add a `WRAPPABLE_FORMATS` registry and a `TableFormat.is_wrappable` property, listing the formats able to render a wrapped cell. Column widths are dropped by all others instead of corrupting their output.
+
 ## [`8.8.1` (2026-08-02)](https://github.com/kdeldycke/click-extra/compare/v8.8.0...v8.8.1)
 
 > [!NOTE]

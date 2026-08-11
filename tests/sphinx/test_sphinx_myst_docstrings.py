@@ -341,8 +341,25 @@ def test_footnote_def_not_matched_as_ref():
             "See [docs](https://example.com).",
             "See `docs <https://example.com>`_.",
         ),
+        # Balanced parentheses in a bare destination.
+        (
+            "[`train(5)` timetable](https://example.com/man?train(5))",
+            "`train(5) timetable <https://example.com/man?train(5)>`_",
+        ),
+        # Angle-bracketed destination, the CommonMark escape for parentheses.
+        (
+            "[`bus(7)` timetable](<https://example.com/man?bus(7)>)",
+            "`bus(7) timetable <https://example.com/man?bus(7)>`_",
+        ),
     ],
-    ids=["simple", "mid-sentence", "parens-in-url", "adjacent-to-punctuation"],
+    ids=[
+        "simple",
+        "mid-sentence",
+        "path-url",
+        "adjacent-to-punctuation",
+        "balanced-parens-in-url",
+        "angle-bracketed-url",
+    ],
 )
 def test_link_conversion(myst, expected):
     assert _convert(myst) == expected

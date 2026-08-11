@@ -124,14 +124,20 @@ _FOOTNOTE_REF_RE = re.compile(r"\[\^([\w-]+)\](?!:)")
 # [^label]: text -> .. [#label] text   (footnote definition)
 _FOOTNOTE_DEF_RE = re.compile(r"^\[\^([\w-]+)\]:\s?(.*)$", re.MULTILINE)
 
-# [text](url) but not ![alt](url)
-_LINK_RE = re.compile(r"(?<!!)\[([^\]]+)\]\(([^)]+)\)")
+# [text](url) but not ![alt](url). The destination takes either CommonMark
+# shape: angle-bracketed (the escape hatch for parentheses and spaces), or
+# bare with parentheses allowed one balanced level deep (a man-page anchor
+# like man.cgi?pkg(8)). Newlines never cross a destination: a link broken
+# over two lines stays unconverted rather than swallowing the paragraph.
+_LINK_RE = re.compile(
+    r"(?<!!)\[([^\]]+)\]\((?:<([^<>\n]*)>|((?:[^()\n]|\([^()\n]*\))+))\)"
+)
 
 
 def _convert_link(match: re.Match[str]) -> str:
     """Convert a markdown link to reST, stripping backticks from the label."""
     label = match.group(1).replace("`", "")
-    url = match.group(2)
+    url = match.group(2) if match.group(2) is not None else match.group(3)
     return f"`{label} <{url}>`_"
 
 

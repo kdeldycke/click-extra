@@ -52,6 +52,7 @@ from click_extra.pytest import command_decorators
 from click_extra.table import (
     SERIALIZATION_FORMATS,
     STYLED_FORMATS,
+    WRAPPABLE_FORMATS,
     ColumnsOption,
     ColumnSpec,
     SortByOption,
@@ -64,6 +65,7 @@ from click_extra.table import (
     print_data,
     print_table,
     render_table,
+    select_columns,
     serialize_data,
 )
 
@@ -1136,6 +1138,164 @@ def test_render_table_header_edge_cases(headers, data, expected):
     """Edge cases for header handling in structured format rendering."""
     result = render_table(data, headers=headers, table_format=TableFormat.JSON)
     assert json.loads(result) == expected
+
+
+WRAP_HEADERS = ("City", "Notes")
+WRAP_LONG_CELL = "A very long note about the weather that will certainly need wrapping."
+WRAP_DATA = (("Paris", WRAP_LONG_CELL), ("Oslo", "Short."))
+
+
+@pytest.mark.once
+def test_wrappable_formats_definition():
+    """Wrapping is claimed by text layouts only, never by a data interchange."""
+    assert WRAPPABLE_FORMATS <= set(TableFormat)
+
+    # A line break inside a field would change the record, not its presentation.
+    assert not WRAPPABLE_FORMATS & SERIALIZATION_FORMATS
+    assert not {f for f in WRAPPABLE_FORMATS if f.value.startswith("csv")}
+    assert TableFormat.TSV not in WRAPPABLE_FORMATS
+
+    # The registry and the property agree.
+    for table_format in TableFormat:
+        assert table_format.is_wrappable == (table_format in WRAPPABLE_FORMATS)
+
+
+@pytest.mark.parametrize("format_id", [pytest.param(f, id=str(f)) for f in TableFormat])
+def test_max_column_widths_never_breaks_a_format(format_id):
+    """Every format accepts a width: it either wraps on it or drops it.
+
+    Locks the invariant across the whole enum, so a format added later cannot
+    silently raise or corrupt its output when handed a width.
+    """
+    output = render_table(
+        WRAP_DATA, WRAP_HEADERS, table_format=format_id, max_column_widths=[None, 30]
+    )
+    # A wrapped cell no longer carries its text on a single line.
+    wrapped = WRAP_LONG_CELL not in output
+    assert wrapped == format_id.is_wrappable
+
+
+@pytest.mark.parametrize(
+    "format_id",
+    [
+        pytest.param(f, id=str(f))
+        for f in (*SERIALIZATION_FORMATS, TableFormat.CSV, TableFormat.TSV)
+    ],
+)
+def test_max_column_widths_keeps_data_formats_intact(format_id):
+    """A width never leaks a line break into a serialized cell."""
+    output = render_table(
+        WRAP_DATA, WRAP_HEADERS, table_format=format_id, max_column_widths=[None, 20]
+    )
+    assert WRAP_LONG_CELL in output
+
+
+def test_max_column_widths_scalar_applies_to_every_column():
+    """A single value stands in for a per-column list."""
+    output = render_table(WRAP_DATA, WRAP_HEADERS, max_column_widths=4)
+    assert "Pari" in output
+    assert "Paris" not in output
+
+
+def test_max_column_widths_shorter_than_the_table():
+    """A list shorter than the table leaves the trailing columns unlimited."""
+    output = render_table(WRAP_DATA, WRAP_HEADERS, max_column_widths=[4])
+    assert "Pari" in output
+    assert WRAP_LONG_CELL in output
+
+
+def test_column_spec_max_width_is_the_default_source():
+    """A width declared on a ColumnSpec applies without any argument."""
+    headers = (
+        ColumnSpec(id="city", label="City"),
+        ColumnSpec(id="notes", label="Notes", max_width=30),
+    )
+    output = render_table(WRAP_DATA, headers)
+    assert WRAP_LONG_CELL not in output
+    assert "need wrapping." in output
+
+
+def test_max_column_widths_overrides_column_spec():
+    """An explicit argument wins over the ColumnSpec declaration."""
+    headers = (
+        ColumnSpec(id="city", label="City"),
+        ColumnSpec(id="notes", label="Notes", max_width=30),
+    )
+    output = render_table(WRAP_DATA, headers, max_column_widths=[None, None])
+    assert WRAP_LONG_CELL in output
+
+
+def test_column_spec_max_width_follows_a_projection():
+    """A ColumnSpec width stays on its column when others are dropped."""
+    columns = (
+        ColumnSpec(id="city", label="City"),
+        ColumnSpec(id="country", label="Country"),
+        ColumnSpec(id="notes", label="Notes", max_width=30),
+    )
+    data = (("Paris", "France", WRAP_LONG_CELL),)
+
+    # Dropping the middle column shifts `notes` from index 2 to index 1. A
+    # positional list would now cap `city` instead.
+    projected = select_columns(columns, ("city", "notes"))
+    output = render_table((("Paris", WRAP_LONG_CELL),), projected)
+    assert "Paris" in output
+    assert WRAP_LONG_CELL not in output
+
+    # Same table, unprojected, for contrast.
+    assert WRAP_LONG_CELL not in render_table(data, columns)
+
+
+def test_auto_width_fits_the_terminal(monkeypatch):
+    """An `auto` column absorbs the width left by the others."""
+    monkeypatch.setenv("COLUMNS", "50")
+    output = render_table(WRAP_DATA, WRAP_HEADERS, max_column_widths=[None, "auto"])
+    assert max(len(line) for line in output.splitlines()) <= 50
+    assert WRAP_LONG_CELL not in output
+
+
+def test_auto_width_shares_the_remainder(monkeypatch):
+    """Several `auto` columns split what is left evenly."""
+    monkeypatch.setenv("COLUMNS", "60")
+    output = render_table(WRAP_DATA, WRAP_HEADERS, max_column_widths="auto")
+    assert max(len(line) for line in output.splitlines()) <= 60
+
+
+def test_auto_width_floors_at_min_column_width(monkeypatch):
+    """A terminal too narrow to fit the table still renders a usable column."""
+    monkeypatch.setenv("COLUMNS", "1")
+    output = render_table(WRAP_DATA, WRAP_HEADERS, max_column_widths=[None, "auto"])
+    # Wrapped on MIN_COLUMN_WIDTH rather than collapsed to nothing.
+    assert "weather" in output
+    assert WRAP_LONG_CELL not in output
+
+
+def test_auto_width_honors_context_width(invoke):
+    """`auto` reads the width a help screen would use, not the raw terminal."""
+
+    @command(context_settings={"terminal_width": 40})
+    @pass_context
+    def weather(ctx):
+        ctx.print_table(WRAP_DATA, WRAP_HEADERS, max_column_widths=[None, "auto"])
+
+    result = invoke(weather, color=False)
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert max(len(line) for line in result.stdout.splitlines()) <= 40
+
+
+def test_vertical_wrapping_keeps_the_label_gutter():
+    """Continuation lines of a wrapped cell align under the first one."""
+    output = render_table(
+        WRAP_DATA,
+        WRAP_HEADERS,
+        table_format=TableFormat.VERTICAL,
+        max_column_widths=[None, 30],
+    )
+    assert output.splitlines()[1:4] == [
+        "City  | Paris",
+        "Notes | A very long note about the",
+        "      | weather that will certainly",
+    ]
 
 
 @pytest.mark.parametrize(
