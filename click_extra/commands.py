@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import os
 from difflib import get_close_matches
 
 import click
@@ -466,55 +467,75 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         return super().make_context(info_name, args, parent, **extra)
 
     def _resolve_color_eagerly(self, ctx: click.Context, args: list[str]) -> None:
-        """Settle the color options before any other eager option can render.
+        """Settle the color and accessibility options before any eager one renders.
 
-        Click processes eager options in command-line order, so a `--color` /
-        `--no-color` placed *after* `--help` or `--version` would pin
-        `ctx.color` too late: the help or version screen renders and exits first,
-        ignoring it. This pre-pass resolves the
-        {class}`~click_extra.color.ColorOption` and
-        {class}`~click_extra.color.NoColorOption` ahead of the regular parameter
-        loop, so an explicit color choice colorizes those eager screens whatever its
-        position on the command line.
+        Click sorts eager options by their command-line position and puts the ones
+        *not* typed last, so any option that renders and exits — `--help`,
+        `--version`, `--man`, `--show-params` — is processed before every eager
+        option the user did not also type. `--color`, `--no-color` and
+        `--accessible` would therefore pin their state too late: the screen has
+        already rendered. This pre-pass resolves them ahead of the regular parameter
+        loop, so the choice reaches those screens whatever its position.
 
-        This is the command-line counterpart to the environment pre-seed in
-        {meth}`click_extra.context.Context.__init__`, which already settles
-        `FORCE_COLOR` / `NO_COLOR` at context-construction time. Configuration
-        files and `--accessible` are deliberately left to the regular loop, matching
-        that pre-seed's scope.
+        {class}`~click_extra.accessibility.AccessibleOption` is resolved first,
+        because it works by *lowering the `--color` default* through the context's
+        `default_map`, which the color options then read. Reversing the two would
+        leave the lowered default unread. Its global `ACCESSIBLE` environment
+        variable triggers the pre-pass as well: the flag is absent from the command
+        line in that case, which is exactly the sorting hole described above.
+
+        Skipping accessible mode here used to be deliberate, on the grounds that it
+        matched the scope of the environment pre-seed in
+        {meth}`click_extra.context.Context.__init__` (which settles `FORCE_COLOR` /
+        `NO_COLOR` at context-construction time). That reasoning does not survive
+        contact with the contract {class}`~click_extra.accessibility.AccessibleOption`
+        advertises — "equivalent to passing `--no-color`" — nor with who is harmed
+        when it goes unhonored: `--accessible --version` emitted a screen full of
+        ANSI to the one audience that asked for none. Configuration files stay out,
+        having no such promise to keep.
 
         ```{note}
-        The color options are resolved a second time by
-        `super().parse_args()`. Their callbacks are idempotent (no env-var side
-        effects, no prompt), so re-running them lands the exact same `ctx.color`,
-        and {meth}`click_extra.parameters.ExtraOption.handle_parse_result` skips its
-        source pre-record once the slot already carries one.
+        Both option groups are resolved a second time by `super().parse_args()`.
+        Their callbacks are idempotent (no env-var side effects, no prompt, and a
+        `setdefault` on the `default_map`), so re-running them lands the exact same
+        state, and {meth}`click_extra.parameters.ExtraOption.handle_parse_result`
+        skips its source pre-record once the slot already carries one.
         ```
         """
+        accessible_params = [
+            param
+            for param in self.get_params(ctx)
+            if isinstance(param, AccessibleOption)
+        ]
         color_params = [
             param
             for param in self.get_params(ctx)
             if isinstance(param, (ColorOption, NoColorOption))
         ]
-        if not color_params:
+        if not accessible_params and not color_params:
             return
 
-        # Only pay for a re-parse when a color flag actually sits on the command line.
-        color_flags = {
+        # Only pay for a re-parse when one of these flags actually sits on the
+        # command line, or when the environment asks for accessible mode.
+        flags = {
             flag
-            for param in color_params
+            for param in (*accessible_params, *color_params)
             for flag in (*param.opts, *param.secondary_opts)
         }
-        if not any(arg.split("=", 1)[0] in color_flags for arg in args):
+        on_cli = any(arg.split("=", 1)[0] in flags for arg in args)
+        from_env = bool(accessible_params) and os.environ.get("ACCESSIBLE") is not None
+        if not on_cli and not from_env:
             return
 
         parser = self.make_parser(ctx)
         try:
             opts, _, param_order = parser.parse_args(args=args.copy())
-            # Respect the relative command-line order of --color and --no-color so
-            # the last one wins, matching how the regular loop would arbitrate them.
-            for param in iter_params_for_processing(param_order, color_params):
-                param.handle_parse_result(ctx, opts, args.copy())
+            # Accessible first: it lowers the color default the color options read.
+            # Within each group, respect the relative command-line order so the last
+            # of --color / --no-color wins, matching the regular loop's arbitration.
+            for group in (accessible_params, color_params):
+                for param in iter_params_for_processing(param_order, group):
+                    param.handle_parse_result(ctx, opts, args.copy())
         except click.ClickException:
             # Defer every parsing and validation error (and its enhanced message) to
             # the regular parse below, which renders an eager --help/--version first
@@ -525,9 +546,10 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         """Like parent's `parse_args` but with better error messages for
         single-dash multi-character tokens.
 
-        Also settles the color options before delegating, so `--color` /
-        `--no-color` colorize the eager help and version screens regardless of their
-        position on the command line. See `_resolve_color_eagerly`.
+        Also settles the color and accessibility options before delegating, so
+        `--color`, `--no-color` and `--accessible` reach the eager help and version
+        screens regardless of their position on the command line. See
+        `_resolve_color_eagerly`.
         """
         original_args = args.copy()
         self._resolve_color_eagerly(ctx, args)
