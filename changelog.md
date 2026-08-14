@@ -5,6 +5,10 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Exempt the inline `repomatic` pin from the supply-chain cooldown in the test workflow, which no longer resolves to nothing and skips the whole suite after a repomatic release.
+- Opt the `test-package-install` job out of the cooldown, so it exercises the release that just shipped instead of the previous one.
+- Pin the uv version installed by `astral-sh/setup-uv` in the test workflow.
+- Enable ruff's `PLW1514` and disable its unsafe fixes.
 - Skip `test_blocks_reexported_from_sphinx_package` without the `sphinx` extra, instead of failing on the `ImportError` `click_extra.sphinx` raises. It is the only test outside `tests/sphinx/` importing that package, so the `collect_ignore_glob` guarding the tree left it exposed, and it is what fails the Guix build of `8.8.1` on every architecture its CI has completed.
 - Skip `tests/sphinx/test_sphinx_matrix.py` when no `git` binary is on `PATH`, instead of failing all 41 of its cases with an unexplained `FileNotFoundError`. It builds throwaway repositories with `git init` to walk their tags, making it the one test module needing a command rather than an import.
 - Bind the test suite's local HTTP server to `127.0.0.1` instead of the `localhost` name `pytest-httpserver` defaults to. The 20 configuration tests serving a config file over HTTP no longer need a resolver, which a build sandbox is entitled to deny: on macOS the Nix one does, and each of them errored there with `socket.gaierror`.

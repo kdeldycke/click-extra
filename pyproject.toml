@@ -340,11 +340,23 @@ include-package-data = "click_extra"
 [tool.ruff]
 preview = true
 fix = true
-unsafe-fixes = true
+# Unsafe fixes rewrite semantics, not just style, and the autofix workflow
+# commits them unreviewed. Archetype: LOG001's unsafe fix turned a deliberate
+# direct `logging.Logger(name, level)` instantiation into `getLogger(name,
+# level)`, an invalid call that would also flip the logger into the shared
+# registry. See: https://docs.astral.sh/ruff/linter/#fix-safety
+unsafe-fixes = false
 show-fixes = true
 # Enable reformatting of code snippets in docstrings.
 # https://docs.astral.sh/ruff/formatter/#docstring-formatting
 format.docstring-code-format = true
+# PLW1514: `open` and friends called without an explicit `encoding` argument.
+#   Windows defaults text I/O to cp1252, so a bare `open()`, `read_text()` or
+#   `write_text()` breaks on non-ASCII content, and only on Windows runners.
+#   Preview rule; its type inference misses unannotated `Path` locals, so
+#   PEP 597's `PYTHONWARNDEFAULTENCODING=1` remains the complete runtime net.
+#   See: https://docs.astral.sh/ruff/rules/unspecified-encoding/
+lint.extend-select = [ "PLW1514" ]
 # B008: Do not perform function call in argument defaults.
 #   Click's API requires function calls in defaults (e.g. `_()` for i18n,
 #   `EnumChoice()`, `Style()`, `ClickPath()`). This is intentional.
@@ -363,6 +375,12 @@ lint.isort.combine-as-imports = true
 # this would simplify a fix or enable a new diagnostic.
 # https://docs.astral.sh/ruff/settings/#lint_future-annotations
 lint.future-annotations = true
+# Report `ISC004` rather than `implicit-string-concatenation-in-collection-literal`.
+# Preview mode otherwise prints human-readable rule names, but every knob below
+# (and every CI annotation a contributor acts on) speaks in codes, so the code is
+# the token you paste into `lint.ignore` to silence what you just read.
+# https://docs.astral.sh/ruff/settings/#output-prefer-rule-codes
+output-prefer-rule-codes = true
 
 [tool.typos]
 default.extend-identifiers = { Github = "GitHub", IOS = "iOS", Javascript = "JavaScript", MacOS = "macOS", PyPi = "PyPI", Typescript = "TypeScript" }

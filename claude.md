@@ -8,6 +8,44 @@ This project reuses workflows from [`kdeldycke/repomatic`](https://github.com/kd
 
 **Release coupling:** click-extra dogfoods repomatic in its own release pipeline, while repomatic depends on click-extra. Before releasing a change that renames or removes any symbol repomatic imports (the `click_extra.config` surface, or the CLI framework it builds on), release the fixed repomatic and bump the pin first. Otherwise the release publishes to PyPI but dies in repomatic's `metadata` step, leaving the version untagged with no GitHub release. See repomatic's `claude.md` ("click_extra is both a dependency and a release consumer") for the upstream side of this rule.
 
+## Cooldown on every install
+
+**Every command that resolves a package from a live registry carries a cooldown, except where this section names otherwise.** A cooldown refuses any version published more recently than a fixed window, so a compromised release has to survive that window before it can enter a build. Most malicious releases (stolen publishing credentials, dependency confusion, account takeover) are caught and pulled within days of publication, which is what makes a window of days worth the delay it costs.
+
+The rule has **no scratch exemption**. It binds workflows, one-off CI steps, test scripts and local reproduction commands equally: an uncooled `uvx` in a five-minute debugging step resolves the same tree from the same registry onto the same runner as a production job. The exceptions are the two documented exemptions below, and nothing else.
+
+### Where the window comes from
+
+`[tool.repomatic] minimum-release-age` is the single source of truth. Never hard-code a duration next to an install command. Two places carry it as a literal instead, and both must be kept equal to it by hand:
+
+- **Every workflow**, because YAML cannot read Python: each sets `UV_EXCLUDE_NEWER` and `NPM_CONFIG_MIN_RELEASE_AGE` in a **workflow-level `env:` block**. Job-level `env:` cannot cover the bootstrap, since `metadata` resolves packages before any other job's output exists and a workflow-level block cannot reference `needs`. The literal covers every job, including that bootstrap and any step added later by someone who never read this section.
+- **`[tool.uv] exclude-newer`**, because uv reads its own config and knows nothing of `[tool.repomatic]`. The two must not merely be *close*: a lock window wider than the install window resolves versions those installs then refuse, leaving a package pinned in `uv.lock` that CI cannot install.
+
+This is the one place an environment variable beats an explicit flag, inverting [§ uv flags in CI workflows](#uv-flags-in-ci-workflows): a flag only protects the command someone remembered to write it on, and the commands that most need protecting are the ones nobody thought about.
+
+### Per-package exemptions are CLI-flag-only
+
+uv accepts a friendly duration (`1 week`), an ISO 8601 span (`P7D`), or an absolute date. The blanket knob is `--exclude-newer` / `UV_EXCLUDE_NEWER`; the per-package bypass is `--exclude-newer-package pkg=SPAN`, **available as a CLI flag only**.
+
+That restriction is load-bearing, and worth stating plainly because it is not guessable: a `uvx` resolution reads *no project configuration at all*. Neither `[tool.uv] exclude-newer-package` in `pyproject.toml` nor an adjacent `uv.toml` reaches it, and uv exposes no environment variable for the per-package form. So every bypass has to sit on the command line. Upstream request: [astral-sh/uv#20995](https://github.com/astral-sh/uv/issues/20995).
+
+A cooldown-filtered resolution is not a dependency conflict, and uv says so. Read the `hint:` naming the filtered package and its cutoff before diagnosing a "No solution found" as a real conflict:
+
+```text
+hint: `repomatic` was filtered by `exclude-newer` to only include packages
+uploaded before 2026-08-07T15:01:07Z. The requested version, v7.11.0, was
+published at 2026-08-13T07:52:30Z.
+```
+
+### Documented exemptions
+
+Two installs deliberately bypass the window. A third is a bug until proven otherwise: anything claiming one carries a comment naming what breaks without it, and the narrowest scope that still works (a package, not a job; a job, not a workflow).
+
+- **repomatic's own pin in `tests.yaml`.** The inline `'repomatic==X.Y.Z'` moves in lockstep with the `uses:` refs pointing at the same tag, so it routinely names a release published hours ago. It carries `--exclude-newer-package repomatic=P0D` beside the pin. Dropping that flag takes the entire Tests workflow down: `metadata` cannot resolve, and every job is `needs: metadata`, so the run reports failure while executing no test at all.
+- **The `test-package-install` job.** Its subject *is* the freshly published click-extra, so a cooldown makes the question it exists to answer unanswerable, and it silently exercises the previous release instead. Scoped to that one job via a job-level `UV_EXCLUDE_NEWER: P0D`, which is what keeps it honest: it holds no secrets, inherits `permissions: {}`, and only runs `--version` on a throwaway runner.
+
+When bumping the inline pin by hand, carry the exemption with it. `sync-workflow-pins` splices a missing one in, but only on a run that also moves the version, so a pin already sitting on the newest release never gets it backfilled.
+
 ## Commands
 
 ### Testing
@@ -321,6 +359,14 @@ When invoking `uv` and `uvx` commands in GitHub Actions workflows:
 - **Exceptions:** Omit `--frozen` for `uvx` with pinned versions, `uv tool install`, CLI invocability tests, and local development examples.
 - **Prefer explicit flags over environment variables** (`UV_NO_PROGRESS`, `UV_FROZEN`). Flags are self-documenting, visible in logs, avoid conflicts (e.g., `UV_FROZEN` vs `--locked`), and align with the long-form option principle.
 - **Per-group `requires-python` in `[tool.uv]`:** When docs or other dependency groups require newer Python features, restrict specific groups with `dependency-groups.docs = { requires-python = ">= 3.14" }`. This prevents uv from installing incompatible dependencies when running on older Python versions.
+
+### Pin uv itself, in two separate places
+
+`[tool.uv] required-version` is a floor for everyone. What a runner *downloads* is a different question, and left to `astral-sh/setup-uv` the answer is "the newest release satisfying the floor", installed seconds after it lands. That makes the tool enforcing every cooldown the one tool without one.
+
+So every `astral-sh/setup-uv` step carries `with: version: "X.Y.Z"`, and `sync-workflow-pins` walks it forward once a uv release clears [`minimum-release-age`](#cooldown-on-every-install), like any other pinned literal. All steps in a workflow name the same version. The pin is not a cap: it never co-resolves with anything, and CI still moves forward on its own, just a window behind.
+
+Skip a hard upper cap on `required-version` (`<0.13`): uv self-updates on many machines, so a cap breaks every contributor and runner the day the next minor lands, and `required-version` is a self-gate that never co-resolves with the project's dependencies (the usual reason to cap a dependency does not apply).
 
 ## Testing guidelines
 
