@@ -2228,9 +2228,11 @@ def test_keyword_collection(invoke, assert_output_regex):
         ("Straße", "ß", "Stra\x1b[32mß\x1b[0me", False),
         # ("Straße", ["SS"], "Stra\x1b[32mß\x1b[0me", True),
         (
-            "[double-grid|double-outline|fancy-grid|fancy-outline|github|grid"
-            "|heavy-grid|heavy-outline|mixed-grid|mixed-outline|moinmoin|outline"
-            "|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline]",
+            (
+                "[double-grid|double-outline|fancy-grid|fancy-outline|github|grid"
+                "|heavy-grid|heavy-outline|mixed-grid|mixed-outline|moinmoin|outline"
+                "|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline]"
+            ),
             [
                 "double-grid",
                 "double-outline",
@@ -2251,14 +2253,16 @@ def test_keyword_collection(invoke, assert_output_regex):
                 "simple-grid",
                 "simple-outline",
             ],
-            "[\x1b[32mdouble-grid\x1b[0m|\x1b[32mdouble-outline\x1b[0m"
-            "|\x1b[32mfancy-grid\x1b[0m|\x1b[32mfancy-outline\x1b[0m"
-            "|\x1b[32mgithub\x1b[0m|\x1b[32mgrid\x1b[0m|\x1b[32mheavy-grid\x1b[0m"
-            "|\x1b[32mheavy-outline\x1b[0m|\x1b[32mmixed-grid\x1b[0m"
-            "|\x1b[32mmixed-outline\x1b[0m|\x1b[32mmoinmoin\x1b[0m"
-            "|\x1b[32moutline\x1b[0m|\x1b[32mrounded-grid\x1b[0m"
-            "|\x1b[32mrounded-outline\x1b[0m|\x1b[32mrst\x1b[0m|\x1b[32msimple\x1b[0m"
-            "|\x1b[32msimple-grid\x1b[0m|\x1b[32msimple-outline\x1b[0m]",
+            (
+                "[\x1b[32mdouble-grid\x1b[0m|\x1b[32mdouble-outline\x1b[0m"
+                "|\x1b[32mfancy-grid\x1b[0m|\x1b[32mfancy-outline\x1b[0m"
+                "|\x1b[32mgithub\x1b[0m|\x1b[32mgrid\x1b[0m|\x1b[32mheavy-grid\x1b[0m"
+                "|\x1b[32mheavy-outline\x1b[0m|\x1b[32mmixed-grid\x1b[0m"
+                "|\x1b[32mmixed-outline\x1b[0m|\x1b[32mmoinmoin\x1b[0m"
+                "|\x1b[32moutline\x1b[0m|\x1b[32mrounded-grid\x1b[0m"
+                "|\x1b[32mrounded-outline\x1b[0m|\x1b[32mrst\x1b[0m|\x1b[32msimple\x1b[0m"
+                "|\x1b[32msimple-grid\x1b[0m|\x1b[32msimple-outline\x1b[0m]"
+            ),
             False,
         ),
         # Regex patterns - basic patterns.

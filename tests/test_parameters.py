@@ -1197,8 +1197,10 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✓",
             "",
-            "SHOW_PARAMS_SUB_SUB_INT_PARAM, "
-            "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_SHOW_PARAMS_SUB_SUB_INT_PARAM",
+            (
+                "SHOW_PARAMS_SUB_SUB_INT_PARAM, "
+                "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_SHOW_PARAMS_SUB_SUB_INT_PARAM"
+            ),
             10,
             "✘",
             "",

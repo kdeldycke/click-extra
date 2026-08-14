@@ -47,9 +47,11 @@ def test_blocks_module_needs_no_sphinx_extra():
         [
             sys.executable,
             "-c",
-            "import sys, click_extra.blocks; "
-            "assert 'sphinx' not in sys.modules, 'sphinx leaked'; "
-            "assert 'docutils' not in sys.modules, 'docutils leaked'",
+            (
+                "import sys, click_extra.blocks; "
+                "assert 'sphinx' not in sys.modules, 'sphinx leaked'; "
+                "assert 'docutils' not in sys.modules, 'docutils leaked'"
+            ),
         ],
         capture_output=True,
         text=True,

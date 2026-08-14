@@ -70,13 +70,17 @@ def test_parse_returns_cases():
     ("suite_string", "fmt"),
     (
         (
-            '[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n\n'
-            '[[cases]]\ncli_parameters = "--help"\n',
+            (
+                '[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n\n'
+                '[[cases]]\ncli_parameters = "--help"\n'
+            ),
             ConfigFormat.TOML,
         ),
         (
-            '[{"cli_parameters": "--version", "exit_code": 0}, '
-            '{"cli_parameters": "--help"}]',
+            (
+                '[{"cli_parameters": "--version", "exit_code": 0}, '
+                '{"cli_parameters": "--help"}]'
+            ),
             ConfigFormat.JSON,
         ),
     ),
@@ -210,8 +214,10 @@ def test_case_rejects_non_numeric_timeout(value):
 _INTERLEAVE = (
     "-u",
     "-c",
-    "import sys; sys.stdout.write('out-1\\n'); "
-    "sys.stderr.write('err-1\\n'); sys.stdout.write('out-2\\n')",
+    (
+        "import sys; sys.stdout.write('out-1\\n'); "
+        "sys.stderr.write('err-1\\n'); sys.stdout.write('out-2\\n')"
+    ),
 )
 
 

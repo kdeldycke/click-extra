@@ -47,8 +47,10 @@ from click_extra import command, context, echo, pass_context, telemetry_option
         # (and show the defaults).
         (
             command,
-            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                CLI_TELEMETRY; default: no-telemetry]\n",
+            (
+                "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+                "                                CLI_TELEMETRY; default: no-telemetry]\n"
+            ),
         ),
     ),
 )
@@ -87,13 +89,17 @@ def test_standalone_telemetry_option(
         # envvar, whose prefix the Context upper-cases.
         (
             click.command,
-            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                YO_TELEMETRY; default: no-telemetry]\n",
+            (
+                "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+                "                                YO_TELEMETRY; default: no-telemetry]\n"
+            ),
         ),
         (
             cloup.command,
-            "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
-            "                                YO_TELEMETRY; default: no-telemetry]\n",
+            (
+                "  --telemetry / --no-telemetry  Collect telemetry and usage data.  [env var:\n"
+                "                                YO_TELEMETRY; default: no-telemetry]\n"
+            ),
         ),
         # Click Extra pre-registers the auto-generated envvar at command
         # creation, where the prefix keeps its declared case (except on
