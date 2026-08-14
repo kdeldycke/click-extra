@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.9.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.9.0` (2026-08-14)](https://github.com/kdeldycke/click-extra/compare/v8.8.1...v8.9.0)
 
 - Add a `transform` argument to `EnumChoice`, reshaping the string produced by any choice source, so `show_aliases` can spell aliases in kebab-case instead of raw Python identifiers.
