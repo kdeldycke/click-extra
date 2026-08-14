@@ -23,6 +23,11 @@
 - Translate Poetry's major-only tilde (`~1`) and its wildcard ranges (`*`, `1.*`, `1.2.*`), which used to be unparsable and rendered an all-❌ row.
 - Give an exact `==` pin a column of its own precision, so the single release it accepts no longer renders as all-❌.
 - Test the matrix rendering of exotic dependency specifiers: pins, wildcards, exclusion clauses, epochs, and Poetry caret and tilde ranges.
+- Drop the Codecov integration, its badge and its upload steps. Coverage is now gated by the `[tool.coverage] report.fail_under` ratchet.
+- Fix the test workflow's metadata job requesting `coverage_cells`, a key repomatic dropped, which failed the job and skipped every job below it.
+- Move every test job and the full matrix off the `ubuntu-slim` and `ubuntu-24.04-arm` runners onto the `ubuntu-26.04` pair.
+- Restore the prerelease Python 3.15 probe to a single cell, which the new runner axis had silently doubled.
+- Skip the test workflow on version-bump pushes again, whose commit titles gained a `[changelog] ` prefix.
 
 ## [`8.8.1` (2026-08-02)](https://github.com/kdeldycke/click-extra/compare/v8.8.0...v8.8.1)
 

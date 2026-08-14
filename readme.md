@@ -8,7 +8,6 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/click-extra.svg)](https://pypi.org/project/click-extra/)
 [![Downloads](https://static.pepy.tech/badge/click-extra/month)](https://pepy.tech/projects/click-extra)
 [![Unittests status](https://img.shields.io/github/actions/workflow/status/kdeldycke/click-extra/tests.yaml?branch=main&label=%F0%9F%94%AC%20Tests)](https://github.com/kdeldycke/click-extra/actions/workflows/tests.yaml?query=branch%3Amain)
-[![Coverage status](https://codecov.io/gh/kdeldycke/click-extra/graph/badge.svg?token=PMEcGfrVEs)](https://codecov.io/gh/kdeldycke/click-extra)
 [![Documentation status](https://img.shields.io/github/actions/workflow/status/kdeldycke/click-extra/docs.yaml?branch=main&label=%F0%9F%93%9A%20Docs)](https://github.com/kdeldycke/click-extra/actions/workflows/docs.yaml?query=branch%3Amain)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7116050.svg)](https://doi.org/10.5281/zenodo.7116050)
 
