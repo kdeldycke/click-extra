@@ -7,6 +7,9 @@
 
 ## [`8.9.0` (2026-08-14)](https://github.com/kdeldycke/click-extra/compare/v8.8.1...v8.9.0)
 
+> [!NOTE]
+> `8.9.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.9.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.9.0).
+
 - Add a `transform` argument to `EnumChoice`, reshaping the string produced by any choice source, so `show_aliases` can spell aliases in kebab-case instead of raw Python identifiers.
 - Reject a `transform` collapsing two `EnumChoice` members into the same choice string, instead of silently dropping one from the help screen.
 - Point the `EnumChoice` `show_aliases` error at `transform` and explain why `ChoiceSource.STR` and callable sources cannot see aliases.
