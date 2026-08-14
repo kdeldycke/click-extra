@@ -319,7 +319,8 @@ build-backend.source-exclude = [
 # Ship the test suite (and the docs and CI files it reads) in the sdist so
 # distribution packagers can build and test straight from the PyPI sdist instead
 # of fetching a GitHub tag tarball. source-include feeds the sdist only; the
-# wheel stays module-only. Git-ignored build output is pruned via source-exclude.
+# wheel stays module-only. Git-ignored build output is pruned by the
+# source-exclude list above.
 build-backend.source-include = [
   ".github/**",
   "changelog.md",
@@ -445,7 +446,7 @@ overrides = [
   { module = [ "sphinx.*" ], ignore_missing_imports = true, follow_imports = "skip" },
 ]
 
-[tool.pytest]
+[tool.pytest]  # https://docs.pytest.org/en/latest/customize.html#pyproject-toml
 addopts = [
   "--durations=10",
   # Import test modules via importlib instead of prepending their root dir to
@@ -453,7 +454,6 @@ addopts = [
   # copy of the package coexists with the source tree, as in distro builds.
   "--import-mode=importlib",
 ]
-# https://docs.pytest.org/en/latest/customize.html#pyproject-toml
 markers = [
   "network: Tests that require network access (excluded with -m 'not network').",
   "once: Tests that only need to run once, not across the full CI matrix.",
