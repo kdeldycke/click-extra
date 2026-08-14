@@ -18,7 +18,7 @@ The rule has **no scratch exemption**. It binds workflows, one-off CI steps, tes
 
 `[tool.repomatic] minimum-release-age` is the single source of truth. Never hard-code a duration next to an install command. Two places carry it as a literal instead, and both must be kept equal to it by hand:
 
-- **Every workflow**, because YAML cannot read Python: each sets `UV_EXCLUDE_NEWER` and `NPM_CONFIG_MIN_RELEASE_AGE` in a **workflow-level `env:` block**. Job-level `env:` cannot cover the bootstrap, since `metadata` resolves packages before any other job's output exists and a workflow-level block cannot reference `needs`. The literal covers every job, including that bootstrap and any step added later by someone who never read this section.
+- **Every workflow that runs a step of its own** (`tests.yaml`, and `release.yaml` for its inline `publish-pypi` job), because YAML cannot read Python: each sets `UV_EXCLUDE_NEWER` and `NPM_CONFIG_MIN_RELEASE_AGE` in a **workflow-level `env:` block**. Job-level `env:` cannot cover the bootstrap, since `metadata` resolves packages before any other job's output exists and a workflow-level block cannot reference `needs`. The literal covers every job, including that bootstrap and any step added later by someone who never read this section. The thin callers that only `uses:` a repomatic reusable workflow carry no block, and adding one would be inert: a workflow-level `env:` does not cross into a reusable workflow, which carries its own upstream.
 - **`[tool.uv] exclude-newer`**, because uv reads its own config and knows nothing of `[tool.repomatic]`. The two must not merely be *close*: a lock window wider than the install window resolves versions those installs then refuse, leaving a package pinned in `uv.lock` that CI cannot install.
 
 This is the one place an environment variable beats an explicit flag, inverting [§ uv flags in CI workflows](#uv-flags-in-ci-workflows): a flag only protects the command someone remembered to write it on, and the commands that most need protecting are the ones nobody thought about.
@@ -220,7 +220,7 @@ assert result.output == "Hello, \x1b[31mWorld\x1b[0m!\n"
 
 - `:hide-source:` on `click:source` — hides the CLI definition (useful when the source is not relevant to the reader).
 - `:show-source:` on `click:run` — shows the invocation code alongside the terminal output.
-- `:emphasize-lines:` — highlights specific lines in the rendered block.
+- `:emphasize-lines:` — highlights specific lines in the source block. On `click:run`, `:emphasize-result-lines:` does the same for the captured output.
 
 ### Do not use static code blocks for CLI output
 

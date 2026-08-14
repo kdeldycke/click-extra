@@ -200,7 +200,9 @@ Lanes are read as lazily as `run_jobs` reads items: a lane is turned into a list
 
 ## Resolving the job count
 
-`run_jobs` and `run_lanes` decide their worker count internally, but a caller that must know it *before* fanning out (for example to pick a progress-rendering mode) can call `resolve_jobs(ctx, count)` directly. It returns the same number those helpers use: `1` (sequential) when there is no context, a single item, or `--jobs 1`, otherwise the resolved count capped at `count`. Passing `serial_at_debug=True` also collapses to sequential at `DEBUG` verbosity, where coherent per-worker log narration matters more than the speed-up; both helpers forward this flag.
+`run_jobs` and `run_lanes` decide their worker count internally, but a caller that must know it *before* fanning out (for example to pick a progress-rendering mode) can call `resolve_jobs(ctx, count)` directly. It applies the same policy those helpers do: `1` (sequential) when there is no context, a single item, or `--jobs 1`, otherwise the resolved count capped at `count`. Passing `serial_at_debug=True` also collapses to sequential at `DEBUG` verbosity, where coherent per-worker log narration matters more than the speed-up; both helpers forward this flag.
+
+The helpers themselves pass no cap, because a lazy stream cannot report its length without being drained. Every other part of the policy still applies, and the sizing is left to the pool: a thread pool spawns its threads on demand, so a ceiling above the number of items costs nothing.
 
 ## Zero exit code
 

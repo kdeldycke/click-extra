@@ -63,7 +63,7 @@ from .theme import get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator, Sequence
+    from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
     from concurrent.futures import Future
     from pathlib import Path
     from types import FrameType
@@ -433,7 +433,7 @@ def _windowed_map(
     func: Callable[[T], R],
     items: Iterable[T],
     window: int,
-) -> Iterator[R]:
+) -> Generator[R, None, None]:
     """Map `func` over `items`, keeping at most `window` tasks in flight.
 
     The lazy counterpart of {meth}`~concurrent.futures.Executor.map`, which
@@ -464,7 +464,7 @@ def run_jobs(
     *,
     jobs: int | None = None,
     serial_at_debug: bool = False,
-) -> Iterator[R]:
+) -> Generator[R, None, None]:
     """Run `func` over `items`, parallelized per the resolved `--jobs` count.
 
     The worker count is taken from `jobs` when given, else resolved from the
@@ -526,7 +526,7 @@ def run_lanes(
     *,
     jobs: int | None = None,
     serial_at_debug: bool = False,
-) -> Iterator[R]:
+) -> Generator[R, None, None]:
     """Run `func` over grouped items: serial within a lane, concurrent across.
 
     Each *lane* is an iterable of items. `func` is mapped over every item, but a

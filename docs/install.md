@@ -120,7 +120,7 @@ Python 3.14.0 free-threading build (main, Oct 28 2025, 11:52:40) [Clang 20.1.4 ]
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import click_extra
 >>> click_extra.__version__
-'8.8.0'
+'8.8.1'
 >>>
 ```
 

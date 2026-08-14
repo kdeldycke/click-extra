@@ -142,7 +142,7 @@ print(repr(Style.from_ansi("\x1b[38;5;226m")))
 
 `from_ansi` is the inverse of calling the style: parsing the output of `Style(fg="red", bold=True)("text")` recovers the same style.
 
-## `split_ansi()` and `render_ansi()`: tokenize ANSI streams
+## `split_ansi()`, `render_ansi()` and `wrap_ansi()`: tokenize ANSI streams
 
 While `from_ansi()` parses bare escapes, `split_ansi()` tokenizes a whole string mixing text and escapes. It is a stateful SGR stream parser: each escape updates the current style (full and selective resets honored), and every maximal run of text sharing the same style is yielded as a `(Style, text)` tuple. Non-SGR escapes (cursor movements, OSC hyperlink wrappers) carry no style information and are removed from the yielded text:
 

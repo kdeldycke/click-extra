@@ -46,7 +46,7 @@ from .types import EnumChoice, MultiChoice
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping, Sequence
-    from typing import Any, Literal
+    from typing import Any, Final, Literal
 
     ColumnWidth = int | Literal["auto"] | None
     """Width limit of a single column: a character count, `auto`, or no limit."""
@@ -317,8 +317,13 @@ SERIALIZATION_FORMATS = frozenset(
 """Structured serialization formats whose renderers escape raw ESC bytes, making
 post-render `strip_ansi()` ineffective."""
 
-AUTO_WIDTH = "auto"
-"""Sentinel asking for a column width derived from the space left on the terminal."""
+AUTO_WIDTH: Final = "auto"
+"""Sentinel asking for a column width derived from the space left on the terminal.
+
+Annotated `Final` so it narrows to `Literal["auto"]` instead of `str`, which is
+what lets it stand in for the raw string anywhere a {data}`ColumnWidth` is
+expected.
+"""
 
 MIN_COLUMN_WIDTH = 8
 """Floor applied to an {data}`AUTO_WIDTH` column, so a crowded table still renders

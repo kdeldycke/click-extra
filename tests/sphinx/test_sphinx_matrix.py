@@ -62,7 +62,7 @@ pytestmark = pytest.mark.skipif(
     shutil.which("git") is None,
     reason="matrix generation walks git tags, so the whole module needs a git binary",
 )
-"""Skip the module when git is missing, instead of failing 41 times.
+"""Skip the module when git is missing, instead of failing 155 times.
 
 The sibling ``conftest.py`` already spares downstream packagers an
 ``--ignore=tests/sphinx`` when Sphinx or MyST-Parser is absent. Git is the third

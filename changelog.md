@@ -5,36 +5,33 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Exempt the inline `repomatic` pin from the supply-chain cooldown in the test workflow, which no longer resolves to nothing and skips the whole suite after a repomatic release.
-- Opt the `test-package-install` job out of the cooldown, so it exercises the release that just shipped instead of the previous one.
-- Pin the uv version installed by `astral-sh/setup-uv` in the test workflow.
-- Enable ruff's `PLW1514` and disable its unsafe fixes.
-- Skip `test_blocks_reexported_from_sphinx_package` without the `sphinx` extra, instead of failing on the `ImportError` `click_extra.sphinx` raises. It is the only test outside `tests/sphinx/` importing that package, so the `collect_ignore_glob` guarding the tree left it exposed, and it is what fails the Guix build of `8.8.1` on every architecture its CI has completed.
-- Skip `tests/sphinx/test_sphinx_matrix.py` when no `git` binary is on `PATH`, instead of failing all 41 of its cases with an unexplained `FileNotFoundError`. It builds throwaway repositories with `git init` to walk their tags, making it the one test module needing a command rather than an import.
-- Bind the test suite's local HTTP server to `127.0.0.1` instead of the `localhost` name `pytest-httpserver` defaults to. The 20 configuration tests serving a config file over HTTP no longer need a resolver, which a build sandbox is entitled to deny: on macOS the Nix one does, and each of them errored there with `socket.gaierror`.
 - Add a `transform` argument to `EnumChoice`, reshaping the string produced by any choice source, so `show_aliases` can spell aliases in kebab-case instead of raw Python identifiers.
 - Reject a `transform` collapsing two `EnumChoice` members into the same choice string, instead of silently dropping one from the help screen.
 - Point the `EnumChoice` `show_aliases` error at `transform` and explain why `ChoiceSource.STR` and callable sources cannot see aliases.
-- Add a `max_column_widths` argument to `render_table()` and `print_table()`, capping each column to a character count or to `auto` to absorb the width left on the terminal.
-- Add a `max_width` field to `ColumnSpec`, declaring the width limit of a column alongside its ID and label.
+- Add a `max_column_widths` argument to `render_table()` and `print_table()`, and a `max_width` field to `ColumnSpec`, capping a column to a character count or to `auto`.
 - Wrap long cells in the `vertical` format, aligning continuation lines under the label gutter.
-- Add a `WRAPPABLE_FORMATS` registry and a `TableFormat.is_wrappable` property, listing the formats able to render a wrapped cell. Column widths are dropped by all others instead of corrupting their output.
+- Add a `WRAPPABLE_FORMATS` registry and a `TableFormat.is_wrappable` property, so formats unable to render a wrapped cell drop column widths instead of corrupting their output.
 - Add `wrap_ansi()`, wrapping a string to a visible width without counting its ANSI escapes toward the line length, and keeping each line's styling self-contained.
 - Read the input of `run_jobs()` and `run_lanes()` lazily, keeping a bounded window of tasks in flight instead of materializing the whole stream.
 - Stop scheduling the rest of a `run_jobs()` or `run_lanes()` stream when the caller breaks early, at any worker count and not only at `--jobs 1`.
+- Declare `run_jobs()` and `run_lanes()` as generators, so the early-exit `close()` they document is visible to type checkers.
 - Render the `{matrix} python` axis in three states: `✅` for a version a release declares, `❌` for one its `requires-python` rules out, and `–` for one it neither claimed nor forbade.
 - Split a Python matrix row when the declared `requires-python` changes, even if the set of supported versions does not.
 - Read a dependency's requirement from a parsed `pyproject.toml` instead of a regex over its raw text, so `{matrix}` follows extras brackets, environment markers and Poetry's inline-table form.
 - Match a tracked dependency on its normalized name, searching runtime and extra dependencies but no longer development dependency groups.
+- Drop the Codecov integration, its badge and its upload steps. Coverage is now gated by the `[tool.coverage] report.fail_under` ratchet.
+- Move every test job and the full matrix off the `ubuntu-slim` and `ubuntu-24.04-arm` runners onto the `ubuntu-26.04` pair, and teach actionlint the new labels.
+- Exempt the inline `repomatic` pin and the `test-package-install` job from the supply-chain cooldown, so neither resolves to a missing or stale release.
+- Pin the uv version installed by `astral-sh/setup-uv` in the test workflow.
+- Enable ruff's `PLW1514` and disable its unsafe fixes.
+- Skip the test workflow on version-bump pushes again, whose commit titles gained a `[changelog] ` prefix.
 - Cap a Poetry caret range at the component Poetry documents, so `^0.2.3` no longer claims the whole `0.x` series instead of stopping at `0.3.0`.
 - Translate Poetry's major-only tilde (`~1`) and its wildcard ranges (`*`, `1.*`, `1.2.*`), which used to be unparsable and rendered an all-❌ row.
 - Give an exact `==` pin a column of its own precision, so the single release it accepts no longer renders as all-❌.
-- Test the matrix rendering of exotic dependency specifiers: pins, wildcards, exclusion clauses, epochs, and Poetry caret and tilde ranges.
-- Drop the Codecov integration, its badge and its upload steps. Coverage is now gated by the `[tool.coverage] report.fail_under` ratchet.
 - Fix the test workflow's metadata job requesting `coverage_cells`, a key repomatic dropped, which failed the job and skipped every job below it.
-- Move every test job and the full matrix off the `ubuntu-slim` and `ubuntu-24.04-arm` runners onto the `ubuntu-26.04` pair.
-- Restore the prerelease Python 3.15 probe to a single cell, which the new runner axis had silently doubled.
-- Skip the test workflow on version-bump pushes again, whose commit titles gained a `[changelog] ` prefix.
+- Skip `test_blocks_reexported_from_sphinx_package` without the `sphinx` extra, instead of failing on an `ImportError`. It is the only test outside `tests/sphinx/` importing that package.
+- Skip `tests/sphinx/test_sphinx_matrix.py` when no `git` binary is on `PATH`, instead of failing all 155 of its cases with an unexplained `FileNotFoundError`.
+- Bind the test suite's local HTTP server to `127.0.0.1` instead of `localhost`, so the configuration tests serving a config file over HTTP no longer need a name resolver.
 
 ## [`8.8.1` (2026-08-02)](https://github.com/kdeldycke/click-extra/compare/v8.8.0...v8.8.1)
 

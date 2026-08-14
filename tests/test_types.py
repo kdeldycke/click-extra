@@ -47,6 +47,10 @@ if sys.version_info >= (3, 11):
 else:
     from backports.strenum import StrEnum  # type: ignore[import-not-found]
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Any
+
 
 def test_click_choice_behavior() -> None:
     """Lockdown the behavior of method inherited from Click's Choice type."""
@@ -660,8 +664,8 @@ def test_enum_choice_internals(
 
 
 @pytest.mark.parametrize("case_sensitive", (True, False, None))
-def test_enum_choice_case_sensitivity(case_sensitive: bool) -> None:
-    kwargs = {}
+def test_enum_choice_case_sensitivity(case_sensitive: bool | None) -> None:
+    kwargs: dict[str, Any] = {}
     if case_sensitive is not None:
         kwargs["case_sensitive"] = case_sensitive
 

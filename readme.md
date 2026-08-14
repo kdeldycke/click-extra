@@ -13,7 +13,7 @@
 
 ## What is Click Extra?
 
-It should be easy to write a good CLI in Python. [Click](https://click.palletsprojects.com) makes it so. But there is still hundrends of tweaks to implement by yourself to have a user-friendly CLI.
+It should be easy to write a good CLI in Python. [Click](https://click.palletsprojects.com) makes it so. But there are still hundreds of tweaks to implement by yourself to have a user-friendly CLI.
 
 Click Extra is a **ready-to-use wrapper around Click** to make your CLI look good and behave well. It is a drop-in replacement with good defaults that saves lots of boilerplate code and frustration by making all parts working together.
 

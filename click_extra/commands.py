@@ -32,7 +32,7 @@ import cloup
 from click.core import iter_params_for_processing
 
 from . import context
-from .accessibility import AccessibleOption
+from .accessibility import ACCESSIBLE_ENVVAR, AccessibleOption
 from .color import ColorOption, NoColorOption
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
@@ -523,7 +523,9 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             for flag in (*param.opts, *param.secondary_opts)
         }
         on_cli = any(arg.split("=", 1)[0] in flags for arg in args)
-        from_env = bool(accessible_params) and os.environ.get("ACCESSIBLE") is not None
+        from_env = (
+            bool(accessible_params) and os.environ.get(ACCESSIBLE_ENVVAR) is not None
+        )
         if not on_cli and not from_env:
             return
 

@@ -769,6 +769,19 @@ def _caret_ceiling(parts: tuple[int, ...]) -> str:
     return ".".join(str(part) for part in bumped + [0] * (3 - len(bumped)))
 
 
+def _series_ceiling(parts: tuple[int, ...]) -> str:
+    """Return the exclusive ceiling of a Poetry tilde or wildcard range.
+
+    Both pin the series named by the *last component declared* and bump it,
+    zeroing the rest. So `~1` and `1.*` cap at `2.0.0`, while `~1.2`, `~1.2.3`
+    and `1.2.*` all cap at `1.3.0`: a third component narrows what the range
+    accepts, never which series caps it.
+    """
+    if len(parts) == 1:
+        return f"{parts[0] + 1}.0.0"
+    return f"{parts[0]}.{parts[1] + 1}.0"
+
+
 def _poetry_to_pep440(spec: str) -> str | None:
     """Translate a Poetry-only range into PEP 440, or `None` if it is not one.
 
@@ -784,12 +797,7 @@ def _poetry_to_pep440(spec: str) -> str | None:
     if m:
         parts = tuple(int(part) for part in m.groups() if part is not None)
         floor = ".".join(str(part) for part in parts)
-        # A tilde given only a major bumps that major; given a minor or more,
-        # it bumps the minor.
-        ceiling = (
-            f"{parts[0] + 1}.0.0" if len(parts) == 1 else f"{parts[0]}.{parts[1] + 1}.0"
-        )
-        return f">={floor},<{ceiling}"
+        return f">={floor},<{_series_ceiling(parts)}"
     m = POETRY_WILDCARD_RE.match(spec)
     if m:
         parts = tuple(int(part) for part in m.groups() if part is not None)
@@ -797,10 +805,7 @@ def _poetry_to_pep440(spec: str) -> str | None:
             # A bare `*`: the empty specifier set allows every version.
             return ""
         floor = ".".join(str(part) for part in parts)
-        ceiling = (
-            f"{parts[0] + 1}.0.0" if len(parts) == 1 else f"{parts[0]}.{parts[1] + 1}.0"
-        )
-        return f">={floor},<{ceiling}"
+        return f">={floor},<{_series_ceiling(parts)}"
     return None
 
 

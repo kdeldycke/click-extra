@@ -54,6 +54,18 @@ from .table import TableFormat
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
+    from typing import Final
+
+
+ACCESSIBLE_ENVVAR: Final[str] = "ACCESSIBLE"
+"""Environment variable that requests accessible mode.
+
+Global and CLI-agnostic, unlike the `<CLI>_ACCESSIBLE` variable Click derives
+from the option itself. Its bare presence activates the mode whatever its
+value, matching the color environment variables; see
+{meth}`~click_extra.accessibility.AccessibleOption.set_accessible` for why it
+is read directly instead of being wired through the option's `envvar`.
+"""
 
 
 class AccessibleOption(ExtraOption):
@@ -117,7 +129,7 @@ class AccessibleOption(ExtraOption):
         ```
         """
         if not value:
-            raw = os.environ.get("ACCESSIBLE")
+            raw = os.environ.get(ACCESSIBLE_ENVVAR)
             if raw is not None:
                 # Bare presence (or an unparsable value) counts as activation, in
                 # the same spirit as the color environment variables.
