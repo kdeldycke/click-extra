@@ -58,7 +58,6 @@ from click_extra.sphinx.matrix import (
     update_matrix_blocks,
 )
 
-
 pytestmark = pytest.mark.skipif(
     shutil.which("git") is None,
     reason="matrix generation walks git tags, so the whole module needs a git binary",

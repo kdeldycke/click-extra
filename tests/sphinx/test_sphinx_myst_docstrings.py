@@ -788,10 +788,14 @@ def test_real_caution_with_code_block():
         ),
         # Inline code in multi-line :param: continuation.
         (
-            ":param items: A list of `str` values.\n"
-            "    Each must be a valid {class}`Path`.",
-            ":param items: A list of ``str`` values.\n"
-            "    Each must be a valid :class:`Path`.",
+            (
+                ":param items: A list of `str` values.\n"
+                "    Each must be a valid {class}`Path`."
+            ),
+            (
+                ":param items: A list of ``str`` values.\n"
+                "    Each must be a valid :class:`Path`."
+            ),
         ),
     ],
     ids=[

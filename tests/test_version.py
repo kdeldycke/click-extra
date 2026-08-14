@@ -177,31 +177,39 @@ def test_version_option_conflicting_version():
     (
         (
             "{prog_name}, version {version}",
-            r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
-            rf"version \x1b\[32m{_ver}"
-            r"\x1b\[0m\n",
+            (
+                r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
+                rf"version \x1b\[32m{_ver}"
+                r"\x1b\[0m\n"
+            ),
         ),
         (
             "{prog_name}, version {version}\n{env_info}",
-            r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
-            rf"version \x1b\[32m{_ver}"
-            r"\x1b\[0m\n"
-            r"\x1b\[90m{'.+'}"
-            r"\x1b\[0m\n",
+            (
+                r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
+                rf"version \x1b\[32m{_ver}"
+                r"\x1b\[0m\n"
+                r"\x1b\[90m{'.+'}"
+                r"\x1b\[0m\n"
+            ),
         ),
         (
             "{prog_name} v{version} - {package_name}",
-            r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m "
-            rf"v\x1b\[32m{_ver}"
-            r"\x1b\[0m - "
-            r"\x1b\[97m\x1b\[1mclick_extra"
-            r"\x1b\[0m\n",
+            (
+                r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m "
+                rf"v\x1b\[32m{_ver}"
+                r"\x1b\[0m - "
+                r"\x1b\[97m\x1b\[1mclick_extra"
+                r"\x1b\[0m\n"
+            ),
         ),
         (
             "{prog_name}, version {version} (Python {env_info[python][version]})",
-            r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
-            rf"version \x1b\[32m{_ver}\x1b\[0m "
-            r"\(Python \x1b\[90m3\.\d+\.\d+.+\x1b\[0m\)\n",
+            (
+                r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
+                rf"version \x1b\[32m{_ver}\x1b\[0m "
+                r"\(Python \x1b\[90m3\.\d+\.\d+.+\x1b\[0m\)\n"
+            ),
         ),
     ),
 )
