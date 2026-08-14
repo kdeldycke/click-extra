@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Skip `tests/sphinx/test_sphinx_matrix.py` when no `git` binary is on `PATH`, instead of failing all 41 of its cases with an unexplained `FileNotFoundError`. It builds throwaway repositories with `git init` to walk their tags, making it the one test module needing a command rather than an import.
+- Bind the test suite's local HTTP server to `127.0.0.1` instead of the `localhost` name `pytest-httpserver` defaults to. The 20 configuration tests serving a config file over HTTP no longer need a resolver, which a build sandbox is entitled to deny: on macOS the Nix one does, and each of them errored there with `socket.gaierror`.
 - Add a `transform` argument to `EnumChoice`, reshaping the string produced by any choice source, so `show_aliases` can spell aliases in kebab-case instead of raw Python identifiers.
 - Reject a `transform` collapsing two `EnumChoice` members into the same choice string, instead of silently dropping one from the help screen.
 - Point the `EnumChoice` `show_aliases` error at `transform` and explain why `ChoiceSource.STR` and callable sources cannot see aliases.

@@ -31,6 +31,24 @@ from click_extra.pytest import (  # noqa: F401
 )
 
 
+@pytest.fixture(scope="session")
+def httpserver_listen_address():
+    """Bind the local HTTP server to the loopback address, not to a name.
+
+    Overrides ``pytest-httpserver``'s default of ``("localhost", 0)``. Resolving
+    that name is the one thing the ``tests/test_config.py`` cases serving a
+    configuration file over HTTP need from the host, and a build sandbox is
+    exactly where it is unavailable: the Nix one on macOS denies the lookup, so
+    every one of them errors out with ``socket.gaierror: [Errno 8] nodename nor
+    servname provided, or not known``.
+
+    Binding the literal address asks nothing of the resolver. Whether a sandbox
+    additionally gates the loopback socket is its own policy, and a separate
+    question: this only removes the lookup that failed first.
+    """
+    return ("127.0.0.1", 0)
+
+
 @pytest.fixture(autouse=True)
 def _isolate_color_envvars():
     """Remove output-affecting environment variables so tests are deterministic.

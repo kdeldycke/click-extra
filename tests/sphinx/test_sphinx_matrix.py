@@ -24,6 +24,7 @@ that surfaces it. Both live under ``tests/sphinx/`` because importing
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
@@ -56,6 +57,20 @@ from click_extra.sphinx.matrix import (
     python_versions_released_by,
     update_matrix_blocks,
 )
+
+
+pytestmark = pytest.mark.skipif(
+    shutil.which("git") is None,
+    reason="matrix generation walks git tags, so the whole module needs a git binary",
+)
+"""Skip the module when git is missing, instead of failing 41 times.
+
+The sibling ``conftest.py`` already spares downstream packagers an
+``--ignore=tests/sphinx`` when Sphinx or MyST-Parser is absent. Git is the third
+thing this tree needs, and the only one that is a binary rather than an import,
+so it escaped that guard: a packager shipping the documentation extras without
+git got a wall of ``FileNotFoundError`` naming no cause.
+"""
 
 
 def git_repo(path: Path) -> Callable[..., None]:
