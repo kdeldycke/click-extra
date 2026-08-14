@@ -62,7 +62,16 @@ def test_blocks_module_needs_no_sphinx_extra():
 
 
 def test_blocks_reexported_from_sphinx_package():
-    """The public trio stays importable from `click_extra.sphinx` too."""
+    """The public trio stays importable from ``click_extra.sphinx`` too.
+
+    Skipped without the ``sphinx`` extra, which ``click_extra.sphinx`` raises on
+    import for. This is the only test outside ``tests/sphinx/`` reaching into
+    that package, so the ``collect_ignore_glob`` guarding the tree does not
+    cover it: a builder shipping no Sphinx failed here and nowhere else, which
+    is what took the Guix build of ``8.8.1`` down.
+    """
+    pytest.importorskip("sphinx", reason="click_extra.sphinx needs the sphinx extra")
+
     from click_extra import sphinx
 
     assert sphinx.replace_region is replace_region
