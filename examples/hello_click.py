@@ -1,8 +1,9 @@
 """The canonical Click example, verbatim from Click's own readme.
 
 Kept runnable so the "before" screenshot in `readme.md` is regenerated from a
-real terminal instead of drawn by hand. Its Click Extra counterpart lives in
-`hello_click_extra.py`, and differs by its import alone.
+real terminal instead of drawn by hand. Its Click Extra counterpart in
+`hello_click_extra.py` holds the same code, down to the line, save for the
+import.
 
 See `docs/screenshots.md` for the command that captures both.
 """
@@ -20,6 +21,7 @@ def hello(count, name):
 
 
 if __name__ == "__main__":
-    # Click derives the program name from `sys.argv[0]`, so an explicit one
-    # keeps the two screenshots comparable whatever the file is called.
+    # Click names the program after `sys.argv[0]`, Click Extra after the
+    # callback. Pinning it keeps the two screenshots comparable; Click Extra
+    # ignores the argument.
     hello(prog_name="hello")

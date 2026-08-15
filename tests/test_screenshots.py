@@ -39,12 +39,13 @@ from typing import NamedTuple
 
 import pytest
 
-from click_extra import screenshot, unstyle
+from click_extra import screenshot
 from click_extra.screenshot import (
     _TEXT_ELEMENT_RE,
     PADDING,
     _rich_svg,
     capture_output,
+    capture_svg,
     harden_svg,
     measure_cell_width,
     render_svg,
@@ -56,10 +57,6 @@ ASSETS = Path(__file__).parent.parent / "docs" / "assets"
 
 EXAMPLES = Path(__file__).parent.parent / "examples"
 """Directory the standalone example CLIs live in."""
-
-TRUNCATION = "[...]"
-"""Last captured line of a trimmed capture, as left by `--truncation`."""
-
 
 class Capture(NamedTuple):
     """A terminal capture committed under `docs/assets` and embedded in the docs.
@@ -125,7 +122,6 @@ COMMITTED_CAPTURES = (
         "hello-click-extra-screen.svg",
         ("--help",),
         script="hello_click_extra.py",
-        head=35,
         os_specific=True,
     ),
     Capture("hello-click-screen.svg", ("--help",), script="hello_click.py"),
@@ -304,26 +300,29 @@ def test_capture_output_keeps_stderr_out_unless_asked():
 def test_committed_capture_matches_cli(capture):
     """Every committed capture still pictures what its command prints today.
 
-    A trimmed capture is compared against the head of the live output; an
-    untrimmed one has to account for all of it.
+    The capture is reshot through {func}`~click_extra.screenshot.capture_svg`,
+    the very pipeline that produced the committed file, and the two are compared
+    as terminal text. Going through the whole pipeline rather than against the
+    command's raw output is what keeps the check honest on both counts the two
+    differ:
 
-    The command is re-run through {func}`~click_extra.screenshot.capture_output`,
-    the same subprocess path the image was made with, rather than in-process.
-    Click's own `CliRunner` pins `FORCED_WIDTH` to 80, while a command wrapping
-    to an 80-column terminal is handed `min(columns, max_width) - 2`: comparing
-    across that gap makes a long line wrap two columns apart and fail on nothing.
+    - a command wrapping to an 80-column terminal is handed
+      `min(columns, max_width) - 2`, while Click's own `CliRunner` pins
+      `FORCED_WIDTH` to 80, so an in-process render sits two columns wider;
+    - the renderer folds a line longer than the terminal, exactly as a terminal
+      does, so a help screen carrying an unwrappable option list (`--table-format`
+      and its 463-character choice list) occupies more rows in the image than the
+      command printed.
+
+    Only the text is compared, so restyling a theme does not redden this.
     """
-    committed = svg_to_lines((ASSETS / capture.filename).read_text(encoding="utf-8"))
-    assert committed[0] == capture.prompt
-    committed = committed[1:]
-    if capture.head is not None:
-        assert committed[-1] == TRUNCATION
-        committed = committed[:-1]
+    committed = (ASSETS / capture.filename).read_text(encoding="utf-8")
 
-    process = capture_output(list(capture.command), columns=capture.columns)
-    assert process.returncode == 0
-    printed = [line.rstrip() for line in unstyle(process.stdout).splitlines()]
-
-    assert committed == printed[: len(committed)]
-    if capture.head is None:
-        assert len(committed) == len(printed)
+    fresh, returncode = capture_svg(
+        list(capture.command),
+        columns=capture.columns,
+        prompt=capture.prompt.removeprefix("$ "),
+        head=capture.head,
+    )
+    assert returncode == 0
+    assert svg_to_lines(committed) == svg_to_lines(fresh)

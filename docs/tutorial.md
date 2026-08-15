@@ -8,7 +8,14 @@ Into this:
 
 ![click-extra CLI help screen](assets/hello-click-extra-screen.svg)
 
-Both are captured from [`examples/`](https://github.com/kdeldycke/click-extra/tree/main/examples), where the two scripts differ by their import alone. See [screenshots](screenshots.md) for how the images are produced and kept in step with the code.
+The entire diff between the two is one line:
+
+```diff
+-import click
++import click_extra as click
+```
+
+Both are captured from [`examples/`](https://github.com/kdeldycke/click-extra/tree/main/examples), whose two scripts hold that code. See [screenshots](screenshots.md) for how the images are produced and kept in step with the code.
 
 ## From script to CLI in 30 seconds
 

@@ -45,11 +45,18 @@ It transforms this vanilla `click` CLI:
 
 ![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/hello-click-screen.svg)
 
-Into this, by changing the import alone:
+Into this:
 
 ![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/hello-click-extra-screen.svg)
 
-Both screens come from [`examples/`](https://github.com/kdeldycke/click-extra/tree/main/examples), which differ by that one line. To understand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
+And here is the entire diff between the two. Click Extra proxies the whole `click` namespace, so aliasing it back leaves every decorator and call untouched:
+
+```diff
+-import click
++import click_extra as click
+```
+
+The colors, and every option below `--name`, come from that one line. Both screens are captured from the two scripts in [`examples/`](https://github.com/kdeldycke/click-extra/tree/main/examples), which are identical but for it. To understand how we ended up with the result, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
 ## Features
 

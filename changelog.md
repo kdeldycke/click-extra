@@ -13,6 +13,7 @@
 - Fix the `gradient` demo overflowing an 80-column terminal by one character, which wrapped every ramp onto a second line.
 - Add an `examples/` directory holding the canonical Click example and its Click Extra counterpart, which differ by their import alone.
 - Replace the readme and tutorial before/after screenshots with captures of those two scripts, superseding hand-drawn images that still advertised `--show-params` and `-C, --config`.
+- Show the one-line import diff separating the two example scripts, below the screenshots it accounts for.
 
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 

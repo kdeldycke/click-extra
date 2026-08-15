@@ -66,10 +66,10 @@ The before/after pair opening the [readme](https://github.com/kdeldycke/click-ex
 
 ```shell-session
 $ click-extra screenshot --output docs/assets/hello-click-screen.svg --prompt "python hello_click.py --help" -- uv run --frozen -- python examples/hello_click.py --help
-$ click-extra screenshot --output docs/assets/hello-click-extra-screen.svg --head 35 --prompt "python hello_click_extra.py --help" -- uv run --frozen -- python examples/hello_click_extra.py --help
+$ click-extra screenshot --output docs/assets/hello-click-extra-screen.svg --prompt "python hello_click_extra.py --help" -- uv run --frozen -- python examples/hello_click_extra.py --help
 ```
 
-That second `--head` stops just before `--table-format`, whose choice list is a single 463-character line no terminal wraps.
+The second one carries `--table-format`, whose choice list is a single 463-character line: Click never wraps an option's own term, so the renderer folds it across six rows, exactly as a terminal would.
 
 ### Why a capture needs hardening
 
