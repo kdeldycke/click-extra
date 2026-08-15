@@ -1878,5 +1878,65 @@
 		"suspicious": 0,
 		"tag": "v8.9.0",
 		"undetected": 53
+	},
+	{
+		"filename": "click-extra-8.9.1-linux-arm64.bin",
+		"harmless": 0,
+		"malicious": 1,
+		"scanned": "2026-08-15",
+		"sha256": "0f717cd76034bd5888b3109870d6d3ca4daa87b7e78ed6a3dd923291e1c7473e",
+		"suspicious": 0,
+		"tag": "v8.9.1",
+		"undetected": 61
+	},
+	{
+		"filename": "click-extra-8.9.1-linux-x64.bin",
+		"harmless": 0,
+		"malicious": 1,
+		"scanned": "2026-08-15",
+		"sha256": "2a7464080fae3555ec3e2ba12e6ece638e4a6ef5604307dc55e041a7d5167366",
+		"suspicious": 0,
+		"tag": "v8.9.1",
+		"undetected": 62
+	},
+	{
+		"filename": "click-extra-8.9.1-macos-arm64.bin",
+		"harmless": 0,
+		"malicious": 1,
+		"scanned": "2026-08-15",
+		"sha256": "6fca8708ec85308c941df2d191dfa7ce9fb0b427c84494c1dfe2a8b328ec8d95",
+		"suspicious": 0,
+		"tag": "v8.9.1",
+		"undetected": 61
+	},
+	{
+		"filename": "click-extra-8.9.1-macos-x64.bin",
+		"harmless": 0,
+		"malicious": 1,
+		"scanned": "2026-08-15",
+		"sha256": "ec3b45e7bec88ca140430c43f5dbf159b6f075946f82da750463770370dd828c",
+		"suspicious": 0,
+		"tag": "v8.9.1",
+		"undetected": 60
+	},
+	{
+		"filename": "click-extra-8.9.1-windows-arm64.exe",
+		"harmless": 0,
+		"malicious": 2,
+		"scanned": "2026-08-15",
+		"sha256": "5e94da897922f942bf1294ccce1ac54629460d9f221d7ff8fd5a3c7bcb679299",
+		"suspicious": 0,
+		"tag": "v8.9.1",
+		"undetected": 66
+	},
+	{
+		"filename": "click-extra-8.9.1-windows-x64.exe",
+		"harmless": 0,
+		"malicious": 17,
+		"scanned": "2026-08-15",
+		"sha256": "0b0cf7dfa4f1f19fb126c17ae7be09a730897af537699e6e3beec9b528cc9514",
+		"suspicious": 0,
+		"tag": "v8.9.1",
+		"undetected": 53
 	}
 ]
