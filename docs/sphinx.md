@@ -443,12 +443,56 @@ Which, once refreshed, keeps this below the fence, so the capture shows wherever
 
 The name doubles as the image's alt text, so pick one that reads as a description.
 
+#### Both renderings, side by side
+
+The two come from one execution, so a tab set can hold them together. Take a CLI leaning on color:
+
+```{click:source}
+from click_extra import command, echo, style
+
+@command
+def forecast():
+    """Report tomorrow's weather."""
+    echo(f"Lisbon   {style('22°C', fg='yellow')}   {style('sunny', fg='bright_yellow')}")
+    echo(f"Bergen   {style('11°C', fg='cyan')}   {style('rain', fg='blue')}")
+    echo(f"Nairobi  {style('26°C', fg='red')}   {style('clear', fg='bright_yellow')}")
+```
+
+``````{tab-set}
+`````{tab-item} Live text
+:sync: live-text
+```{click:run}
+:screenshot: forecast-screen
+result = invoke(forecast)
+assert result.exit_code == 0
+assert "Bergen" in result.output
+```
+`````
+
+`````{tab-item} Captured image
+:sync: captured-image
+![forecast-screen](assets/forecast-screen.svg)
+`````
+``````
+
+The first tab is what the page renders on its own: real text, selectable and searchable, its colors resolved by the site's stylesheet, so it follows a reader switching to the light theme. The second is the file that same run wrote, framed in terminal chrome and identical wherever it is embedded, theme included. That immutability is the point on a surface that cannot run code, and the drawback on one that can.
+
+```{note}
+`:mirror:` puts its region directly below the fence, which inside a tab set means inside that tab. A layout like this one references the image by hand instead: the link only ever changes when the capture is renamed, and Sphinx warns if the two fall out of step.
+```
+
 ```{tip}
 The two are independent on purpose. `:screenshot:` alone maintains an image some *other* surface embeds, which is how the before/after screens opening this project's [readme](https://github.com/kdeldycke/click-extra#example) are produced: they come from the [tutorial](tutorial.md)'s own blocks, and no one has to remember to reshoot them.
 ```
 
 ```{caution}
 Captures are written into the documentation *source* tree, not the build output, since that is where a README finds them. A build therefore leaves them refreshed in your working copy: commit what changed. See [screenshots](screenshots.md) for the surfaces this serves, and for capturing a CLI outside a documentation build.
+```
+
+```{warning}
+Pick what you capture with the committed file in mind, because whatever the command prints is what gets checked into the repository. Verbose output is the trap: a single `--verbosity DEBUG` run echoes the configuration search, which means absolute paths, the host's `pyproject.toml`, git hashes and kernel details, all frozen into an image and pushed. A live block gets away with it, being regenerated per build and never committed.
+
+Two rules of thumb: prefer a command whose output depends only on the CLI, and read the image once before committing it. This project [pins the application directory](https://github.com/kdeldycke/click-extra/blob/main/docs/conf.py) in `conf.py` for the same reason: `click.get_app_dir()` otherwise answers per platform, so a `--config` default would render one way on macOS and another on Linux, and every capture of a help screen would flip with its author's laptop.
 ```
 
 ### Standalone `click:run` blocks

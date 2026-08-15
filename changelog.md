@@ -14,6 +14,10 @@
 - Add a `:screenshot:` option to the `click:run` directive, writing the block's output as an SVG beside the documentation on every build.
 - Add a `:mirror:` option to the `click:run` directive, keeping a Markdown link to that capture in the source, refreshed by `refresh-directives`.
 - Add a `click_extra_screenshot_dir` configuration value, locating where `:screenshot:` writes.
+- Show a `click:run` block's live text and its captured image side by side, in a tab set on the Sphinx page.
+- Illustrate the readme's `--tree` entry with a capture the tree page maintains.
+- Execute the default and prepended subcommand examples of the configuration page, which were hand-written output for a CLI missing the `debug` subcommand they invoked.
+- Pin the application directory resolved while building the documentation, so a `--config` default no longer renders the building host's platform.
 - Replace the readme and tutorial before/after screenshots with captures the tutorial's own blocks maintain, superseding hand-drawn images that still advertised `--show-params` and `-C, --config`.
 - Show the one-line import diff turning the canonical Click example into its Click Extra counterpart, below the screenshots it accounts for.
 

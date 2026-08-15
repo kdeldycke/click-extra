@@ -103,6 +103,10 @@ The colors, and every option below `--name`, come from that one line. Both scree
 - Global `show_choices` to activate selection of choices on user input prompts
 - Auto-generation and normalization of environment variables for all options
 
+`--tree` is the one that surprises people, so here it is on a CLI with nested subcommands, aliases and a deprecation:
+
+![Nested subcommands printed as a tree](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/command-tree-screen.svg)
+
 ### Types and parameters
 
 - [`EnumChoice`](https://kdeldycke.github.io/click-extra/types.html#enumchoice) — `click.Choice` subclass with proper `Enum` rendering, case-insensitive matching, alias support, and pluggable [choice sources](https://kdeldycke.github.io/click-extra/types.html#choice-source)

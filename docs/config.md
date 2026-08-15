@@ -927,12 +927,11 @@ You can specify which subcommands run by default when a group is invoked without
 
 Given this CLI:
 
-```python
-from click_extra import group, command, echo, config_option, option
+```{click:source}
+from click_extra import echo, group, option
 
 
 @group
-@config_option
 def my_cli():
     pass
 
@@ -961,15 +960,52 @@ path = "/home"
 
 Running `my-cli` alone will automatically invoke the `backup` subcommand:
 
-```{code-block} shell-session
-:emphasize-lines: 2
-$ my-cli
-Backing up /home
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "my-cli.toml"
+config.write_text(textwrap.dedent("""
+    [my-cli]
+    _default_subcommands = ["backup"]
+
+    [my-cli.backup]
+    path = "/home"
+"""))
+result = invoke(my_cli, args=["--config", str(config)])
+assert result.exit_code == 0
+assert "Backing up /home" in result.stdout
 ```
 
 ### Chained commands
 
-For groups created with `chain=True`, you can list multiple default subcommands. They run in the order specified:
+For groups created with `chain=True`, you can list multiple default subcommands. They run in the order specified. The rest of this section builds on a chained variant of the CLI above, with a `debug` subcommand to prepend later:
+
+```{click:source}
+:emphasize-lines: 4
+from click_extra import echo, group, option
+
+
+@group(chain=True)
+def my_cli():
+    pass
+
+
+@my_cli.command()
+@option("--path", default="/tmp")
+def backup(path):
+    echo(f"Backing up {path}")
+
+
+@my_cli.command()
+def sync():
+    echo("Syncing")
+
+
+@my_cli.command()
+def debug():
+    echo("Debug mode activated")
+```
 
 ```{code-block} toml
 :emphasize-lines: 2
@@ -977,11 +1013,21 @@ For groups created with `chain=True`, you can list multiple default subcommands.
 _default_subcommands = ["backup", "sync"]
 ```
 
-```{code-block} shell-session
-:emphasize-lines: 2-3
-$ my-cli
-Backing up /home
-Syncing
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "my-cli.toml"
+config.write_text(textwrap.dedent("""
+    [my-cli]
+    _default_subcommands = ["backup", "sync"]
+
+    [my-cli.backup]
+    path = "/home"
+"""))
+result = invoke(my_cli, args=["--config", str(config)])
+assert result.exit_code == 0
+assert result.stdout.index("Backing up /home") < result.stdout.index("Syncing")
 ```
 
 ```{note}
@@ -992,9 +1038,19 @@ Non-chained groups only accept a single default subcommand. Listing more than on
 
 If the user names subcommands explicitly on the command line, the `_default_subcommands` configuration is ignored:
 
-```shell-session
-$ my-cli sync
-Syncing
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "my-cli.toml"
+config.write_text(textwrap.dedent("""
+    [my-cli]
+    _default_subcommands = ["backup"]
+"""))
+result = invoke(my_cli, args=["--config", str(config), "sync"])
+assert result.exit_code == 0
+assert "Syncing" in result.stdout
+assert "Backing up" not in result.stdout
 ```
 
 ### Prepend subcommands
@@ -1013,11 +1069,18 @@ _prepend_subcommands = ["debug"]
 
 Running `my-cli sync` effectively becomes `my-cli debug sync`:
 
-```{code-block} shell-session
-:emphasize-lines: 2-3
-$ my-cli sync
-Debug mode activated
-Syncing
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "my-cli.toml"
+config.write_text(textwrap.dedent("""
+    [my-cli]
+    _prepend_subcommands = ["debug"]
+"""))
+result = invoke(my_cli, args=["--config", str(config), "sync"])
+assert result.exit_code == 0
+assert result.stdout.index("Debug mode activated") < result.stdout.index("Syncing")
 ```
 
 ### `_default_subcommands` with `_prepend_subcommands`
@@ -1030,18 +1093,37 @@ _default_subcommands = ["sync"]
 _prepend_subcommands = ["debug"]
 ```
 
-```shell-session
-$ my-cli
-Debug mode activated
-Syncing
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "my-cli.toml"
+config.write_text(textwrap.dedent("""
+    [my-cli]
+    _default_subcommands = ["sync"]
+    _prepend_subcommands = ["debug"]
+"""))
+result = invoke(my_cli, args=["--config", str(config)])
+assert result.exit_code == 0
+assert result.stdout.index("Debug mode activated") < result.stdout.index("Syncing")
 ```
 
 When CLI subcommands are given explicitly, `_default_subcommands` is ignored but `_prepend_subcommands` still applies:
 
-```shell-session
-$ my-cli backup
-Debug mode activated
-Backing up /tmp
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "my-cli.toml"
+config.write_text(textwrap.dedent("""
+    [my-cli]
+    _default_subcommands = ["sync"]
+    _prepend_subcommands = ["debug"]
+"""))
+result = invoke(my_cli, args=["--config", str(config), "backup"])
+assert result.exit_code == 0
+assert result.stdout.index("Debug mode activated") < result.stdout.index("Backing up /tmp")
+assert "Syncing" not in result.stdout
 ```
 
 ## Formats

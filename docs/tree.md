@@ -42,6 +42,7 @@ def diagnose():
 ```
 
 ```{click:run}
+:screenshot: command-tree-screen
 result = invoke(observatory, args=["--tree"])
 assert result.exit_code == 0
 assert "station" in result.stdout

@@ -379,6 +379,50 @@ html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
 
+def pin_app_dir() -> None:
+    """Render every configuration path as the POSIX one, whatever host builds.
+
+    `click.get_app_dir()` answers per platform, so a `--config` default renders
+    as `~/Library/Application Support/foo` on macOS and `~/.config/foo` on
+    Linux. Left alone, a page therefore documents whichever machine happened to
+    build it, and the captures a `:screenshot:` block commits flip back and
+    forth with their author's laptop.
+
+    Pinning to the POSIX form keeps a build reproducible, and keeps the
+    published output exactly what it has always been, since these pages are
+    built on Linux. The per-platform folders stay documented as a table in
+    `config.md`, which is where a reader should look for their own anyway.
+
+    Both bindings are patched, `click`'s and the reference bound into Click
+    Extra's configuration machinery, the way
+    {func}`click_extra.pytest.isolated_app_dir` does for a test suite.
+    """
+    import os
+
+    import click
+
+    import click_extra.config.option
+
+    def posix_app_dir(app_name, roaming=True, force_posix=False):
+        """`click.get_app_dir()`'s Unix branch, taken on every platform.
+
+        Returns an *expanded* path like the original, since a caller resolves
+        it before Click Extra shrinks the home prefix back to `~` for display.
+        `XDG_CONFIG_HOME` is deliberately ignored: honoring it would put the
+        host back into the rendered output.
+        """
+        folder = "-".join(app_name.split()).lower()
+        if force_posix:
+            return os.path.expanduser(f"~/.{folder}")
+        return os.path.join(os.path.expanduser("~/.config"), folder)
+
+    click.get_app_dir = posix_app_dir
+    click_extra.config.option.get_app_dir = posix_app_dir
+
+
+pin_app_dir()
+
+
 def setup(app):
     """Sphinx extension entry point.
 
