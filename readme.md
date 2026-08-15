@@ -56,7 +56,7 @@ And here is the entire diff between the two. Click Extra proxies the whole `clic
 +import click_extra as click
 ```
 
-The colors, and every option below `--name`, come from that one line. Both screens are captured from the two scripts in [`examples/`](https://github.com/kdeldycke/click-extra/tree/main/examples), which are identical but for it. To understand how we ended up with the result, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
+The colors, and every option below `--name`, come from that one line. Both screens above are captured from the [tutorial](https://kdeldycke.github.io/click-extra/tutorial.html)'s own live examples, so they cannot drift from the code. Go read it to understand how we ended up with the result.
 
 ## Features
 

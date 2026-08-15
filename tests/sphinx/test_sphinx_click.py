@@ -20,12 +20,19 @@ from __future__ import annotations
 import os
 import re
 import sys
+from pathlib import Path
 from textwrap import dedent
 
 import click
 import pytest
 
-from click_extra.sphinx.click import _CLIRUNNER_HAS_CAPTURE, ClickRunner
+from click_extra.sphinx.click import (
+    _CLIRUNNER_HAS_CAPTURE,
+    SCREENSHOT_MARKER_END,
+    SCREENSHOT_MARKER_START,
+    ClickRunner,
+    _rewrite_screenshot_regions,
+)
 
 from .conftest import HTML, DirectiveTestCase, FormatType
 
@@ -1039,3 +1046,90 @@ def test_clickrunner_capture_mode_controls_fileno(capture, renders):
     else:
         assert result.exit_code != 0
         assert "papaya" not in result.output
+
+
+def test_click_run_screenshot_writes_the_asset(sphinx_app_myst):
+    """``:screenshot:`` writes the capture beside the documentation.
+
+    The image is a side effect: the page keeps its results code block, which
+    inside Sphinx beats an image by staying selectable and searchable.
+    """
+    html_output = sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{click:run}
+            :screenshot: greet-screen
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "greet-screen.svg"
+    assert asset.exists(), "the capture was not written"
+    svg = asset.read_text(encoding="utf-8")
+    # `unique_id` is pinned to the asset name, so a regenerated capture diffs
+    # line by line instead of renaming every CSS class.
+    assert "greet-screen-r1" in svg
+    assert "papaya" in svg
+    # The results block is still rendered, rather than swapped for the image.
+    assert "papaya" in html_output
+
+
+def test_click_run_mirror_region_round_trips():
+    """``:mirror:`` inserts an image link below the fence, then leaves it alone."""
+    source = dedent("""
+        # Title
+
+        ```{click:run}
+        :screenshot: greet-screen
+        :mirror:
+        result = invoke(greet)
+        ```
+
+        Trailing prose.
+    """)
+
+    once = _rewrite_screenshot_regions(source)
+    assert SCREENSHOT_MARKER_START in once
+    assert "![greet-screen](assets/greet-screen.svg)" in once
+    assert SCREENSHOT_MARKER_END in once
+    assert "Trailing prose." in once
+    # Idempotent: a second pass over an already-refreshed region is a no-op.
+    assert _rewrite_screenshot_regions(once) == once
+
+
+def test_click_run_mirror_needs_both_options():
+    """A block missing either option gets no region.
+
+    ``:screenshot:`` alone maintains an asset some other surface embeds, without
+    putting it on this page; ``:mirror:`` alone has no capture to point at.
+    """
+    for options in (":screenshot: lone-screen", ":mirror:"):
+        source = dedent(f"""
+            ```{{click:run}}
+            {options}
+            result = invoke(greet)
+            ```
+        """)
+        assert _rewrite_screenshot_regions(source) == source
+
+
+def test_click_run_mirror_skips_a_nested_example():
+    """A ``click:run`` shown inside a longer fence is documentation, not a block."""
+    source = dedent("""
+        ````markdown
+        ```{click:run}
+        :screenshot: nested-screen
+        :mirror:
+        result = invoke(greet)
+        ```
+        ````
+    """)
+    assert _rewrite_screenshot_regions(source) == source

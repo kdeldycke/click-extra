@@ -11,9 +11,11 @@
 - Illustrate the screenshots page with captures of the `gradient`, `styles` and `themes` demos, produced by the new subcommand.
 - Add a test rebuilding each committed screenshot's terminal text from its SVG glyph coordinates and comparing it to the CLI's live output.
 - Fix the `gradient` demo overflowing an 80-column terminal by one character, which wrapped every ramp onto a second line.
-- Add an `examples/` directory holding the canonical Click example and its Click Extra counterpart, which differ by their import alone.
-- Replace the readme and tutorial before/after screenshots with captures of those two scripts, superseding hand-drawn images that still advertised `--show-params` and `-C, --config`.
-- Show the one-line import diff separating the two example scripts, below the screenshots it accounts for.
+- Add a `:screenshot:` option to the `click:run` directive, writing the block's output as an SVG beside the documentation on every build.
+- Add a `:mirror:` option to the `click:run` directive, keeping a Markdown link to that capture in the source, refreshed by `refresh-directives`.
+- Add a `click_extra_screenshot_dir` configuration value, locating where `:screenshot:` writes.
+- Replace the readme and tutorial before/after screenshots with captures the tutorial's own blocks maintain, superseding hand-drawn images that still advertised `--show-params` and `-C, --config`.
+- Show the one-line import diff turning the canonical Click example into its Click Extra counterpart, below the screenshots it accounts for.
 
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 

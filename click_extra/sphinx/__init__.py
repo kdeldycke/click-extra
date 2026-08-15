@@ -89,6 +89,15 @@ the build's attack surface.
 """
 
 
+SCREENSHOT_DIR_CONFIG = "click_extra_screenshot_dir"
+"""Name of the `conf.py` value locating the directory `click:run` writes captures to.
+
+A path relative to the documentation source directory, holding the SVG a
+`click:run` block names with its `:screenshot:` option. Defaults to `assets`,
+matching where a Sphinx project conventionally keeps the images its pages embed,
+and where a README pointing at the repository finds them.
+"""
+
 RUN_CAPTURE_CONFIG = "click_extra_run_capture"
 """Name of the `conf.py` value selecting the stream-capture mode for the CLIs that
 `click:run` and `click:tree` execute.
@@ -195,6 +204,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value(EXEC_DIRECTIVES_OPT_IN, False, "env", types=[bool])
     # Stream-capture mode for executed click:run/click:tree CLIs (see click.py).
     app.add_config_value(RUN_CAPTURE_CONFIG, "fd", "env", types=[str])
+    # Where a `click:run` `:screenshot:` capture is written (see click.py).
+    app.add_config_value(SCREENSHOT_DIR_CONFIG, "assets", "env", types=[str])
     app.connect("config-inited", _register_exec_directives)
 
     # Wire the man-page emit hook (see manpages.py). No-op until a project

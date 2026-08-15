@@ -62,14 +62,11 @@ $ click-extra screenshot --output docs/assets/theme-gallery-screen.svg --head 16
 
 `--prompt` is what makes each image show the bare `click-extra …` a reader would type, while `uv run --frozen --` is what actually ran: the plumbing that reaches a checkout's copy of the CLI is not worth picturing. `--head` bounds the two long ones, and the `[...]` marker admits that the rest was cut.
 
-The before/after pair opening the [readme](https://github.com/kdeldycke/click-extra#example) and the [tutorial](tutorial.md) is shot the same way, from the two scripts in `examples/` that differ by their import alone:
+The before/after pair opening the [readme](https://github.com/kdeldycke/click-extra#example) takes the other route. Those two screens already exist as live [`click:run`](sphinx.md#committed-captures) blocks in the [tutorial](tutorial.md), so rather than shoot them again, the blocks maintain them: a `:screenshot:` option writes each image on every documentation build, which is what keeps the readme's front page in step with the code nobody thought to re-check.
 
-```shell-session
-$ click-extra screenshot --output docs/assets/hello-click-screen.svg --prompt "python hello_click.py --help" -- uv run --frozen -- python examples/hello_click.py --help
-$ click-extra screenshot --output docs/assets/hello-click-extra-screen.svg --prompt "python hello_click_extra.py --help" -- uv run --frozen -- python examples/hello_click_extra.py --help
-```
+Reach for the command when the CLI you want to picture has no live block, and for the directive when it does.
 
-The second one carries `--table-format`, whose choice list is a single 463-character line: Click never wraps an option's own term, so the renderer folds it across six rows, exactly as a terminal would.
+Whichever route, a full click-extra help screen carries `--table-format`, whose choice list is a single 463-character line. Click never wraps an option's own term, so the renderer folds it across six rows, exactly as a terminal would.
 
 ### Why a capture needs hardening
 

@@ -87,6 +87,37 @@ def built_docs(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return out_dir
 
 
+@pytest.fixture(scope="module")
+def captures_before_build() -> dict[Path, bytes]:
+    """Snapshot every committed capture before a build gets a chance to rewrite one.
+
+    Requested ahead of {func}`built_docs` by the freshness check below, so the
+    bytes are read while the tree is still as committed.
+    """
+    return {
+        path: path.read_bytes()
+        for path in sorted((PROJECT_ROOT / "docs" / "assets").glob("*.svg"))
+    }
+
+
+def test_committed_captures_survive_a_build(captures_before_build, built_docs):
+    """Building the documentation leaves every committed capture byte-identical.
+
+    A `click:run` block carrying `:screenshot:` rewrites its image from the CLI's
+    live output on every build. So an image that no longer matches the code
+    surfaces here, instead of sitting stale in a readme nobody re-checked.
+
+    Regenerating is the fix: build the docs and commit what changed.
+    """
+    assert captures_before_build, "no committed capture found to check"
+    stale = [
+        path.name
+        for path, before in captures_before_build.items()
+        if path.read_bytes() != before
+    ]
+    assert not stale, f"the build refreshed committed captures: {', '.join(stale)}"
+
+
 def read_html(built_docs: Path, filename: str) -> str:
     """Read a built HTML page."""
     html_path = built_docs / filename

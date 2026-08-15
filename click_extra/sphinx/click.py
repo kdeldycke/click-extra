@@ -42,6 +42,7 @@ import sys
 import tempfile
 from dataclasses import is_dataclass
 from functools import cached_property, partial
+from pathlib import Path
 
 import click
 from click.testing import CliRunner, EchoingStdin
@@ -51,7 +52,9 @@ from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.util import logging
 
+from ..blocks import OPTION_LINE_RE, fence_spans, marker_res, update_blocks
 from ..color import forced_color
+from ..screenshot import render_svg
 from ._base import (
     StatelessDomain,
     compile_directive,
@@ -73,6 +76,43 @@ logger = logging.getLogger(__name__)
 
 RST_INDENT = " " * 3
 """The indentation used for rST code blocks lines."""
+
+
+DEFAULT_SCREENSHOT_DIR = "assets"
+"""Directory a `click:run` `:screenshot:` capture is written to by default.
+
+Relative to the documentation source root. Overridden by the
+`click_extra_screenshot_dir` `conf.py` value.
+"""
+
+SCREENSHOT_MARKER_START = "<!-- screenshot -->"
+"""Opening marker of a `click:run` `:mirror:` region.
+
+Written on its own line, directly below the fence, and paired with
+{data}`SCREENSHOT_MARKER_END`. The region holds the Markdown link to the capture
+the block's `:screenshot:` option names, so the image shows wherever the raw
+Markdown is read: on GitHub, on PyPI, in an editor's preview.
+
+Same `<!-- name --> / <!-- name-end -->` grammar as the `python:render`
+`:mirror:` regions, under a name saying what this one holds. Unlike those, the
+region's content is derived from the option alone, never from executing
+anything: it goes stale only when the capture is renamed, which is why no
+build-time pass regenerates it in memory.
+"""
+
+SCREENSHOT_MARKER_END = "<!-- screenshot-end -->"
+"""Closing marker of a `:mirror:` region. See {data}`SCREENSHOT_MARKER_START`."""
+
+# Reading-side regexes of the marker pair above, in the shared grammar from
+# `blocks.marker_res`.
+_SCREENSHOT_OPEN_RE, _SCREENSHOT_CLOSE_RE = marker_res("screenshot")
+
+_CLICK_RUN_FENCE_OPEN = re.compile(r"^[ \t]*`{3,}\{click:run\}[ \t]*\S*[ \t]*$")
+"""Match a MyST `click:run` backtick-fence opening line.
+
+`:mirror:` writes Markdown back into a Markdown host, so it is scoped to the
+MyST fence form: an rST `click:run` directive has no Markdown region to hold.
+"""
 
 
 MYST_CONTENT_OFFSET_INFLATED_MAX = Version("5.1.0")
@@ -618,12 +658,54 @@ class ClickDirective(SphinxDirective):
 
         return block
 
+    @cached_property
+    def screenshot(self) -> str | None:
+        """Name of the SVG capture this block renders to, without its extension.
+
+        Set by the `:screenshot:` option. `None` when the block renders its
+        results as a code block, which is the default.
+        """
+        return self.options.get("screenshot")  # type: ignore[no-any-return]
+
+    def write_screenshot(self, results: Iterable[str]) -> None:
+        """Write the captured output as an SVG beside the documentation.
+
+        The file lands in the directory the `click_extra_screenshot_dir`
+        `conf.py` value names, under the source root, so a README pointing at
+        the repository embeds the very output this page renders live.
+
+        This is a side effect, not a rendering: the page keeps its results code
+        block, which stays selectable, searchable and theme-aware where an image
+        would not be. Use `:mirror:` to put the image on the page as well.
+
+        Writing during the build keeps the committed asset in step with the CLI
+        without anyone remembering to refresh it, and it is deterministic:
+        `unique_id` is pinned to the asset's name, so an unchanged CLI rewrites
+        byte-identical bytes and leaves the working tree clean.
+        """
+        assert self.screenshot
+        path = (
+            Path(self.env.srcdir)
+            / self.env.config.click_extra_screenshot_dir
+            / f"{self.screenshot}.svg"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            render_svg("\n".join(results), unique_id=self.screenshot),
+            encoding="utf-8",
+        )
+
     def run(self) -> list[nodes.Node]:
         assert hasattr(self.runner, self.runner_method), (
             f"{self.runner!r} does not have a method named {self.runner_method!r}."
         )
         runner_func = getattr(self.runner, self.runner_method)
         results = runner_func(self)
+
+        # Materialize the committed capture before deciding what to render: the
+        # asset is wanted even by a block hiding its own results.
+        if self.screenshot:
+            self.write_screenshot(results)
 
         # If neither source code nor results are requested, we don't render anything.
         if not self.show_source and not self.show_results:
@@ -672,8 +754,145 @@ class RunDirective(ClickDirective):
     show_results_by_default = True
     runner_method = "run_cli"
 
+    option_spec: ClassVar[OptionSpec] = ClickDirective.option_spec | {
+        "screenshot": directives.unchanged_required,
+        "mirror": directives.flag,
+    }
+    """Adds the two options turning a run into a committed image.
+
+    The pair is deliberately independent. `:screenshot: <name>` only *writes*
+    `<name>.svg` under the `click_extra_screenshot_dir`, leaving the page's
+    results code block alone: inside Sphinx that block beats an image, being
+    selectable, searchable and theme-aware. `:mirror:` is what puts the image on
+    the page, by keeping a Markdown link to it in the source `.md` between the
+    same marker pair the `python:render` `:mirror:` flag uses, so the capture shows
+    on GitHub and PyPI as well.
+
+    So `:screenshot:` alone maintains an asset some other surface embeds, and
+    the two together also show it here. Both are refreshed offline by
+    `click-extra refresh-directives`.
+    """
+
 
 ClickDirective.runner_factory = ClickRunner
+
+
+def _split_run_options(inner: Iterable[str]) -> dict[str, str]:
+    """Collect the leading `:key: value` option lines of a fence body.
+
+    Stops at the first line that is not an option, so a body whose Python
+    happens to start with a colon is never mistaken for one.
+    """
+    options: dict[str, str] = {}
+    for line in inner:
+        match = OPTION_LINE_RE.match(line)
+        if not match:
+            break
+        options[match.group("key")] = match.group("value")
+    return options
+
+
+def _skip_existing_screenshot_region(lines: list[str], index: int) -> int:
+    """Return the index just past an existing screenshot region at `index`.
+
+    Skips leading blank lines, then a {data}`SCREENSHOT_MARKER_START` …
+    {data}`SCREENSHOT_MARKER_END` block if one is present. Returns `index`
+    unchanged when no region follows, so a first-time block is not consumed.
+    """
+    cursor = index
+    while cursor < len(lines) and not lines[cursor].strip():
+        cursor += 1
+    if cursor < len(lines) and _SCREENSHOT_OPEN_RE.match(lines[cursor]):
+        while cursor < len(lines) and not _SCREENSHOT_CLOSE_RE.match(lines[cursor]):
+            cursor += 1
+        if cursor < len(lines):
+            return cursor + 1
+    return index
+
+
+def _rewrite_screenshot_regions(
+    text: str,
+    directory: str = DEFAULT_SCREENSHOT_DIR,
+) -> str:
+    """Return `text` with every `click:run` `:mirror:` region refreshed.
+
+    Walks the document fence by fence via {func}`click_extra.blocks.fence_spans`,
+    so a `click:run` example nested inside a longer `code-block` fence is copied
+    verbatim, never treated as a live block. Only a top-level `click:run` fence
+    carrying both `:screenshot:` and `:mirror:` gets a region, inserted directly
+    below it on first sight. Idempotent: an unchanged block round-trips to the
+    same text.
+
+    The image itself is written by the directive at build time. This only
+    maintains the Markdown pointing at it.
+    """
+    lines = text.split("\n")
+    spans = fence_spans(lines)
+    total = len(lines)
+    out: list[str] = []
+    index = 0
+    while index < total:
+        span = spans.get(index)
+        if span is None:
+            out.append(lines[index])
+            index += 1
+            continue
+        if span.close is None:
+            # Unterminated fence: leave the tail untouched.
+            out.extend(lines[index:])
+            break
+
+        options: dict[str, str] = {}
+        if _CLICK_RUN_FENCE_OPEN.match(lines[index]):
+            options = _split_run_options(lines[index + 1 : span.close])
+        # Emit the whole fence unit (source and close line) verbatim.
+        out.extend(lines[index : span.close + 1])
+        index = span.close + 1
+        name = options.get("screenshot")
+        if not name or "mirror" not in options:
+            continue
+
+        index = _skip_existing_screenshot_region(lines, index)
+        out.extend([
+            "",
+            SCREENSHOT_MARKER_START,
+            "",
+            f"![{name}]({directory}/{name}.svg)",
+            "",
+            SCREENSHOT_MARKER_END,
+        ])
+        # Collapse the gap to the following content to a single blank line.
+        while index < total and not lines[index].strip():
+            index += 1
+        if index < total:
+            out.append("")
+
+    return "\n".join(out)
+
+
+def update_screenshot_blocks(
+    paths: Iterable[Path],
+    *,
+    check: bool = False,
+    directory: str = DEFAULT_SCREENSHOT_DIR,
+) -> list[Path]:
+    """Refresh every `click:run` `:mirror:` region in the given sources.
+
+    See {func}`click_extra.blocks.update_blocks` for the walk, write, and
+    `check`-mode contract. Unlike the `python:render` `:mirror:` refresher, this
+    executes nothing: a region's content is derived from the block's
+    `:screenshot:` name.
+
+    :param paths: Markdown files, or directories recursed for `*.md`.
+    :param check: report what would change without writing.
+    :param directory: where the captures live, relative to each document.
+    :return: the files whose regions were (or, under `check`, would be) updated.
+    """
+
+    def rewrite(text: str, path: Path) -> str:
+        return _rewrite_screenshot_regions(text, directory)
+
+    return update_blocks(paths, rewrite, check=check)
 
 
 class TreeDirective(ClickDirective):

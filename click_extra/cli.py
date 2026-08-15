@@ -318,7 +318,10 @@ def refresh_directives_cmd(
 
     - python:render blocks carrying the :mirror: flag, whose Python code is
       executed to regenerate the mirrored region below the fence (inserted on
-      first refresh).
+      first refresh);
+
+    - click:run blocks carrying both :screenshot: and :mirror:, whose region
+      below the fence links to the capture the block writes at build time.
 
     Examples nested inside longer code fences are never refreshed or executed.
 
@@ -335,6 +338,7 @@ def refresh_directives_cmd(
     # command that needs it. Importing it eagerly would break the rest of the
     # CLI when sphinx is absent, and slow every invocation with a heavy import.
     try:
+        from .sphinx.click import update_screenshot_blocks
         from .sphinx.matrix import update_matrix_blocks
         from .sphinx.python import update_mirror_blocks
     except ImportError as error:
@@ -349,6 +353,7 @@ def refresh_directives_cmd(
     except ValueError as error:
         raise ClickException(str(error)) from error
     changed.update(update_mirror_blocks(paths, check=check))
+    changed.update(update_screenshot_blocks(paths, check=check))
     for path in sorted(changed):
         echo(f"{'would refresh' if check else 'refreshed'}: {path}")
     if check and changed:

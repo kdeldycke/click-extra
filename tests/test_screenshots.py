@@ -55,9 +55,6 @@ from click_extra.screenshot import (
 ASSETS = Path(__file__).parent.parent / "docs" / "assets"
 """Directory the committed captures live in."""
 
-EXAMPLES = Path(__file__).parent.parent / "examples"
-"""Directory the standalone example CLIs live in."""
-
 class Capture(NamedTuple):
     """A terminal capture committed under `docs/assets` and embedded in the docs.
 
@@ -69,13 +66,7 @@ class Capture(NamedTuple):
     """Name of the SVG under {data}`ASSETS`."""
 
     args: tuple[str, ...]
-    """Arguments the command was invoked with."""
-
-    script: str | None = None
-    """Example script under {data}`EXAMPLES` holding the command.
-
-    `None` means the command is a subcommand of the bundled `click-extra` CLI.
-    """
+    """Arguments the `click-extra` CLI was invoked with."""
 
     columns: int = 80
     """Terminal width it was shot at.
@@ -88,19 +79,10 @@ class Capture(NamedTuple):
     head: int | None = None
     """Number of leading lines kept, or `None` when nothing was trimmed."""
 
-    os_specific: bool = False
-    """Whether the captured output cannot be reproduced on every platform.
-
-    A help screen showing the `--config` default carries the host's application
-    directory, which {func}`click.get_app_dir` resolves differently per
-    platform. The drift check for such a capture only runs where it was shot.
-    """
-
     @property
     def prompt(self) -> str:
         """The `$` line the capture draws above its output."""
-        invocation = f"python {self.script}" if self.script else "click-extra"
-        return f"$ {invocation} {' '.join(self.args)}"
+        return f"$ click-extra {' '.join(self.args)}"
 
     @property
     def command(self) -> tuple[str, ...]:
@@ -111,24 +93,20 @@ class Capture(NamedTuple):
         {data}`sys.executable` keeps the check independent of uv, and of whether
         the environment happens to be synced.
         """
-        if self.script:
-            return (sys.executable, str(EXAMPLES / self.script), *self.args)
         return (sys.executable, "-m", "click_extra", *self.args)
 
 
 COMMITTED_CAPTURES = (
     Capture("color-gradient-screen.svg", ("gradient",)),
-    Capture(
-        "hello-click-extra-screen.svg",
-        ("--help",),
-        script="hello_click_extra.py",
-        os_specific=True,
-    ),
-    Capture("hello-click-screen.svg", ("--help",), script="hello_click.py"),
     Capture("text-styles-screen.svg", ("styles",), columns=160, head=14),
     Capture("theme-gallery-screen.svg", ("themes",), head=16),
 )
-"""Every capture the documentation embeds, in file-name order."""
+"""Every capture shot by the `screenshot` command, in file-name order.
+
+The `hello-click*` pair opening the readme is not here: those are written by
+the tutorial's own `click:run` blocks at documentation-build time, and guarded
+by `tests/test_sphinx_crossrefs.py` instead.
+"""
 
 
 SAMPLE_CAPTURE = (
@@ -285,17 +263,8 @@ def test_capture_output_keeps_stderr_out_unless_asked():
 
 @pytest.mark.parametrize(
     "capture",
-    tuple(
-        pytest.param(
-            capture,
-            id=capture.filename,
-            marks=pytest.mark.skipif(
-                capture.os_specific and not sys.platform.startswith("darwin"),
-                reason="capture carries a macOS application directory",
-            ),
-        )
-        for capture in COMMITTED_CAPTURES
-    ),
+    COMMITTED_CAPTURES,
+    ids=tuple(capture.filename for capture in COMMITTED_CAPTURES),
 )
 def test_committed_capture_matches_cli(capture):
     """Every committed capture still pictures what its command prints today.

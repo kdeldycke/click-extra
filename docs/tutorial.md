@@ -1,21 +1,13 @@
 # {octicon}`mortar-board` Tutorial
 
-This tutorial details how we transformed the [canonical `click` example](https://github.com/pallets/click?tab=readme-ov-file#a-simple-example):
-
-![click CLI help screen](assets/hello-click-screen.svg)
-
-Into this:
-
-![click-extra CLI help screen](assets/hello-click-extra-screen.svg)
-
-The entire diff between the two is one line:
+This tutorial details how we transformed the [canonical `click` example](https://github.com/pallets/click?tab=readme-ov-file#a-simple-example) into a CLI with colors, a configuration file, verbosity control and a dozen other options, by changing one line:
 
 ```diff
 -import click
 +import click_extra as click
 ```
 
-Both are captured from [`examples/`](https://github.com/kdeldycke/click-extra/tree/main/examples), whose two scripts hold that code. See [screenshots](screenshots.md) for how the images are produced and kept in step with the code.
+[Jump to that transformation](#all-bells-and-whistles) to see both help screens side by side, or start from scratch below. Those two screens are also the ones opening the [readme](https://github.com/kdeldycke/click-extra#example): they are captured from this page's own blocks, so they cannot drift from the code. See [screenshots](screenshots.md) for how.
 
 ## From script to CLI in 30 seconds
 
@@ -69,6 +61,8 @@ def hello(count, name):
 Whose help screen renders as:
 
 ```{click:run}
+:screenshot: hello-click-screen
+:mirror:
 from textwrap import dedent
 result = invoke(hello, args=["--help"])
 assert result.output == dedent(
@@ -85,24 +79,32 @@ assert result.output == dedent(
 )
 ```
 
-To augment the example above with {ref}`all the bells and whistles <features>` `click-extra` has in store, you just need to import the same decorators and functions from its namespace:
+<!-- screenshot -->
+
+![hello-click-screen](assets/hello-click-screen.svg)
+
+<!-- screenshot-end -->
+
+To augment the example above with {ref}`all the bells and whistles <features>` `click-extra` has in store, you only need to change the import. `click-extra` proxies the whole `click` namespace, so aliasing it back leaves every decorator and call exactly as it was:
 
 ```{click:source}
-:emphasize-lines: 1,3-5,9
-import click_extra
+:emphasize-lines: 1
+import click_extra as click
 
-@click_extra.command
-@click_extra.option("--count", default=1, help="Number of greetings.")
-@click_extra.option("--name", prompt="Your name", help="The person to greet.")
+@click.command
+@click.option("--count", default=1, help="Number of greetings.")
+@click.option("--name", prompt="Your name", help="The person to greet.")
 def hello(count, name):
     """Simple program that greets NAME for a total of COUNT times."""
     for _ in range(count):
-        click_extra.echo(f"Hello, {name}!")
+        click.echo(f"Hello, {name}!")
 ```
 
 And now you get:
 
 ```{click:run}
+:screenshot: hello-click-extra-screen
+:mirror:
 from textwrap import dedent
 result = invoke(hello, args=["--help"])
 assert result.output.startswith(dedent("""\
@@ -116,6 +118,12 @@ assert result.output.startswith(dedent("""\
     """
 ))
 ```
+
+<!-- screenshot -->
+
+![hello-click-extra-screen](assets/hello-click-extra-screen.svg)
+
+<!-- screenshot-end -->
 
 That's it!
 

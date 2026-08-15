@@ -415,6 +415,42 @@ assert not result.stderr, "Found error messages in <stderr>"
 `:show-results:`/`:hide-results:` options have no effect on the `click:source` directive and will be ignored. That's because this directive does not execute the CLI: it only displays its source code.
 ```
 
+### Committed captures
+
+Inside these pages a `click:run` block renders live, so none of them needs a screenshot. A README on GitHub or PyPI, a slide, or a social post cannot run code, and those surfaces need a captured image. Two options let a block maintain one without giving up its live rendering:
+
+- `:screenshot: <name>` writes the block's output to `<name>.svg`, in the directory the `click_extra_screenshot_dir` `conf.py` value names (`assets` by default, relative to the documentation source root). Nothing about the page changes: the results code block stays, being selectable, searchable and theme-aware where an image is none of those. The file is rewritten on every build, so it cannot drift from the CLI.
+- `:mirror:` puts the image on the page as well, by keeping a Markdown link to it in the source `.md`, between `<!-- screenshot -->` and `<!-- screenshot-end -->` markers directly below the fence. That region is refreshed by `click-extra refresh-directives`. Holding a link rather than generated data, it goes stale only when the capture is renamed.
+
+````{code-block} markdown
+:emphasize-lines: 2-3
+```{click:run}
+:screenshot: greet-screen
+:mirror:
+result = invoke(greet)
+```
+````
+
+Which, once refreshed, keeps this below the fence, so the capture shows wherever the raw Markdown is read:
+
+```{code-block} markdown
+<!-- screenshot -->
+
+![greet-screen](assets/greet-screen.svg)
+
+<!-- screenshot-end -->
+```
+
+The name doubles as the image's alt text, so pick one that reads as a description.
+
+```{tip}
+The two are independent on purpose. `:screenshot:` alone maintains an image some *other* surface embeds, which is how the before/after screens opening this project's [readme](https://github.com/kdeldycke/click-extra#example) are produced: they come from the [tutorial](tutorial.md)'s own blocks, and no one has to remember to reshoot them.
+```
+
+```{caution}
+Captures are written into the documentation *source* tree, not the build output, since that is where a README finds them. A build therefore leaves them refreshed in your working copy: commit what changed. See [screenshots](screenshots.md) for the surfaces this serves, and for capturing a CLI outside a documentation build.
+```
+
 ### Standalone `click:run` blocks
 
 You can also use the `click:run` directive without a preceding `click:source` block. This is useful when you want to demonstrate the usage of a CLI defined elsewhere, for example in your package's source code.
