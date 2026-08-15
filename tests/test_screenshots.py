@@ -40,7 +40,6 @@ from typing import NamedTuple
 import pytest
 
 from click_extra import screenshot, unstyle
-from click_extra.cli import demo
 from click_extra.screenshot import (
     _TEXT_ELEMENT_RE,
     PADDING,
@@ -54,6 +53,9 @@ from click_extra.screenshot import (
 
 ASSETS = Path(__file__).parent.parent / "docs" / "assets"
 """Directory the committed captures live in."""
+
+EXAMPLES = Path(__file__).parent.parent / "examples"
+"""Directory the standalone example CLIs live in."""
 
 TRUNCATION = "[...]"
 """Last captured line of a trimmed capture, as left by `--truncation`."""
@@ -70,7 +72,13 @@ class Capture(NamedTuple):
     """Name of the SVG under {data}`ASSETS`."""
 
     args: tuple[str, ...]
-    """Arguments passed to the `click-extra` CLI to produce it."""
+    """Arguments the command was invoked with."""
+
+    script: str | None = None
+    """Example script under {data}`EXAMPLES` holding the command.
+
+    `None` means the command is a subcommand of the bundled `click-extra` CLI.
+    """
 
     columns: int = 80
     """Terminal width it was shot at.
@@ -83,13 +91,49 @@ class Capture(NamedTuple):
     head: int | None = None
     """Number of leading lines kept, or `None` when nothing was trimmed."""
 
+    os_specific: bool = False
+    """Whether the captured output cannot be reproduced on every platform.
+
+    A help screen showing the `--config` default carries the host's application
+    directory, which {func}`click.get_app_dir` resolves differently per
+    platform. The drift check for such a capture only runs where it was shot.
+    """
+
+    @property
+    def prompt(self) -> str:
+        """The `$` line the capture draws above its output."""
+        invocation = f"python {self.script}" if self.script else "click-extra"
+        return f"$ {invocation} {' '.join(self.args)}"
+
+    @property
+    def command(self) -> tuple[str, ...]:
+        """The command line reproducing this capture through this interpreter.
+
+        `docs/screenshots.md` documents the same commands reached through
+        `uv run`, which is what a human types from a checkout. Going straight at
+        {data}`sys.executable` keeps the check independent of uv, and of whether
+        the environment happens to be synced.
+        """
+        if self.script:
+            return (sys.executable, str(EXAMPLES / self.script), *self.args)
+        return (sys.executable, "-m", "click_extra", *self.args)
+
 
 COMMITTED_CAPTURES = (
     Capture("color-gradient-screen.svg", ("gradient",)),
+    Capture(
+        "hello-click-extra-screen.svg",
+        ("--help",),
+        script="hello_click_extra.py",
+        head=35,
+        os_specific=True,
+    ),
+    Capture("hello-click-screen.svg", ("--help",), script="hello_click.py"),
     Capture("text-styles-screen.svg", ("styles",), columns=160, head=14),
     Capture("theme-gallery-screen.svg", ("themes",), head=16),
 )
-"""Every capture `docs/screenshots.md` embeds, in file-name order."""
+"""Every capture the documentation embeds, in file-name order."""
+
 
 SAMPLE_CAPTURE = (
     "\x1b[1mFruit\x1b[0m   Colour\nbanana  yellow\nkiwi    green\n\n2 fruits\n"
@@ -245,28 +289,41 @@ def test_capture_output_keeps_stderr_out_unless_asked():
 
 @pytest.mark.parametrize(
     "capture",
-    COMMITTED_CAPTURES,
-    ids=(capture.filename for capture in COMMITTED_CAPTURES),
+    tuple(
+        pytest.param(
+            capture,
+            id=capture.filename,
+            marks=pytest.mark.skipif(
+                capture.os_specific and not sys.platform.startswith("darwin"),
+                reason="capture carries a macOS application directory",
+            ),
+        )
+        for capture in COMMITTED_CAPTURES
+    ),
 )
-def test_committed_capture_matches_cli(invoke, monkeypatch, capture):
+def test_committed_capture_matches_cli(capture):
     """Every committed capture still pictures what its command prints today.
 
     A trimmed capture is compared against the head of the live output; an
     untrimmed one has to account for all of it.
+
+    The command is re-run through {func}`~click_extra.screenshot.capture_output`,
+    the same subprocess path the image was made with, rather than in-process.
+    Click's own `CliRunner` pins `FORCED_WIDTH` to 80, while a command wrapping
+    to an 80-column terminal is handed `min(columns, max_width) - 2`: comparing
+    across that gap makes a long line wrap two columns apart and fail on nothing.
     """
-    monkeypatch.setenv("COLUMNS", str(capture.columns))
-
-    captured = svg_to_lines((ASSETS / capture.filename).read_text(encoding="utf-8"))
-    assert captured[0] == f"$ click-extra {' '.join(capture.args)}"
-    captured = captured[1:]
+    committed = svg_to_lines((ASSETS / capture.filename).read_text(encoding="utf-8"))
+    assert committed[0] == capture.prompt
+    committed = committed[1:]
     if capture.head is not None:
-        assert captured[-1] == TRUNCATION
-        captured = captured[:-1]
+        assert committed[-1] == TRUNCATION
+        committed = committed[:-1]
 
-    result = invoke(demo, list(capture.args), color=False)
-    assert result.exit_code == 0
-    printed = [line.rstrip() for line in unstyle(result.stdout).splitlines()]
+    process = capture_output(list(capture.command), columns=capture.columns)
+    assert process.returncode == 0
+    printed = [line.rstrip() for line in unstyle(process.stdout).splitlines()]
 
-    assert captured == printed[: len(captured)]
+    assert committed == printed[: len(committed)]
     if capture.head is None:
-        assert len(captured) == len(printed)
+        assert len(committed) == len(printed)

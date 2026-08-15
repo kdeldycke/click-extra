@@ -1,0 +1,209 @@
+<svg class="rich-terminal" viewBox="0 0 994 952.8" xmlns="http://www.w3.org/2000/svg">
+    <!-- Generated with Rich https://www.textualize.io -->
+    <style>
+
+    @font-face {
+        font-family: "Fira Code";
+        src: local("FiraCode-Regular"),
+                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Regular.woff2") format("woff2"),
+                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Regular.woff") format("woff");
+        font-style: normal;
+        font-weight: 400;
+    }
+    @font-face {
+        font-family: "Fira Code";
+        src: local("FiraCode-Bold"),
+                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Bold.woff2") format("woff2"),
+                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Bold.woff") format("woff");
+        font-style: bold;
+        font-weight: 700;
+    }
+
+    .hello-click-extra-screen-matrix {
+        font-family: Fira Code, monospace;
+        font-size: 20px;
+        line-height: 24.4px;
+        font-variant-east-asian: full-width;
+    }
+
+    .hello-click-extra-screen-title {
+        font-size: 18px;
+        font-weight: bold;
+        font-family: arial;
+    }
+
+    .hello-click-extra-screen-r1 { fill: #868887 }
+.hello-click-extra-screen-r2 { fill: #c5c8c6 }
+.hello-click-extra-screen-r3 { fill: #fdfdc5;font-weight: bold }
+.hello-click-extra-screen-r4 { fill: #68a0b3;font-weight: bold }
+.hello-click-extra-screen-r5 { fill: #1984e9;text-decoration: underline; }
+.hello-click-extra-screen-r6 { fill: #4e707b;font-style: italic; }
+.hello-click-extra-screen-r7 { fill: #6b753d;font-style: italic; }
+.hello-click-extra-screen-r8 { fill: #98729f;font-weight: bold }
+    </style>
+
+    <defs>
+    <clipPath id="hello-click-extra-screen-clip-terminal">
+      <rect x="0" y="0" width="975.0" height="901.8" />
+    </clipPath>
+    <clipPath id="hello-click-extra-screen-line-0">
+    <rect x="0" y="1.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-1">
+    <rect x="0" y="25.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-2">
+    <rect x="0" y="50.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-3">
+    <rect x="0" y="74.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-4">
+    <rect x="0" y="99.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-5">
+    <rect x="0" y="123.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-6">
+    <rect x="0" y="147.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-7">
+    <rect x="0" y="172.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-8">
+    <rect x="0" y="196.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-9">
+    <rect x="0" y="221.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-10">
+    <rect x="0" y="245.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-11">
+    <rect x="0" y="269.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-12">
+    <rect x="0" y="294.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-13">
+    <rect x="0" y="318.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-14">
+    <rect x="0" y="343.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-15">
+    <rect x="0" y="367.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-16">
+    <rect x="0" y="391.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-17">
+    <rect x="0" y="416.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-18">
+    <rect x="0" y="440.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-19">
+    <rect x="0" y="465.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-20">
+    <rect x="0" y="489.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-21">
+    <rect x="0" y="513.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-22">
+    <rect x="0" y="538.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-23">
+    <rect x="0" y="562.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-24">
+    <rect x="0" y="587.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-25">
+    <rect x="0" y="611.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-26">
+    <rect x="0" y="635.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-27">
+    <rect x="0" y="660.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-28">
+    <rect x="0" y="684.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-29">
+    <rect x="0" y="709.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-30">
+    <rect x="0" y="733.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-31">
+    <rect x="0" y="757.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-32">
+    <rect x="0" y="782.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-33">
+    <rect x="0" y="806.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-34">
+    <rect x="0" y="831.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="hello-click-extra-screen-line-35">
+    <rect x="0" y="855.5" width="976" height="24.65"/>
+            </clipPath>
+    </defs>
+
+    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="992" height="950.8" rx="8"/>
+            <g transform="translate(26,22)">
+            <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
+            <circle cx="22" cy="0" r="7" fill="#febc2e"/>
+            <circle cx="44" cy="0" r="7" fill="#28c840"/>
+            </g>
+        
+    <g transform="translate(9, 41)" clip-path="url(#hello-click-extra-screen-clip-terminal)">
+    
+    <g class="hello-click-extra-screen-matrix">
+    <text class="hello-click-extra-screen-r1" x="0" y="20" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-0)">$</text><text class="hello-click-extra-screen-r3" x="24.4" y="20" textLength="73.2" clip-path="url(#hello-click-extra-screen-line-0)">python</text><text class="hello-click-extra-screen-r2" x="109.8" y="20" textLength="244" clip-path="url(#hello-click-extra-screen-line-0)">hello_click_extra.py</text><text class="hello-click-extra-screen-r4" x="366" y="20" textLength="73.2" clip-path="url(#hello-click-extra-screen-line-0)">--help</text><text class="hello-click-extra-screen-r2" x="976" y="20" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-0)">
+</text><text class="hello-click-extra-screen-r5" x="0" y="44.4" textLength="73.2" clip-path="url(#hello-click-extra-screen-line-1)">Usage:</text><text class="hello-click-extra-screen-r3" x="85.4" y="44.4" textLength="61" clip-path="url(#hello-click-extra-screen-line-1)">hello</text><text class="hello-click-extra-screen-r6" x="158.6" y="44.4" textLength="109.8" clip-path="url(#hello-click-extra-screen-line-1)">[OPTIONS]</text><text class="hello-click-extra-screen-r2" x="976" y="44.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-1)">
+</text><text class="hello-click-extra-screen-r2" x="976" y="68.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-2)">
+</text><text class="hello-click-extra-screen-r2" x="24.4" y="93.2" textLength="719.8" clip-path="url(#hello-click-extra-screen-line-3)">Simple&#160;program&#160;that&#160;greets&#160;NAME&#160;for&#160;a&#160;total&#160;of&#160;COUNT&#160;times.</text><text class="hello-click-extra-screen-r2" x="976" y="93.2" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-3)">
+</text><text class="hello-click-extra-screen-r2" x="976" y="117.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-4)">
+</text><text class="hello-click-extra-screen-r5" x="0" y="142" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-5)">Options:</text><text class="hello-click-extra-screen-r2" x="976" y="142" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-5)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="166.4" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-6)">--count</text><text class="hello-click-extra-screen-r6" x="122" y="166.4" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-6)">INTEGER</text><text class="hello-click-extra-screen-r2" x="378.2" y="166.4" textLength="244" clip-path="url(#hello-click-extra-screen-line-6)">Number&#160;of&#160;greetings.</text><text class="hello-click-extra-screen-r1" x="646.6" y="166.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-6)">[</text><text class="hello-click-extra-screen-r1" x="658.8" y="166.4" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-6)">default:</text><text class="hello-click-extra-screen-r7" x="768.6" y="166.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-6)">1</text><text class="hello-click-extra-screen-r1" x="780.8" y="166.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-6)">]</text><text class="hello-click-extra-screen-r2" x="976" y="166.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-6)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="190.8" textLength="73.2" clip-path="url(#hello-click-extra-screen-line-7)">--name</text><text class="hello-click-extra-screen-r6" x="109.8" y="190.8" textLength="48.8" clip-path="url(#hello-click-extra-screen-line-7)">TEXT</text><text class="hello-click-extra-screen-r2" x="378.2" y="190.8" textLength="244" clip-path="url(#hello-click-extra-screen-line-7)">The&#160;person&#160;to&#160;greet.</text><text class="hello-click-extra-screen-r2" x="976" y="190.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-7)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="215.2" textLength="73.2" clip-path="url(#hello-click-extra-screen-line-8)">--time</text><text class="hello-click-extra-screen-r2" x="109.8" y="215.2" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-8)">/</text><text class="hello-click-extra-screen-r4" x="134.2" y="215.2" textLength="109.8" clip-path="url(#hello-click-extra-screen-line-8)">--no-time</text><text class="hello-click-extra-screen-r2" x="378.2" y="215.2" textLength="500.2" clip-path="url(#hello-click-extra-screen-line-8)">Measure&#160;and&#160;print&#160;elapsed&#160;execution&#160;time.</text><text class="hello-click-extra-screen-r2" x="976" y="215.2" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-8)">
+</text><text class="hello-click-extra-screen-r1" x="378.2" y="239.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-9)">[</text><text class="hello-click-extra-screen-r1" x="390.4" y="239.6" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-9)">default:</text><text class="hello-click-extra-screen-r7" x="500.2" y="239.6" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-9)">no-time</text><text class="hello-click-extra-screen-r1" x="585.6" y="239.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-9)">]</text><text class="hello-click-extra-screen-r2" x="976" y="239.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-9)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="264" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-10)">--config</text><text class="hello-click-extra-screen-r6" x="134.2" y="264" textLength="134.2" clip-path="url(#hello-click-extra-screen-line-10)">CONFIG_PATH</text><text class="hello-click-extra-screen-r2" x="378.2" y="264" textLength="536.8" clip-path="url(#hello-click-extra-screen-line-10)">Location&#160;of&#160;the&#160;configuration&#160;file.&#160;Supports</text><text class="hello-click-extra-screen-r2" x="976" y="264" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-10)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="288.4" textLength="536.8" clip-path="url(#hello-click-extra-screen-line-11)">local&#160;path&#160;with&#160;glob&#160;patterns&#160;or&#160;remote&#160;URL.</text><text class="hello-click-extra-screen-r2" x="976" y="288.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-11)">
+</text><text class="hello-click-extra-screen-r1" x="378.2" y="312.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-12)">[</text><text class="hello-click-extra-screen-r1" x="390.4" y="312.8" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-12)">default:</text><text class="hello-click-extra-screen-r7" x="500.2" y="312.8" textLength="463.6" clip-path="url(#hello-click-extra-screen-line-12)">~/Library/Application&#160;Support/hello/{*</text><text class="hello-click-extra-screen-r2" x="976" y="312.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-12)">
+</text><text class="hello-click-extra-screen-r7" x="378.2" y="337.2" textLength="585.6" clip-path="url(#hello-click-extra-screen-line-13)">.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjso</text><text class="hello-click-extra-screen-r2" x="976" y="337.2" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-13)">
+</text><text class="hello-click-extra-screen-r7" x="378.2" y="361.6" textLength="353.8" clip-path="url(#hello-click-extra-screen-line-14)">n,*.ini,*.xml,pyproject.toml}</text><text class="hello-click-extra-screen-r1" x="732" y="361.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-14)">]</text><text class="hello-click-extra-screen-r2" x="976" y="361.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-14)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="386" textLength="134.2" clip-path="url(#hello-click-extra-screen-line-15)">--no-config</text><text class="hello-click-extra-screen-r2" x="378.2" y="386" textLength="524.6" clip-path="url(#hello-click-extra-screen-line-15)">Ignore&#160;all&#160;configuration&#160;files&#160;and&#160;only&#160;use</text><text class="hello-click-extra-screen-r2" x="976" y="386" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-15)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="410.4" textLength="475.8" clip-path="url(#hello-click-extra-screen-line-16)">command&#160;line&#160;parameters&#160;and&#160;environment</text><text class="hello-click-extra-screen-r2" x="976" y="410.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-16)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="434.8" textLength="122" clip-path="url(#hello-click-extra-screen-line-17)">variables.</text><text class="hello-click-extra-screen-r2" x="976" y="434.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-17)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="459.2" textLength="207.4" clip-path="url(#hello-click-extra-screen-line-18)">--validate-config</text><text class="hello-click-extra-screen-r6" x="244" y="459.2" textLength="48.8" clip-path="url(#hello-click-extra-screen-line-18)">FILE</text><text class="hello-click-extra-screen-r2" x="378.2" y="459.2" textLength="500.2" clip-path="url(#hello-click-extra-screen-line-18)">Validate&#160;the&#160;configuration&#160;file&#160;and&#160;exit.</text><text class="hello-click-extra-screen-r2" x="976" y="459.2" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-18)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="483.6" textLength="183" clip-path="url(#hello-click-extra-screen-line-19)">--export-config</text><text class="hello-click-extra-screen-r6" x="219.6" y="483.6" textLength="73.2" clip-path="url(#hello-click-extra-screen-line-19)">FORMAT</text><text class="hello-click-extra-screen-r2" x="378.2" y="483.6" textLength="573.4" clip-path="url(#hello-click-extra-screen-line-19)">Export&#160;the&#160;configuration&#160;in&#160;the&#160;selected&#160;format</text><text class="hello-click-extra-screen-r2" x="976" y="483.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-19)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="508" textLength="280.6" clip-path="url(#hello-click-extra-screen-line-20)">to&#160;&lt;stdout&gt;,&#160;then&#160;exit.</text><text class="hello-click-extra-screen-r2" x="976" y="508" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-20)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="532.4" textLength="146.4" clip-path="url(#hello-click-extra-screen-line-21)">--accessible</text><text class="hello-click-extra-screen-r2" x="378.2" y="532.4" textLength="549" clip-path="url(#hello-click-extra-screen-line-21)">Accessibility&#160;mode:&#160;disable&#160;colors&#160;and&#160;render</text><text class="hello-click-extra-screen-r2" x="976" y="532.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-21)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="556.8" textLength="134.2" clip-path="url(#hello-click-extra-screen-line-22)">tables&#160;in&#160;a</text><text class="hello-click-extra-screen-r8" x="524.6" y="556.8" textLength="61" clip-path="url(#hello-click-extra-screen-line-22)">plain</text><text class="hello-click-extra-screen-r2" x="585.6" y="556.8" textLength="292.8" clip-path="url(#hello-click-extra-screen-line-22)">,&#160;screen-reader-friendly</text><text class="hello-click-extra-screen-r2" x="976" y="556.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-22)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="581.2" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-23)">format.</text><text class="hello-click-extra-screen-r2" x="976" y="581.2" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-23)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="605.6" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-24)">--color</text><text class="hello-click-extra-screen-r2" x="122" y="605.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-24)">[</text><text class="hello-click-extra-screen-r8" x="134.2" y="605.6" textLength="48.8" clip-path="url(#hello-click-extra-screen-line-24)">auto</text><text class="hello-click-extra-screen-r2" x="183" y="605.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-24)">|</text><text class="hello-click-extra-screen-r8" x="195.2" y="605.6" textLength="73.2" clip-path="url(#hello-click-extra-screen-line-24)">always</text><text class="hello-click-extra-screen-r2" x="268.4" y="605.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-24)">|</text><text class="hello-click-extra-screen-r8" x="280.6" y="605.6" textLength="61" clip-path="url(#hello-click-extra-screen-line-24)">never</text><text class="hello-click-extra-screen-r2" x="341.6" y="605.6" textLength="366" clip-path="url(#hello-click-extra-screen-line-24)">]&#160;&#160;Colorize&#160;the&#160;output.&#160;A&#160;bare</text><text class="hello-click-extra-screen-r4" x="719.8" y="605.6" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-24)">--color</text><text class="hello-click-extra-screen-r2" x="817.4" y="605.6" textLength="134.2" clip-path="url(#hello-click-extra-screen-line-24)">is&#160;the&#160;same</text><text class="hello-click-extra-screen-r2" x="976" y="605.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-24)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="630" textLength="24.4" clip-path="url(#hello-click-extra-screen-line-25)">as</text><text class="hello-click-extra-screen-r4" x="414.8" y="630" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-25)">--color</text><text class="hello-click-extra-screen-r2" x="500.2" y="630" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-25)">=</text><text class="hello-click-extra-screen-r8" x="512.4" y="630" textLength="73.2" clip-path="url(#hello-click-extra-screen-line-25)">always</text><text class="hello-click-extra-screen-r2" x="585.6" y="630" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-25)">.</text><text class="hello-click-extra-screen-r1" x="622.2" y="630" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-25)">[</text><text class="hello-click-extra-screen-r1" x="634.4" y="630" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-25)">default:</text><text class="hello-click-extra-screen-r7" x="744.2" y="630" textLength="48.8" clip-path="url(#hello-click-extra-screen-line-25)">auto</text><text class="hello-click-extra-screen-r1" x="793" y="630" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-25)">]</text><text class="hello-click-extra-screen-r2" x="976" y="630" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-25)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="654.4" textLength="122" clip-path="url(#hello-click-extra-screen-line-26)">--no-color</text><text class="hello-click-extra-screen-r2" x="378.2" y="654.4" textLength="366" clip-path="url(#hello-click-extra-screen-line-26)">Disable&#160;colorization&#160;(alias&#160;of</text><text class="hello-click-extra-screen-r4" x="756.4" y="654.4" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-26)">--color</text><text class="hello-click-extra-screen-r2" x="841.8" y="654.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-26)">=</text><text class="hello-click-extra-screen-r8" x="854" y="654.4" textLength="61" clip-path="url(#hello-click-extra-screen-line-26)">never</text><text class="hello-click-extra-screen-r2" x="915" y="654.4" textLength="24.4" clip-path="url(#hello-click-extra-screen-line-26)">).</text><text class="hello-click-extra-screen-r2" x="976" y="654.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-26)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="678.8" textLength="122" clip-path="url(#hello-click-extra-screen-line-27)">--progress</text><text class="hello-click-extra-screen-r2" x="158.6" y="678.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-27)">/</text><text class="hello-click-extra-screen-r4" x="183" y="678.8" textLength="158.6" clip-path="url(#hello-click-extra-screen-line-27)">--no-progress</text><text class="hello-click-extra-screen-r2" x="378.2" y="678.8" textLength="585.6" clip-path="url(#hello-click-extra-screen-line-27)">Show&#160;progress&#160;indicators&#160;during&#160;long&#160;operations.</text><text class="hello-click-extra-screen-r2" x="976" y="678.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-27)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="703.2" textLength="585.6" clip-path="url(#hello-click-extra-screen-line-28)">Disabled&#160;for&#160;non-interactive&#160;output&#160;(pipes,&#160;dumb</text><text class="hello-click-extra-screen-r2" x="976" y="703.2" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-28)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="727.6" textLength="256.2" clip-path="url(#hello-click-extra-screen-line-29)">terminals,&#160;CI)&#160;and&#160;by</text><text class="hello-click-extra-screen-r4" x="646.6" y="727.6" textLength="146.4" clip-path="url(#hello-click-extra-screen-line-29)">--accessible</text><text class="hello-click-extra-screen-r2" x="793" y="727.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-29)">.</text><text class="hello-click-extra-screen-r1" x="829.6" y="727.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-29)">[</text><text class="hello-click-extra-screen-r1" x="841.8" y="727.6" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-29)">default:</text><text class="hello-click-extra-screen-r2" x="976" y="727.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-29)">
+</text><text class="hello-click-extra-screen-r7" x="378.2" y="752" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-30)">progress</text><text class="hello-click-extra-screen-r1" x="475.8" y="752" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-30)">]</text><text class="hello-click-extra-screen-r2" x="976" y="752" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-30)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="776.4" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-31)">--theme</text><text class="hello-click-extra-screen-r2" x="122" y="776.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-31)">[</text><text class="hello-click-extra-screen-r8" x="134.2" y="776.4" textLength="48.8" clip-path="url(#hello-click-extra-screen-line-31)">dark</text><text class="hello-click-extra-screen-r2" x="183" y="776.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-31)">|</text><text class="hello-click-extra-screen-r8" x="195.2" y="776.4" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-31)">dracula</text><text class="hello-click-extra-screen-r2" x="280.6" y="776.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-31)">|</text><text class="hello-click-extra-screen-r8" x="292.8" y="776.4" textLength="61" clip-path="url(#hello-click-extra-screen-line-31)">light</text><text class="hello-click-extra-screen-r2" x="353.8" y="776.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-31)">|</text><text class="hello-click-extra-screen-r8" x="366" y="776.4" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-31)">manpage</text><text class="hello-click-extra-screen-r2" x="451.4" y="776.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-31)">|</text><text class="hello-click-extra-screen-r8" x="463.6" y="776.4" textLength="85.4" clip-path="url(#hello-click-extra-screen-line-31)">monokai</text><text class="hello-click-extra-screen-r2" x="549" y="776.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-31)">|</text><text class="hello-click-extra-screen-r8" x="561.2" y="776.4" textLength="48.8" clip-path="url(#hello-click-extra-screen-line-31)">nord</text><text class="hello-click-extra-screen-r2" x="610" y="776.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-31)">|</text><text class="hello-click-extra-screen-r8" x="622.2" y="776.4" textLength="170.8" clip-path="url(#hello-click-extra-screen-line-31)">solarized_dark</text><text class="hello-click-extra-screen-r2" x="793" y="776.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-31)">]</text><text class="hello-click-extra-screen-r2" x="976" y="776.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-31)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="800.8" textLength="414.8" clip-path="url(#hello-click-extra-screen-line-32)">Color&#160;theme&#160;used&#160;for&#160;help&#160;screens.</text><text class="hello-click-extra-screen-r1" x="817.4" y="800.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-32)">[</text><text class="hello-click-extra-screen-r1" x="829.6" y="800.8" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-32)">default:</text><text class="hello-click-extra-screen-r2" x="976" y="800.8" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-32)">
+</text><text class="hello-click-extra-screen-r7" x="378.2" y="825.2" textLength="48.8" clip-path="url(#hello-click-extra-screen-line-33)">dark</text><text class="hello-click-extra-screen-r1" x="427" y="825.2" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-33)">]</text><text class="hello-click-extra-screen-r2" x="976" y="825.2" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-33)">
+</text><text class="hello-click-extra-screen-r4" x="24.4" y="849.6" textLength="97.6" clip-path="url(#hello-click-extra-screen-line-34)">--params</text><text class="hello-click-extra-screen-r2" x="378.2" y="849.6" textLength="512.4" clip-path="url(#hello-click-extra-screen-line-34)">Show&#160;all&#160;CLI&#160;parameters,&#160;their&#160;provenance,</text><text class="hello-click-extra-screen-r2" x="976" y="849.6" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-34)">
+</text><text class="hello-click-extra-screen-r2" x="378.2" y="874" textLength="366" clip-path="url(#hello-click-extra-screen-line-35)">defaults&#160;and&#160;value,&#160;then&#160;exit.</text><text class="hello-click-extra-screen-r2" x="976" y="874" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-35)">
+</text><text class="hello-click-extra-screen-r2" x="0" y="898.4" textLength="61" clip-path="url(#hello-click-extra-screen-line-36)">[...]</text><text class="hello-click-extra-screen-r2" x="976" y="898.4" textLength="12.2" clip-path="url(#hello-click-extra-screen-line-36)">
+</text>
+    </g>
+    </g>
+</svg>

@@ -43,13 +43,13 @@ This is a great way to play with Click Extra and check that it runs fine on your
 
 It transforms this vanilla `click` CLI:
 
-![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-help-screen.png)
+![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/hello-click-screen.svg)
 
-Into this:
+Into this, by changing the import alone:
 
-![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/click-extra-screen.png)
+![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/hello-click-extra-screen.svg)
 
-To understand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
+Both screens come from [`examples/`](https://github.com/kdeldycke/click-extra/tree/main/examples), which differ by that one line. To understand how we ended up with the result above, [go read the tutorial](https://kdeldycke.github.io/click-extra/tutorial.html).
 
 ## Features
 

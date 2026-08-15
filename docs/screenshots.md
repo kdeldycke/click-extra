@@ -62,6 +62,15 @@ $ click-extra screenshot --output docs/assets/theme-gallery-screen.svg --head 16
 
 `--prompt` is what makes each image show the bare `click-extra …` a reader would type, while `uv run --frozen --` is what actually ran: the plumbing that reaches a checkout's copy of the CLI is not worth picturing. `--head` bounds the two long ones, and the `[...]` marker admits that the rest was cut.
 
+The before/after pair opening the [readme](https://github.com/kdeldycke/click-extra#example) and the [tutorial](tutorial.md) is shot the same way, from the two scripts in `examples/` that differ by their import alone:
+
+```shell-session
+$ click-extra screenshot --output docs/assets/hello-click-screen.svg --prompt "python hello_click.py --help" -- uv run --frozen -- python examples/hello_click.py --help
+$ click-extra screenshot --output docs/assets/hello-click-extra-screen.svg --head 35 --prompt "python hello_click_extra.py --help" -- uv run --frozen -- python examples/hello_click_extra.py --help
+```
+
+That second `--head` stops just before `--table-format`, whose choice list is a single 463-character line no terminal wraps.
+
 ### Why a capture needs hardening
 
 A renderer places a run of same-styled characters with an `x` offset, then leans on `textLength` to hold that run to an exact width. The padding separating two columns lives *inside* the run, as spaces preceding the text. A column therefore lands where it belongs only if the glyphs are the exact width the renderer assumed, which asks two things of whoever opens the file: honor `textLength`, and resolve the font the source names (Rich names Fira Code and links it from a CDN, which a browser blocks inside an `<img>`).
