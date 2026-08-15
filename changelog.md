@@ -1,5 +1,10 @@
 # Changelog
 
+## [`8.9.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 
 - Fix the man-page links of the `click-extra-manpages` directive, which pointed one directory too high on `dirhtml` and `singlehtml` builds.
