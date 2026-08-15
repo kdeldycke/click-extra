@@ -33,18 +33,16 @@ actually produces output. Drives the ``skipif`` on tests that need the
 HTML sibling to exist."""
 
 
-def _build_with_manpages(
+def _write_source(
     tmp_path: Path,
     manpages_config: list[dict[str, Any]],
     *,
-    builder: str = "html",
     index_body: str = "Hi\n==\n\nstub.\n",
     extra_docs: dict[str, str] | None = None,
 ) -> Path:
-    """Build a tiny Sphinx project that declares ``click_extra_manpages``.
+    """Write a tiny Sphinx project that declares ``click_extra_manpages``.
 
-    Returns the build output directory so the caller can inspect the man
-    pages emitted by the hook. Uses a CLI shipped with click-extra
+    Returns the source directory. Uses a CLI shipped with click-extra
     (``click_extra.cli:demo``) as the target, so no external project has
     to be importable for the test to run.
 
@@ -56,10 +54,7 @@ def _build_with_manpages(
     output layout shows.
     """
     srcdir = tmp_path / "source"
-    outdir = tmp_path / "build"
-    doctreedir = outdir / ".doctrees"
     srcdir.mkdir()
-    outdir.mkdir()
 
     conf = {
         "master_doc": "index",
@@ -67,26 +62,56 @@ def _build_with_manpages(
         "click_extra_manpages": manpages_config,
     }
     (srcdir / "conf.py").write_text(
-        "\n".join(f"{key} = {value!r}" for key, value in conf.items())
+        "\n".join(f"{key} = {value!r}" for key, value in conf.items()),
+        encoding="utf-8",
     )
-    (srcdir / "index.rst").write_text(index_body)
+    (srcdir / "index.rst").write_text(index_body, encoding="utf-8")
     for docname, body in (extra_docs or {}).items():
         doc_path = srcdir / f"{docname}.rst"
         doc_path.parent.mkdir(parents=True, exist_ok=True)
-        doc_path.write_text(body)
+        doc_path.write_text(body, encoding="utf-8")
+    return srcdir
 
+
+def _run_build(srcdir: Path, outdir: Path, builder: str) -> Path:
+    """Build ``srcdir`` into ``outdir`` with ``builder`` and return ``outdir``.
+
+    The doctree cache lives under ``outdir``, so calling this twice on one
+    ``outdir`` reproduces what a project gets from two ``sphinx-build`` runs
+    sharing a ``-d`` directory: the second builder reuses the doctrees the
+    first one pickled, and no directive re-runs.
+    """
+    outdir.mkdir(exist_ok=True)
     with docutils_namespace():
         app = Sphinx(
             str(srcdir),
             str(srcdir),
             str(outdir),
-            str(doctreedir),
+            str(outdir / ".doctrees"),
             builder,
             verbosity=0,
             warning=None,
         )
         app.build()
     return outdir
+
+
+def _build_with_manpages(
+    tmp_path: Path,
+    manpages_config: list[dict[str, Any]],
+    *,
+    builder: str = "html",
+    index_body: str = "Hi\n==\n\nstub.\n",
+    extra_docs: dict[str, str] | None = None,
+) -> Path:
+    """Write and build a project in one call, returning the output directory."""
+    srcdir = _write_source(
+        tmp_path,
+        manpages_config,
+        index_body=index_body,
+        extra_docs=extra_docs,
+    )
+    return _run_build(srcdir, tmp_path / "build", builder)
 
 
 def test_manpages_hook_writes_tree_into_outdir(tmp_path):
@@ -243,33 +268,69 @@ def test_manpages_directive_renders_one_link_per_command(tmp_path):
     assert "click-extra-wrap(1)" in body
 
 
-@pytest.mark.parametrize(
-    ("builder", "page_file", "prefix"),
-    (
-        # `html` publishes `guide/manuals.html`, one directory into the
-        # site, so `man/` sits one level up.
-        ("html", Path("guide/manuals.html"), "../"),
-        # `dirhtml` publishes the same page as
-        # `guide/manuals/index.html`, one directory deeper again.
-        ("dirhtml", Path("guide/manuals/index.html"), "../../"),
-    ),
+_NESTED_INDEX = "Hi\n==\n\n.. toctree::\n\n   guide/manuals\n"
+"""``index.rst`` body pulling a nested ``guide/manuals`` page into the
+toctree. Hosting the directive on that nested page is what separates the
+builder layouts: the root document renders at the site root under all of
+them, so it cannot catch a link computed from the docname alone."""
+
+
+_BUILDER_LAYOUTS = (
+    # `html` publishes `guide/manuals.html`, one directory into the site,
+    # so `man/` sits one level up.
+    ("html", Path("guide/manuals.html"), "../"),
+    # `dirhtml` publishes the same page as `guide/manuals/index.html`,
+    # one directory deeper again.
+    ("dirhtml", Path("guide/manuals/index.html"), "../../"),
+    # `singlehtml` folds every document into one root page, so the links
+    # resolve from the site root no matter how deep the docname is.
+    ("singlehtml", Path("index.html"), ""),
 )
+"""Each HTML-family builder, the file it publishes ``guide/manuals`` into,
+and the prefix its layout requires on a link to ``man/``."""
+
+
+@pytest.mark.parametrize(("builder", "page_file", "prefix"), _BUILDER_LAYOUTS)
 def test_manpages_directive_links_follow_the_builder_layout(
     tmp_path, builder, page_file, prefix
 ):
-    """Links resolve from wherever the builder publishes the page.
-
-    The directive hosted on a nested page is what separates the two
-    layouts: the root document renders at the site root under either
-    builder, so it cannot catch a link computed from the docname alone.
-    """
+    """Links resolve from wherever the builder publishes the page."""
     outdir = _build_with_manpages(
         tmp_path,
         [{"script": "click_extra.cli:demo", "render_html": False}],
         builder=builder,
-        index_body="Hi\n==\n\n.. toctree::\n\n   guide/manuals\n",
+        index_body=_NESTED_INDEX,
         extra_docs={"guide/manuals": _INDEX_WITH_DIRECTIVE},
     )
+    body = (outdir / page_file).read_text(encoding="utf-8")
+    assert f'href="{prefix}man/click-extra.1.html"' in body
+    assert f'href="{prefix}man/click-extra-wrap.1.html"' in body
+
+
+@pytest.mark.parametrize(("builder", "page_file", "prefix"), _BUILDER_LAYOUTS)
+def test_manpages_directive_links_survive_a_shared_doctree_cache(
+    tmp_path, builder, page_file, prefix
+):
+    """A second builder reusing pickled doctrees still gets its own layout.
+
+    Sphinx does not invalidate its doctree cache when the builder changes, so
+    the directive never re-runs on the second pass. A link resolved at parse
+    time would keep the first builder's layout and point at nothing.
+    """
+    srcdir = _write_source(
+        tmp_path,
+        [{"script": "click_extra.cli:demo", "render_html": False}],
+        index_body=_NESTED_INDEX,
+        extra_docs={"guide/manuals": _INDEX_WITH_DIRECTIVE},
+    )
+    outdir = tmp_path / "build"
+    # Warm the cache with every other builder before the one under test, so
+    # each layout is exercised as the follower of all the others.
+    for warmup, _page_file, _prefix in _BUILDER_LAYOUTS:
+        if warmup != builder:
+            _run_build(srcdir, outdir, warmup)
+    _run_build(srcdir, outdir, builder)
+
     body = (outdir / page_file).read_text(encoding="utf-8")
     assert f'href="{prefix}man/click-extra.1.html"' in body
     assert f'href="{prefix}man/click-extra-wrap.1.html"' in body

@@ -5,7 +5,11 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Fix the man-page links of the `click-extra-manpages` directive on a `dirhtml` build, which pointed one directory too high from any page but the root document.
+- Fix the man-page links of the `click-extra-manpages` directive, which pointed one directory too high on `dirhtml` and `singlehtml` builds.
+- Resolve man-page links against each rendered page, so they stay correct when builders share a doctree cache.
+- Stop resolving man-page links through a Sphinx API deprecated for removal in Sphinx 11.
+- Document the `colon-grid` table format.
+- Fix the Sphinx page's `click:run` example, which reported the documentation build's own Sphinx version instead of the CLI's.
 
 ## [`8.9.0` (2026-08-14)](https://github.com/kdeldycke/click-extra/compare/v8.8.1...v8.9.0)
 

@@ -427,7 +427,7 @@ In the example below, we import the `click_extra.cli.demo` function, which is de
 ````{code-block} markdown
 ```{click:run}
 from click_extra.cli import demo
-invoke(demo, args=["--version"])
+invoke(demo, args=["--help"])
 ```
 ````
 `````
@@ -438,7 +438,7 @@ invoke(demo, args=["--version"])
 .. click:run::
 
    from click_extra.cli import demo
-   invoke(demo, args=["--version"])
+   invoke(demo, args=["--help"])
 ```
 `````
 ``````
@@ -447,7 +447,13 @@ And the execution of that CLI renders just fine:
 
 ```{click:run}
 from click_extra.cli import demo
-invoke(demo, args=["--version"])
+result = invoke(demo, args=["--help"])
+assert result.exit_code == 0
+assert "Usage:" in result.stdout
+```
+
+```{caution}
+Avoid `--version` in a live `click:run` block. `VersionOption` resolves the owning package by walking the call stack, then memoizes the result for the rest of the build. On this project's own docs, `click_extra_manpages` (set in `conf.py`) generates `demo`'s man pages before any page is read, and that walk resolves `--version` for the first time from a call path with no `CliRunner.invoke` frame in it, landing on a Sphinx frame instead of the CLI's own module. The wrong value then sticks for every later `--version` example in the same build: verified, this block used to render `Click Extra, version 9.1.0` — this build's Sphinx version, not click-extra's (see the [caution on the version page](version.md#variables) for the same quirk affecting `{package_name}`). `--help` and ordinary subcommands are unaffected, since they do no package detection.
 ```
 
 ### Capture mode
@@ -1157,7 +1163,7 @@ For a discoverable landing page, drop the `click-extra-manpages` directive anywh
 ```
 ````
 
-The directive takes no arguments. URLs are computed relative to the enclosing document, so the same call works on a top-level page and on a page nested under a subdirectory. When `click_extra_manpages` is empty, the directive renders nothing.
+The directive takes no arguments. URLs are computed relative to the enclosing page's actual published location, not its source docname, so the same call resolves correctly on a top-level page, on a page nested under a subdirectory, and under any HTML-family builder: `dirhtml` publishes each page one directory deeper, as `<docname>/index.html` rather than `<docname>.html`, while `singlehtml` folds every document into one page at the build root, so its links need no directory traversal at all. When `click_extra_manpages` is empty, the directive renders nothing.
 
 A live instance of the directive ships at the bottom of the [man-page reference](man-page.md#index): the list there is what this project's own `click_extra_manpages` entry produces at build time.
 

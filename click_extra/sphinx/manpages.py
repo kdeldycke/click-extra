@@ -88,7 +88,9 @@ from pathlib import Path
 
 from docutils import nodes
 from sphinx.directives import SphinxDirective
+from sphinx.errors import NoUri
 from sphinx.util import logging
+from sphinx.util.osutil import relative_uri
 
 from ..cli_wrapper import resolve_target_command
 from ..man_page import (
@@ -318,6 +320,22 @@ man page declared in {data}`MANPAGES_CONFIG_KEY`. The hyphenated form
 mirrors the `click_extra_manpages` config key it surfaces."""
 
 
+_MANPAGE_URI_ATTRIBUTE = "click_extra_manpage_uri"
+"""Node attribute carrying a man page's URI relative to the build root.
+
+The `href` a reader needs depends on where the builder publishes the page
+hosting the directive: `html` writes a nested document to `<docname>.html`,
+`dirhtml` writes `<docname>/index.html` one directory deeper, and `singlehtml`
+folds every document into one page at the root. So the directive stamps the
+build-root-relative URI here and `_rebase_manpage_links` rewrites it into a
+page-relative one at write time.
+
+Resolving it in the directive instead would freeze one builder's layout into
+the pickled doctree, and a build reusing that cache never re-runs the
+directive: an `html` build followed by a `dirhtml` build sharing a doctree
+directory would publish the `html` links."""
+
+
 class ManpageListDirective(SphinxDirective):
     """Render a bullet list with one link per emitted man page.
 
@@ -326,11 +344,11 @@ class ManpageListDirective(SphinxDirective):
     to discover the (sub)command tree. Each list item links to the
     corresponding `.1.html` file written by the emit hook.
 
-    Link targets are computed relative to the directive's enclosing
-    document so the list works whether it appears at the docs root or
-    in a nested page. The directive takes no arguments and no content:
-    it surfaces whatever the config declares at the time the doc is
-    built.
+    Link targets are stamped as build-root-relative URIs and rebased
+    against the enclosing page by `_rebase_manpage_links`, so the list
+    works whether it appears at the docs root or in a nested page. The
+    directive takes no arguments and no content: it surfaces whatever
+    the config declares at the time the doc is built.
     """
 
     has_content = False
@@ -377,9 +395,13 @@ class ManpageListDirective(SphinxDirective):
         list_node = nodes.bullet_list()
         for path, sub_cmd, _ctx in iter_command_contexts(cmd, prog_name):
             name = "-".join(path)
-            url = self._relative_url(output_dir, f"{name}.1.html")
+            url = posixpath.join(output_dir, f"{name}.1.html")
 
+            # Seed `refuri` with the build-root-relative URI so the node is
+            # renderable on its own, then let `_rebase_manpage_links` rewrite
+            # it for the page the builder is about to write.
             ref = nodes.reference("", "", refuri=url)
+            ref[_MANPAGE_URI_ATTRIBUTE] = url
             ref += nodes.literal(text=f"{name}(1)")
 
             para = nodes.paragraph()
@@ -402,34 +424,41 @@ class ManpageListDirective(SphinxDirective):
             list_node += item
         return list_node
 
-    def _relative_url(self, output_dir: str, filename: str) -> str:
-        """Return `filename` under `output_dir`, relative to the
-        directive's enclosing document.
 
-        The hook writes `app.outdir/<output_dir>/<filename>`, and the
-        builder decides where the enclosing document lands: `html`
-        publishes it as `<docname>.html`, while `dirhtml` publishes
-        `<docname>/index.html` and so sits one directory deeper. Asking
-        the builder for the page's own URI covers both, where reading
-        the docname alone sent every link of a `dirhtml` build one level
-        too high. Computing the path with {mod}`posixpath` keeps the URL
-        portable across platforms and correct for docs nested under
-        subdirectories.
-        """
-        page_uri = self.env.app.builder.get_target_uri(self.env.docname)
-        current_dir = posixpath.dirname(page_uri) or "."
-        target = posixpath.join(output_dir, filename)
-        return posixpath.relpath(target, current_dir)
+def _rebase_manpage_links(app: Sphinx, doctree: nodes.document, docname: str) -> None:
+    """Rewrite every man-page link relative to the page being written.
+
+    Nodes stamped with `_MANPAGE_URI_ATTRIBUTE` carry a build-root-relative
+    URI; this rebases each one against the URI the builder assigns to
+    `docname`. The rebasing is delegated to Sphinx's own
+    `sphinx.util.osutil.relative_uri`, which reads each layout the way the
+    builder means it: a trailing slash for `dirhtml`, a bare fragment for
+    `singlehtml`.
+
+    Runs on every written page rather than once at parse time, so links stay
+    correct when a doctree cache is shared between builders.
+    """
+    try:
+        page_uri = app.builder.get_target_uri(docname)
+    except NoUri:
+        # `latex` and `texinfo` publish no URI for a document outside their
+        # own tree. Leave the seeded build-root-relative URI in place.
+        return
+    for node in doctree.findall(nodes.reference):
+        target = node.get(_MANPAGE_URI_ATTRIBUTE)
+        if target:
+            node["refuri"] = relative_uri(page_uri, target)
 
 
 def setup(app: Sphinx) -> None:
-    """Register the man-page emit hook and the index directive on `app`.
+    """Register the man-page hooks and the index directive on `app`.
 
     Called from {func}`click_extra.sphinx.setup` so projects only need to
-    list `"click_extra.sphinx"` in their `extensions`. The hook is
+    list `"click_extra.sphinx"` in their `extensions`. The hooks are
     a no-op when `click_extra_manpages` is unset or empty, and the
     directive renders nothing in that case.
     """
     app.add_config_value(MANPAGES_CONFIG_KEY, default=[], rebuild="env", types=[list])
     app.connect("builder-inited", _emit_manpages)
+    app.connect("doctree-resolved", _rebase_manpage_links)
     app.add_directive(MANPAGE_LIST_DIRECTIVE, ManpageListDirective)

@@ -109,6 +109,7 @@ For a screen-reader-friendly rendering, use `--table-format plain`: it keeps the
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------ |
 | `aligned`         | Compact table with single-space column separators and no borders                                                                                                                                                          | Click Extra                                  | ❌     |
 | `asciidoc`        | [AsciiDoc table](https://docs.asciidoctor.org/asciidoc/latest/tables/build-a-basic-table/)                                                                                                                                | `python-tabulate`                            | ✅     |
+| `colon-grid`      | Grid table using colons in the header separator to mark column alignment, per [Pandoc's grid tables](https://pandoc.org/MANUAL.html#extension-grid_tables)                                                                | `python-tabulate`                            | ❌     |
 | `csv`             | [Comma-separated values](https://en.wikipedia.org/wiki/Comma-separated_values)                                                                                                                                            | `csv`                                        | ✅     |
 | `csv-excel`       | CSV with [Excel dialect](https://docs.python.org/3/library/csv.html#csv.excel)                                                                                                                                            | `csv`                                        | ✅     |
 | `csv-excel-tab`   | CSV with [Excel tab dialect](https://docs.python.org/3/library/csv.html#csv.excel_tab)                                                                                                                                    | `csv`                                        | ✅     |
@@ -228,6 +229,11 @@ invoke(table_command, args=["--table-format", "aligned"])
 ```{click:run}
 :emphasize-lines: 1
 invoke(table_command, args=["--table-format", "asciidoc"])
+```
+
+```{click:run}
+:emphasize-lines: 1
+invoke(table_command, args=["--table-format", "colon-grid"])
 ```
 
 ```{click:run}
