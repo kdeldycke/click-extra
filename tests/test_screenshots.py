@@ -200,7 +200,8 @@ def test_harden_svg_leaves_no_run_behind_padding():
     ):
         for element in _TEXT_ELEMENT_RE.finditer(svg):
             content = unescape(element["content"])
-            # A run of nothing but padding paints no glyph, and is left alone.
+            # Runs carrying no glyph (the newline ending each line) are left
+            # alone, having no column of their own to land on.
             if content.strip(PADDING):
                 assert not content.startswith(pads), f"padded run: {content!r}"
 

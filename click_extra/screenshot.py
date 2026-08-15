@@ -216,8 +216,10 @@ def harden_svg(svg: str, cell_width: float | None = None) -> str:
     on its own column, so a renderer only has to draw glyphs, not match metrics. A
     browser is unaffected: `textLength` is rewritten to the width of what is left.
 
-    Runs made of nothing but padding are left alone. They paint no glyph in any
-    font, and keeping them preserves the blank lines of the capture.
+    A run carrying no glyph is left alone. Rich ends every line with one holding
+    just a newline, and that is what keeps a blank line present in the source; a
+    run of pure padding (which Rich never emits, though another tool might) has
+    nothing to reposition anyway.
 
     :param svg: source of a rendered capture.
     :param cell_width: width of a character cell, in pixels. Measured from the
