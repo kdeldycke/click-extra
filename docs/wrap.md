@@ -76,6 +76,10 @@ $ click-extra --theme light -- flask --help
 
 Custom themes can be registered with `register_theme()` before the CLI is parsed *or* declared inside the `--config` file (see [Custom themes via config](#custom-themes-via-config) below). Either way the new name becomes a valid value for `--theme` for the duration of the invocation.
 
+```{tip}
+To keep what `wrap` renders, hand it to [`screenshot`](screenshots.md#capturing-a-cli-that-is-not-yours), which writes the colored help to an SVG or an HTML file. Its `--wrap` flag runs the pair for you: `click-extra screenshot --output flask-help.svg --wrap -- flask --help`.
+```
+
 ## Configuration
 
 Click Extra's [configuration file](config.md) support works alongside the wrapper. Group-level options like `verbosity` can be set in `pyproject.toml`:

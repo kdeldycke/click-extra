@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import sys
 from html import unescape
 from pathlib import Path
@@ -40,6 +41,7 @@ from typing import NamedTuple
 import pytest
 
 from click_extra import screenshot, unstyle
+from click_extra.cli import screenshot_cmd
 from click_extra.screenshot import (
     _TEXT_ELEMENT_RE,
     CAPTURE_BACKGROUND,
@@ -393,3 +395,67 @@ def test_render_html_needs_no_extra(monkeypatch):
     """HTML renders with Rich absent: only SVG is behind the extra."""
     monkeypatch.setattr(screenshot, "Console", None)
     assert "banana" in render(SAMPLE_CAPTURE, format=CaptureFormat.HTML)
+
+
+def html_to_text(markup: str) -> str:
+    """Strip a capture's markup back off, leaving the terminal text."""
+    body = markup[markup.index("<pre") : markup.index("</pre>")]
+    return unescape(re.sub(r"<[^>]+>", "", body))
+
+
+def test_screenshot_wrap_needs_the_console_script(invoke, monkeypatch, tmp_path):
+    """`--wrap` refuses to re-enter through anything but the installed command.
+
+    `python -m click_extra` resolves a target differently, so falling back to it
+    would capture a different CLI than the composition it stands for. Better to
+    say so than to quietly picture the wrong thing.
+    """
+    monkeypatch.setattr(shutil, "which", lambda _: None)
+    result = invoke(
+        screenshot_cmd,
+        ["--wrap", "--output", str(tmp_path / "shot.svg"), "--", "mkdocs", "--help"],
+    )
+    assert result.exit_code != 0
+    assert "click-extra wrap -- TARGET" in result.output
+
+
+@pytest.mark.skipif(
+    shutil.which("click-extra") is None,
+    reason="--wrap re-enters through the installed console script",
+)
+def test_screenshot_wrap_matches_the_composition(invoke, tmp_path):
+    """`--wrap` is the nested composition, spelled as a flag.
+
+    Captured both ways, the terminal text has to match: the flag is a shortcut,
+    not a second way of rendering.
+    """
+    target = ("click_extra.cli:demo_themes", "--help")
+    shortcut = tmp_path / "shortcut.html"
+    composed = tmp_path / "composed.html"
+
+    assert (
+        invoke(
+            screenshot_cmd,
+            ["--wrap", "--fragment", "--head", "3", "--output", str(shortcut), "--", *target],
+        ).exit_code
+        == 0
+    )
+    assert (
+        invoke(
+            screenshot_cmd,
+            [
+                "--fragment",
+                "--head", "3",
+                "--prompt", f"click-extra wrap -- {' '.join(target)}",
+                "--output", str(composed),
+                "--",
+                shutil.which("click-extra"), "wrap", "--", *target,
+            ],
+        ).exit_code
+        == 0
+    )
+
+    text = html_to_text(shortcut.read_text(encoding="utf-8"))
+    assert text == html_to_text(composed.read_text(encoding="utf-8"))
+    # The prompt shows what a reader types, not the plumbing that ran.
+    assert text.splitlines()[0] == "$ click-extra wrap -- click_extra.cli:demo_themes --help"

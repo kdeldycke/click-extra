@@ -21,6 +21,8 @@ import colorsys
 import logging
 import os
 import random
+import shlex
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -465,6 +467,13 @@ demo.add_command(convert_to_myst_cmd)
     "to paste into a page that has its own.",
 )
 @option(
+    "--wrap",
+    is_flag=True,
+    help="Route COMMAND_LINE through the wrap subcommand, so a Click CLI that "
+    "is not built on Click Extra is captured with its colors. Only works on a "
+    "target wrap can resolve.",
+)
+@option(
     "--timeout",
     type=FloatRange(min=0, min_open=True),
     default=None,
@@ -481,6 +490,7 @@ def screenshot_cmd(
     merge_stderr: bool,
     title: str,
     fragment: bool,
+    wrap: bool,
     timeout: float | None,
 ) -> None:
     """Capture a command's colored output and write it as an image or HTML.
@@ -499,6 +509,10 @@ def screenshot_cmd(
 
       click-extra screenshot --output shot.svg -- my-cli --help
 
+    COMMAND_LINE is anything the shell can run, Click CLI or not. A Click CLI
+    not built on Click Extra prints its help uncolored, so --wrap routes it
+    through the wrap subcommand first and captures the colored rendering.
+
     An SVG is hardened so it does not need a web browser to render correctly.
     See the screenshots page of the documentation for why that is not the
     default a capture comes with.
@@ -513,6 +527,27 @@ def screenshot_cmd(
 
     if fragment and capture_format is not CaptureFormat.HTML:
         raise ClickException("--fragment only applies to an HTML capture.")
+
+    if wrap:
+        # Reached through the installed console script, never through
+        # `python -m click_extra`: the two resolve a target differently, since
+        # `-m` puts the working directory on `sys.path` and shifts what
+        # `console_scripts` discovery and a bare module name find. Routing
+        # through it would silently capture a different CLI than the one the
+        # documented composition captures.
+        executable = shutil.which("click-extra")
+        if executable is None:
+            raise ClickException(
+                "--wrap needs the click-extra command on PATH. Install the "
+                "package, or compose the two by hand: "
+                "click-extra screenshot ... -- click-extra wrap -- TARGET."
+            )
+        # Show the invocation a reader would type to reproduce the capture,
+        # which is the wrap call: running the target on its own renders it
+        # uncolored.
+        if prompt is None:
+            prompt = shlex.join(("click-extra", "wrap", "--", *command_line))
+        command_line = (executable, "wrap", "--", *command_line)
 
     try:
         document, returncode = capture(

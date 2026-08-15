@@ -51,6 +51,30 @@ Three things it settles that a general-purpose capture tool leaves to you:
 
 The SVG renderer sits behind a one-function seam ({func}`click_extra.screenshot._rich_svg`), so Rich can be swapped for another engine without touching the capture, the CLI, or the pass described below.
 
+### Capturing a CLI that is not yours
+
+`screenshot` runs whatever the shell runs, Click CLI or not, so `git --help` and `docker ps` capture as readily as your own tool. What it captures is what the command prints: a Click CLI that is not built on Click Extra prints its help uncolored, and that is what lands in the file.
+
+To picture it *with* colors, run it through [`wrap`](wrap.md) first, which patches Click's help rendering without touching the target's code. `--wrap` does that for you:
+
+```shell-session
+$ click-extra screenshot --output flask-help.svg --wrap -- flask --help
+```
+
+which is the shorthand for composing the two commands by hand:
+
+```shell-session
+$ click-extra screenshot --output flask-help.svg --prompt "click-extra wrap -- flask --help" -- click-extra wrap -- flask --help
+```
+
+The prompt drawn above the output is the `wrap` invocation, not the bare command, because that is what reproduces the colored screen: running `flask --help` on its own gives back the plain one.
+
+```{note}
+The two commands stay separate because they answer different questions. `wrap` decides *how a CLI renders*, and only reaches Click commands it can import: a `module:function`, a project directory, a `.py` file, an entry point. `screenshot` decides *where the output goes*, and reaches anything executable. Composing them covers the overlap; merging them would cost every CLI that `wrap` cannot import, which is most of what a README wants to show.
+
+That separation is also why `--wrap` insists on the installed `click-extra` command rather than falling back to `python -m click_extra`: the two resolve a target differently, so the fallback would quietly capture a different CLI.
+```
+
 ```{note}
 HTML carries two limitations SVG does not. An [OSC 8 hyperlink](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) loses its URL and keeps its visible text, and the eight base ANSI colors render as their CSS names, so the browser's palette decides their exact shade rather than the terminal's. Neither shows up on a help screen, which is why the format is worth having anyway.
 ```

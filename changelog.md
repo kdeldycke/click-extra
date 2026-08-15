@@ -7,6 +7,7 @@
 
 - Add a `click-extra screenshot` subcommand capturing any CLI's colored output and rendering it as an SVG image or an HTML document, picked from the `--output` extension.
 - Add a `--fragment` option to `click-extra screenshot`, emitting an HTML capture as a bare inline-styled block instead of a standalone document.
+- Add a `--wrap` option to `click-extra screenshot`, routing the target through the `wrap` subcommand so a foreign Click CLI is captured with its colors.
 - Add a `click_extra.screenshot` module, whose `harden_svg()` moves each text run's padding into its offset so a capture no longer needs a browser to render correctly.
 - Add a `screenshot` extra pulling Rich, the SVG rendering backend.
 - Illustrate the screenshots page with captures of the `gradient`, `styles` and `themes` demos, produced by the new subcommand.
