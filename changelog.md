@@ -19,6 +19,9 @@
 
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 
+> [!NOTE]
+> `8.9.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/8.9.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v8.9.1).
+
 - Fix the man-page links of the `click-extra-manpages` directive, which pointed one directory too high on `dirhtml` and `singlehtml` builds.
 - Resolve man-page links against each rendered page, so they stay correct when builders share a doctree cache.
 - Stop resolving man-page links through a Sphinx API deprecated for removal in Sphinx 11.
