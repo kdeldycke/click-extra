@@ -39,6 +39,7 @@ def _build_with_manpages(
     *,
     builder: str = "html",
     index_body: str = "Hi\n==\n\nstub.\n",
+    extra_docs: dict[str, str] | None = None,
 ) -> Path:
     """Build a tiny Sphinx project that declares ``click_extra_manpages``.
 
@@ -49,6 +50,10 @@ def _build_with_manpages(
 
     ``index_body`` overrides the contents of ``index.rst`` for tests that
     exercise directives or roles inside the page.
+
+    ``extra_docs`` maps a docname to its body for tests needing a page
+    that is not the root document, whose own URL is where a builder's
+    output layout shows.
     """
     srcdir = tmp_path / "source"
     outdir = tmp_path / "build"
@@ -65,6 +70,10 @@ def _build_with_manpages(
         "\n".join(f"{key} = {value!r}" for key, value in conf.items())
     )
     (srcdir / "index.rst").write_text(index_body)
+    for docname, body in (extra_docs or {}).items():
+        doc_path = srcdir / f"{docname}.rst"
+        doc_path.parent.mkdir(parents=True, exist_ok=True)
+        doc_path.write_text(body)
 
     with docutils_namespace():
         app = Sphinx(
@@ -232,6 +241,38 @@ def test_manpages_directive_renders_one_link_per_command(tmp_path):
     # reads naturally next to the short-help suffix.
     assert "click-extra(1)" in body
     assert "click-extra-wrap(1)" in body
+
+
+@pytest.mark.parametrize(
+    ("builder", "page_file", "prefix"),
+    (
+        # `html` publishes `guide/manuals.html`, one directory into the
+        # site, so `man/` sits one level up.
+        ("html", Path("guide/manuals.html"), "../"),
+        # `dirhtml` publishes the same page as
+        # `guide/manuals/index.html`, one directory deeper again.
+        ("dirhtml", Path("guide/manuals/index.html"), "../../"),
+    ),
+)
+def test_manpages_directive_links_follow_the_builder_layout(
+    tmp_path, builder, page_file, prefix
+):
+    """Links resolve from wherever the builder publishes the page.
+
+    The directive hosted on a nested page is what separates the two
+    layouts: the root document renders at the site root under either
+    builder, so it cannot catch a link computed from the docname alone.
+    """
+    outdir = _build_with_manpages(
+        tmp_path,
+        [{"script": "click_extra.cli:demo", "render_html": False}],
+        builder=builder,
+        index_body="Hi\n==\n\n.. toctree::\n\n   guide/manuals\n",
+        extra_docs={"guide/manuals": _INDEX_WITH_DIRECTIVE},
+    )
+    body = (outdir / page_file).read_text(encoding="utf-8")
+    assert f'href="{prefix}man/click-extra.1.html"' in body
+    assert f'href="{prefix}man/click-extra-wrap.1.html"' in body
 
 
 def test_manpages_directive_is_noop_when_config_empty(tmp_path):

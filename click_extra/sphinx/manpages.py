@@ -407,12 +407,17 @@ class ManpageListDirective(SphinxDirective):
         directive's enclosing document.
 
         The hook writes `app.outdir/<output_dir>/<filename>`, and the
-        Sphinx HTML mirror of `self.env.docname` lives at
-        `app.outdir/<docname>.html`. Computing the path with
-        {mod}`posixpath` keeps the URL portable across platforms and
-        correct for docs nested under subdirectories.
+        builder decides where the enclosing document lands: `html`
+        publishes it as `<docname>.html`, while `dirhtml` publishes
+        `<docname>/index.html` and so sits one directory deeper. Asking
+        the builder for the page's own URI covers both, where reading
+        the docname alone sent every link of a `dirhtml` build one level
+        too high. Computing the path with {mod}`posixpath` keeps the URL
+        portable across platforms and correct for docs nested under
+        subdirectories.
         """
-        current_dir = posixpath.dirname(self.env.docname) or "."
+        page_uri = self.env.app.builder.get_target_uri(self.env.docname)
+        current_dir = posixpath.dirname(page_uri) or "."
         target = posixpath.join(output_dir, filename)
         return posixpath.relpath(target, current_dir)
 

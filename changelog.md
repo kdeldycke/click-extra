@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix the man-page links of the `click-extra-manpages` directive on a `dirhtml` build, which pointed one directory too high from any page but the root document.
+
 ## [`8.9.0` (2026-08-14)](https://github.com/kdeldycke/click-extra/compare/v8.8.1...v8.9.0)
 
 > [!NOTE]
