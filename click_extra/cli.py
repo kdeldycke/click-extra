@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import colorsys
+import logging
 import os
 import random
 import sys
@@ -54,6 +55,7 @@ from .prebake import (
     prebake_dunder,
     prebake_version,
 )
+from .screenshot import DEFAULT_COLUMNS, DEFAULT_TRUNCATION, capture_svg
 from .spinner import (
     _DEFAULT_SHOWCASE,
     OperationTrail,
@@ -77,6 +79,8 @@ from .version import (
     GIT_RESOLVERS,
     run_git,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _resolve_paths(module: Path | None) -> list[Path]:
@@ -389,6 +393,122 @@ def convert_to_myst_cmd(directory: str | None) -> None:
 demo.add_command(convert_to_myst_cmd)
 
 
+@command(name="screenshot")
+@argument("command_line", nargs=-1, required=True, type=click.UNPROCESSED)
+@option(
+    "--output",
+    required=True,
+    type=file_path(writable=True, resolve_path=True),
+    help="Path of the SVG file to write.",
+)
+@option(
+    "--columns",
+    type=IntRange(min=20),
+    default=DEFAULT_COLUMNS,
+    show_default=True,
+    help="Terminal width, in characters, the command wraps its output to and "
+    "the image is laid out at.",
+)
+@option(
+    "--prompt",
+    default=None,
+    help="Command line to display above the output, when it differs from the "
+    "one that is run. Pass an empty string to draw no prompt at all. Defaults "
+    "to the command line itself.",
+)
+@option(
+    "--head",
+    type=IntRange(min=1),
+    default=None,
+    help="Keep only the first N lines of output.",
+)
+@option(
+    "--tail",
+    type=IntRange(min=1),
+    default=None,
+    help="Keep only the last N lines of output.",
+)
+@option(
+    "--truncation",
+    default=DEFAULT_TRUNCATION,
+    show_default=True,
+    help="Line standing in for what --head or --tail cut away.",
+)
+@option(
+    "--merge-stderr",
+    is_flag=True,
+    help="Fold the command's stderr into the capture, for a CLI printing its "
+    "help there. Off by default, which is what keeps a wrapper's build chatter "
+    "out of the image.",
+)
+@option(
+    "--title",
+    default="",
+    help="Caption drawn in the window chrome.",
+)
+@option(
+    "--timeout",
+    type=FloatRange(min=0, min_open=True),
+    default=None,
+    help="Seconds before the command is killed. Waits forever by default.",
+)
+def screenshot_cmd(
+    command_line: tuple[str, ...],
+    output: Path,
+    columns: int,
+    prompt: str | None,
+    head: int | None,
+    tail: int | None,
+    truncation: str,
+    merge_stderr: bool,
+    title: str,
+    timeout: float | None,
+) -> None:
+    """Capture a command's colored output and write it as an SVG image.
+
+    Runs COMMAND_LINE with colors forced on and its terminal width pinned, then
+    renders the captured output to a scalable image that can be committed to a
+    repository and embedded anywhere code cannot run: a README on GitHub or
+    PyPI, a slide, a social post.
+
+    Put -- before the command line so its own options are not mistaken for this
+    command's:
+
+      click-extra screenshot --output shot.svg -- my-cli --help
+
+    The image is hardened so it does not need a web browser to render
+    correctly. See the screenshots page of the documentation for why that is
+    not the default a capture comes with.
+
+    Rendering needs Rich, which ships behind the screenshot extra.
+    """
+    try:
+        svg, returncode = capture_svg(
+            list(command_line),
+            columns=columns,
+            prompt=prompt,
+            head=head,
+            tail=tail,
+            truncation=truncation,
+            merge_stderr=merge_stderr,
+            timeout=timeout,
+            title=title,
+            unique_id=output.stem,
+        )
+    except ImportError as error:
+        raise ClickException(str(error)) from error
+
+    if returncode:
+        logger.warning(f"{command_line[0]} exited with code {returncode}.")
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(svg, encoding="utf-8")
+    echo(f"Wrote {output}")
+
+
+demo.add_command(screenshot_cmd)
+
+
 _ALL_STYLES = (
     "bold",
     "dim",
@@ -475,7 +595,10 @@ def _render_gradient() -> str:
     `_nearest_256`. Visible stepping in the quantized row reveals the palette
     resolution limits.
     """
-    width = 72
+    # Each row is prefixed by a 9-character label gutter ("  24-bit "), so the
+    # ramp stops at 71 blocks to keep the whole line inside a conventional
+    # 80-column terminal. One block more and every row wraps.
+    width = 71
     block = "\u2588"
     reset = "\x1b[m"
     lines: list[str] = []

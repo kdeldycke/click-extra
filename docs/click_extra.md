@@ -180,6 +180,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.screenshot module
+
+```{eval-rst}
+.. automodule:: click_extra.screenshot
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.spinner module
 
 ```{eval-rst}

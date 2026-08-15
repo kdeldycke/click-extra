@@ -5,6 +5,13 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add a `click-extra screenshot` subcommand capturing any CLI's colored output and rendering it as an SVG image.
+- Add a `click_extra.screenshot` module, whose `harden_svg()` moves each text run's padding into its offset so a capture no longer needs a browser to render correctly.
+- Add a `screenshot` extra pulling Rich, the SVG rendering backend.
+- Illustrate the screenshots page with captures of the `gradient`, `styles` and `themes` demos, produced by the new subcommand.
+- Add a test rebuilding each committed screenshot's terminal text from its SVG glyph coordinates and comparing it to the CLI's live output.
+- Fix the `gradient` demo overflowing an 80-column terminal by one character, which wrapped every ramp onto a second line.
+
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 
 - Fix the man-page links of the `click-extra-manpages` directive, which pointed one directory too high on `dirhtml` and `singlehtml` builds.
