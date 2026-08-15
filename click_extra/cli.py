@@ -55,7 +55,13 @@ from .prebake import (
     prebake_dunder,
     prebake_version,
 )
-from .screenshot import DEFAULT_COLUMNS, DEFAULT_TRUNCATION, capture_svg
+from .screenshot import (
+    DEFAULT_COLUMNS,
+    DEFAULT_TRUNCATION,
+    CaptureFormat,
+    capture,
+    format_from_path,
+)
 from .spinner import (
     _DEFAULT_SHOWCASE,
     OperationTrail,
@@ -404,7 +410,8 @@ demo.add_command(convert_to_myst_cmd)
     "--output",
     required=True,
     type=file_path(writable=True, resolve_path=True),
-    help="Path of the SVG file to write.",
+    help="Path of the file to write. Its extension picks the format: "
+    ".svg for an image, .html for selectable text.",
 )
 @option(
     "--columns",
@@ -449,7 +456,13 @@ demo.add_command(convert_to_myst_cmd)
 @option(
     "--title",
     default="",
-    help="Caption drawn in the window chrome.",
+    help="Caption drawn in an SVG's window chrome, or an HTML document's title.",
+)
+@option(
+    "--fragment",
+    is_flag=True,
+    help="For HTML, emit the bare block instead of a standalone document, "
+    "to paste into a page that has its own.",
 )
 @option(
     "--timeout",
@@ -467,29 +480,44 @@ def screenshot_cmd(
     truncation: str,
     merge_stderr: bool,
     title: str,
+    fragment: bool,
     timeout: float | None,
 ) -> None:
-    """Capture a command's colored output and write it as an SVG image.
+    """Capture a command's colored output and write it as an image or HTML.
 
     Runs COMMAND_LINE with colors forced on and its terminal width pinned, then
-    renders the captured output to a scalable image that can be committed to a
-    repository and embedded anywhere code cannot run: a README on GitHub or
-    PyPI, a slide, a social post.
+    writes the captured output where --output points. Its extension picks the
+    format:
+
+      .svg  a picture of a terminal window, for a surface that strips inline
+            HTML. A README on GitHub or PyPI has no other option.
+
+      .html selectable, searchable, copy-pasteable text, for a page you own.
 
     Put -- before the command line so its own options are not mistaken for this
     command's:
 
       click-extra screenshot --output shot.svg -- my-cli --help
 
-    The image is hardened so it does not need a web browser to render
-    correctly. See the screenshots page of the documentation for why that is
-    not the default a capture comes with.
+    An SVG is hardened so it does not need a web browser to render correctly.
+    See the screenshots page of the documentation for why that is not the
+    default a capture comes with.
 
-    Rendering needs Rich, which ships behind the screenshot extra.
+    Only SVG needs Rich, which ships behind the screenshot extra. HTML is
+    always available.
     """
     try:
-        svg, returncode = capture_svg(
+        capture_format = format_from_path(output)
+    except ValueError as error:
+        raise ClickException(str(error)) from error
+
+    if fragment and capture_format is not CaptureFormat.HTML:
+        raise ClickException("--fragment only applies to an HTML capture.")
+
+    try:
+        document, returncode = capture(
             list(command_line),
+            format=capture_format,
             columns=columns,
             prompt=prompt,
             head=head,
@@ -499,6 +527,7 @@ def screenshot_cmd(
             timeout=timeout,
             title=title,
             unique_id=output.stem,
+            full=not fragment,
         )
     except ImportError as error:
         raise ClickException(str(error)) from error
@@ -507,7 +536,7 @@ def screenshot_cmd(
         logger.warning(f"{command_line[0]} exited with code {returncode}.")
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(svg, encoding="utf-8")
+    output.write_text(document, encoding="utf-8")
     echo(f"Wrote {output}")
 
 

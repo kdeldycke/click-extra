@@ -54,7 +54,7 @@ from sphinx.util import logging
 
 from ..blocks import OPTION_LINE_RE, fence_spans, marker_res, update_blocks
 from ..color import forced_color
-from ..screenshot import render_svg
+from ..screenshot import render
 from ._base import (
     StatelessDomain,
     compile_directive,
@@ -691,7 +691,7 @@ class ClickDirective(SphinxDirective):
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            render_svg("\n".join(results), unique_id=self.screenshot),
+            render("\n".join(results), unique_id=self.screenshot),
             encoding="utf-8",
         )
 

@@ -1,20 +1,39 @@
 # {octicon}`device-camera` CLI screenshots
 
-click-extra produces colored terminal output, and inside this Sphinx documentation the [`click:run`](sphinx.md) directive executes each CLI and renders its real output at build time, so these pages need no screenshots. A README on GitHub or PyPI, a slide, or a social post cannot run code, and those surfaces need a captured image instead. click-extra ships the command that produces one.
+click-extra produces colored terminal output, and inside this Sphinx documentation the [`click:run`](sphinx.md) directive executes each CLI and renders its real output at build time, so these pages need no screenshots. A README on GitHub or PyPI, a slide, a social post or a page of your own cannot run code, and those surfaces need a capture instead. click-extra ships the command that produces one, as an image or as HTML.
 
 ## The `screenshot` command
 
-`click-extra screenshot` runs a CLI, captures its colored output and writes it as an SVG. Rendering needs Rich, which ships behind the `screenshot` extra:
+`click-extra screenshot` runs a CLI, captures its colored output and writes it out. Point it at any command, with `--` separating your CLI's own options from the ones above:
+
+```shell-session
+$ click-extra screenshot --output cli-help.svg -- my-cli --help
+```
+
+### Two formats, two surfaces
+
+The extension of `--output` picks what gets written, and the two are not interchangeable:
+
+| Format  | Text is                          | Goes where                                                    | Needs                  |
+| :------ | :------------------------------- | :------------------------------------------------------------ | :--------------------- |
+| `.svg`  | a picture                        | a surface that strips inline HTML: a README on GitHub or PyPI | the `screenshot` extra |
+| `.html` | selectable, searchable, copyable | a page you own: your site, a blog post, a slide deck          | nothing                |
+
+So the choice is really made for you. GitHub and PyPI render an image and drop inline styling, which leaves a README no option but SVG. Everywhere you control the markup, HTML is the better artifact: a reader can select a flag out of the help screen and paste it into their terminal, and search finds it.
+
+Only SVG needs Rich:
 
 ```shell-session
 $ uv pip install "click-extra[screenshot]"
 ```
 
-Point it at any command, with `--` separating your CLI's own options from the ones above:
+HTML is built on {func}`click_extra.styling.ansi_to_html`, which ships with the package, so it is always available:
 
 ```shell-session
-$ click-extra screenshot --output cli-help.svg -- my-cli --help
+$ click-extra screenshot --output cli-help.html -- my-cli --help
 ```
+
+That writes a standalone document. Add `--fragment` to get the bare `<pre>` instead, styled inline so it needs no stylesheet from the page you paste it into.
 
 ```{click:run}
 from click_extra.cli import screenshot_cmd
@@ -30,7 +49,11 @@ Three things it settles that a general-purpose capture tool leaves to you:
 - Width, where `--columns` pins what the command wraps to *and* what the image is drawn at. Let those two disagree and the rendered lines overrun the image.
 - `stderr`, which stays out of the capture unless `--merge-stderr` asks for it. That is what keeps a wrapper's build chatter out of the picture with no shell redirection to remember.
 
-The renderer sits behind a one-function seam ({func}`click_extra.screenshot._rich_svg`), so Rich can be swapped for another engine without touching the capture, the CLI, or the pass described below.
+The SVG renderer sits behind a one-function seam ({func}`click_extra.screenshot._rich_svg`), so Rich can be swapped for another engine without touching the capture, the CLI, or the pass described below.
+
+```{note}
+HTML carries two limitations SVG does not. An [OSC 8 hyperlink](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) loses its URL and keeps its visible text, and the eight base ANSI colors render as their CSS names, so the browser's palette decides their exact shade rather than the terminal's. Neither shows up on a help screen, which is why the format is worth having anyway.
+```
 
 ### The captures on this page
 

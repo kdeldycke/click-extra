@@ -39,21 +39,26 @@ from typing import NamedTuple
 
 import pytest
 
-from click_extra import screenshot
+from click_extra import screenshot, unstyle
 from click_extra.screenshot import (
     _TEXT_ELEMENT_RE,
+    CAPTURE_BACKGROUND,
+    CAPTURE_FOREGROUND,
     PADDING,
+    CaptureFormat,
     _rich_svg,
+    capture,
     capture_output,
-    capture_svg,
+    format_from_path,
     harden_svg,
     measure_cell_width,
-    render_svg,
+    render,
     trim_lines,
 )
 
 ASSETS = Path(__file__).parent.parent / "docs" / "assets"
 """Directory the committed captures live in."""
+
 
 class Capture(NamedTuple):
     """A terminal capture committed under `docs/assets` and embedded in the docs.
@@ -176,16 +181,16 @@ def test_trim_lines(head, tail, expected):
     assert trimmed.splitlines() == expected
 
 
-def test_render_svg_without_the_extra(monkeypatch):
+def test_render_without_the_extra(monkeypatch):
     """Rendering without Rich installed names the extra that ships it."""
     monkeypatch.setattr(screenshot, "Console", None)
     with pytest.raises(ImportError, match=r"screenshot"):
-        render_svg(SAMPLE_CAPTURE)
+        render(SAMPLE_CAPTURE)
 
 
-def test_render_svg_folds_an_unusable_unique_id():
+def test_render_folds_an_unusable_unique_id():
     """A file name that is not a CSS identifier cannot leak into a class name."""
-    svg = render_svg(SAMPLE_CAPTURE, unique_id="my shot (v2).final")
+    svg = render(SAMPLE_CAPTURE, unique_id="my shot (v2).final")
     assert "my-shot-v2-.final" not in svg
     assert 'class="my-shot-v2-final-r1"' in svg
 
@@ -211,8 +216,8 @@ def test_harden_svg_leaves_no_run_behind_padding():
     pads = tuple(PADDING)
     for svg in (
         *(
-            (ASSETS / capture.filename).read_text(encoding="utf-8")
-            for capture in COMMITTED_CAPTURES
+            (ASSETS / committed.filename).read_text(encoding="utf-8")
+            for committed in COMMITTED_CAPTURES
         ),
         harden_svg(_rich_svg(SAMPLE_CAPTURE, columns=40, title="", unique_id="s")),
     ):
@@ -262,14 +267,14 @@ def test_capture_output_keeps_stderr_out_unless_asked():
 
 
 @pytest.mark.parametrize(
-    "capture",
+    "committed",
     COMMITTED_CAPTURES,
-    ids=tuple(capture.filename for capture in COMMITTED_CAPTURES),
+    ids=tuple(committed.filename for committed in COMMITTED_CAPTURES),
 )
-def test_committed_capture_matches_cli(capture):
+def test_committed_capture_matches_cli(committed):
     """Every committed capture still pictures what its command prints today.
 
-    The capture is reshot through {func}`~click_extra.screenshot.capture_svg`,
+    The capture is reshot through {func}`~click_extra.screenshot.capture`,
     the very pipeline that produced the committed file, and the two are compared
     as terminal text. Going through the whole pipeline rather than against the
     command's raw output is what keeps the check honest on both counts the two
@@ -285,13 +290,106 @@ def test_committed_capture_matches_cli(capture):
 
     Only the text is compared, so restyling a theme does not redden this.
     """
-    committed = (ASSETS / capture.filename).read_text(encoding="utf-8")
+    source = (ASSETS / committed.filename).read_text(encoding="utf-8")
 
-    fresh, returncode = capture_svg(
-        list(capture.command),
-        columns=capture.columns,
-        prompt=capture.prompt.removeprefix("$ "),
-        head=capture.head,
+    fresh, returncode = capture(
+        list(committed.command),
+        columns=committed.columns,
+        prompt=committed.prompt.removeprefix("$ "),
+        head=committed.head,
     )
     assert returncode == 0
-    assert svg_to_lines(committed) == svg_to_lines(fresh)
+    assert svg_to_lines(source) == svg_to_lines(fresh)
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected"),
+    (
+        ("shot.svg", CaptureFormat.SVG),
+        ("shot.SVG", CaptureFormat.SVG),
+        ("shot.html", CaptureFormat.HTML),
+        # The older extension names the same document.
+        ("shot.htm", CaptureFormat.HTML),
+    ),
+)
+def test_format_from_path(filename, expected):
+    """A capture's format is read off the file name it is written under."""
+    assert format_from_path(Path(filename)) == expected
+
+
+@pytest.mark.parametrize("filename", ("shot.png", "shot", "shot.svg.bak"))
+def test_format_from_path_rejects_an_unknown_extension(filename):
+    """An extension naming no format says which ones do."""
+    with pytest.raises(ValueError, match=r"\.html, \.svg"):
+        format_from_path(Path(filename))
+
+
+def test_render_html_escapes_the_captured_text():
+    """Markup a CLI prints is escaped, not handed to the browser as markup.
+
+    The load-bearing test of the HTML renderer: `ansi_to_html()` translates ANSI
+    and copies everything else verbatim, so a caller skipping the escape turns
+    click-extra's own `--export-config` help, which says it writes `to <stdout>`,
+    into an unclosed tag.
+    """
+    html = render(
+        "plain <stdout> & \x1b[31mstyled <b>bold</b>\x1b[0m",
+        format=CaptureFormat.HTML,
+    )
+    assert "&lt;stdout&gt;" in html
+    assert "&lt;b&gt;bold&lt;/b&gt;" in html
+    assert "&amp;" in html
+    # The only tags are the ones the renderer emits itself.
+    assert "<stdout>" not in html
+    assert "<b>" not in html
+
+
+def test_render_html_round_trips_the_terminal_text():
+    """Stripping the markup back off returns exactly what the CLI printed.
+
+    The HTML counterpart of {func}`svg_to_lines`: it catches a dropped
+    character, a mangled escape and a stray tag in one assertion.
+    """
+    html = render(SAMPLE_CAPTURE, format=CaptureFormat.HTML)
+    body = html[html.index("<pre") : html.index("</pre>")]
+    text = unescape(re.sub(r"<[^>]+>", "", body))
+    assert text == unstyle(SAMPLE_CAPTURE)
+
+
+def test_render_html_fragment_is_self_contained():
+    """A fragment carries its own styling, and no document scaffolding."""
+    fragment = render(SAMPLE_CAPTURE, format=CaptureFormat.HTML, full=False)
+    assert fragment.startswith("<pre style=")
+    assert fragment.endswith("</pre>")
+    assert "<!doctype" not in fragment.lower()
+    # Inline styling means a host page needs to supply no stylesheet.
+    assert CAPTURE_BACKGROUND in fragment
+    assert CAPTURE_FOREGROUND in fragment
+
+
+def test_render_html_document_wraps_the_fragment():
+    """A full document is the fragment plus scaffolding, nothing else."""
+    fragment = render(SAMPLE_CAPTURE, format=CaptureFormat.HTML, full=False)
+    document = render(SAMPLE_CAPTURE, format=CaptureFormat.HTML, title="Fruit <&> veg")
+    assert document.lower().startswith("<!doctype html>")
+    assert fragment in document
+    # The title is escaped like any other text.
+    assert "<title>Fruit &lt;&amp;&gt; veg</title>" in document
+
+
+def test_render_html_quotes_survive_the_style_attribute():
+    """The font stack cannot terminate the `style` attribute it sits in.
+
+    A double-quoted family name would close the attribute early and spill CSS
+    into the markup, so the stack is single-quoted.
+    """
+    fragment = render(SAMPLE_CAPTURE, format=CaptureFormat.HTML, full=False)
+    opening = fragment[: fragment.index(">") + 1]
+    assert opening.count('"') == 2, f"unbalanced quoting: {opening}"
+    assert "monospace" in opening
+
+
+def test_render_html_needs_no_extra(monkeypatch):
+    """HTML renders with Rich absent: only SVG is behind the extra."""
+    monkeypatch.setattr(screenshot, "Console", None)
+    assert "banana" in render(SAMPLE_CAPTURE, format=CaptureFormat.HTML)

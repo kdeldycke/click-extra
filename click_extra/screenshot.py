@@ -14,12 +14,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Run a CLI, capture its colors, and render the result as a static image.
+"""Run a CLI, capture its colors, and render the result as a static document.
 
 In Sphinx the {mod}`click:run <click_extra.sphinx.click>` directive executes each
 CLI and renders its real output at build time, so a documentation page never
 needs a screenshot. A README on GitHub or PyPI, a slide, or a social post cannot
-run code, and those surfaces need a captured image instead.
+run code, and those surfaces need a capture instead.
 
 The pipeline is three steps, each replaceable on its own:
 
@@ -27,19 +27,28 @@ The pipeline is three steps, each replaceable on its own:
    {func}`~click_extra.execution.run_cli`, under
    {func}`~click_extra.color.forced_color` and a pinned terminal width, and hands
    back its raw ANSI text.
-2. {func}`render_svg` turns that text into SVG source. Rich is the only backend
-   today, and every call into it is confined to {func}`_rich_svg`: swapping
-   renderers means writing that one function, leaving the capture, the hardening
-   pass, the CLI and their tests untouched.
-3. {func}`harden_svg` rewrites the rendered source so it survives renderers that
-   are not a web browser. That function documents what goes wrong without it.
+2. {func}`render` turns that text into a document, in one of the
+   {class}`CaptureFormat` members.
+3. For SVG, {func}`harden_svg` rewrites the rendered source so it survives
+   renderers that are not a web browser. That function documents what goes wrong
+   without it. HTML needs no such pass: a `<pre>` keeps its own spacing.
 
-{func}`capture_svg` chains all three, and is what the `click-extra screenshot`
+{func}`capture` chains all three, and is what the `click-extra screenshot`
 command calls.
 
+The two formats are not interchangeable, and neither is a fallback for the
+other:
+
+- **SVG** goes where you do not own the page. GitHub and PyPI render an image
+  and strip inline HTML, so a README has no other option. It is a picture: the
+  text is not selectable, and not searchable.
+- **HTML** goes where you do own the page. The text stays selectable,
+  searchable and copy-pasteable, and reflows with the container.
+
 ```{note}
-The renderer ships behind the `screenshot` extra, so importing this module stays
-cheap and only {func}`render_svg` raises when Rich is absent.
+Only SVG needs the `screenshot` extra, whose Rich dependency renders it. HTML
+is built on {func}`~click_extra.styling.ansi_to_html`, which ships with the
+package, so it is always available.
 ```
 """
 
@@ -48,12 +57,14 @@ from __future__ import annotations
 import re
 import shlex
 import subprocess
+from enum import Enum
 from html import escape, unescape
 from io import StringIO
 
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
 from .parameters import missing_extra_message
+from .styling import ansi_to_html
 
 try:
     from rich.console import Console
@@ -66,8 +77,50 @@ except ImportError:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from .execution import TArg, TEnvVars, TNestedArgs
 
+
+class CaptureFormat(Enum):
+    """Document formats a capture can be rendered to.
+
+    The value doubles as the file extension {func}`format_from_path` matches on.
+    """
+
+    HTML = "html"
+    """Selectable, searchable text in a self-contained `<pre>`.
+
+    Built on {func}`~click_extra.styling.ansi_to_html`, so it needs no extra.
+    """
+
+    SVG = "svg"
+    """A picture of a terminal window, for a surface that strips inline HTML.
+
+    Rendered by Rich, behind the `screenshot` extra.
+    """
+
+
+CAPTURE_BACKGROUND = "#292929"
+"""Background a capture is drawn on.
+
+Matches the palette Rich's SVG export uses, so the two formats look like the
+same terminal. Stating it is not optional: a help screen colored for a dark
+terminal is unreadable on a page that defaults to white.
+"""
+
+CAPTURE_FOREGROUND = "#c5c8c6"
+"""Color of the text a capture leaves unstyled. See {data}`CAPTURE_BACKGROUND`."""
+
+CAPTURE_FONT_STACK = "'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace"
+"""Monospaced fonts an HTML capture asks for, best first.
+
+Opens with the family Rich's SVG export names, so a reader who has it sees both
+formats set identically.
+
+Family names are single-quoted on purpose: this lands in a double-quoted
+`style` attribute, which a double quote here would terminate early.
+"""
 
 DEFAULT_COLUMNS = 80
 """Terminal width a capture is taken at, in characters.
@@ -248,26 +301,80 @@ def harden_svg(svg: str, cell_width: float | None = None) -> str:
     return _TEXT_ELEMENT_RE.sub(rewrite, svg)
 
 
-def render_svg(
+def render_html(text: str, *, title: str = "", full: bool = True) -> str:
+    """Render captured terminal text to HTML.
+
+    The `<pre>` carries its own inline styling, so a fragment pasted into an
+    existing page needs no stylesheet and cannot be restyled out of legibility
+    by the host. Nothing else is needed either: a `<pre>` preserves the
+    capture's own spacing, which is what spares HTML the offset surgery
+    {func}`harden_svg` performs on SVG.
+
+    ```{caution}
+    The text is escaped before its ANSI is translated, the order
+    {mod}`click_extra.table` uses for its `html` format. Skip it and any `<` a
+    CLI prints opens a tag: click-extra's own `--export-config` help says it
+    writes `to <stdout>`.
+    ```
+
+    ```{note}
+    An OSC 8 hyperlink loses its URL and keeps its visible text: the escape is
+    dropped rather than turned into an `<a>`.
+    ```
+
+    :param text: captured output, ANSI escape sequences included.
+    :param title: `<title>` of the document. Ignored for a fragment.
+    :param full: wrap the `<pre>` in a standalone document. `False` returns the
+        `<pre>` alone, to paste into a page that has its own.
+    :return: the rendered markup.
+    """
+    body = (
+        f'<pre style="background: {CAPTURE_BACKGROUND}; color: {CAPTURE_FOREGROUND}; '
+        f"font-family: {CAPTURE_FONT_STACK}; line-height: 1.25; padding: 1em; "
+        f'overflow-x: auto">{ansi_to_html(escape(text, quote=False))}</pre>'
+    )
+    if not full:
+        return body
+    return (
+        "<!doctype html>\n"
+        '<html lang="en">\n'
+        "<head>\n"
+        '<meta charset="utf-8">\n'
+        f"<title>{escape(title, quote=False)}</title>\n"
+        "</head>\n"
+        f'<body style="margin: 0">\n{body}\n</body>\n'
+        "</html>\n"
+    )
+
+
+def render(
     text: str,
     *,
+    format: CaptureFormat = CaptureFormat.SVG,
     columns: int = DEFAULT_COLUMNS,
     title: str = "",
     unique_id: str | None = None,
+    full: bool = True,
 ) -> str:
-    """Render captured terminal text to hardened SVG source.
+    """Render captured terminal text to the document `format` names.
 
     :param text: captured output, ANSI escape sequences included.
-    :param columns: terminal width, in characters, the image is laid out at.
-    :param title: caption drawn in the window chrome.
-    :param unique_id: prefix namespacing the source's CSS classes and element
-        IDs. Pinning it to something stable (the output file's name, say) keeps a
-        regenerated capture diffing line by line, instead of renaming every class
-        as soon as a single character of output changes. Characters a CSS class
-        name cannot carry are folded to a dash.
-    :return: the rendered source.
-    :raises ImportError: when the `screenshot` extra is not installed.
+    :param format: which document to produce.
+    :param columns: terminal width, in characters, an SVG is laid out at. HTML
+        reflows, so it ignores this.
+    :param title: caption drawn in an SVG's window chrome, or an HTML document's
+        `<title>`.
+    :param unique_id: SVG only. Prefix namespacing the source's CSS classes and
+        element IDs. Pinning it to something stable (the output file's name, say)
+        keeps a regenerated capture diffing line by line, instead of renaming
+        every class as soon as a single character of output changes. Characters
+        a CSS class name cannot carry are folded to a dash.
+    :param full: HTML only. See {func}`render_html`.
+    :return: the rendered document.
+    :raises ImportError: rendering SVG without the `screenshot` extra installed.
     """
+    if format is CaptureFormat.HTML:
+        return render_html(text, title=title, full=full)
     if unique_id:
         unique_id = _NON_IDENTIFIER_RE.sub("-", unique_id)
     return harden_svg(
@@ -275,9 +382,10 @@ def render_svg(
     )
 
 
-def capture_svg(
+def capture(
     args: TArg | TNestedArgs,
     *,
+    format: CaptureFormat = CaptureFormat.SVG,
     columns: int = DEFAULT_COLUMNS,
     prompt: str | None = None,
     head: int | None = None,
@@ -287,15 +395,17 @@ def capture_svg(
     timeout: float | None = None,
     title: str = "",
     unique_id: str | None = None,
+    full: bool = True,
 ) -> tuple[str, int]:
-    """Run a command and render its output as hardened SVG source.
+    """Run a command and render its output as a document.
 
-    Chains {func}`capture_output`, {func}`trim_lines` and {func}`render_svg`. The
+    Chains {func}`capture_output`, {func}`trim_lines` and {func}`render`. The
     invocation is drawn above the output as a shell prompt, styled by the active
-    theme through {func}`~click_extra.execution.format_cli_prompt`, so the image
-    shows what to type to reproduce it.
+    theme through {func}`~click_extra.execution.format_cli_prompt`, so the
+    capture shows what to type to reproduce it.
 
     :param args: the command line to run.
+    :param format: which document to produce.
     :param columns: terminal width, in characters.
     :param prompt: command line to *display*, when it differs from the one run.
         `uv run --frozen -- my-cli` reproduces a capture from a checkout, but
@@ -305,9 +415,10 @@ def capture_svg(
     :param truncation: line standing in for the lines cut by `head` or `tail`.
     :param merge_stderr: fold `stderr` into the captured output.
     :param timeout: seconds before the command is killed.
-    :param title: caption drawn in the window chrome.
-    :param unique_id: prefix namespacing the source's CSS classes.
-    :return: the rendered source, and the command's exit code.
+    :param title: see {func}`render`.
+    :param unique_id: see {func}`render`.
+    :param full: see {func}`render`.
+    :return: the rendered document, and the command's exit code.
     """
     process = capture_output(
         args,
@@ -326,9 +437,36 @@ def capture_svg(
         with forced_color():
             text = f"{format_cli_prompt(displayed)}\n{text}"
     return (
-        render_svg(text, columns=columns, title=title, unique_id=unique_id),
+        render(
+            text,
+            format=format,
+            columns=columns,
+            title=title,
+            unique_id=unique_id,
+            full=full,
+        ),
         process.returncode,
     )
+
+
+def format_from_path(path: Path) -> CaptureFormat:
+    """Pick the capture format a file name asks for.
+
+    :param path: where the capture is to be written.
+    :return: the {class}`CaptureFormat` its extension names.
+    :raises ValueError: when the extension names no format.
+    """
+    suffix = path.suffix.lower().lstrip(".")
+    # `.htm` is the same document under the older extension.
+    if suffix == "htm":
+        suffix = CaptureFormat.HTML.value
+    try:
+        return CaptureFormat(suffix)
+    except ValueError:
+        known = ", ".join(sorted(f".{member.value}" for member in CaptureFormat))
+        raise ValueError(
+            f"Cannot tell the capture format of {path.name!r}: name it {known}."
+        ) from None
 
 
 def _svg_number(value: float) -> str:
