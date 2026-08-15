@@ -436,7 +436,16 @@ def test_screenshot_wrap_matches_the_composition(invoke, tmp_path):
     assert (
         invoke(
             screenshot_cmd,
-            ["--wrap", "--fragment", "--head", "3", "--output", str(shortcut), "--", *target],
+            [
+                "--wrap",
+                "--fragment",
+                "--head",
+                "3",
+                "--output",
+                str(shortcut),
+                "--",
+                *target,
+            ],
         ).exit_code
         == 0
     )
@@ -445,11 +454,17 @@ def test_screenshot_wrap_matches_the_composition(invoke, tmp_path):
             screenshot_cmd,
             [
                 "--fragment",
-                "--head", "3",
-                "--prompt", f"click-extra wrap -- {' '.join(target)}",
-                "--output", str(composed),
+                "--head",
+                "3",
+                "--prompt",
+                f"click-extra wrap -- {' '.join(target)}",
+                "--output",
+                str(composed),
                 "--",
-                shutil.which("click-extra"), "wrap", "--", *target,
+                shutil.which("click-extra"),
+                "wrap",
+                "--",
+                *target,
             ],
         ).exit_code
         == 0
@@ -458,4 +473,7 @@ def test_screenshot_wrap_matches_the_composition(invoke, tmp_path):
     text = html_to_text(shortcut.read_text(encoding="utf-8"))
     assert text == html_to_text(composed.read_text(encoding="utf-8"))
     # The prompt shows what a reader types, not the plumbing that ran.
-    assert text.splitlines()[0] == "$ click-extra wrap -- click_extra.cli:demo_themes --help"
+    assert (
+        text.splitlines()[0]
+        == "$ click-extra wrap -- click_extra.cli:demo_themes --help"
+    )
