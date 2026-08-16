@@ -46,7 +46,7 @@ $ uvx --from "click-extra[carapace]" --with flask click-extra wrap --help-format
 ```
 
 ```{note}
-A spec is one value of [`--help-format`](man-page.md#machine-readable-formats), not a flag of its own. It describes the same command tree the Markdown and JSON renderings describe, in the schema Carapace happens to read, so it belongs beside them rather than in a mode of its own.
+A spec is one value of [`--help-format`](machine-readable.md), not a flag of its own. It describes the same command tree the Markdown and JSON renderings describe, in the schema Carapace happens to read, so it belongs beside them rather than in a mode of its own.
 ```
 
 Here is the spec of one of Flask's own subcommands, the choices of its `--sort` option inlined as completion values, and the invocation that produced it recorded in the header:
@@ -83,7 +83,7 @@ $ uvx --from "click-extra[carapace]" --with flask click-extra wrap --help-format
 /home/me/.config/carapace/specs/flask.yaml
 ```
 
-`--install` reads the same across formats: put this rendering where its consumer looks for it. A [man page](man-page.md#shipping-a-manual) lands in your man directory the same way. `--output-dir` writes it somewhere else instead, and both are refused for the renderings nothing goes looking for.
+`--install` reads the same across formats: put this rendering where its consumer looks for it. A [man page](machine-readable.md#installing-the-artifacts) lands in your man directory the same way. `--output-dir` writes it somewhere else instead, and both are refused for the renderings nothing goes looking for.
 
 ## Commands discovered from external state
 

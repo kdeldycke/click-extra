@@ -37,6 +37,7 @@ testing
 test-suite
 pytest
 wrap
+machine-readable
 man-page
 carapace
 tree

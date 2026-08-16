@@ -83,6 +83,20 @@ from .color import (
     ColorOption,
     NoColorOption,
 )
+from .command_doc import (
+    HELP_FORMATS,
+    INSTALLABLE_FORMATS,
+    CommandDoc,
+    HelpFormatOption,
+    ManOption,
+    format_manpage,
+    install_manpages,
+    read_manpage,
+    render_help,
+    render_manpage,
+    render_manpages,
+    write_manpages,
+)
 from .commands import (
     Command,
     Group,
@@ -181,20 +195,6 @@ from .logging import (
     VerbosityOption,
     basicConfig,
     new_logger,
-)
-from .man_page import (
-    HELP_FORMATS,
-    INSTALLABLE_FORMATS,
-    CommandDoc,
-    HelpFormatOption,
-    ManOption,
-    format_manpage,
-    install_manpages,
-    read_manpage,
-    render_help,
-    render_manpage,
-    render_manpages,
-    write_manpages,
 )
 from .myst_converter import (
     convert_directory,

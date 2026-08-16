@@ -82,7 +82,7 @@ assert "Help" in result.stdout
 assert "Show all CLI parameters" in result.stdout
 ```
 
-### Machine-readable output
+### As structured data
 
 `--params` speaks every [structured format](table.md#table-formats), which turns the table into a description of the CLI a tool can consume. It is what makes a Click Extra command introspectable by something other than a reader:
 
@@ -100,7 +100,7 @@ assert rows["cli-with-columns.int_param1"]["Env. vars."] == [
 ]
 ```
 
-Values come out as native types here (`10`, not `"10"`), and the `Help` column makes each row self-describing. For the command's own documentation (its description, usage line, subcommands and examples), [`--help-format`](man-page.md#machine-readable-formats) covers what a parameter table cannot.
+Values come out as native types here (`10`, not `"10"`), and the `Help` column makes each row self-describing. This is the *state* of one invocation; for the command's own interface (its description, usage line, subcommands and examples), [`--help-format`](machine-readable.md) covers what a parameter table cannot. [Machine-readable help](machine-readable.md) sets the two side by side.
 
 ### Table format
 

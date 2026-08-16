@@ -280,7 +280,7 @@ class TreeOption(ExtraOption):
     """A pre-configured `--tree` flag that prints the hierarchy of nested
     subcommands and exits.
 
-    Eager and value-less, like {class}`~click_extra.man_page.ManOption`. Part
+    Eager and value-less, like {class}`~click_extra.command_doc.ManOption`. Part
     of the default option set injected by
     {func}`~click_extra.commands.default_params`, so every `@command` and
     `@group` exposes it. Use

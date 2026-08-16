@@ -54,6 +54,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.command_doc module
+
+```{eval-rst}
+.. automodule:: click_extra.command_doc
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.commands module
 
 ```{eval-rst}

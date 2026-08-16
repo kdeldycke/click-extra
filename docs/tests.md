@@ -53,6 +53,15 @@ tests.sphinx
    :undoc-members:
 ```
 
+## tests.test_command_doc module
+
+```{eval-rst}
+.. automodule:: tests.test_command_doc
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## tests.test_commands module
 
 ```{eval-rst}
@@ -120,15 +129,6 @@ tests.sphinx
 
 ```{eval-rst}
 .. automodule:: tests.test_logging
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## tests.test_man_page module
-
-```{eval-rst}
-.. automodule:: tests.test_man_page
    :members:
    :show-inheritance:
    :undoc-members:

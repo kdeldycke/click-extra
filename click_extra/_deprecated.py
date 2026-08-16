@@ -20,13 +20,14 @@ original location for one deprecation cycle. Accessing one emits a
 {exc}`DeprecationWarning` pointing at its replacement, through the
 [PEP 562](https://peps.python.org/pep-0562/) module `__getattr__` hooks wired
 into `click_extra/__init__.py`, `click_extra/version.py` and
-`click_extra/testing.py`. The renamed `click_extra.test_plan` module keeps its
-own import-time shim in `click_extra/test_plan.py`.
+`click_extra/testing.py`. The renamed `click_extra.test_plan` and
+`click_extra.man_page` modules keep their own import-time shims in
+`click_extra/test_plan.py` and `click_extra/man_page.py`.
 
 ```{important}
 Aliases registered here are scheduled for removal in the release recorded in
 {data}`REMOVAL_VERSION`. When that release is cut, delete this module, the
-`test_plan.py` shim, every `__getattr__` hook that calls
+`test_plan.py` and `man_page.py` shims, every `__getattr__` hook that calls
 {func}`resolve_deprecated`, and their tests.
 ```
 """
@@ -47,18 +48,18 @@ DEPRECATED_ALIASES: dict[str, dict[str, str]] = {
     "click_extra": {
         "ClickExtraConfig": "config.ClickExtraConfig",
         "DEFAULT_TEST_PLAN": "test_suite.DEFAULT_TEST_SUITE",
-        "ManPage": "man_page.CommandDoc",
+        "ManPage": "command_doc.CommandDoc",
         "PrebakeConfig": "config.PrebakeConfig",
         "TestPlanConfig": "config.TestSuiteConfig",
         "TestSuiteConfig": "config.TestSuiteConfig",
         "parse_test_plan": "test_suite.parse_test_suite",
         "run_test_plan": "test_suite.run_test_suite",
     },
-    "click_extra.man_page": {
-        "ManOptionGroup": "man_page.DocOptionGroup",
-        "ManOptionItem": "man_page.DocOptionItem",
-        "ManPage": "man_page.CommandDoc",
-        "extract_manpage": "man_page.extract_command_doc",
+    "click_extra.command_doc": {
+        "ManOptionGroup": "command_doc.DocOptionGroup",
+        "ManOptionItem": "command_doc.DocOptionItem",
+        "ManPage": "command_doc.CommandDoc",
+        "extract_manpage": "command_doc.extract_command_doc",
     },
     "click_extra.testing": {
         "INDENT": "execution.INDENT",
@@ -85,7 +86,7 @@ def deprecation_message(subject: str, replacement: str) -> str:
 
     Single source for the wording every deprecation warning in the package
     shares: the module `__getattr__` hooks (through {func}`resolve_deprecated`)
-    and the {mod}`click_extra.test_plan` import shim. Threads in
+    and the {mod}`click_extra.test_plan` / {mod}`click_extra.man_page` import shims. Threads in
     {data}`REMOVAL_VERSION` so the announced removal release lives in one place.
 
     :param subject: dotted name of the deprecated symbol or module.

@@ -549,7 +549,7 @@ def test_integrated_show_params_option(invoke, create_config):
         (
             "show-params-cli.help_format",
             "--help-format [carapace|json|json-full|man|markdown|markdown-full]",
-            "click_extra.man_page.HelpFormatOption",
+            "click_extra.command_doc.HelpFormatOption",
             "click.types.Choice",
             "str",
             "✘",
@@ -633,7 +633,7 @@ def test_integrated_show_params_option(invoke, create_config):
         (
             "show-params-cli.man",
             "--man",
-            "click_extra.man_page.ManOption",
+            "click_extra.command_doc.ManOption",
             "click.types.BoolParamType",
             "bool",
             "✘",

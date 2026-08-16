@@ -7,6 +7,7 @@
 
 - **Breaking:** `--man` now typesets the manual and pages it, the way `man` does, instead of printing roff to stdout; the source moved to `--help-format man`.
 - **Breaking:** Remove `click-extra wrap --carapace` in favor of `wrap --help-format carapace`, one option carrying every rendering.
+- **Deprecated:** Rename the `click_extra.man_page` module to `click_extra.command_doc`, after the model it is built around rather than one of the four formats it renders; the old path resolves until `9.0.0`.
 - **Deprecated:** Rename `ManPage` to `CommandDoc`, `ManOptionItem` to `DocOptionItem`, `ManOptionGroup` to `DocOptionGroup` and `extract_manpage()` to `extract_command_doc()`; old names resolve until `9.0.0`.
 - Add a `click-extra screenshot` subcommand capturing any CLI's colored output and rendering it as an SVG image or an HTML document, picked from the `--output` extension.
 - Add a `--fragment` option to `click-extra screenshot`, emitting an HTML capture as a bare inline-styled block instead of a standalone document.
@@ -27,6 +28,7 @@
 - Add `read_manpage()`, `format_manpage()` and `install_manpages()`, plus the `INSTALLABLE_FORMATS` registry.
 - Strip the man page's overstrike emphasis under `--accessible`, which a screen reader voices instead of skipping.
 - Fix `wrap --help-format carapace` naming the spec after the script path, producing one that binds to nothing.
+- Split the machine-readable renderings out of the man page documentation into their own page, aimed at the tools and models that read a CLI they did not write, and move the `examples=` guide beside the other command-authoring options.
 - Name every `wrap` rendering after the name its target runs under, so a man page, a spec, a Markdown document and a tree can no longer disagree.
 - Fix options computing their help from the context (`-v`, `-q`) rendering blank in man pages and `--params`.
 - Fix a `--theme` resolved from the environment, or typed after `--help`, not reaching the screens that render and exit.

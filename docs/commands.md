@@ -342,6 +342,53 @@ assert "Acme CLI" in result.output
 assert "42.0" in result.output
 ```
 
+## Examples
+
+A command can carry usage examples, as `(description, command)` pairs. They render in an `Examples:` section of the help screen, in the [man page](man-page.md)'s `EXAMPLES` section, and in every [machine-readable rendering](machine-readable.md):
+
+```{click:source}
+from click_extra import command, echo, option
+
+
+@command(
+    examples=[
+        ("Report the temperature in Fahrenheit", "forecast --units fahrenheit Oslo"),
+        ("Report tomorrow's forecast", "forecast --day tomorrow Oslo"),
+    ]
+)
+@option("--units", default="celsius", help="Temperature scale to display.")
+def forecast(units):
+    """Report the forecast for a city."""
+    echo(f"Sunny, in {units}.")
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(forecast, args=["--help"])
+assert result.exit_code == 0
+plain = strip_ansi(result.output)
+assert "Examples:" in plain
+assert "$ forecast --units fahrenheit Oslo" in plain
+```
+
+The command lines are emitted verbatim rather than wrapped: an example exists to be copied. Option names, subcommands and CLI names inside them are highlighted by the same pass that highlights them everywhere else on the screen, which is why the assertion above strips the styling before matching.
+
+They reach the machine-readable renderings as structured entries, not as prose to be parsed back out:
+
+```{click:run}
+import json
+
+result = invoke(forecast, args=["--help-format", "json"])
+assert result.exit_code == 0
+assert json.loads(result.output)["examples"][0] == {
+    "description": "Report the temperature in Fahrenheit",
+    "command": "forecast --units fahrenheit Oslo",
+}
+```
+
+A malformed pair raises `TypeError` at command construction, so a typo surfaces on import rather than on the first `--help` a user runs.
+
 ## `help` subcommand
 
 Every `Group` automatically includes a `help` subcommand. It is the standard way to get help in most major CLIs (git, docker, cargo, npm, kubectl, gh).

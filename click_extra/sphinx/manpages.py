@@ -19,7 +19,7 @@ A project that adds `click_extra.sphinx` to its `extensions` list and
 declares one or more entries in `click_extra_manpages` gets its Click
 command tree(s) emitted as `.1` files into `<outdir>/<output_dir>/` on
 every HTML build, with no project-local helper script. Pages mirror what
-{func}`click_extra.man_page.write_manpages` produces from a CLI invocation,
+{func}`click_extra.command_doc.write_manpages` produces from a CLI invocation,
 so the docs site, the release pipeline, and downstream packagers all share
 one generator.
 
@@ -93,7 +93,7 @@ from sphinx.util import logging
 from sphinx.util.osutil import relative_uri
 
 from ..cli_wrapper import resolve_target_command
-from ..man_page import (
+from ..command_doc import (
     iter_command_contexts,
     iter_inline_literals,
     write_manpages,
@@ -340,7 +340,7 @@ class ManpageListDirective(SphinxDirective):
     """Render a bullet list with one link per emitted man page.
 
     The directive walks every entry in {data}`MANPAGES_CONFIG_KEY` and,
-    for each, calls {func}`~click_extra.man_page.iter_command_contexts`
+    for each, calls {func}`~click_extra.command_doc.iter_command_contexts`
     to discover the (sub)command tree. Each list item links to the
     corresponding `.1.html` file written by the emit hook.
 

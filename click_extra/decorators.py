@@ -27,6 +27,7 @@ from click.decorators import _param_memo
 
 from .accessibility import AccessibleOption
 from .color import ColorOption, NoColorOption
+from .command_doc import HelpFormatOption, ManOption
 from .commands import (
     DEFAULT_HELP_NAMES,
     Command,
@@ -42,7 +43,6 @@ from .config import (
 )
 from .execution import JobsOption, TimerOption, ZeroExitOption
 from .logging import QuietOption, VerboseOption, VerbosityOption
-from .man_page import HelpFormatOption, ManOption
 from .parameters import Argument, Option, ShowParamsOption
 from .table import ColumnsOption, SortByOption, TableFormatOption
 from .telemetry import TelemetryOption

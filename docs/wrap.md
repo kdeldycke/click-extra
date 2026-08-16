@@ -242,7 +242,7 @@ A CLI already built with Click Extra or Cloup passes through unchanged: it bring
 
 The `--params` flag turns `wrap` into a read-only inspector: it loads any Click CLI without running it and prints a table of every parameter, with its ID, spec, class, type, hidden status, environment variables, and default value. This is the same table the [`--params` option](parameters.md#params-option) produces for a Click Extra CLI, pointed at a foreign target instead.
 
-The other introspection modes follow the same contract, each documented on its facet's page: [`--man`](man-page.md) reads the target's manual, [`--tree`](tree.md#foreign-clis) prints its hierarchy of nested subcommands, and [`--help-format`](man-page.md#machine-readable-formats) renders it as JSON, Markdown, roff or a [Carapace spec](carapace.md#the-wrap-help-format-carapace-mode). All four are mutually exclusive.
+The other introspection modes follow the same contract, each documented on its facet's page: [`--man`](man-page.md) reads the target's manual, [`--tree`](tree.md#foreign-clis) prints its hierarchy of nested subcommands, and [`--help-format`](machine-readable.md) renders it as JSON, Markdown, roff or a [Carapace spec](carapace.md#the-wrap-help-format-carapace-mode). All four are mutually exclusive.
 
 ```{click:source}
 :hide-source:
@@ -297,40 +297,7 @@ assert "COMMANDLINE" in result.output
 
 ### Machine-readable output
 
-All [`--table-format`](table.md#table-formats) renderings are supported. JSON is handy for programmatic consumption:
-
-```{click:run}
-result = invoke(demo, args=["wrap", "--params", "--table-format", "json", "--", "flask", "run"])
-assert result.exit_code == 0
-assert '"run.port"' in result.output
-assert '"Default": 5000' in result.output
-```
-
-Pair it with `--columns` to hand a consumer only the fields it reads:
-
-```{click:run}
-:screenshot: wrap-flask-json-screen
-:screenshot-columns: auto
-result = invoke(demo, args=["wrap", "--params", "--table-format", "json", "--columns", "id,spec,envvars,default", "--", "flask", "routes"])
-assert result.exit_code == 0
-assert '"routes.sort"' in result.output
-assert '"FLASK_ROUTES_SORT"' in result.output
-```
-
-Where `--params` describes the parameters, `--help-format` describes the command: its usage line, description, option groups, subcommands and examples, in [any of the supported formats](man-page.md#machine-readable-formats). The target needs no cooperation for either:
-
-```{click:run}
-import json
-
-result = invoke(demo, args=["wrap", "--help-format", "json", "--", "flask", "run"])
-assert result.exit_code == 0
-
-doc = json.loads(result.output)
-assert doc["name"] == "flask run"
-assert "development server" in doc["description"]
-options = [opt for group in doc["option_groups"] for opt in group["options"]]
-assert any("--port" in opt["names"] for opt in options)
-```
+Everything the wrapper can extract from a target, as data a program reads rather than a screen a person does, is collected in [machine-readable help](machine-readable.md#any-click-cli): the parameter inventory in any [structured format](table.md#table-formats), and the command itself as JSON, Markdown, a man page or a Carapace spec.
 
 ### Subcommand drilling
 

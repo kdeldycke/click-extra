@@ -35,6 +35,7 @@ from click.core import iter_params_for_processing
 from . import context
 from .accessibility import ACCESSIBLE_ENVVAR, AccessibleOption
 from .color import ColorOption, NoColorOption
+from .command_doc import HelpFormatOption, ManOption, normalize_examples
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
     PREPEND_SUBCOMMANDS_KEY,
@@ -51,7 +52,6 @@ from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import TimerOption
 from .highlight import HelpKeywords, _HelpColorsMixin, highlight
 from .logging import QuietOption, VerboseOption, VerbosityOption
-from .man_page import HelpFormatOption, ManOption, normalize_examples
 from .parameters import ExtraOption, ShowParamsOption
 from .spinner import ProgressOption
 from .table import TableFormatOption
@@ -181,10 +181,10 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
     """`(description, command)` pairs showing the command in use.
 
     Normalized from the `examples` constructor argument by
-    {func}`~click_extra.man_page.normalize_examples`. Declared here so the
+    {func}`~click_extra.command_doc.normalize_examples`. Declared here so the
     attribute exists on every command, whether or not its author passed any:
     the renderers reading it (help screen, man page, and every
-    {data}`~click_extra.man_page.HELP_FORMATS` backend) then need no guard.
+    {data}`~click_extra.command_doc.HELP_FORMATS` backend) then need no guard.
     """
 
     def __init__(

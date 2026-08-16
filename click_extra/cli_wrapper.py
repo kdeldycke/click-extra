@@ -48,11 +48,7 @@ from .carapace import (
     install_carapace_spec,
     write_carapace_spec,
 )
-from .commands import ColorizedCommand, ColorizedGroup, Group
-from .context import Context
-from .decorators import columns_option, option
-from .highlight import HelpFormatter, _HelpColorsMixin
-from .man_page import (
+from .command_doc import (
     HELP_FORMATS,
     INSTALLABLE_FORMATS,
     install_manpages,
@@ -60,6 +56,10 @@ from .man_page import (
     render_help,
     write_manpages,
 )
+from .commands import ColorizedCommand, ColorizedGroup, Group
+from .context import Context
+from .decorators import columns_option, option
+from .highlight import HelpFormatter, _HelpColorsMixin
 from .parameters import (
     ShowParamsOption,
     make_resilient_context,
@@ -635,7 +635,7 @@ class _WrapCommand(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
       differs, which is why these are *not* redundant with the group
       versions. They route through the same rendering cores as the
       group-level options ({func}`~click_extra.parameters.render_params_table`,
-      {func}`~click_extra.man_page.render_manpage`,
+      {func}`~click_extra.command_doc.render_manpage`,
       {func}`~click_extra.tree.render_command_tree`), so a new introspection
       feature only has to add one option here, never a parallel subcommand.
 

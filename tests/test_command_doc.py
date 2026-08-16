@@ -27,14 +27,13 @@ from click_extra import (
     Choice,
     argument,
     command,
+    command_doc as command_doc_module,
     group,
     man_option,
-    man_page as man_page_module,
     option,
     option_group,
 )
-from click_extra.commands import Group
-from click_extra.man_page import (
+from click_extra.command_doc import (
     HELP_FORMATS,
     MAN_FORMATTERS,
     render_help,
@@ -42,6 +41,7 @@ from click_extra.man_page import (
     render_manpages,
     write_manpages,
 )
+from click_extra.commands import Group
 from click_extra.testing import CliRunner
 
 
@@ -389,7 +389,7 @@ def test_man_option_reads_the_manual():
 
 def test_man_option_falls_back_to_the_source(monkeypatch):
     """With no typesetter installed, the source beats an error."""
-    monkeypatch.setattr(man_page_module.shutil, "which", lambda tool: None)
+    monkeypatch.setattr(command_doc_module.shutil, "which", lambda tool: None)
 
     @command
     @man_option
