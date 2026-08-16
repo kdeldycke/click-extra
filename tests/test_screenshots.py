@@ -268,7 +268,7 @@ def test_capture_clip_holds_every_descender():
     for committed in COMMITTED_CAPTURES:
         svg = (ASSETS / committed.filename).read_text(encoding="utf-8")
         clip = re.search(
-            r'<clipPath id="[^"]+-clip"><rect x="0" y="0" '
+            r'<clipPath id="[^"]+-clip"><rect x="[\d.]+" y="[\d.]+" '
             r'width="[\d.]+" height="(?P<height>[\d.]+)"',
             svg,
         )
@@ -347,6 +347,24 @@ def test_no_capture_places_a_column_by_its_padding():
             content = unescape(element["content"])
             assert not _COLUMN_GAP_RE.search(content), (
                 f"{name}: run holds a gutter its glyphs pay for: {content!r}"
+            )
+
+
+def test_no_capture_clips_through_a_transform():
+    """The element a capture's clip is hung on carries no transform of its own.
+
+    A `clipPath` in `userSpaceOnUse` resolves against "the user coordinate
+    system in place when it is referenced", and renderers disagree over whether
+    the referencing element's own `transform` counts. Hung on a translated
+    group, the two readings differ by the translation, and the one that ignores
+    it crops the text partway down the window: what macOS Finder's thumbnailer
+    does.
+    """
+    for committed in COMMITTED_CAPTURES:
+        svg = (ASSETS / committed.filename).read_text(encoding="utf-8")
+        for element in re.finditer(r"<g [^>]*clip-path=[^>]*>", svg):
+            assert "transform=" not in element[0], (
+                f"{committed.filename}: clip resolved through a transform"
             )
 
 

@@ -17,6 +17,7 @@
 - Declare `UTF-8` in every SVG capture, which a reader assuming the platform's encoding would otherwise render as mojibake.
 - Cast an SVG capture's shadow from a rectangle of its own, so a renderer refusing the filter no longer drops the window's background and frame with it.
 - State an SVG capture's font and text color as attributes as well as in its stylesheet, for renderers that ignore `<style>`.
+- Clip an SVG capture's text in the image's own coordinates, so a renderer resolving the clip differently no longer crops the screen partway down.
 - Add a `--help-format FORMAT` option on every command, rendering it as `json`, `json-full`, `man`, `markdown`, `markdown-full` or `carapace`.
 - Add a `--help-format` mode to `click-extra wrap`, rendering any foreign Click CLI in those same formats without running it.
 - Add `to_markdown()` and `to_dict()` / `to_json()` backends to the document model behind `--man`, plus the `render_help()` entry point and the `HELP_FORMATS` registry.

@@ -1210,10 +1210,19 @@ def render_svg(
     origin_x = margin + WINDOW_INSET + WINDOW_PADDING + padding
     origin_y = margin + WINDOW_INSET + TITLEBAR_HEIGHT + padding - dropped
 
+    # Stated where the image itself measures, rather than at the origin of the
+    # group it clips. A `clipPath` in `userSpaceOnUse` (the default) resolves
+    # against "the user coordinate system in place when it is referenced", and
+    # renderers disagree over whether the referencing element's own `transform`
+    # is part of that. Hung on a translated group, the readings differ by the
+    # translation, and the one that ignores it crops the text partway down: what
+    # macOS Finder's thumbnailer does. Absolute coordinates on an untranslated
+    # wrapper read the same either way.
     defs = [
         (
             f'<clipPath id="{unique_id}-clip">'
-            f'<rect x="0" y="0" width="{_svg_number(text_width)}" '
+            f'<rect x="{_svg_number(origin_x)}" y="{_svg_number(origin_y)}" '
+            f'width="{_svg_number(text_width)}" '
             f'height="{_svg_number(text_height)}"/></clipPath>'
         )
     ]
@@ -1249,7 +1258,12 @@ def render_svg(
             f'<feGaussianBlur in="SourceAlpha" stdDeviation="{SHADOW_BLUR}"/>'
             f'<feOffset dx="0" dy="{SHADOW_OFFSET}" result="cast"/>'
             f'<feFlood flood-color="{shadow}"/>'
-            '<feComposite in2="cast" operator="in"/>'
+            '<feComposite in2="cast" operator="in" result="shadow"/>'
+            # Cut the window's own footprint back out, leaving the halo alone.
+            # A window is drawn over its shadow and hides it, so the part
+            # underneath only ever shows through one asking for `opacity`, where
+            # it reads as a slab of dirty glass instead of the page behind.
+            '<feComposite in="shadow" in2="SourceAlpha" operator="out"/>'
             "</filter>"
         )
         body.append(
@@ -1301,8 +1315,8 @@ def render_svg(
             )
 
     body.append(
-        f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})" '
-        f'clip-path="url(#{unique_id}-clip)">'
+        f'<g clip-path="url(#{unique_id}-clip)">'
+        f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})">'
         f"{''.join(cells)}"
         # The stylesheet says all of this too, and says it once. It is repeated
         # here as presentation attributes because a renderer is free to ignore a
@@ -1314,7 +1328,7 @@ def render_svg(
         f'<g class="{unique_id}-matrix" font-family="{font_stack}" '
         f'font-size="{_svg_number(CELL_HEIGHT)}" fill="{palette.foreground}">'
         f"{''.join(glyphs)}</g>"
-        "</g>"
+        "</g></g>"
     )
     body.append(
         watermark_svg(
