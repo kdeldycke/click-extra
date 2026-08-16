@@ -1,4 +1,4 @@
-<svg class="rich-terminal" viewBox="0 0 1026 301.6" xmlns="http://www.w3.org/2000/svg">
+<svg class="rich-terminal" viewBox="0 0 1106 381.6" xmlns="http://www.w3.org/2000/svg">
     <!-- Generated with Rich https://www.textualize.io -->
     <style>
 
@@ -67,16 +67,16 @@
 <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="rgba(0,0,0,0.5)"/>
 </filter>
 </defs>
-<g transform="translate(16, 16)">
+<g transform="translate(48, 48)">
 
-    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="992" height="267.6" rx="8" filter="url(#hello-click-screen-shadow)"/>
+    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="283.6" rx="8" filter="url(#hello-click-screen-shadow)"/>
             <g transform="translate(26,22)">
             <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
             <circle cx="22" cy="0" r="7" fill="#febc2e"/>
             <circle cx="44" cy="0" r="7" fill="#28c840"/>
             </g>
         
-    <g transform="translate(9, 41)" clip-path="url(#hello-click-screen-clip-terminal)">
+    <g transform="translate(17, 49)" clip-path="url(#hello-click-screen-clip-terminal)">
     
     <g class="hello-click-screen-matrix">
     <text class="hello-click-screen-r1" x="0" y="20" textLength="170.8" clip-path="url(#hello-click-screen-line-0)">$&#160;hello&#160;--help</text><text class="hello-click-screen-r1" x="976" y="20" textLength="12.2" clip-path="url(#hello-click-screen-line-0)">

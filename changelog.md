@@ -32,6 +32,12 @@
 - Add an `auto` width to `click-extra screenshot`, and a `:screenshot-columns:` option to the `click:run` directive, laying a capture out at the longest line it holds instead of folding it.
 - Add `--border`, `--border-width`, `--radius`, `--shadow`, `--backdrop`, `--margin` and `--padding` options to `click-extra screenshot`, with `:screenshot-*:` counterparts on the `click:run` directive, restating the window a capture is drawn in.
 - Add a `:screenshot-title:` option to the `click:run` directive, captioning a capture's title bar like the command's own `--title`.
+- Accept a CSS `linear-gradient()` or `radial-gradient()` as a capture's `--backdrop`, translated into the paint server an SVG draws it with.
+- Add a `--line-numbers` option to `click-extra screenshot`, and a `:screenshot-line-numbers:` option to the `click:run` directive, numbering every line of a capture, its invocation first.
+- Advertise the `auto` value of `--theme` in the help screen's choice list and in shell completion, instead of accepting it silently.
+- Widen the default capture margin to 48 pixels and its padding to 8, so a window has room for its shadow and its text room from its frame.
+- State a capture's chrome to the command it runs through `CLITHEME` and `COLORFGBG`, so a CLI passing `--theme auto` renders for the window it lands in.
+- Drop the hardening rationale from the screenshots page, which restated the `harden_svg()` docstring at the reader of a user guide.
 - Show a `<picture>` element switching a README between a dark and a light capture on the reader's color scheme, and use one for the readme's own.
 - Fix a light capture keeping the translucent white frame a dark renderer draws, which left a white window invisible on a white page.
 - Drop the survey of other capture tools from the screenshots page, now that the bundled command covers what it compared against.

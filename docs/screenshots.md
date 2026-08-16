@@ -36,8 +36,8 @@ $ click-extra screenshot --output cli-help.html -- my-cli --help
 That writes a standalone document. Add `--fragment` to get the bare `<pre>` instead, styled inline so it needs no stylesheet from the page you paste it into.
 
 ```{click:run}
-from click_extra.cli import screenshot_cmd
-result = invoke(screenshot_cmd, args=["--help"])
+from click_extra.cli import demo
+result = invoke(demo, args=["screenshot", "--help"])
 assert result.exit_code == 0
 assert "--columns" in result.stdout
 assert "--merge-stderr" in result.stdout
@@ -49,7 +49,7 @@ Three things it settles that a general-purpose capture tool leaves to you:
 - Width, where `--columns` pins what the command wraps to *and* what the image is drawn at. Let those two disagree and the rendered lines overrun the image.
 - `stderr`, which stays out of the capture unless `--merge-stderr` asks for it. That is what keeps a wrapper's build chatter out of the picture with no shell redirection to remember.
 
-The SVG renderer sits behind a one-function seam ({func}`click_extra.screenshot._rich_svg`), so Rich can be swapped for another engine without touching the capture, the CLI, or the pass described below.
+Every SVG it writes is also hardened, so it renders correctly outside a web browser, where a file manager, a git client or a thumbnailer would otherwise slide each column out of place. {func}`click_extra.screenshot.harden_svg` documents what that fixes and why the renderer does not do it. The renderer itself sits behind a one-function seam ({func}`click_extra.screenshot._rich_svg`), so Rich can be swapped for another engine without touching the capture or the CLI.
 
 ### Capturing a CLI that is not yours
 
@@ -102,6 +102,14 @@ $ click-extra screenshot --output light-help.svg --background light -- my-cli --
 Both halves are needed, and they are not the same half: `--theme light` is what the *CLI* renders with, `--background light` is what the *image* is drawn on. Pass one without the other and you get the washed-out screen the [theme gallery](theme.md#built-in-themes) warns about, in one direction or the other.
 
 The prompt line follows the chrome on its own. It is the one line a capture draws itself rather than collects, so on white it would otherwise land in the dark theme's near-white `invoked_command` style and vanish.
+
+So does a CLI that asks. A capture states its chrome to the command the way a terminal would, through the `CLITHEME` and `COLORFGBG` variables [background detection](theme.md#automatic-background-detection) reads, on top of the width it pins and the colors it forces. A CLI passing [`--theme auto`](theme.md#automatic-background-detection) then renders for the window it lands in, and needs telling only once:
+
+```shell-session
+$ click-extra screenshot --output light-help.svg --background light -- my-cli --theme auto --help
+```
+
+`auto` is not the default, and deliberately: a CLI that never asks for it keeps rendering exactly as it does everywhere else, which is why `--theme dark` and `--theme light` are spelled out below rather than left to detection.
 
 Here is one help screen taken both ways, with the CLI's theme and the image's chrome moving together:
 
@@ -165,8 +173,9 @@ $ click-extra screenshot --output shot.svg --title "my-cli --help" --backdrop "#
 | `--radius`       | pixels    | `8`          | How round the window's corners are. `0` squares them.    |
 | `--shadow`       | CSS color | the chrome's | The drop shadow under the window. `none` leaves it flat. |
 | `--backdrop`     | CSS color | none         | A page behind the window, margin included.               |
-| `--margin`       | pixels    | `16`         | Transparent space around the window.                     |
-| `--padding`      | pixels    | `0`          | Space inside it, on top of the renderer's own.           |
+| `--margin`       | pixels    | `48`         | Transparent space around the window.                     |
+| `--padding`      | pixels    | `8`          | Space inside it, on top of the renderer's own.           |
+| `--line-numbers` | flag      | off          | A dim gutter numbering the captured lines.               |
 | `--title`        | text      | none         | A caption centered in the window's title bar.            |
 
 Two of them carry a default that is not a fixed value but the chrome's own. That is the whole reason they are not constants: a renderer frames its window in a translucent white, and a light capture wearing it is a white window on a white page, its edge left for the reader to infer.
@@ -178,6 +187,48 @@ The frame is rewritten into the rendered source rather than requested up front (
 ```{tip}
 A shadow is an SVG filter. A renderer that skips filters, and a few outside the browser do, still draws the border, so the window keeps an edge either way.
 ```
+
+#### Gradients
+
+`--backdrop` also takes a CSS gradient, which is what turns a capture into a picture that carries its own page:
+
+```shell-session
+$ click-extra screenshot --output card.svg --backdrop "linear-gradient(135deg, #667eea, #764ba2)" -- my-cli --help
+```
+
+An SVG `fill` has no syntax for that, so the CSS is read and re-emitted as the paint server SVG does understand ({func}`click_extra.screenshot.gradient_svg`), placed in user space rather than approximated: the gradient line runs through the image's center at the angle asked for, as long as the image measures along it, and a radial one reaches the farthest corner. Understood are `linear-gradient`, opening with an angle (`135deg`) or a side keyword (`to bottom right`), and `radial-gradient`, both followed by two or more color stops, each pinnable at a percentage (`#667eea 30%`). Anything else is taken for the plain color it presumably is, and HTML captures pass the value through to CSS untouched either way.
+
+#### Line numbers
+
+`--line-numbers` draws each line's number in a dim gutter, the way Pygments does inline. Line 1 is the prompt, the invocation everything under it came from:
+
+```shell-session
+$ click-extra screenshot --output numbered.svg --line-numbers -- my-cli --help
+```
+
+The numbers land in the terminal text rather than in a column of their own, which is the same trade Pygments makes: every renderer places them for free, and a reader copying an HTML capture copies them too.
+
+It also means the gutter spends columns the command already used: a screen wrapped at 80 comes back a few characters too wide, and folds. Pair the flag with [`--columns auto`](#width), or with a width that leaves room for the gutter, so the image grows instead of the lines breaking.
+
+#### All of it at once
+
+Here is the `pantry` screen again, on a gradient, captioned, numbered, rounded and given room to breathe:
+
+```{click:run}
+:screenshot: styled-window-screen
+:screenshot-columns: auto
+:screenshot-title: pantry --help
+:screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-line-numbers:
+:screenshot-radius: 12
+:screenshot-padding: 24
+:hide-results:
+result = invoke(pantry, args=["--help"])
+assert result.exit_code == 0
+assert "--crates" in result.stdout
+```
+
+![The pantry help screen, captioned and numbered on a gradient backdrop](assets/styled-window-screen.svg)
 
 ### The captures on this page
 
@@ -214,14 +265,6 @@ The before/after pair opening the [readme](https://github.com/kdeldycke/click-ex
 Reach for the command when the CLI you want to picture has no live block, and for the directive when it does.
 
 Whichever route, a full click-extra help screen carries `--table-format`, whose choice list is a single 463-character line. Click never wraps an option's own term, so the renderer folds it across six rows, exactly as a terminal would.
-
-### Why a capture needs hardening
-
-A renderer places a run of same-styled characters with an `x` offset, then leans on `textLength` to hold that run to an exact width. The padding separating two columns lives *inside* the run, as spaces preceding the text. A column therefore lands where it belongs only if the glyphs are the exact width the renderer assumed, which asks two things of whoever opens the file: honor `textLength`, and resolve the font the source names (Rich names Fira Code and links it from a CDN, which a browser blocks inside an `<img>`).
-
-A web browser does both. Little else does. `librsvg`, and through it `rsvg-convert` and ImageMagick, ignores `textLength` outright; a file manager, a git client or a thumbnailer commonly falls back to a proportional font. Either way every glyph sitting behind padding slides out of its column and neighbouring words collide.
-
-{func}`click_extra.screenshot.harden_svg` strips that padding and advances `x` by as many cells, so each run starts on its own column and a renderer only has to draw glyphs, not match metrics. Browsers are unaffected, since `textLength` is rewritten to the width of what remains. Every capture this command writes goes through it.
 
 ### Keeping a capture honest
 

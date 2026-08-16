@@ -1,4 +1,4 @@
-<svg class="rich-terminal" viewBox="0 0 1026 765.2" xmlns="http://www.w3.org/2000/svg">
+<svg class="rich-terminal" viewBox="0 0 1106 845.2" xmlns="http://www.w3.org/2000/svg">
     <!-- Generated with Rich https://www.textualize.io -->
     <style>
 
@@ -128,16 +128,16 @@
 <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="rgba(0,0,0,0.5)"/>
 </filter>
 </defs>
-<g transform="translate(16, 16)">
+<g transform="translate(48, 48)">
 
-    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="992" height="731.2" rx="8" filter="url(#wrap-flask-help-screen-shadow)"/>
+    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="747.2" rx="8" filter="url(#wrap-flask-help-screen-shadow)"/>
             <g transform="translate(26,22)">
             <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
             <circle cx="22" cy="0" r="7" fill="#febc2e"/>
             <circle cx="44" cy="0" r="7" fill="#28c840"/>
             </g>
         
-    <g transform="translate(9, 41)" clip-path="url(#wrap-flask-help-screen-clip-terminal)">
+    <g transform="translate(17, 49)" clip-path="url(#wrap-flask-help-screen-clip-terminal)">
     
     <g class="wrap-flask-help-screen-matrix">
     <text class="wrap-flask-help-screen-r1" x="0" y="20" textLength="463.6" clip-path="url(#wrap-flask-help-screen-line-0)">$&#160;click-extra&#160;wrap&#160;--&#160;flask&#160;run&#160;--help</text><text class="wrap-flask-help-screen-r1" x="976" y="20" textLength="12.2" clip-path="url(#wrap-flask-help-screen-line-0)">

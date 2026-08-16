@@ -49,7 +49,7 @@ Here is the spec of one of Flask's own subcommands, the choices of its `--sort` 
 
 ```{click:source}
 :hide-source:
-from click_extra.cli_wrapper import wrap
+from click_extra.cli import demo
 ```
 
 ```{click:run}
@@ -61,7 +61,7 @@ import logging
 # narrate which entry point it picked, into a committed capture.
 logging.getLogger("click_extra").setLevel(logging.WARNING)
 
-result = invoke(wrap, prog_name="click-extra wrap", args=["--carapace", "--", "flask", "routes"])
+result = invoke(demo, args=["wrap", "--carapace", "--", "flask", "routes"])
 assert result.exit_code == 0
 assert not result.stderr
 assert "name: routes" in result.stdout

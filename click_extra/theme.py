@@ -535,10 +535,13 @@ AUTO_THEME: str = "auto"
 Unlike the named built-in palettes, `auto` is not a registry entry: it is a
 directive handled by {class}`ThemeOption`, which calls {func}`resolve_auto_theme`
 to pick `dark` or `light` from the detected background, mirroring
-`--color=auto`. Kept out of the `--help` metavar and shell completion (which
-only advertise registered palettes), so a CLI that does not opt into auto
-detection keeps an unchanged help screen, yet accepted by
-{meth}`ThemeChoice.convert` so `--theme=auto` works on every Click Extra CLI.
+`--color=auto`.
+
+It is advertised all the same, in the `--help` metavar and in shell completion
+({attr}`ThemeChoice.choices`), because it works on every Click Extra CLI whether
+or not that CLI knows about it: a value accepted everywhere and named nowhere is
+one nobody finds. `--color` lists its own `auto` beside `always` and `never` for
+the same reason.
 """
 
 
@@ -657,12 +660,18 @@ class ThemeChoice(click.ParamType):
 
     @property
     def choices(self) -> tuple[str, ...]:
-        """Theme names visible in the current context, alphabetically sorted."""
+        """Values `--theme` takes, alphabetically sorted.
+
+        The theme names visible in the current context, plus
+        {data}`AUTO_THEME`: it resolves to a palette rather than being one, but
+        a value a CLI accepts everywhere and advertises nowhere is a value
+        nobody finds, and `--color` lists its own `auto` alongside the rest.
+        """
         try:
             ctx = click.get_current_context(silent=True)
         except RuntimeError:
             ctx = None
-        return tuple(sorted(get_theme_registry(ctx)))
+        return tuple(sorted({AUTO_THEME, *get_theme_registry(ctx)}))
 
     def _normalize(self, value: str) -> str:
         return value if self.case_sensitive else value.casefold()
@@ -713,7 +722,7 @@ class ThemeChoice(click.ParamType):
         lookup = {self._normalize(name): name for name in registry}
         canonical = lookup.get(self._normalize(value))
         if canonical is None:
-            choices = "|".join(sorted(registry))
+            choices = "|".join(sorted({AUTO_THEME, *registry}))
             self.fail(
                 f"{value!r} is not one of [{choices}].",
                 param,
@@ -730,7 +739,7 @@ class ThemeChoice(click.ParamType):
         prefix = self._normalize(incomplete)
         return [
             CompletionItem(name)
-            for name in sorted(get_theme_registry(ctx))
+            for name in sorted({AUTO_THEME, *get_theme_registry(ctx)})
             if self._normalize(name).startswith(prefix)
         ]
 

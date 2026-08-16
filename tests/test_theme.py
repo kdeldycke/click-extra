@@ -363,9 +363,13 @@ def test_cascade_rejects_non_theme_base():
 
 
 def test_themechoice_choices_track_global_registry():
-    """Outside any context, ``choices`` reflects the module-level registry."""
+    """Outside any context, ``choices`` reflects the module-level registry.
+
+    Plus the reserved ``auto`` directive, which every CLI takes and no registry
+    holds.
+    """
     tc = ThemeChoice()
-    assert set(tc.choices) == set(theme_registry)
+    assert set(tc.choices) == {AUTO_THEME, *theme_registry}
 
 
 def test_themechoice_choices_pick_up_context_overrides():
@@ -634,7 +638,7 @@ def test_config_theme_appears_in_help_metavar(invoke, create_config):
     assert result.exit_code == 0, result.stderr
     # The bracket-style metavar must include "midnight" in alphabetical order.
     assert (
-        "[dark|dracula|light|manpage|midnight|monokai|nord|solarized_dark]"
+        "[auto|dark|dracula|light|manpage|midnight|monokai|nord|solarized_dark]"
         in result.stdout
     )
 
@@ -745,19 +749,24 @@ def test_theme_auto_from_config(invoke, create_config, monkeypatch):
     assert captured["theme"] is BUILTIN_THEMES["light"]
 
 
-def test_theme_auto_absent_from_help_metavar(invoke):
-    """The reserved 'auto' directive is not advertised in the --theme metavar."""
+def test_theme_auto_advertised_in_help_metavar(invoke):
+    """The reserved 'auto' directive is listed among the values --theme takes.
+
+    It resolves to a palette rather than being one, but it works on every Click
+    Extra CLI, and a value named nowhere is a value nobody finds.
+    """
     result = invoke(greet, "--help", color=False)
     assert result.exit_code == 0
-    # The metavar lists only registered palettes; 'auto' is accepted but hidden.
-    assert "[dark|dracula|light|manpage|monokai|nord|solarized_dark]" in result.stdout
+    assert (
+        "[auto|dark|dracula|light|manpage|monokai|nord|solarized_dark]" in result.stdout
+    )
 
 
 def test_themechoice_accepts_auto_directive():
     """'auto' converts to itself though it is not a registered palette."""
     assert ThemeChoice().convert("auto", None, None) == AUTO_THEME
     assert ThemeChoice().convert("AUTO", None, None) == AUTO_THEME
-    assert "auto" not in ThemeChoice().choices
+    assert "auto" in ThemeChoice().choices
 
 
 def test_theme_option_query_background_opt_in():

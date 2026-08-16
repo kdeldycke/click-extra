@@ -60,8 +60,9 @@ import subprocess
 from enum import Enum
 from html import escape, unescape
 from io import StringIO
+from math import cos, hypot, pi, sin
 
-from click import unstyle
+from click import style, unstyle
 
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
@@ -86,7 +87,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Any, Literal, TypeAlias
 
-    from .execution import TArg, TEnvVars, TNestedArgs
+    from .execution import TArg, TNestedArgs
     from .theme import HelpTheme
 
     TColumns: TypeAlias = int | Literal["auto"]
@@ -228,20 +229,60 @@ SHADOW_BLUR = 6
 SHADOW_OFFSET = 3
 """Downward offset, in pixels, of the drop shadow."""
 
-DEFAULT_MARGIN = 16
+CSS_SIDE_ANGLES = {
+    "to top": 0.0,
+    "to top right": 45.0,
+    "to right top": 45.0,
+    "to right": 90.0,
+    "to bottom right": 135.0,
+    "to right bottom": 135.0,
+    "to bottom": 180.0,
+    "to bottom left": 225.0,
+    "to left bottom": 225.0,
+    "to left": 270.0,
+    "to top left": 315.0,
+    "to left top": 315.0,
+}
+"""Angle each CSS side keyword names, in degrees clockwise from `to top`.
+
+`to bottom` is what a gradient opening with no direction at all means, which is
+why it doubles as the default. See {func}`gradient_svg`.
+"""
+
+DEFAULT_MARGIN = 48
 """Transparent pixels left around the window, on all four sides.
 
 Room for the shadow to fall into, first of all: a filter draws outside the shape
-it is applied to, and anything past the image's own box is cut. It also keeps
-the window from touching the text of the page embedding it.
+it is applied to, and anything past the image's own box is cut. It is also what
+a backdrop has to show through, and what keeps the window from touching the text
+of the page embedding it.
 """
 
-DEFAULT_PADDING = 0
+DEFAULT_PADDING = 8
 """Pixels added inside the window, around the captured text.
 
-Zero because a renderer pads on its own already (8 pixels, and 40 above for the
-title bar). This is what a capture wanting more room between its frame and its
-first glyph asks for.
+On top of the few a renderer adds on its own (8, and 40 above for the title
+bar), which leaves a help screen's first column tight against the frame.
+"""
+
+CAPTURE_TERMINAL_HINTS: dict[CaptureBackground, dict[str, str]] = {
+    CaptureBackground.DARK: {"CLITHEME": "dark", "COLORFGBG": "15;0"},
+    CaptureBackground.LIGHT: {"CLITHEME": "light", "COLORFGBG": "0;15"},
+}
+"""Environment a terminal of each chrome would carry, handed to the command.
+
+A capture is a terminal simulated for a command that cannot see one: its width
+is pinned and its colors forced, because a pipe would have it wrap to a guess
+and print none. Its background is the third thing a terminal states and a pipe
+does not, through the two variables
+{func}`~click_extra.color.resolve_background` reads: the
+[cli-theme](https://wiki.tau.garden/cli-theme) `CLITHEME`, and `COLORFGBG`
+carrying `foreground;background` palette indices.
+
+So a CLI asking for [`--theme auto`](theme.md#automatic-background-detection)
+renders for the chrome its picture is drawn on, instead of falling back to dark
+inside a light window. A CLI that never asks is unaffected: the variables only
+answer a question it does not put.
 """
 
 CAPTURE_THEMES = {
@@ -298,6 +339,13 @@ printing nothing but blank lines would otherwise ask for an image no glyph fits
 in.
 """
 
+LINE_NUMBER_SEPARATOR = " │ "
+"""Rule drawn between a line's number and the line itself.
+
+A vertical bar rather than a bare space, so the gutter reads as a column of its
+own even where the output is itself indented.
+"""
+
 DEFAULT_TRUNCATION = "[...]"
 """Marker standing in for the lines {func}`trim_lines` cut away."""
 
@@ -336,6 +384,17 @@ _STROKE_WIDTH_ATTR_RE = re.compile(r'\bstroke-width="[^"]*"')
 _RADIUS_ATTR_RE = re.compile(r'\brx="[^"]*"')
 """The corner radius a rectangle is rounded by, in pixels."""
 
+_GRADIENT_RE = re.compile(
+    r"^(?P<kind>linear|radial)-gradient\((?P<args>.+)\)$", re.DOTALL
+)
+"""A CSS gradient, as a backdrop may be spelled."""
+
+_ANGLE_RE = re.compile(r"^(?P<degrees>-?[\d.]+)deg$")
+"""The angle a CSS linear gradient may open with."""
+
+_STOP_RE = re.compile(r"^(?P<color>.+?)(?:\s+(?P<position>[\d.]+)%)?$", re.DOTALL)
+"""One color stop of a gradient, with the position it may pin itself at."""
+
 _VIEWBOX_RE = re.compile(r'\bviewBox="0 0 (?P<width>[\d.]+) (?P<height>[\d.]+)"')
 """The box a capture's own coordinates are read in."""
 
@@ -362,6 +421,33 @@ _TITLE_TEXT_RE = re.compile(
 """The caption a capture draws in its window chrome, when it carries one."""
 
 
+def number_lines(text: str, start: int = 1) -> str:
+    """Prefix each line of `text` with its number, in a dim gutter.
+
+    The numbers are drawn into the terminal text rather than into a column of
+    the image, which is the same trade Pygments makes with its inline line
+    numbers: every renderer places them for free, and every reader copying the
+    capture copies them too.
+
+    Right-aligned on the widest number, so the gutter is one column whatever the
+    output's length, and separated by {data}`LINE_NUMBER_SEPARATOR`.
+
+    :param text: captured output, ANSI escape sequences included.
+    :param start: number given to the first line.
+    :return: the numbered text.
+    """
+    lines = text.splitlines()
+    if not lines:
+        return text
+    width = len(str(start + len(lines) - 1))
+    gutter = (
+        f"{style(str(number).rjust(width), dim=True)}"
+        f"{style(LINE_NUMBER_SEPARATOR, dim=True)}"
+        for number in range(start, start + len(lines))
+    )
+    return "\n".join(f"{prefix}{line}" for prefix, line in zip(gutter, lines))
+
+
 def fit_columns(text: str) -> int:
     """Width, in characters, of the longest line in `text`.
 
@@ -380,6 +466,7 @@ def capture_output(
     args: TArg | TNestedArgs,
     *,
     columns: TColumns = DEFAULT_COLUMNS,
+    background: CaptureBackground = CaptureBackground.DARK,
     merge_stderr: bool = False,
     timeout: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
@@ -399,12 +486,16 @@ def capture_output(
         {func}`~click_extra.execution.run_cli` accepts.
     :param columns: terminal width, in characters, the command wraps its output
         to. {data}`AUTO_COLUMNS` pins nothing and lets the command find its own.
+    :param background: chrome the capture is headed for, stated to the command
+        the way a terminal would, see {data}`CAPTURE_TERMINAL_HINTS`.
     :param merge_stderr: fold `stderr` into the captured output, for a command
         printing its help there.
     :param timeout: seconds before the command is killed. `None` waits forever.
     :return: the completed process, whose `stdout` holds the captured text.
     """
-    extra_env: TEnvVars = {} if columns == AUTO_COLUMNS else {"COLUMNS": str(columns)}
+    extra_env: dict[str, str | None] = dict(CAPTURE_TERMINAL_HINTS[background])
+    if columns != AUTO_COLUMNS:
+        extra_env["COLUMNS"] = str(columns)
     with forced_color():
         return run_cli(
             args,
@@ -522,6 +613,122 @@ def harden_svg(svg: str, cell_width: float | None = None) -> str:
     return _TEXT_ELEMENT_RE.sub(rewrite, svg)
 
 
+def _split_arguments(text: str) -> list[str]:
+    """Split a CSS function's arguments on the commas that separate them.
+
+    A color is a function of its own (`rgba(0, 0, 0, 0.5)`), so a plain
+    {meth}`str.split` on commas would tear one apart. Only the commas outside
+    every parenthesis separate arguments.
+    """
+    arguments: list[str] = []
+    depth = 0
+    current: list[str] = []
+    for char in text:
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+        if char == "," and not depth:
+            arguments.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+    arguments.append("".join(current).strip())
+    return [argument for argument in arguments if argument]
+
+
+def gradient_svg(
+    value: str,
+    unique_id: str,
+    width: float,
+    height: float,
+) -> tuple[str, str] | None:
+    """Translate a CSS gradient into the paint server SVG draws it with.
+
+    An SVG `fill` takes a paint: a color, or a reference to a gradient declared
+    as an element of its own. The syntax a page's CSS carries,
+    `linear-gradient(135deg, #ff9a9e, #fad0c4)`, means nothing to it, and a
+    capture handed one would come out unpainted. So the CSS is read here and
+    re-emitted as the element SVG does understand, which is what lets the same
+    `--backdrop` value serve both formats.
+
+    Understood: `linear-gradient` opening with an optional angle (`135deg`) or
+    side keyword (`to bottom right`, see {data}`CSS_SIDE_ANGLES`), and
+    `radial-gradient`, both followed by two or more color stops, each pinnable
+    at a percentage. Anything else returns `None` and is left alone, being a
+    plain color as far as this is concerned.
+
+    The gradient is placed in user space, which is what makes it exact rather
+    than approximated: the CSS line runs through the image's center at the given
+    angle, and is as long as the box measures along it (`|W·sinθ| + |H·cosθ|`),
+    while a radial one reaches the farthest corner.
+
+    :param value: the `--backdrop` value, gradient or not.
+    :param unique_id: identifier the paint server is declared under.
+    :param width: width of the image the gradient fills, in pixels.
+    :param height: its height.
+    :return: the `<defs>` markup and the `fill` value referencing it, or `None`
+        when the value is not a gradient this understands.
+    """
+    gradient = _GRADIENT_RE.match(value.strip())
+    if not gradient:
+        return None
+    arguments = _split_arguments(gradient["args"])
+
+    angle = CSS_SIDE_ANGLES["to bottom"]
+    if arguments:
+        opening = arguments[0].strip().lower()
+        degrees = _ANGLE_RE.match(opening)
+        if degrees:
+            angle = float(degrees["degrees"])
+            arguments = arguments[1:]
+        elif opening in CSS_SIDE_ANGLES:
+            angle = CSS_SIDE_ANGLES[opening]
+            arguments = arguments[1:]
+    if len(arguments) < 2:
+        return None
+
+    stops = []
+    for index, argument in enumerate(arguments):
+        stop = _STOP_RE.match(argument)
+        if not stop:
+            return None
+        offset = (
+            float(stop["position"])
+            if stop["position"] is not None
+            else index / (len(arguments) - 1) * 100
+        )
+        stops.append(
+            f'<stop offset="{_svg_number(offset)}%" '
+            f'stop-color="{stop["color"].strip()}"/>'
+        )
+
+    center_x, center_y = width / 2, height / 2
+    if gradient["kind"] == "radial":
+        geometry = (
+            f'<radialGradient id="{unique_id}" gradientUnits="userSpaceOnUse" '
+            f'cx="{_svg_number(center_x)}" cy="{_svg_number(center_y)}" '
+            f'r="{_svg_number(hypot(width, height) / 2)}">'
+        )
+        closing = "</radialGradient>"
+    else:
+        radians = angle * pi / 180
+        # CSS measures clockwise from `to top`, on a y-axis pointing down here.
+        step_x, step_y = sin(radians), -cos(radians)
+        length = abs(width * sin(radians)) + abs(height * cos(radians))
+        geometry = (
+            f'<linearGradient id="{unique_id}" gradientUnits="userSpaceOnUse" '
+            f'x1="{_svg_number(center_x - step_x * length / 2)}" '
+            f'y1="{_svg_number(center_y - step_y * length / 2)}" '
+            f'x2="{_svg_number(center_x + step_x * length / 2)}" '
+            f'y2="{_svg_number(center_y + step_y * length / 2)}">'
+        )
+        closing = "</linearGradient>"
+
+    markup = f"\n{geometry}\n{''.join(stops)}\n{closing}\n"
+    return (markup, f"url(#{unique_id})")
+
+
 def frame_svg(
     svg: str,
     *,
@@ -637,11 +844,18 @@ def frame_svg(
     # Painted last so it can be inserted first, under everything already drawn,
     # and sized from the box the two growths above settled.
     if backdrop != NO_PAINT and box:
+        width = float(box["width"]) + grown
+        height = float(box["height"]) + grown
+        paint = backdrop
+        gradient = ""
+        if unique_id:
+            ramp = gradient_svg(backdrop, f"{unique_id['id']}-backdrop", width, height)
+            if ramp:
+                gradient, paint = ramp
         head, defs, body = svg.partition("</defs>")
         svg = (
-            f'{head}{defs}\n<rect fill="{backdrop}" x="0" y="0" '
-            f'width="{_svg_number(float(box["width"]) + grown)}" '
-            f'height="{_svg_number(float(box["height"]) + grown)}"/>{body}'
+            f'{head}{gradient}{defs}\n<rect fill="{paint}" x="0" y="0" '
+            f'width="{_svg_number(width)}" height="{_svg_number(height)}"/>{body}'
         )
 
     return svg
@@ -811,6 +1025,7 @@ def capture(
     truncation: str = DEFAULT_TRUNCATION,
     merge_stderr: bool = False,
     timeout: float | None = None,
+    line_numbers: bool = False,
     title: str = "",
     unique_id: str | None = None,
     full: bool = True,
@@ -842,6 +1057,9 @@ def capture(
     :param truncation: line standing in for the lines cut by `head` or `tail`.
     :param merge_stderr: fold `stderr` into the captured output.
     :param timeout: seconds before the command is killed.
+    :param line_numbers: draw each line's number in a gutter, see
+        {func}`number_lines`. The prompt counts as the first of them, being the
+        invocation everything under it came from.
     :param title: see {func}`render`.
     :param unique_id: see {func}`render`.
     :param full: see {func}`render`.
@@ -858,6 +1076,7 @@ def capture(
     process = capture_output(
         args,
         columns=columns,
+        background=background,
         merge_stderr=merge_stderr,
         timeout=timeout,
     )
@@ -872,6 +1091,10 @@ def capture(
         with forced_color():
             prompt_line = format_cli_prompt(displayed, theme=PROMPT_THEMES[background])
             text = f"{prompt_line}\n{text}"
+    # Numbered after the prompt joins it, so line 1 is the invocation that
+    # produced everything under it.
+    if line_numbers:
+        text = number_lines(text)
     return (
         render(
             text,
@@ -914,8 +1137,14 @@ def format_from_path(path: Path) -> CaptureFormat:
 
 
 def _svg_number(value: float) -> str:
-    """Render a coordinate the way a renderer does, to a tenth of a pixel."""
-    return f"{value:.1f}".removesuffix(".0")
+    """Render a coordinate the way a renderer does, to a tenth of a pixel.
+
+    A value rounding to a negative zero is folded into a plain one: trigonometry
+    lands a hair below it for every gradient running straight down, and `-0` in
+    a committed file reads as a bug rather than as the zero it is.
+    """
+    rounded = round(value, 1)
+    return f"{rounded if rounded else 0.0:.1f}".removesuffix(".0")
 
 
 def _xml_escape(text: str) -> str:

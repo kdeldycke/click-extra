@@ -82,8 +82,8 @@ $ uvx --from click-extra --with flask click-extra wrap --tree -- flask
 
 ```{click:run}
 :hide-source:
-from click_extra.cli_wrapper import wrap
-result = invoke(wrap, args=["--tree", "--", "flask"])
+from click_extra.cli import demo
+result = invoke(demo, args=["wrap", "--tree", "--", "flask"])
 assert result.exit_code == 0
 assert "routes" in result.stdout
 assert "run" in result.stdout

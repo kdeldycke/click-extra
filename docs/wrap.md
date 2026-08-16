@@ -13,11 +13,11 @@ $ click-extra -- flask --help
 
 ```{click:source}
 :hide-source:
-from click_extra.cli_wrapper import wrap
+from click_extra.cli import demo
 ```
 
 ```{click:run}
-result = invoke(wrap, args=["--help"])
+result = invoke(demo, args=["wrap", "--help"])
 assert result.exit_code == 0
 assert "Run, or introspect, any Click CLI" in result.stdout
 ```
@@ -54,7 +54,7 @@ Flask prints its own help uncolored. Through the wrapper the same screen comes b
 
 ```{click:run}
 :screenshot: wrap-flask-help-screen
-result = invoke(wrap, prog_name="click-extra wrap", args=["--", "flask", "run", "--help"])
+result = invoke(demo, args=["wrap", "--", "flask", "run", "--help"])
 assert result.exit_code == 0
 assert not result.stderr
 assert "Run a local development server." in result.stdout
@@ -253,11 +253,11 @@ The other introspection modes follow the same contract, each documented on its f
 
 ```{click:source}
 :hide-source:
-from click_extra.cli_wrapper import wrap
+from click_extra.cli import demo
 ```
 
 ```{click:run}
-result = invoke(wrap, args=["--help"])
+result = invoke(demo, args=["wrap", "--help"])
 assert result.exit_code == 0
 assert "Show the parameters of the target CLI" in result.stdout
 ```
@@ -265,7 +265,7 @@ assert "Show the parameters of the target CLI" in result.stdout
 Here is Flask's `run` subcommand rendered with the vertical table format:
 
 ```{click:run}
-result = invoke(wrap, args=["--params", "--table-format", "vertical", "--", "flask", "run"])
+result = invoke(demo, args=["wrap", "--params", "--table-format", "vertical", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "run.host" in result.output
 assert "run.port" in result.output
@@ -275,7 +275,7 @@ assert "-p, --port INTEGER" in result.output
 Because `wrap` resolves the target's own context, the auto-generated environment variables resolve too (Flask sets the `FLASK_` prefix, so `--port` reads `FLASK_RUN_PORT`):
 
 ```{click:run}
-result = invoke(wrap, args=["--params", "--table-format", "vertical", "--columns", "id,envvars", "--", "flask", "run"])
+result = invoke(demo, args=["wrap", "--params", "--table-format", "vertical", "--columns", "id,envvars", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "FLASK_RUN_PORT" in result.output
 ```
@@ -286,7 +286,7 @@ Pass `--columns` a comma-separated list of column IDs to restrict and reorder th
 
 ```{click:run}
 :screenshot: wrap-flask-params-screen
-result = invoke(wrap, prog_name="click-extra wrap", args=["--params", "--columns", "id,spec,default", "--", "flask", "run"])
+result = invoke(demo, args=["wrap", "--params", "--columns", "id,spec,default", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "run.port" in result.output
 ```
@@ -296,7 +296,7 @@ assert "run.port" in result.output
 Any options after `SCRIPT` (and its subcommand path) are replayed against the resolved command, so the `value` and `source` columns report what each parameter would resolve to under those arguments:
 
 ```{click:run}
-result = invoke(wrap, args=["--params", "--columns", "id,value,source", "--", "flask", "run", "--port", "8080"])
+result = invoke(demo, args=["wrap", "--params", "--columns", "id,value,source", "--", "flask", "run", "--port", "8080"])
 assert result.exit_code == 0
 assert "8080" in result.output
 assert "COMMANDLINE" in result.output
@@ -307,7 +307,7 @@ assert "COMMANDLINE" in result.output
 All [`--table-format`](table.md#table-formats) renderings are supported. JSON is handy for programmatic consumption:
 
 ```{click:run}
-result = invoke(wrap, args=["--params", "--table-format", "json", "--", "flask", "run"])
+result = invoke(demo, args=["wrap", "--params", "--table-format", "json", "--", "flask", "run"])
 assert result.exit_code == 0
 assert '"run.port"' in result.output
 assert '"Default": 5000' in result.output
@@ -318,7 +318,7 @@ Pair it with `--columns` to hand a consumer only the fields it reads:
 ```{click:run}
 :screenshot: wrap-flask-json-screen
 :screenshot-columns: auto
-result = invoke(wrap, prog_name="click-extra wrap", args=["--params", "--table-format", "json", "--columns", "id,spec,envvars,default", "--", "flask", "routes"])
+result = invoke(demo, args=["wrap", "--params", "--table-format", "json", "--columns", "id,spec,envvars,default", "--", "flask", "routes"])
 assert result.exit_code == 0
 assert '"routes.sort"' in result.output
 assert '"FLASK_ROUTES_SORT"' in result.output
@@ -329,7 +329,7 @@ Where `--params` describes the parameters, `--help-format` describes the command
 ```{click:run}
 import json
 
-result = invoke(wrap, args=["--help-format", "json", "--", "flask", "run"])
+result = invoke(demo, args=["wrap", "--help-format", "json", "--", "flask", "run"])
 assert result.exit_code == 0
 
 doc = json.loads(result.output)

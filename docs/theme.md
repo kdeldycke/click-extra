@@ -45,7 +45,7 @@ Detection reads two environment variables and uses the first that resolves:
 1. **`CLITHEME`** follows the [cli-theme](https://wiki.tau.garden/cli-theme) convention. A `dark` or `light` value (optionally a `mode:variant` like `dark:solarized`) is a deliberate override and wins outright; `auto` falls through.
 2. **`COLORFGBG`** is set by a few terminals (rxvt, Konsole) and cached by [shell-term-background](https://github.com/rocky/shell-term-background) at shell startup; the background is the last `;`-separated field. It is read last because it is frequently stale: it reflects the value when the terminal launched and is not refreshed when you switch themes.
 
-When none of them resolves, `auto` falls back to `dark`, so Click Extra's default is preserved. The `--theme` default itself stays `dark`: a CLI that never asks for `auto` renders exactly as before, and `auto` is accepted but kept out of the `--help` metavar.
+When none of them resolves, `auto` falls back to `dark`, so Click Extra's default is preserved. The `--theme` *default* itself stays `dark`: a CLI that never asks for `auto` renders exactly as before. The value is listed among the choices in `--help` and offered by shell completion all the same, since every Click Extra CLI takes it whether or not its author thought about it.
 
 To make detection the effective default for your CLI, set `theme = "auto"` in your [config file](#configuration-file) the same way you would pin any other palette:
 

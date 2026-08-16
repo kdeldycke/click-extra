@@ -553,6 +553,13 @@ def _parse_columns(
     "out of the image.",
 )
 @option(
+    "--line-numbers",
+    is_flag=True,
+    help="Number the captured lines in a gutter, the way Pygments does inline. "
+    "The prompt counts as line 1, being the invocation everything under it came "
+    "from.",
+)
+@option(
     "--title",
     default="",
     help="Caption drawn in an SVG's window chrome, or an HTML document's title.",
@@ -593,6 +600,7 @@ def screenshot_cmd(
     tail: int | None,
     truncation: str,
     merge_stderr: bool,
+    line_numbers: bool,
     title: str,
     fragment: bool,
     wrap: bool,
@@ -619,8 +627,6 @@ def screenshot_cmd(
     through the wrap subcommand first and captures the colored rendering.
 
     An SVG is hardened so it does not need a web browser to render correctly.
-    See the screenshots page of the documentation for why that is not the
-    default a capture comes with.
 
     Only SVG needs Rich, which ships behind the screenshot extra. HTML is
     always available.
@@ -665,6 +671,7 @@ def screenshot_cmd(
             truncation=truncation,
             merge_stderr=merge_stderr,
             timeout=timeout,
+            line_numbers=line_numbers,
             title=title,
             unique_id=output.stem,
             full=not fragment,

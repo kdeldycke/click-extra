@@ -195,11 +195,11 @@ The `--params` option works on your own Click Extra CLIs. To inspect a third-par
 
 ```{click:source}
 :hide-source:
-from click_extra.cli_wrapper import wrap
+from click_extra.cli import demo
 ```
 
 ```{click:run}
-result = invoke(wrap, args=["--params", "--table-format", "vertical", "--", "flask", "run"])
+result = invoke(demo, args=["wrap", "--params", "--table-format", "vertical", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "run.host" in result.output
 assert "-p, --port INTEGER" in result.output

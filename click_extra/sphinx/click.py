@@ -59,6 +59,7 @@ from ..screenshot import (
     DEFAULT_COLUMNS,
     MIN_COLUMNS,
     CaptureBackground,
+    number_lines,
     render,
 )
 from ._base import (
@@ -733,7 +734,9 @@ class ClickDirective(SphinxDirective):
         `:screenshot-shadow:` take a CSS color (or `none` to paint neither),
         `:screenshot-border-width:`, `:screenshot-margin:`,
         `:screenshot-padding:` and `:screenshot-radius:` take pixels, and
-        `:screenshot-title:` the caption drawn in the window's own chrome. See
+        `:screenshot-title:` the caption drawn in the window's own chrome.
+        `:screenshot-line-numbers:` is a flag, numbering every line the block
+        rendered, its prompt first. See
         {func}`~click_extra.screenshot.frame_svg`.
         """
         return {
@@ -768,6 +771,11 @@ class ClickDirective(SphinxDirective):
         byte-identical bytes and leaves the working tree clean.
         """
         assert self.screenshot
+        lines = list(results)
+        if "screenshot-line-numbers" in self.options and lines:
+            # Numbered whole, so line 1 is the prompt: the invocation everything
+            # under it came from.
+            lines = number_lines("\n".join(lines)).splitlines()
         path = (
             Path(self.env.srcdir)
             / self.env.config.click_extra_screenshot_dir
@@ -776,7 +784,7 @@ class ClickDirective(SphinxDirective):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             render(
-                "\n".join(results),
+                "\n".join(lines),
                 columns=self.screenshot_columns,
                 unique_id=self.screenshot,
                 background=self.screenshot_background,
@@ -877,6 +885,7 @@ class RunDirective(ClickDirective):
         "screenshot-border": directives.unchanged_required,
         "screenshot-border-width": directives.nonnegative_int,
         "screenshot-columns": _screenshot_columns,
+        "screenshot-line-numbers": directives.flag,
         "screenshot-margin": directives.nonnegative_int,
         "screenshot-padding": directives.nonnegative_int,
         "screenshot-radius": directives.nonnegative_int,

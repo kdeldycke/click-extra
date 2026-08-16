@@ -49,6 +49,7 @@ from click_extra.screenshot import (
     CAPTURE_BORDERS,
     CAPTURE_FOREGROUND,
     CAPTURE_SHADOWS,
+    CAPTURE_TERMINAL_HINTS,
     DEFAULT_COLUMNS,
     LIGHT_CAPTURE_BACKGROUND,
     LIGHT_CAPTURE_FOREGROUND,
@@ -62,8 +63,10 @@ from click_extra.screenshot import (
     capture_output,
     fit_columns,
     format_from_path,
+    gradient_svg,
     harden_svg,
     measure_cell_width,
+    number_lines,
     render,
     trim_lines,
 )
@@ -264,6 +267,28 @@ def test_capture_output_forces_color_and_pins_width(monkeypatch):
     assert os.environ["NO_COLOR"] == "1"
 
 
+@pytest.mark.parametrize("background", CaptureBackground)
+def test_capture_output_states_the_terminal_it_simulates(background, monkeypatch):
+    """The chrome reaches the command as the variables a terminal would set.
+
+    Which is what lets a CLI asking for `--theme auto` render for the window its
+    capture lands in, instead of falling back to dark inside a light one.
+    """
+    monkeypatch.delenv("CLITHEME", raising=False)
+    monkeypatch.delenv("COLORFGBG", raising=False)
+
+    process = capture_output(
+        [
+            sys.executable,
+            "-c",
+            "import os; print(os.environ['CLITHEME'], os.environ['COLORFGBG'])",
+        ],
+        background=background,
+    )
+    hints = CAPTURE_TERMINAL_HINTS[background]
+    assert process.stdout.split() == [hints["CLITHEME"], hints["COLORFGBG"]]
+
+
 def test_capture_output_keeps_stderr_out_unless_asked():
     """Only `stdout` is captured by default, so a wrapper's chatter stays out."""
     args = [
@@ -423,6 +448,85 @@ def test_frame_svg_restates_the_whole_window():
     assert "caption" in svg
     # The backdrop covers the image, margin included, and sits under the window.
     assert svg.index('fill="#1f6feb"') < svg.index('stroke="red"')
+
+
+@pytest.mark.parametrize(
+    ("backdrop", "expected"),
+    (
+        # A plain color is left for the `fill` attribute to take verbatim.
+        ("#1f6feb", None),
+        ("rebeccapurple", None),
+        ("rgba(0, 0, 0, 0.5)", None),
+        # A gradient needs two stops to interpolate between.
+        ("linear-gradient(#000)", None),
+        ("linear-gradient(45deg)", None),
+        # Both shapes, opening with an angle, a side, or nothing at all.
+        ("linear-gradient(#000, #fff)", "linearGradient"),
+        ("linear-gradient(135deg, #667eea, #764ba2)", "linearGradient"),
+        ("linear-gradient(to bottom right, #000, #fff 30%, #888)", "linearGradient"),
+        ("radial-gradient(rgba(0, 0, 0, 0.5), #fff)", "radialGradient"),
+    ),
+)
+def test_gradient_svg(backdrop, expected):
+    """A CSS gradient becomes a paint server; anything else stays a color."""
+    translated = gradient_svg(backdrop, "fruit", 100, 50)
+    if expected is None:
+        assert translated is None
+        return
+    assert translated
+    markup, paint = translated
+    assert paint == "url(#fruit)"
+    assert f'<{expected} id="fruit"' in markup
+    # Every color the value named is carried over, in order.
+    assert markup.count("<stop ") >= 2
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        # 90 degrees is `to right`: a horizontal line spanning the image's width.
+        ("linear-gradient(90deg, #000, #fff)", 'x1="0" y1="25" x2="100" y2="25"'),
+        # No direction at all means `to bottom`, spanning its height.
+        ("linear-gradient(#000, #fff)", 'x1="50" y1="0" x2="50" y2="50"'),
+        # A side keyword names the same angles.
+        ("linear-gradient(to right, #000, #fff)", 'x1="0" y1="25" x2="100" y2="25"'),
+    ),
+)
+def test_gradient_svg_places_the_line_in_user_space(value, expected):
+    """The gradient line runs through the center, at the angle asked for."""
+    translated = gradient_svg(value, "fruit", 100, 50)
+    assert translated
+    assert expected in translated[0]
+
+
+def test_render_paints_a_gradient_backdrop():
+    """A gradient backdrop reaches the capture as a declared paint server."""
+    svg = render("kiwi", unique_id="fruit", backdrop="linear-gradient(#000, #fff)")
+    assert '<linearGradient id="fruit-backdrop"' in svg
+    assert '<rect fill="url(#fruit-backdrop)"' in svg
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        ("", ""),
+        ("kiwi", ["1 │ kiwi"]),
+        ("kiwi\nbanana", ["1 │ kiwi", "2 │ banana"]),
+        # The gutter is one column wide whatever the tally reaches.
+        ("\n".join("fruit" for _ in range(10))[:], None),
+    ),
+)
+def test_number_lines(text, expected):
+    """Each line gets its number, right-aligned on the widest one."""
+    numbered = unstyle(number_lines(text))
+    if expected == "":
+        assert numbered == ""
+    elif expected is not None:
+        assert numbered.splitlines() == expected
+    else:
+        lines = numbered.splitlines()
+        assert lines[0].startswith(" 1 │ ")
+        assert lines[-1].startswith("10 │ ")
 
 
 def test_frame_svg_draws_neither_when_asked_for_neither():
