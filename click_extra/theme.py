@@ -809,7 +809,7 @@ class ThemeOption(ExtraOption):
         and {class}`~click_extra.color.ColorOption` reads `NO_COLOR`.
         ```
 
-        An unparseable palette name is a warning, not an error: a typo in a
+        An unparsable palette name is a warning, not an error: a typo in a
         shell profile would otherwise break every Click Extra CLI on the
         machine at once, including the ones needed to fix it.
         """
