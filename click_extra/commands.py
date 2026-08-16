@@ -26,6 +26,7 @@ import importlib
 import logging
 import os
 from difflib import get_close_matches
+from gettext import gettext as _
 
 import click
 import cloup
@@ -50,7 +51,7 @@ from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import TimerOption
 from .highlight import HelpKeywords, _HelpColorsMixin, highlight
 from .logging import QuietOption, VerboseOption, VerbosityOption
-from .man_page import ManOption
+from .man_page import HelpFormatOption, ManOption, normalize_examples
 from .parameters import ExtraOption, ShowParamsOption
 from .spinner import ProgressOption
 from .table import TableFormatOption
@@ -112,6 +113,7 @@ def default_params() -> list[click.Option]:
     #. `-q`, `--quiet`
     #. `--tree`
     #. `--man`
+    #. `--help-format FORMAT`
     #. `--version`
     #. `-h`, `--help`
         ```{attention}
@@ -152,6 +154,7 @@ def default_params() -> list[click.Option]:
         QuietOption(),
         TreeOption(),
         ManOption(),
+        HelpFormatOption(),
         VersionOption(),
     ]
 
@@ -160,6 +163,16 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
     """Like `cloup.command`, with sane defaults and extra help screen colorization."""
 
     context_class: type[cloup.Context] = Context
+
+    examples: tuple[tuple[str, str], ...] = ()
+    """`(description, command)` pairs showing the command in use.
+
+    Normalized from the `examples` constructor argument by
+    {func}`~click_extra.man_page.normalize_examples`. Declared here so the
+    attribute exists on every command, whether or not its author passed any:
+    the renderers reading it (help screen, man page, and every
+    {data}`~click_extra.man_page.HELP_FORMATS` backend) then need no guard.
+    """
 
     def __init__(
         self,
@@ -176,6 +189,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         populate_auto_envvars: bool = True,
         extra_keywords: HelpKeywords | None = None,
         excluded_keywords: HelpKeywords | None = None,
+        examples: Sequence[Sequence[str]] = (),
         **kwargs: Any,
     ) -> None:
         """List of extra parameters:
@@ -208,6 +222,12 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         :param excluded_keywords: a `HelpKeywords` instance whose entries are
             removed from the auto-collected keyword set. Use this to suppress
             highlighting of specific strings.
+        :param examples: a sequence of `(description, command)` string pairs
+            showing the command in use. They are rendered in an `Examples:`
+            section of the help screen, in the man page, and in every
+            [`--help-format`](https://kdeldycke.github.io/click-extra/man-page.html#machine-readable-formats)
+            rendering. A malformed pair raises `TypeError` here, at command
+            construction, rather than on the first `--help` a user runs.
         :param extra_option_at_end: [reorders all parameters attached to the command](https://kdeldycke.github.io/click-extra/commands.html#option-order), by
             moving all instances of `ExtraOption` at the end of the parameter list.
             The original order of the options is preserved among themselves.
@@ -297,6 +317,8 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             self.extra_keywords = extra_keywords
         if excluded_keywords is not None:
             self.excluded_keywords = excluded_keywords
+
+        self.examples = normalize_examples(examples)
 
         default_ctx_settings: dict[str, Any] = {
             # Click settings:
@@ -465,6 +487,54 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         # `args` needs to be copied: its items are consumed by the parsing process.
         extra.update({"meta": {context.RAW_ARGS: args.copy()}})
         return super().make_context(info_name, args, parent, **extra)
+
+    def format_examples(
+        self,
+        ctx: click.Context,
+        formatter: click.HelpFormatter,
+    ) -> None:
+        """Write an `Examples:` section listing the command's {attr}`examples`.
+
+        Each entry renders its description, then the command line it describes,
+        indented behind a `$` prompt. A command declaring none writes nothing at
+        all, so a help screen only grows the section when it has something to
+        put in it.
+
+        The command lines go out verbatim rather than through
+        `formatter.write_text()`: an example exists to be copied, and Click's
+        text wrapper would fold a long one onto a second line mid-token. This is
+        the same call the `\\b` no-rewrap marker makes for help prose.
+
+        Nothing here styles anything. The lines land in the formatter's buffer,
+        which {meth}`~click_extra.highlight.HelpFormatter.getvalue` runs through
+        keyword highlighting on its way out, so the option names, subcommands and
+        CLI names inside an example are painted by the same pass that paints them
+        everywhere else.
+        """
+        if not self.examples:
+            return
+        with formatter.section(_("Examples")):
+            for index, (description, command_line) in enumerate(self.examples):
+                if index:
+                    formatter.write_paragraph()
+                formatter.write_text(f"{description}:")
+                formatter.indent()
+                formatter.write(f"{' ' * formatter.current_indent}$ {command_line}\n")
+                formatter.dedent()
+
+    def format_epilog(
+        self,
+        ctx: click.Context,
+        formatter: click.HelpFormatter,
+    ) -> None:
+        """Insert the examples section ahead of the epilog.
+
+        Places it after the options and subcommands, which is where a reader
+        arrives once they know what the command accepts, and keeps the author's
+        own epilog as the last word on the screen.
+        """
+        self.format_examples(ctx, formatter)
+        super().format_epilog(ctx, formatter)
 
     def _resolve_presentation_eagerly(
         self,

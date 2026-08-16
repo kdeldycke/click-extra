@@ -42,7 +42,7 @@ from .config import (
 )
 from .execution import JobsOption, TimerOption, ZeroExitOption
 from .logging import QuietOption, VerboseOption, VerbosityOption
-from .man_page import ManOption
+from .man_page import HelpFormatOption, ManOption
 from .parameters import Argument, Option, ShowParamsOption
 from .table import ColumnsOption, SortByOption, TableFormatOption
 from .telemetry import TelemetryOption
@@ -347,6 +347,7 @@ columns_option = decorator_factory(dec=option, cls=ColumnsOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
 export_config_option = decorator_factory(dec=option, cls=ExportConfigOption)
 jobs_option = decorator_factory(dec=option, cls=JobsOption)
+help_format_option = decorator_factory(dec=option, cls=HelpFormatOption)
 man_option = decorator_factory(dec=option, cls=ManOption)
 no_color_option = decorator_factory(dec=option, cls=NoColorOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)

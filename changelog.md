@@ -10,7 +10,15 @@
 - Add a `--wrap` option to `click-extra screenshot`, routing the target through the `wrap` subcommand so a foreign Click CLI is captured with its colors.
 - Add a `click_extra.screenshot` module, whose `harden_svg()` moves each text run's padding into its offset so a capture no longer needs a browser to render correctly.
 - Add a `screenshot` extra pulling Rich, the SVG rendering backend.
+- **Deprecated:** Rename `ManPage` to `CommandDoc`, `ManOptionItem` to `DocOptionItem`, `ManOptionGroup` to `DocOptionGroup` and `extract_manpage()` to `extract_command_doc()`; old names resolve until `9.0.0`.
+- Add a `--help-format FORMAT` option on every command, rendering it as `json`, `json-full`, `markdown`, `markdown-full`, `roff` or `carapace`.
+- Add a `--help-format` mode to `click-extra wrap`, rendering any foreign Click CLI in those same formats without running it.
+- Add `to_markdown()` and `to_dict()` / `to_json()` backends to the document model behind `--man`, plus the `render_help()` entry point and the `HELP_FORMATS` registry.
+- Add an `examples=[("description", "command")]` parameter to `@command` and `@group`, rendered in help screens, man pages and every `--help-format`.
+- Add an opt-in `help` column to `--params`, carrying each parameter's help text; select it with `--columns id,spec,help`.
+- Add an `optional` field to `ColumnSpec`, keeping a column out of an unprojected table while leaving it addressable by ID.
 - Add a machine-wide `CLICK_EXTRA_THEME` environment variable naming the help-screen palette of every Click Extra CLI at once.
+- Fix options computing their help from the context (`-v`, `-q`) rendering blank in man pages and `--params`.
 - Fix a `--theme` resolved from the environment, or typed after `--help`, not reaching the screens that render and exit.
 - Fix `--color=always` leaving a wrapped CLI uncolored when its commands come from plain `@click.command()` decorators.
 - Illustrate the screenshots page with captures of the `gradient`, `styles` and `themes` demos, produced by the new subcommand.

@@ -337,6 +337,8 @@ default_options_uncolored_help = (
     r"                               option\.  \[default: 0\]\n"
     r"  --tree                       Show the tree of nested subcommands and exit\.\n"
     r"  --man                        Show the command's man page \(roff\) and exit\.\n"
+    r"  --help-format \[carapace\|json\|json-full\|markdown\|markdown-full\|roff\]\n"
+    r"                               Render the command in the given format and exit\.\n"
     r"  --version                    Show the version and exit\.\n"
     r"  -h, --help                   Show this message and exit\.\n"
 )
@@ -383,7 +385,9 @@ default_options_colored_help = (
     r"                               level for each additional repetition of the\n"
     r"                               option\.  \x1b\[2m\[\x1b\[0m\x1b\[2mdefault: \x1b\[0m\x1b\[32m\x1b\[2m\x1b\[3m0\x1b\[0m\x1b\[2m\]\x1b\[0m\n"
     r"  \x1b\[36m\x1b\[1m--tree\x1b\[0m                       Show the tree of nested subcommands and exit\.\n"
-    r"  \x1b\[36m\x1b\[1m--man\x1b\[0m                        Show the command's man page \(roff\) and exit\.\n"
+    r"  \x1b\[36m\x1b\[1m--man\x1b\[0m                        Show the command's man page \(\x1b\[35m\x1b\[1mroff\x1b\[0m\) and exit\.\n"
+    r"  \x1b\[36m\x1b\[1m--help-format\x1b\[0m \[\x1b\[35m\x1b\[1mcarapace\x1b\[0m\|\x1b\[35m\x1b\[1mjson\x1b\[0m\|\x1b\[35m\x1b\[1mjson-full\x1b\[0m\|\x1b\[35m\x1b\[1mmarkdown\x1b\[0m\|\x1b\[35m\x1b\[1mmarkdown-full\x1b\[0m\|\x1b\[35m\x1b\[1mroff\x1b\[0m\]\n"
+    r"                               Render the command in the given format and exit\.\n"
     r"  \x1b\[36m\x1b\[1m--version\x1b\[0m                    Show the version and exit\.\n"
     r"  \x1b\[36m\x1b\[1m-h\x1b\[0m, \x1b\[36m\x1b\[1m--help\x1b\[0m                   Show this message and exit\.\n"
 )

@@ -1492,6 +1492,15 @@ class ColumnSpec:
     {func}`render_table` keeps it attached to its column, so it survives a
     `--columns` projection that drops or reorders columns."""
 
+    optional: bool = False
+    """Whether the column is left out of the table until `--columns` asks for it.
+
+    A column carrying long free-form prose costs every other column its width once
+    it joins the default projection, which is a poor trade for a reader who did not
+    ask for it. Marking it optional keeps it out of the unprojected table while
+    leaving it addressable by ID, so a consumer that wants it (a structured-format
+    export feeding a machine, typically) selects it explicitly."""
+
 
 def render_columns_markdown_table(columns: Iterable[ColumnSpec]) -> str:
     """Render an iterable of {class}`ColumnSpec` as a 2-column Markdown table.

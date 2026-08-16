@@ -509,7 +509,7 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 49-51
+:emphasize-lines: 51-53
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
@@ -555,6 +555,8 @@ Options:
                                option.  [default: 0]
   --tree                       Show the tree of nested subcommands and exit.
   --man                        Show the command's man page (roff) and exit.
+  --help-format [carapace|json|json-full|markdown|markdown-full|roff]
+                               Render the command in the given format and exit.
   --version                    Show the version and exit.
   -h, --help                   Show this message and exit.
 

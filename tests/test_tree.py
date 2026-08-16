@@ -268,15 +268,18 @@ def test_wrap_tree_accessible_ascii_rail(runner, kitchen_script):
     assert "`-- pantry" in result.stdout
 
 
-@pytest.mark.parametrize("conflicting", ["--params", "--man", "--carapace"])
+@pytest.mark.parametrize(
+    "conflicting",
+    (["--params"], ["--man"], ["--carapace"], ["--help-format", "json"]),
+)
 def test_wrap_tree_mutually_exclusive(runner, kitchen_script, conflicting):
     result = runner.invoke(
-        demo, ["wrap", "--tree", conflicting, kitchen_script], color=False
+        demo, ["wrap", "--tree", *conflicting, kitchen_script], color=False
     )
     assert result.exit_code != 0
-    assert "--params, --man, --carapace and --tree are mutually exclusive." in (
-        result.output
-    )
+    assert (
+        "--params, --man, --carapace, --tree and --help-format are mutually exclusive."
+    ) in result.output
 
 
 def test_wrap_tree_unresolvable_target(runner):

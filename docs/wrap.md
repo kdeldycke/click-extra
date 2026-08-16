@@ -324,6 +324,21 @@ assert '"routes.sort"' in result.output
 assert '"FLASK_ROUTES_SORT"' in result.output
 ```
 
+Where `--params` describes the parameters, `--help-format` describes the command: its usage line, description, option groups, subcommands and examples, in [any of the supported formats](man-page.md#machine-readable-formats). The target needs no cooperation for either:
+
+```{click:run}
+import json
+
+result = invoke(wrap, args=["--help-format", "json", "--", "flask", "run"])
+assert result.exit_code == 0
+
+doc = json.loads(result.output)
+assert doc["name"] == "flask run"
+assert "development server" in doc["description"]
+options = [opt for group in doc["option_groups"] for opt in group["options"]]
+assert any("--port" in opt["names"] for opt in options)
+```
+
 ### Subcommand drilling
 
 Extra arguments after `SCRIPT` navigate into nested command groups; the table then scopes to the resolved node:

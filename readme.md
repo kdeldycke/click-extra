@@ -71,6 +71,7 @@ The colors, and every option below `--name`, come from that one line. Both scree
 - [`--theme=auto`](https://kdeldycke.github.io/click-extra/theme.html#automatic-background-detection) reads the terminal's own background to pick between the dark and light palettes, from `CLITHEME`, `COLORFGBG`, or an opt-in [OSC 11 query](https://kdeldycke.github.io/click-extra/theme.html#querying-the-terminal-directly)
 - `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
 - Built-in [`help` subcommand](https://kdeldycke.github.io/click-extra/commands.html#help-subcommand) with a `--search` mode for groups
+- [Usage examples](https://kdeldycke.github.io/click-extra/man-page.html#examples) declared as `examples=[("description", "command")]` on any command, rendered in the help screen, the man page and every machine-readable format
 
 ### Standard options on every CLI
 
@@ -84,6 +85,7 @@ Listed in the order they show up in a `--help` screen:
 - [`--tree`](https://kdeldycke.github.io/click-extra/tree.html) to print the whole hierarchy of nested subcommands with their descriptions, aliases and deprecations:
   ![Nested subcommands printed as a tree](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/command-tree-screen.svg)
 - [`--man`](https://kdeldycke.github.io/click-extra/man-page.html) to print the command's man page as roff, produced from the command tree itself
+- [`--help-format`](https://kdeldycke.github.io/click-extra/man-page.html#machine-readable-formats) to render the command as JSON, Markdown, roff or a Carapace spec, for the readers that are programs rather than people: one option carrying a format, not one flag per format
 - [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
 
 Two more options are one decorator away, for a CLI that wants them:
@@ -108,6 +110,7 @@ And every CLI gets these on top:
 - [`--carapace` mode](https://kdeldycke.github.io/click-extra/carapace.html#the-wrap-carapace-mode) to export any Click CLI's [Carapace](https://carapace.sh) completion spec, `--install`-ed straight into Carapace's spec directory, for identical completions in Bash, Zsh, Fish, Nushell, PowerShell, Elvish and Xonsh:
   ![A Carapace completion spec generated from Flask](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-carapace-screen.svg)
 - [`--man` mode](https://kdeldycke.github.io/click-extra/man-page.html) to render the target's man page as roff, or a whole tree of `.1` files with `--output-dir`
+- [`--help-format` mode](https://kdeldycke.github.io/click-extra/man-page.html#any-click-cli) to describe any Click CLI as JSON or Markdown, usage line, option groups, subcommands and all, with no cooperation from the target
 - [`--tree` mode](https://kdeldycke.github.io/click-extra/tree.html#foreign-clis) to print any external Click CLI's subcommand hierarchy without running it
 - [User-defined themes via `--config`](https://kdeldycke.github.io/click-extra/wrap.html#custom-themes-via-config) work transparently through the wrapper, so users can theme third-party CLIs from their own `pyproject.toml`
 

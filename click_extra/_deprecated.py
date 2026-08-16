@@ -47,11 +47,18 @@ DEPRECATED_ALIASES: dict[str, dict[str, str]] = {
     "click_extra": {
         "ClickExtraConfig": "config.ClickExtraConfig",
         "DEFAULT_TEST_PLAN": "test_suite.DEFAULT_TEST_SUITE",
+        "ManPage": "man_page.CommandDoc",
         "PrebakeConfig": "config.PrebakeConfig",
         "TestPlanConfig": "config.TestSuiteConfig",
         "TestSuiteConfig": "config.TestSuiteConfig",
         "parse_test_plan": "test_suite.parse_test_suite",
         "run_test_plan": "test_suite.run_test_suite",
+    },
+    "click_extra.man_page": {
+        "ManOptionGroup": "man_page.DocOptionGroup",
+        "ManOptionItem": "man_page.DocOptionItem",
+        "ManPage": "man_page.CommandDoc",
+        "extract_manpage": "man_page.extract_command_doc",
     },
     "click_extra.testing": {
         "INDENT": "execution.INDENT",

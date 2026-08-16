@@ -44,6 +44,7 @@ tokens (metavars, operands) render italic (`\\fI`).
 from __future__ import annotations
 
 import inspect
+import json
 import os
 import re
 from dataclasses import dataclass
@@ -65,13 +66,15 @@ from .parameters import (
     make_resilient_context,
     option_value_kind,
     param_spellings,
+    resolve_param_help,
     search_params,
 )
 from .version import resolve_author, resolve_distribution
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Sequence
+    from typing import Any
 
     from click import Command, Context, Parameter
 
@@ -223,11 +226,105 @@ def _emit_help(text: str) -> list[str]:
     return out
 
 
+# --- examples ---------------------------------------------------------------
+
+
+def normalize_examples(
+    examples: Sequence[Sequence[str]] | None,
+) -> tuple[tuple[str, str], ...]:
+    """Validate and freeze a command's `examples` into `(description, command)` pairs.
+
+    Accepts any sequence of two-item sequences, so a list of tuples and a list
+    of lists (what a configuration file or a JSON payload would produce) are
+    both fine. `None` and an empty sequence both yield an empty tuple.
+
+    :raises TypeError: when an entry is not a pair of strings, naming the
+        offending entry. Raised at command construction, so a malformed example
+        surfaces on import rather than on the first `--help` a user runs.
+    """
+    if not examples:
+        return ()
+    normalized: list[tuple[str, str]] = []
+    for entry in examples:
+        if isinstance(entry, str) or len(tuple(entry)) != 2:
+            raise TypeError(
+                f"Example {entry!r} is not a (description, command) pair.",
+            )
+        description, command_line = entry
+        if not isinstance(description, str) or not isinstance(command_line, str):
+            raise TypeError(
+                f"Example {entry!r} must hold two strings.",
+            )
+        normalized.append((description, command_line))
+    return tuple(normalized)
+
+
+# --- plain-prose helpers ----------------------------------------------------
+
+
+def _clean_help(text: str) -> str:
+    """Normalize Click help prose for the backends that carry newlines natively.
+
+    Runs {func}`inspect.cleandoc` and drops Click's `\\b` (`\\x08`) no-rewrap
+    marker, keeping every line break the marker protected. Markdown and JSON
+    both represent those breaks on their own, so neither needs an equivalent of
+    the roff `.nf` / `.fi` pair {func}`_emit_help` emits: only the control
+    character has to go, or it lands in the output as a stray byte.
+    """
+    return inspect.cleandoc(text).replace("\x08\n", "").replace("\x08", "").strip()
+
+
+def _markdown_help(text: str) -> list[str]:
+    """Render Click help prose as Markdown block lines.
+
+    Paragraphs are emitted as prose, with one exception: the region Click marks
+    with `\\b` keeps its shape inside a fenced code block. That marker exists
+    precisely because the author aligned something by hand (a table, a tree, a
+    sample session), and Markdown would reflow it into a single line otherwise.
+    """
+    text = inspect.cleandoc(text).strip()
+    if not text:
+        return []
+
+    out: list[str] = []
+    for paragraph in re.split(r"\n\s*\n", text):
+        if not paragraph.strip():
+            continue
+        if out:
+            out.append("")
+        pre, marker, post = paragraph.partition("\x08")
+        pre = pre.strip()
+        if pre:
+            out.append(" ".join(pre.split()))
+        if marker:
+            post = post.strip("\n")
+            if post:
+                if pre:
+                    out.append("")
+                out.append("```text")
+                out.extend(post.splitlines())
+                out.append("```")
+    return out
+
+
+def _markdown_inline(text: str) -> str:
+    """Collapse help prose to a single Markdown line, for list items and tables.
+
+    Inline reST literals become Markdown code spans, mirroring what
+    {func}`_render_inline` does for roff.
+    """
+    cleaned = " ".join(_clean_help(text).split())
+    return "".join(
+        f"`{segment}`" if is_literal else segment
+        for segment, is_literal in iter_inline_literals(cleaned)
+    )
+
+
 # --- structured man page ----------------------------------------------------
 
 
 @dataclass
-class ManOptionItem:
+class DocOptionItem:
     """A single OPTIONS entry, extracted from a Click option."""
 
     names: tuple[str, ...]
@@ -270,9 +367,61 @@ class ManOptionItem:
             lines.append("[required]")
         return lines
 
+    @property
+    def spec(self) -> str:
+        """The option's spelling and value placeholder, as one plain string."""
+        spec = " / ".join(self.names)
+        if self.metavar:
+            if self.optional_value:
+                inner = self.metavar
+                if inner.startswith("[") and inner.endswith("]"):
+                    inner = inner[1:-1]
+                spec += f"[={inner}]"
+            else:
+                spec += f" {self.metavar}"
+        return spec
+
+    def to_markdown(self) -> list[str]:
+        """Render this option as a Markdown list item.
+
+        A `\\b` no-rewrap region in the help becomes a fenced block indented
+        under the item, rather than being folded into the sentence: the author
+        aligned it on purpose, and a list item can carry a block as well as a
+        paragraph can.
+        """
+        item = f"- `{self.spec}`"
+        if self.required:
+            item += " *(required)*"
+
+        pre, _marker, post = (self.help or "").partition("\x08")
+        help_text = _markdown_inline(pre)
+        if help_text:
+            item += f": {help_text}"
+        lines = [item]
+
+        post = inspect.cleandoc(post).strip("\n")
+        if post:
+            lines.append("")
+            lines.append("  ```text")
+            lines.extend(f"  {line}" for line in post.splitlines())
+            lines.append("  ```")
+            lines.append("")
+        return lines
+
+    def to_dict(self) -> dict[str, Any]:
+        """Render this option as a JSON-serializable mapping."""
+        return {
+            "names": list(self.names),
+            "spec": self.spec,
+            "metavar": self.metavar,
+            "help": _clean_help(self.help or "") or None,
+            "required": self.required,
+            "optional_value": self.optional_value,
+        }
+
 
 @dataclass
-class ManOptionGroup:
+class DocOptionGroup:
     """A titled cluster of OPTIONS entries, mirroring a Cloup option group.
 
     A plain Click command, or a Cloup command with no explicit
@@ -281,7 +430,7 @@ class ManOptionGroup:
     page that never grouped its options.
     """
 
-    options: tuple[ManOptionItem, ...]
+    options: tuple[DocOptionItem, ...]
     """The option entries in this group."""
 
     title: str | None = None
@@ -302,14 +451,35 @@ class ManOptionGroup:
             lines.extend(option.to_roff())
         return lines
 
+    def to_markdown(self, level: int = 3) -> list[str]:
+        """Render an optional heading, group help, then the options."""
+        lines: list[str] = []
+        if self.title:
+            lines.append("#" * level + " " + self.title)
+            lines.append("")
+        if self.help:
+            lines.extend(_markdown_help(self.help))
+            lines.append("")
+        for option in self.options:
+            lines.extend(option.to_markdown())
+        return lines
+
+    def to_dict(self) -> dict[str, Any]:
+        """Render this group as a JSON-serializable mapping."""
+        return {
+            "title": self.title,
+            "help": _clean_help(self.help or "") or None,
+            "options": [option.to_dict() for option in self.options],
+        }
+
 
 @dataclass
-class ManPage:
+class CommandDoc:
     """A whole man page in structured form, ready to render to roff.
 
-    One {class}`ManPage` maps to one command (or subcommand). Its fields are
+    One {class}`CommandDoc` maps to one command (or subcommand). Its fields are
     the man-pages(7) sections, in the order {doc}`/man-page` documents them.
-    Build it with {func}`~click_extra.man_page.extract_manpage` and serialize with {meth}`to_roff`.
+    Build it with {func}`~click_extra.man_page.extract_command_doc` and serialize with {meth}`to_roff`.
     """
 
     name: str
@@ -330,7 +500,7 @@ class ManPage:
     operands: tuple[tuple[str, str], ...] = ()
     """Positional arguments as `(metavar, help)` pairs."""
 
-    option_groups: tuple[ManOptionGroup, ...] = ()
+    option_groups: tuple[DocOptionGroup, ...] = ()
     """The OPTIONS entries, partitioned into one or more groups. A command
     without explicit option groups carries a single untitled group."""
 
@@ -345,6 +515,14 @@ class ManPage:
 
     exit_status: tuple[tuple[str, str], ...] = DEFAULT_EXIT_STATUS
     """EXIT STATUS entries as `(code, meaning)` pairs."""
+
+    examples: tuple[tuple[str, str], ...] = ()
+    """EXAMPLES entries as `(description, command_line)` pairs.
+
+    Collected from the command's own `examples` attribute (see
+    {attr}`click_extra.commands.Command.examples`). Empty for a command that
+    declares none, in which case every backend omits the section entirely.
+    """
 
     version: str | None = None
     """Version string for the `.TH` header."""
@@ -442,6 +620,18 @@ class ManPage:
                 lines.append(_bold(code))
                 lines.extend(_emit_help(meaning))
 
+        if self.examples:
+            lines.append(".SH EXAMPLES")
+            for index, (description, command_line) in enumerate(self.examples):
+                if index > 0:
+                    lines.append(".PP")
+                lines.extend(_emit_help(description))
+                lines.append(".RS")
+                lines.append(".nf")
+                lines.append(_bold(_roff_escape(command_line)))
+                lines.append(".fi")
+                lines.append(".RE")
+
         if self.authors:
             lines.append(".SH AUTHORS")
             lines.extend(_emit_help(self.authors))
@@ -451,6 +641,148 @@ class ManPage:
             lines.extend(_emit_help(self.copyright))
 
         return "\n".join(lines) + "\n"
+
+    def to_markdown(self) -> str:
+        """Render the whole document as Markdown.
+
+        Same sections as {meth}`to_roff`, in the same order, minus the roff
+        `.TH` header, whose date, section number and manual name describe a man
+        page rather than the command. The version survives, as a line under the
+        title.
+        """
+        lines: list[str] = [f"# {self.name}", ""]
+        if self.short_help:
+            lines.extend((_markdown_inline(self.short_help), ""))
+        if self.version:
+            lines.extend((f"Version `{self.version}`.", ""))
+
+        synopsis = self.name
+        if self.synopsis_pieces:
+            synopsis += " " + " ".join(self.synopsis_pieces)
+        lines.extend((
+            "## Synopsis",
+            "",
+            "```shell-session",
+            f"$ {synopsis}",
+            "```",
+            "",
+        ))
+
+        if self.description:
+            lines.extend(("## Description", ""))
+            lines.extend(_markdown_help(self.description))
+            lines.append("")
+
+        if self.operands:
+            lines.extend(("## Arguments", ""))
+            for metavar, help_text in self.operands:
+                item = f"- `{metavar}`"
+                rendered = _markdown_inline(help_text)
+                lines.append(f"{item}: {rendered}" if rendered else item)
+            lines.append("")
+
+        if self.option_groups:
+            lines.extend(("## Options", ""))
+            for group in self.option_groups:
+                lines.extend(group.to_markdown())
+                lines.append("")
+
+        if self.subcommands:
+            lines.extend(("## Commands", ""))
+            for sub_name, sub_help in self.subcommands:
+                item = f"- `{sub_name}`"
+                rendered = _markdown_inline(sub_help)
+                lines.append(f"{item}: {rendered}" if rendered else item)
+            lines.append("")
+
+        if self.examples:
+            lines.extend(("## Examples", ""))
+            for description, command_line in self.examples:
+                lines.extend((
+                    _markdown_inline(description) + ":",
+                    "",
+                    "```shell-session",
+                    f"$ {command_line}",
+                    "```",
+                    "",
+                ))
+
+        if self.environment:
+            lines.extend(("## Environment variables", ""))
+            for var_name, help_text in self.environment:
+                item = f"- `{var_name}`"
+                rendered = _markdown_inline(help_text)
+                lines.append(f"{item}: {rendered}" if rendered else item)
+            lines.append("")
+
+        if self.files:
+            lines.extend(("## Files", ""))
+            lines.extend(f"- `{path}`" for path in self.files)
+            lines.append("")
+
+        if self.exit_status:
+            lines.extend(("## Exit status", ""))
+            for code, meaning in self.exit_status:
+                lines.append(f"- `{code}`: {_markdown_inline(meaning)}")
+            lines.append("")
+
+        if self.authors:
+            lines.extend(("## Authors", ""))
+            lines.extend(_markdown_help(self.authors))
+            lines.append("")
+
+        if self.copyright:
+            lines.extend(("## Copyright", ""))
+            lines.extend(_markdown_help(self.copyright))
+            lines.append("")
+
+        # Collapse the trailing blank line each section leaves behind.
+        while lines and not lines[-1]:
+            lines.pop()
+        return "\n".join(lines) + "\n"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Render the whole document as a JSON-serializable mapping.
+
+        Subcommands are listed by name and one-line description only, never
+        recursively: a consumer walking a deep tree asks for the child it cares
+        about instead of paying for the whole tree at once. {func}`render_help`
+        exposes the recursive variant separately, for the consumers that do want
+        everything.
+        """
+        return {
+            "name": self.name,
+            "short_help": _clean_help(self.short_help) or None,
+            "version": self.version,
+            "synopsis": " ".join((self.name, *self.synopsis_pieces)),
+            "description": _clean_help(self.description) or None,
+            "arguments": [
+                {"metavar": metavar, "help": _clean_help(help_text) or None}
+                for metavar, help_text in self.operands
+            ],
+            "option_groups": [group.to_dict() for group in self.option_groups],
+            "subcommands": [
+                {"name": name, "short_help": _clean_help(help_text) or None}
+                for name, help_text in self.subcommands
+            ],
+            "examples": [
+                {"description": description, "command": command_line}
+                for description, command_line in self.examples
+            ],
+            "environment": [
+                {"variable": name, "help": _clean_help(help_text) or None}
+                for name, help_text in self.environment
+            ],
+            "files": list(self.files),
+            "exit_status": [
+                {"code": code, "meaning": _clean_help(meaning)}
+                for code, meaning in self.exit_status
+            ],
+        }
+
+    def to_json(self, indent: int | None = 2) -> str:
+        """Serialize {meth}`to_dict` to a JSON string."""
+        return json.dumps(self.to_dict(), indent=indent) + "\n"
 
 
 # --- extraction -------------------------------------------------------------
@@ -528,18 +860,18 @@ def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
     return (str(default),)
 
 
-def _option_item(param: Parameter, ctx: Context) -> ManOptionItem:
-    """Build a {class}`ManOptionItem` from a single Click option.
+def _option_item(param: Parameter, ctx: Context) -> DocOptionItem:
+    """Build a {class}`DocOptionItem` from a single Click option.
 
     The metavar follows {func}`~click_extra.parameters.option_value_kind`: a flag
     or counter takes no value (no metavar), an optional-value option renders the
     attached `[=METAVAR]` form, and a regular option a space-separated metavar.
     """
     kind = option_value_kind(param)
-    return ManOptionItem(
+    return DocOptionItem(
         names=param_spellings(param),
         metavar=None if kind == "flag" else param.make_metavar(ctx=ctx),
-        help=getattr(param, "help", None),
+        help=resolve_param_help(param, ctx),
         required=param.required,
         optional_value=kind == "optional",
     )
@@ -548,12 +880,12 @@ def _option_item(param: Parameter, ctx: Context) -> ManOptionItem:
 def _build_option_groups(
     command: Command,
     ctx: Context,
-    option_items: list[tuple[Parameter, ManOptionItem]],
-) -> tuple[ManOptionGroup, ...]:
+    option_items: list[tuple[Parameter, DocOptionItem]],
+) -> tuple[DocOptionGroup, ...]:
     """Partition extracted options into man-page OPTIONS subsections.
 
     Cloup commands expose explicit option groups: each visible one becomes a
-    titled {class}`ManOptionGroup` (a roff `.SS`), with the ungrouped
+    titled {class}`DocOptionGroup` (a roff `.SS`), with the ungrouped
     remainder gathered under Cloup's default-group title (`Other options`),
     mirroring the `--help` screen. A command with no explicit
     `@option_group` collapses to a single untitled group, rendered as a flat
@@ -566,7 +898,7 @@ def _build_option_groups(
     items_by_id = {id(param): item for param, item in option_items}
 
     if isinstance(command, OptionGroupMixin) and command.option_groups:
-        explicit: list[ManOptionGroup] = []
+        explicit: list[DocOptionGroup] = []
         claimed: set[int] = set()
         for group in command.option_groups:
             claimed.update(id(opt) for opt in group.options)
@@ -577,7 +909,7 @@ def _build_option_groups(
             )
             if members:
                 explicit.append(
-                    ManOptionGroup(options=members, title=group.title, help=group.help)
+                    DocOptionGroup(options=members, title=group.title, help=group.help)
                 )
         ungrouped = tuple(
             item for param, item in option_items if id(param) not in claimed
@@ -585,15 +917,15 @@ def _build_option_groups(
         if explicit:
             if ungrouped:
                 title = command.get_default_option_group(ctx).title
-                explicit.append(ManOptionGroup(options=ungrouped, title=title))
+                explicit.append(DocOptionGroup(options=ungrouped, title=title))
             return tuple(explicit)
-        return (ManOptionGroup(options=ungrouped),) if ungrouped else ()
+        return (DocOptionGroup(options=ungrouped),) if ungrouped else ()
 
     items = tuple(item for _, item in option_items)
-    return (ManOptionGroup(options=items),) if items else ()
+    return (DocOptionGroup(options=items),) if items else ()
 
 
-def extract_manpage(
+def extract_command_doc(
     command: Command,
     ctx: Context,
     *,
@@ -602,8 +934,8 @@ def extract_manpage(
     manual: str | None = None,
     authors: str | None = None,
     copyright: str | None = None,
-) -> ManPage:
-    """Build a {class}`ManPage` from a Click command and its context.
+) -> CommandDoc:
+    """Build a {class}`CommandDoc` from a Click command and its context.
 
     The context must have been created for `command` (for example via
     {meth}`click.Command.make_context` with `resilient_parsing=True`), so
@@ -612,7 +944,7 @@ def extract_manpage(
     operands: list[tuple[str, str]] = []
     environment: list[tuple[str, str]] = []
     seen_envvars: set[str] = set()
-    option_items: list[tuple[Parameter, ManOptionItem]] = []
+    option_items: list[tuple[Parameter, DocOptionItem]] = []
 
     for param in command.get_params(ctx):
         if getattr(param, "hidden", False):
@@ -621,7 +953,7 @@ def extract_manpage(
         if isinstance(param, click.Argument):
             operands.append((
                 param.make_metavar(ctx=ctx),
-                getattr(param, "help", None) or "",
+                resolve_param_help(param, ctx) or "",
             ))
             continue
 
@@ -630,13 +962,13 @@ def extract_manpage(
             if var in seen_envvars:
                 continue
             seen_envvars.add(var)
-            environment.append((var, getattr(param, "help", None) or ""))
+            environment.append((var, resolve_param_help(param, ctx) or ""))
 
     subcommands: list[tuple[str, str]] = [
         (name, full_short_help(sub)) for name, sub in iter_subcommands(command, ctx)
     ]
 
-    return ManPage(
+    return CommandDoc(
         name=ctx.command_path,
         short_help=full_short_help(command),
         synopsis_pieces=tuple(command.collect_usage_pieces(ctx)),
@@ -645,6 +977,7 @@ def extract_manpage(
         option_groups=_build_option_groups(command, ctx, option_items),
         subcommands=tuple(subcommands),
         environment=tuple(environment),
+        examples=normalize_examples(getattr(command, "examples", None)),
         files=_resolve_files(command, ctx),
         version=version if version is not None else _resolve_version(ctx),
         date=date if date is not None else _resolve_date(),
@@ -689,11 +1022,11 @@ def render_manpage(
     Reuses `ctx` when given (like the live invocation context), otherwise
     builds a throwaway one with `resilient_parsing=True`. Keyword overrides
     (`version`, `date`, `manual`, `authors`, `copyright`) are passed
-    through to {func}`~click_extra.man_page.extract_manpage`.
+    through to {func}`~click_extra.man_page.extract_command_doc`.
     """
     if ctx is None:
         ctx = make_resilient_context(command, prog_name or command.name)
-    return extract_manpage(command, ctx, **overrides).to_roff()
+    return extract_command_doc(command, ctx, **overrides).to_roff()
 
 
 def render_manpages(
@@ -709,7 +1042,7 @@ def render_manpages(
     """
     pages: dict[str, str] = {}
     for path, cmd, ctx in iter_command_contexts(command, prog_name):
-        page = extract_manpage(cmd, ctx, **overrides)
+        page = extract_command_doc(cmd, ctx, **overrides)
         pages["{}.{}".format("-".join(path), page.section)] = page.to_roff()
     return pages
 
@@ -732,6 +1065,93 @@ def write_manpages(
         path.write_text(roff, encoding="utf-8")
         written.append(path)
     return written
+
+
+HELP_FORMATS: dict[str, str] = {
+    "carapace": (
+        "Carapace completion spec (YAML). Doubles as a command-and-flag tree, "
+        "and is the shape `carapace` itself consumes. Needs the `yaml` extra."
+    ),
+    "json": (
+        "This command as a JSON object: usage, description, arguments, options "
+        "grouped as the help screen groups them, environment variables, files, "
+        "exit codes, and its direct subcommands by name."
+    ),
+    "json-full": (
+        "Every command of the tree as JSON, under a `commands` array, each entry "
+        "in the `json` shape."
+    ),
+    "markdown": "This command as a Markdown document, one section per topic.",
+    "markdown-full": (
+        "Every command of the tree as one Markdown document, in tree order."
+    ),
+    "roff": "This command as a man page (roff), the format `--man` prints.",
+}
+"""The formats {func}`render_help` renders, mapped to their one-line description.
+
+Ordered alphabetically, which is also the order `--help-format` advertises them
+in. Adding a format is an entry here plus a branch in {func}`render_help`: no new
+flag, no wider help screen. See {doc}`/man-page` for what each one is good for.
+
+```{note}
+The distinction the plain and `-full` variants draw is progressive disclosure.
+A plain render describes one command and names its children, so a reader (a
+tool or an agent, typically) descends one level at a time instead of pulling a
+whole tree into a context window to answer a question about one leaf. The
+`-full` variants exist for the opposite job: generating documentation, or
+diffing a CLI's whole surface between two releases.
+```
+"""
+
+
+def render_help(
+    command: Command,
+    help_format: str,
+    prog_name: str | None = None,
+    ctx: Context | None = None,
+    **overrides: str | None,
+) -> str:
+    """Render *command* in one of the {data}`HELP_FORMATS`.
+
+    Reuses `ctx` when given (like the live invocation context), otherwise builds
+    a throwaway one with `resilient_parsing=True`, exactly like
+    {func}`render_manpage`. Keyword overrides are passed through to
+    {func}`extract_command_doc`, and ignored by the `carapace` format, which carries
+    no version or authorship of its own.
+
+    :raises ValueError: on an unknown format, listing the known ones.
+    """
+    if help_format not in HELP_FORMATS:
+        known = ", ".join(sorted(HELP_FORMATS))
+        raise ValueError(f"Unknown help format {help_format!r}. Pick one of: {known}.")
+
+    if help_format == "carapace":
+        # Imported here rather than at module level: click_extra.carapace reaches
+        # click_extra.commands, which imports this module for ManOption.
+        from .carapace import dump_carapace_spec
+
+        return dump_carapace_spec(command, prog_name=prog_name)
+
+    if help_format.endswith("-full"):
+        pages = [
+            extract_command_doc(cmd, sub_ctx, **overrides)
+            for _path, cmd, sub_ctx in iter_command_contexts(command, prog_name)
+        ]
+        if help_format == "json-full":
+            return (
+                json.dumps({"commands": [page.to_dict() for page in pages]}, indent=2)
+                + "\n"
+            )
+        return "\n".join(page.to_markdown() for page in pages)
+
+    if ctx is None:
+        ctx = make_resilient_context(command, prog_name or command.name)
+    page = extract_command_doc(command, ctx, **overrides)
+    if help_format == "json":
+        return page.to_json()
+    if help_format == "markdown":
+        return page.to_markdown()
+    return page.to_roff()
 
 
 class ManOption(ExtraOption):
@@ -791,3 +1211,76 @@ class ManOption(ExtraOption):
             return
         click.echo(render_manpage(ctx.command, ctx=ctx))
         ctx.exit()
+
+
+class HelpFormatOption(ExtraOption):
+    """A pre-configured `--help-format` option printing the command in one of the
+    {data}`HELP_FORMATS` and exiting.
+
+    Eager and value-taking, unlike its `--man` neighbour, which is the same
+    renderer reached through a bare flag: `--man` is exactly
+    `--help-format roff`, kept because a runtime manual flag has its own
+    tradition (see {class}`ManOption`).
+
+    ```{note}
+    One option carrying a format, rather than one flag per format. A CLI's
+    option list is the most expensive real estate in its help screen, and every
+    reader pays for it whether or not they will ever export anything: a family
+    of `--help-json`, `--help-markdown` and `--help-carapace` flags would widen
+    the label column of every screen, forever, one line per format anyone ever
+    adds. Here a new format costs an entry in {data}`HELP_FORMATS` and nothing
+    on screen.
+    ```
+
+    ```{note}
+    The rendered output is deliberately colorless whatever `--color` says.
+    Every format here is meant to be piped into something (a file, a parser, a
+    model), and ANSI escapes in a JSON string or a Markdown fence are noise to
+    all of them. `--help` remains the colorized human view.
+    ```
+    """
+
+    def __init__(
+        self,
+        param_decls: tuple[str, ...] | None = None,
+        expose_value: bool = False,
+        is_eager: bool = True,
+        help: str = _("Render the command in the given format and exit."),
+        **kwargs,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--help-format",)
+        kwargs.setdefault("callback", self.print_help_format)
+        kwargs.setdefault("type", click.Choice(sorted(HELP_FORMATS)))
+        super().__init__(
+            param_decls,
+            expose_value=expose_value,
+            is_eager=is_eager,
+            help=help,
+            **kwargs,
+        )
+
+    def print_help_format(
+        self,
+        ctx: Context,
+        param: Parameter,
+        value: str | None,
+    ) -> None:
+        """Render the invoked command in the requested format, then exit."""
+        if not value or ctx.resilient_parsing:
+            return
+        click.echo(render_help(ctx.command, value, ctx=ctx), color=False)
+        ctx.exit()
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve deprecated `man_page` symbols via the PEP 562 `__getattr__` hook.
+
+    The document model shed its `Man` prefix when roff stopped being its only
+    backend: it now describes a command for a Markdown, JSON or carapace render
+    just as well. Fires only for names not defined in this module. See
+    {mod}`click_extra._deprecated`.
+    """
+    from ._deprecated import resolve_deprecated
+
+    return resolve_deprecated(__name__, name)

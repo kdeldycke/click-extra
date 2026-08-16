@@ -48,7 +48,7 @@ from .commands import ColorizedCommand, ColorizedGroup, Group
 from .context import Context
 from .decorators import columns_option, option
 from .highlight import HelpFormatter, _HelpColorsMixin
-from .man_page import render_manpage, write_manpages
+from .man_page import HELP_FORMATS, render_help, render_manpage, write_manpages
 from .parameters import (
     ShowParamsOption,
     make_resilient_context,
@@ -644,7 +644,9 @@ class _WrapCommand(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
 #: minus `allowed_in_conf`, which only a click-extra `--config` option can
 #: populate and a foreign CLI therefore always leaves empty.
 _FOREIGN_PARAM_COLUMNS: tuple[str, ...] = tuple(
-    col.id for col in ShowParamsOption.TABLE_HEADERS if col.id != "allowed_in_conf"
+    col_id
+    for col_id in ShowParamsOption.default_column_ids()
+    if col_id != "allowed_in_conf"
 )
 
 
@@ -732,6 +734,23 @@ def _wrap_man(
     else:
         prog_name = " ".join((script, *nav))
         click.echo(render_manpage(cmd, prog_name=prog_name))
+
+
+def _wrap_help_format(
+    script: str,
+    nav: tuple[str, ...],
+    help_format: str,
+) -> None:
+    """Resolve a foreign target and render it in one of the {data}`HELP_FORMATS`.
+
+    The target needs no cooperation for this: it is loaded, walked and described
+    from the outside, exactly like `--params` and `--man` already do. A CLI whose
+    author never heard of Click Extra is therefore as machine-readable as one
+    that ships `--help-format` itself.
+    """
+    cmd, _ = resolve_target_command(script, nav)
+    prog_name = " ".join((script, *nav))
+    click.echo(render_help(cmd, help_format, prog_name=prog_name), color=False)
 
 
 def _wrap_carapace(
@@ -883,6 +902,12 @@ def _config_args_for_target(
     "without running it.",
 )
 @option(
+    "--help-format",
+    type=click.Choice(sorted(HELP_FORMATS)),
+    default=None,
+    help="Render the target CLI in the given format and exit, without running it.",
+)
+@option(
     "--output-dir",
     type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=Path),
     default=None,
@@ -918,6 +943,7 @@ def wrap(
     man: bool,
     carapace_spec: bool,
     tree: bool,
+    help_format: str | None,
     output_dir: Path | None,
     install: bool,
     table_format: TableFormat,
@@ -941,9 +967,10 @@ def wrap(
         click.echo(ctx.get_help(), color=ctx.color)
         ctx.exit(0)
 
-    if sum((params, man, carapace_spec, tree)) > 1:
+    if sum((params, man, carapace_spec, tree, bool(help_format))) > 1:
         raise click.UsageError(
-            "--params, --man, --carapace and --tree are mutually exclusive."
+            "--params, --man, --carapace, --tree and --help-format are mutually "
+            "exclusive."
         )
     if output_dir is not None and not man:
         raise click.UsageError("--output-dir requires --man.")
@@ -954,7 +981,7 @@ def wrap(
     args = script_and_args[1:]
 
     # Introspection modes: load the target and describe it without running it.
-    if params or man or carapace_spec or tree:
+    if params or man or carapace_spec or tree or help_format:
         nav, target_args = _split_navigation(args)
         if man:
             _wrap_man(script, nav, output_dir)
@@ -962,6 +989,8 @@ def wrap(
             _wrap_carapace(ctx, script, nav, install)
         elif tree:
             _wrap_tree(ctx, script, nav)
+        elif help_format:
+            _wrap_help_format(script, nav, help_format)
         else:
             _wrap_params(ctx, script, nav, target_args, table_format)
         ctx.exit(0)

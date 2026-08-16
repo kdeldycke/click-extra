@@ -530,6 +530,8 @@ def test_duplicate_option(invoke):
         "                               option.  [default: 0]\n"
         "  --tree                       Show the tree of nested subcommands and exit.\n"
         "  --man                        Show the command's man page (roff) and exit.\n"
+        "  --help-format [carapace|json|json-full|markdown|markdown-full|roff]\n"
+        "                               Render the command in the given format and exit.\n"
         "  --version                    Show the version and exit.\n"
         "  --version                    Show the version and exit.\n"
         "  -h, --help                   Show this message and exit.\n"

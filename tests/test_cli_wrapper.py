@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -884,3 +885,56 @@ def test_config_args_no_wrap_section():
     """Config exists but has no wrap section."""
     ctx = _make_wrap_ctx({"click-extra": {"verbosity": "DEBUG"}})
     assert _config_args_for_target(ctx, "greet") == ()
+
+
+@pytest.mark.parametrize(
+    ("help_format", "expected"),
+    (
+        ("json", '"name":'),
+        ("markdown", "## Synopsis"),
+        ("roff", ".SH SYNOPSIS"),
+    ),
+)
+def test_wrap_help_format_describes_a_foreign_cli(
+    runner, greet_script, help_format, expected
+):
+    """A CLI that never heard of Click Extra is rendered from the outside.
+
+    Same posture as ``--params`` and ``--man``: the target is loaded and walked,
+    never asked to cooperate, so machine-readable help needs no opt-in from the
+    author of the wrapped CLI.
+    """
+    result = runner.invoke(
+        demo, ["wrap", "--help-format", help_format, greet_script], color=False
+    )
+    assert result.exit_code == 0
+    assert expected in result.stdout
+    assert "Greet someone." in result.stdout
+
+
+def test_wrap_help_format_json_is_parseable(runner, greet_script):
+    """The JSON rendering of a foreign CLI parses, and carries its options."""
+    result = runner.invoke(
+        demo, ["wrap", "--help-format", "json", greet_script], color=False
+    )
+    assert result.exit_code == 0
+
+    doc = json.loads(result.stdout)
+    assert doc["short_help"] == "Greet someone."
+    options = [opt for group in doc["option_groups"] for opt in group["options"]]
+    assert any("--name" in opt["names"] for opt in options)
+
+
+def test_wrap_help_format_stays_colorless(runner, greet_script):
+    """Machine-readable output carries no ANSI, whatever the group asked for.
+
+    Every format here is meant to be piped into a parser, which has no use for
+    escape codes: ``--color=always`` paints the help screen, not the export.
+    """
+    result = runner.invoke(
+        demo,
+        ["--color=always", "wrap", "--help-format", "json", greet_script],
+        color=True,
+    )
+    assert result.exit_code == 0
+    assert "\x1b[" not in result.stdout

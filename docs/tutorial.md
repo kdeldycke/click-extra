@@ -252,6 +252,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | {py:class}`@quiet_option <click_extra.logging.QuietOption>`           | `-q, --quiet`                   | ✅      |
 | [`@tree_option`](tree.md)                                             | `--tree`                        | ✅      |
 | [`@man_option`](man-page.md#generating-man-pages)                     | `--man`                         | ✅      |
+| [`@help_format_option`](man-page.md#machine-readable-formats)         | `--help-format FORMAT`          | ✅      |
 | [`@version_option`](version.md)                                       | `--version`                     | ✅      |
 | {py:class}`@help_option <click_extra.highlight.HelpFormatter>`        | `-h, --help`                    | ✅      |
 | [`@jobs_option`](execution.md#parallel-jobs)                          | `--jobs [auto\|max\|INTEGER]`   | ❌      |

@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 
@@ -31,7 +32,13 @@ from click_extra import (
     option_group,
 )
 from click_extra.commands import Group
-from click_extra.man_page import render_manpage, render_manpages, write_manpages
+from click_extra.man_page import (
+    HELP_FORMATS,
+    render_help,
+    render_manpage,
+    render_manpages,
+    write_manpages,
+)
 from click_extra.testing import CliRunner
 
 
@@ -392,3 +399,153 @@ def test_generated_roff_passes_groff_lint(cli, prog_name):
         )
         assert proc.returncode == 0, f"{filename}: {proc.stderr}"
         assert not proc.stderr.strip(), f"{filename}: {proc.stderr}"
+
+
+# --- Machine-readable formats -----------------------------------------------
+
+
+@command(
+    examples=[
+        ("Report the forecast in Fahrenheit", "weather Oslo --units fahrenheit"),
+        ("Report the default forecast", "weather Oslo"),
+    ]
+)
+@argument("city", help="The city to report on.")
+@option("--units", type=Choice(["celsius", "fahrenheit"]), help="Temperature scale.")
+def documented(city, units):
+    """Report the forecast for a CITY."""
+
+
+def test_render_help_rejects_unknown_format():
+    """An unknown format names the ones that exist instead of failing blankly."""
+    with pytest.raises(ValueError) as raised:
+        render_help(weather, "yaml")
+    assert "yaml" in str(raised.value)
+    for known in HELP_FORMATS:
+        assert known in str(raised.value)
+
+
+def test_json_carries_every_section():
+    """The JSON document covers what the man page covers, as native types."""
+    doc = json.loads(render_help(documented, "json", prog_name="weather"))
+
+    assert doc["name"] == "weather"
+    assert doc["short_help"] == "Report the forecast for a CITY."
+    assert doc["synopsis"].startswith("weather ")
+    assert doc["arguments"] == [{"metavar": "CITY", "help": "The city to report on."}]
+    assert doc["examples"][0] == {
+        "description": "Report the forecast in Fahrenheit",
+        "command": "weather Oslo --units fahrenheit",
+    }
+
+    options = [opt for group in doc["option_groups"] for opt in group["options"]]
+    units = next(opt for opt in options if "--units" in opt["names"])
+    assert units["help"] == "Temperature scale."
+    assert units["metavar"] == "[celsius|fahrenheit]"
+    assert units["required"] is False
+
+
+def test_json_lists_subcommands_by_name_only():
+    """Progressive disclosure: children are named, never recursively expanded."""
+    doc = json.loads(render_help(station, "json", prog_name="station"))
+    assert {
+        "name": "calibrate",
+        "short_help": "Recalibrate the sensors.",
+    } in doc["subcommands"]
+    # Named, never expanded: no child carries its own options or children.
+    assert all(set(sub) == {"name", "short_help"} for sub in doc["subcommands"])
+
+
+def test_json_full_walks_the_whole_tree():
+    """The -full variant is the one that expands every command of the tree."""
+    doc = json.loads(render_help(station, "json-full", prog_name="station"))
+    names = [command_doc["name"] for command_doc in doc["commands"]]
+    assert names[0] == "station"
+    assert "station calibrate" in names
+    # Unlike the plain variant, every entry is a whole document.
+    assert all("option_groups" in command_doc for command_doc in doc["commands"])
+
+
+def test_markdown_renders_every_section():
+    """The Markdown document carries the same sections as headings."""
+    md = render_help(documented, "markdown", prog_name="weather")
+
+    assert md.startswith("# weather\n")
+    for heading in ("## Synopsis", "## Description", "## Arguments", "## Options"):
+        assert f"\n{heading}\n" in md
+    assert "- `CITY`: The city to report on." in md
+    assert "- `--units [celsius|fahrenheit]`: Temperature scale." in md
+    assert "$ weather Oslo --units fahrenheit" in md
+
+
+def test_markdown_full_walks_the_whole_tree():
+    """Every command of the tree gets its own title in one document."""
+    md = render_help(station, "markdown-full", prog_name="station")
+    assert "# station\n" in md
+    assert "# station calibrate\n" in md
+
+
+def test_no_rewrap_marker_keeps_its_shape_in_markdown():
+    """A `\\b` region is fenced rather than reflowed into a paragraph."""
+    md = render_help(weather, "markdown", prog_name="weather")
+    assert "  ```text\n  line one\n  line two\n  ```" in md
+
+
+def test_examples_render_in_every_backend():
+    """One `examples=` declaration feeds the help screen, roff, Markdown and JSON."""
+    example = "weather Oslo --units fahrenheit"
+
+    help_screen = CliRunner().invoke(documented, ["--help"], color=False).stdout
+    assert "Examples:" in help_screen
+    assert f"$ {example}" in help_screen
+
+    # roff escapes the option dashes, so match the rendered spelling.
+    roff = render_help(documented, "roff", prog_name="weather")
+    assert ".SH EXAMPLES" in roff
+    assert "weather Oslo" in roff
+    assert f"$ {example}" in render_help(documented, "markdown", prog_name="weather")
+    doc = json.loads(render_help(documented, "json", prog_name="weather"))
+    assert doc["examples"][0]["command"] == example
+
+
+def test_command_without_examples_grows_no_section():
+    """A command declaring none renders exactly as it did before the feature."""
+    assert "Examples:" not in CliRunner().invoke(weather, ["--help"]).stdout
+    assert ".SH EXAMPLES" not in render_help(weather, "roff", prog_name="weather")
+    assert "## Examples" not in render_help(weather, "markdown", prog_name="weather")
+    doc = json.loads(render_help(weather, "json", prog_name="weather"))
+    assert doc["examples"] == []
+
+
+@pytest.mark.parametrize(
+    "malformed",
+    (
+        ["not-a-pair"],
+        [("only-one",)],
+        [("one", "two", "three")],
+        [("description", 42)],
+    ),
+)
+def test_malformed_examples_fail_at_construction(malformed):
+    """A bad pair surfaces on import, not on the first --help a user runs."""
+    with pytest.raises(TypeError):
+
+        @command(examples=malformed)
+        def broken():
+            """Broken."""
+
+
+def test_dynamic_help_is_extracted():
+    """Options computing their help from the context are not left blank.
+
+    ``-v`` / ``-q`` leave ``Option.help`` at None and build their sentence in
+    ``get_help_record()``. Every backend here reads the extracted model, so the
+    text has to be resolved once, at extraction.
+    """
+    doc = json.loads(render_help(weather, "json", prog_name="weather"))
+    options = [opt for group in doc["option_groups"] for opt in group["options"]]
+    verbose = next(opt for opt in options if "--verbose" in opt["names"])
+    assert verbose["help"]
+    assert verbose["help"].startswith("Increase the default")
+    # Click's bracket fields belong to structured keys, not to the prose.
+    assert "[default:" not in verbose["help"]

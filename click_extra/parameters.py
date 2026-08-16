@@ -190,6 +190,37 @@ def full_short_help(command: click.Command) -> str:
     return text
 
 
+def resolve_param_help(param: click.Parameter, ctx: click.Context) -> str | None:
+    """Return a parameter's help text, including the dynamically-generated ones.
+
+    Reading `param.help` covers the options that carry a static string, and
+    misses the ones that compute their help from the context: Click Extra's own
+    `-v` / `-q` derive theirs from the resolved base verbosity, and leave the
+    attribute at `None` (see
+    {meth}`~click_extra.logging.VerboseOption.get_help_record`). Falling back to
+    the help record picks those up.
+
+    The record also carries Click's bracket fields (`[default: …]`,
+    `[required]`, `[env var: …]`), appended to the prose behind two spaces. They
+    are stripped here: they are not the author's documentation, and every
+    backend of this module renders them (or deliberately does not) from
+    structured fields of its own.
+    """
+    help_text = getattr(param, "help", None)
+    if help_text:
+        return str(help_text)
+
+    record = param.get_help_record(ctx)
+    if not record:
+        return None
+    text = record[1]
+    if isinstance(param, click.Option) and param.get_help_extra(ctx):
+        marker = text.rfind("  [")
+        if marker != -1:
+            text = text[:marker]
+    return text.strip() or None
+
+
 def param_spellings(param: click.Parameter) -> tuple[str, ...]:
     """All literal spellings of a parameter: primary `opts` then `secondary_opts`.
 
@@ -731,6 +762,7 @@ def format_param_row(
         return {
             "id": path,
             "spec": param_spec,
+            "help": resolve_param_help(param, ctx),
             "class": class_str,
             "param_type": type_str,
             "python_type": python_type_name,
@@ -765,6 +797,7 @@ def format_param_row(
     return {
         "id": active_theme.invoked_command(path),
         "spec": active_theme.option(param_spec) if param_spec else param_spec,
+        "help": resolve_param_help(param, ctx),
         "class": class_str,
         "param_type": type_str,
         "python_type": active_theme.metavar(python_type_name),
@@ -1001,6 +1034,10 @@ def render_params_table(
     selected_ids: tuple[str, ...] = context.get(subject_ctx, context.COLUMNS) or ()
     if not selected_ids and default_columns:
         selected_ids = tuple(default_columns)
+    if not selected_ids:
+        # No projection asked for: show every column but the opt-in ones, which
+        # would otherwise squeeze all the others (see ColumnSpec.optional).
+        selected_ids = ShowParamsOption.default_column_ids()
 
     # Validate the requested IDs against the column registry so unknown IDs
     # become a clear, actionable UsageError.
@@ -1107,6 +1144,20 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "extracted from [`click.Parameter.get_help_record()`]"
                 "(https://click.palletsprojects.com/en/stable/api/"
                 "#click.Parameter)."
+            ),
+        ),
+        _ColumnSpec(
+            id="help",
+            label="Help",
+            optional=True,
+            description=(
+                "The parameter's own help text, as written by the CLI author. "
+                "Opt-in: it is the only column carrying free-form prose, so it "
+                "stays out of the default table and is selected by ID "
+                "(`--columns id,spec,help`). Structured formats are its main "
+                "audience: it turns a `--params` dump into a self-describing "
+                "inventory a tool or an agent can read without also parsing the "
+                "rendered `--help` screen."
             ),
         ),
         _ColumnSpec(
@@ -1325,6 +1376,25 @@ class ShowParamsOption(ExtraOption, ParamStructure):
     def column_ids(cls) -> tuple[str, ...]:
         """Return just the stable IDs of {data}`TABLE_HEADERS` (in order)."""
         return tuple(col.id for col in cls.TABLE_HEADERS)
+
+    @classmethod
+    def default_columns(cls) -> tuple[_ColumnSpec, ...]:
+        """Return the columns rendered when `--columns` asks for no projection.
+
+        Every column but the {attr}`~click_extra.table.ColumnSpec.optional` ones,
+        which stay addressable by ID and out of the way until named.
+        """
+        return tuple(col for col in cls.TABLE_HEADERS if not col.optional)
+
+    @classmethod
+    def default_column_ids(cls) -> tuple[str, ...]:
+        """Return the stable IDs of {meth}`default_columns` (in order)."""
+        return tuple(col.id for col in cls.default_columns())
+
+    @classmethod
+    def default_column_labels(cls) -> tuple[str, ...]:
+        """Return the display labels of {meth}`default_columns` (in order)."""
+        return tuple(col.label for col in cls.default_columns())
 
     @classmethod
     def find_column(cls, column_id: str):

@@ -74,6 +74,34 @@ assert "Confirmation prompt" not in result.stdout
 
 Unknown IDs raise a `BadParameter` listing the valid ones (`--columns` is built on top of the generic [`MultiChoice`](types.md#multichoice) type, which does the validation at parse time). The standalone [`click-extra wrap --params`](#introspecting-external-clis) exposes the same option for inspecting third-party CLIs.
 
+One column is opt-in: `Help` carries each parameter's own help text, the only free-form prose in the table, and would squeeze every other column out of shape if it showed up uninvited. Select it by ID to get it:
+
+```{click:run}
+result = invoke(cli_with_columns, args=["--no-color", "--columns", "id,spec,help", "--params"])
+assert "Help" in result.stdout
+assert "Show all CLI parameters" in result.stdout
+```
+
+### Machine-readable output
+
+`--params` speaks every [structured format](table.md#table-formats), which turns the table into a description of the CLI a tool can consume. It is what makes a Click Extra command introspectable by something other than a reader:
+
+```{click:run}
+import json
+
+result = invoke(
+    cli_with_columns,
+    args=["--table-format", "json", "--columns", "id,spec,help,default,envvars", "--params"],
+)
+rows = {row["ID"]: row for row in json.loads(result.stdout)}
+assert rows["cli-with-columns.int_param1"]["Default"] == 10
+assert rows["cli-with-columns.int_param1"]["Env. vars."] == [
+    "CLI_WITH_COLUMNS_INT_PARAM1"
+]
+```
+
+Values come out as native types here (`10`, not `"10"`), and the `Help` column makes each row self-describing. For the command's own documentation (its description, usage line, subcommands and examples), [`--help-format`](man-page.md#machine-readable-formats) covers what a parameter table cannot.
+
 ### Table format
 
 The default table produced by `--params` can be a bit overwhelming, so you can change its rendering with the [`--table-format` option](table.md#table-formats):

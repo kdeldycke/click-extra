@@ -1,5 +1,7 @@
 # {octicon}`repo` Man-page
 
+`click_extra.man_page` extracts a command once, into a `CommandDoc`, and renders that same model several ways. A man page is one of them; [Markdown, JSON and a Carapace spec](#machine-readable-formats) are the others, for readers that are programs rather than people.
+
 ## Generating man pages
 
 Every man-page section is produced mechanically by `click_extra.man_page` from the command itself. It works on any Click command *object* (no `console_scripts` entry point required) and walks the command tree, discovering subcommands dynamically, into one roff page per command. Literal tokens (command and option names) are set bold and replaceable tokens (metavars, operands) italic, following the [literal and replaceable slots](theme.md#literal-and-replaceable-slots) split; Click's `\b` no-rewrap marker becomes a roff `.nf` / `.fi` block.
@@ -259,6 +261,114 @@ An invalid choice is a usage error, so the command exits `2`:
 result = invoke(weather, args=["--units", "kelvin", "Paris"])
 assert result.exit_code == 2
 ```
+
+## Machine-readable formats
+
+A `--help` screen is written for a person: it wraps to the terminal, carries ANSI styling, and flattens the structure the command actually has. A tool reading that screen has to parse a layout; the structure was there all along, one extraction away.
+
+Every command gets a `--help-format` option, which renders it through one of the backends of the same `CommandDoc` the man page comes from:
+
+```{click:run}
+import json
+
+result = invoke(weather, args=["--help-format", "json"])
+assert result.exit_code == 0
+
+doc = json.loads(result.output)
+assert doc["name"] == "weather"
+assert doc["arguments"] == [
+    {"metavar": "CITY", "help": "Name of the city to report on."}
+]
+options = [opt for group in doc["option_groups"] for opt in group["options"]]
+units = next(opt for opt in options if "--units" in opt["names"])
+assert units["metavar"] == "[celsius|fahrenheit]"
+assert units["help"] == "Temperature scale to display."
+```
+
+The same command as Markdown, which is what a language model reads most comfortably:
+
+```{click:run}
+result = invoke(weather, args=["--help-format", "markdown"])
+assert result.exit_code == 0
+assert result.output.startswith("# weather\n")
+assert "## Synopsis" in result.output
+assert "- `CITY`: Name of the city to report on." in result.output
+```
+
+The available formats:
+
+| Format          | What it renders                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| `carapace`      | A [Carapace completion spec](carapace.md) (YAML), which doubles as a command-and-flag tree. |
+| `json`          | This command as a JSON object, its direct subcommands listed by name.                       |
+| `json-full`     | Every command of the tree, under a `commands` array.                                        |
+| `markdown`      | This command as a Markdown document, one section per topic.                                 |
+| `markdown-full` | Every command of the tree as one Markdown document.                                         |
+| `roff`          | This command as a man page, the format [`--man`](#generating-man-pages) prints.             |
+
+```{note}
+The plain and `-full` variants differ in how much they hand over at once. A plain render describes one command and *names* its children, so a reader descends one level at a time rather than pulling a whole tree into a context window to answer a question about one leaf. The `-full` variants are for the opposite job: generating documentation, or diffing a CLI's whole surface between two releases.
+```
+
+Whatever `--color` says, these renderings carry no ANSI codes: they are meant to be piped into a parser, which has no use for escape sequences. `--help` remains the colorized human view.
+
+### Any Click CLI
+
+The wrapper applies the same treatment to a CLI that has never heard of Click Extra. It is loaded and walked from the outside, so no cooperation from its author is required:
+
+```{code-block} shell-session
+$ click-extra wrap --help-format json -- flask run
+$ click-extra wrap --help-format markdown -- flask
+```
+
+For parameter-level detail (types, defaults, provenance, environment variables), [`--params`](parameters.md#params-option) covers ground `--help-format` does not, and speaks the same [structured formats](table.md#table-formats).
+
+## Examples
+
+A command can carry usage examples, as `(description, command)` pairs. They render in an `Examples:` section of the help screen, in the man page's `EXAMPLES` section, and in every format above:
+
+```{click:source}
+from click_extra import command, echo, option
+
+
+@command(
+    examples=[
+        ("Report the temperature in Fahrenheit", "forecast --units fahrenheit Oslo"),
+        ("Report tomorrow's forecast", "forecast --day tomorrow Oslo"),
+    ]
+)
+@option("--units", default="celsius", help="Temperature scale to display.")
+def forecast(units):
+    """Report the forecast for a city."""
+    echo(f"Sunny, in {units}.")
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(forecast, args=["--help"])
+assert result.exit_code == 0
+plain = strip_ansi(result.output)
+assert "Examples:" in plain
+assert "$ forecast --units fahrenheit Oslo" in plain
+```
+
+The command lines are emitted verbatim rather than wrapped: an example exists to be copied. Option names, subcommands and CLI names inside them are highlighted by the same pass that highlights them everywhere else on the screen, which is why the assertion above strips the styling before matching.
+
+They reach the machine-readable renderings as structured entries, not as prose to be parsed back out:
+
+```{click:run}
+import json
+
+result = invoke(forecast, args=["--help-format", "json"])
+assert result.exit_code == 0
+assert json.loads(result.output)["examples"][0] == {
+    "description": "Report the temperature in Fahrenheit",
+    "command": "forecast --units fahrenheit Oslo",
+}
+```
+
+A malformed pair raises `TypeError` at command construction, so a typo surfaces on import rather than on the first `--help` a user runs.
 
 ## `click_extra.man_page` API
 
