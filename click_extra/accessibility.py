@@ -155,9 +155,11 @@ class AccessibleOption(ExtraOption):
         default=False,
         is_eager=True,
         expose_value=False,
+        # "plain" is a --table-format choice value, so naming it here would have
+        # cross-reference highlighting paint it as one, mid-sentence.
         help=_(
-            "Accessibility mode: disable colors and render tables in a plain, "
-            "screen-reader-friendly format."
+            "Accessibility mode: disable colors and render tables in a "
+            "borderless, screen-reader-friendly format."
         ),
         **kwargs,
     ) -> None:

@@ -26,12 +26,15 @@ from textwrap import dedent
 import click
 import pytest
 
+from click_extra.screenshot import CAPTURE_BACKGROUND, LIGHT_CAPTURE_BACKGROUND
 from click_extra.sphinx.click import (
     _CLIRUNNER_HAS_CAPTURE,
     SCREENSHOT_MARKER_END,
     SCREENSHOT_MARKER_START,
     ClickRunner,
     _rewrite_screenshot_regions,
+    _screenshot_background,
+    program_from_command_line,
 )
 
 from .conftest import HTML, DirectiveTestCase, FormatType
@@ -1048,6 +1051,52 @@ def test_clickrunner_capture_mode_controls_fileno(capture, renders):
         assert "papaya" not in result.output
 
 
+@pytest.mark.parametrize(
+    ("command_line", "expected"),
+    (
+        # A single word is the program, interpreter or not.
+        ("my-cli", "my-cli"),
+        ("python", "python"),
+        # Every word of a multi-word program belongs to it.
+        ("click-extra wrap", "click-extra wrap"),
+        ("git remote add", "git remote add"),
+        # An interpreter prefix names no program.
+        ("python -m my_cli", "my_cli"),
+        ("python3 -m my_cli", "my_cli"),
+        ("python3.14 -m my_cli", "my_cli"),
+        ("/usr/bin/python3 -m my_cli", "my_cli"),
+        ("pypy3 -m my_cli", "my_cli"),
+    ),
+)
+def test_program_from_command_line(command_line, expected):
+    """Only an interpreter prefix is dropped from a displayed command line."""
+    assert program_from_command_line(command_line) == expected
+
+
+def test_clickrunner_keeps_a_multi_word_prog_name(monkeypatch):
+    """A subcommand-shaped program name reaches the command it runs, whole."""
+    monkeypatch.setenv("FORCE_COLOR", "0")
+
+    @click.group()
+    def parent():
+        pass
+
+    @parent.command()
+    def child():
+        """Do something."""
+        click.echo(click.get_current_context().command_path)
+
+    lines: list[str] = []
+    ClickRunner().invoke(
+        child,
+        args=[],
+        prog_name="parent child",
+        _output_lines=lines,
+    )
+    assert lines[0] == "$ parent child"
+    assert lines[1] == "parent child"
+
+
 def test_click_run_screenshot_writes_the_asset(sphinx_app_myst):
     """``:screenshot:`` writes the capture beside the documentation.
 
@@ -1080,6 +1129,38 @@ def test_click_run_screenshot_writes_the_asset(sphinx_app_myst):
     assert "papaya" in svg
     # The results block is still rendered, rather than swapped for the image.
     assert "papaya" in html_output
+
+
+def test_click_run_screenshot_background(sphinx_app_myst):
+    """``:screenshot-background:`` draws the capture on the chrome it names."""
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{click:run}
+            :screenshot: pale-greet-screen
+            :screenshot-background: light
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "pale-greet-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    assert LIGHT_CAPTURE_BACKGROUND in svg
+    assert CAPTURE_BACKGROUND not in svg
+
+
+def test_click_run_screenshot_background_rejects_an_unknown_chrome():
+    """A typo names the chromes it could have been, instead of drawing a default."""
+    with pytest.raises(ValueError, match=r'"dark".+"light"'):
+        _screenshot_background("beige")
 
 
 def test_click_run_mirror_region_round_trips():

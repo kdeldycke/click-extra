@@ -65,21 +65,26 @@ from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
 from .parameters import missing_extra_message
 from .styling import ansi_to_html
+from .theme import BUILTIN_THEMES
 
 try:
     from rich.console import Console
+    from rich.terminal_theme import DEFAULT_TERMINAL_THEME, SVG_EXPORT_THEME
     from rich.text import Text
 except ImportError:
     # Rich ships behind the `screenshot` extra: importing this module stays cheap,
     # and only the rendering entry point raises (see _rich_svg).
     Console = None  # type: ignore[assignment,misc]
     Text = None  # type: ignore[assignment,misc]
+    DEFAULT_TERMINAL_THEME = None  # type: ignore[assignment]
+    SVG_EXPORT_THEME = None  # type: ignore[assignment]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from pathlib import Path
 
     from .execution import TArg, TEnvVars, TNestedArgs
+    from .theme import HelpTheme
 
 
 class CaptureFormat(Enum):
@@ -101,8 +106,30 @@ class CaptureFormat(Enum):
     """
 
 
+class CaptureBackground(Enum):
+    """Terminal chrome a capture is drawn on.
+
+    A capture freezes the colors of the run it pictures, so the chrome has to
+    answer to the palette that run was colored for. Neither direction survives
+    the other: a screen colored for a dark terminal is unreadable on white, and
+    click-extra's own `light` and `manpage` themes wash out on the dark chrome
+    a renderer defaults to.
+
+    The value doubles as the `--background` choice the CLI offers.
+    """
+
+    DARK = "dark"
+    """What a terminal, and this package's default theme, usually look like."""
+
+    LIGHT = "light"
+    """For a CLI rendered with a light-background theme."""
+
+    def __str__(self):
+        return self.name.lower()
+
+
 CAPTURE_BACKGROUND = "#292929"
-"""Background a capture is drawn on.
+"""Background a dark capture is drawn on.
 
 Matches the palette Rich's SVG export uses, so the two formats look like the
 same terminal. Stating it is not optional: a help screen colored for a dark
@@ -110,7 +137,56 @@ terminal is unreadable on a page that defaults to white.
 """
 
 CAPTURE_FOREGROUND = "#c5c8c6"
-"""Color of the text a capture leaves unstyled. See {data}`CAPTURE_BACKGROUND`."""
+"""Color of the text a dark capture leaves unstyled. See {data}`CAPTURE_BACKGROUND`."""
+
+LIGHT_CAPTURE_BACKGROUND = "#ffffff"
+"""Background a light capture is drawn on.
+
+The white Rich's own light terminal theme names, for the same reason
+{data}`CAPTURE_BACKGROUND` mirrors its dark one: an SVG and an HTML capture of
+the same run have to look like the same terminal.
+"""
+
+LIGHT_CAPTURE_FOREGROUND = "#000000"
+"""Color of the text a light capture leaves unstyled.
+
+See {data}`LIGHT_CAPTURE_BACKGROUND`.
+"""
+
+CAPTURE_COLORS: dict[CaptureBackground, tuple[str, str]] = {
+    CaptureBackground.DARK: (CAPTURE_BACKGROUND, CAPTURE_FOREGROUND),
+    CaptureBackground.LIGHT: (LIGHT_CAPTURE_BACKGROUND, LIGHT_CAPTURE_FOREGROUND),
+}
+"""Background and unstyled-foreground pair each chrome draws HTML with."""
+
+PROMPT_THEMES: dict[CaptureBackground, HelpTheme | None] = {
+    CaptureBackground.DARK: None,
+    CaptureBackground.LIGHT: BUILTIN_THEMES.get("light"),
+}
+"""Theme the prompt line is drawn with, per chrome.
+
+The captured output arrives already colored by the CLI that produced it, under
+whatever theme *that* run was told to use. The prompt is the one line this
+process draws itself, so it is the one that would otherwise land on white
+chrome in the dark default's near-white `invoked_command` style, invisible.
+
+`None` keeps whatever theme the invocation already runs under. So does a
+missing entry: the mapping is read through {meth}`dict.get`, and
+{data}`~click_extra.theme.BUILTIN_THEMES` is empty when a trimmed install drops
+`themes.toml`.
+"""
+
+CAPTURE_THEMES = {
+    CaptureBackground.DARK: SVG_EXPORT_THEME,
+    CaptureBackground.LIGHT: DEFAULT_TERMINAL_THEME,
+}
+"""Rich terminal theme each chrome renders SVG with.
+
+A theme carries the 16 ANSI colors alongside the chrome, which is the other half
+of the job: a CLI naming `blue` leaves the shade to whoever draws it, and the
+one that reads on white is not the one that reads on `#292929`. Both entries are
+`None` without the `screenshot` extra, where no SVG is rendered anyway.
+"""
 
 CAPTURE_FONT_STACK = "'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace"
 """Monospaced fonts an HTML capture asks for, best first.
@@ -301,7 +377,13 @@ def harden_svg(svg: str, cell_width: float | None = None) -> str:
     return _TEXT_ELEMENT_RE.sub(rewrite, svg)
 
 
-def render_html(text: str, *, title: str = "", full: bool = True) -> str:
+def render_html(
+    text: str,
+    *,
+    title: str = "",
+    full: bool = True,
+    background: CaptureBackground = CaptureBackground.DARK,
+) -> str:
     """Render captured terminal text to HTML.
 
     The `<pre>` carries its own inline styling, so a fragment pasted into an
@@ -326,10 +408,12 @@ def render_html(text: str, *, title: str = "", full: bool = True) -> str:
     :param title: `<title>` of the document. Ignored for a fragment.
     :param full: wrap the `<pre>` in a standalone document. `False` returns the
         `<pre>` alone, to paste into a page that has its own.
+    :param background: chrome to draw on, see {class}`CaptureBackground`.
     :return: the rendered markup.
     """
+    chrome, ink = CAPTURE_COLORS[background]
     body = (
-        f'<pre style="background: {CAPTURE_BACKGROUND}; color: {CAPTURE_FOREGROUND}; '
+        f'<pre style="background: {chrome}; color: {ink}; '
         f"font-family: {CAPTURE_FONT_STACK}; line-height: 1.25; padding: 1em; "
         f'overflow-x: auto">{ansi_to_html(escape(text, quote=False))}</pre>'
     )
@@ -355,6 +439,7 @@ def render(
     title: str = "",
     unique_id: str | None = None,
     full: bool = True,
+    background: CaptureBackground = CaptureBackground.DARK,
 ) -> str:
     """Render captured terminal text to the document `format` names.
 
@@ -370,15 +455,22 @@ def render(
         every class as soon as a single character of output changes. Characters
         a CSS class name cannot carry are folded to a dash.
     :param full: HTML only. See {func}`render_html`.
+    :param background: chrome to draw on, see {class}`CaptureBackground`.
     :return: the rendered document.
     :raises ImportError: rendering SVG without the `screenshot` extra installed.
     """
     if format is CaptureFormat.HTML:
-        return render_html(text, title=title, full=full)
+        return render_html(text, title=title, full=full, background=background)
     if unique_id:
         unique_id = _NON_IDENTIFIER_RE.sub("-", unique_id)
     return harden_svg(
-        _rich_svg(text, columns=columns, title=title, unique_id=unique_id),
+        _rich_svg(
+            text,
+            columns=columns,
+            title=title,
+            unique_id=unique_id,
+            background=background,
+        ),
     )
 
 
@@ -396,6 +488,7 @@ def capture(
     title: str = "",
     unique_id: str | None = None,
     full: bool = True,
+    background: CaptureBackground = CaptureBackground.DARK,
 ) -> tuple[str, int]:
     """Run a command and render its output as a document.
 
@@ -418,6 +511,7 @@ def capture(
     :param title: see {func}`render`.
     :param unique_id: see {func}`render`.
     :param full: see {func}`render`.
+    :param background: see {func}`render`.
     :return: the rendered document, and the command's exit code.
     """
     process = capture_output(
@@ -435,7 +529,8 @@ def capture(
     displayed = args_cleanup(args) if prompt is None else tuple(shlex.split(prompt))
     if displayed:
         with forced_color():
-            text = f"{format_cli_prompt(displayed)}\n{text}"
+            prompt_line = format_cli_prompt(displayed, theme=PROMPT_THEMES[background])
+            text = f"{prompt_line}\n{text}"
     return (
         render(
             text,
@@ -444,6 +539,7 @@ def capture(
             title=title,
             unique_id=unique_id,
             full=full,
+            background=background,
         ),
         process.returncode,
     )
@@ -489,6 +585,7 @@ def _rich_svg(
     columns: int,
     title: str,
     unique_id: str | None,
+    background: CaptureBackground = CaptureBackground.DARK,
 ) -> str:
     """Render terminal text to SVG source with Rich.
 
@@ -515,4 +612,8 @@ def _rich_svg(
         legacy_windows=False,
     )
     console.print(Text.from_ansi(text.rstrip("\n")))
-    return console.export_svg(title=title, unique_id=unique_id)
+    return console.export_svg(
+        title=title,
+        unique_id=unique_id,
+        theme=CAPTURE_THEMES[background],
+    )

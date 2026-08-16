@@ -36,6 +36,7 @@ from boltons.strutils import strip_ansi
 from extra_platforms.pytest import skip_windows
 
 from click_extra import (
+    BUILTIN_THEMES,
     Command,
     Context,
     JobsOption,
@@ -947,6 +948,23 @@ def test_format_cli_prompt_styles_token_families():
     # Windows separators are recognized too.
     prompt = format_cli_prompt(("C:\\Tools\\mas.exe", "list"))
     assert f"C:\\Tools\\{theme.invoked_command('mas.exe')} list" in prompt
+
+
+def test_format_cli_prompt_honors_an_explicit_theme():
+    """A caller drawing the line onto a surface of its own picks the palette.
+
+    Every slot follows, the binary name included: that one is styled a level
+    down, in {func}`~click_extra.execution.highlight_bin_name`, which used to
+    read the active theme on its own and leave a light capture's prompt in the
+    dark theme's near-white.
+    """
+    light = BUILTIN_THEMES["light"]
+    prompt = format_cli_prompt(("mas", "list", "--quiet"), theme=light)
+    assert f"{light.invoked_command('mas')} list " in prompt
+    assert prompt.endswith(light.option("--quiet"))
+    assert prompt.startswith(light.bracket(PROMPT.rstrip()) + " ")
+    # The active theme is what an unqualified call keeps rendering with.
+    assert format_cli_prompt(("mas",)) != prompt
 
 
 def test_run_cli_merged_streams():

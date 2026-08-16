@@ -421,6 +421,7 @@ Inside these pages a `click:run` block renders live, so none of them needs a scr
 
 - `:screenshot: <name>` writes the block's output to `<name>.svg`, in the directory the `click_extra_screenshot_dir` `conf.py` value names (`assets` by default, relative to the documentation source root). Nothing about the page changes: the results code block stays, being selectable, searchable and theme-aware where an image is none of those. The file is rewritten on every build, so it cannot drift from the CLI.
 - `:mirror:` puts the image on the page as well, by keeping a Markdown link to it in the source `.md`, between `<!-- screenshot -->` and `<!-- screenshot-end -->` markers directly below the fence. That region is refreshed by `click-extra refresh-directives`. Holding a link rather than generated data, it goes stale only when the capture is renamed.
+- `:screenshot-background: light` draws the capture on white chrome, with the ANSI palette to match, for a block rendering a light-background theme. Defaults to `dark`, what a terminal and this package's default theme both look like. Only the image answers to it: the page's own results block is styled by the site's stylesheet and follows the reader's theme either way. See [light and dark chrome](screenshots.md#light-and-dark-chrome) for the CLI-side flag.
 
 ````{code-block} markdown
 :emphasize-lines: 2-3

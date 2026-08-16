@@ -60,6 +60,7 @@ from .prebake import (
 from .screenshot import (
     DEFAULT_COLUMNS,
     DEFAULT_TRUNCATION,
+    CaptureBackground,
     CaptureFormat,
     capture,
     format_from_path,
@@ -82,6 +83,7 @@ from .test_suite import (
     run_test_suite,
 )
 from .theme import BUILTIN_THEMES
+from .types import EnumChoice
 from .version import (
     GIT_FIELDS,
     GIT_RESOLVERS,
@@ -424,6 +426,15 @@ demo.add_command(convert_to_myst_cmd)
     "the image is laid out at.",
 )
 @option(
+    "--background",
+    type=EnumChoice(CaptureBackground),
+    default=CaptureBackground.DARK,
+    show_default=True,
+    help="Terminal chrome the capture is drawn on, and the palette its colors "
+    "resolve against. Match it to the theme the captured CLI renders with: a "
+    "light-background theme washes out on the dark default.",
+)
+@option(
     "--prompt",
     default=None,
     help="Command line to display above the output, when it differs from the "
@@ -483,6 +494,7 @@ def screenshot_cmd(
     command_line: tuple[str, ...],
     output: Path,
     columns: int,
+    background: CaptureBackground,
     prompt: str | None,
     head: int | None,
     tail: int | None,
@@ -563,6 +575,7 @@ def screenshot_cmd(
             title=title,
             unique_id=output.stem,
             full=not fragment,
+            background=background,
         )
     except ImportError as error:
         raise ClickException(str(error)) from error

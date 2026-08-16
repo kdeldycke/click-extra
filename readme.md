@@ -60,6 +60,49 @@ The colors, and every option below `--name`, come from that one line. Both scree
 
 ## Features
 
+### Help screens and theming
+
+- [Colorized help screens](https://kdeldycke.github.io/click-extra/colorize.html): options, choices, metavars, arguments, defaults, ranges, required labels, environment variables, subcommands and aliases all get distinct styles. Option names referenced in descriptions and docstrings are [highlighted automatically](https://kdeldycke.github.io/click-extra/colorize.html#cross-reference-highlighting)
+- [Theme system](https://kdeldycke.github.io/click-extra/theme.html) with seven built-in themes ([`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`, and a monochrome `manpage`](https://kdeldycke.github.io/click-extra/theme.html#built-in-themes)), here recoloring the same help screen:
+  ![The same help screen under the dark and dracula themes](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/theme-gallery-screen.svg)
+- [User-defined themes and partial overrides loaded from the CLI's `--config` file](https://kdeldycke.github.io/click-extra/theme.html#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`), scoped per invocation so concurrent runs don't bleed into each other
+- [`--theme` flag](https://kdeldycke.github.io/click-extra/theme.html#the-theme-option) on every command, with case-insensitive validation against the live registry
+- [`--theme=auto`](https://kdeldycke.github.io/click-extra/theme.html#automatic-background-detection) reads the terminal's own background to pick between the dark and light palettes, from `CLITHEME`, `COLORFGBG`, or an opt-in [OSC 11 query](https://kdeldycke.github.io/click-extra/theme.html#querying-the-terminal-directly)
+- `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
+- Built-in [`help` subcommand](https://kdeldycke.github.io/click-extra/commands.html#help-subcommand) with a `--search` mode for groups
+
+### Standard options on every CLI
+
+- [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
+- [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping
+- [`--params`](https://kdeldycke.github.io/click-extra/parameters.html#params-option) to debug parameter defaults, values, environment variables and provenance
+- [`--tree`](https://kdeldycke.github.io/click-extra/tree.html) to print the whole hierarchy of nested subcommands with their descriptions, aliases and deprecations:
+  ![Nested subcommands printed as a tree](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/command-tree-screen.svg)
+- [`--man`](https://kdeldycke.github.io/click-extra/man-page.html) to print the command's man page as roff, produced from the command tree itself
+- [`--time`/`--no-time`](https://kdeldycke.github.io/click-extra/execution.html#timer) to measure command execution duration
+- [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between 40+ table-rendering styles, from terminal grids to machine-readable `json`, `yaml`, `toml`, `csv` and `xml` (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
+- [`--jobs`](https://kdeldycke.github.io/click-extra/execution.html#parallel-jobs) for parallel-execution worker counts
+- `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code
+- `--color[=WHEN]` tri-state flag (`auto`/`always`/`never`) with a hidden `--no-color` alias, recognizing `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
+- Recognition of `DO_NOT_TRACK` from [consoledonottrack.com](https://consoledonottrack.com) for telemetry
+- Global `show_envvar` option to display all environment variables in help screens
+- Global `show_choices` to activate selection of choices on user input prompts
+- Auto-generation and normalization of environment variables for all options
+
+### CLI wrapper
+
+- [CLI wrapper](https://kdeldycke.github.io/click-extra/wrap.html) (`click-extra wrap`) applies help colorization, themes, and config loading to any Click CLI without modifying its source code:
+  ![Flask's help screen rendered through the wrapper](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-flask-help-screen.svg)
+- [`--params` mode](https://kdeldycke.github.io/click-extra/wrap.html#introspecting-external-clis) to introspect any external Click CLI's parameters, restricted to the columns you care about:
+  ![Flask's parameters listed by the wrapper](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-flask-params-screen.svg)
+- That same inventory in any [machine-readable format](https://kdeldycke.github.io/click-extra/wrap.html#machine-readable-output), for a script that has to consume another CLI's interface:
+  ![Flask's parameters exported as JSON](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-flask-json-screen.svg)
+- [`--carapace` mode](https://kdeldycke.github.io/click-extra/carapace.html#the-wrap-carapace-mode) to export any Click CLI's [Carapace](https://carapace.sh) completion spec, `--install`-ed straight into Carapace's spec directory, for identical completions in Bash, Zsh, Fish, Nushell, PowerShell, Elvish and Xonsh:
+  ![A Carapace completion spec generated from Flask](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-carapace-screen.svg)
+- [`--man` mode](https://kdeldycke.github.io/click-extra/man-page.html) to render the target's man page as roff, or a whole tree of `.1` files with `--output-dir`
+- [`--tree` mode](https://kdeldycke.github.io/click-extra/tree.html#foreign-clis) to print any external Click CLI's subcommand hierarchy without running it
+- [User-defined themes via `--config`](https://kdeldycke.github.io/click-extra/wrap.html#custom-themes-via-config) work transparently through the wrapper, so users can theme third-party CLIs from their own `pyproject.toml`
+
 ### Configuration
 
 - [Multi-format configuration file](https://kdeldycke.github.io/click-extra/config.html) loader for:
@@ -78,46 +121,10 @@ The colors, and every option below `--name`, come from that one line. Both scree
 - A `--no-config` option to disable configuration file loading
 - Respect of `Prompt` > `CLI` > `Environment` > `Config` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
 
-### Help screens and theming
-
-- [Colorized help screens](https://kdeldycke.github.io/click-extra/colorize.html): options, choices, metavars, arguments, defaults, ranges, required labels, environment variables, subcommands and aliases all get distinct styles. Option names referenced in descriptions and docstrings are [highlighted automatically](https://kdeldycke.github.io/click-extra/colorize.html#cross-reference-highlighting)
-- [Theme system](https://kdeldycke.github.io/click-extra/theme.html) with seven built-in themes ([`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`, and a monochrome `manpage`](https://kdeldycke.github.io/click-extra/theme.html#built-in-themes))
-- [User-defined themes and partial overrides loaded from the CLI's `--config` file](https://kdeldycke.github.io/click-extra/theme.html#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`), scoped per invocation so concurrent runs don't bleed into each other
-- [`--theme` flag](https://kdeldycke.github.io/click-extra/theme.html#the-theme-option) on every command, with case-insensitive validation against the live registry
-- `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
-- Built-in [`help` subcommand](https://kdeldycke.github.io/click-extra/commands.html#help-subcommand) with a `--search` mode for groups
-
-### Standard options on every CLI
-
-- [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
-- [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping
-- [`--params`](https://kdeldycke.github.io/click-extra/parameters.html#params-option) to debug parameter defaults, values, environment variables and provenance
-- [`--tree`](https://kdeldycke.github.io/click-extra/tree.html) to print the whole hierarchy of nested subcommands with their descriptions
-- [`--time`/`--no-time`](https://kdeldycke.github.io/click-extra/execution.html#timer) to measure command execution duration
-- [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between 40+ table-rendering styles (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
-- [`--jobs`](https://kdeldycke.github.io/click-extra/execution.html#parallel-jobs) for parallel-execution worker counts
-- `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code
-- `--color[=WHEN]` tri-state flag (`auto`/`always`/`never`) with a hidden `--no-color` alias, recognizing `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
-- Recognition of `DO_NOT_TRACK` from [consoledonottrack.com](https://consoledonottrack.com) for telemetry
-- Global `show_envvar` option to display all environment variables in help screens
-- Global `show_choices` to activate selection of choices on user input prompts
-- Auto-generation and normalization of environment variables for all options
-
-`--tree` is the one that surprises people, so here it is on a CLI with nested subcommands, aliases and a deprecation:
-
-![Nested subcommands printed as a tree](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/command-tree-screen.svg)
-
 ### Types and parameters
 
 - [`EnumChoice`](https://kdeldycke.github.io/click-extra/types.html#enumchoice) — `click.Choice` subclass with proper `Enum` rendering, case-insensitive matching, alias support, and pluggable [choice sources](https://kdeldycke.github.io/click-extra/types.html#choice-source)
 - [Click parameter introspection](https://kdeldycke.github.io/click-extra/parameters.html#introspecting-parameters) and a [shared parameter structure](https://kdeldycke.github.io/click-extra/parameters.html#parameter-structure) used by both `--params` and the config loader
-
-### CLI wrapper
-
-- [CLI wrapper](https://kdeldycke.github.io/click-extra/wrap.html) (`click-extra wrap`) applies help colorization, themes, and config loading to any Click CLI without modifying its source code
-- [`--params` mode](https://kdeldycke.github.io/click-extra/wrap.html#introspecting-external-clis) to introspect any external Click CLI's parameters
-- [`--tree` mode](https://kdeldycke.github.io/click-extra/tree.html#foreign-clis) to print any external Click CLI's subcommand hierarchy without running it
-- [User-defined themes via `--config`](https://kdeldycke.github.io/click-extra/wrap.html#custom-themes-via-config) work transparently through the wrapper, so users can theme third-party CLIs from their own `pyproject.toml`
 
 ### Performance and structure
 
@@ -148,13 +155,18 @@ The colors, and every option below `--name`, come from that one line. Both scree
 
 Check these projects to get real-life examples of `click-extra` usage:
 
-- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/meta-package-manager?label=%E2%AD%90&style=flat-square) [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager)
-  \- A unifying CLI for multiple package managers.
-- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/mail-deduplicate?label=%E2%AD%90&style=flat-square) [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate) - A
-  CLI to deduplicate similar emails.
-- ![GitHub stars](https://img.shields.io/github/stars/Sprocket-Security/fireproxng?label=%E2%AD%90&style=flat-square) [fireproxng](https://github.com/Sprocket-Security/fireproxng) - A rewrite of the fireprox tool.
+- ![GitHub stars](https://img.shields.io/github/stars/ankitects/anki?label=%E2%AD%90&style=flat-square) [Anki](https://github.com/ankitects/anki) - A smart spaced repetition flashcard program.
+- ![GitHub stars](https://img.shields.io/github/stars/jazzband/pip-tools?label=%E2%AD%90&style=flat-square) [pip-tools](https://github.com/jazzband/pip-tools) - A set of tools to keep your pinned Python dependencies fresh.
+- ![GitHub stars](https://img.shields.io/github/stars/callowayproject/bump-my-version?label=%E2%AD%90&style=flat-square) [bump-my-version](https://github.com/callowayproject/bump-my-version) - A CLI updating every version string in a project.
+- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/meta-package-manager?label=%E2%AD%90&style=flat-square) [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager) - A unifying CLI for multiple package managers.
+- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/mail-deduplicate?label=%E2%AD%90&style=flat-square) [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate) - A CLI to deduplicate similar emails.
+- ![GitHub stars](https://img.shields.io/github/stars/litestar-org/sqlspec?label=%E2%AD%90&style=flat-square) [SQLSpec](https://github.com/litestar-org/sqlspec) - A query mapper for Python.
+- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/repomatic?label=%E2%AD%90&style=flat-square) [repomatic](https://github.com/kdeldycke/repomatic) - Automate repository maintenance, releases and CI/CD workflows.
+- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/extra-platforms?label=%E2%AD%90&style=flat-square) [Extra Platforms](https://github.com/kdeldycke/extra-platforms) - Detect architectures, platforms, shells, terminals and CI systems, grouped by family.
 - ![GitHub stars](https://img.shields.io/github/stars/couchbaselabs/agent-catalog?label=%E2%AD%90&style=flat-square) [agent-catalog](https://github.com/couchbaselabs/agent-catalog) - Couchbase agent catalog.
-- ![GitHub stars](https://img.shields.io/github/stars/hugolundin/badger?label=%E2%AD%90&style=flat-square) [badger-proxy](https://github.com/hugolundin/badger) - An mDNS-based reverse
-  proxy for naming services on a local network.
+- ![GitHub stars](https://img.shields.io/github/stars/SkwalExe/octo-logo?label=%E2%AD%90&style=flat-square) [octo-logo](https://github.com/SkwalExe/octo-logo) - Simple logos for complex projects.
+- ![GitHub stars](https://img.shields.io/github/stars/Project-Muteki/besta-tools?label=%E2%AD%90&style=flat-square) [besta-tools](https://github.com/Project-Muteki/besta-tools) - Tools for Besta devices and Besta RTOS proprietary formats.
+
+Anki, pip-tools, bump-my-version, SQLSpec and Extra Platforms use the documentation half only, for GitHub alerts and colored code blocks in their Sphinx and MkDocs builds. The others build their CLI on it.
 
 Feel free to send a PR to add your project in this list if you are relying on Click Extra in any way.

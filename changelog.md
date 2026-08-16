@@ -13,11 +13,21 @@
 - Illustrate the screenshots page with captures of the `gradient`, `styles` and `themes` demos, produced by the new subcommand.
 - Add a test rebuilding each committed screenshot's terminal text from its SVG glyph coordinates and comparing it to the CLI's live output.
 - Fix the `gradient` demo overflowing an 80-column terminal by one character, which wrapped every ramp onto a second line.
+- Reword the `--accessible` help so cross-reference highlighting stops painting its `plain` as a `--table-format` choice.
 - Add a `:screenshot:` option to the `click:run` directive, writing the block's output as an SVG beside the documentation on every build.
 - Add a `:mirror:` option to the `click:run` directive, keeping a Markdown link to that capture in the source, refreshed by `refresh-directives`.
 - Add a `click_extra_screenshot_dir` configuration value, locating where `:screenshot:` writes.
+- Add a `--background` option to `click-extra screenshot`, and a `:screenshot-background:` option to the `click:run` directive, drawing a capture on light chrome instead of dark.
+- Add a `theme` parameter to `format_cli_prompt()` and `highlight_bin_name()`, so a caller drawing a prompt onto a surface of its own picks the palette.
+- Fix the `click:run` directive handing Click only the last word of a multi-word `prog_name`, which made a wrapped CLI report a name its own prompt line contradicted.
 - Show a `click:run` block's live text and its captured image side by side, in a tab set on the Sphinx page.
 - Illustrate the readme's `--tree` entry with a capture the tree page maintains.
+- Render Flask's help through the wrapper on the CLI wrapper page, and illustrate the readme's wrapper entries with the captures it maintains.
+- Extend the themes capture to a second palette, so it shows what `--theme` does to the same help screen, and illustrate the readme's theme entry with it.
+- Advertise `--man`, the `--carapace` completion spec and machine-readable parameter exports in the readme, which listed none of them.
+- Render Flask's Carapace spec on the completion page, and illustrate the readme's `--carapace` entry with the capture it maintains.
+- Lead the readme's feature list with the sections a capture can show, moving configuration and types below them.
+- Refresh the readme's list of projects using Click Extra, adding Anki, pip-tools and six others, dropping two dead ones.
 - Execute the default and prepended subcommand examples of the configuration page, which were hand-written output for a CLI missing the `debug` subcommand they invoked.
 - Pin the application directory resolved while building the documentation, so a `--config` default no longer renders the building host's platform.
 - Replace the readme and tutorial before/after screenshots with captures the tutorial's own blocks maintain, superseding hand-drawn images that still advertised `--show-params` and `-C, --config`.

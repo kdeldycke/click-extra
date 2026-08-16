@@ -528,7 +528,7 @@ Options:
   --export-config FORMAT       Export the configuration in the selected format
                                to <stdout>, then exit.
   --accessible                 Accessibility mode: disable colors and render
-                               tables in a plain, screen-reader-friendly
+                               tables in a borderless, screen-reader-friendly
                                format.
   --color [auto|always|never]  Colorize the output. A bare --color is the same
                                as --color=always.  [default: auto]

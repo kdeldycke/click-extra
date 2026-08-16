@@ -50,6 +50,16 @@ $ click-extra --no-color -- flask --help
 ```
 ````
 
+Flask prints its own help uncolored. Through the wrapper the same screen comes back themed, with the `--debug` reference in the description picked up by [cross-reference highlighting](colorize.md#cross-reference-highlighting):
+
+```{click:run}
+:screenshot: wrap-flask-help-screen
+result = invoke(wrap, prog_name="click-extra wrap", args=["--", "flask", "run", "--help"])
+assert result.exit_code == 0
+assert not result.stderr
+assert "Run a local development server." in result.stdout
+```
+
 ## Execution timing
 
 The group-level `--time` flag measures the total execution time of the wrapped CLI, including import and patching overhead:
@@ -274,7 +284,8 @@ assert "FLASK_RUN_PORT" in result.output
 Pass `--columns` a comma-separated list of column IDs to restrict and reorder the table, SQL `SELECT`-style:
 
 ```{click:run}
-result = invoke(wrap, args=["--params", "--columns", "id,spec,default", "--", "flask", "run"])
+:screenshot: wrap-flask-params-screen
+result = invoke(wrap, prog_name="click-extra wrap", args=["--params", "--columns", "id,spec,default", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "run.port" in result.output
 ```
@@ -299,6 +310,16 @@ result = invoke(wrap, args=["--params", "--table-format", "json", "--", "flask",
 assert result.exit_code == 0
 assert '"run.port"' in result.output
 assert '"Default": 5000' in result.output
+```
+
+Pair it with `--columns` to hand a consumer only the fields it reads:
+
+```{click:run}
+:screenshot: wrap-flask-json-screen
+result = invoke(wrap, prog_name="click-extra wrap", args=["--params", "--table-format", "json", "--columns", "id,spec,envvars,default", "--", "flask", "routes"])
+assert result.exit_code == 0
+assert '"routes.sort"' in result.output
+assert '"FLASK_ROUTES_SORT"' in result.output
 ```
 
 ### Subcommand drilling

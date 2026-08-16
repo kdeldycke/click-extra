@@ -54,7 +54,7 @@ from sphinx.util import logging
 
 from ..blocks import OPTION_LINE_RE, fence_spans, marker_res, update_blocks
 from ..color import forced_color
-from ..screenshot import render
+from ..screenshot import CaptureBackground, render
 from ._base import (
     StatelessDomain,
     compile_directive,
@@ -106,6 +106,15 @@ SCREENSHOT_MARKER_END = "<!-- screenshot-end -->"
 # Reading-side regexes of the marker pair above, in the shared grammar from
 # `blocks.marker_res`.
 _SCREENSHOT_OPEN_RE, _SCREENSHOT_CLOSE_RE = marker_res("screenshot")
+
+_INTERPRETER_RE = re.compile(r"(?:^|/)(?:python|pypy)[\d.]*$")
+"""Match the first word of a command line that only *runs* a program.
+
+`python -m my-cli` is typed as three words but names `my-cli`, which is how
+Click derives its own `prog_name` too. Every other multi-word command line
+names a program whose words all belong to it, `click-extra wrap` being the one
+these pages document.
+"""
 
 _CLICK_RUN_FENCE_OPEN = re.compile(r"^[ \t]*`{3,}\{click:run\}[ \t]*\S*[ \t]*$")
 """Match a MyST `click:run` backtick-fence opening line.
@@ -230,6 +239,24 @@ def patch_subprocess():
         subprocess.call = old_call
 
 
+def program_from_command_line(command_line: str) -> str:
+    """The program name Click is given for a command line a block displays.
+
+    A block documenting a multi-word program has to hand Click all of it: the
+    command reads its own name back out of the context, for its usage line and
+    for any output quoting the invocation that produced it, like the provenance
+    header of a [Carapace spec](carapace.md). Handing over the last word alone
+    makes an image contradict the prompt drawn right above it.
+
+    Only an interpreter prefix is dropped, since it names no program: see
+    {data}`_INTERPRETER_RE`.
+    """
+    first, _, rest = command_line.partition(" ")
+    if rest and _INTERPRETER_RE.search(first):
+        return command_line.rsplit(" ", 1)[-1]
+    return command_line
+
+
 class ClickRunner(CliRunner):
     """A sub-class of {class}`click.testing.CliRunner` for Sphinx directive execution.
 
@@ -318,8 +345,7 @@ class ClickRunner(CliRunner):
             prog_name = cli.name.replace("_", "-")
 
         output_lines.append(f"$ {prog_name} {shlex.join(args)}".rstrip())
-        # Remove "python" from the command.
-        prog_name = prog_name.rsplit(" ", 1)[-1]
+        prog_name = program_from_command_line(prog_name)
 
         if isinstance(input, (tuple, list)):
             input = "\n".join(input) + "\n"
@@ -667,6 +693,17 @@ class ClickDirective(SphinxDirective):
         """
         return self.options.get("screenshot")  # type: ignore[no-any-return]
 
+    @cached_property
+    def screenshot_background(self) -> CaptureBackground:
+        """Chrome the capture is drawn on, set by `:screenshot-background:`.
+
+        Defaults to the dark chrome a terminal and this package's default theme
+        both look like. A block rendering a light-background theme says so, or
+        its capture washes out: see
+        {class}`~click_extra.screenshot.CaptureBackground`.
+        """
+        return self.options.get("screenshot-background", CaptureBackground.DARK)  # type: ignore[no-any-return]
+
     def write_screenshot(self, results: Iterable[str]) -> None:
         """Write the captured output as an SVG beside the documentation.
 
@@ -691,7 +728,11 @@ class ClickDirective(SphinxDirective):
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            render("\n".join(results), unique_id=self.screenshot),
+            render(
+                "\n".join(results),
+                unique_id=self.screenshot,
+                background=self.screenshot_background,
+            ),
             encoding="utf-8",
         )
 
@@ -741,6 +782,17 @@ class SourceDirective(ClickDirective):
     runner_method = "execute_source"
 
 
+def _screenshot_background(argument: str) -> CaptureBackground:
+    """Read the `:screenshot-background:` option into its enum member.
+
+    Rejecting an unknown chrome here, at the option level, is what turns a typo
+    into a build error naming the choices, instead of a capture silently drawn
+    on the default.
+    """
+    choices = tuple(member.value for member in CaptureBackground)
+    return CaptureBackground(directives.choice(argument, choices))
+
+
 class RunDirective(ClickDirective):
     """Directive to run a Click CLI example.
 
@@ -756,6 +808,7 @@ class RunDirective(ClickDirective):
 
     option_spec: ClassVar[OptionSpec] = ClickDirective.option_spec | {
         "screenshot": directives.unchanged_required,
+        "screenshot-background": _screenshot_background,
         "mirror": directives.flag,
     }
     """Adds the two options turning a run into a committed image.

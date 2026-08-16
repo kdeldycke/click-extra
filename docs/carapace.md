@@ -45,6 +45,29 @@ assert result.stdout.count("$files") == 1
 $ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace -- flask > flask.yaml
 ```
 
+Here is the spec of one of Flask's own subcommands, the choices of its `--sort` option inlined as completion values, and the invocation that produced it recorded in the header:
+
+```{click:source}
+:hide-source:
+from click_extra.cli_wrapper import wrap
+```
+
+```{click:run}
+:screenshot: wrap-carapace-screen
+import logging
+
+# A documentation build leaves the ambient root logger at INFO, which this page
+# reaches before any CLI has set a level of its own: the resolver would then
+# narrate which entry point it picked, into a committed capture.
+logging.getLogger("click_extra").setLevel(logging.WARNING)
+
+result = invoke(wrap, prog_name="click-extra wrap", args=["--carapace", "--", "flask", "routes"])
+assert result.exit_code == 0
+assert not result.stderr
+assert "name: routes" in result.stdout
+assert "endpoint" in result.stdout
+```
+
 `--carapace` must appear *before* SCRIPT, since arguments after SCRIPT navigate into nested subcommands. It is mutually exclusive with `--man` and `--params`.
 
 Pass `--install` to write the spec straight into Carapace's user spec directory (`$XDG_CONFIG_HOME/carapace/specs/`, which Carapace loads on startup) instead of printing it:

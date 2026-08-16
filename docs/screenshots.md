@@ -79,6 +79,18 @@ That separation is also why `--wrap` insists on the installed `click-extra` comm
 HTML carries two limitations SVG does not. An [OSC 8 hyperlink](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) loses its URL and keeps its visible text, and the eight base ANSI colors render as their CSS names, so the browser's palette decides their exact shade rather than the terminal's. Neither shows up on a help screen, which is why the format is worth having anyway.
 ```
 
+### Light and dark chrome
+
+A capture freezes the colors of the run it pictures, so the window it is drawn in has to answer to the theme that run rendered for. `--background light` swaps the dark chrome for white, along with the ANSI palette the capture's own colors resolve against:
+
+```shell-session
+$ click-extra screenshot --output light-help.svg --background light -- my-cli --theme light --help
+```
+
+Both halves are needed, and they are not the same half: `--theme light` is what the *CLI* renders with, `--background light` is what the *image* is drawn on. Pass one without the other and you get the washed-out screen the [theme gallery](theme.md#built-in-themes) warns about, in one direction or the other.
+
+The prompt line follows the chrome on its own. It is the one line a capture draws itself rather than collects, so on white it would otherwise land in the dark theme's near-white `invoked_command` style and vanish.
+
 ### The captures on this page
 
 Here is the command turned on click-extra itself, whose [bundled CLI](cli.md) doubles as a live demo of the rendering features. Each image below was produced by the line printed under it, run from a checkout.
@@ -99,12 +111,12 @@ $ click-extra screenshot --output docs/assets/color-gradient-screen.svg --prompt
 $ click-extra screenshot --output docs/assets/text-styles-screen.svg --columns 160 --head 14 --prompt "click-extra styles" -- uv run --frozen -- click-extra styles
 ```
 
-`themes` renders a sample help screen under each built-in palette, and this capture keeps the first of them:
+`themes` renders a sample help screen under each built-in palette, and this capture keeps the first two of them, which is what `--theme` does to a screen:
 
-![Sample CLI help screen captured under the dark theme](assets/theme-gallery-screen.svg)
+![The same CLI help screen captured under the dark and dracula themes](assets/theme-gallery-screen.svg)
 
 ```shell-session
-$ click-extra screenshot --output docs/assets/theme-gallery-screen.svg --head 16 --prompt "click-extra themes" -- uv run --frozen -- click-extra themes
+$ click-extra screenshot --output docs/assets/theme-gallery-screen.svg --head 34 --prompt "click-extra themes" -- uv run --frozen -- click-extra themes
 ```
 
 `--prompt` is what makes each image show the bare `click-extra …` a reader would type, while `uv run --frozen --` is what actually ran: the plumbing that reaches a checkout's copy of the CLI is not worth picturing. `--head` bounds the two long ones, and the `[...]` marker admits that the rest was cut.

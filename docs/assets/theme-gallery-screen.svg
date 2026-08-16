@@ -1,4 +1,4 @@
-<svg class="rich-terminal" viewBox="0 0 994 489.2" xmlns="http://www.w3.org/2000/svg">
+<svg class="rich-terminal" viewBox="0 0 994 928.4" xmlns="http://www.w3.org/2000/svg">
     <!-- Generated with Rich https://www.textualize.io -->
     <style>
 
@@ -44,11 +44,21 @@
 .theme-gallery-screen-r10 { fill: #98729f;font-weight: bold }
 .theme-gallery-screen-r11 { fill: #8d7b39 }
 .theme-gallery-screen-r12 { fill: #4e707b }
+.theme-gallery-screen-r13 { fill: #ff79c6;text-decoration: underline; }
+.theme-gallery-screen-r14 { fill: #f8f8f2;font-weight: bold }
+.theme-gallery-screen-r15 { fill: #8168a5;font-style: italic; }
+.theme-gallery-screen-r16 { fill: #bd93f9;font-style: italic; }
+.theme-gallery-screen-r17 { fill: #bd93f9;font-weight: bold }
+.theme-gallery-screen-r18 { fill: #6272a4 }
+.theme-gallery-screen-r19 { fill: #40a65a;font-style: italic; }
+.theme-gallery-screen-r20 { fill: #ff79c6;font-weight: bold }
+.theme-gallery-screen-r21 { fill: #a97e51 }
+.theme-gallery-screen-r22 { fill: #8168a5 }
     </style>
 
     <defs>
     <clipPath id="theme-gallery-screen-clip-terminal">
-      <rect x="0" y="0" width="975.0" height="438.2" />
+      <rect x="0" y="0" width="975.0" height="877.4" />
     </clipPath>
     <clipPath id="theme-gallery-screen-line-0">
     <rect x="0" y="1.5" width="976" height="24.65"/>
@@ -101,9 +111,63 @@
 <clipPath id="theme-gallery-screen-line-16">
     <rect x="0" y="391.9" width="976" height="24.65"/>
             </clipPath>
+<clipPath id="theme-gallery-screen-line-17">
+    <rect x="0" y="416.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-18">
+    <rect x="0" y="440.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-19">
+    <rect x="0" y="465.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-20">
+    <rect x="0" y="489.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-21">
+    <rect x="0" y="513.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-22">
+    <rect x="0" y="538.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-23">
+    <rect x="0" y="562.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-24">
+    <rect x="0" y="587.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-25">
+    <rect x="0" y="611.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-26">
+    <rect x="0" y="635.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-27">
+    <rect x="0" y="660.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-28">
+    <rect x="0" y="684.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-29">
+    <rect x="0" y="709.1" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-30">
+    <rect x="0" y="733.5" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-31">
+    <rect x="0" y="757.9" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-32">
+    <rect x="0" y="782.3" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-33">
+    <rect x="0" y="806.7" width="976" height="24.65"/>
+            </clipPath>
+<clipPath id="theme-gallery-screen-line-34">
+    <rect x="0" y="831.1" width="976" height="24.65"/>
+            </clipPath>
     </defs>
 
-    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="992" height="487.2" rx="8"/>
+    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="992" height="926.4" rx="8"/>
             <g transform="translate(26,22)">
             <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
             <circle cx="22" cy="0" r="7" fill="#febc2e"/>
@@ -130,7 +194,25 @@
 </text><text class="theme-gallery-screen-r8" x="24.4" y="361.6" textLength="85.4" clip-path="url(#theme-gallery-screen-line-14)">--water</text><text class="theme-gallery-screen-r2" x="122" y="361.6" textLength="12.2" clip-path="url(#theme-gallery-screen-line-14)">/</text><text class="theme-gallery-screen-r8" x="146.4" y="361.6" textLength="122" clip-path="url(#theme-gallery-screen-line-14)">--no-water</text><text class="theme-gallery-screen-r2" x="329.4" y="361.6" textLength="402.6" clip-path="url(#theme-gallery-screen-line-14)">Water&#160;the&#160;bed&#160;right&#160;after&#160;sowing.</text><text class="theme-gallery-screen-r2" x="976" y="361.6" textLength="12.2" clip-path="url(#theme-gallery-screen-line-14)">
 </text><text class="theme-gallery-screen-r7" x="24.4" y="386" textLength="48.8" clip-path="url(#theme-gallery-screen-line-15)">PLOT</text><text class="theme-gallery-screen-r2" x="976" y="386" textLength="12.2" clip-path="url(#theme-gallery-screen-line-15)">
 </text><text class="theme-gallery-screen-r8" x="24.4" y="410.4" textLength="73.2" clip-path="url(#theme-gallery-screen-line-16)">--help</text><text class="theme-gallery-screen-r2" x="329.4" y="410.4" textLength="329.4" clip-path="url(#theme-gallery-screen-line-16)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="theme-gallery-screen-r2" x="976" y="410.4" textLength="12.2" clip-path="url(#theme-gallery-screen-line-16)">
-</text><text class="theme-gallery-screen-r2" x="0" y="434.8" textLength="61" clip-path="url(#theme-gallery-screen-line-17)">[...]</text><text class="theme-gallery-screen-r2" x="976" y="434.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-17)">
+</text><text class="theme-gallery-screen-r2" x="976" y="434.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-17)">
+</text><text class="theme-gallery-screen-r4" x="0" y="459.2" textLength="732" clip-path="url(#theme-gallery-screen-line-18)">────────────────────────────────────────────────────────────</text><text class="theme-gallery-screen-r2" x="976" y="459.2" textLength="12.2" clip-path="url(#theme-gallery-screen-line-18)">
+</text><text class="theme-gallery-screen-r2" x="0" y="483.6" textLength="73.2" clip-path="url(#theme-gallery-screen-line-19)">Theme:</text><text class="theme-gallery-screen-r13" x="85.4" y="483.6" textLength="85.4" clip-path="url(#theme-gallery-screen-line-19)">dracula</text><text class="theme-gallery-screen-r2" x="976" y="483.6" textLength="12.2" clip-path="url(#theme-gallery-screen-line-19)">
+</text><text class="theme-gallery-screen-r2" x="976" y="508" textLength="12.2" clip-path="url(#theme-gallery-screen-line-20)">
+</text><text class="theme-gallery-screen-r13" x="0" y="532.4" textLength="73.2" clip-path="url(#theme-gallery-screen-line-21)">Usage:</text><text class="theme-gallery-screen-r14" x="85.4" y="532.4" textLength="73.2" clip-path="url(#theme-gallery-screen-line-21)">garden</text><text class="theme-gallery-screen-r15" x="170.8" y="532.4" textLength="109.8" clip-path="url(#theme-gallery-screen-line-21)">[OPTIONS]</text><text class="theme-gallery-screen-r16" x="292.8" y="532.4" textLength="48.8" clip-path="url(#theme-gallery-screen-line-21)">PLOT</text><text class="theme-gallery-screen-r2" x="976" y="532.4" textLength="12.2" clip-path="url(#theme-gallery-screen-line-21)">
+</text><text class="theme-gallery-screen-r2" x="976" y="556.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-22)">
+</text><text class="theme-gallery-screen-r2" x="24.4" y="581.2" textLength="207.4" clip-path="url(#theme-gallery-screen-line-23)">Sow&#160;a&#160;crop&#160;into&#160;a</text><text class="theme-gallery-screen-r14" x="244" y="581.2" textLength="73.2" clip-path="url(#theme-gallery-screen-line-23)">garden</text><text class="theme-gallery-screen-r16" x="329.4" y="581.2" textLength="48.8" clip-path="url(#theme-gallery-screen-line-23)">PLOT</text><text class="theme-gallery-screen-r2" x="390.4" y="581.2" textLength="195.2" clip-path="url(#theme-gallery-screen-line-23)">and&#160;water&#160;it&#160;in.</text><text class="theme-gallery-screen-r2" x="976" y="581.2" textLength="12.2" clip-path="url(#theme-gallery-screen-line-23)">
+</text><text class="theme-gallery-screen-r2" x="976" y="605.6" textLength="12.2" clip-path="url(#theme-gallery-screen-line-24)">
+</text><text class="theme-gallery-screen-r13" x="0" y="630" textLength="97.6" clip-path="url(#theme-gallery-screen-line-25)">Options:</text><text class="theme-gallery-screen-r2" x="976" y="630" textLength="12.2" clip-path="url(#theme-gallery-screen-line-25)">
+</text><text class="theme-gallery-screen-r17" x="24.4" y="654.4" textLength="73.2" clip-path="url(#theme-gallery-screen-line-26)">--rows</text><text class="theme-gallery-screen-r15" x="109.8" y="654.4" textLength="85.4" clip-path="url(#theme-gallery-screen-line-26)">INTEGER</text><text class="theme-gallery-screen-r2" x="329.4" y="654.4" textLength="378.2" clip-path="url(#theme-gallery-screen-line-26)">Number&#160;of&#160;planting&#160;rows&#160;to&#160;dig.</text><text class="theme-gallery-screen-r18" x="732" y="654.4" textLength="12.2" clip-path="url(#theme-gallery-screen-line-26)">[</text><text class="theme-gallery-screen-r18" x="744.2" y="654.4" textLength="97.6" clip-path="url(#theme-gallery-screen-line-26)">default:</text><text class="theme-gallery-screen-r19" x="854" y="654.4" textLength="12.2" clip-path="url(#theme-gallery-screen-line-26)">4</text><text class="theme-gallery-screen-r18" x="866.2" y="654.4" textLength="12.2" clip-path="url(#theme-gallery-screen-line-26)">]</text><text class="theme-gallery-screen-r2" x="976" y="654.4" textLength="12.2" clip-path="url(#theme-gallery-screen-line-26)">
+</text><text class="theme-gallery-screen-r17" x="24.4" y="678.8" textLength="73.2" clip-path="url(#theme-gallery-screen-line-27)">--crop</text><text class="theme-gallery-screen-r2" x="109.8" y="678.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-27)">[</text><text class="theme-gallery-screen-r20" x="122" y="678.8" textLength="73.2" clip-path="url(#theme-gallery-screen-line-27)">carrot</text><text class="theme-gallery-screen-r2" x="195.2" y="678.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-27)">|</text><text class="theme-gallery-screen-r20" x="207.4" y="678.8" textLength="73.2" clip-path="url(#theme-gallery-screen-line-27)">tomato</text><text class="theme-gallery-screen-r2" x="280.6" y="678.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-27)">|</text><text class="theme-gallery-screen-r20" x="292.8" y="678.8" textLength="61" clip-path="url(#theme-gallery-screen-line-27)">basil</text><text class="theme-gallery-screen-r2" x="353.8" y="678.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-27)">|</text><text class="theme-gallery-screen-r20" x="366" y="678.8" textLength="73.2" clip-path="url(#theme-gallery-screen-line-27)">radish</text><text class="theme-gallery-screen-r2" x="439.2" y="678.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-27)">]</text><text class="theme-gallery-screen-r2" x="976" y="678.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-27)">
+</text><text class="theme-gallery-screen-r2" x="329.4" y="703.2" textLength="219.6" clip-path="url(#theme-gallery-screen-line-28)">Which&#160;crop&#160;to&#160;sow.</text><text class="theme-gallery-screen-r18" x="573.4" y="703.2" textLength="12.2" clip-path="url(#theme-gallery-screen-line-28)">[</text><text class="theme-gallery-screen-r18" x="585.6" y="703.2" textLength="97.6" clip-path="url(#theme-gallery-screen-line-28)">env&#160;var:</text><text class="theme-gallery-screen-r21" x="695.4" y="703.2" textLength="134.2" clip-path="url(#theme-gallery-screen-line-28)">GARDEN_CROP</text><text class="theme-gallery-screen-r18" x="829.6" y="703.2" textLength="12.2" clip-path="url(#theme-gallery-screen-line-28)">;</text><text class="theme-gallery-screen-r18" x="854" y="703.2" textLength="97.6" clip-path="url(#theme-gallery-screen-line-28)">default:</text><text class="theme-gallery-screen-r2" x="976" y="703.2" textLength="12.2" clip-path="url(#theme-gallery-screen-line-28)">
+</text><text class="theme-gallery-screen-r19" x="329.4" y="727.6" textLength="73.2" clip-path="url(#theme-gallery-screen-line-29)">carrot</text><text class="theme-gallery-screen-r18" x="402.6" y="727.6" textLength="12.2" clip-path="url(#theme-gallery-screen-line-29)">]</text><text class="theme-gallery-screen-r2" x="976" y="727.6" textLength="12.2" clip-path="url(#theme-gallery-screen-line-29)">
+</text><text class="theme-gallery-screen-r17" x="24.4" y="752" textLength="109.8" clip-path="url(#theme-gallery-screen-line-30)">--spacing</text><text class="theme-gallery-screen-r15" x="146.4" y="752" textLength="158.6" clip-path="url(#theme-gallery-screen-line-30)">INTEGER&#160;RANGE</text><text class="theme-gallery-screen-r2" x="329.4" y="752" textLength="317.2" clip-path="url(#theme-gallery-screen-line-30)">Centimetres&#160;between&#160;seeds.</text><text class="theme-gallery-screen-r18" x="671" y="752" textLength="12.2" clip-path="url(#theme-gallery-screen-line-30)">[</text><text class="theme-gallery-screen-r18" x="683.2" y="752" textLength="97.6" clip-path="url(#theme-gallery-screen-line-30)">default:</text><text class="theme-gallery-screen-r19" x="793" y="752" textLength="24.4" clip-path="url(#theme-gallery-screen-line-30)">15</text><text class="theme-gallery-screen-r18" x="817.4" y="752" textLength="12.2" clip-path="url(#theme-gallery-screen-line-30)">;</text><text class="theme-gallery-screen-r22" x="841.8" y="752" textLength="97.6" clip-path="url(#theme-gallery-screen-line-30)">5&lt;=x&lt;=40</text><text class="theme-gallery-screen-r18" x="939.4" y="752" textLength="12.2" clip-path="url(#theme-gallery-screen-line-30)">]</text><text class="theme-gallery-screen-r2" x="976" y="752" textLength="12.2" clip-path="url(#theme-gallery-screen-line-30)">
+</text><text class="theme-gallery-screen-r17" x="24.4" y="776.4" textLength="85.4" clip-path="url(#theme-gallery-screen-line-31)">--water</text><text class="theme-gallery-screen-r2" x="122" y="776.4" textLength="12.2" clip-path="url(#theme-gallery-screen-line-31)">/</text><text class="theme-gallery-screen-r17" x="146.4" y="776.4" textLength="122" clip-path="url(#theme-gallery-screen-line-31)">--no-water</text><text class="theme-gallery-screen-r2" x="329.4" y="776.4" textLength="402.6" clip-path="url(#theme-gallery-screen-line-31)">Water&#160;the&#160;bed&#160;right&#160;after&#160;sowing.</text><text class="theme-gallery-screen-r2" x="976" y="776.4" textLength="12.2" clip-path="url(#theme-gallery-screen-line-31)">
+</text><text class="theme-gallery-screen-r16" x="24.4" y="800.8" textLength="48.8" clip-path="url(#theme-gallery-screen-line-32)">PLOT</text><text class="theme-gallery-screen-r2" x="976" y="800.8" textLength="12.2" clip-path="url(#theme-gallery-screen-line-32)">
+</text><text class="theme-gallery-screen-r17" x="24.4" y="825.2" textLength="73.2" clip-path="url(#theme-gallery-screen-line-33)">--help</text><text class="theme-gallery-screen-r2" x="329.4" y="825.2" textLength="329.4" clip-path="url(#theme-gallery-screen-line-33)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="theme-gallery-screen-r2" x="976" y="825.2" textLength="12.2" clip-path="url(#theme-gallery-screen-line-33)">
+</text><text class="theme-gallery-screen-r2" x="976" y="849.6" textLength="12.2" clip-path="url(#theme-gallery-screen-line-34)">
+</text><text class="theme-gallery-screen-r2" x="0" y="874" textLength="61" clip-path="url(#theme-gallery-screen-line-35)">[...]</text><text class="theme-gallery-screen-r2" x="976" y="874" textLength="12.2" clip-path="url(#theme-gallery-screen-line-35)">
 </text>
     </g>
     </g>

@@ -70,6 +70,7 @@ if TYPE_CHECKING:
     from typing import IO, Any
 
     from .envvar import TEnvVars
+    from .theme import HelpTheme
 
     TArg = str | Path | None
     TNestedArgs = Iterable[TArg | Iterable["TNestedArgs"]]
@@ -749,7 +750,7 @@ def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
 
-def highlight_bin_name(program: str) -> str:
+def highlight_bin_name(program: str, theme: HelpTheme | None = None) -> str:
     """Style the binary's own name inside `program`, leaving its directory plain.
 
     `/opt/homebrew/bin/mas` renders with only `mas` in the active theme's
@@ -757,16 +758,21 @@ def highlight_bin_name(program: str) -> str:
     out from the noise of its location. A bare name (no separator) is styled
     whole. Both POSIX and Windows separators are recognized, whichever comes
     last.
+
+    :param program: the command, path and all.
+    :param theme: palette to style with. Defaults to the theme the current
+        invocation runs under, see {func}`format_cli_prompt`.
+    :return: the styled command.
     """
+    active_theme = get_current_theme() if theme is None else theme
     split_at = max(program.rfind("/"), program.rfind("\\")) + 1
-    return program[:split_at] + get_current_theme().invoked_command(
-        program[split_at:],
-    )
+    return program[:split_at] + active_theme.invoked_command(program[split_at:])
 
 
 def format_cli_prompt(
     cmd_args: Iterable[str],
     extra_env: TEnvVars | None = None,
+    theme: HelpTheme | None = None,
 ) -> str:
     """Render the shell prompt simulating a CLI invocation, for logs and dry-runs.
 
@@ -784,8 +790,17 @@ def format_cli_prompt(
 
     Useful to print a copy-pasteable command trace in debug logs, dry-runs and
     test output.
+
+    :param cmd_args: the command line to render.
+    :param extra_env: environment assignments to prefix it with.
+    :param theme: palette to style the line with. Defaults to the theme the
+        current invocation runs under, which is what a CLI printing its own
+        trace wants. A caller drawing the line onto a surface of its own choosing
+        (a light [capture](screenshots.md), say) passes the one that surface can
+        show.
+    :return: the styled prompt line.
     """
-    active_theme = get_current_theme()
+    active_theme = get_current_theme() if theme is None else theme
     extra_env_string = ""
     if extra_env:
         extra_env_string = "".join(
@@ -796,7 +811,7 @@ def format_cli_prompt(
     cmd_parts = tuple(cmd_args)
     styled_parts = []
     if cmd_parts:
-        styled_parts.append(highlight_bin_name(cmd_parts[0]))
+        styled_parts.append(highlight_bin_name(cmd_parts[0], active_theme))
         for part in cmd_parts[1:]:
             styled_parts.append(
                 active_theme.option(part) if part.startswith("-") else part,

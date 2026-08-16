@@ -46,7 +46,10 @@ from click_extra.screenshot import (
     _TEXT_ELEMENT_RE,
     CAPTURE_BACKGROUND,
     CAPTURE_FOREGROUND,
+    LIGHT_CAPTURE_BACKGROUND,
+    LIGHT_CAPTURE_FOREGROUND,
     PADDING,
+    CaptureBackground,
     CaptureFormat,
     _rich_svg,
     capture,
@@ -106,7 +109,7 @@ class Capture(NamedTuple):
 COMMITTED_CAPTURES = (
     Capture("color-gradient-screen.svg", ("gradient",)),
     Capture("text-styles-screen.svg", ("styles",), columns=160, head=14),
-    Capture("theme-gallery-screen.svg", ("themes",), head=16),
+    Capture("theme-gallery-screen.svg", ("themes",), head=34),
 )
 """Every capture shot by the `screenshot` command, in file-name order.
 
@@ -324,6 +327,36 @@ def test_format_from_path_rejects_an_unknown_extension(filename):
     """An extension naming no format says which ones do."""
     with pytest.raises(ValueError, match=r"\.html, \.svg"):
         format_from_path(Path(filename))
+
+
+@pytest.mark.parametrize(
+    ("background", "expected", "unwanted"),
+    (
+        (
+            CaptureBackground.DARK,
+            (CAPTURE_BACKGROUND, CAPTURE_FOREGROUND),
+            (LIGHT_CAPTURE_BACKGROUND,),
+        ),
+        (
+            CaptureBackground.LIGHT,
+            (LIGHT_CAPTURE_BACKGROUND, LIGHT_CAPTURE_FOREGROUND),
+            (CAPTURE_BACKGROUND,),
+        ),
+    ),
+    ids=("dark", "light"),
+)
+@pytest.mark.parametrize("format", (CaptureFormat.HTML, CaptureFormat.SVG))
+def test_render_draws_on_the_chrome_it_is_given(format, background, expected, unwanted):
+    """Both renderers answer to the chrome, so a light capture stays readable.
+
+    The colors are the contract: an SVG paints its window rect with them, and an
+    HTML capture inlines them on its `<pre>`.
+    """
+    document = render("kiwi", format=format, background=background)
+    for color in expected:
+        assert color in document
+    for color in unwanted:
+        assert color not in document
 
 
 def test_render_html_escapes_the_captured_text():
