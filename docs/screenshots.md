@@ -212,12 +212,12 @@ It also means the gutter spends columns the command already used: a screen wrapp
 
 #### All of it at once
 
-Here is the `pantry` screen again, on a gradient, captioned, numbered, rounded and given room to breathe:
+Here is the `pantry` screen again, on a gradient, captioned, numbered, rounded and given room to breathe. The second tab is the block that wrote it, options and assertions included:
 
 ```{click:run}
 :screenshot: styled-window-screen
 :screenshot-columns: auto
-:screenshot-title: pantry --help
+:screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
 :screenshot-line-numbers:
 :screenshot-radius: 12
@@ -228,7 +228,33 @@ assert result.exit_code == 0
 assert "--crates" in result.stdout
 ```
 
+``````{tab-set}
+`````{tab-item} Captured image
+:sync: captured-image
 ![The pantry help screen, captioned and numbered on a gradient backdrop](assets/styled-window-screen.svg)
+`````
+
+`````{tab-item} The block behind it
+:sync: block-source
+````{code-block} markdown
+```{click:run}
+:screenshot: styled-window-screen
+:screenshot-columns: auto
+:screenshot-title: 🍎 pantry --help
+:screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-line-numbers:
+:screenshot-radius: 12
+:screenshot-padding: 24
+:hide-results:
+result = invoke(pantry, args=["--help"])
+assert result.exit_code == 0
+assert "--crates" in result.stdout
+```
+````
+
+A caption takes any text a terminal can draw, emoji included. `:hide-results:` is this page's own choice, the window being the thing on show here: leave it out and the block renders its live text below the fence as well.
+`````
+``````
 
 ### The captures on this page
 
