@@ -224,11 +224,77 @@ Finally, if the second `--version` option is placed right before the `--help` op
 
 ### Option order
 
-Notice how the options above are ordered in the help message.
+Options are listed in the order they were declared: first whatever the `params=` argument of the decorator holds, then the option decorators stacked below `@command`, read bottom-up as Python applies them.
 
-The default behavior of `@command` is to order options in the way they are provided to the `params=` argument of the decorator. Then adds to that list the additional option decorators positioned after the `@command` decorator.
+```{click:source}
+from click_extra import command, option
 
-After that, there is a final sorting step applied by {py:class}`~click_extra.commands.Command`. This is done by the `extra_option_at_end` option, which is `True` by default.
+@command(params=[])
+@option("--sugar", help="Grams of sugar.")
+@option("--butter", help="Grams of butter.")
+@option("--flour", help="Grams of flour.")
+def bake(sugar, butter, flour):
+    """Bake a cake."""
+```
+
+```{click:run}
+result = invoke(bake, args=["--help"])
+assert result.exit_code == 0
+options = result.stdout
+assert options.index("--sugar") < options.index("--butter") < options.index("--flour")
+```
+
+On top of that, {py:class}`~click_extra.commands.Command` moves every {py:class}`~click_extra.parameters.ExtraOption` to the end of the list, so the options you wrote yourself come first and Click Extra's own trail behind them. That is the `extra_option_at_end` argument, `True` by default:
+
+```{click:source}
+from click_extra import VersionOption, command, option
+
+@command(params=[VersionOption()], extra_option_at_end=False)
+@option("--sugar", help="Grams of sugar.")
+def keep_declared_order(sugar):
+    """Bake a cake."""
+```
+
+```{click:run}
+result = invoke(keep_declared_order, args=["--help"])
+assert result.exit_code == 0
+assert result.stdout.index("--version") < result.stdout.index("--sugar")
+```
+
+#### Option priorities
+
+The order above is the *processing* order: it decides when each option's callback fires, which is why `--time` sits ahead of everything it measures and `--config` ahead of the defaults it seeds. Reshuffling the help screen by hand would drag those callbacks along with it.
+
+`option_priorities` moves an option on the screen alone. It maps a flag, or an option's destination name, to a number: lowest is shown first, and anything left out sits on the {py:data}`~click_extra.commands.DEFAULT_PRIORITY` line at `100`. So a number below `100` promotes, and one above demotes:
+
+```{click:source}
+from click_extra import command, option
+
+@command(params=[], option_priorities={"--flour": 1, "--sugar": 2, "--butter": 3})
+@option("--sugar", help="Grams of sugar.")
+@option("--butter", help="Grams of butter.")
+@option("--flour", help="Grams of flour.")
+def measured(sugar, butter, flour):
+    """Bake a cake."""
+```
+
+```{click:run}
+result = invoke(measured, args=["--help"])
+assert result.exit_code == 0
+options = result.stdout
+assert options.index("--flour") < options.index("--sugar") < options.index("--butter")
+```
+
+The declaration order is untouched underneath:
+
+```{click:run}
+:show-source:
+print([param.name for param in measured.params])
+```
+
+Priorities are floats rather than integers, so a new option can be wedged between two existing ones without renumbering the rest: `1.5` lands between `1` and `2`. See {py:data}`~click_extra.commands.DEFAULT_PRIORITY` for where that convention comes from.
+
+Positional arguments are never reordered: their sequence is part of the command's grammar, not a matter of presentation.
 
 ### Option's defaults
 
@@ -388,6 +454,175 @@ assert json.loads(result.output)["examples"][0] == {
 ```
 
 A malformed pair raises `TypeError` at command construction, so a typo surfaces on import rather than on the first `--help` a user runs.
+
+## Subcommand order
+
+A group lists its subcommands alphabetically, as Click does:
+
+```{click:source}
+from click_extra import group
+
+@group
+def kitchen():
+    """Run the kitchen."""
+
+@kitchen.command()
+def prep():
+    """Prep the ingredients."""
+
+@kitchen.command()
+def cook():
+    """Cook the dish."""
+
+@kitchen.command()
+def plate():
+    """Plate the dish."""
+```
+
+```{click:run}
+result = invoke(kitchen, args=["--help"])
+assert result.exit_code == 0
+listing = result.stdout
+assert listing.index("cook") < listing.index("plate") < listing.index("prep")
+```
+
+Which reads well for a set of siblings, and poorly for a sequence: a kitchen preps before it cooks and cooks before it plates, and the alphabet says nothing about that.
+
+### Declaration order
+
+`sort_subcommands=False` lists subcommands in the order they were registered instead:
+
+```{click:source}
+from click_extra import group
+
+@group(sort_subcommands=False)
+def pipeline():
+    """Run the kitchen."""
+
+@pipeline.command()
+def prep():
+    """Prep the ingredients."""
+
+@pipeline.command()
+def cook():
+    """Cook the dish."""
+
+@pipeline.command()
+def plate():
+    """Plate the dish."""
+```
+
+```{click:run}
+result = invoke(pipeline, args=["--help"])
+assert result.exit_code == 0
+listing = result.stdout
+assert listing.index("prep") < listing.index("cook") < listing.index("plate")
+```
+
+The auto-generated [`help` subcommand](#help-subcommand) is listed last, wherever it happens to sit in the registration order, mirroring what `extra_option_at_end` does to options.
+
+### Subcommand priorities
+
+Registration order ties the listing to the shape of your source file, which is awkward when subcommands come from several modules or from a plugin scan. `subcommand_priorities` numbers them instead. Lowest is listed first, and any subcommand left out of the mapping sits on the {py:data}`~click_extra.commands.DEFAULT_PRIORITY` line at `100`, so a number below `100` promotes and one above demotes:
+
+```{click:source}
+from click_extra import group
+
+@group(subcommand_priorities={"prep": 1, "plate": 2})
+def numbered():
+    """Run the kitchen."""
+
+@numbered.command()
+def plate():
+    """Plate the dish."""
+
+@numbered.command()
+def prep():
+    """Prep the ingredients."""
+```
+
+```{click:run}
+result = invoke(numbered, args=["--help"])
+assert result.exit_code == 0
+assert result.stdout.index("prep") < result.stdout.index("plate")
+```
+
+Priorities are floats, so a subcommand added later slots between two existing ones without renumbering anything:
+
+```{click:source}
+from click_extra import group
+
+@group(subcommand_priorities={"prep": 1, "plate": 2, "cook": 1.5})
+def wedged():
+    """Run the kitchen."""
+
+@wedged.command()
+def plate():
+    """Plate the dish."""
+
+@wedged.command()
+def prep():
+    """Prep the ingredients."""
+
+@wedged.command()
+def cook():
+    """Cook the dish."""
+```
+
+```{click:run}
+result = invoke(wedged, args=["--help"])
+assert result.exit_code == 0
+listing = result.stdout
+assert listing.index("prep") < listing.index("cook") < listing.index("plate")
+```
+
+See {py:data}`~click_extra.commands.DEFAULT_PRIORITY` for where that convention comes from.
+
+### One setting for a whole tree
+
+Both knobs are per-group, which means repeating them on every subgroup. `sort_subcommands` is also a context setting, and a context setting is inherited: declare it once on the root group and every group below it follows, unless one says otherwise.
+
+```{click:source}
+from click_extra import group
+
+@group(context_settings={"sort_subcommands": False})
+def restaurant():
+    """Run the restaurant."""
+
+@restaurant.group()
+def service():
+    """Run the dining room."""
+
+@service.command()
+def seat():
+    """Seat the guests."""
+
+@service.command()
+def pour():
+    """Pour the wine."""
+```
+
+```{click:run}
+result = invoke(restaurant, args=["service", "--help"])
+assert result.exit_code == 0
+assert result.stdout.index("seat") < result.stdout.index("pour")
+```
+
+### Every rendering agrees
+
+The order settles the help screen and every other rendering of the command tree: [`--tree`](tree.md), [`--help-format`](man-page.md#machine-readable-formats) in all its flavors, the [Carapace completion spec](carapace.md) and shell completion all read the same listing.
+
+```{click:run}
+result = invoke(pipeline, args=["--tree"])
+assert result.exit_code == 0
+listing = result.stdout
+assert listing.index("prep") < listing.index("cook") < listing.index("plate")
+```
+
+```{admonition} Explicit sections
+:class: tip
+Cloup's own {py:class}`~cloup.Section` splits a long listing into titled blocks, and carries its own `is_sorted` flag. Priorities and `sort_subcommands` address the default section and the flat listings above; a section you declared yourself is left to Cloup.
+```
 
 ## `help` subcommand
 

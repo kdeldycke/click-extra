@@ -61,14 +61,35 @@ from .version import VersionOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
-    from typing import Any, NoReturn
+    from collections.abc import Callable, Mapping, Sequence
+    from typing import Any, Final, NoReturn
 
     from .version import VersionScreen
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
+
+DEFAULT_PRIORITY: Final[float] = 100.0
+"""Implicit priority of any subcommand or option left unnumbered.
+
+Priorities order the subcommands of a `Group` and the options of a `Command`, lowest
+first. Anything the author did not number sits on this line, so a lone `{"prep": 1}`
+promotes `prep` without displacing the rest, and a number above `100` demotes.
+
+```{note}
+Priorities are floats, not integers, so a new entry can be wedged between two existing
+ones without renumbering: `1.5` lands between `1` and `2`.
+
+That trick is as old as interactive computing.
+[JOSS](https://en.wikipedia.org/wiki/JOSS), which RAND put online in 1963, required
+every line number to be a pair of integers separated by a period (`1.1`, `10.12`): a
+page and a line within it, jointly a *step*.
+DEC's [FOCAL](https://gunkies.org/wiki/FOCAL) carried the scheme to the PDP-8, with
+steps running from `1.01` to `31.99`. BASIC numbered lines with plain integers, and its
+`10, 20, 30` convention is programmers buying back the same insertion room by hand.
+```
+"""
 
 EXTRA_OPTION_SETTINGS: tuple[str, ...] = ("show_choices", "show_envvar")
 """Click Extra context settings forced onto every option when set to non-`None`."""
@@ -141,12 +162,13 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
         setting.
         ```
 
-    ```{todo}
-    For bullet-proof handling of edge-cases, we should probably add an indirection
-    layer to have the processing order of options (the one below) different from
-    the presentation order of options in the help screen.
-
-    This is probably something that has been [requested in issue #544](https://github.com/kdeldycke/click-extra/issues/544).
+    ```{note}
+    The list below is the *processing* order, and it is the only one these
+    edge-cases care about. The help screen reads a separate presentation order,
+    which the `option_priorities` argument of `@command` and `@group` reshuffles
+    without touching a single callback. See
+    {meth}`~click_extra.commands.Command.param_priority`, added for
+    [click_extra#544 issue](https://github.com/kdeldycke/click-extra/issues/544).
     ```
     """
     return [
@@ -199,6 +221,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         included_params: Sequence[str] | None = None,
         excluded_params: Sequence[str] | None = None,
         extra_option_at_end: bool = True,
+        option_priorities: Mapping[str, float] | None = None,
         populate_auto_envvars: bool = True,
         extra_keywords: HelpKeywords | None = None,
         excluded_keywords: HelpKeywords | None = None,
@@ -244,6 +267,16 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         :param extra_option_at_end: [reorders all parameters attached to the command](https://kdeldycke.github.io/click-extra/commands.html#option-order), by
             moving all instances of `ExtraOption` at the end of the parameter list.
             The original order of the options is preserved among themselves.
+        :param option_priorities: maps an option to its priority in the help
+            screen, relative to
+            {data}`~click_extra.commands.DEFAULT_PRIORITY`, lowest
+            shown first. Keys are matched against each parameter's long and short
+            flags first, then its destination name, so the `--config` /
+            `--no-config` pair (which shares the `config` destination) stays
+            addressable one flag at a time. Presentation only: `self.params`, and
+            with it the order callbacks are evaluated in, is left alone. Positional
+            arguments are never reordered, their sequence being part of the
+            command's grammar.
         :param populate_auto_envvars: forces all parameters to have their auto-generated
             environment variables registered. This address the shortcoming of `click`
             which only evaluates them dynamically. By forcing their registration, the
@@ -332,6 +365,8 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             self.excluded_keywords = excluded_keywords
 
         self.examples = normalize_examples(examples)
+
+        self.option_priorities: dict[str, float] = dict(option_priorities or {})
 
         default_ctx_settings: dict[str, Any] = {
             # Click settings:
@@ -448,9 +483,40 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             self.params.sort(key=lambda p: isinstance(p, ExtraOption))
 
         # Forces re-identification of grouped and non-grouped options as we re-ordered
-        # them above and added our own extra options since initialization.
-        _grouped_params = self._group_params(self.params)
+        # them above and added our own extra options since initialization. Feeds a
+        # presentation-ordered copy rather than `self.params` itself: the two are
+        # different concerns, and only the copy may be reshuffled. See
+        # `param_priority`.
+        _grouped_params = self._group_params(
+            sorted(self.params, key=self.param_priority)
+        )
         self.arguments, self.option_groups, self.ungrouped_options = _grouped_params
+
+    def param_priority(self, param: click.Parameter) -> float:
+        """Priority of *param* in the help screen.
+
+        Defaults to {data}`~click_extra.commands.DEFAULT_PRIORITY`, and is otherwise
+        resolved against `option_priorities` by trying each of the parameter's flags
+        in turn, then its destination name.
+
+        ```{important}
+        This orders the help screen alone. The order of `self.params` decides when
+        each callback fires: `click.core.iter_params_for_processing` sorts on
+        `(not is_eager, position on the command line)`, and every eager option the
+        user did not type ties on that second key, leaving declaration order as the
+        tie-break. That is what puts `--time` ahead of everything it measures and
+        `--accessible` ahead of the `--color` default it lowers, so the two orders
+        have to be free to disagree.
+        ```
+
+        Positional arguments always resolve to the default: their sequence is part
+        of the command's grammar, not a matter of presentation.
+        """
+        if self.option_priorities and not isinstance(param, click.Argument):
+            for key in (*param.opts, *param.secondary_opts, param.name):
+                if key is not None and key in self.option_priorities:
+                    return self.option_priorities[key]
+        return DEFAULT_PRIORITY
 
     def main(  # type: ignore[override]
         self,
@@ -991,6 +1057,8 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         self,
         *args: Any,
         help_command: bool = True,
+        sort_subcommands: bool | None = None,
+        subcommand_priorities: Mapping[str, float] | None = None,
         **kwargs: Any,
     ) -> None:
         """Like `Command.__init__`, but auto-injects a `help` subcommand.
@@ -998,10 +1066,116 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         :param help_command: when `True` (the default), a `help` subcommand is
             automatically registered. Set to `False` to suppress it, or register
             your own `help` subcommand to override it.
+        :param sort_subcommands: how subcommands sharing a priority are broken
+            apart. `True` lists them alphabetically, `False` in the order they
+            were registered. `None` (the default) defers to the
+            `sort_subcommands` context setting, then to `True`. See
+            {meth}`~click_extra.commands.Group.must_sort_subcommands`.
+        :param subcommand_priorities: maps a subcommand name to its priority
+            relative to {data}`~click_extra.commands.DEFAULT_PRIORITY`, lowest
+            listed first. Names left out keep the default priority, so numbering
+            a few subcommands moves only those.
         """
         super().__init__(*args, **kwargs)
+        self.sort_subcommands = sort_subcommands
+        self.subcommand_priorities: dict[str, float] = dict(subcommand_priorities or {})
         if help_command and "help" not in self.commands:
             self.add_command(_make_help_command())
+
+    def must_sort_subcommands(self, ctx: click.Context | None) -> bool:
+        """Resolve whether subcommand listings are alphabetical.
+
+        Reads the group's own `sort_subcommands`, then the context setting of the
+        same name, then falls back to `True`. This is the resolution order Cloup
+        uses for `align_sections`, and it is what lets a single
+        `context_settings={"sort_subcommands": False}` on the root group reach every
+        subgroup below it instead of being repeated on each.
+        """
+        if self.sort_subcommands is not None:
+            return self.sort_subcommands
+        from_context = getattr(ctx, "sort_subcommands", None)
+        if from_context is not None:
+            return bool(from_context)
+        return True
+
+    def subcommand_priority(self, name: str) -> float:
+        """Priority of the *name* subcommand.
+
+        Defaults to {data}`~click_extra.commands.DEFAULT_PRIORITY`.
+        """
+        return self.subcommand_priorities.get(name, DEFAULT_PRIORITY)
+
+    def _registered_subcommands(self, ctx: click.Context) -> list[str]:
+        """Subcommand names in registration order, before any ordering is applied.
+
+        The extension point {class}`LazyGroup` overrides to fold in the subcommands
+        it has not imported yet.
+        """
+        return list(self.commands)
+
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        """Subcommand names in presentation order.
+
+        Sorted on `subcommand_priorities` first, then broken apart by
+        {meth}`~click_extra.commands.Group.must_sort_subcommands`: alphabetically,
+        or by registration order. With no priority declared every subcommand ties,
+        leaving the tie-break as the only ordering, which is Click's plain
+        alphabetical listing.
+
+        In registration order the auto-injected `help` subcommand is listed last,
+        wherever it happens to have been registered: `Group.__init__` appends it
+        before any `@cli.command()` decorator runs, while a `commands=[…]`
+        constructor argument lands it after, so its natural position says nothing
+        about the author's intent. Mirrors what `extra_option_at_end` does to
+        options.
+        """
+        names = self._registered_subcommands(ctx)
+        if self.must_sort_subcommands(ctx):
+            names = sorted(names)
+        else:
+            names = sorted(
+                names,
+                key=lambda name: isinstance(self.commands.get(name), HelpCommand),
+            )
+        # Stable, so subcommands sharing a priority keep the order settled above.
+        return sorted(names, key=self.subcommand_priority)
+
+    def list_sections(
+        self,
+        ctx: click.Context,
+        include_default_section: bool = True,
+    ) -> list[cloup.Section]:
+        """Like `cloup.Group.list_sections`, but ordering the default section.
+
+        Cloup hard-codes the default section to `Section.sorted(…)`, which is why
+        overriding {meth}`list_commands` alone leaves the help screen alphabetical:
+        the screen is rendered from sections and never calls it. Rebuild that
+        section from {meth}`list_commands` instead, and hand it over already
+        ordered.
+
+        ```{note}
+        Sections the author declared themselves are returned untouched. Cloup's own
+        `Section(is_sorted=…)` already governs those, and a user holding a `Section`
+        instance should not have it rewritten underneath them. Priorities and
+        `sort_subcommands` therefore address the default section and the flat
+        listings (`--tree`, man pages, completion specs), not the contents of an
+        explicit section.
+        ```
+        """
+        section_list = list(self._user_sections)
+        if include_default_section and len(self._default_section) > 0:
+            default_commands = self._default_section.commands
+            section_list.append(
+                cloup.Section(
+                    title="Other commands" if self._user_sections else "Commands",
+                    commands={
+                        name: default_commands[name]
+                        for name in self.list_commands(ctx)
+                        if name in default_commands
+                    },
+                )
+            )
+        return section_list
 
     def add_command(  # type: ignore[override]
         self,
@@ -1166,18 +1340,23 @@ class LazyGroup(Group):
         ```
         """
         super().__init__(*args, **kwargs)
-        # Sort for predictable and stable lazy loading order.
-        self.lazy_subcommands: dict[str, str] = (
-            dict(sorted(lazy_subcommands.items())) if lazy_subcommands else {}
-        )
+        self.lazy_subcommands: dict[str, str] = dict(lazy_subcommands or {})
 
-    def list_commands(self, ctx: click.Context) -> list[str]:
-        """List all commands, including not-yet-loaded lazy subcommands."""
-        base = super().list_commands(ctx)
-        # Only include lazy subcommands that haven't been loaded into
-        # self.commands yet (add_command moves them there).
-        lazy = [name for name in self.lazy_subcommands if name not in self.commands]
-        return sorted(base + lazy)
+    def _registered_subcommands(self, ctx: click.Context) -> list[str]:
+        """Like the parent, but folding in the not-yet-imported subcommands.
+
+        A lazily-declared subcommand holds the same slot whether or not
+        {meth}`get_command` has already imported it. Importing appends it to
+        `self.commands`, so reading registration order off that dictionary alone
+        would reshuffle the listing halfway through a run. Eagerly registered
+        subcommands come first, in the order they were added, then the lazy ones in
+        declaration order.
+
+        The import order itself follows whatever {meth}`Group.list_commands`
+        returns, which is alphabetical unless the author says otherwise.
+        """
+        eager = [name for name in self.commands if name not in self.lazy_subcommands]
+        return eager + list(self.lazy_subcommands)
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         """Get a command by name, loading lazily if necessary.

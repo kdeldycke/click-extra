@@ -34,6 +34,7 @@ from click_extra import (
     HelpCommand,
     LazyGroup,
     VersionOption,
+    argument,
     command,
     echo,
     group,
@@ -42,7 +43,8 @@ from click_extra import (
     pass_context,
     version_option,
 )
-from click_extra.commands import default_params
+from click_extra.commands import DEFAULT_PRIORITY, default_params
+from click_extra.parameters import iter_subcommands, make_resilient_context
 from click_extra.pytest import (
     command_decorators,
     default_debug_uncolored_log_end,
@@ -1255,3 +1257,274 @@ def test_help_for_subcommand_in_all_command_cli(invoke, all_command_cli):
     result = invoke(all_command_cli, "help", "default-subcommand", color=False)
     assert result.exit_code == 0
     assert "default-subcommand" in result.stdout
+
+
+def kitchen_group(**kwargs):
+    """A group whose subcommands are declared out of alphabetical order."""
+
+    @group(**kwargs)
+    def kitchen():
+        """Kitchen pipeline."""
+
+    @kitchen.command()
+    def prep():
+        """Prep the ingredients."""
+
+    @kitchen.command()
+    def cook():
+        """Cook the dish."""
+
+    @kitchen.command()
+    def plate():
+        """Plate the dish."""
+
+    return kitchen
+
+
+def listed_subcommands(help_screen):
+    """Names listed under the ``Commands:`` heading of a help screen."""
+    _, _, tail = help_screen.partition("\nCommands:\n")
+    return [line.split()[0] for line in tail.splitlines() if line.startswith("  ")]
+
+
+subcommand_orders = pytest.mark.parametrize(
+    ("group_kwargs", "expected"),
+    (
+        pytest.param({}, ["cook", "help", "plate", "prep"], id="default"),
+        pytest.param(
+            {"sort_subcommands": True},
+            ["cook", "help", "plate", "prep"],
+            id="alphabetical",
+        ),
+        pytest.param(
+            {"sort_subcommands": False},
+            ["prep", "cook", "plate", "help"],
+            id="declaration",
+        ),
+        pytest.param(
+            {"context_settings": {"sort_subcommands": False}},
+            ["prep", "cook", "plate", "help"],
+            id="declaration-from-context",
+        ),
+        pytest.param(
+            {"subcommand_priorities": {"prep": 1, "cook": 2, "plate": 3}},
+            ["prep", "cook", "plate", "help"],
+            id="priorities",
+        ),
+        pytest.param(
+            {"subcommand_priorities": {"prep": 1, "plate": 3, "cook": 1.5}},
+            ["prep", "cook", "plate", "help"],
+            id="fractional-wedge",
+        ),
+        pytest.param(
+            {"subcommand_priorities": {"help": 1}},
+            ["help", "cook", "plate", "prep"],
+            id="promotion-leaves-the-rest-alphabetical",
+        ),
+        pytest.param(
+            {"subcommand_priorities": {"prep": 200}},
+            ["cook", "help", "plate", "prep"],
+            id="demotion-past-the-default-line",
+        ),
+        pytest.param(
+            {"sort_subcommands": False, "subcommand_priorities": {"plate": 1}},
+            ["plate", "prep", "cook", "help"],
+            id="priority-outranks-declaration",
+        ),
+    ),
+)
+
+
+@subcommand_orders
+def test_subcommand_order_in_help_screen(invoke, group_kwargs, expected):
+    """Cloup renders the help screen from sections, never from ``list_commands()``."""
+    result = invoke(kitchen_group(**group_kwargs), "--help", color=False)
+    assert result.exit_code == 0
+    assert listed_subcommands(result.stdout) == expected
+
+
+@subcommand_orders
+def test_subcommand_order_in_list_commands(group_kwargs, expected):
+    """The flat listing feeding ``--tree``, man pages, specs and completion."""
+    cli = kitchen_group(**group_kwargs)
+    ctx = make_resilient_context(cli, cli.name)
+    assert cli.list_commands(ctx) == expected
+
+
+def test_subcommand_order_agrees_across_renderers(invoke):
+    """Every rendering of a command tree lists subcommands in the same order.
+
+    Each renderer used to reach for its own accessor, so a group that ordered its
+    subcommands could have its help screen disagree with its man page or its
+    completion spec. They all go through ``list_commands()`` now, and this pins
+    that down for the whole population rather than one renderer at a time.
+    """
+    yaml = pytest.importorskip("yaml")
+
+    cli = kitchen_group(sort_subcommands=False)
+    expected = ["prep", "cook", "plate", "help"]
+
+    ctx = make_resilient_context(cli, cli.name)
+    renderings = {"iter_subcommands": [name for name, _ in iter_subcommands(cli, ctx)]}
+
+    result = invoke(cli, "--help", color=False)
+    renderings["--help"] = listed_subcommands(result.stdout)
+
+    result = invoke(cli, "--tree", color=False)
+    renderings["--tree"] = [
+        line.split()[1]
+        for line in result.stdout.splitlines()
+        if line.startswith(("├", "└"))
+    ]
+
+    result = invoke(cli, "--help-format", "markdown", color=False)
+    section = result.stdout.partition("\n## Commands\n")[2].partition("\n## ")[0]
+    renderings["markdown"] = [
+        line.split("`")[1] for line in section.splitlines() if line.startswith("- `")
+    ]
+
+    result = invoke(cli, "--help-format", "carapace", color=False)
+    renderings["carapace"] = [
+        sub["name"] for sub in yaml.safe_load(result.stdout)["commands"]
+    ]
+
+    diverging = {name: order for name, order in renderings.items() if order != expected}
+    assert not diverging, f"renderers out of order: {diverging}"
+
+
+def test_lazy_group_subcommand_order_is_stable_across_loading(tmp_path, monkeypatch):
+    """A lazy subcommand holds its slot before and after it is imported.
+
+    Importing appends the command to ``self.commands``, so registration order read
+    off that dictionary alone would reshuffle mid-run.
+    """
+    for name in ("simmer", "chop", "roast"):
+        (tmp_path / f"{name}_cmd.py").write_text(
+            dedent(
+                f"""\
+                from click_extra import command
+
+                @command
+                def {name}_cli():
+                    pass
+                """
+            ),
+            encoding="utf-8",
+        )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    cli = LazyGroup(
+        name="kitchen",
+        sort_subcommands=False,
+        lazy_subcommands={
+            "simmer": "simmer_cmd.simmer_cli",
+            "chop": "chop_cmd.chop_cli",
+            "roast": "roast_cmd.roast_cli",
+        },
+    )
+    ctx = make_resilient_context(cli, cli.name)
+    expected = ["simmer", "chop", "roast", "help"]
+
+    assert cli.list_commands(ctx) == expected
+    # Import one of them out of order, then ask again.
+    assert cli.get_command(ctx, "roast") is not None
+    assert cli.list_commands(ctx) == expected
+
+
+def test_lazy_group_defaults_to_alphabetical_order():
+    """Sorting moved from ``__init__`` to listing time, with the same result."""
+    cli = LazyGroup(
+        name="kitchen",
+        lazy_subcommands={
+            "simmer": "simmer_cmd.simmer_cli",
+            "chop": "chop_cmd.chop_cli",
+            "roast": "roast_cmd.roast_cli",
+        },
+    )
+    ctx = make_resilient_context(cli, cli.name)
+    assert cli.list_commands(ctx) == ["chop", "help", "roast", "simmer"]
+
+
+def test_option_priorities_leave_processing_order_alone(invoke):
+    """The help screen reorders while ``params`` and the callbacks do not.
+
+    ``click.core.iter_params_for_processing`` breaks eager-option ties on
+    declaration order, which is why ``--time`` measures everything and
+    ``--accessible`` lowers the ``--color`` default before it resolves. Reordering
+    the help screen must not disturb any of that.
+    """
+    fired = []
+
+    def record(ctx, param, value):
+        fired.append(param.name)
+
+    @command(
+        params=[],
+        option_priorities={"--zest": 1, "--simmer": 2, "--chop": 3},
+    )
+    @option("--chop", is_eager=True, expose_value=False, callback=record)
+    @option("--simmer", is_eager=True, expose_value=False, callback=record)
+    @option("--zest", is_eager=True, expose_value=False, callback=record)
+    def cli():
+        """Kitchen."""
+
+    declared = ["chop", "simmer", "zest"]
+    assert [p.name for p in cli.params] == declared
+    assert [
+        p.name
+        for p in cli.ungrouped_options  # type: ignore[attr-defined]
+    ] == ["zest", "simmer", "chop"]
+
+    result = invoke(cli, "--help", color=False)
+    assert result.exit_code == 0
+    options = result.stdout.partition("\nOptions:\n")[2]
+    assert options.index("--zest") < options.index("--simmer") < options.index("--chop")
+
+    fired.clear()
+    result = invoke(cli, color=False)
+    assert result.exit_code == 0
+    assert fired == declared
+
+
+def test_option_priorities_match_flags_then_destination():
+    """A flag pair sharing one destination stays addressable one flag at a time."""
+
+    @command(params=[])
+    @option("--sweet/--savory", default=True)
+    @option("--plate")
+    def cli(sweet, plate):
+        """Kitchen."""
+
+    priority = cli.param_priority  # type: ignore[attr-defined]
+    assert priority(cli.params[0]) == DEFAULT_PRIORITY
+
+    @command(params=[], option_priorities={"--savory": 1, "plate": 2})
+    @option("--sweet/--savory", default=True)
+    @option("--plate")
+    def keyed(sweet, plate):
+        """Kitchen."""
+
+    # `--savory` is the secondary flag of the `sweet` destination, and `plate` is
+    # matched by destination name rather than by flag.
+    priority = keyed.param_priority  # type: ignore[attr-defined]
+    assert [
+        p.name
+        for p in keyed.ungrouped_options  # type: ignore[attr-defined]
+    ] == ["sweet", "plate"]
+    assert priority(keyed.params[0]) == 1
+    assert priority(keyed.params[1]) == 2
+
+
+def test_option_priorities_never_reorder_positional_arguments():
+    """Argument order is part of the command's grammar, not of its presentation."""
+
+    @command(params=[], option_priorities={"first": 9, "second": 1})
+    @argument("first")
+    @argument("second")
+    def cli(first, second):
+        """Kitchen."""
+
+    arguments = cli.arguments  # type: ignore[attr-defined]
+    priority = cli.param_priority  # type: ignore[attr-defined]
+    assert [p.name for p in arguments] == ["first", "second"]
+    assert all(priority(p) == DEFAULT_PRIORITY for p in arguments)

@@ -859,6 +859,49 @@ def iter_subcommands(
         yield name, sub
 
 
+def iter_params_for_display(
+    command: click.Command,
+    ctx: click.Context,
+) -> Iterator[click.Parameter]:
+    """Yield a command's parameters in the order its help screen lists them.
+
+    A Click Extra command keeps two orders apart: `command.params` is the
+    processing order, which decides when each callback fires, while the help screen
+    reads the presentation order Cloup caches in `arguments`, `option_groups` and
+    `ungrouped_options` (see
+    {meth}`click_extra.commands.Command.param_priority`). Reading `get_params()`
+    therefore renders a man page, a Markdown document or a completion spec whose
+    flags no longer match the `--help` its reader just saw. This is the accessor
+    every such renderer should go through.
+
+    Falls back to `get_params()` for a command that carries no Cloup option groups,
+    where the two orders are the same list. Any parameter attached after
+    construction, and so absent from the cached groups, is yielded last rather than
+    dropped.
+    """
+    if not isinstance(command, cloup.Command):
+        yield from command.get_params(ctx)
+        return
+
+    seen: set[int] = set()
+    ordered: list[click.Parameter] = [
+        *command.arguments,
+        *(option for group in command.option_groups for option in group.options),
+        *command.get_ungrouped_options(ctx),
+    ]
+    for param in ordered:
+        if id(param) not in seen:
+            seen.add(id(param))
+            yield param
+
+    # A parameter appended to `command.params` after construction never made it into
+    # the cached groups. Yield it rather than silently dropping it from the render.
+    for param in command.get_params(ctx):
+        if id(param) not in seen:
+            seen.add(id(param))
+            yield param
+
+
 def walk_command_params(
     cmd: click.Command,
     ctx: click.Context,
@@ -884,7 +927,10 @@ def walk_command_params(
             yield (*parent_keys, param.name), param, ctx
 
     if isinstance(cmd, click.Group):
-        for subcmd_name in sorted(cmd.list_commands(ctx)):
+        # `list_commands()` is the group's own authority on subcommand order: a
+        # stock Click group still answers alphabetically, and one that was told
+        # otherwise gets a `--params` tree matching its help screen.
+        for subcmd_name in cmd.list_commands(ctx):
             if subcmd_name in level_param_names:
                 logger.debug(
                     f"{cmd.name}{PARAM_PATH_SEP}{subcmd_name} subcommand shadows a "

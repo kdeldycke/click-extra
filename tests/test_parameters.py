@@ -57,6 +57,7 @@ from click_extra import (
     get_app_dir,
     group,
     option,
+    option_group,
     render_table,
     search_params,
     show_params_option,
@@ -64,6 +65,7 @@ from click_extra import (
 )
 from click_extra.config import NO_CONFIG
 from click_extra.parameters import (
+    iter_params_for_display,
     iter_subcommands,
     make_resilient_context,
     missing_extra_message,
@@ -1777,6 +1779,79 @@ def test_iter_subcommands_empty_for_non_group():
     leaf = click.Command("leaf")
     ctx = make_resilient_context(leaf, "leaf")
     assert list(iter_subcommands(leaf, ctx)) == []
+
+
+def test_iter_params_for_display_follows_the_help_screen():
+    """Presentation order, not the processing order carried by ``params``."""
+
+    # `--zest` is promoted above the DEFAULT_PRIORITY line, `--chop` demoted below
+    # it, and `--simmer` is left where it was declared.
+    @command(params=[], option_priorities={"--zest": 1, "--chop": 200})
+    @option("--chop")
+    @option("--simmer")
+    @option("--zest")
+    @argument("bowl")
+    def cli(chop, simmer, zest, bowl):
+        """Kitchen."""
+
+    ctx = make_resilient_context(cli, "cli")
+    assert [p.name for p in cli.params] == ["chop", "simmer", "zest", "bowl"]
+    assert [p.name for p in iter_params_for_display(cli, ctx)] == [
+        "bowl",
+        "zest",
+        "simmer",
+        "chop",
+        "help",
+    ]
+
+
+def test_iter_params_for_display_keeps_option_groups_together():
+    """Options declared in a Cloup group are yielded under that group."""
+
+    @command(params=[])
+    @option_group("Seasoning", option("--salt"), option("--pepper"))
+    @option("--bowl")
+    def cli(salt, pepper, bowl):
+        """Kitchen."""
+
+    ctx = make_resilient_context(cli, "cli")
+    assert [p.name for p in iter_params_for_display(cli, ctx)] == [
+        "salt",
+        "pepper",
+        "bowl",
+        "help",
+    ]
+
+
+def test_iter_params_for_display_falls_back_to_get_params():
+    """A plain Click command holds a single order, and it is the one to yield."""
+    cli = click.Command(
+        "cli",
+        params=[click.Option(["--chop"]), click.Argument(["bowl"])],
+    )
+    ctx = make_resilient_context(cli, "cli")
+    assert [p.name for p in iter_params_for_display(cli, ctx)] == [
+        "chop",
+        "bowl",
+        "help",
+    ]
+
+
+def test_iter_params_for_display_yields_late_additions_last():
+    """A parameter attached after construction is missing from the cached groups."""
+
+    @command(params=[])
+    @option("--chop")
+    def cli(chop, simmer):
+        """Kitchen."""
+
+    cli.params.append(click.Option(["--simmer"]))
+    ctx = make_resilient_context(cli, "cli")
+    assert [p.name for p in iter_params_for_display(cli, ctx)] == [
+        "chop",
+        "help",
+        "simmer",
+    ]
 
 
 def test_missing_extra_message():

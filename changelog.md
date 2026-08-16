@@ -20,6 +20,10 @@
 - Add an `examples=[("description", "command")]` parameter to `@command` and `@group`, rendered in help screens, man pages and every `--help-format`.
 - Add an opt-in `help` column to `--params`, carrying each parameter's help text; select it with `--columns id,spec,help`.
 - Add an `optional` field to `ColumnSpec`, keeping a column out of an unprojected table while leaving it addressable by ID.
+- Add `sort_subcommands` and `subcommand_priorities` to `@group`, listing subcommands in registration order or by float priority instead of alphabetically. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
+- Add a `sort_subcommands` context setting, inherited by every subgroup below the group declaring it.
+- Add an `option_priorities` argument to `@command` and `@group`, reordering the help screen without moving the order option callbacks run in. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
+- Add `iter_params_for_display()` to `click_extra.parameters`, yielding a command's parameters in the order its help screen lists them.
 - Add a machine-wide `CLICK_EXTRA_THEME` environment variable naming the help-screen palette of every Click Extra CLI at once.
 - Add a `VersionScreen` drawing `--version` as a logo with facts beside it, mounted via `@version_option(screen=…)` or `default_params(screen=…)`.
 - Add a `click_extra.logo` module rendering the brand mark as flat-shaded half blocks, and draw it on `click-extra --version`.

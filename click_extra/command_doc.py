@@ -67,6 +67,7 @@ from .parameters import (
     ExtraOption,
     full_short_help,
     generator_tag,
+    iter_params_for_display,
     iter_subcommands,
     make_resilient_context,
     option_value_kind,
@@ -951,7 +952,7 @@ def extract_command_doc(
     seen_envvars: set[str] = set()
     option_items: list[tuple[Parameter, DocOptionItem]] = []
 
-    for param in command.get_params(ctx):
+    for param in iter_params_for_display(command, ctx):
         if getattr(param, "hidden", False):
             continue
 
