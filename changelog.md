@@ -38,6 +38,7 @@
 - Widen the default capture margin to 48 pixels and its padding to 8, so a window has room for its shadow and its text room from its frame.
 - State a capture's chrome to the command it runs through `CLITHEME` and `COLORFGBG`, so a CLI passing `--theme auto` renders for the window it lands in.
 - Drop the hardening rationale from the screenshots page, which restated the `harden_svg()` docstring at the reader of a user guide.
+- Trim the mechanics the wrapper, decorator, spinner, MyST-docstring and matrix pages explained to a reader who acts on none of them, leaving each to the docstring that owns it.
 - Show a `<picture>` element switching a README between a dark and a light capture on the reader's color scheme, and use one for the readme's own.
 - Fix a light capture keeping the translucent white frame a dark renderer draws, which left a white window invisible on a white page.
 - Drop the survey of other capture tools from the screenshots page, now that the bundled command covers what it compared against.

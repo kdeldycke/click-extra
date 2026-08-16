@@ -236,14 +236,7 @@ $ uvx --with flask click-extra -- flask --help
 $ uvx --with black click-extra -- black --help
 ```
 
-## How it works
-
-The wrapper monkey-patches Click at two levels before importing the target module:
-
-1. **Decorator defaults**: `@click.command()` and `@click.group()` produce colorized commands when no explicit `cls=` is given.
-2. **Method patching**: `click.Command.get_help` and `click.Command.format_help` are patched to inject the colorized formatter and keyword collection on all commands, including those with custom classes (like Flask's `FlaskGroup`).
-
-CLIs already built with Click Extra or Cloup are unaffected by the patching (they already have their own help formatting) but still run correctly through the wrapper.
+A CLI already built with Click Extra or Cloup passes through unchanged: it brings its own help formatting, and the wrapper leaves that alone while still running it. What the wrapper patches into Click on the way, and why it does so in two places, is documented on {func}`click_extra.cli_wrapper.patch_click`.
 
 ## Introspecting external CLIs
 

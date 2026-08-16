@@ -1,12 +1,12 @@
 # {octicon}`mention` Decorators
 
-Click Extra's decorators (`@command`, `@group`, `@option`, `@argument`, `@version_option`, the full `@*_option` family) are produced by a single factory that wraps cloup's originals with three extra behaviors:
+If you only ever use the decorators click-extra ships out of the box, this page is not for you: `@command`, `@group`, `@option` and the rest work as their Click and Cloup counterparts do. It is for downstream code wiring its own `@my_option` decorator into the same factory.
+
+That factory wraps cloup's originals with three behaviors, which is what a decorator built on it inherits:
 
 1. **Subclass-enforced `cls=`**: every `@command` / `@group` always yields a `Command` / `Group` (or a user-supplied subclass thereof), so click-extra's machinery (config loading, theme registry, `--params` introspection) can't be silently bypassed by passing a vanilla `click.Command` class.
 2. **Default-parameter injection**: `default_params()` (the global option set: `--time`, `--config`, `--color`, `--theme`, …) is passed as a *callable*, so each command gets its own freshly-instantiated option list rather than sharing the same mutable instances.
 3. **Optional-parenthesis decoration**: `@command` and `@command()` are both legal call forms, matching the convention [requested in Cloup #127](https://github.com/janluke/cloup/issues/127#issuecomment-1264704896).
-
-If you only ever use the decorators click-extra ships out of the box, you don't need to read further. This page is for downstream code that wants to wire its own `@my_option` decorator into the same factory.
 
 ## `decorator_factory(dec, *new_args, **new_defaults)`
 
