@@ -720,6 +720,41 @@ def _wrap_params(
     render_params_table(subject_ctx, default_columns=_FOREIGN_PARAM_COLUMNS)
 
 
+def target_prog_name(script: str, command: click.Command) -> str:
+    """Return the name a user would type to run SCRIPT.
+
+    Every rendering of a target is titled with this: a man page's `.TH` line, a
+    Carapace spec's `name`, a Markdown heading, the root of a `--tree`. None of
+    them wants the string that was typed to *reach* the command, which is a
+    filesystem path or a dotted import path as often as it is a command name.
+
+    Three shapes, in the order they are distinguished:
+
+    1. A path (a separator, or a `.py` suffix): its basename, dropping that
+       suffix. `path/to/my_cli.py` is run as `my_cli`, not as its own path.
+    2. A dotted or colon-separated import path: the command's own name, which
+       Click took from the function or an explicit `name=`. An import path
+       names a module, never a binary.
+    3. Anything else is a console-script name, already exactly what a user
+       types, and beats the command's own name when the two differ (Flask's
+       entry point is `flask`, its group object is named `cli`).
+
+    ```{caution}
+    Case 2 is a best effort. A target reached as `python -m my_package.cli` has
+    no single name a user types, so the command's own is the closest thing to
+    one. Pass an explicit `prog_name` to the underlying renderer when that is
+    not what you want in the output.
+    ```
+    """
+    if script.endswith(".py"):
+        return Path(script).stem
+    if "/" in script or "\\" in script:
+        return Path(script).name
+    if ":" in script or "." in script:
+        return command.name or script
+    return script
+
+
 def _wrap_man(script: str, nav: tuple[str, ...]) -> None:
     """Resolve a foreign target and read its manual page.
 
@@ -759,7 +794,7 @@ def _wrap_help_format(
         # to reach it (see render_help). The reconstructed wrap command goes in
         # the header, rebuilt from the context rather than sys.argv so it is also
         # correct under CliRunner, in tests and Sphinx.
-        prog_name = cmd.name or (nav[-1] if nav else script)
+        prog_name = nav[-1] if nav else target_prog_name(script, cmd)
         parts = [*ctx.command_path.split(), "--help-format", "carapace"]
         if install:
             parts.append("--install")
@@ -797,7 +832,7 @@ def _wrap_help_format(
                 "write a single subcommand page, drop --output-dir/--install and "
                 "redirect stdout into a .1 file instead."
             )
-        prog_name = cmd.name or script
+        prog_name = target_prog_name(script, cmd)
         written_pages = (
             write_manpages(cmd, output_dir, prog_name=prog_name)
             if output_dir
@@ -807,7 +842,7 @@ def _wrap_help_format(
             click.echo(str(path))
         return
 
-    prog_name = " ".join((script, *nav))
+    prog_name = " ".join((target_prog_name(script, cmd), *nav))
     click.echo(render_help(cmd, help_format, prog_name=prog_name), color=False)
 
 
@@ -826,7 +861,7 @@ def _wrap_tree(
     lose the {data}`~click_extra.context.ACCESSIBLE` entry).
     """
     cmd, _ = resolve_target_command(script, nav)
-    prog_name = " ".join((script, *nav))
+    prog_name = " ".join((target_prog_name(script, cmd), *nav))
     subject_ctx = make_resilient_context(cmd, prog_name)
     if context.get(ctx, context.ACCESSIBLE, False):
         context.set(subject_ctx, context.ACCESSIBLE, True)

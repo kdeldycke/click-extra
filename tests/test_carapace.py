@@ -410,7 +410,7 @@ def test_wrap_carapace_install(runner, greet_script, tmp_path, monkeypatch):
         color=False,
     )
     assert result.exit_code == 0
-    written = tmp_path / "carapace" / "specs" / "cli.yaml"
+    written = tmp_path / "carapace" / "specs" / "greet.yaml"
     assert written.exists()
     assert str(written) in result.stdout
 

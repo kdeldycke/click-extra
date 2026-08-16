@@ -29,6 +29,7 @@ from click_extra.cli_wrapper import (
     _config_args_for_target,
     resolve_target,
     resolve_target_command,
+    target_prog_name,
     unpatch_click,
     wrap,
 )
@@ -962,7 +963,7 @@ def test_wrap_help_format_stays_colorless(runner, greet_script):
 
 @pytest.mark.parametrize(
     ("help_format", "artifact"),
-    (("carapace", "hello.yaml"), ("man", "hello.1")),
+    (("carapace", "greet.yaml"), ("man", "greet.1")),
 )
 def test_wrap_install_writes_where_the_consumer_looks(
     runner, greet_script, tmp_path, monkeypatch, help_format, artifact
@@ -1003,3 +1004,49 @@ def test_wrap_destination_refused_for_documents(runner, greet_script, help_forma
     assert "--install requires --help-format with one of: carapace, man." in (
         result.output
     )
+
+
+@pytest.mark.parametrize(
+    ("script", "expected"),
+    (
+        # A path names the binary after its file, never after itself.
+        ("path/to/my_cli.py", "my_cli"),
+        ("./my_cli.py", "my_cli"),
+        ("../my-project", "my-project"),
+        # An import path names a module, so the command's own name stands in.
+        ("flask.cli:cli", "greeter"),
+        ("my_package.cli", "greeter"),
+        # A console script is already what a user types, and outranks the
+        # command's own name when the two differ.
+        ("flask", "flask"),
+    ),
+)
+def test_target_prog_name_is_what_a_user_would_type(script, expected):
+    """Every rendering is titled with the name the target runs under."""
+    assert target_prog_name(script, click.Command("greeter")) == expected
+
+
+def test_every_rendering_agrees_on_the_target_name(runner, tmp_path):
+    """One rule, so the man page, spec, Markdown and tree cannot disagree.
+
+    The script file is named after neither its command object nor the directory
+    holding it, so a renderer picking the wrong source shows it.
+    """
+    script = tmp_path / "kettle.py"
+    script.write_text(GREET_SCRIPT, encoding="utf-8")
+
+    renders = {
+        fmt: runner.invoke(
+            demo, ["wrap", "--help-format", fmt, str(script)], color=False
+        )
+        for fmt in ("man", "markdown", "carapace")
+    }
+    assert all(r.exit_code == 0 for r in renders.values())
+
+    assert '.TH "KETTLE"' in renders["man"].stdout
+    assert renders["markdown"].stdout.startswith("# kettle\n")
+    assert "\nname: kettle\n" in renders["carapace"].stdout
+
+    tree = runner.invoke(demo, ["wrap", "--tree", str(script)], color=False)
+    assert tree.exit_code == 0
+    assert tree.stdout.startswith("kettle ")
