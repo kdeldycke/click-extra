@@ -548,7 +548,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.help_format",
-            "--help-format [carapace|json|json-full|markdown|markdown-full|roff]",
+            "--help-format [carapace|json|json-full|man|markdown|markdown-full]",
             "click_extra.man_page.HelpFormatOption",
             "click.types.Choice",
             "str",

@@ -447,13 +447,26 @@ def test_resolve_target_command_drills_subcommand(custom_cls_script):
 # -- wrap --man: man page generation for an external CLI ----------------------
 
 
-def test_wrap_man_renders_manpage(runner, greet_script):
-    """``click-extra wrap --man SCRIPT`` prints the target's roff page and exits."""
+def test_wrap_man_reads_manual(runner, greet_script):
+    """``click-extra wrap --man SCRIPT`` reads the target's manual and exits.
+
+    A CLI shipping no man page of its own still gets one to read, typeset from
+    its own command tree.
+    """
     result = runner.invoke(demo, ["wrap", "--man", greet_script], color=False)
+    assert result.exit_code == 0
+    assert "Greet someone." in result.stdout
+    assert "Name to greet." in result.stdout
+
+
+def test_wrap_help_format_man_emits_source(runner, greet_script):
+    """The roff a packager installs comes from the format, not from --man."""
+    result = runner.invoke(
+        demo, ["wrap", "--help-format", "man", greet_script], color=False
+    )
     assert result.exit_code == 0
     assert '.TH "' in result.stdout
     assert "Greet someone." in result.stdout
-    assert "Name to greet." in result.stdout
 
 
 def test_wrap_man_custom_class_group(runner, custom_cls_script):
@@ -479,7 +492,7 @@ def test_wrap_man_unresolvable_target(runner):
 
 
 def test_wrap_man_output_dir_writes_tree(runner, custom_cls_script, tmp_path):
-    """``wrap --man --output-dir`` writes one .1 per (sub)command into the dir.
+    """``wrap --help-format man --output-dir`` writes one .1 per (sub)command.
 
     ``--output-dir`` must appear before SCRIPT, because wrap runs with
     ``allow_interspersed_args=False`` so that anything after SCRIPT is
@@ -488,7 +501,14 @@ def test_wrap_man_output_dir_writes_tree(runner, custom_cls_script, tmp_path):
     target = tmp_path / "man"
     result = runner.invoke(
         demo,
-        ["wrap", "--man", "--output-dir", str(target), custom_cls_script],
+        [
+            "wrap",
+            "--help-format",
+            "man",
+            "--output-dir",
+            str(target),
+            custom_cls_script,
+        ],
         color=False,
     )
     assert result.exit_code == 0
@@ -511,7 +531,7 @@ def test_wrap_man_output_dir_creates_missing_directory(runner, greet_script, tmp
     assert not target.exists()
     result = runner.invoke(
         demo,
-        ["wrap", "--man", "--output-dir", str(target), greet_script],
+        ["wrap", "--help-format", "man", "--output-dir", str(target), greet_script],
         color=False,
     )
     assert result.exit_code == 0
@@ -892,7 +912,7 @@ def test_config_args_no_wrap_section():
     (
         ("json", '"name":'),
         ("markdown", "## Synopsis"),
-        ("roff", ".SH SYNOPSIS"),
+        ("man", ".SH SYNOPSIS"),
     ),
 )
 def test_wrap_help_format_describes_a_foreign_cli(
@@ -938,3 +958,48 @@ def test_wrap_help_format_stays_colorless(runner, greet_script):
     )
     assert result.exit_code == 0
     assert "\x1b[" not in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("help_format", "artifact"),
+    (("carapace", "hello.yaml"), ("man", "hello.1")),
+)
+def test_wrap_install_writes_where_the_consumer_looks(
+    runner, greet_script, tmp_path, monkeypatch, help_format, artifact
+):
+    """``--install`` puts each rendering where the tool reading it looks.
+
+    One destination flag across both formats, each module resolving its own
+    canonical directory: Carapace's spec directory, and the user's man
+    directory. Both honor their XDG variable at call time.
+    """
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
+
+    result = runner.invoke(
+        demo,
+        ["wrap", "--help-format", help_format, "--install", greet_script],
+        color=False,
+    )
+    assert result.exit_code == 0
+
+    expected = {
+        "carapace": tmp_path / "config" / "carapace" / "specs" / artifact,
+        "man": tmp_path / "data" / "man" / "man1" / artifact,
+    }[help_format]
+    assert expected.exists()
+    assert str(expected) in result.stdout
+
+
+@pytest.mark.parametrize("help_format", ("json", "markdown", "markdown-full"))
+def test_wrap_destination_refused_for_documents(runner, greet_script, help_format):
+    """A document has nowhere canonical to be installed, and says so."""
+    result = runner.invoke(
+        demo,
+        ["wrap", "--help-format", help_format, "--install", greet_script],
+        color=False,
+    )
+    assert result.exit_code == 2
+    assert "--install requires --help-format with one of: carapace, man." in (
+        result.output
+    )

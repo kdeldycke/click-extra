@@ -1,6 +1,6 @@
 # {octicon}`terminal` CLI wrapper
 
-Click Extra's `wrap` subcommand runs any installed Click CLI through Click Extra, without modifying the target's source code. By default it applies help colorization, useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling. With `--params`, `--man`, `--carapace` or `--tree`, it instead loads the target and [describes it](#introspecting-external-clis) without running it.
+Click Extra's `wrap` subcommand runs any installed Click CLI through Click Extra, without modifying the target's source code. By default it applies help colorization, useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling. With `--params`, `--man` or `--tree`, it instead loads the target and [describes it](#introspecting-external-clis) without running it, and with `--help-format` it renders the target as an artifact for a program or a build step.
 
 ## Usage
 
@@ -242,7 +242,7 @@ A CLI already built with Click Extra or Cloup passes through unchanged: it bring
 
 The `--params` flag turns `wrap` into a read-only inspector: it loads any Click CLI without running it and prints a table of every parameter, with its ID, spec, class, type, hidden status, environment variables, and default value. This is the same table the [`--params` option](parameters.md#params-option) produces for a Click Extra CLI, pointed at a foreign target instead.
 
-The other introspection modes follow the same contract, each documented on its facet's page: [`--man`](man-page.md) renders the target's man page, [`--carapace`](carapace.md#the-wrap-carapace-mode) its completion spec, and [`--tree`](tree.md#foreign-clis) its hierarchy of nested subcommands. All four are mutually exclusive.
+The other introspection modes follow the same contract, each documented on its facet's page: [`--man`](man-page.md) reads the target's manual, [`--tree`](tree.md#foreign-clis) prints its hierarchy of nested subcommands, and [`--help-format`](man-page.md#machine-readable-formats) renders it as JSON, Markdown, roff or a [Carapace spec](carapace.md#the-wrap-help-format-carapace-mode). All four are mutually exclusive.
 
 ```{click:source}
 :hide-source:

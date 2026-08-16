@@ -43,12 +43,23 @@ from click.core import ParameterSource
 from click.utils import make_str
 
 from . import context
-from .carapace import dump_carapace_spec, install_carapace_spec
+from .carapace import (
+    dump_carapace_spec,
+    install_carapace_spec,
+    write_carapace_spec,
+)
 from .commands import ColorizedCommand, ColorizedGroup, Group
 from .context import Context
 from .decorators import columns_option, option
 from .highlight import HelpFormatter, _HelpColorsMixin
-from .man_page import HELP_FORMATS, render_help, render_manpage, write_manpages
+from .man_page import (
+    HELP_FORMATS,
+    INSTALLABLE_FORMATS,
+    install_manpages,
+    read_manpage,
+    render_help,
+    write_manpages,
+)
 from .parameters import (
     ShowParamsOption,
     make_resilient_context,
@@ -709,37 +720,24 @@ def _wrap_params(
     render_params_table(subject_ctx, default_columns=_FOREIGN_PARAM_COLUMNS)
 
 
-def _wrap_man(
-    script: str,
-    nav: tuple[str, ...],
-    output_dir: Path | None,
-) -> None:
-    """Resolve a foreign target and render its man page (roff).
+def _wrap_man(script: str, nav: tuple[str, ...]) -> None:
+    """Resolve a foreign target and read its manual page.
 
-    With `output_dir` set, writes one `.1` file per (sub)command of the
-    tree rooted at SCRIPT; otherwise prints a single page to stdout.
+    Typesets and pages it, exactly as a CLI's own `--man` does, so a manual can
+    be read for a CLI that ships none. The roff source a packager wants is
+    `--help-format man`, which also takes `--output-dir` and `--install`.
     """
     cmd, _ = resolve_target_command(script, nav)
-    if output_dir is not None:
-        if nav:
-            raise click.ClickException(
-                "--output-dir always emits the full tree rooted at SCRIPT and "
-                "cannot be combined with extra SUBCOMMAND arguments. To render "
-                "a single subcommand page, drop --output-dir and redirect "
-                "stdout into a .1 file instead."
-            )
-        prog_name = cmd.name or script
-        for path in write_manpages(cmd, output_dir, prog_name=prog_name):
-            click.echo(str(path))
-    else:
-        prog_name = " ".join((script, *nav))
-        click.echo(render_manpage(cmd, prog_name=prog_name))
+    read_manpage(cmd)
 
 
 def _wrap_help_format(
+    ctx: click.Context,
     script: str,
     nav: tuple[str, ...],
     help_format: str,
+    output_dir: Path | None,
+    install: bool,
 ) -> None:
     """Resolve a foreign target and render it in one of the {data}`HELP_FORMATS`.
 
@@ -747,40 +745,70 @@ def _wrap_help_format(
     from the outside, exactly like `--params` and `--man` already do. A CLI whose
     author never heard of Click Extra is therefore as machine-readable as one
     that ships `--help-format` itself.
+
+    Stdout is the default destination. `output_dir` and `install` redirect it for
+    the two formats that exist to be *installed* somewhere a consumer reads them
+    from: a man page under a `man` directory, a Carapace spec under Carapace's.
+    The other formats are documents, with no such place to be put, and both flags
+    are refused for them by the caller.
     """
     cmd, _ = resolve_target_command(script, nav)
+
+    if help_format == "carapace":
+        # A spec is keyed on the binary a shell completes, not on the path typed
+        # to reach it (see render_help). The reconstructed wrap command goes in
+        # the header, rebuilt from the context rather than sys.argv so it is also
+        # correct under CliRunner, in tests and Sphinx.
+        prog_name = cmd.name or (nav[-1] if nav else script)
+        parts = [*ctx.command_path.split(), "--help-format", "carapace"]
+        if install:
+            parts.append("--install")
+        parts.extend(("--", script, *nav))
+        invocation = shlex.join(parts)
+        if output_dir:
+            written = write_carapace_spec(
+                cmd,
+                Path(output_dir) / f"{prog_name}.yaml",
+                prog_name=prog_name,
+                invocation=invocation,
+            )
+            click.echo(str(written))
+        elif install:
+            # Each format's own module owns where it belongs, and resolves it at
+            # call time so an XDG override set for one invocation is honored.
+            click.echo(
+                str(
+                    install_carapace_spec(
+                        cmd, prog_name=prog_name, invocation=invocation
+                    )
+                )
+            )
+        else:
+            click.echo(
+                dump_carapace_spec(cmd, prog_name=prog_name, invocation=invocation)
+            )
+        return
+
+    if help_format == "man" and (output_dir or install):
+        if nav:
+            raise click.ClickException(
+                "Writing man pages always emits the full tree rooted at SCRIPT "
+                "and cannot be combined with extra SUBCOMMAND arguments. To "
+                "write a single subcommand page, drop --output-dir/--install and "
+                "redirect stdout into a .1 file instead."
+            )
+        prog_name = cmd.name or script
+        written_pages = (
+            write_manpages(cmd, output_dir, prog_name=prog_name)
+            if output_dir
+            else install_manpages(cmd, prog_name=prog_name)
+        )
+        for path in written_pages:
+            click.echo(str(path))
+        return
+
     prog_name = " ".join((script, *nav))
     click.echo(render_help(cmd, help_format, prog_name=prog_name), color=False)
-
-
-def _wrap_carapace(
-    ctx: click.Context,
-    script: str,
-    nav: tuple[str, ...],
-    install: bool,
-) -> None:
-    """Resolve a foreign target and emit its Carapace completion spec (YAML).
-
-    Unlike the man page, the whole command tree serializes into a single spec, so
-    there is no per-subcommand output mode: the spec is printed to stdout, or with
-    `install` written into Carapace's user spec directory (its path is echoed).
-    The reconstructed wrap command is recorded in the spec's header comment.
-    """
-    cmd, _ = resolve_target_command(script, nav)
-    prog_name = cmd.name or (nav[-1] if nav else script)
-    # Rebuild the wrap command from the context rather than sys.argv, so the
-    # header is correct under CliRunner (tests, Sphinx) too. command_path is
-    # split so its words are not quoted as one shell token.
-    parts = [*ctx.command_path.split(), "--carapace"]
-    if install:
-        parts.append("--install")
-    parts.extend(("--", script, *nav))
-    invocation = shlex.join(parts)
-    if install:
-        path = install_carapace_spec(cmd, prog_name=prog_name, invocation=invocation)
-        click.echo(str(path))
-    else:
-        click.echo(dump_carapace_spec(cmd, prog_name=prog_name, invocation=invocation))
 
 
 def _wrap_tree(
@@ -884,15 +912,7 @@ def _config_args_for_target(
     "--man",
     is_flag=True,
     default=False,
-    help="Show the man page (roff) of the target CLI and exit, without running it.",
-)
-@option(
-    "--carapace",
-    "carapace_spec",
-    is_flag=True,
-    default=False,
-    help="Show the Carapace completion spec (YAML) of the target CLI and exit, "
-    "without running it.",
+    help="Read the manual page of the target CLI and exit, without running it.",
 )
 @option(
     "--tree",
@@ -911,14 +931,14 @@ def _config_args_for_target(
     "--output-dir",
     type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=Path),
     default=None,
-    help="With --man, write one .1 file per (sub)command into this directory "
-    "instead of printing a single page to stdout. Created if missing.",
+    help="With --help-format, write the rendering into this directory instead of "
+    "printing it. Created if missing.",
 )
 @option(
     "--install",
     is_flag=True,
     default=False,
-    help="With --carapace, write the spec into Carapace's user spec directory "
+    help="With --help-format, write the rendering where its consumer looks for it "
     "instead of printing it, and echo the written path.",
 )
 @option(
@@ -941,7 +961,6 @@ def wrap(
     script_and_args: tuple[str, ...],
     params: bool,
     man: bool,
-    carapace_spec: bool,
     tree: bool,
     help_format: str | None,
     output_dir: Path | None,
@@ -953,8 +972,10 @@ def wrap(
     By default, runs SCRIPT with keyword highlighting and themed styling for
     its help screens. The target CLI is not modified.
 
-    With --params, --man, --carapace or --tree, SCRIPT is loaded and
-    described without being run. Extra arguments after SCRIPT navigate into
+    With --params, --man, --tree or --help-format, SCRIPT is loaded and
+    described without being run. The first three answer a question a person is
+    asking right now; --help-format renders the target as an artifact for a
+    program or a build step. Extra arguments after SCRIPT navigate into
     nested subcommands; for --params, any trailing options are replayed
     against the resolved command so the parameter table reports their value and
     source.
@@ -967,30 +988,29 @@ def wrap(
         click.echo(ctx.get_help(), color=ctx.color)
         ctx.exit(0)
 
-    if sum((params, man, carapace_spec, tree, bool(help_format))) > 1:
+    if sum((params, man, tree, bool(help_format))) > 1:
         raise click.UsageError(
-            "--params, --man, --carapace, --tree and --help-format are mutually "
-            "exclusive."
+            "--params, --man, --tree and --help-format are mutually exclusive."
         )
-    if output_dir is not None and not man:
-        raise click.UsageError("--output-dir requires --man.")
-    if install and not carapace_spec:
-        raise click.UsageError("--install requires --carapace.")
+    # Only the formats a consumer installs somewhere have a destination to be
+    # redirected to. The rest are documents: stdout is the only answer.
+    if (output_dir is not None or install) and help_format not in INSTALLABLE_FORMATS:
+        flag = "--output-dir" if output_dir is not None else "--install"
+        formats = ", ".join(sorted(INSTALLABLE_FORMATS))
+        raise click.UsageError(f"{flag} requires --help-format with one of: {formats}.")
 
     script = script_and_args[0]
     args = script_and_args[1:]
 
     # Introspection modes: load the target and describe it without running it.
-    if params or man or carapace_spec or tree or help_format:
+    if params or man or tree or help_format:
         nav, target_args = _split_navigation(args)
         if man:
-            _wrap_man(script, nav, output_dir)
-        elif carapace_spec:
-            _wrap_carapace(ctx, script, nav, install)
+            _wrap_man(script, nav)
         elif tree:
             _wrap_tree(ctx, script, nav)
         elif help_format:
-            _wrap_help_format(script, nav, help_format)
+            _wrap_help_format(ctx, script, nav, help_format, output_dir, install)
         else:
             _wrap_params(ctx, script, nav, target_args, table_format)
         ctx.exit(0)

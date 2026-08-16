@@ -84,8 +84,8 @@ Listed in the order they show up in a `--help` screen:
 - [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping
 - [`--tree`](https://kdeldycke.github.io/click-extra/tree.html) to print the whole hierarchy of nested subcommands with their descriptions, aliases and deprecations:
   ![Nested subcommands printed as a tree](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/command-tree-screen.svg)
-- [`--man`](https://kdeldycke.github.io/click-extra/man-page.html) to print the command's man page as roff, produced from the command tree itself
-- [`--help-format`](https://kdeldycke.github.io/click-extra/man-page.html#machine-readable-formats) to render the command as JSON, Markdown, roff or a Carapace spec, for the readers that are programs rather than people: one option carrying a format, not one flag per format
+- [`--man`](https://kdeldycke.github.io/click-extra/man-page.html#reading-a-manual) to typeset the command's manual and page it, the way `man` does, for a CLI that ships no man page at all
+- [`--help-format`](https://kdeldycke.github.io/click-extra/man-page.html#machine-readable-formats) to render the command as JSON, Markdown, a man page or a [Carapace](https://carapace.sh) spec, for the readers that are programs rather than people: one option carrying a format, not one flag per format
 - [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
 
 Two more options are one decorator away, for a CLI that wants them:
@@ -107,10 +107,10 @@ And every CLI gets these on top:
   ![Flask's parameters listed by the wrapper](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-flask-params-screen.svg)
 - That same inventory in any [machine-readable format](https://kdeldycke.github.io/click-extra/wrap.html#machine-readable-output), for a script that has to consume another CLI's interface:
   ![Flask's parameters exported as JSON](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-flask-json-screen.svg)
-- [`--carapace` mode](https://kdeldycke.github.io/click-extra/carapace.html#the-wrap-carapace-mode) to export any Click CLI's [Carapace](https://carapace.sh) completion spec, `--install`-ed straight into Carapace's spec directory, for identical completions in Bash, Zsh, Fish, Nushell, PowerShell, Elvish and Xonsh:
+- [`--help-format carapace`](https://kdeldycke.github.io/click-extra/carapace.html#the-wrap-help-format-carapace-mode) to export any Click CLI's [Carapace](https://carapace.sh) completion spec, for identical completions in Bash, Zsh, Fish, Nushell, PowerShell, Elvish and Xonsh, with `--install` putting it where Carapace looks (and `--help-format man --install` doing the same for a man page):
   ![A Carapace completion spec generated from Flask](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-carapace-screen.svg)
-- [`--man` mode](https://kdeldycke.github.io/click-extra/man-page.html) to render the target's man page as roff, or a whole tree of `.1` files with `--output-dir`
-- [`--help-format` mode](https://kdeldycke.github.io/click-extra/man-page.html#any-click-cli) to describe any Click CLI as JSON or Markdown, usage line, option groups, subcommands and all, with no cooperation from the target
+- [`--man` mode](https://kdeldycke.github.io/click-extra/man-page.html#reading-a-manual) to read the manual of a CLI that never wrote one
+- [`--help-format` mode](https://kdeldycke.github.io/click-extra/man-page.html#any-click-cli) to describe any Click CLI as JSON, Markdown, a man page or a Carapace spec: usage line, option groups, subcommands and all, with no cooperation from the target
 - [`--tree` mode](https://kdeldycke.github.io/click-extra/tree.html#foreign-clis) to print any external Click CLI's subcommand hierarchy without running it
 - [User-defined themes via `--config`](https://kdeldycke.github.io/click-extra/wrap.html#custom-themes-via-config) work transparently through the wrapper, so users can theme third-party CLIs from their own `pyproject.toml`
 

@@ -105,7 +105,7 @@ $ click-extra wrap --tree -- flask run
 - `--tree` is **command-level, hierarchical, static**: which subcommands exist and how they nest. No values, no options.
 - [`--params`](parameters.md#params-option) is **parameter-level, flat, runtime**: one row per parameter with its type, environment variable, default, current value and provenance.
 
-The tree is a human rendering only. Machine-readable hierarchies are already covered: `--params --table-format json` serializes every parameter with its dotted path, and [`--carapace`](carapace.md) serializes the whole command-and-flag tree as YAML.
+The tree is a human rendering only. Machine-readable hierarchies are already covered: `--params --table-format json` serializes every parameter with its dotted path, and [`--help-format carapace`](carapace.md) serializes the whole command-and-flag tree as YAML.
 
 ## Standalone option
 

@@ -37,12 +37,16 @@ assert "celsius" in result.stdout
 assert result.stdout.count("$files") == 1
 ```
 
-## The wrap `--carapace` mode
+## The wrap `--help-format carapace` mode
 
-`click-extra wrap --carapace -- SCRIPT` resolves a target, loads its Click command, and prints the whole tree's spec to stdout without running it. SCRIPT is [resolved the same way](wrap.md#script-resolution) as for `--man`, so nothing needs to be installed up front with uvx:
+`click-extra wrap --help-format carapace -- SCRIPT` resolves a target, loads its Click command, and prints the whole tree's spec to stdout without running it. SCRIPT is [resolved the same way](wrap.md#script-resolution) as for every other rendering, so nothing needs to be installed up front with uvx:
 
 ```{code-block} shell-session
-$ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace -- flask > flask.yaml
+$ uvx --from "click-extra[carapace]" --with flask click-extra wrap --help-format carapace -- flask > flask.yaml
+```
+
+```{note}
+A spec is one value of [`--help-format`](man-page.md#machine-readable-formats), not a flag of its own. It describes the same command tree the Markdown and JSON renderings describe, in the schema Carapace happens to read, so it belongs beside them rather than in a mode of its own.
 ```
 
 Here is the spec of one of Flask's own subcommands, the choices of its `--sort` option inlined as completion values, and the invocation that produced it recorded in the header:
@@ -61,21 +65,25 @@ import logging
 # narrate which entry point it picked, into a committed capture.
 logging.getLogger("click_extra").setLevel(logging.WARNING)
 
-result = invoke(demo, args=["wrap", "--carapace", "--", "flask", "routes"])
+result = invoke(
+    demo, args=["wrap", "--help-format", "carapace", "--", "flask", "routes"]
+)
 assert result.exit_code == 0
 assert not result.stderr
 assert "name: routes" in result.stdout
 assert "endpoint" in result.stdout
 ```
 
-`--carapace` must appear *before* SCRIPT, since arguments after SCRIPT navigate into nested subcommands. It is mutually exclusive with `--man` and `--params`.
+`--help-format` must appear *before* SCRIPT, since arguments after SCRIPT navigate into nested subcommands. It is mutually exclusive with `--params`, `--man` and `--tree`.
 
-Pass `--install` to write the spec straight into Carapace's user spec directory (`$XDG_CONFIG_HOME/carapace/specs/`, which Carapace loads on startup) instead of printing it:
+Pass `--install` to write the spec where Carapace looks for it (`$XDG_CONFIG_HOME/carapace/specs/`, loaded on startup) instead of printing it:
 
 ```{code-block} shell-session
-$ uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace --install -- flask
+$ uvx --from "click-extra[carapace]" --with flask click-extra wrap --help-format carapace --install -- flask
 /home/me/.config/carapace/specs/flask.yaml
 ```
+
+`--install` reads the same across formats: put this rendering where its consumer looks for it. A [man page](man-page.md#shipping-a-manual) lands in your man directory the same way. `--output-dir` writes it somewhere else instead, and both are refused for the renderings nothing goes looking for.
 
 ## Commands discovered from external state
 
@@ -139,7 +147,7 @@ assert "harvest available once configured: True" in result.stdout
 [Flask](https://flask.palletsprojects.com) hits this in practice. Its `flask` command lists the built-in `routes`, `run` and `shell`, then adds whatever commands the loaded application registered, so it needs to find an application to enumerate the full set. Wrap it with none in reach and the spec carries only the three built-ins, alongside the red `Could not locate a Flask application` error Flask prints to stderr. That error is Flask's own and is not fatal: Flask catches it, falls back to the built-ins and carries on, so the YAML on stdout stays valid, only incomplete. Point Flask at an application through the `FLASK_APP` environment variable (or a `wsgi.py` or `app.py` in the working directory) and the error clears and the application's own commands join the spec:
 
 ```{code-block} shell-session
-$ FLASK_APP=myapp uvx --from "click-extra[carapace]" --with flask click-extra wrap --carapace -- flask > flask.yaml
+$ FLASK_APP=myapp uvx --from "click-extra[carapace]" --with flask click-extra wrap --help-format carapace -- flask > flask.yaml
 ```
 
 The `flask --app` option cannot stand in here: the spec is built without running Flask's own argument parsing, so the application must be discoverable from the environment or the working directory.
@@ -168,7 +176,7 @@ Three entry points cover the Python side, from a string to an installed file:
 
 ## Installation
 
-YAML serialization (`dump_carapace_spec`, `write_carapace_spec`, `install_carapace_spec`, and `wrap --carapace`) needs PyYAML, pulled by the `carapace` extra:
+YAML serialization (`dump_carapace_spec`, `write_carapace_spec`, `install_carapace_spec`, and `wrap --help-format carapace`) needs PyYAML, pulled by the `carapace` extra:
 
 ```{code-block} shell-session
 $ pip install "click-extra[carapace]"

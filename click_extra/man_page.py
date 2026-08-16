@@ -45,8 +45,11 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 import os
 import re
+import shutil
+import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from gettext import gettext as _
@@ -56,6 +59,8 @@ from pathlib import Path
 import click
 from cloup import OptionGroupMixin
 
+from . import context
+from .accessibility import echo_via_pager
 from .config import ConfigOption
 from .envvar import param_envvar_ids
 from .parameters import (
@@ -1067,6 +1072,27 @@ def write_manpages(
     return written
 
 
+def install_manpages(
+    command: Command,
+    prog_name: str | None = None,
+    **overrides: str | None,
+) -> list[Path]:
+    """Write the command tree's man pages where `man` can find them.
+
+    Targets `$XDG_DATA_HOME/man/man1` when that variable is set, else
+    {data}`MAN_INSTALL_DIR`. Returns the written paths.
+
+    The environment is read here rather than at import time, so a caller that
+    sets `XDG_DATA_HOME` for one invocation (a test, a packaging script staging
+    into a build root) is honored. This mirrors
+    {func}`~click_extra.carapace.install_carapace_spec`, whose spec directory
+    resolves the same way.
+    """
+    xdg = os.environ.get("XDG_DATA_HOME")
+    target = Path(xdg).expanduser() / "man" / "man1" if xdg else MAN_INSTALL_DIR
+    return write_manpages(command, target, prog_name, **overrides)
+
+
 HELP_FORMATS: dict[str, str] = {
     "carapace": (
         "Carapace completion spec (YAML). Doubles as a command-and-flag tree, "
@@ -1085,7 +1111,10 @@ HELP_FORMATS: dict[str, str] = {
     "markdown-full": (
         "Every command of the tree as one Markdown document, in tree order."
     ),
-    "roff": "This command as a man page (roff), the format `--man` prints.",
+    "man": (
+        "This command as a man page: the roff source a packager installs, which "
+        "`--man` typesets for reading."
+    ),
 }
 """The formats {func}`render_help` renders, mapped to their one-line description.
 
@@ -1101,6 +1130,16 @@ whole tree into a context window to answer a question about one leaf. The
 `-full` variants exist for the opposite job: generating documentation, or
 diffing a CLI's whole surface between two releases.
 ```
+"""
+
+INSTALLABLE_FORMATS: frozenset[str] = frozenset({"carapace", "man"})
+"""The formats with a canonical place on disk their consumer reads them from.
+
+A man page under a `man` directory, a Carapace spec under Carapace's. These are
+the two renderings that are *installed* rather than read, which is what lets
+`click-extra wrap` offer them a destination (`--output-dir`, `--install`) and
+refuse one to the others. A JSON or Markdown document has no such place: nothing
+goes looking for it, so stdout and a shell redirection are the whole story.
 """
 
 
@@ -1130,7 +1169,15 @@ def render_help(
         # click_extra.commands, which imports this module for ManOption.
         from .carapace import dump_carapace_spec
 
-        return dump_carapace_spec(command, prog_name=prog_name)
+        # A spec is keyed on the binary name a shell completes, never on the
+        # invocation a synopsis line prints. `prog_name` carries the latter for
+        # the document formats (`click-extra wrap` hands it a whole script path),
+        # so narrow it to the last word here. A spec named after a path binds to
+        # nothing, and does so silently.
+        return dump_carapace_spec(
+            command,
+            prog_name=command.name or (prog_name.split()[-1] if prog_name else None),
+        )
 
     if help_format.endswith("-full"):
         pages = [
@@ -1154,9 +1201,115 @@ def render_help(
     return page.to_roff()
 
 
+MAN_FORMATTERS: tuple[tuple[str, ...], ...] = (
+    ("groff", "-man", "-Tutf8", "-rLL={width}n"),
+    ("mandoc", "-Tutf8", "-Owidth={width}"),
+)
+"""Commands able to typeset roff into readable terminal text, best first.
+
+Each entry is an argv template read on stdin, with `{width}` filled from the
+terminal. `groff` is the GNU implementation found nearly everywhere a man page
+is; `mandoc` covers the BSDs and Alpine, which ship it instead.
+
+```{note}
+The `man` binary is deliberately not in this list, even though it is the tool
+being imitated. Reading roff from stdin is where the implementations diverge:
+GNU `man` takes `-l -`, while the BSD one wants a real file path. Driving the
+typesetter directly sidesteps a portability problem that buys nothing, since
+paging is handled here anyway.
+```
+"""
+
+MAN_INSTALL_DIR: Path = Path("~/.local/share/man/man1").expanduser()
+"""Where `--install` writes man pages: the user's own section-1 directory.
+
+The default of the [XDG base directory spec](https://specifications.freedesktop.org/basedir-spec/latest/), which
+{func}`install_manpages` overrides from `XDG_DATA_HOME` when that is set. Some
+systems do not carry this path in their `MANPATH`, in which case the pages land
+correctly but `man` has to be told where to look.
+"""
+
+
+def format_manpage(roff: str, width: int | None = None) -> str | None:
+    """Typeset *roff* into readable terminal text, or `None` if nothing can.
+
+    Tries each entry of {data}`MAN_FORMATTERS` in turn and returns the output of
+    the first that succeeds. Returns `None` when none of them is installed, which
+    the caller is expected to degrade on rather than fail: a CLI that cannot find
+    a typesetter is a CLI running somewhere that never had man pages to begin
+    with (Windows, a slim container), and that is no reason for `--man` to error.
+
+    :param roff: the man page source, as {meth}`CommandDoc.to_roff` renders it.
+    :param width: line length in columns. Defaults to the terminal's own, so the
+        result matches what `man` would have produced in the same window.
+    """
+    if width is None:
+        width = shutil.get_terminal_size().columns
+    for template in MAN_FORMATTERS:
+        if not shutil.which(template[0]):
+            continue
+        argv = [arg.format(width=width) for arg in template]
+        try:
+            process = subprocess.run(
+                argv,
+                input=roff,
+                capture_output=True,
+                text=True,
+                encoding="UTF-8",
+                check=False,
+            )
+        except OSError:
+            continue
+        if process.returncode == 0 and process.stdout.strip():
+            return process.stdout
+    return None
+
+
+OVERSTRIKE_RE = re.compile(r".\x08")
+"""Match the character-backspace pairs a roff typesetter emits for emphasis.
+
+A bold `N` is written `N\\x08N` and an underlined one `_\\x08N`, a convention
+inherited from line printers that a pager still renders as bold and underline
+today. Dropping the pair's first half leaves the plain character.
+"""
+
+
+def read_manpage(command: Command, ctx: Context | None = None) -> None:
+    """Typeset a command's manual and send it to the pager.
+
+    The reading counterpart of `--help-format man`, which emits the roff source
+    a packager installs. Falls back to printing that source, with a warning
+    naming what to install, when no typesetter is available: something on screen
+    beats an error, and the source still carries every word of the manual.
+
+    Under `--accessible` the emphasis is stripped and the pager bypassed
+    ({func}`~click_extra.accessibility.echo_via_pager` streams instead). Both
+    matter to the same reader: a pager is a cursor-driven takeover, and
+    overstrike is worse than the ANSI codes accessible mode already removes,
+    since a screen reader voices `N\\x08NA\\x08AM\\x08ME\\x08E` rather than
+    skipping it.
+    """
+    roff = render_manpage(command, ctx=ctx)
+    typeset = format_manpage(roff)
+    if typeset is None:
+        logging.getLogger("click_extra").warning(
+            "No man page typesetter found (tried %s): printing the roff source "
+            "instead. Install one to read the manual, or ask for the source on "
+            "purpose with --help-format man.",
+            ", ".join(template[0] for template in MAN_FORMATTERS),
+        )
+        click.echo(roff)
+        return
+
+    active_ctx = click.get_current_context(silent=True)
+    if active_ctx is not None and context.get(active_ctx, context.ACCESSIBLE, False):
+        typeset = OVERSTRIKE_RE.sub("", typeset)
+    echo_via_pager(typeset)
+
+
 class ManOption(ExtraOption):
-    """A pre-configured `--man` flag that prints the command's man page
-    (roff) to stdout and exits.
+    """A pre-configured `--man` flag that typesets the command's manual, pages
+    it, and exits.
 
     Eager and value-less, like {class}`~click_extra.parameters.ShowParamsOption`.
     Part of the default option set injected by
@@ -1182,6 +1335,17 @@ class ManOption(ExtraOption):
     `show-` prefix. `--show-man` and `--man-page` have no precedent
     outside Click Extra.
     ```
+
+    ```{note}
+    That Perl convention is about *reading* a manual, and this flag used to
+    print roff source instead, which nobody reads: it was a build artifact
+    wearing a reader's name. It now typesets the page and sends it to the pager,
+    the way `man` itself does, so the flag does what its tradition says.
+
+    The source did not go away, it moved to where a build step looks for it:
+    `--help-format man`, beside every other artifact this module renders. The
+    two are one question apart. Do you want to read the manual, or to ship it?
+    ```
     """
 
     def __init__(
@@ -1190,7 +1354,7 @@ class ManOption(ExtraOption):
         is_flag: bool = True,
         expose_value: bool = False,
         is_eager: bool = True,
-        help: str = _("Show the command's man page (roff) and exit."),
+        help: str = _("Read the command's manual page and exit."),
         **kwargs,
     ) -> None:
         if not param_decls:
@@ -1206,10 +1370,10 @@ class ManOption(ExtraOption):
         )
 
     def print_man(self, ctx: Context, param: Parameter, value: bool) -> None:
-        """Render and print the invoked command's man page, then exit."""
+        """Typeset the invoked command's manual, page it, then exit."""
         if not value or ctx.resilient_parsing:
             return
-        click.echo(render_manpage(ctx.command, ctx=ctx))
+        read_manpage(ctx.command, ctx=ctx)
         ctx.exit()
 
 

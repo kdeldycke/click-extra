@@ -270,7 +270,7 @@ def test_wrap_tree_accessible_ascii_rail(runner, kitchen_script):
 
 @pytest.mark.parametrize(
     "conflicting",
-    (["--params"], ["--man"], ["--carapace"], ["--help-format", "json"]),
+    (["--params"], ["--man"], ["--help-format", "json"]),
 )
 def test_wrap_tree_mutually_exclusive(runner, kitchen_script, conflicting):
     result = runner.invoke(
@@ -278,7 +278,7 @@ def test_wrap_tree_mutually_exclusive(runner, kitchen_script, conflicting):
     )
     assert result.exit_code != 0
     assert (
-        "--params, --man, --carapace, --tree and --help-format are mutually exclusive."
+        "--params, --man, --tree and --help-format are mutually exclusive."
     ) in result.output
 
 

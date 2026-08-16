@@ -6,23 +6,48 @@
 
 Every man-page section is produced mechanically by `click_extra.man_page` from the command itself. It works on any Click command *object* (no `console_scripts` entry point required) and walks the command tree, discovering subcommands dynamically, into one roff page per command. Literal tokens (command and option names) are set bold and replaceable tokens (metavars, operands) italic, following the [literal and replaceable slots](theme.md#literal-and-replaceable-slots) split; Click's `\b` no-rewrap marker becomes a roff `.nf` / `.fi` block.
 
-The `@man_option` decorator adds a `--man` flag that prints a command's man page and exits:
+## Reading a manual
+
+The `@man_option` decorator adds a `--man` flag that typesets the command's manual and sends it to the pager, the way `man` itself does. A CLI gets a manual to read whether or not anyone ever shipped one for it:
 
 ```{click:source}
 import click
 
-from click_extra import man_option
+from click_extra import help_format_option, man_option
 
 @click.command
 @man_option
+@help_format_option
 @click.option("--name", help="Who to greet.")
 def greet(name):
     """Greet someone."""
     click.echo(f"Hello, {name}!")
 ```
 
+`@man_option` and `@help_format_option` are siblings: a plain Click command takes either or both, and a Click Extra one gets them among its [default options](commands.md#default-options).
+
+```{code-block} shell-session
+$ greet --man
+GREET(1)                        General Commands Manual                       GREET(1)
+
+NAME
+       greet - Greet someone.
+
+SYNOPSIS
+       greet [OPTIONS]
+...
+```
+
+Typesetting goes through `groff` or `mandoc`, whichever is installed. Where neither is (Windows, a slim container), the roff source is printed instead with a warning naming what to install: something on screen beats an error, and the source still carries every word.
+
+Under [`--accessible`](colorize.md#accessible-flag) the pager is bypassed and the bold-and-underline overstrike is stripped, since a screen reader voices `N\x08NA\x08AM\x08ME\x08E` rather than skipping it.
+
+## Shipping a manual
+
+`--man` reads; `--help-format man` emits the roff source a packager installs. The two are one question apart: do you want to read the manual, or to ship it?
+
 ```{click:run}
-result = invoke(greet, args=["--man"])
+result = invoke(greet, args=["--help-format", "man"])
 assert result.exit_code == 0
 assert '.TH "GREET" "1"' in result.output
 assert "greet \\- Greet someone." in result.output
@@ -206,7 +231,7 @@ def forecast(city, country, fahrenheit):
 ```
 
 ```{click:run}
-result = invoke(forecast, args=["--man"])
+result = invoke(forecast, args=["--help-format", "man"])
 assert result.exit_code == 0
 assert '.SS "Location"' in result.output
 assert '.SS "Other options"' in result.output
@@ -302,15 +327,29 @@ The available formats:
 | `carapace`      | A [Carapace completion spec](carapace.md) (YAML), which doubles as a command-and-flag tree. |
 | `json`          | This command as a JSON object, its direct subcommands listed by name.                       |
 | `json-full`     | Every command of the tree, under a `commands` array.                                        |
+| `man`           | This command as a man page: the roff source [`--man`](#reading-a-manual) typesets to read.  |
 | `markdown`      | This command as a Markdown document, one section per topic.                                 |
 | `markdown-full` | Every command of the tree as one Markdown document.                                         |
-| `roff`          | This command as a man page, the format [`--man`](#generating-man-pages) prints.             |
 
 ```{note}
 The plain and `-full` variants differ in how much they hand over at once. A plain render describes one command and *names* its children, so a reader descends one level at a time rather than pulling a whole tree into a context window to answer a question about one leaf. The `-full` variants are for the opposite job: generating documentation, or diffing a CLI's whole surface between two releases.
 ```
 
 Whatever `--color` says, these renderings carry no ANSI codes: they are meant to be piped into a parser, which has no use for escape sequences. `--help` remains the colorized human view.
+
+### Installing the artifacts
+
+Two of these renderings are *installed* rather than read: a man page under a `man` directory, a Carapace spec under Carapace's. For those, the wrapper takes a destination instead of printing to stdout:
+
+```{code-block} shell-session
+$ click-extra wrap --help-format man --install -- flask
+/home/me/.local/share/man/man1/flask.1
+/home/me/.local/share/man/man1/flask-run.1
+$ click-extra wrap --help-format carapace --install -- flask
+/home/me/.config/carapace/specs/flask.yaml
+```
+
+`--install` means the same thing for both: put this where its consumer looks for it, honoring `XDG_DATA_HOME` and `XDG_CONFIG_HOME`. `--output-dir DIR` writes it somewhere else instead. Both are refused for the other formats, which are documents nothing goes looking for: a shell redirection is the whole story there.
 
 ### Any Click CLI
 

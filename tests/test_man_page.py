@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 
@@ -28,12 +29,14 @@ from click_extra import (
     command,
     group,
     man_option,
+    man_page as man_page_module,
     option,
     option_group,
 )
 from click_extra.commands import Group
 from click_extra.man_page import (
     HELP_FORMATS,
+    MAN_FORMATTERS,
     render_help,
     render_manpage,
     render_manpages,
@@ -364,7 +367,30 @@ def test_write_manpages(tmp_path):
         assert path.read_text(encoding="utf-8").startswith('.\\" Generated')
 
 
-def test_man_option():
+@pytest.mark.skipif(
+    not any(shutil.which(tool[0]) for tool in MAN_FORMATTERS),
+    reason="No man page typesetter installed.",
+)
+def test_man_option_reads_the_manual():
+    """``--man`` typesets the page for reading, the way ``man`` itself does."""
+
+    @command
+    @man_option
+    def greet():
+        """Greet the world."""
+
+    result = CliRunner().invoke(greet, ["--man"], color=False)
+    assert result.exit_code == 0
+    # Typeset output, not the roff that produced it.
+    assert ".TH" not in result.stdout
+    assert "GREET(1)" in result.stdout
+    assert "Greet the world." in result.stdout
+
+
+def test_man_option_falls_back_to_the_source(monkeypatch):
+    """With no typesetter installed, the source beats an error."""
+    monkeypatch.setattr(man_page_module.shutil, "which", lambda tool: None)
+
     @command
     @man_option
     def greet():
@@ -374,6 +400,27 @@ def test_man_option():
     assert result.exit_code == 0
     assert ".TH" in result.stdout
     assert "greet \\- Greet the world." in result.stdout
+    assert "No man page typesetter found" in result.stderr
+
+
+@pytest.mark.skipif(
+    not any(shutil.which(tool[0]) for tool in MAN_FORMATTERS),
+    reason="No man page typesetter installed.",
+)
+def test_accessible_manual_drops_overstrike():
+    """Accessible mode strips the emphasis a screen reader would voice as noise."""
+
+    @command
+    def greet():
+        """Greet the world."""
+
+    plain = CliRunner().invoke(greet, ["--man"], color=False)
+    assert re.search(r".\x08", plain.stdout)
+
+    accessible = CliRunner().invoke(greet, ["--accessible", "--man"], color=False)
+    assert accessible.exit_code == 0
+    assert not re.search(r".\x08", accessible.stdout)
+    assert "NAME" in accessible.stdout
 
 
 @pytest.mark.skipif(shutil.which("groff") is None, reason="groff not installed")
@@ -500,7 +547,7 @@ def test_examples_render_in_every_backend():
     assert f"$ {example}" in help_screen
 
     # roff escapes the option dashes, so match the rendered spelling.
-    roff = render_help(documented, "roff", prog_name="weather")
+    roff = render_help(documented, "man", prog_name="weather")
     assert ".SH EXAMPLES" in roff
     assert "weather Oslo" in roff
     assert f"$ {example}" in render_help(documented, "markdown", prog_name="weather")
@@ -511,7 +558,7 @@ def test_examples_render_in_every_backend():
 def test_command_without_examples_grows_no_section():
     """A command declaring none renders exactly as it did before the feature."""
     assert "Examples:" not in CliRunner().invoke(weather, ["--help"]).stdout
-    assert ".SH EXAMPLES" not in render_help(weather, "roff", prog_name="weather")
+    assert ".SH EXAMPLES" not in render_help(weather, "man", prog_name="weather")
     assert "## Examples" not in render_help(weather, "markdown", prog_name="weather")
     doc = json.loads(render_help(weather, "json", prog_name="weather"))
     assert doc["examples"] == []

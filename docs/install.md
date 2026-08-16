@@ -245,7 +245,7 @@ By default, Click Extra supports TOML [configuration files](config.md#toml) and 
   - ```{code-block} shell-session
     $ uv pip install click-extra[carapace]
     ```
-  - - [Carapace completion spec export](carapace.md): `wrap --carapace`
+  - - [Carapace completion spec export](carapace.md): `wrap --help-format carapace`
 * - `mkdocs`
   - ```{code-block} shell-session
     $ uv pip install click-extra[mkdocs]

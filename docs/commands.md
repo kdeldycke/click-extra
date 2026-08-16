@@ -554,8 +554,8 @@ Options:
                                level for each additional repetition of the
                                option.  [default: 0]
   --tree                       Show the tree of nested subcommands and exit.
-  --man                        Show the command's man page (roff) and exit.
-  --help-format [carapace|json|json-full|markdown|markdown-full|roff]
+  --man                        Read the command's manual page and exit.
+  --help-format [carapace|json|json-full|man|markdown|markdown-full]
                                Render the command in the given format and exit.
   --version                    Show the version and exit.
   -h, --help                   Show this message and exit.
