@@ -71,9 +71,10 @@ Execution time: 0.342 seconds.
 
 ## Color control
 
-`--color` / `--no-color` controls whether ANSI codes are emitted. The flag also respects environment variables like `NO_COLOR`, `CLICOLOR`, and `FORCE_COLOR`:
+`--color` / `--no-color` controls whether ANSI codes are emitted, overriding whatever the target would have decided on its own. The default `auto` keeps colors for a terminal and drops them for a pipe or a file, so reach for `--color=always` when the destination is not a terminal but you want the styling anyway. The flag also respects environment variables like `NO_COLOR`, `CLICOLOR`, and `FORCE_COLOR`:
 
 ```shell-session
+$ click-extra --color=always -- flask --help
 $ click-extra --no-color -- flask --help
 $ NO_COLOR=1 click-extra -- flask --help
 ```

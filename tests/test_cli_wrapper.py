@@ -632,6 +632,36 @@ def test_wrap_honors_theme_envvar(runner, greet_script, monkeypatch):
     assert BUILTIN_THEMES["nord"].heading("Usage:") in result.output
 
 
+@pytest.mark.parametrize("script_fixture", ("greet_script", "custom_cls_script"))
+@pytest.mark.parametrize(
+    ("color_opt", "colored"),
+    (
+        ("--color=always", True),
+        ("--color=never", False),
+        ("--no-color", False),
+    ),
+)
+def test_wrap_pins_group_color_on_every_target_kind(
+    runner, request, script_fixture, color_opt, colored
+):
+    """The group's tri-state color decision reaches the wrapped target.
+
+    Both kinds of target must obey it: one built by the patched
+    ``@click.command()`` decorator (so it *is* a ``_HelpColorsMixin``) and one
+    carrying an explicit ``cls=`` (so it stays plain Click). They travel
+    different code paths inside ``patch_click``, and the forcing direction used
+    to reach the second only.
+
+    The runner is left on its own auto-detection here: forcing colors at the
+    stream level would paint the output whatever the flag decided.
+    """
+    script = request.getfixturevalue(script_fixture)
+
+    result = runner.invoke(demo, [color_opt, "wrap", script, "--help"])
+    assert result.exit_code == 0
+    assert ("\x1b[" in result.output) is colored
+
+
 @pytest.mark.parametrize(
     "subcommand",
     ["gradient", "palette", "8color", "colors", "styles"],

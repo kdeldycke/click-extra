@@ -150,28 +150,40 @@ def patch_click(
     (`_param_memo`) and Cloup's decorator validators.
     ```
 
+    ```{note}
+    A decided *color* (anything but `None`) is pinned in two places, because the
+    two kinds of target are colorized by different routes. One built with a plain
+    `@click.command()` picks up the patched decorator and therefore *is* a
+    `_HelpColorsMixin`: the context class installed below carries the decision for
+    it. One carrying an explicit `cls=` (like Flask's `FlaskGroup`) keeps its own
+    class and a stock `click.Context`, and is served by the `get_help` patch
+    further down instead. Cover a single route and the flag silently works for
+    half the CLIs in the wild, which is what `--color=always` did until it was
+    pinned here too.
+    ```
+
     :param theme: Color theme to use. `None` keeps the current default.
     :param color: Tri-state ANSI control mirroring `ctx.color`: `True` forces
         colors on, `False` strips them, and `None` (the GNU `auto` default)
         defers to the output stream's TTY status.
     """
-    if color is False:
+    if color is None:
+        ColorizedCommand.context_class = Context
+        ColorizedGroup.context_class = Context
+    else:
 
-        class _NoColorContext(Context):
-            """Context variant that forces colors off."""
+        class _PinnedColorContext(Context):
+            """Context variant pinning the caller's colorization decision."""
 
             def __init__(self, *args, **kwargs) -> None:
                 super().__init__(*args, **kwargs)
-                # Pin colors off for a root context, overriding the auto default
+                # Pin the decision on a root context, overriding the auto default
                 # Context would otherwise resolve from the environment.
                 if not self.parent:
-                    self.color = False
+                    self.color = color
 
-        ColorizedCommand.context_class = _NoColorContext
-        ColorizedGroup.context_class = _NoColorContext
-    else:
-        ColorizedCommand.context_class = Context
-        ColorizedGroup.context_class = Context
+        ColorizedCommand.context_class = _PinnedColorContext
+        ColorizedGroup.context_class = _PinnedColorContext
 
     _patched_command_func = _make_patched_decorator(
         _original_click_command, ColorizedCommand
@@ -188,7 +200,8 @@ def patch_click(
 
     # Patch Command methods to colorize ALL commands, including those with
     # explicit `cls=` (like Flask's `FlaskGroup`). Commands that already
-    # have `_HelpColorsMixin` skip this path to avoid double-processing.
+    # have `_HelpColorsMixin` skip this path to avoid double-processing: the
+    # context class installed above is what carries the color decision to them.
     color_flag = color
 
     def _patched_get_help(self, ctx):
