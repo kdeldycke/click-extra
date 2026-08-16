@@ -307,6 +307,9 @@ On top of the few a renderer adds on its own (8, and 40 above for the title
 bar), which leaves a help screen's first column tight against the frame.
 """
 
+TITLE_SIZE = 18
+"""Height, in pixels, of the caption drawn in a window's title bar."""
+
 WATERMARK_SIZE = 13
 """Height, in pixels, of the credit line's glyphs.
 
@@ -1227,6 +1230,36 @@ def render_svg(
             f'width="{_svg_number(width)}" height="{_svg_number(height)}"/>'
         )
 
+    if shadow != NO_PAINT:
+        # The shadow is cast by a rectangle of its own, laid under the window
+        # rather than by a filter on the window itself. An element whose filter
+        # a renderer cannot resolve is an element *in error*, which the spec
+        # answers by not rendering it at all: hung on the window, a filter it
+        # dislikes takes the background, the frame and the shadow down together
+        # and leaves the text floating on the page. On a rectangle of its own,
+        # the worst it costs is the shadow.
+        #
+        # The primitives are spelled out rather than left to `feDropShadow`,
+        # whose result includes its source: this one keeps the blurred, offset
+        # flood alone, so a window asking for `opacity` still shows the page
+        # through itself instead of the slab that casts its shadow.
+        defs.append(
+            f'<filter id="{unique_id}-shadow" x="-50%" y="-50%" '
+            'width="200%" height="200%">'
+            f'<feGaussianBlur in="SourceAlpha" stdDeviation="{SHADOW_BLUR}"/>'
+            f'<feOffset dx="0" dy="{SHADOW_OFFSET}" result="cast"/>'
+            f'<feFlood flood-color="{shadow}"/>'
+            '<feComposite in2="cast" operator="in"/>'
+            "</filter>"
+        )
+        body.append(
+            f'<rect filter="url(#{unique_id}-shadow)" '
+            f'x="{_svg_number(margin + WINDOW_INSET)}" '
+            f'y="{_svg_number(margin + WINDOW_INSET)}" '
+            f'width="{_svg_number(window_width)}" '
+            f'height="{_svg_number(window_height)}" rx="{radius}"/>'
+        )
+
     window = (
         f'<rect fill="{palette.background}" stroke="{border}" '
         f'stroke-width="{border_width}" x="{_svg_number(margin + WINDOW_INSET)}" '
@@ -1238,14 +1271,6 @@ def render_svg(
         # Set on the fill alone, so the frame drawn by the same rect's stroke
         # keeps stating where the window ends.
         window += f' fill-opacity="{opacity}"'
-    if shadow != NO_PAINT:
-        defs.append(
-            f'<filter id="{unique_id}-shadow" x="-50%" y="-50%" '
-            'width="200%" height="200%">'
-            f'<feDropShadow dx="0" dy="{SHADOW_OFFSET}" stdDeviation="{SHADOW_BLUR}" '
-            f'flood-color="{shadow}"/></filter>'
-        )
-        window += f' filter="url(#{unique_id}-shadow)"'
     body.append(f"{window}/>")
 
     if not collapse_titlebar:
@@ -1268,7 +1293,8 @@ def render_svg(
         if title:
             body.append(
                 f'<text class="{unique_id}-title" fill="{palette.foreground}" '
-                f'text-anchor="middle" '
+                f'font-family="{font_stack}" font-size="{TITLE_SIZE}" '
+                f'font-weight="bold" text-anchor="middle" '
                 f'x="{_svg_number(margin + WINDOW_INSET + window_width / 2)}" '
                 f'y="{_svg_number(margin + WINDOW_INSET + CELL_HEIGHT + 6)}">'
                 f"{_xml_escape(title)}</text>"
@@ -1278,7 +1304,16 @@ def render_svg(
         f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})" '
         f'clip-path="url(#{unique_id}-clip)">'
         f"{''.join(cells)}"
-        f'<g class="{unique_id}-matrix">{"".join(glyphs)}</g>'
+        # The stylesheet says all of this too, and says it once. It is repeated
+        # here as presentation attributes because a renderer is free to ignore a
+        # `<style>` block, and several do: the text then falls back to a
+        # proportional face at a default size in default black, which is a
+        # terminal capture with neither its grid nor its colors. An attribute
+        # loses to a stylesheet wherever one is read, so this changes nothing
+        # for a renderer that reads both.
+        f'<g class="{unique_id}-matrix" font-family="{font_stack}" '
+        f'font-size="{_svg_number(CELL_HEIGHT)}" fill="{palette.foreground}">'
+        f"{''.join(glyphs)}</g>"
         "</g>"
     )
     body.append(
@@ -1314,7 +1349,7 @@ def render_svg(
         "        font-variant-east-asian: full-width;\n"
         "    }\n"
         f"    .{unique_id}-title {{\n"
-        "        font-size: 18px;\n"
+        f"        font-size: {TITLE_SIZE}px;\n"
         "        font-weight: bold;\n"
         f"        font-family: {font_stack};\n"
         "    }\n"

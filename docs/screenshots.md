@@ -49,7 +49,11 @@ Three things it settles that a general-purpose capture tool leaves to you:
 
 Every SVG it writes also gives each *column* its own offset, rather than padding a line with spaces and leaning on `textLength` to hold the rest of it in place. Written the other way, a column only lands where it belongs if the reader's renderer both honors `textLength` and resolves the font the file names. A web browser does both; `librsvg` (and through it `rsvg-convert` and ImageMagick) ignores `textLength` outright, and a file manager, a git client or a thumbnailer commonly falls back to a proportional font. Either way a gutter paid for in glyphs collapses and the columns slide onto each other. {func}`click_extra.screenshot.column_segments` documents where the cut falls.
 
-Two smaller things travel with that. Nothing is fetched: the text is set in the first family of {data}`click_extra.screenshot.CAPTURE_FONT_STACK` the reader already has, so a capture renders the same offline and on a page that forbids third-party requests. And the encoding is declared outright, because a standalone SVG carries no HTTP header to state it and a reader that assumes the platform's own turns every multi-byte character into mojibake, a full block becoming `â`.
+Three smaller things travel with that, each one a way a capture used to depend on the reader being a browser:
+
+- **Nothing is fetched.** The text is set in the first family of {data}`click_extra.screenshot.CAPTURE_FONT_STACK` the reader already has, so a capture renders the same offline and on a page that forbids third-party requests.
+- **The encoding is declared outright.** A standalone SVG carries no HTTP header to state it, and a reader that assumes the platform's own turns every multi-byte character into mojibake, a full block becoming `â`.
+- **Nothing important is left to a stylesheet or a filter.** The terminal text names its face, size and color as attributes as well as in the stylesheet, because a renderer that ignores a `<style>` block would otherwise fall back to a proportional face in default black. And the window's drop shadow is cast by a rectangle of its own rather than by a filter on the window: an element whose filter a renderer cannot resolve is an element *in error*, which the spec answers by not drawing it at all, so a filter hung on the window would take the background and the frame down with it. macOS Finder's thumbnailer and ImageMagick both do exactly that.
 
 ### Capturing a CLI that is not yours
 

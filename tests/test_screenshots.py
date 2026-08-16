@@ -48,6 +48,7 @@ from click_extra.screenshot import (
     CAPTURE_BACKGROUND,
     CAPTURE_BORDERS,
     CAPTURE_FOREGROUND,
+    CAPTURE_PALETTES,
     CAPTURE_SHADOWS,
     CAPTURE_TERMINAL_HINTS,
     CELL_WIDTH,
@@ -346,6 +347,42 @@ def test_no_capture_places_a_column_by_its_padding():
             content = unescape(element["content"])
             assert not _COLUMN_GAP_RE.search(content), (
                 f"{name}: run holds a gutter its glyphs pay for: {content!r}"
+            )
+
+
+def test_no_capture_hangs_a_filter_on_its_window():
+    """The window's own rectangle carries no filter.
+
+    An element whose filter a renderer cannot resolve is an element in error,
+    which the spec answers by not rendering it at all. Hung on the window, a
+    filter costs the background, the frame and the shadow together and leaves
+    the text floating on the page: what macOS Finder's thumbnailer and
+    ImageMagick both do with a capture built that way.
+    """
+    for committed in COMMITTED_CAPTURES:
+        svg = (ASSETS / committed.filename).read_text(encoding="utf-8")
+        palette = CAPTURE_PALETTES[committed.background]
+        for element in re.finditer(r"<rect [^>]*/>", svg):
+            if f'fill="{palette.background}"' in element[0]:
+                assert "filter=" not in element[0], (
+                    f"{committed.filename}: the window would vanish with its filter"
+                )
+
+
+def test_capture_states_its_font_outside_the_stylesheet():
+    """The terminal text names its face, size and color as attributes too.
+
+    A renderer is free to ignore a `<style>` block, and several do. The text
+    then falls back to a proportional face at a default size in default black,
+    which is a terminal capture with neither its grid nor its colors.
+    """
+    for committed in COMMITTED_CAPTURES:
+        svg = (ASSETS / committed.filename).read_text(encoding="utf-8")
+        matrix = re.search(r"<g class=\"[^\"]+-matrix\"[^>]*>", svg)
+        assert matrix, f"{committed.filename}: no text group"
+        for attribute in ("font-family", "font-size", "fill"):
+            assert f"{attribute}=" in matrix[0], (
+                f"{committed.filename}: text group leaves {attribute} to the stylesheet"
             )
 
 
