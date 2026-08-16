@@ -162,20 +162,25 @@ And every CLI gets these on top:
 
 ## Used in
 
-Check these projects to get real-life examples of `click-extra` usage:
+Check these projects to get real-life examples of `click-extra` usage.
 
-- ![GitHub stars](https://img.shields.io/github/stars/ankitects/anki?label=%E2%AD%90&style=flat-square) [Anki](https://github.com/ankitects/anki) - A smart spaced repetition flashcard program.
-- ![GitHub stars](https://img.shields.io/github/stars/jazzband/pip-tools?label=%E2%AD%90&style=flat-square) [pip-tools](https://github.com/jazzband/pip-tools) - A set of tools to keep your pinned Python dependencies fresh.
-- ![GitHub stars](https://img.shields.io/github/stars/callowayproject/bump-my-version?label=%E2%AD%90&style=flat-square) [bump-my-version](https://github.com/callowayproject/bump-my-version) - A CLI updating every version string in a project.
+### CLIs built on it
+
 - ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/meta-package-manager?label=%E2%AD%90&style=flat-square) [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager) - A unifying CLI for multiple package managers.
 - ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/mail-deduplicate?label=%E2%AD%90&style=flat-square) [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate) - A CLI to deduplicate similar emails.
-- ![GitHub stars](https://img.shields.io/github/stars/litestar-org/sqlspec?label=%E2%AD%90&style=flat-square) [SQLSpec](https://github.com/litestar-org/sqlspec) - A query mapper for Python.
 - ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/repomatic?label=%E2%AD%90&style=flat-square) [repomatic](https://github.com/kdeldycke/repomatic) - Automate repository maintenance, releases and CI/CD workflows.
-- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/extra-platforms?label=%E2%AD%90&style=flat-square) [Extra Platforms](https://github.com/kdeldycke/extra-platforms) - Detect architectures, platforms, shells, terminals and CI systems, grouped by family.
 - ![GitHub stars](https://img.shields.io/github/stars/couchbaselabs/agent-catalog?label=%E2%AD%90&style=flat-square) [agent-catalog](https://github.com/couchbaselabs/agent-catalog) - Couchbase agent catalog.
 - ![GitHub stars](https://img.shields.io/github/stars/SkwalExe/octo-logo?label=%E2%AD%90&style=flat-square) [octo-logo](https://github.com/SkwalExe/octo-logo) - Simple logos for complex projects.
 - ![GitHub stars](https://img.shields.io/github/stars/Project-Muteki/besta-tools?label=%E2%AD%90&style=flat-square) [besta-tools](https://github.com/Project-Muteki/besta-tools) - Tools for Besta devices and Besta RTOS proprietary formats.
 
-Anki, pip-tools, bump-my-version, SQLSpec and Extra Platforms use the documentation half only, for GitHub alerts and colored code blocks in their Sphinx and MkDocs builds. The others build their CLI on it.
+### Documentation rendered with it
 
-Feel free to send a PR to add your project in this list if you are relying on Click Extra in any way.
+These pull `click-extra[sphinx]` or `click-extra[mkdocs]` for GitHub alerts, ANSI-colored code blocks and live CLI examples, and build their own command line on something else:
+
+- ![GitHub stars](https://img.shields.io/github/stars/ankitects/anki?label=%E2%AD%90&style=flat-square) [Anki](https://github.com/ankitects/anki) - A smart spaced repetition flashcard program.
+- ![GitHub stars](https://img.shields.io/github/stars/jazzband/pip-tools?label=%E2%AD%90&style=flat-square) [pip-tools](https://github.com/jazzband/pip-tools) - A set of tools to keep your pinned Python dependencies fresh.
+- ![GitHub stars](https://img.shields.io/github/stars/callowayproject/bump-my-version?label=%E2%AD%90&style=flat-square) [bump-my-version](https://github.com/callowayproject/bump-my-version) - A CLI updating every version string in a project.
+- ![GitHub stars](https://img.shields.io/github/stars/litestar-org/sqlspec?label=%E2%AD%90&style=flat-square) [SQLSpec](https://github.com/litestar-org/sqlspec) - A query mapper for Python.
+- ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/extra-platforms?label=%E2%AD%90&style=flat-square) [Extra Platforms](https://github.com/kdeldycke/extra-platforms) - Detect architectures, platforms, shells, terminals and CI systems, grouped by family.
+
+Feel free to send a PR to add your project in either list if you are relying on Click Extra in any way.

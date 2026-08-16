@@ -30,6 +30,7 @@
 - Render Flask's Carapace spec on the completion page, and illustrate the readme's `--carapace` entry with the capture it maintains.
 - Lead the readme's feature list with the sections a capture can show, moving configuration and types below them.
 - Refresh the readme's list of projects using Click Extra, adding Anki, pip-tools and six others, dropping two dead ones.
+- Split that list between the projects building a CLI on Click Extra and those rendering their documentation with it.
 - Execute the default and prepended subcommand examples of the configuration page, which were hand-written output for a CLI missing the `debug` subcommand they invoked.
 - Pin the application directory resolved while building the documentation, so a `--config` default no longer renders the building host's platform.
 - Replace the readme and tutorial before/after screenshots with captures the tutorial's own blocks maintain, superseding hand-drawn images that still advertised `--show-params` and `-C, --config`.
