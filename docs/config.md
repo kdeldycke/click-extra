@@ -666,7 +666,7 @@ The metadata flag and the `dict[str, X]` type hint are interchangeable for decla
 A {py:class}`~click_extra.config.schema.ConfigValidator` binds an `extension_path` to a callable that inspects the sub-tree and raises {py:class}`~click_extra.config.schema.ValidationError` on failure. Pass a tuple of validators through the `config_validators=` kwarg on `@group` or `@config_option`:
 
 ```{code-block} python
-:emphasize-lines: 14-19,29-34
+:emphasize-lines: 14-23,33-39
 from dataclasses import dataclass, field
 
 from click_extra import (
@@ -1548,7 +1548,7 @@ The `BRACE` flag is always forced, so that multi-format default patterns using `
 The flags above can be changed via the {py:class}`search_pattern_flags argument of the decorator <click_extra.config.option.ConfigOption>`. So to make the matching case-insensitive, add the `IGNORECASE` flag:
 
 ```{code-block} python
-:emphasize-lines: 8,9,14
+:emphasize-lines: 9,14
 from wcmatch.glob import (
     GLOBSTAR,
     FOLLOW,

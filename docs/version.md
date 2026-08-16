@@ -476,7 +476,7 @@ The remaining fields (`module`, `module_file`, `author`, `license`) have no defa
 Here is an example:
 
 ```{click:source}
-:emphasize-lines: 7-13
+:emphasize-lines: 7-12
 import click
 from click_extra import version_option, Style
 
@@ -589,7 +589,7 @@ assert re.fullmatch((
 When the `DEBUG` level is enabled, all available variables will be printed in the log:
 
 ```{click:source}
-:emphasize-lines: 5-6
+:emphasize-lines: 5
 import click
 from click_extra import version_option, verbosity_option, echo
 
@@ -603,6 +603,7 @@ def version_in_logs():
 Which is great to see how each variable is populated and styled:
 
 ```{click:run}
+:emphasize-lines: 15
 import re
 result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
 assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.output
