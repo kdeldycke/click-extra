@@ -24,6 +24,8 @@ that both survive the terminal.
 from __future__ import annotations
 
 import colorsys
+import re
+from pathlib import Path
 
 import pytest
 from boltons.strutils import strip_ansi
@@ -65,6 +67,43 @@ def contrast(a, b) -> float:
 
 def rgb(value: str) -> tuple[int, int, int]:
     return tuple(int(value[i : i + 2], 16) for i in (1, 3, 5))  # type: ignore[return-value]
+
+
+ARTWORK = Path(__file__).parent.parent / "docs" / "assets" / "logo-square.svg"
+"""The SVG the terminal rendition shares its palette with.
+
+Present in a source checkout and in the sdist, absent from the wheel, which is the
+whole reason `click_extra.logo` repeats the colors instead of reading them.
+"""
+
+PLANE_NAMES = {"top": "t", "left": "l", "right": "r"}
+"""How the artwork's CSS spells the planes `click_extra.logo` keys by initial."""
+
+
+@pytest.mark.skipif(not ARTWORK.exists(), reason="artwork not shipped in the wheel")
+def test_palette_matches_the_artwork():
+    """The terminal mark and the artwork paint the same eighteen colors.
+
+    They were separate palettes while the artwork was outlined and the terminal had
+    to compensate for it. Both being flat-shaded, there is no longer any reason for
+    them to differ — and nothing but this notices when one is recolored alone.
+    """
+    rules = re.findall(
+        r"\.cube(\d)-(top|left|right)\{fill:(#[0-9A-Fa-f]{6});\}",
+        ARTWORK.read_text(encoding="utf-8"),
+    )
+    assert len(rules) == len(LEVELS) * 3, f"artwork declares {len(rules)} faces"
+
+    artwork = {
+        (int(slot) - 1, PLANE_NAMES[plane]): value.upper()
+        for slot, plane, value in rules
+    }
+    declared = {
+        (slot, plane): value.upper()
+        for slot, planes in enumerate(FACE_COLORS)
+        for plane, value in planes.items()
+    }
+    assert artwork == declared
 
 
 def test_geometry_lands_on_whole_sub_pixels():
