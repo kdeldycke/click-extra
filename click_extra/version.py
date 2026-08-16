@@ -34,9 +34,12 @@ import inspect
 import json
 import logging
 import os
+import platform
 import re
+import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from email.utils import getaddresses
 from functools import cached_property
 from gettext import gettext as _
@@ -45,29 +48,57 @@ from pathlib import Path
 
 import click
 from boltons.formatutils import BaseFormatField, tokenize_format_str
+from boltons.strutils import strip_ansi
 from click import echo, get_current_context
+from extra_platforms import current_architecture, current_platform
 
-from .context import _LazyMetaDict
+from .color import invocation_color, is_a_tty
+from .context import ACCESSIBLE, _LazyMetaDict, get
 from .parameters import ExtraOption
 from .styling import Style
-from .theme import BUILTIN_THEMES, nocolor_theme
+from .theme import get_current_theme
 
-# Frozen reference to the default theme's invoked-command style. Used as the
-# default for several version-template fields below. Captured at module load
-# time on purpose: defaults bind once at function-definition time, so reading
-# through `get_default_theme()` here would hide later overrides anyway.
-# Falls back to the colorless theme when themes.toml is absent (some packaging
-# setups drop the data file, so the built-in "dark" palette is unavailable).
-_default_invoked_command = BUILTIN_THEMES.get("dark", nocolor_theme).invoked_command
+RESET = "\x1b[0m"
+"""The sequence closing every style, for padding that must inherit none of one."""
+
+MUTED = Style(fg="bright_black")
+"""The recessive style the version screen gives its tagline and its fact labels."""
+
+
+def theme_slot(slot: str) -> IStyle:
+    """A style reading its palette slot off the active theme, on every call.
+
+    The version template's fields used to hold a style captured from the `dark`
+    palette at import, on the reasoning that a default binds once anyway. That
+    froze the message to one palette: `--theme light` recolored every help screen
+    and left `--version` painting the program name bright white, which on a light
+    terminal is white on white. Deferring the lookup to call time is what makes the
+    message follow `--theme`, `CLICK_EXTRA_THEME` and the background-sniffing
+    `auto` alike, and what drops its color entirely under the monochrome `manpage`
+    palette.
+
+    {func}`~click_extra.theme.get_current_theme` already answers with the colorless
+    theme outside an invocation, and with a full palette inside one, so no slot can
+    come back missing.
+    """
+
+    def apply(text: str) -> str:
+        return getattr(get_current_theme(), slot)(text)  # type: ignore[no-any-return]
+
+    return apply
+
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping, Sequence
     from importlib.metadata import PackageMetadata
     from types import FrameType, ModuleType
-    from typing import Any, ClassVar
+    from typing import Any, ClassVar, TypeAlias
 
     from cloup.styling import IStyle
+
+    Facts: TypeAlias = Mapping[str, str]
+    """Label-to-value rows of a version screen, in the order they are drawn."""
 
 logger = logging.getLogger(__name__)
 
@@ -387,6 +418,217 @@ def resolve_license(meta: PackageMetadata | None) -> str | None:
     return meta_value(meta, "License")
 
 
+def platform_label() -> str:
+    """Current platform and CPU architecture, as displayed to the user."""
+    return f"{current_platform().name} {current_architecture().name}"
+
+
+def env_summary() -> str:
+    """One-line interpreter and platform summary.
+
+    The same two facts {func}`default_facts` puts on the version screen, joined for
+    a CLI that would rather spend one line of its plain `--version` on them than
+    draw a screen at all: `@version_option(fields={"env_info": env_summary()})`.
+    """
+    return f"Python {platform.python_version()}, {platform_label()}"
+
+
+def dependency_versions() -> str:
+    """The Click and Cloup releases this install is sitting on.
+
+    Worth a row on a screen whose main job is to be pasted into a bug report: Click
+    Extra subclasses both, so which of the three is at fault is the first question
+    any such report raises. Not a default fact, since a CLI built on Click Extra may
+    reasonably consider that its own business rather than its user's.
+
+    Read from the installed distributions rather than the packages' own
+    `__version__`, which Click deprecated in `8.4.0` and removes in `9.1`.
+    """
+    return ", ".join(
+        f"{name.capitalize()} {metadata.version(name)}" for name in ("click", "cloup")
+    )
+
+
+def default_facts() -> dict[str, str]:
+    """The facts every version screen carries, as an ordered label-to-value map.
+
+    A mapping rather than a sequence of pairs so a CLI can adjust one row without
+    restating the rest, `dict` preserving insertion order and replacement keeping a
+    key where it already sat:
+
+    ```{code-block} python
+    default_facts() | {"Platform": my_own_label}   # replaces, in place
+    default_facts() | {"Docs": DOCS_URL}           # appends, at the end
+    ```
+    """
+    return {
+        "Python": platform.python_version(),
+        "Platform": platform_label(),
+    }
+
+
+def visible_width(text: str) -> int:
+    """Columns *text* occupies once its escape sequences are discounted.
+
+    ```{caution}
+    Counts characters, not display cells, so a logo drawn with double-width
+    characters (CJK, emoji) measures short and its screen lays out ragged. Every
+    character a terminal renders one cell wide is fine, which covers ASCII, the
+    block and box-drawing ranges, and braille.
+    ```
+    """
+    return len(strip_ansi(text))
+
+
+@dataclass(frozen=True)
+class VersionScreen:
+    """A logo, and the facts to seat beside it, as `--version` should draw them.
+
+    Owns the layout only. The artwork arrives already rendered — a string, or the
+    lines of one — so a CLI is free to draw its mark however it likes, in ASCII line
+    art, half-blocks or anything else, without this class knowing. Hand one to
+    {class}`VersionOption` through its `screen` argument, or to a whole CLI through
+    `default_params(screen=…)`.
+    """
+
+    logo: str | Sequence[str]
+    """The mark, pre-rendered. A string is split on newlines."""
+
+    tagline: str = ""
+    """One line under the program name. Omitted, with its blank line, when empty."""
+
+    facts: Facts | Callable[[], Facts] = default_facts
+    """Label-to-value rows under the tagline, or a callable producing them.
+
+    A callable defers the work to render time, which matters when a value costs
+    something to compute: a CLI counting plugins should not pay for that on every
+    invocation just to have the number ready in case `--version` is asked for.
+    """
+
+    gutter: str = "   "
+    """Blank columns between the mark and the facts, and between label and value."""
+
+    @property
+    def lines(self) -> tuple[str, ...]:
+        """The mark's lines, every one padded out to {attr}`width`.
+
+        Padding here rather than asking for it is what lets a caller hand over
+        whatever its renderer produced. Trailing blanks are invisible on a line by
+        itself and ragged the moment anything is placed beside it, and a caller
+        cannot repair that afterwards: `str.ljust` counts the escape sequences it
+        cannot see, so on a styled line it silently does nothing.
+        """
+        raw = self.logo.split("\n") if isinstance(self.logo, str) else list(self.logo)
+        width = self.width
+        padded = []
+        for line in raw:
+            gap = width - visible_width(line)
+            # Close any style the line left open, so the padding cannot inherit a
+            # background and bleed across the gutter.
+            reset = RESET if gap and "\x1b[" in line else ""
+            padded.append(f"{line}{reset}{' ' * gap}")
+        return tuple(padded)
+
+    @property
+    def width(self) -> int:
+        """Columns the mark occupies, taken from its widest line."""
+        raw = self.logo.split("\n") if isinstance(self.logo, str) else self.logo
+        return max((visible_width(line) for line in raw), default=0)
+
+    def rows(self, prog_name: str, version: str, styles: Mapping[str, IStyle | None]):
+        """The column of facts, as (plain, styled) pairs.
+
+        Both forms are built together because the styled one cannot be measured: its
+        escape sequences take columns that never reach the screen, and the plain twin
+        is what {meth}`render` sizes the layout against.
+
+        The program name and version take the same styles the plain message gives
+        them, so the two renderings of `--version` cannot drift apart on color.
+        """
+        facts = self.facts() if callable(self.facts) else self.facts
+        # One column per the longest label, so the values line up without anyone
+        # having to declare a width that a later row could outgrow.
+        label_width = max((len(label) for label in facts), default=0)
+
+        def paint(field: str, text: str) -> str:
+            style = styles.get(field)
+            return style(text) if style else text
+
+        header = [
+            (
+                f"{prog_name}, version {version}",
+                paint("prog_name", prog_name)
+                + ", version "
+                + paint("version", version),
+            ),
+        ]
+        if self.tagline:
+            header.append((self.tagline, MUTED(self.tagline)))
+        if facts:
+            header.append(("", ""))
+        return (
+            *header,
+            *(
+                (
+                    f"{label:<{label_width}}{self.gutter}{value}",
+                    MUTED(f"{label:<{label_width}}") + self.gutter + value,
+                )
+                for label, value in facts.items()
+            ),
+        )
+
+    def render(
+        self, prog_name: str, version: str, styles: Mapping[str, IStyle | None]
+    ) -> str | None:
+        """Compose the mark and the facts into the screen, or decline to.
+
+        The facts are centred against the mark's height, and either column may be
+        the taller of the two: a line missing from one side simply renders blank.
+
+        Returns `None` when the terminal is too narrow to seat the two columns side
+        by side, leaving the caller to fall back rather than emit a wrapped mess. The
+        threshold is measured off the facts actually built, since their widest row
+        grows with whatever a CLI chose to report. A non-interactive stream reports
+        `shutil`'s 80-column default, wide enough that a redirected-but-forced-color
+        run still gets the screen it asked for.
+        """
+        rows = self.rows(prog_name, version, styles)
+        needed = (
+            self.width
+            + len(self.gutter)
+            + max((len(plain) for plain, _ in rows), default=0)
+        )
+        if needed > shutil.get_terminal_size().columns:
+            return None
+
+        logo = self.lines
+        offset = max(0, (len(logo) - len(rows)) // 2)
+        blank = " " * self.width
+        lines = []
+        for index in range(max(len(logo), offset + len(rows))):
+            left = logo[index] if index < len(logo) else blank
+            row = index - offset
+            right = rows[row][1] if 0 <= row < len(rows) else ""
+            lines.append(f"{left}{self.gutter}{right}".rstrip())
+        # Open on a blank line: `--version` is often the tail of a noisier command (a
+        # `uv run` resolving, a wrapper announcing itself), and the mark reads as part
+        # of that noise when it starts flush against it.
+        return "\n" + "\n".join(lines)
+
+
+def colors_reach_output() -> bool:
+    """Will ANSI codes survive all the way to the user's terminal?
+
+    Resolves Click Extra's color tri-state, deferring to the output stream's TTY
+    status on its `auto` default, exactly as `click.echo` does when it decides
+    whether to strip the codes itself.
+    """
+    color = invocation_color()
+    if color is None:
+        return is_a_tty(click.get_text_stream("stdout"))
+    return color
+
+
 class VersionOption(ExtraOption):
     """Gather CLI metadata and prints a colored version string.
 
@@ -436,12 +678,12 @@ class VersionOption(ExtraOption):
     """List of field IDs recognized by the message template."""
 
     default_styles: ClassVar[dict[str, IStyle]] = {
-        "module_name": _default_invoked_command,
-        "module_version": Style(fg="green"),
-        "package_name": _default_invoked_command,
-        "package_version": Style(fg="green"),
-        "exec_name": _default_invoked_command,
-        "version": Style(fg="green"),
+        "module_name": theme_slot("invoked_command"),
+        "module_version": theme_slot("success"),
+        "package_name": theme_slot("invoked_command"),
+        "package_version": theme_slot("success"),
+        "exec_name": theme_slot("invoked_command"),
+        "version": theme_slot("success"),
         "git_repo_path": Style(fg="bright_black"),
         "git_branch": Style(fg="cyan"),
         "git_long_hash": Style(fg="yellow"),
@@ -449,9 +691,9 @@ class VersionOption(ExtraOption):
         "git_date": Style(fg="bright_black"),
         "git_tag": Style(fg="cyan"),
         "git_tag_sha": Style(fg="yellow"),
-        "git_distance": Style(fg="green"),
+        "git_distance": theme_slot("success"),
         "git_dirty": Style(fg="red"),
-        "prog_name": _default_invoked_command,
+        "prog_name": theme_slot("invoked_command"),
         "env_info": Style(fg="bright_black"),
     }
     """Default style for each template field.
@@ -459,6 +701,12 @@ class VersionOption(ExtraOption):
     Fields absent from this mapping render with no style of their own and fall
     back to `message_style` (or no color when that is unset). User-provided
     `styles` are merged over these defaults.
+
+    The name and version fields defer to the active palette through
+    {func}`theme_slot` rather than naming a color. Both slots render exactly what
+    the literals they replaced did under the `dark` default — `invoked_command` is
+    bright white bold, `success` is green — so nothing moves for a CLI that never
+    touches `--theme`, while one that does finally gets a version message to match.
     """
 
     def __init__(
@@ -468,6 +716,7 @@ class VersionOption(ExtraOption):
         fields: Mapping[str, Any] | None = None,
         styles: Mapping[str, IStyle | None] | None = None,
         message_style: IStyle | None = None,
+        screen: VersionScreen | None = None,
         is_flag=True,
         expose_value=False,
         is_eager=True,
@@ -490,6 +739,10 @@ class VersionOption(ExtraOption):
 
         :param message_style: fallback style for the message literals and for
             any field that has no style of its own.
+
+        :param screen: a {class}`VersionScreen` to draw instead of the one-line
+            message, whenever the terminal can take it. Left unset, `--version`
+            behaves exactly as it always has.
         """
         if not param_decls:
             param_decls = ("--version",)
@@ -497,6 +750,7 @@ class VersionOption(ExtraOption):
         if message is not None:
             self.message = message
         self.message_style = message_style
+        self.screen = screen
 
         field_overrides = dict(fields) if fields else {}
         style_overrides = dict(styles) if styles else {}
@@ -1173,7 +1427,34 @@ class VersionOption(ExtraOption):
 
         Accepts a custom `template` as parameter, otherwise uses the default
         `self.colored_template()` produced by the instance.
+
+        A CLI carrying a {class}`VersionScreen` gets that drawn instead, whenever
+        three conditions hold. Failing any one of them falls back to the plain
+        template unchanged, which is a deliberate guarantee rather than a default:
+        that form is the one every machine reader parses.
+
+        - **Color reaches the output.** Not because a mark needs it — a good one
+          survives having its escapes stripped — but because it is the one lever a
+          caller already has. A redirected `--version`, or one run under
+          `--no-color` or [`NO_COLOR`](https://no-color.org), is asking for
+          something parseable.
+        - **The terminal is wide enough** to seat the facts beside the mark without
+          wrapping them.
+        - **Accessible mode is off.** A mark read out character by character is
+          noise to a screen reader, so `--accessible` keeps the plain message.
         """
+        if template is None and self.screen is not None:
+            ctx = click.get_current_context(silent=True)
+            accessible = bool(ctx is not None and get(ctx, ACCESSIBLE, False))
+            if not accessible and colors_reach_output():
+                screen = self.screen.render(
+                    str(self.prog_name or ""),
+                    str(self.version or ""),
+                    self.styles,
+                )
+                if screen is not None:
+                    return screen
+
         if template is None:
             template = self.colored_template()
 

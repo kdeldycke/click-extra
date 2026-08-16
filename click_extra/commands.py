@@ -64,6 +64,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from typing import Any, NoReturn
 
+    from .version import VersionScreen
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
@@ -72,8 +74,19 @@ EXTRA_OPTION_SETTINGS: tuple[str, ...] = ("show_choices", "show_envvar")
 """Click Extra context settings forced onto every option when set to non-`None`."""
 
 
-def default_params() -> list[click.Option]:
+def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
     """Default additional options added to `@command` and `@group`.
+
+    :param screen: a {class}`~click_extra.version.VersionScreen` for `--version` to
+        draw in place of its one-line message. Reach it through the `params` hook,
+        binding the screen with `functools.partial` so each decorated command still
+        gets its own fresh option instances:
+
+        ```{code-block} python
+        @group(params=partial(default_params, screen=MY_SCREEN))
+        def cli():
+            pass
+        ```
 
     ```{caution}
     The order of options has been carefully crafted to handle subtle edge-cases and
@@ -155,7 +168,7 @@ def default_params() -> list[click.Option]:
         TreeOption(),
         ManOption(),
         HelpFormatOption(),
-        VersionOption(),
+        VersionOption(screen=screen),
     ]
 
 

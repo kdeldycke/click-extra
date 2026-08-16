@@ -27,8 +27,11 @@ from __future__ import annotations
 
 import inspect
 import json
+import os
 import re
+import shutil
 import sys
+from functools import partial
 
 import click
 import pytest
@@ -48,6 +51,7 @@ from click_extra import (
     version_option,
 )
 from click_extra.cli import demo
+from click_extra.color import forced_color
 from click_extra.commands import default_params
 from click_extra.prebake import (
     discover_package_init_files,
@@ -61,7 +65,9 @@ from click_extra.pytest import (
     default_debug_colored_version_details,
 )
 from click_extra.version import (
+    VersionScreen,
     archival_field,
+    default_facts,
     find_archival_file,
     read_archival,
     resolve_git_dirty,
@@ -1157,3 +1163,219 @@ def test_version_dev_hash_assembly(module_version, expected):
         fields={"module_version": module_version, "git_short_hash": "abc1234"},
     )
     assert opt.version == expected
+
+
+# --- version screen layout ---
+
+
+@pytest.fixture
+def terminal_width(monkeypatch):
+    """Pin the width `VersionScreen.render` measures itself against."""
+
+    def pin(columns: int) -> None:
+        monkeypatch.setattr(
+            shutil, "get_terminal_size", lambda *_: os.terminal_size((columns, 24))
+        )
+
+    return pin
+
+
+PLAIN_LOGO = ("###", "#", "#####")
+"""A deliberately ragged mark: no caller should have to square its own artwork."""
+
+STYLED_LOGO = ("\x1b[32m###\x1b[0m", "\x1b[31m#\x1b[0m")
+"""The same, carrying color, to prove the measurement discounts escape sequences."""
+
+
+@pytest.mark.parametrize(
+    ("logo", "width"),
+    (
+        (PLAIN_LOGO, 5),
+        ("###\n#\n#####", 5),
+        (STYLED_LOGO, 3),
+        ((), 0),
+        ("", 0),
+    ),
+)
+def test_screen_measures_its_logo(logo, width):
+    """The width comes from the artwork, never from the caller."""
+    assert VersionScreen(logo=logo).width == width
+
+
+@pytest.mark.parametrize("logo", (PLAIN_LOGO, "###\n#\n#####", STYLED_LOGO))
+def test_screen_squares_a_ragged_logo(logo):
+    """Every line is padded out to the widest, so the facts seat against a block.
+
+    Padding here rather than demanding it is what lets a caller hand over whatever
+    its renderer produced. It cannot repair this afterwards even if it wanted to:
+    `str.ljust` counts the escape sequences it cannot see, so on a styled line it
+    silently does nothing.
+    """
+    screen = VersionScreen(logo=logo)
+    assert {len(strip_ansi(line)) for line in screen.lines} == {screen.width}
+
+
+def test_screen_padding_closes_an_open_style():
+    """Padding after an unterminated style cannot inherit it.
+
+    A mark whose last run is left open would otherwise paint its own trailing
+    blanks, and the gutter with them, dragging a background across the facts.
+    """
+    screen = VersionScreen(logo=("\x1b[41mred", "wider than that"))
+    assert screen.lines[0].endswith("\x1b[0m" + " " * (screen.width - 3))
+
+
+def test_screen_facts_may_be_deferred():
+    """A callable is not called until the screen is drawn.
+
+    The point of accepting one: a CLI reporting something costly should pay for it
+    when `--version` is asked for, not on every invocation that might have been.
+    """
+    calls: list[None] = []
+
+    def facts():
+        calls.append(None)
+        return {"Answer": "42"}
+
+    screen = VersionScreen(logo="#", facts=facts)
+    assert calls == []
+    rows = screen.rows("cli", "1.2.3", {})
+    assert calls == [None]
+    assert rows[-1][0] == "Answer   42"
+
+
+def test_screen_sizes_its_label_column_to_the_longest_label():
+    """No declared width to outgrow: the column is measured, then gutter-separated."""
+    screen = VersionScreen(logo="#", facts={"a": "1", "loooooong": "2"})
+    plain = [row[0] for row in screen.rows("cli", "1.2.3", {})]
+    assert plain[-2:] == ["a           1", "loooooong   2"]
+
+
+def test_screen_facts_replace_a_default_row_in_place():
+    """`|` over the defaults swaps a row where it sits, and appends a new one."""
+    facts = default_facts() | {"Platform": "Pinball", "Docs": "https://example.com"}
+    assert list(facts) == ["Python", "Platform", "Docs"]
+    assert facts["Platform"] == "Pinball"
+
+
+def test_screen_declines_when_too_narrow(terminal_width):
+    screen = VersionScreen(logo=("#" * 20,), facts={"Label": "x" * 40})
+    terminal_width(40)
+    assert screen.render("cli", "1.2.3", {}) is None
+    terminal_width(200)
+    assert screen.render("cli", "1.2.3", {}) is not None
+
+
+def test_screen_opens_on_a_blank_line_and_never_trails_whitespace(terminal_width):
+    terminal_width(200)
+    rendered = VersionScreen(logo=PLAIN_LOGO, tagline="Tagline").render(
+        "cli", "1.2.3", {}
+    )
+    assert rendered is not None
+    assert rendered.startswith("\n")
+    for line in rendered.splitlines():
+        assert line == line.rstrip()
+
+
+def test_screen_seats_every_fact_at_one_column(terminal_width):
+    """The facts start at the same column on every line that carries one."""
+    terminal_width(200)
+    screen = VersionScreen(logo=PLAIN_LOGO, tagline="Tagline")
+    drawn = screen.render("cli", "1.2.3", {})
+    assert drawn is not None
+    rendered = strip_ansi(drawn)
+    column = screen.width + len(screen.gutter)
+    for line in rendered.splitlines():
+        if len(line) > screen.width:
+            assert line[screen.width : column].isspace(), f"gutter eaten: {line!r}"
+            assert not line[column].isspace(), f"fact past the gutter: {line!r}"
+
+
+def test_screen_uses_the_options_own_styles(terminal_width):
+    """The header is painted like the plain message, not like something new."""
+    terminal_width(200)
+    screen = VersionScreen(logo=PLAIN_LOGO)
+    rendered = screen.render(
+        "cli", "1.2.3", {"prog_name": lambda t: f"<{t}>", "version": lambda t: f"[{t}]"}
+    )
+    assert rendered is not None
+    assert "<cli>, version [1.2.3]" in rendered
+
+
+@pytest.fixture
+def screen_cli():
+    @group(
+        params=partial(default_params, screen=VersionScreen(logo=PLAIN_LOGO)),
+        version_fields={"version": "1.2.3"},
+    )
+    def cli():
+        echo("hello")
+
+    return cli
+
+
+def test_version_option_without_a_screen_is_unchanged(invoke):
+    """A CLI that never asks for a screen keeps the one-line message."""
+    assert VersionOption().screen is None
+
+    @group(version_fields={"version": "1.2.3"})
+    def cli():
+        echo("hello")
+
+    result = invoke(cli, "--version")
+    assert result.stdout.splitlines() == ["cli, version 1.2.3"]
+
+
+def test_screen_skipped_without_color(invoke, screen_cli):
+    result = invoke(screen_cli, "--no-color", "--version")
+    assert result.exit_code == 0
+    assert not result.stderr
+    assert result.stdout.splitlines() == ["cli, version 1.2.3"]
+
+
+def test_screen_drawn_with_color(invoke, screen_cli, terminal_width):
+    terminal_width(200)
+    with forced_color():
+        result = invoke(screen_cli, "--color", "--version", color=True)
+    assert result.exit_code == 0
+    assert not result.stderr
+    plain = strip_ansi(result.stdout)
+    assert plain.startswith("\n")
+    assert "cli, version 1.2.3" in plain
+    assert "#####" in plain
+
+
+def test_screen_skipped_when_accessible(invoke, screen_cli, terminal_width):
+    terminal_width(200)
+    with forced_color():
+        result = invoke(screen_cli, "--accessible", "--color", "--version", color=True)
+    assert result.exit_code == 0
+    assert "#####" not in strip_ansi(result.stdout)
+    assert "cli, version 1.2.3" in strip_ansi(result.stdout)
+
+
+@pytest.mark.parametrize(
+    ("theme", "expected"),
+    (
+        ("dark", "\x1b[97m\x1b[1mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m"),
+        ("light", "\x1b[30m\x1b[1mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m"),
+        ("manpage", "\x1b[1mcli\x1b[0m, version 1.2.3"),
+    ),
+)
+def test_version_message_follows_the_theme(invoke, theme, expected):
+    """The message is painted from the active palette, not from a frozen copy.
+
+    Capturing the `dark` palette at import left `--version` printing the program
+    name bright white under every theme, which on a light terminal is white on
+    white. The `dark` row is unchanged from that era on purpose: this made the other
+    two work without moving what anyone already had.
+    """
+
+    @group(version_fields={"version": "1.2.3"})
+    def cli():
+        echo("hello")
+
+    with forced_color():
+        result = invoke(cli, "--color", "--theme", theme, "--version", color=True)
+    assert result.exit_code == 0
+    assert result.stdout.splitlines() == [expected]

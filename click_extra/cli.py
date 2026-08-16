@@ -25,6 +25,7 @@ import shlex
 import shutil
 import sys
 import time
+from functools import partial
 from pathlib import Path
 
 import click
@@ -44,12 +45,13 @@ from extra_platforms import ALL_IDS
 from . import context
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
 from .color import is_a_tty
-from .commands import ColorizedCommand
+from .commands import ColorizedCommand, default_params
 from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
 from .context import pass_context
 from .decorators import argument, command, group, jobs_option, option
 from .envvar import merge_envvar_ids
 from .execution import run_jobs
+from .logo import BRAND_SCREEN
 from .myst_converter import convert_directory, detect_source_package
 from .parameters import make_resilient_context, missing_extra_message
 from .prebake import (
@@ -156,6 +158,10 @@ _demo_section = cloup.Section(
 @group(
     name="click-extra",
     cls=WrapperGroup,
+    # Draws --version as the brand-mark screen, degrading to the plain rendering
+    # wherever it cannot be shown. Bound uncalled so each application gets its own
+    # option instances, as default_params documents. See click_extra.logo.
+    params=partial(default_params, screen=BRAND_SCREEN),
     version_fields={"prog_name": "Click Extra"},
     config_schema=ClickExtraConfig,
     schema_strict=False,

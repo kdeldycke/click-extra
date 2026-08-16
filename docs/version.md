@@ -584,6 +584,85 @@ assert re.fullmatch((
 ), result.output)
 ```
 
+## Version screen
+
+`--version` can draw a screen instead of a line: a logo, with the facts worth pasting into a bug report seated beside it. Click Extra's own CLI does it, and the machinery is yours to point at any artwork.
+
+{class}`~click_extra.version.VersionScreen` owns the layout and nothing else. The mark arrives already rendered — a string, or the lines of one — so it can be ASCII line art, half-blocks, or whatever your renderer produces:
+
+```{click:source}
+:emphasize-lines: 12
+from functools import partial
+
+from click_extra import group
+from click_extra.commands import default_params
+from click_extra.version import VersionScreen, default_facts
+
+SCREEN = VersionScreen(
+    logo=" __ \n/\\_\\\n\\/_/",
+    tagline="A CLI of my own",
+    facts=lambda: default_facts() | {"Docs": "https://example.com"},
+)
+
+@group(params=partial(default_params, screen=SCREEN), version_fields={"version": "1.2.3"})
+def my_cli():
+    pass
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(my_cli, args=["--version"])
+assert result.exit_code == 0
+plain = strip_ansi(result.output)
+assert "my-cli, version 1.2.3" in plain
+assert "A CLI of my own" in plain
+assert "\\/_/" in plain
+assert "Docs" in plain
+```
+
+Three things are worth knowing about that snippet.
+
+**The screen measures the logo; you never declare its size.** Lines of unequal width are padded out to the widest, so a renderer that trims its own trailing blanks still lays out square. Repairing that afterwards is not something a caller can do anyway: `str.ljust` counts the escape sequences it cannot see, so on a styled line it does nothing at all.
+
+**Facts are an ordered mapping, so one row can be changed without restating the rest.** `dict` keeps insertion order, and replacing a key leaves it where it sat:
+
+```{code-block} python
+default_facts() | {"Platform": my_own_label}   # replaces, in place
+default_facts() | {"Docs": DOCS_URL}           # appends, at the end
+```
+
+{func}`~click_extra.version.default_facts` carries the interpreter and the platform. {func}`~click_extra.version.dependency_versions` is there for the Click and Cloup releases underneath you, opt-in rather than default. Labels get a column sized to the longest of them, separated from their values by the same gutter that separates the whole block from the logo.
+
+**Passing `facts` a callable defers it to render time.** Values that cost something to compute — a plugin count, a registry probe — should be charged to the invocation that asks for `--version`, not to every invocation that might have.
+
+### When the screen is skipped
+
+Three conditions gate it, and failing any one falls back to the plain `message` template unchanged. That is a deliberate guarantee rather than a default: the plain form is the one every machine reader parses.
+
+- **Color reaches the output.** Not because a mark needs it — a good one survives having its escapes stripped — but because it is the one lever a caller already has. A redirected `--version`, or one run under `--no-color` or [`NO_COLOR`](https://no-color.org), is asking for something parseable.
+- **The terminal is wide enough** to seat the facts beside the mark without wrapping them.
+- **Accessible mode is off.** A mark read out character by character is noise to a screen reader, so `--accessible` keeps the plain message.
+
+```{caution}
+{func}`~click_extra.version.visible_width` counts characters, not display cells, so a logo drawn with double-width characters (CJK, emoji) measures short and lays out ragged. Anything a terminal renders one cell wide is fine, which covers ASCII, the block and box-drawing ranges, and braille.
+```
+
+### Click Extra's own screen
+
+{data}`~click_extra.logo.BRAND_SCREEN` is the worked example: six wireframe cubes from `docs/assets/logo-square.svg`, redrawn as ASCII line art.
+
+```{click:run}
+from boltons.strutils import strip_ansi
+from click_extra.cli import demo
+
+result = invoke(demo, args=["--version"])
+assert "\\/_/\\/_/\\/_/" in strip_ansi(result.output)
+```
+
+```{hint}
+The mark is drawn with `/`, `\`, `_` and `|` alone. Every richer candidate was tried and dropped: a half-block rendition carries its structure in its colors and collapses into one silhouette without them, and every Unicode character that reads as a cube on its own — the quadrant blocks, `◤◥`, the hexagons — is missing from at least one widely-used monospace face. Four ASCII characters survive every terminal, every codepage, and the loss of color, which is what makes the color gate above a courtesy to machine readers rather than a legibility requirement.
+```
 ## Debug logs
 
 When the `DEBUG` level is enabled, all available variables will be printed in the log:
@@ -703,6 +782,16 @@ Other internal methods to build-up and render the version string are [available 
    :strict:
 
 .. automodule:: click_extra.version
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.logo` API
+
+```{eval-rst}
+.. automodule:: click_extra.logo
    :no-index:
    :members:
    :undoc-members:
