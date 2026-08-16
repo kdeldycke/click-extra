@@ -305,8 +305,11 @@ html_title = project
 html_logo = "assets/logo-square.svg"
 html_favicon = "assets/favicon.svg"
 # Without this, sphinxext.opengraph falls back to the favicon for social
-# previews, which scales poorly.
-ogp_image = "assets/banner-gradient-light.png"
+# previews, which scales poorly. The dark variant matches the social preview
+# uploaded to the repository's settings, so a link to the docs and a link to the
+# repository unfurl as the same card. Either would carry the mark: flat-shaded,
+# it holds its own on a light background and a dark one alike.
+ogp_image = "assets/banner-gradient-dark.png"
 # ogp_image is relative to ogp_site_url, not to the page. Without a site URL,
 # sphinxext.opengraph emits the image path as-is, which social crawlers can't
 # resolve since they only ever see the raw HTML.
