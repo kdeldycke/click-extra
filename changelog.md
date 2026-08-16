@@ -10,6 +10,8 @@
 - Add a `--wrap` option to `click-extra screenshot`, routing the target through the `wrap` subcommand so a foreign Click CLI is captured with its colors.
 - Add a `click_extra.screenshot` module, whose `harden_svg()` moves each text run's padding into its offset so a capture no longer needs a browser to render correctly.
 - Add a `screenshot` extra pulling Rich, the SVG rendering backend.
+- Add a machine-wide `CLICK_EXTRA_THEME` environment variable naming the help-screen palette of every Click Extra CLI at once.
+- Fix a `--theme` resolved from the environment, or typed after `--help`, not reaching the screens that render and exit.
 - Illustrate the screenshots page with captures of the `gradient`, `styles` and `themes` demos, produced by the new subcommand.
 - Add a test rebuilding each committed screenshot's terminal text from its SVG glyph coordinates and comparing it to the CLI's live output.
 - Fix the `gradient` demo overflowing an 80-column terminal by one character, which wrapped every ramp onto a second line.

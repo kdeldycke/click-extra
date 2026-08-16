@@ -54,7 +54,7 @@ from .man_page import ManOption
 from .parameters import ExtraOption, ShowParamsOption
 from .spinner import ProgressOption
 from .table import TableFormatOption
-from .theme import ThemeOption, get_current_theme
+from .theme import THEME_ENVVAR, ThemeOption, get_current_theme
 from .tree import TreeOption
 from .version import VersionOption
 
@@ -466,14 +466,18 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         extra.update({"meta": {context.RAW_ARGS: args.copy()}})
         return super().make_context(info_name, args, parent, **extra)
 
-    def _resolve_color_eagerly(self, ctx: click.Context, args: list[str]) -> None:
-        """Settle the color and accessibility options before any eager one renders.
+    def _resolve_presentation_eagerly(
+        self,
+        ctx: click.Context,
+        args: list[str],
+    ) -> None:
+        """Settle the presentation options before any eager one renders.
 
         Click sorts eager options by their command-line position and puts the ones
         *not* typed last, so any option that renders and exits — `--help`,
         `--version`, `--man`, `--show-params` — is processed before every eager
-        option the user did not also type. `--color`, `--no-color` and
-        `--accessible` would therefore pin their state too late: the screen has
+        option the user did not also type. `--color`, `--no-color`, `--accessible`
+        and `--theme` would therefore pin their state too late: the screen has
         already rendered. This pre-pass resolves them ahead of the regular parameter
         loop, so the choice reaches those screens whatever its position.
 
@@ -483,6 +487,13 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         leave the lowered default unread. Its global `ACCESSIBLE` environment
         variable triggers the pre-pass as well: the flag is absent from the command
         line in that case, which is exactly the sorting hole described above.
+
+        {class}`~click_extra.theme.ThemeOption` is resolved last, and for the same
+        reason it is resolved at all: a palette whose only observable effect is the
+        look of a rendered screen is worthless if it lands after the screen. Its
+        environment variables trigger the pre-pass too, both the machine-wide
+        {data}`~click_extra.theme.THEME_ENVVAR` and the per-CLI `<CLI>_THEME` that
+        Click derives, since neither puts a flag on the command line.
 
         Skipping accessible mode here used to be deliberate, on the grounds that it
         matched the scope of the environment pre-seed in
@@ -495,11 +506,19 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         having no such promise to keep.
 
         ```{note}
-        Both option groups are resolved a second time by `super().parse_args()`.
-        Their callbacks are idempotent (no env-var side effects, no prompt, and a
+        Every group is resolved a second time by `super().parse_args()`. Their
+        callbacks are idempotent (no env-var side effects, no prompt, and a
         `setdefault` on the `default_map`), so re-running them lands the exact same
         state, and {meth}`click_extra.parameters.ExtraOption.handle_parse_result`
         skips its source pre-record once the slot already carries one.
+
+        That second pass is also what keeps a configuration file authoritative
+        over the environment for `--theme`: this pre-pass runs before
+        {class}`~click_extra.config.option.ConfigOption` has populated the
+        `default_map`, so it can only ever see the command line and the
+        environment. The screens rendered here are painted by whichever of those
+        two won; a palette read from a configuration file lands on the second
+        pass, in time for everything the command itself prints.
         ```
         """
         accessible_params = [
@@ -512,21 +531,28 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             for param in self.get_params(ctx)
             if isinstance(param, (ColorOption, NoColorOption))
         ]
-        if not accessible_params and not color_params:
+        theme_params = [
+            param for param in self.get_params(ctx) if isinstance(param, ThemeOption)
+        ]
+        if not accessible_params and not color_params and not theme_params:
             return
 
         # Only pay for a re-parse when one of these flags actually sits on the
-        # command line, or when the environment asks for accessible mode.
+        # command line, or when the environment asks for accessible mode or a
+        # palette.
         flags = {
             flag
-            for param in (*accessible_params, *color_params)
+            for param in (*accessible_params, *color_params, *theme_params)
             for flag in (*param.opts, *param.secondary_opts)
         }
         on_cli = any(arg.split("=", 1)[0] in flags for arg in args)
-        from_env = (
-            bool(accessible_params) and os.environ.get(ACCESSIBLE_ENVVAR) is not None
-        )
-        if not on_cli and not from_env:
+        envvars = set()
+        if accessible_params:
+            envvars.add(ACCESSIBLE_ENVVAR)
+        for theme_param in theme_params:
+            envvars.add(THEME_ENVVAR)
+            envvars.update(param_envvar_ids(theme_param, ctx))
+        if not on_cli and not any(var in os.environ for var in envvars):
             return
 
         parser = self.make_parser(ctx)
@@ -535,7 +561,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             # Accessible first: it lowers the color default the color options read.
             # Within each group, respect the relative command-line order so the last
             # of --color / --no-color wins, matching the regular loop's arbitration.
-            for group in (accessible_params, color_params):
+            for group in (accessible_params, color_params, theme_params):
                 for param in iter_params_for_processing(param_order, group):
                     param.handle_parse_result(ctx, opts, args.copy())
         except click.ClickException:
@@ -548,13 +574,13 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         """Like parent's `parse_args` but with better error messages for
         single-dash multi-character tokens.
 
-        Also settles the color and accessibility options before delegating, so
-        `--color`, `--no-color` and `--accessible` reach the eager help and version
+        Also settles the presentation options before delegating, so `--color`,
+        `--no-color`, `--accessible` and `--theme` reach the eager help and version
         screens regardless of their position on the command line. See
-        `_resolve_color_eagerly`.
+        `_resolve_presentation_eagerly`.
         """
         original_args = args.copy()
-        self._resolve_color_eagerly(ctx, args)
+        self._resolve_presentation_eagerly(ctx, args)
         try:
             return super().parse_args(ctx, args)
         except click.NoSuchOption as exc:

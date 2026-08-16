@@ -29,6 +29,7 @@ from click_extra.pytest import (  # noqa: F401
     invoke,
     runner,
 )
+from click_extra.theme import THEME_ENVVAR
 
 
 @pytest.fixture(scope="session")
@@ -57,9 +58,11 @@ def _isolate_color_envvars():
     and AI tooling. Their presence overrides ``ColorOption``'s default, making
     color-dependent tests fail in developer environments. ``ACCESSIBLE`` is
     isolated for the same reason: it lowers the ``--color`` and ``--table-format``
-    defaults.
+    defaults. ``CLICK_EXTRA_THEME`` is meant to be exported from a shell profile,
+    so a developer running the suite is precisely who is likely to have it set,
+    and it would repaint every help screen the assertions pin.
     """
-    isolated = (*color_envvars, "ACCESSIBLE")
+    isolated = (*color_envvars, "ACCESSIBLE", THEME_ENVVAR)
     saved = {var: os.environ.pop(var) for var in isolated if var in os.environ}
     yield
     os.environ.update(saved)

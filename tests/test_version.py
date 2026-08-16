@@ -583,7 +583,7 @@ def test_color_option_precedence(invoke):
 
     click-extra's own ``@command`` settles the color options in a pre-pass before any
     eager screen renders, so the color choice is honored whatever its position. See
-    ``Command._resolve_color_eagerly`` and the order-independent
+    ``Command._resolve_presentation_eagerly`` and the order-independent
     ``test_color_settles_before_eager_help_and_version`` in ``test_color.py``. This
     test pins the residual behavior of the plain-Click path, which that pre-pass does
     not reach.

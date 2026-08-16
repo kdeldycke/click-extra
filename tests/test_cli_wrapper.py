@@ -35,6 +35,7 @@ from click_extra.commands import ColorizedCommand, ColorizedGroup
 from click_extra.context import Context
 from click_extra.highlight import _HelpColorsMixin
 from click_extra.testing import CliRunner
+from click_extra.theme import BUILTIN_THEMES, THEME_ENVVAR
 
 GREET_SCRIPT = (
     "import click\n"
@@ -615,6 +616,20 @@ def test_wrap_honors_group_theme(runner, greet_script, theme, styled_heading):
     assert styled_heading in result.output
     # Not the 16-color bright-blue heading of the dark default it used to leak.
     assert "\x1b[94m\x1b[4mUsage:" not in result.output
+
+
+def test_wrap_honors_theme_envvar(runner, greet_script, monkeypatch):
+    """``CLICK_EXTRA_THEME`` reaches a wrapped CLI's help screen too.
+
+    The group resolves the machine-wide variable like any other source of a
+    palette, and wrap bridges whatever it settled on to the process default the
+    wrapped target renders under.
+    """
+    monkeypatch.setenv(THEME_ENVVAR, "nord")
+
+    result = runner.invoke(demo, ["wrap", greet_script, "--help"], color=True)
+    assert result.exit_code == 0
+    assert BUILTIN_THEMES["nord"].heading("Usage:") in result.output
 
 
 @pytest.mark.parametrize(

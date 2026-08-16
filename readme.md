@@ -67,6 +67,7 @@ The colors, and every option below `--name`, come from that one line. Both scree
   ![The same help screen under the dark and dracula themes](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/theme-gallery-screen.svg)
 - [User-defined themes and partial overrides loaded from the CLI's `--config` file](https://kdeldycke.github.io/click-extra/theme.html#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`), scoped per invocation so concurrent runs don't bleed into each other
 - [`--theme` flag](https://kdeldycke.github.io/click-extra/theme.html#the-theme-option) on every command, with case-insensitive validation against the live registry
+- [`CLICK_EXTRA_THEME`](https://kdeldycke.github.io/click-extra/theme.html#environment-variables) exported once from a shell profile themes every Click Extra CLI on the machine, with a per-CLI `<CLI>_THEME` taking precedence over it
 - [`--theme=auto`](https://kdeldycke.github.io/click-extra/theme.html#automatic-background-detection) reads the terminal's own background to pick between the dark and light palettes, from `CLITHEME`, `COLORFGBG`, or an opt-in [OSC 11 query](https://kdeldycke.github.io/click-extra/theme.html#querying-the-terminal-directly)
 - `-h`/`--help` option names (see [rant on other inconsistencies](https://blog.craftyguy.net/cmdline-help/))
 - Built-in [`help` subcommand](https://kdeldycke.github.io/click-extra/commands.html#help-subcommand) with a `--search` mode for groups

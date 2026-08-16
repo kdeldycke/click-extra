@@ -1,6 +1,6 @@
 # {octicon}`sun` Themes
 
-Click Extra exposes a small theming system that controls every color used in help screens: options, choices, metavars, arguments, CLI names, defaults, environment variables, log levels, and more. Two themes ship by default (`dark` and `light`), and downstream projects can register their own.
+Click Extra exposes a small theming system that controls every color used in help screens: options, choices, metavars, arguments, CLI names, defaults, environment variables, log levels, and more. [Seven themes ship by default](#built-in-themes), and downstream projects can register their own.
 
 ## The `--theme` option
 
@@ -102,6 +102,79 @@ theme = "light"
 ```
 
 Now invocations of the `weather` CLI pick up the light theme without passing `--theme` on the command line.
+
+## Environment variables
+
+To settle on one palette for every Click Extra CLI on your machine, export `CLICK_EXTRA_THEME` from your shell profile:
+
+```{code-block} shell-session
+$ export CLICK_EXTRA_THEME=nord
+```
+
+There is nothing else to configure and no Python involved: every command built with Click Extra reads it, including the foreign CLIs run through [`click-extra wrap`](wrap.md). It takes the same values as the flag, [`auto`](#automatic-background-detection) included.
+
+```{click:run}
+import os
+from click_extra.theme import BUILTIN_THEMES
+
+os.environ["CLICK_EXTRA_THEME"] = "nord"
+try:
+    result = invoke(weather, args=["--help"])
+finally:
+    os.environ.pop("CLICK_EXTRA_THEME", None)
+
+assert result.exit_code == 0
+assert BUILTIN_THEMES["nord"].heading("Usage:") in result.output
+```
+
+Click derives a second variable from the command's own name, `<CLI>_THEME`, which themes that one CLI. Being the more specific of the two, it wins:
+
+```{click:run}
+import os
+from click_extra.theme import BUILTIN_THEMES
+
+os.environ["CLICK_EXTRA_THEME"] = "nord"
+os.environ["WEATHER_THEME"] = "light"
+try:
+    result = invoke(weather, args=["--help"])
+finally:
+    os.environ.pop("CLICK_EXTRA_THEME", None)
+    os.environ.pop("WEATHER_THEME", None)
+
+assert result.exit_code == 0
+assert BUILTIN_THEMES["light"].heading("Usage:") in result.output
+```
+
+An unknown palette name is reported as a warning and ignored, leaving the default in place. A typo in a shell profile would otherwise break every Click Extra CLI at once, starting with the ones you need to fix it:
+
+```{click:run}
+import os
+
+os.environ["CLICK_EXTRA_THEME"] = "zenburn"
+try:
+    result = invoke(weather)
+finally:
+    os.environ.pop("CLICK_EXTRA_THEME", None)
+
+assert result.exit_code == 0
+assert "zenburn" in result.stderr
+```
+
+### Precedence
+
+Most specific first:
+
+1. `--theme` on the command line;
+2. `<CLI>_THEME` in the environment;
+3. `theme` in the CLI's [configuration file](#configuration-file);
+4. `CLICK_EXTRA_THEME` in the environment;
+5. the built-in `dark` default.
+
+The machine-wide variable sits below the configuration file on purpose: anything a user wrote for one CLI in particular says more about what they want from that CLI than a preference they set once for everything.
+
+```{caution}
+A configuration file is read too late to repaint the screens that render and exit (`--help`, `--version`, `--man`, `--params`): those are settled from the command line and the environment only. Everything the command itself prints goes through the full chain above.
+```
 
 ## Built-in themes
 

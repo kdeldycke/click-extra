@@ -130,11 +130,11 @@ click-extra implements `NO_COLOR`, `FORCE_COLOR`, and full [help colorization](c
 
 ### Themes and palettes
 
-click-extra ships [seven built-in themes](theme.md#built-in-themes) (`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`, plus a monochrome `manpage`) and is the only Click-ecosystem library that lets end users [define new themes or override existing ones from the CLI's `--config` file](theme.md#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`). Click itself has no theme system (formatter-level customization is still WIP upstream), and the competing rich help layers expose themes through Python or environment variables, not the CLI's own configuration file:
+click-extra ships [seven built-in themes](theme.md#built-in-themes) (`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`, plus a monochrome `manpage`) and covers every surface an end user reaches for: the [`--theme` flag](theme.md#the-theme-option), a [machine-wide `CLICK_EXTRA_THEME` variable](theme.md#environment-variables) next to the per-CLI `<CLI>_THEME`, and — alone in the Click ecosystem — [new themes and overrides declared in the CLI's own `--config` file](theme.md#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`). Click itself has no theme system (formatter-level customization is still WIP upstream), and the competing rich help layers stop at Python and environment variables:
 
 - [`click#561` - Add Custom Formatter System](https://github.com/pallets/click/issues/561): open since 2016, the prerequisite for a Click-native theme API.
 - [`click#3097` - WIP: Help page customization low level api](https://github.com/pallets/click/pull/3097): open PR exploring the formatter customization Click maintainers committed to in `#561`.
-- [`rich-click#219` - Colour themes (can be set by user)](https://github.com/ewels/rich-click/issues/219): closed completed in August 2025; rich-click now ships themes settable via `RICH_CLICK_THEME` env var or Python config, but not via the wrapped CLI's own configuration file.
+- [`rich-click#219` - Colour themes (can be set by user)](https://github.com/ewels/rich-click/issues/219): closed completed in August 2025; rich-click now ships themes settable via `RICH_CLICK_THEME` env var or Python config, but not via the wrapped CLI's own configuration file. `CLICK_EXTRA_THEME` follows the same shape, one variable for every CLI in the ecosystem.
 - [`rich-click#311` - Using themes outside click](https://github.com/ewels/rich-click/issues/311): open follow-up showing the demand for richer theme reuse.
 
 ### Configuration validation

@@ -575,7 +575,7 @@ def test_color_settles_before_eager_help_and_version(invoke, args, expecting_col
     Click processes eager options in command-line order, so a --color sitting after
     --help or --version would otherwise pin ``ctx.color`` only once the screen had
     already printed and exited. ``Command.parse_args`` settles the color options in a
-    pre-pass to close that gap. See ``Command._resolve_color_eagerly``.
+    pre-pass to close that gap. See ``Command._resolve_presentation_eagerly``.
     """
 
     @command
