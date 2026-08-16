@@ -72,7 +72,7 @@ from ._base import (
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import ClassVar, Literal
+    from typing import Any, ClassVar, Literal
 
     from sphinx.util.typing import OptionSpec
 
@@ -723,6 +723,34 @@ class ClickDirective(SphinxDirective):
         """
         return self.options.get("screenshot-columns", DEFAULT_COLUMNS)  # type: ignore[no-any-return]
 
+    @cached_property
+    def screenshot_frame(self) -> dict[str, Any]:
+        """Window the capture is drawn in, set by the `:screenshot-*:` options.
+
+        Each entry is left out when its option is: the renderer then picks what
+        the chrome asks for, which is what every block on these pages wants.
+        `:screenshot-backdrop:`, `:screenshot-border:` and
+        `:screenshot-shadow:` take a CSS color (or `none` to paint neither),
+        `:screenshot-border-width:`, `:screenshot-margin:`,
+        `:screenshot-padding:` and `:screenshot-radius:` take pixels, and
+        `:screenshot-title:` the caption drawn in the window's own chrome. See
+        {func}`~click_extra.screenshot.frame_svg`.
+        """
+        return {
+            name.replace("-", "_"): self.options[f"screenshot-{name}"]
+            for name in (
+                "backdrop",
+                "border",
+                "border-width",
+                "margin",
+                "padding",
+                "radius",
+                "shadow",
+                "title",
+            )
+            if f"screenshot-{name}" in self.options
+        }
+
     def write_screenshot(self, results: Iterable[str]) -> None:
         """Write the captured output as an SVG beside the documentation.
 
@@ -752,6 +780,7 @@ class ClickDirective(SphinxDirective):
                 columns=self.screenshot_columns,
                 unique_id=self.screenshot,
                 background=self.screenshot_background,
+                **self.screenshot_frame,
             ),
             encoding="utf-8",
         )
@@ -843,8 +872,16 @@ class RunDirective(ClickDirective):
 
     option_spec: ClassVar[OptionSpec] = ClickDirective.option_spec | {
         "screenshot": directives.unchanged_required,
+        "screenshot-backdrop": directives.unchanged_required,
         "screenshot-background": _screenshot_background,
+        "screenshot-border": directives.unchanged_required,
+        "screenshot-border-width": directives.nonnegative_int,
         "screenshot-columns": _screenshot_columns,
+        "screenshot-margin": directives.nonnegative_int,
+        "screenshot-padding": directives.nonnegative_int,
+        "screenshot-radius": directives.nonnegative_int,
+        "screenshot-shadow": directives.unchanged_required,
+        "screenshot-title": directives.unchanged_required,
         "mirror": directives.flag,
     }
     """Adds the two options turning a run into a committed image.

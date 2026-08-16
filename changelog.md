@@ -30,6 +30,11 @@
 - Add a `click_extra_screenshot_dir` configuration value, locating where `:screenshot:` writes.
 - Add a `--background` option to `click-extra screenshot`, and a `:screenshot-background:` option to the `click:run` directive, drawing a capture on light chrome instead of dark.
 - Add an `auto` width to `click-extra screenshot`, and a `:screenshot-columns:` option to the `click:run` directive, laying a capture out at the longest line it holds instead of folding it.
+- Add `--border`, `--border-width`, `--radius`, `--shadow`, `--backdrop`, `--margin` and `--padding` options to `click-extra screenshot`, with `:screenshot-*:` counterparts on the `click:run` directive, restating the window a capture is drawn in.
+- Add a `:screenshot-title:` option to the `click:run` directive, captioning a capture's title bar like the command's own `--title`.
+- Show a `<picture>` element switching a README between a dark and a light capture on the reader's color scheme, and use one for the readme's own.
+- Fix a light capture keeping the translucent white frame a dark renderer draws, which left a white window invisible on a white page.
+- Drop the survey of other capture tools from the screenshots page, now that the bundled command covers what it compared against.
 - Demonstrate both chromes on the screenshots page, with one help screen captured under a dark and a light theme.
 - Add a `theme` parameter to `format_cli_prompt()` and `highlight_bin_name()`, so a caller drawing a prompt onto a surface of its own picks the palette.
 - Fix the `click:run` directive handing Click only the last word of a multi-word `prog_name`, which made a wrapped CLI report a name its own prompt line contradicted.

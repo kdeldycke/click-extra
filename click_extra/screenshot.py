@@ -84,7 +84,7 @@ except ImportError:
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Literal, TypeAlias
+    from typing import Any, Literal, TypeAlias
 
     from .execution import TArg, TEnvVars, TNestedArgs
     from .theme import HelpTheme
@@ -182,6 +182,68 @@ missing entry: the mapping is read through {meth}`dict.get`, and
 `themes.toml`.
 """
 
+NO_PAINT = "none"
+"""Border or shadow value asking for none to be drawn.
+
+SVG's own keyword for an absent paint, so it reaches the `stroke` attribute
+unchanged, and CSS's for an absent shadow.
+"""
+
+CAPTURE_BORDERS: dict[CaptureBackground, str] = {
+    CaptureBackground.DARK: "rgba(255,255,255,0.35)",
+    CaptureBackground.LIGHT: "rgba(0,0,0,0.25)",
+}
+"""Color the window frame is drawn in, per chrome.
+
+The dark entry is the one Rich draws on its own, a translucent white that reads
+against `#292929` and against nothing else: a light capture framed with it is a
+white window on a white page, the shape of the terminal only guessable from its
+text. Each chrome names a frame its own background can show.
+"""
+
+CAPTURE_SHADOWS: dict[CaptureBackground, str] = {
+    CaptureBackground.DARK: "rgba(0,0,0,0.5)",
+    CaptureBackground.LIGHT: "rgba(0,0,0,0.25)",
+}
+"""Color the window's drop shadow floods with, per chrome.
+
+Where the frame states the window's edge, the shadow lifts it off whatever page
+embeds the capture, which is the other half of not dissolving into it. A reader
+whose renderer drops the filter still gets the frame.
+"""
+
+DEFAULT_BORDER_WIDTH = 1
+"""Thickness, in pixels, of the frame drawn around the window."""
+
+DEFAULT_RADIUS = 8
+"""How round the window's corners are, in pixels.
+
+The radius a renderer draws on its own, which is what a terminal on a desktop
+looks like. Zero squares them, for a capture meant to read as a plain block.
+"""
+
+SHADOW_BLUR = 6
+"""Standard deviation, in pixels, of the drop shadow's blur."""
+
+SHADOW_OFFSET = 3
+"""Downward offset, in pixels, of the drop shadow."""
+
+DEFAULT_MARGIN = 16
+"""Transparent pixels left around the window, on all four sides.
+
+Room for the shadow to fall into, first of all: a filter draws outside the shape
+it is applied to, and anything past the image's own box is cut. It also keeps
+the window from touching the text of the page embedding it.
+"""
+
+DEFAULT_PADDING = 0
+"""Pixels added inside the window, around the captured text.
+
+Zero because a renderer pads on its own already (8 pixels, and 40 above for the
+title bar). This is what a capture wanting more room between its frame and its
+first glyph asks for.
+"""
+
 CAPTURE_THEMES = {
     CaptureBackground.DARK: SVG_EXPORT_THEME,
     CaptureBackground.LIGHT: DEFAULT_TERMINAL_THEME,
@@ -257,6 +319,47 @@ _TEXT_LENGTH_ATTR_RE = re.compile(r'\btextLength="(?P<value>[\d.]+)"')
 
 _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 """Characters a CSS class name cannot carry, as written into `unique_id`."""
+
+_CHROME_RECT_RE = re.compile(r"<rect (?P<attrs>[^>]*\brx=\"8\")\s*/>")
+"""The rounded rectangle a renderer draws the terminal window as.
+
+Keyed on the corner radius, the one attribute no other rectangle in a capture
+carries: the rest are the opaque cells behind styled text, drawn square.
+"""
+
+_STROKE_ATTR_RE = re.compile(r'\bstroke="[^"]*"')
+"""The paint an element's outline is drawn with."""
+
+_STROKE_WIDTH_ATTR_RE = re.compile(r'\bstroke-width="[^"]*"')
+"""The thickness an element's outline is drawn at, in pixels."""
+
+_RADIUS_ATTR_RE = re.compile(r'\brx="[^"]*"')
+"""The corner radius a rectangle is rounded by, in pixels."""
+
+_VIEWBOX_RE = re.compile(r'\bviewBox="0 0 (?P<width>[\d.]+) (?P<height>[\d.]+)"')
+"""The box a capture's own coordinates are read in."""
+
+_BOX_SIZE_ATTR_RE = re.compile(r'(?<![-\w])(?P<name>width|height)="(?P<value>[\d.]+)"')
+"""Either side of a rectangle, in pixels.
+
+The lookbehind is what keeps `stroke-width` out: a hyphenated attribute ending
+in `width` is a different measurement, and growing it by a window's padding
+draws a 41-pixel frame.
+"""
+
+_CLIP_ID_RE = re.compile(r'\bid="(?P<id>[^"]+)-clip-terminal"')
+"""The `unique_id` a capture namespaces its identifiers with, read back."""
+
+_TERMINAL_GROUP_RE = re.compile(
+    r'<g transform="translate\((?P<x>[\d.]+), (?P<y>[\d.]+)\)"'
+    r'(?P<rest> clip-path="url\(#[^"]+-clip-terminal\)")>',
+)
+"""The group holding the captured text, and every cell drawn behind it."""
+
+_TITLE_TEXT_RE = re.compile(
+    r'(?P<head><text class="[^"]+-title"[^>]*?)x="(?P<x>[\d.]+)"'
+)
+"""The caption a capture draws in its window chrome, when it carries one."""
 
 
 def fit_columns(text: str) -> int:
@@ -419,12 +522,144 @@ def harden_svg(svg: str, cell_width: float | None = None) -> str:
     return _TEXT_ELEMENT_RE.sub(rewrite, svg)
 
 
+def frame_svg(
+    svg: str,
+    *,
+    border: str = NO_PAINT,
+    border_width: int = DEFAULT_BORDER_WIDTH,
+    radius: int = DEFAULT_RADIUS,
+    backdrop: str = NO_PAINT,
+    shadow: str = NO_PAINT,
+    margin: int = 0,
+    padding: int = 0,
+) -> str:
+    """Restate the window a rendered capture is drawn in.
+
+    A renderer draws the terminal as a rounded rectangle, and frames it with a
+    translucent white that only a dark background can show. Everything about that
+    window is decided before the capture knows which chrome it is headed for, so
+    it is restated here rather than asked for up front:
+
+    - `border` repaints the frame, so a light capture stops being a white window
+      on a white page;
+    - `shadow` lifts the window off the page under it, drawn as an SVG filter so
+      a renderer that skips filters still gets the frame;
+    - `margin` grows the image around the window, which is what gives the shadow
+      somewhere to fall: a filter draws outside its shape, and the image's own
+      box cuts whatever lands past it;
+    - `padding` grows the window around the text.
+
+    The geometry is rewritten rather than recomputed: the coordinates a renderer
+    already resolved stay as they are, moved as a whole by wrapping them in one
+    translation, which is what keeps this independent of how the source was laid
+    out.
+
+    :param svg: source of a rendered capture.
+    :param border: SVG paint for the window's frame. {data}`NO_PAINT` draws none.
+    :param border_width: thickness of that frame, in pixels.
+    :param radius: how round the window's corners are, in pixels. Zero squares
+        them.
+    :param backdrop: paint filling the whole image, window and margin alike.
+        {data}`NO_PAINT` leaves it transparent, showing the page through.
+    :param shadow: color the drop shadow floods with. {data}`NO_PAINT` draws none.
+    :param margin: transparent pixels to leave on each side of the window.
+    :param padding: pixels to add inside the window, around the text.
+    :return: the reframed source.
+    """
+    window = _CHROME_RECT_RE.search(svg)
+    if not window:
+        return svg
+    unique_id = _CLIP_ID_RE.search(svg)
+    shaded = shadow != NO_PAINT and unique_id is not None
+
+    def grow(match: re.Match[str]) -> str:
+        """Widen the window by the padding it gains on each side."""
+        return f'{match["name"]}="{_svg_number(float(match["value"]) + 2 * padding)}"'
+
+    attrs = window["attrs"]
+    attrs = _STROKE_ATTR_RE.sub(f'stroke="{border}"', attrs, count=1)
+    attrs = _STROKE_WIDTH_ATTR_RE.sub(f'stroke-width="{border_width}"', attrs, count=1)
+    attrs = _RADIUS_ATTR_RE.sub(f'rx="{radius}"', attrs, count=1)
+    if padding:
+        attrs = _BOX_SIZE_ATTR_RE.sub(grow, attrs, count=2)
+    if shaded:
+        assert unique_id
+        attrs = f'{attrs} filter="url(#{unique_id["id"]}-shadow)"'
+    svg = svg.replace(window[0], f"<rect {attrs}/>", 1)
+
+    if padding:
+        svg = _TERMINAL_GROUP_RE.sub(
+            lambda match: (
+                f'<g transform="translate({_svg_number(float(match["x"]) + padding)}, '
+                f'{_svg_number(float(match["y"]) + padding)})"{match["rest"]}>'
+            ),
+            svg,
+            count=1,
+        )
+        svg = _TITLE_TEXT_RE.sub(
+            lambda match: (
+                f'{match["head"]}x="{_svg_number(float(match["x"]) + padding)}"'
+            ),
+            svg,
+            count=1,
+        )
+
+    grown = 2 * (margin + padding)
+    box = _VIEWBOX_RE.search(svg)
+    if grown and box:
+        svg = svg.replace(
+            box[0],
+            f'viewBox="0 0 {_svg_number(float(box["width"]) + grown)} '
+            f'{_svg_number(float(box["height"]) + grown)}"',
+            1,
+        )
+
+    if shaded:
+        assert unique_id
+        svg = svg.replace(
+            "</defs>",
+            f'<filter id="{unique_id["id"]}-shadow" x="-50%" y="-50%" '
+            'width="200%" height="200%">\n'
+            f'<feDropShadow dx="0" dy="{SHADOW_OFFSET}" '
+            f'stdDeviation="{SHADOW_BLUR}" flood-color="{shadow}"/>\n'
+            "</filter>\n</defs>",
+            1,
+        )
+
+    if margin:
+        head, defs, body = svg.partition("</defs>")
+        drawing, close, tail = body.rpartition("</svg>")
+        svg = (
+            f'{head}{defs}\n<g transform="translate({margin}, {margin})">'
+            f"{drawing}</g>\n{close}{tail}"
+        )
+
+    # Painted last so it can be inserted first, under everything already drawn,
+    # and sized from the box the two growths above settled.
+    if backdrop != NO_PAINT and box:
+        head, defs, body = svg.partition("</defs>")
+        svg = (
+            f'{head}{defs}\n<rect fill="{backdrop}" x="0" y="0" '
+            f'width="{_svg_number(float(box["width"]) + grown)}" '
+            f'height="{_svg_number(float(box["height"]) + grown)}"/>{body}'
+        )
+
+    return svg
+
+
 def render_html(
     text: str,
     *,
     title: str = "",
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
+    border: str = NO_PAINT,
+    border_width: int = DEFAULT_BORDER_WIDTH,
+    radius: int = DEFAULT_RADIUS,
+    backdrop: str = NO_PAINT,
+    shadow: str = NO_PAINT,
+    margin: int = 0,
+    padding: int = 0,
 ) -> str:
     """Render captured terminal text to HTML.
 
@@ -451,16 +686,30 @@ def render_html(
     :param full: wrap the `<pre>` in a standalone document. `False` returns the
         `<pre>` alone, to paste into a page that has its own.
     :param background: chrome to draw on, see {class}`CaptureBackground`.
+    :param border: color of the block's frame, see {func}`frame_svg`.
+    :param border_width: thickness of that frame, in pixels.
+    :param radius: how round the block's corners are, in pixels.
+    :param backdrop: paint filling the page behind the block.
+    :param shadow: color of the block's drop shadow, see {func}`frame_svg`.
+    :param margin: pixels left around the block, on all four sides.
+    :param padding: pixels added inside the block, on top of its own.
     :return: the rendered markup.
     """
     chrome, ink = CAPTURE_COLORS[background]
+    frame = "" if border == NO_PAINT else f"border: {border_width}px solid {border}; "
+    if shadow != NO_PAINT:
+        frame += f"box-shadow: 0 {SHADOW_OFFSET}px {SHADOW_BLUR * 2}px {shadow}; "
     body = (
         f'<pre style="background: {chrome}; color: {ink}; '
-        f"font-family: {CAPTURE_FONT_STACK}; line-height: 1.25; padding: 1em; "
+        f"font-family: {CAPTURE_FONT_STACK}; line-height: 1.25; "
+        f"margin: {margin}px; padding: calc(1em + {padding}px); "
+        f"{frame}border-radius: {radius}px; "
         f'overflow-x: auto">{ansi_to_html(escape(text, quote=False))}</pre>'
     )
+    page = "" if backdrop == NO_PAINT else f"background: {backdrop}; "
     if not full:
-        return body
+        # A fragment carries no page of its own, so a backdrop needs one.
+        return f'<div style="{page}">{body}</div>' if page else body
     return (
         "<!doctype html>\n"
         '<html lang="en">\n'
@@ -468,7 +717,7 @@ def render_html(
         '<meta charset="utf-8">\n'
         f"<title>{escape(title, quote=False)}</title>\n"
         "</head>\n"
-        f'<body style="margin: 0">\n{body}\n</body>\n'
+        f'<body style="{page}margin: 0">\n{body}\n</body>\n'
         "</html>\n"
     )
 
@@ -482,6 +731,13 @@ def render(
     unique_id: str | None = None,
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
+    border: str | None = None,
+    border_width: int = DEFAULT_BORDER_WIDTH,
+    radius: int = DEFAULT_RADIUS,
+    backdrop: str = NO_PAINT,
+    shadow: str | None = None,
+    margin: int = DEFAULT_MARGIN,
+    padding: int = DEFAULT_PADDING,
 ) -> str:
     """Render captured terminal text to the document `format` names.
 
@@ -499,21 +755,48 @@ def render(
         a CSS class name cannot carry are folded to a dash.
     :param full: HTML only. See {func}`render_html`.
     :param background: chrome to draw on, see {class}`CaptureBackground`.
+    :param border: color of the window's frame. `None` takes the one the chrome
+        can show, see {data}`CAPTURE_BORDERS`; {data}`NO_PAINT` draws none.
+    :param border_width: thickness of that frame, in pixels.
+    :param radius: how round the window's corners are, in pixels. Zero squares
+        them.
+    :param backdrop: paint filling the image behind the window, margin included.
+        {data}`NO_PAINT` leaves it transparent.
+    :param shadow: color of the window's drop shadow. `None` takes the chrome's
+        own, see {data}`CAPTURE_SHADOWS`; {data}`NO_PAINT` draws none.
+    :param margin: transparent pixels left around the window, on all four sides.
+    :param padding: pixels added inside the window, around the text.
     :return: the rendered document.
     :raises ImportError: rendering SVG without the `screenshot` extra installed.
     """
+    if border is None:
+        border = CAPTURE_BORDERS[background]
+    if shadow is None:
+        shadow = CAPTURE_SHADOWS[background]
+    frame: dict[str, Any] = {
+        "border": border,
+        "border_width": border_width,
+        "radius": radius,
+        "backdrop": backdrop,
+        "shadow": shadow,
+        "margin": margin,
+        "padding": padding,
+    }
     if format is CaptureFormat.HTML:
-        return render_html(text, title=title, full=full, background=background)
+        return render_html(text, title=title, full=full, background=background, **frame)
     if unique_id:
         unique_id = _NON_IDENTIFIER_RE.sub("-", unique_id)
-    return harden_svg(
-        _rich_svg(
-            text,
-            columns=fit_columns(text) if columns == AUTO_COLUMNS else columns,
-            title=title,
-            unique_id=unique_id,
-            background=background,
+    return frame_svg(
+        harden_svg(
+            _rich_svg(
+                text,
+                columns=fit_columns(text) if columns == AUTO_COLUMNS else columns,
+                title=title,
+                unique_id=unique_id,
+                background=background,
+            ),
         ),
+        **frame,
     )
 
 
@@ -532,6 +815,13 @@ def capture(
     unique_id: str | None = None,
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
+    border: str | None = None,
+    border_width: int = DEFAULT_BORDER_WIDTH,
+    radius: int = DEFAULT_RADIUS,
+    backdrop: str = NO_PAINT,
+    shadow: str | None = None,
+    margin: int = DEFAULT_MARGIN,
+    padding: int = DEFAULT_PADDING,
 ) -> tuple[str, int]:
     """Run a command and render its output as a document.
 
@@ -556,6 +846,13 @@ def capture(
     :param unique_id: see {func}`render`.
     :param full: see {func}`render`.
     :param background: see {func}`render`.
+    :param border: see {func}`render`.
+    :param border_width: see {func}`render`.
+    :param radius: see {func}`render`.
+    :param backdrop: see {func}`render`.
+    :param shadow: see {func}`render`.
+    :param margin: see {func}`render`.
+    :param padding: see {func}`render`.
     :return: the rendered document, and the command's exit code.
     """
     process = capture_output(
@@ -584,6 +881,13 @@ def capture(
             unique_id=unique_id,
             full=full,
             background=background,
+            border=border,
+            border_width=border_width,
+            radius=radius,
+            backdrop=backdrop,
+            shadow=shadow,
+            margin=margin,
+            padding=padding,
         ),
         process.returncode,
     )

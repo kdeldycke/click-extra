@@ -46,11 +46,14 @@ from click_extra.screenshot import (
     _TEXT_ELEMENT_RE,
     AUTO_COLUMNS,
     CAPTURE_BACKGROUND,
+    CAPTURE_BORDERS,
     CAPTURE_FOREGROUND,
+    CAPTURE_SHADOWS,
     DEFAULT_COLUMNS,
     LIGHT_CAPTURE_BACKGROUND,
     LIGHT_CAPTURE_FOREGROUND,
     MIN_COLUMNS,
+    NO_PAINT,
     PADDING,
     CaptureBackground,
     CaptureFormat,
@@ -361,6 +364,92 @@ def test_render_draws_on_the_chrome_it_is_given(format, background, expected, un
         assert color in document
     for color in unwanted:
         assert color not in document
+
+
+def svg_box(svg: str) -> tuple[float, float]:
+    """The width and height of a rendered capture's own box."""
+    match = re.search(r'viewBox="0 0 (?P<width>[\d.]+) (?P<height>[\d.]+)"', svg)
+    assert match
+    return (float(match["width"]), float(match["height"]))
+
+
+def svg_window(svg: str) -> tuple[float, float]:
+    """The width and height of the terminal window drawn in a capture."""
+    match = re.search(
+        r'<rect [^>]*width="(?P<w>[\d.]+)" height="(?P<h>[\d.]+)" rx=', svg
+    )
+    assert match
+    return (float(match["w"]), float(match["h"]))
+
+
+@pytest.mark.parametrize("background", CaptureBackground)
+def test_render_frames_with_a_border_its_chrome_can_show(background):
+    """Each chrome frames its window in something its own background shows.
+
+    The regression this guards is a light capture keeping the translucent white
+    a dark renderer draws by default: a white window on a white page, whose
+    shape is left for the reader to infer from the text inside it.
+    """
+    svg = render("kiwi", unique_id="fruit", background=background)
+    assert f'stroke="{CAPTURE_BORDERS[background]}"' in svg
+    assert f'flood-color="{CAPTURE_SHADOWS[background]}"' in svg
+
+
+def test_frame_svg_paints_what_it_is_given():
+    """A caller's own frame and shadow reach the window."""
+    svg = render("kiwi", unique_id="fruit", border="red", shadow="blue")
+    assert 'stroke="red"' in svg
+    assert 'flood-color="blue"' in svg
+    assert 'filter="url(#fruit-shadow)"' in svg
+
+
+def test_frame_svg_restates_the_whole_window():
+    """Corner radius, frame thickness, backdrop and title all reach the source."""
+    svg = render(
+        "kiwi",
+        unique_id="fruit",
+        title="caption",
+        border="red",
+        border_width=3,
+        radius=0,
+        backdrop="#1f6feb",
+    )
+    assert 'stroke-width="3"' in svg
+    assert 'rx="0"' in svg
+    assert '<rect fill="#1f6feb" x="0" y="0"' in svg
+    # Drawn centered in the window's title bar, by the renderer itself.
+    assert '<text class="fruit-title"' in svg
+    assert 'text-anchor="middle"' in svg
+    assert "caption" in svg
+    # The backdrop covers the image, margin included, and sits under the window.
+    assert svg.index('fill="#1f6feb"') < svg.index('stroke="red"')
+
+
+def test_frame_svg_draws_neither_when_asked_for_neither():
+    """`none` is the value that leaves the window bare."""
+    svg = render("kiwi", unique_id="fruit", border=NO_PAINT, shadow=NO_PAINT)
+    assert 'stroke="none"' in svg
+    assert "feDropShadow" not in svg
+    assert "filter=" not in svg
+
+
+@pytest.mark.parametrize(
+    ("margin", "padding"),
+    ((0, 0), (16, 0), (0, 12), (10, 10)),
+)
+def test_frame_svg_geometry(margin, padding):
+    """Margin grows the image alone; padding grows the window inside it too.
+
+    Neither moves a glyph relative to the others: the capture is repositioned as
+    a whole, so its text still reads back line by line.
+    """
+    bare = render("kiwi", unique_id="fruit", margin=0, padding=0)
+    framed = render("kiwi", unique_id="fruit", margin=margin, padding=padding)
+
+    grown = 2 * (margin + padding)
+    assert svg_box(framed) == tuple(side + grown for side in svg_box(bare))
+    assert svg_window(framed) == tuple(side + 2 * padding for side in svg_window(bare))
+    assert svg_to_lines(framed) == svg_to_lines(bare)
 
 
 def test_render_html_escapes_the_captured_text():

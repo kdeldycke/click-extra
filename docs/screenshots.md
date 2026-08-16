@@ -150,6 +150,35 @@ assert "--crates" in result.stdout
 
 Both blocks hide their results, which is the exception to what [`:screenshot:`](sphinx.md#committed-captures) is usually for: a results block on this page is colored by the site's stylesheet and follows the reader's own theme, so the one thing being compared here is the one thing it cannot show.
 
+### The window itself
+
+A capture is drawn as a terminal window: a rounded rectangle in the chrome's background color, framed with a one-pixel border and lifted off the page by a drop shadow. Every part of that is an option:
+
+```shell-session
+$ click-extra screenshot --output shot.svg --title "my-cli --help" --backdrop "#1f6feb" --radius 0 --border-width 2 --margin 28 -- my-cli --help
+```
+
+| Option           | Takes     | Default      | Draws                                                    |
+| :--------------- | :-------- | :----------- | :------------------------------------------------------- |
+| `--border`       | CSS color | the chrome's | The frame around the window. `none` leaves it bare.      |
+| `--border-width` | pixels    | `1`          | How thick that frame is.                                 |
+| `--radius`       | pixels    | `8`          | How round the window's corners are. `0` squares them.    |
+| `--shadow`       | CSS color | the chrome's | The drop shadow under the window. `none` leaves it flat. |
+| `--backdrop`     | CSS color | none         | A page behind the window, margin included.               |
+| `--margin`       | pixels    | `16`         | Transparent space around the window.                     |
+| `--padding`      | pixels    | `0`          | Space inside it, on top of the renderer's own.           |
+| `--title`        | text      | none         | A caption centered in the window's title bar.            |
+
+Two of them carry a default that is not a fixed value but the chrome's own. That is the whole reason they are not constants: a renderer frames its window in a translucent white, and a light capture wearing it is a white window on a white page, its edge left for the reader to infer.
+
+The rest answer to what the capture is *for*. A shadow needs `--margin` to fall into, since a filter paints outside the shape it is applied to and the image's own box cuts whatever lands past it. `--backdrop` fills that same space instead of leaving the page through, which is what turns a capture into a self-contained picture for a slide or a social card. `--radius 0` drops the desktop-window look, for a capture meant to read as a plain block of output.
+
+The frame is rewritten into the rendered source rather than requested up front ({func}`click_extra.screenshot.frame_svg`), which is what lets the same pass serve an HTML capture, where these land on the block's `border`, `border-radius`, `box-shadow`, `margin`, `padding` and the page's `background`.
+
+```{tip}
+A shadow is an SVG filter. A renderer that skips filters, and a few outside the browser do, still draws the border, so the window keeps an edge either way.
+```
+
 ### The captures on this page
 
 Here is the command turned on click-extra itself, whose [bundled CLI](cli.md) doubles as a live demo of the rendering features. Each image below was produced by the line printed under it, run from a checkout.
@@ -198,28 +227,31 @@ A web browser does both. Little else does. `librsvg`, and through it `rsvg-conve
 
 Once committed, an image goes stale the first time the CLI's help changes, and nothing about it complains. `tests/test_screenshots.py` reads the SVG back, rebuilds the terminal text from the glyph coordinates, and compares it to what the command prints today, failing on the first line that diverged. Re-running the command above is then all it takes to refresh the picture.
 
-## Other tools
-
-The wider landscape splits by need: a regenerable static image, an animated demo, or a quick hand-made shot. None of them applies the hardening pass above, so their SVGs want a browser to render faithfully.
-
-```{tip}
-A tool that captures a command by reading its piped output sees a non-interactive stream, and click-extra strips colors there by default, like any CLI that respects a non-TTY `stdout`. Export `FORCE_COLOR=1` in the capture environment (`FORCE_COLOR=1 my-cli --help`) to keep them. A tool that allocates a real pseudo-terminal (a PTY) receives colors on its own, with no environment variable needed.
-```
-
-| Tool                                                                                                                         | Output            | Runs your command? | Install        | Diffable source | Best for                           |
-| :--------------------------------------------------------------------------------------------------------------------------- | :---------------- | :----------------- | :------------- | :-------------- | :--------------------------------- |
-| [`rich-codex`](https://ewels.github.io/rich-codex/)                                                                          | SVG, PNG          | Yes                | `uvx` (Python) | Yes             | Scanning Markdown for commands     |
-| [`freeze`](https://github.com/charmbracelet/freeze)                                                                          | SVG, PNG, WebP    | Yes (`--execute`)  | Go binary      | Yes             | Static shots without a Python tool |
-| [`vhs`](https://github.com/charmbracelet/vhs)                                                                                | GIF, MP4, WebM    | Scripted `.tape`   | Go binary      | No              | Reproducible animated demos        |
-| [`asciinema`](https://asciinema.org) + [`agg`](https://github.com/asciinema/agg)                                             | GIF, animated SVG | Yes (records)      | Rust, npm      | Yes (`.cast`)   | Authentic session recordings       |
-| [Rich export](https://rich.readthedocs.io/en/stable/console.html), [`ansitoimg`](https://github.com/FHPythonUtils/AnsiToImg) | SVG, HTML, PNG    | No (converts text) | `uvx` (Python) | Yes (SVG)       | Output you already captured        |
-| [ray.so](https://ray.so), [Carbon](https://carbon.now.sh), [chalk.ist](https://chalk.ist)                                    | PNG, SVG          | No (paste)         | Web            | No              | One-off marketing shots            |
-
-A few specifics the table compresses: [`rich-codex`](https://ewels.github.io/rich-codex/) wraps the same Rich export used here, and adds what this command deliberately leaves out, scanning your Markdown for embedded commands and regenerating every image through a companion GitHub Action. [`freeze`](https://github.com/charmbracelet/freeze) is a single Go binary whose `--execute "my-cli --help"` captures real ANSI output with no Python involved. [`vhs`](https://github.com/charmbracelet/vhs) replays a `.tape` script rather than recording you, which makes its animations deterministic and re-runnable in CI. [`asciinema`](https://asciinema.org) records a genuine session into a plain-text `.cast` file that diffs in git, then [`agg`](https://github.com/asciinema/agg) renders it to a GIF or [`svg-term-cli`](https://github.com/marionebl/svg-term-cli) to an animated SVG.
-
 ## GitHub integration
 
-Whichever tool you pick, a README can track the reader's theme: capture a dark and a light SVG, then switch between them with a GitHub `<picture>` element keyed on `prefers-color-scheme`.
+A README can track the reader's theme. Capture the same screen twice, once per [chrome](#light-and-dark-chrome), with the CLI's own theme moving along:
+
+```shell-session
+$ click-extra screenshot --output docs/assets/help-dark.svg -- my-cli --theme dark --help
+$ click-extra screenshot --output docs/assets/help-light.svg --background light -- my-cli --theme light --help
+```
+
+Then hand both to a `<picture>` element, which GitHub renders in a README and which picks between them on `prefers-color-scheme`:
+
+```html
+<picture>
+ <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/me/my-cli/main/docs/assets/help-dark.svg"/>
+ <img alt="my-cli help screen" src="https://raw.githubusercontent.com/me/my-cli/main/docs/assets/help-light.svg"/>
+</picture>
+```
+
+The `<img>` is not a spare tyre: it is what every surface without the switch shows, PyPI and most editors' previews included, so it holds the capture that reads on the light background those default to. The `<source>` is the one a reader in dark mode gets instead.
+
+Both URLs are absolute on purpose. A README is read on PyPI and in a hundred forks of the page, none of which resolve a repository-relative path, which is why every capture in [this project's own README](https://github.com/kdeldycke/click-extra#documentation-tooling) is addressed through `raw.githubusercontent.com`. That entry is this exact markup, over the pair of captures [above](#light-and-dark-chrome).
+
+```{note}
+The switch keys on the *browser's* color scheme, not on the theme toggle of a documentation site, so it belongs to a README rather than to these pages: Furo's own switch would leave it unmoved.
+```
 
 ## `click_extra.screenshot` API
 

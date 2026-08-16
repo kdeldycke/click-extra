@@ -60,9 +60,14 @@ from .prebake import (
 )
 from .screenshot import (
     AUTO_COLUMNS,
+    DEFAULT_BORDER_WIDTH,
     DEFAULT_COLUMNS,
+    DEFAULT_MARGIN,
+    DEFAULT_PADDING,
+    DEFAULT_RADIUS,
     DEFAULT_TRUNCATION,
     MIN_COLUMNS,
+    NO_PAINT,
     CaptureBackground,
     CaptureFormat,
     capture,
@@ -467,6 +472,55 @@ def _parse_columns(
     "light-background theme washes out on the dark default.",
 )
 @option(
+    "--border",
+    default=None,
+    help="Color of the frame drawn around the terminal window, as CSS names it. "
+    "Pass none to draw no frame. Defaults to the one the chrome can show.",
+)
+@option(
+    "--border-width",
+    type=IntRange(min=0),
+    default=DEFAULT_BORDER_WIDTH,
+    show_default=True,
+    help="Thickness of that frame, in pixels.",
+)
+@option(
+    "--radius",
+    type=IntRange(min=0),
+    default=DEFAULT_RADIUS,
+    show_default=True,
+    help="How round the window's corners are, in pixels. Zero squares them.",
+)
+@option(
+    "--backdrop",
+    default=NO_PAINT,
+    show_default=True,
+    help="Color filling the image behind the window, margin included, as CSS "
+    "names it. Left transparent by default, so the page shows through.",
+)
+@option(
+    "--shadow",
+    default=None,
+    help="Color of the drop shadow lifting the window off the page, as CSS names "
+    "it. Pass none to draw no shadow. Defaults to the one the chrome calls for.",
+)
+@option(
+    "--margin",
+    type=IntRange(min=0),
+    default=DEFAULT_MARGIN,
+    show_default=True,
+    help="Transparent pixels left around the window, on all four sides. The room "
+    "the drop shadow falls into, so a capture drawing one wants some.",
+)
+@option(
+    "--padding",
+    type=IntRange(min=0),
+    default=DEFAULT_PADDING,
+    show_default=True,
+    help="Pixels added inside the window, around the captured text, on top of "
+    "the few the renderer adds on its own.",
+)
+@option(
     "--prompt",
     default=None,
     help="Command line to display above the output, when it differs from the "
@@ -527,6 +581,13 @@ def screenshot_cmd(
     output: Path,
     columns: TColumns,
     background: CaptureBackground,
+    border: str | None,
+    border_width: int,
+    radius: int,
+    backdrop: str,
+    shadow: str | None,
+    margin: int,
+    padding: int,
     prompt: str | None,
     head: int | None,
     tail: int | None,
@@ -608,6 +669,13 @@ def screenshot_cmd(
             unique_id=output.stem,
             full=not fragment,
             background=background,
+            border=border,
+            border_width=border_width,
+            radius=radius,
+            backdrop=backdrop,
+            shadow=shadow,
+            margin=margin,
+            padding=padding,
         )
     except ImportError as error:
         raise ClickException(str(error)) from error

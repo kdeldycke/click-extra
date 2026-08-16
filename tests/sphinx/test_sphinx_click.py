@@ -1205,6 +1205,43 @@ def test_click_run_screenshot_columns_rejects_an_unusable_width(value):
         _screenshot_columns(value)
 
 
+def test_click_run_screenshot_frame_options(sphinx_app_myst):
+    """The `:screenshot-*:` options restate the window, the title included.
+
+    The hex color is quoted because a directive's options are read as YAML,
+    where an unquoted `#` opens a comment and leaves the option empty.
+    """
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{click:run}
+            :screenshot: framed-greet-screen
+            :screenshot-title: greeter
+            :screenshot-backdrop: "#1f6feb"
+            :screenshot-border: red
+            :screenshot-border-width: 3
+            :screenshot-radius: 0
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "framed-greet-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    assert 'stroke="red"' in svg
+    assert 'stroke-width="3"' in svg
+    assert 'rx="0"' in svg
+    assert 'fill="#1f6feb"' in svg
+    assert "greeter" in svg
+
+
 def test_click_run_screenshot_background_rejects_an_unknown_chrome():
     """A typo names the chromes it could have been, instead of drawing a default."""
     with pytest.raises(ValueError, match=r'"dark".+"light"'):
