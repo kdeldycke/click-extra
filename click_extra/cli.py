@@ -68,6 +68,7 @@ from .screenshot import (
     DEFAULT_PADDING,
     DEFAULT_RADIUS,
     DEFAULT_TRUNCATION,
+    DEFAULT_WATERMARK,
     MIN_COLUMNS,
     NO_PAINT,
     OPAQUE,
@@ -546,6 +547,21 @@ def _parse_columns(
     "through it, while its text, frame and title bar keep their own paint.",
 )
 @option(
+    "--watermark",
+    default=DEFAULT_WATERMARK,
+    show_default=True,
+    help="Credit line drawn in the image's bottom-right corner, in the margin "
+    "around the window. Pass an empty string to draw none, or your own text to "
+    "credit your project instead.",
+)
+@option(
+    "--watermark-color",
+    default=None,
+    help="Color that credit line is drawn in, as CSS names it, alpha included. "
+    "Defaults to a neutral gray: the line sits in the transparent margin, so it "
+    "answers to the page embedding the image rather than to the chrome.",
+)
+@option(
     "--prompt",
     default=None,
     help="Command line to display above the output, when it differs from the "
@@ -622,6 +638,8 @@ def screenshot_cmd(
     margin: int,
     padding: int,
     opacity: float,
+    watermark: str,
+    watermark_color: str | None,
     prompt: str | None,
     head: int | None,
     tail: int | None,
@@ -712,6 +730,8 @@ def screenshot_cmd(
             margin=margin,
             padding=padding,
             opacity=opacity,
+            watermark=watermark,
+            watermark_color=watermark_color,
         )
     except ImportError as error:
         raise ClickException(str(error)) from error

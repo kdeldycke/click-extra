@@ -1305,6 +1305,70 @@ def test_click_run_screenshot_preset_defaults_to_the_project_wide_one(sphinx_app
     assert 'fill="#303030"' in svg
 
 
+def test_click_run_screenshot_carries_no_watermark_by_default(sphinx_app_myst):
+    """A capture a build rewrites carries no release number to go stale.
+
+    The `screenshot` command credits click-extra on every image it writes. A
+    block's image is regenerated and committed on every build, so the same mark
+    would rewrite every asset the day the release it names changes.
+    """
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{click:run}
+            :screenshot: unmarked-greet-screen
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "unmarked-greet-screen.svg"
+    assert "watermark" not in asset.read_text(encoding="utf-8")
+
+
+def test_click_run_screenshot_watermark(sphinx_app_myst):
+    """A project wanting its captures credited states the line once."""
+    sphinx_app_myst.app.config.click_extra_screenshot_watermark = "pantry 1.4.2"
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{click:run}
+            :screenshot: credited-greet-screen
+            result = invoke(greet)
+            ```
+
+            ```{click:run}
+            :screenshot: recredited-greet-screen
+            :screenshot-watermark: shot on a Tuesday
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    assets = Path(sphinx_app_myst.app.srcdir) / "assets"
+    project_wide = (assets / "credited-greet-screen.svg").read_text(encoding="utf-8")
+    assert '<text class="watermark"' in project_wide
+    assert "pantry 1.4.2" in project_wide
+    # A block naming its own mark keeps it.
+    per_block = (assets / "recredited-greet-screen.svg").read_text(encoding="utf-8")
+    assert "shot on a Tuesday" in per_block
+    assert "pantry 1.4.2" not in per_block
+
+
 def test_click_run_screenshot_opacity(sphinx_app_myst):
     """A see-through window lets the page it is laid on show through its body."""
     sphinx_app_myst.build_document(

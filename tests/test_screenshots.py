@@ -51,6 +51,7 @@ from click_extra.screenshot import (
     CAPTURE_SHADOWS,
     CAPTURE_TERMINAL_HINTS,
     DEFAULT_COLUMNS,
+    DEFAULT_WATERMARK,
     LIGHT_CAPTURE_BACKGROUND,
     LIGHT_CAPTURE_FOREGROUND,
     MIN_COLUMNS,
@@ -58,6 +59,8 @@ from click_extra.screenshot import (
     OPAQUE,
     PADDING,
     TITLEBAR_HEIGHT,
+    WATERMARK_INK,
+    WATERMARK_INSET,
     CaptureBackground,
     CaptureFormat,
     _rich_svg,
@@ -172,6 +175,10 @@ def svg_to_lines(svg: str) -> list[str]:
     cell_width = measure_cell_width(svg)
     lines: dict[float, str] = {}
     for element in _TEXT_ELEMENT_RE.finditer(svg):
+        # The credit line is the one run no terminal printed, and the one that
+        # moves on its own: it names the release that drew the image.
+        if 'class="watermark"' in element["attrs"]:
+            continue
         content = unescape(element["content"]).replace("\N{NO-BREAK SPACE}", " ")
         offset = re.search(r'\bx="(?P<value>-?[\d.]+)"', element["attrs"])
         baseline = re.search(r'\by="(?P<value>-?[\d.]+)"', element["attrs"])
@@ -653,6 +660,40 @@ def test_render_thins_the_window_out(format, expected):
     )
 
 
+@pytest.mark.parametrize("format", tuple(CaptureFormat))
+def test_render_credits_what_drew_it(format):
+    """Every capture carries the mark, in the space around the terminal."""
+    marked = render("kiwi", format=format, unique_id="fruit")
+    assert DEFAULT_WATERMARK in marked
+    assert WATERMARK_INK in marked
+    # A capture that travels says which release drew it.
+    assert re.search(r"click-extra \d+\.\d+", DEFAULT_WATERMARK)
+    # And the mark is a default, not a fixture.
+    assert DEFAULT_WATERMARK not in render(
+        "kiwi", format=format, unique_id="fruit", watermark=""
+    )
+    assert "pantry 1.4.2" in render(
+        "kiwi", format=format, unique_id="fruit", watermark="pantry 1.4.2"
+    )
+
+
+def test_watermark_is_not_terminal_text():
+    """The mark is chrome, so reading a capture back does not collect it."""
+    svg = render("kiwi", unique_id="fruit", watermark="pantry 1.4.2")
+    assert "pantry 1.4.2" in svg
+    assert svg_to_lines(svg) == ["kiwi"]
+
+
+def test_watermark_sits_where_the_margin_is():
+    """It is drawn against the image's own corner, wherever the margin puts it."""
+    svg = render("kiwi", unique_id="fruit", margin=60)
+    box = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', svg)
+    mark = re.search(r'<text class="watermark" x="([\d.]+)" y="([\d.]+)"', svg)
+    assert box and mark
+    assert float(mark[1]) == float(box[1]) - WATERMARK_INSET
+    assert float(mark[2]) == float(box[2]) - WATERMARK_INSET
+
+
 def test_frame_svg_draws_neither_when_asked_for_neither():
     """`none` is the value that leaves the window bare."""
     svg = render("kiwi", unique_id="fruit", border=NO_PAINT, shadow=NO_PAINT)
@@ -714,7 +755,9 @@ def test_render_html_round_trips_the_terminal_text():
 
 def test_render_html_fragment_is_self_contained():
     """A fragment carries its own styling, and no document scaffolding."""
-    fragment = render(SAMPLE_CAPTURE, format=CaptureFormat.HTML, full=False)
+    fragment = render(
+        SAMPLE_CAPTURE, format=CaptureFormat.HTML, full=False, watermark=""
+    )
     assert fragment.startswith("<pre style=")
     assert fragment.endswith("</pre>")
     assert "<!doctype" not in fragment.lower()

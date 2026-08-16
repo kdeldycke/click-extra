@@ -747,8 +747,10 @@ class ClickDirective(SphinxDirective):
         `:screenshot-shadow:` take a CSS color (or `none` to paint neither),
         `:screenshot-border-width:`, `:screenshot-margin:`,
         `:screenshot-padding:` and `:screenshot-radius:` take pixels,
-        `:screenshot-opacity:` how solid the window's body is, and
-        `:screenshot-title:` the caption drawn in the window's own chrome.
+        `:screenshot-opacity:` how solid the window's body is,
+        `:screenshot-title:` the caption drawn in the window's own chrome, and
+        `:screenshot-watermark:` a credit line for the image's corner, which no
+        capture carries here unless asked for.
         `:screenshot-line-numbers:` is a flag, numbering every line the block
         rendered, its prompt first. See
         {func}`~click_extra.screenshot.frame_svg`.
@@ -770,9 +772,18 @@ class ClickDirective(SphinxDirective):
                 "radius",
                 "shadow",
                 "title",
+                "watermark",
+                "watermark-color",
             )
             if f"screenshot-{name}" in self.options
         }
+        # Stated even when nothing asks for one, the renderer crediting
+        # click-extra by default: an image a build rewrites and commits cannot
+        # carry a release number without being rewritten by every release.
+        frame.setdefault(
+            "watermark",
+            self.env.config.click_extra_screenshot_watermark,
+        )
         # Spelled out rather than imported from the package declaring it, as
         # the screenshot directory next door is: the name is the conf.py API.
         default_preset = self.env.config.click_extra_screenshot_preset
@@ -944,6 +955,8 @@ class RunDirective(ClickDirective):
         "screenshot-radius": directives.nonnegative_int,
         "screenshot-shadow": directives.unchanged_required,
         "screenshot-title": directives.unchanged_required,
+        "screenshot-watermark": directives.unchanged_required,
+        "screenshot-watermark-color": directives.unchanged_required,
         "mirror": directives.flag,
     }
     """Adds the two options turning a run into a committed image.

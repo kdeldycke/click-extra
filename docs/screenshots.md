@@ -184,18 +184,20 @@ A capture is drawn as a terminal window: a rounded rectangle in the chrome's bac
 $ click-extra screenshot --output shot.svg --title "my-cli --help" --backdrop "#1f6feb" --radius 0 --border-width 2 --margin 28 -- my-cli --help
 ```
 
-| Option           | Takes      | Default              | Draws                                                                        |
-| :--------------- | :--------- | :------------------- | :--------------------------------------------------------------------------- |
-| `--border`       | CSS color  | the chrome's         | The frame around the window. `none` leaves it bare.                          |
-| `--border-width` | pixels     | `1`                  | How thick that frame is.                                                     |
-| `--radius`       | pixels     | `8`, or the preset's | How round the window's corners are. `0` squares them.                        |
-| `--shadow`       | CSS color  | the chrome's         | The drop shadow under the window. `none` leaves it flat.                     |
-| `--backdrop`     | CSS color  | none                 | A page behind the window, margin included.                                   |
-| `--margin`       | pixels     | `48`                 | Transparent space around the window.                                         |
-| `--opacity`      | `0` to `1` | `1`                  | How solid the window's body is. Under `1` it lets what is behind it through. |
-| `--padding`      | pixels     | `8`                  | Space inside it, on top of the renderer's own.                               |
-| `--line-numbers` | flag       | off                  | A dim gutter numbering the captured lines.                                   |
-| `--title`        | text       | none                 | A caption centered in the window's title bar.                                |
+| Option              | Takes      | Default                | Draws                                                                        |
+| :------------------ | :--------- | :--------------------- | :--------------------------------------------------------------------------- |
+| `--border`          | CSS color  | the chrome's           | The frame around the window. `none` leaves it bare.                          |
+| `--border-width`    | pixels     | `1`                    | How thick that frame is.                                                     |
+| `--radius`          | pixels     | `8`, or the preset's   | How round the window's corners are. `0` squares them.                        |
+| `--shadow`          | CSS color  | the chrome's           | The drop shadow under the window. `none` leaves it flat.                     |
+| `--backdrop`        | CSS color  | none                   | A page behind the window, margin included.                                   |
+| `--margin`          | pixels     | `48`                   | Transparent space around the window.                                         |
+| `--opacity`         | `0` to `1` | `1`                    | How solid the window's body is. Under `1` it lets what is behind it through. |
+| `--watermark`       | text       | the click-extra credit | A credit line in the image's bottom-right corner. Empty draws none.          |
+| `--watermark-color` | CSS color  | a neutral gray         | The ink that line is drawn in.                                               |
+| `--padding`         | pixels     | `8`                    | Space inside it, on top of the renderer's own.                               |
+| `--line-numbers`    | flag       | off                    | A dim gutter numbering the captured lines.                                   |
+| `--title`           | text       | none                   | A caption centered in the window's title bar.                                |
 
 Two of them carry a default that is not a fixed value but the chrome's own. That is the whole reason they are not constants: a renderer frames its window in a translucent white, and a light capture wearing it is a white window on a white page, its edge left for the reader to infer.
 
@@ -240,6 +242,33 @@ $ click-extra screenshot --output numbered.svg --line-numbers -- my-cli --help
 The numbers land in the terminal text rather than in a column of their own, which is the same trade Pygments makes: every renderer places them for free, and a reader copying an HTML capture copies them too.
 
 It also means the gutter spends columns the command already used: a screen wrapped at 80 comes back a few characters too wide, and folds. Pair the flag with [`--columns auto`](#width), or with a width that leaves room for the gutter, so the image grows instead of the lines breaking.
+
+#### The credit line
+
+Every capture the command writes carries a credit in its bottom-right corner, in the margin around the window. Here is one, reading `generated with pantry 1.4.2` because that is what shot it:
+
+```{click:run}
+:screenshot: watermark-screen
+:screenshot-watermark: generated with pantry 1.4.2
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+
+![A help screen credited in the margin under its bottom-right corner](assets/watermark-screen.svg)
+
+Left alone, the line names click-extra and the release that drew the image, which is what a capture needs once it has travelled: on a slide, in a README or on a social card it is a long way from the page that explains where it came from. `--watermark` replaces the text, and an empty string draws none at all:
+
+```shell-session
+$ click-extra screenshot --output shot.svg --watermark "pantry 1.4.2 · example.com" -- my-cli --help
+$ click-extra screenshot --output shot.svg --watermark "" -- my-cli --help
+```
+
+Crediting your own project rather than the tool that drew it is the expected case, not an exception. Set it once in your [configuration file](#stating-a-default-once) and every capture carries it.
+
+The mark is the one thing in a capture drawn outside the window, so it is also the one paint that cannot answer to the chrome: the margin is transparent, and what sits behind it is a page this command never sees. Hence a neutral gray, which reads on a white README and a dark one alike, and `--watermark-color` for a capture whose backdrop it has to sit on.
+
+A capture written by a [`click:run` block](sphinx.md#committed-captures) carries none of this by default. That image is regenerated and committed on every documentation build, so a release number in it would rewrite every asset the day the release changes, and the page around it already says what drew it. `:screenshot-watermark:`, or the `click_extra_screenshot_watermark` `conf.py` value, turns it on for a project that wants it anyway.
 
 #### All of it at once
 
@@ -376,6 +405,7 @@ A preset's palette is the scheme its terminal *ships with*, not the one your rea
 preset = "macos"
 margin = 64
 opacity = 0.85
+watermark = "pantry 1.4.2 · example.com"
 ```
 
 Any [dedicated configuration file](config.md) does the same under a `[click-extra.screenshot]`{l=toml} table. A flag on the command line still wins over both, following the [usual precedence](config.md#precedence), so a single capture can break the house style without editing anything.

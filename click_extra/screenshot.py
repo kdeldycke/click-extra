@@ -59,6 +59,7 @@ import shlex
 import subprocess
 from enum import Enum
 from html import escape, unescape
+from importlib import metadata
 from io import StringIO
 from math import cos, hypot, pi, sin
 
@@ -231,6 +232,16 @@ embeds the capture, which is the other half of not dissolving into it. A reader
 whose renderer drops the filter still gets the frame.
 """
 
+WATERMARK_INK = "rgba(128,128,128,0.85)"
+"""Color the credit line is drawn in.
+
+The one paint in a capture that answers to neither chrome, because it is the one
+thing drawn outside the window: the margin is transparent, so the mark sits on
+whatever page embeds the image, which the capture never gets to see. A white
+mark suits the dark chrome it was picked for and disappears on a README; a
+neutral gray reads on both, and dims into a backdrop when one is painted.
+"""
+
 DEFAULT_BORDER_WIDTH = 1
 """Thickness, in pixels, of the frame drawn around the window."""
 
@@ -289,6 +300,56 @@ DEFAULT_PADDING = 8
 
 On top of the few a renderer adds on its own (8, and 40 above for the title
 bar), which leaves a help screen's first column tight against the frame.
+"""
+
+WATERMARK_SIZE = 13
+"""Height, in pixels, of the credit line's glyphs.
+
+Below the terminal's own text, since a mark competing with the screen it credits
+is a mark in the way.
+"""
+
+WATERMARK_INSET = 12
+"""Pixels between the credit line and the image's bottom-right corner.
+
+It is drawn in the margin, the one band of a capture that carries nothing else.
+A capture shot with `margin=0` has no such band, and the line lands on the
+window's own corner instead of beside it.
+"""
+
+
+def _package_release() -> str:
+    """The release this build of the package belongs to.
+
+    Read from the installed distribution rather than the package's own
+    `__version__`, the way {mod}`click_extra.version` reads its dependencies'.
+    The segment naming the build is dropped: a capture shot from a checkout of
+    the `1.2.3` cycle is showing what `1.2.3` draws, and stamping `1.2.3.dev4`
+    on it would date every committed image as unreleased, then rewrite it on the
+    day the release makes it true.
+
+    :return: the release, or an empty string when the package is not installed.
+    """
+    try:
+        release = metadata.version("click-extra")
+    except metadata.PackageNotFoundError:
+        return ""
+    return release.split(".dev")[0].split("+")[0]
+
+
+DEFAULT_WATERMARK = f"generated with click-extra {_package_release()}".rstrip()
+"""Credit line every capture carries unless another one, or none, is asked for.
+
+A capture travels: it lands on a slide, in a README, on a social card, far from
+the page that explains where it came from. The mark is what still says so, and
+names the release that drew it, so a reader can tell an image shot two years ago
+from one shot today.
+
+```{note}
+This is a default, not a fixture. `--watermark ""` draws none, and any other
+text replaces it: a project crediting itself rather than its tooling is the
+expected case, not an exception.
+```
 """
 
 CAPTURE_TERMINAL_HINTS: dict[CaptureBackground, dict[str, str]] = {
@@ -863,6 +924,40 @@ def titlebar_strip(window_attrs: str, *, paint: str, radius: int) -> str:
     )
 
 
+def watermark_svg(
+    text: str,
+    *,
+    width: float,
+    height: float,
+    paint: str,
+    font_stack: str = CAPTURE_FONT_STACK,
+) -> str:
+    """Draw the credit line in the image's bottom-right corner.
+
+    Placed in the margin rather than over the terminal, which is what keeps it
+    from covering a line of output: a capture is a picture of text, and a mark
+    crossing that text costs the reader the thing being shown.
+
+    Carries a `watermark` class, so a reader taking a capture apart can tell the
+    one run the renderer never captured from the ones it did.
+
+    :param text: the credit to draw. Empty draws nothing.
+    :param width: width of the whole image, in pixels.
+    :param height: its height, in pixels.
+    :param paint: color to draw the text in, alpha included.
+    :param font_stack: fonts it is set in, the capture's own.
+    :return: the SVG markup, empty when there is nothing to draw.
+    """
+    if not text:
+        return ""
+    return (
+        f'<text class="watermark" x="{_svg_number(width - WATERMARK_INSET)}" '
+        f'y="{_svg_number(height - WATERMARK_INSET)}" text-anchor="end" '
+        f'fill="{paint}" font-family="{font_stack}" '
+        f'font-size="{WATERMARK_SIZE}">{_xml_escape(text)}</text>'
+    )
+
+
 def window_buttons(
     buttons: WindowButtons,
     *,
@@ -913,7 +1008,9 @@ def frame_svg(
     font_stack: str | None = None,
     titlebar: str = NO_PAINT,
     collapse_titlebar: bool = False,
-    opacity: float = 1.0,
+    opacity: float = OPAQUE,
+    watermark: str = "",
+    watermark_color: str = WATERMARK_INK,
 ) -> str:
     """Restate the window a rendered capture is drawn in.
 
@@ -962,6 +1059,9 @@ def frame_svg(
     :param opacity: how solid the window's body is, from {data}`OPAQUE` down to
         `0.0`. Only the body thins out: the frame, the title bar and the text
         keep their own paint.
+    :param watermark: credit line drawn in the image's bottom-right corner, see
+        {func}`watermark_svg`. Empty draws none.
+    :param watermark_color: color that line is drawn in, alpha included.
     :return: the reframed source.
     """
     window = _CHROME_RECT_RE.search(svg)
@@ -1080,6 +1180,22 @@ def frame_svg(
             f'width="{_svg_number(width)}" height="{_svg_number(height)}"/>{body}'
         )
 
+    # Drawn last of all, in the image's own coordinates rather than the window's:
+    # the mark sits in the margin, which is outside everything moved above.
+    if watermark and box:
+        svg = svg.replace(
+            "</svg>",
+            watermark_svg(
+                watermark,
+                width=float(box["width"]) + grown,
+                height=float(box["height"]) + grown - dropped,
+                paint=watermark_color,
+                font_stack=font_stack or CAPTURE_FONT_STACK,
+            )
+            + "\n</svg>",
+            1,
+        )
+
     return svg
 
 
@@ -1103,6 +1219,8 @@ def render_html(
     titlebar: str = NO_PAINT,
     collapse_titlebar: bool = False,
     opacity: float = OPAQUE,
+    watermark: str = "",
+    watermark_color: str = WATERMARK_INK,
 ) -> str:
     """Render captured terminal text to HTML.
 
@@ -1143,6 +1261,9 @@ def render_html(
     :param collapse_titlebar: ignored, see `buttons`.
     :param opacity: how solid the block's background is, from {data}`OPAQUE`
         down to `0.0`, where the page shows straight through the text.
+    :param watermark: credit line drawn under the block, against its right edge,
+        where an SVG draws it in the margin. Empty draws none.
+    :param watermark_color: color that line is drawn in, alpha included.
     :return: the rendered markup.
     """
     chrome, ink = CAPTURE_COLORS[background]
@@ -1156,16 +1277,32 @@ def render_html(
     frame = "" if border == NO_PAINT else f"border: {border_width}px solid {border}; "
     if shadow != NO_PAINT:
         frame += f"box-shadow: 0 {SHADOW_OFFSET}px {SHADOW_BLUR * 2}px {shadow}; "
+    # A credit line takes the block's bottom margin over, so the two read as one
+    # figure: the same place an SVG draws its mark, which is the margin rather
+    # than the page below it.
+    block_margin = f"{margin}px"
+    if watermark:
+        block_margin = (
+            f"{margin}px {margin}px {max(margin // 4, WATERMARK_INSET // 2)}px"
+        )
     body = (
         f'<pre style="background: {chrome}; color: {ink}; '
         f"font-family: {font_stack}; line-height: 1.25; "
-        f"margin: {margin}px; padding: calc(1em + {padding}px); "
+        f"margin: {block_margin}; padding: calc(1em + {padding}px); "
         f"{frame}border-radius: {radius}px; "
         f'overflow-x: auto">{ansi_to_html(escape(text, quote=False))}</pre>'
     )
+    if watermark:
+        body += (
+            f'\n<div style="margin: 0 {margin}px {margin}px; text-align: right; '
+            f"color: {watermark_color}; font-family: {font_stack}; "
+            f'font-size: {WATERMARK_SIZE}px">{escape(watermark, quote=False)}</div>'
+        )
     page = "" if backdrop == NO_PAINT else f"background: {backdrop}; "
     if not full:
-        # A fragment carries no page of its own, so a backdrop needs one.
+        # A fragment carries no page of its own, so a backdrop needs one. A
+        # credit line needs nothing: a fragment is a run of markup, and the mark
+        # is the second element of it.
         return f'<div style="{page}">{body}</div>' if page else body
     return (
         "<!doctype html>\n"
@@ -1197,6 +1334,8 @@ def render(
     margin: int = DEFAULT_MARGIN,
     padding: int = DEFAULT_PADDING,
     opacity: float = OPAQUE,
+    watermark: str = DEFAULT_WATERMARK,
+    watermark_color: str | None = None,
 ) -> str:
     """Render captured terminal text to the document `format` names.
 
@@ -1227,6 +1366,10 @@ def render(
     :param padding: pixels added inside the window, around the text.
     :param opacity: how solid the window's body is, from {data}`OPAQUE` down to
         `0.0`. Below it, whatever the capture is laid over shows through.
+    :param watermark: credit line drawn in the image's bottom-right corner, see
+        {data}`DEFAULT_WATERMARK`. An empty string draws none.
+    :param watermark_color: color that line is drawn in. `None` takes
+        {data}`WATERMARK_INK`, which reads on a page of either color.
     :return: the rendered document.
     :raises ImportError: rendering SVG without the `screenshot` extra installed.
     """
@@ -1234,6 +1377,8 @@ def render(
         border = CAPTURE_BORDERS[background]
     if shadow is None:
         shadow = CAPTURE_SHADOWS[background]
+    if watermark_color is None:
+        watermark_color = WATERMARK_INK
     if radius is None:
         radius = DEFAULT_RADIUS if preset is None else preset.radius
     frame: dict[str, Any] = {
@@ -1245,6 +1390,8 @@ def render(
         "margin": margin,
         "padding": padding,
         "opacity": opacity,
+        "watermark": watermark,
+        "watermark_color": watermark_color,
     }
     if preset is not None:
         palette = preset_palette(preset, background)
@@ -1308,6 +1455,8 @@ def capture(
     margin: int = DEFAULT_MARGIN,
     padding: int = DEFAULT_PADDING,
     opacity: float = OPAQUE,
+    watermark: str = DEFAULT_WATERMARK,
+    watermark_color: str | None = None,
 ) -> tuple[str, int]:
     """Run a command and render its output as a document.
 
@@ -1343,6 +1492,8 @@ def capture(
     :param margin: see {func}`render`.
     :param padding: see {func}`render`.
     :param opacity: see {func}`render`.
+    :param watermark: see {func}`render`.
+    :param watermark_color: see {func}`render`.
     :return: the rendered document, and the command's exit code.
     """
     process = capture_output(
@@ -1389,6 +1540,8 @@ def capture(
             margin=margin,
             padding=padding,
             opacity=opacity,
+            watermark=watermark,
+            watermark_color=watermark_color,
         ),
         process.returncode,
     )

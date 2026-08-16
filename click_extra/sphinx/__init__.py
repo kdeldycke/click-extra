@@ -108,6 +108,16 @@ its captures to look like the same desktop states it once here instead of on
 every block.
 """
 
+SCREENSHOT_WATERMARK_CONFIG = "click_extra_screenshot_watermark"
+"""Name of the `conf.py` value crediting every capture a `click:run` writes.
+
+Empty by default, where the `screenshot` command credits click-extra: a capture
+written by a documentation build is rewritten and committed on every build, so a
+mark naming a release would rewrite every image the day that release changes,
+and the page carrying the image already says what drew it. A project wanting one
+anyway states the text here, or per block with `:screenshot-watermark:`.
+"""
+
 RUN_CAPTURE_CONFIG = "click_extra_run_capture"
 """Name of the `conf.py` value selecting the stream-capture mode for the CLIs that
 `click:run` and `click:tree` execute.
@@ -218,6 +228,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value(SCREENSHOT_DIR_CONFIG, "assets", "env", types=[str])
     # Terminal every capture is drawn as, unless a block says otherwise.
     app.add_config_value(SCREENSHOT_PRESET_CONFIG, "", "env", types=[str])
+    # Credit line every capture carries, off unless a project asks for one.
+    app.add_config_value(SCREENSHOT_WATERMARK_CONFIG, "", "env", types=[str])
     app.connect("config-inited", _register_exec_directives)
 
     # Wire the man-page emit hook (see manpages.py). No-op until a project

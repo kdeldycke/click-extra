@@ -52,6 +52,8 @@
 - Drop the title bar of a capture wearing neither window decorations nor a caption, closing the window over its first line.
 - Add a `click_extra_screenshot_preset` configuration value, naming the terminal every `:screenshot:` capture is drawn as.
 - Add an `--opacity` option to `click-extra screenshot`, and a `:screenshot-opacity:` option to the `click:run` directive, letting whatever a capture sits on show through its window.
+- Credit every capture `click-extra screenshot` writes with a line naming the release that drew it, in the image's bottom-right corner; `--watermark` replaces the text and an empty string drops it.
+- Add a `--watermark-color` option to `click-extra screenshot`, plus `:screenshot-watermark:` and `:screenshot-watermark-color:` options and a `click_extra_screenshot_watermark` configuration value on the documentation side, where no capture is credited by default.
 - Fix `click-extra screenshot --preset` keeping the default corner rounding instead of the one its terminal draws.
 - Add a `prompt` parameter to `format_cli_prompt()`, so a capture can draw the sigil of the shell it pictures rather than the one it runs under.
 - Advertise the `auto` value of `--theme` in the help screen's choice list and in shell completion, instead of accepting it silently.
