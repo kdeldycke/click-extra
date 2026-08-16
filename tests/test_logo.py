@@ -66,7 +66,8 @@ def contrast(a, b) -> float:
 
 
 def rgb(value: str) -> tuple[int, int, int]:
-    return tuple(int(value[i : i + 2], 16) for i in (1, 3, 5))  # type: ignore[return-value]
+    # type: ignore[return-value]
+    return tuple(int(value[i : i + 2], 16) for i in (1, 3, 5))
 
 
 ARTWORK = Path(__file__).parent.parent / "docs" / "assets" / "logo-square.svg"

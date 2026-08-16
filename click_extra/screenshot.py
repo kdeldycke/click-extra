@@ -592,7 +592,8 @@ def palette_theme(palette: TerminalPalette) -> TerminalTheme:
 
     def triplet(color: str) -> tuple[int, int, int]:
         value = color.lstrip("#")
-        return tuple(int(value[at : at + 2], 16) for at in (0, 2, 4))  # type: ignore[return-value]
+        # type: ignore[return-value]
+        return tuple(int(value[at : at + 2], 16) for at in (0, 2, 4))
 
     return TerminalTheme(
         triplet(palette.background),
