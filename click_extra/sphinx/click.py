@@ -58,6 +58,7 @@ from ..screenshot import (
     AUTO_COLUMNS,
     DEFAULT_COLUMNS,
     MIN_COLUMNS,
+    OPAQUE,
     CaptureBackground,
     number_lines,
     render,
@@ -745,19 +746,25 @@ class ClickDirective(SphinxDirective):
         `:screenshot-backdrop:`, `:screenshot-border:` and
         `:screenshot-shadow:` take a CSS color (or `none` to paint neither),
         `:screenshot-border-width:`, `:screenshot-margin:`,
-        `:screenshot-padding:` and `:screenshot-radius:` take pixels, and
+        `:screenshot-padding:` and `:screenshot-radius:` take pixels,
+        `:screenshot-opacity:` how solid the window's body is, and
         `:screenshot-title:` the caption drawn in the window's own chrome.
         `:screenshot-line-numbers:` is a flag, numbering every line the block
         rendered, its prompt first. See
         {func}`~click_extra.screenshot.frame_svg`.
+
+        A block naming no preset falls back to the one the
+        `click_extra_screenshot_preset` `conf.py` value names, so a project
+        drawing all of its captures as the same terminal states it once.
         """
-        return {
+        frame = {
             name.replace("-", "_"): self.options[f"screenshot-{name}"]
             for name in (
                 "backdrop",
                 "border",
                 "border-width",
                 "margin",
+                "opacity",
                 "padding",
                 "preset",
                 "radius",
@@ -766,6 +773,18 @@ class ClickDirective(SphinxDirective):
             )
             if f"screenshot-{name}" in self.options
         }
+        # Spelled out rather than imported from the package declaring it, as
+        # the screenshot directory next door is: the name is the conf.py API.
+        default_preset = self.env.config.click_extra_screenshot_preset
+        if default_preset and "preset" not in frame:
+            if default_preset not in PRESETS:
+                raise ValueError(
+                    "click_extra_screenshot_preset names no terminal Click "
+                    f"Extra knows: {default_preset!r} is not one of "
+                    f"{', '.join(sorted(PRESETS))}."
+                )
+            frame["preset"] = PRESETS[default_preset]
+        return frame
 
     def write_screenshot(self, results: Iterable[str]) -> None:
         """Write the captured output as an SVG beside the documentation.
@@ -873,6 +892,14 @@ def _screenshot_columns(argument: str) -> TColumns:
     return width
 
 
+def _screenshot_opacity(argument: str) -> float:
+    """Read the `:screenshot-opacity:` option into how solid the window is."""
+    opacity = float(argument)
+    if not 0.0 <= opacity <= OPAQUE:
+        raise ValueError(f"{argument} is not an opacity, between 0 and {OPAQUE}.")
+    return opacity
+
+
 def _screenshot_preset(argument: str) -> TerminalPreset:
     """Read the `:screenshot-preset:` option into the terminal it names."""
     return PRESETS[directives.choice(argument, tuple(sorted(PRESETS)))]
@@ -911,6 +938,7 @@ class RunDirective(ClickDirective):
         "screenshot-columns": _screenshot_columns,
         "screenshot-line-numbers": directives.flag,
         "screenshot-margin": directives.nonnegative_int,
+        "screenshot-opacity": _screenshot_opacity,
         "screenshot-padding": directives.nonnegative_int,
         "screenshot-preset": _screenshot_preset,
         "screenshot-radius": directives.nonnegative_int,

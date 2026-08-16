@@ -83,7 +83,7 @@
 </defs>
 <g transform="translate(48, 48)">
 
-    <rect fill="#000000" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="454.4" rx="10" filter="url(#preset-macos-screen-shadow)"/>
+    <rect fill="#000000" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="454.4" rx="10" filter="url(#preset-macos-screen-shadow)"/><path fill="#3a3a3a" d="M11,1 H999 A10,10 0 0 1 1009,11 V41 H1 V11 A10,10 0 0 1 11,1 Z"/>
             <g transform="translate(26,22)"><circle cx="0" cy="0" r="7" fill="#ff5f57"/><circle cx="22" cy="0" r="7" fill="#febc2e"/><circle cx="44" cy="0" r="7" fill="#28c840"/></g>
         
     <g transform="translate(17, 49)" clip-path="url(#preset-macos-screen-clip-terminal)">

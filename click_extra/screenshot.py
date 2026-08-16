@@ -200,6 +200,14 @@ SVG's own keyword for an absent paint, so it reaches the `stroke` attribute
 unchanged, and CSS's for an absent shadow.
 """
 
+OPAQUE = 1.0
+"""Opacity of a window showing nothing of what sits behind it.
+
+Anything under it is what a terminal calls transparency: the backdrop, or the
+page embedding the capture, comes through the window's body while its text,
+frame and title bar stay as they are. `0.0` leaves the text alone on the page.
+"""
+
 CAPTURE_BORDERS: dict[CaptureBackground, str] = {
     CaptureBackground.DARK: "rgba(255,255,255,0.35)",
     CaptureBackground.LIGHT: "rgba(0,0,0,0.25)",
@@ -225,6 +233,14 @@ whose renderer drops the filter still gets the frame.
 
 DEFAULT_BORDER_WIDTH = 1
 """Thickness, in pixels, of the frame drawn around the window."""
+
+TITLEBAR_HEIGHT = 40
+"""Height, in pixels, of the strip a title and its buttons sit in.
+
+The padding a renderer leaves above the text, which is what a window's chrome
+occupies. Restated here because a capture wearing neither decoration nor caption
+drops the strip, and one drawn as a real terminal paints it.
+"""
 
 DEFAULT_RADIUS = 8
 """How round the window's corners are, in pixels.
@@ -407,6 +423,11 @@ _STOP_RE = re.compile(r"^(?P<color>.+?)(?:\s+(?P<position>[\d.]+)%)?$", re.DOTAL
 
 _VIEWBOX_RE = re.compile(r'\bviewBox="0 0 (?P<width>[\d.]+) (?P<height>[\d.]+)"')
 """The box a capture's own coordinates are read in."""
+
+_GEOMETRY_ATTR_RE = re.compile(
+    r'(?<![-\w])(?P<name>x|y|width|height)="(?P<value>[\d.]+)"',
+)
+"""Where a rectangle sits and how big it is, in pixels."""
 
 _BUTTONS_GROUP_RE = re.compile(r'<g transform="translate\(26,22\)">.*?</g>', re.DOTALL)
 """The title bar's decorations, as a renderer draws them: three round buttons.
@@ -801,6 +822,47 @@ def gradient_svg(
     return (markup, f"url(#{unique_id})")
 
 
+def titlebar_strip(window_attrs: str, *, paint: str, radius: int) -> str:
+    """Paint the strip a terminal seats its title and buttons in.
+
+    A renderer leaves that strip the color of the terminal itself, where a real
+    window carries a chrome of its own: the strip is what a reader's eye reads
+    as the top of a window rather than as the first line of output.
+
+    Drawn as a path rather than a rectangle because only its top corners follow
+    the window's own rounding; the bottom two meet the text and stay square.
+
+    :param window_attrs: attributes of the window it is drawn over.
+    :param paint: color to fill it with.
+    :param radius: the window's corner radius, in pixels.
+    :return: the SVG markup, empty when the window's geometry cannot be read.
+    """
+    box = {
+        match["name"]: float(match["value"])
+        for match in _GEOMETRY_ATTR_RE.finditer(window_attrs)
+    }
+    if not {"x", "y", "width"} <= box.keys():
+        return ""
+    left, top, width = box["x"], box["y"], box["width"]
+    right, bottom = left + width, top + TITLEBAR_HEIGHT
+    corner = min(radius, TITLEBAR_HEIGHT)
+    if not corner:
+        return (
+            f'<rect fill="{paint}" x="{_svg_number(left)}" y="{_svg_number(top)}" '
+            f'width="{_svg_number(width)}" height="{TITLEBAR_HEIGHT}"/>'
+        )
+    return (
+        f'<path fill="{paint}" d="'
+        f"M{_svg_number(left + corner)},{_svg_number(top)} "
+        f"H{_svg_number(right - corner)} "
+        f"A{corner},{corner} 0 0 1 {_svg_number(right)},{_svg_number(top + corner)} "
+        f"V{_svg_number(bottom)} H{_svg_number(left)} "
+        f"V{_svg_number(top + corner)} "
+        f"A{corner},{corner} 0 0 1 {_svg_number(left + corner)},{_svg_number(top)} Z"
+        '"/>'
+    )
+
+
 def window_buttons(
     buttons: WindowButtons,
     *,
@@ -849,6 +911,9 @@ def frame_svg(
     buttons: WindowButtons | None = None,
     buttons_color: str = CAPTURE_FOREGROUND,
     font_stack: str | None = None,
+    titlebar: str = NO_PAINT,
+    collapse_titlebar: bool = False,
+    opacity: float = 1.0,
 ) -> str:
     """Restate the window a rendered capture is drawn in.
 
@@ -887,6 +952,16 @@ def frame_svg(
     :param buttons_color: paint the glyph decorations are drawn with. Circles
         carry their own colors.
     :param font_stack: fonts the capture asks for, replacing the renderer's.
+    :param titlebar: paint for the strip the title and buttons sit in, see
+        {func}`titlebar_strip`. {data}`NO_PAINT` leaves it the terminal's own
+        color, which is what a renderer draws.
+    :param collapse_titlebar: drop that strip altogether, closing the window
+        over its first line of text. For a capture wearing no decorations and
+        carrying no caption, where the strip is empty space announcing a window
+        that is not being drawn.
+    :param opacity: how solid the window's body is, from {data}`OPAQUE` down to
+        `0.0`. Only the body thins out: the frame, the title bar and the text
+        keep their own paint.
     :return: the reframed source.
     """
     window = _CHROME_RECT_RE.search(svg)
@@ -895,26 +970,38 @@ def frame_svg(
     unique_id = _CLIP_ID_RE.search(svg)
     shaded = shadow != NO_PAINT and unique_id is not None
 
-    def grow(match: re.Match[str]) -> str:
-        """Widen the window by the padding it gains on each side."""
-        return f'{match["name"]}="{_svg_number(float(match["value"]) + 2 * padding)}"'
+    # A collapsed title bar is negative padding applied to the top alone, which
+    # is why both travel together through every measurement below.
+    dropped = TITLEBAR_HEIGHT if collapse_titlebar else 0
+
+    def resize(match: re.Match[str]) -> str:
+        """Grow the window by its padding, less the strip it may have shed."""
+        gained = 2 * padding - (dropped if match["name"] == "height" else 0)
+        return f'{match["name"]}="{_svg_number(float(match["value"]) + gained)}"'
 
     attrs = window["attrs"]
     attrs = _STROKE_ATTR_RE.sub(f'stroke="{border}"', attrs, count=1)
     attrs = _STROKE_WIDTH_ATTR_RE.sub(f'stroke-width="{border_width}"', attrs, count=1)
     attrs = _RADIUS_ATTR_RE.sub(f'rx="{radius}"', attrs, count=1)
-    if padding:
-        attrs = _BOX_SIZE_ATTR_RE.sub(grow, attrs, count=2)
+    if padding or dropped:
+        attrs = _BOX_SIZE_ATTR_RE.sub(resize, attrs, count=2)
+    if opacity != OPAQUE:
+        # Set on the fill alone, so the frame drawn by the same rect's stroke
+        # keeps stating where the window ends.
+        attrs = f'{attrs} fill-opacity="{opacity}"'
     if shaded:
         assert unique_id
         attrs = f'{attrs} filter="url(#{unique_id["id"]}-shadow)"'
-    svg = svg.replace(window[0], f"<rect {attrs}/>", 1)
+    strip = ""
+    if titlebar != NO_PAINT and not collapse_titlebar:
+        strip = titlebar_strip(attrs, paint=titlebar, radius=radius)
+    svg = svg.replace(window[0], f"<rect {attrs}/>{strip}", 1)
 
-    if padding:
+    if padding or dropped:
         svg = _TERMINAL_GROUP_RE.sub(
             lambda match: (
                 f'<g transform="translate({_svg_number(float(match["x"]) + padding)}, '
-                f'{_svg_number(float(match["y"]) + padding)})"{match["rest"]}>'
+                f'{_svg_number(float(match["y"]) + padding - dropped)})"{match["rest"]}>'
             ),
             svg,
             count=1,
@@ -929,11 +1016,11 @@ def frame_svg(
 
     grown = 2 * (margin + padding)
     box = _VIEWBOX_RE.search(svg)
-    if grown and box:
+    if (grown or dropped) and box:
         svg = svg.replace(
             box[0],
             f'viewBox="0 0 {_svg_number(float(box["width"]) + grown)} '
-            f'{_svg_number(float(box["height"]) + grown)}"',
+            f'{_svg_number(float(box["height"]) + grown - dropped)}"',
             1,
         )
 
@@ -1013,6 +1100,9 @@ def render_html(
     buttons: WindowButtons | None = None,
     buttons_color: str = CAPTURE_FOREGROUND,
     font_stack: str = CAPTURE_FONT_STACK,
+    titlebar: str = NO_PAINT,
+    collapse_titlebar: bool = False,
+    opacity: float = OPAQUE,
 ) -> str:
     """Render captured terminal text to HTML.
 
@@ -1046,11 +1136,23 @@ def render_html(
     :param shadow: color of the block's drop shadow, see {func}`frame_svg`.
     :param margin: pixels left around the block, on all four sides.
     :param padding: pixels added inside the block, on top of its own.
+    :param buttons: ignored. HTML reflows with the page embedding it, so it
+        carries the text and its colors, not a window drawn around them.
+    :param buttons_color: ignored, see `buttons`.
+    :param titlebar: ignored, see `buttons`.
+    :param collapse_titlebar: ignored, see `buttons`.
+    :param opacity: how solid the block's background is, from {data}`OPAQUE`
+        down to `0.0`, where the page shows straight through the text.
     :return: the rendered markup.
     """
     chrome, ink = CAPTURE_COLORS[background]
     if preset is not None:
-        chrome, ink, _ = preset_palette(preset, background)
+        palette = preset_palette(preset, background)
+        chrome, ink = palette.background, palette.foreground
+    if opacity != OPAQUE:
+        # CSS carries no background-opacity, and the `opacity` property would
+        # take the text down with it, so the color itself is thinned instead.
+        chrome = f"color-mix(in srgb, {chrome} {opacity:.0%}, transparent)"
     frame = "" if border == NO_PAINT else f"border: {border_width}px solid {border}; "
     if shadow != NO_PAINT:
         frame += f"box-shadow: 0 {SHADOW_OFFSET}px {SHADOW_BLUR * 2}px {shadow}; "
@@ -1094,6 +1196,7 @@ def render(
     shadow: str | None = None,
     margin: int = DEFAULT_MARGIN,
     padding: int = DEFAULT_PADDING,
+    opacity: float = OPAQUE,
 ) -> str:
     """Render captured terminal text to the document `format` names.
 
@@ -1122,6 +1225,8 @@ def render(
         own, see {data}`CAPTURE_SHADOWS`; {data}`NO_PAINT` draws none.
     :param margin: transparent pixels left around the window, on all four sides.
     :param padding: pixels added inside the window, around the text.
+    :param opacity: how solid the window's body is, from {data}`OPAQUE` down to
+        `0.0`. Below it, whatever the capture is laid over shows through.
     :return: the rendered document.
     :raises ImportError: rendering SVG without the `screenshot` extra installed.
     """
@@ -1139,12 +1244,19 @@ def render(
         "shadow": shadow,
         "margin": margin,
         "padding": padding,
+        "opacity": opacity,
     }
     if preset is not None:
         palette = preset_palette(preset, background)
         frame["buttons"] = preset.buttons
         frame["buttons_color"] = palette.foreground
         frame["font_stack"] = preset.font_stack
+        frame["titlebar"] = palette.titlebar
+        # A window wearing neither decoration nor caption has nothing to seat in
+        # its title bar, so it closes over the first line of output instead.
+        frame["collapse_titlebar"] = not any(
+            (preset.buttons.circles, preset.buttons.glyphs, title),
+        )
     if format is CaptureFormat.HTML:
         return render_html(
             text,
@@ -1195,6 +1307,7 @@ def capture(
     shadow: str | None = None,
     margin: int = DEFAULT_MARGIN,
     padding: int = DEFAULT_PADDING,
+    opacity: float = OPAQUE,
 ) -> tuple[str, int]:
     """Run a command and render its output as a document.
 
@@ -1229,6 +1342,7 @@ def capture(
     :param shadow: see {func}`render`.
     :param margin: see {func}`render`.
     :param padding: see {func}`render`.
+    :param opacity: see {func}`render`.
     :return: the rendered document, and the command's exit code.
     """
     process = capture_output(
@@ -1274,6 +1388,7 @@ def capture(
             shadow=shadow,
             margin=margin,
             padding=padding,
+            opacity=opacity,
         ),
         process.returncode,
     )

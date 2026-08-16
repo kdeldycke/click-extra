@@ -36,16 +36,23 @@
 - Add a `--line-numbers` option to `click-extra screenshot`, and a `:screenshot-line-numbers:` option to the `click:run` directive, numbering every line of a capture, its invocation first.
 - Add a `--preset` option to `click-extra screenshot`, and a `:screenshot-preset:` option to the `click:run` directive, drawing a capture as a macOS, Windows, GNOME or plain terminal.
 - Add a `click_extra.screenshot_presets` module, cataloguing each terminal's window decorations, palette, font stack and prompt sigil.
+- Paint a preset capture's title bar a shade off its terminal background, as the desktop drawing that window does.
+- Drop the title bar of a capture wearing neither window decorations nor a caption, closing the window over its first line.
+- Add a `click_extra_screenshot_preset` configuration value, naming the terminal every `:screenshot:` capture is drawn as.
+- Add an `--opacity` option to `click-extra screenshot`, and a `:screenshot-opacity:` option to the `click:run` directive, letting whatever a capture sits on show through its window.
+- Fix `click-extra screenshot --preset` keeping the default corner rounding instead of the one its terminal draws.
 - Add a `prompt` parameter to `format_cli_prompt()`, so a capture can draw the sigil of the shell it pictures rather than the one it runs under.
 - Advertise the `auto` value of `--theme` in the help screen's choice list and in shell completion, instead of accepting it silently.
 - Widen the default capture margin to 48 pixels and its padding to 8, so a window has room for its shadow and its text room from its frame.
 - State a capture's chrome to the command it runs through `CLITHEME` and `COLORFGBG`, so a CLI passing `--theme auto` renders for the window it lands in.
 - Drop the hardening rationale from the screenshots page, which restated the `harden_svg()` docstring at the reader of a user guide.
 - Trim the mechanics the wrapper, decorator, spinner, MyST-docstring and matrix pages explained to a reader who acts on none of them, leaving each to the docstring that owns it.
-- Show a `<picture>` element switching a README between a dark and a light capture on the reader's color scheme, and use one for the readme's own.
+- Show a `<picture>` element switching a README between a dark and a light capture on the reader's color scheme.
+- Lead the readme's documentation-tooling entry and the screenshots page with a capture wearing every window option at once.
 - Fix a light capture keeping the translucent white frame a dark renderer draws, which left a white window invisible on a white page.
 - Drop the survey of other capture tools from the screenshots page, now that the bundled command covers what it compared against.
 - Demonstrate both chromes on the screenshots page, with one help screen captured under a dark and a light theme.
+- Demonstrate `--theme auto` on the screenshots page, with a single command line captured on dark and on light chrome.
 - Add a `theme` parameter to `format_cli_prompt()` and `highlight_bin_name()`, so a caller drawing a prompt onto a surface of its own picks the palette.
 - Fix the `click:run` directive handing Click only the last word of a multi-word `prog_name`, which made a wrapped CLI report a name its own prompt line contradicted.
 - Show a `click:run` block's live text and its captured image side by side, in a tab set on the Sphinx page.

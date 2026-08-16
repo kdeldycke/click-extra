@@ -1,6 +1,10 @@
 # {octicon}`device-camera` CLI screenshots
 
-click-extra produces colored terminal output, and inside this Sphinx documentation the [`click:run`](sphinx.md) directive executes each CLI and renders its real output at build time, so these pages need no screenshots. A README on GitHub or PyPI, a slide, a social post or a page of your own cannot run code, and those surfaces need a capture instead. click-extra ships the command that produces one, as an image or as HTML.
+click-extra produces colored terminal output, and inside this Sphinx documentation the [`click:run`](sphinx.md) directive executes each CLI and renders its real output at build time, so these pages need no screenshots. A README on GitHub or PyPI, a slide, a social post or a page of your own cannot run code, and those surfaces need a capture instead. click-extra ships the command that produces one, as an image or as HTML:
+
+![A help screen captioned, numbered and left see-through on a gradient backdrop](assets/styled-window-screen.svg)
+
+Every part of that window answers to an option: the [terminal it is drawn as](#terminal-presets), the [chrome under its colors](#light-and-dark-chrome), the backdrop, the caption, the line numbers, the transparency, the border, the shadow, the corner radius and the room around it. The [block that produced it](#all-of-it-at-once) sits further down this page, and rewrites the image on every build.
 
 ## The `screenshot` command
 
@@ -109,6 +113,20 @@ So does a CLI that asks. A capture states its chrome to the command the way a te
 $ click-extra screenshot --output light-help.svg --background light -- my-cli --theme auto --help
 ```
 
+Here is that at work, on one of click-extra's own help screens. The two images below were shot from the same command line, `--background` apart, and the CLI picked its palette from the terminal each capture claimed to be:
+
+![A help screen under --theme auto, drawn on dark chrome](assets/auto-theme-dark-screen.svg)
+
+```shell-session
+$ click-extra screenshot --output docs/assets/auto-theme-dark-screen.svg --prompt "click-extra --theme auto themes --help" -- uv run --frozen -- click-extra --theme auto themes --help
+```
+
+![The same command under --theme auto, drawn on light chrome](assets/auto-theme-light-screen.svg)
+
+```shell-session
+$ click-extra screenshot --output docs/assets/auto-theme-light-screen.svg --background light --prompt "click-extra --theme auto themes --help" -- uv run --frozen -- click-extra --theme auto themes --help
+```
+
 `auto` is not the default, and deliberately: a CLI that never asks for it keeps rendering exactly as it does everywhere else, which is why `--theme dark` and `--theme light` are spelled out below rather than left to detection.
 
 Here is one help screen taken both ways, with the CLI's theme and the image's chrome moving together:
@@ -166,17 +184,18 @@ A capture is drawn as a terminal window: a rounded rectangle in the chrome's bac
 $ click-extra screenshot --output shot.svg --title "my-cli --help" --backdrop "#1f6feb" --radius 0 --border-width 2 --margin 28 -- my-cli --help
 ```
 
-| Option           | Takes     | Default      | Draws                                                    |
-| :--------------- | :-------- | :----------- | :------------------------------------------------------- |
-| `--border`       | CSS color | the chrome's | The frame around the window. `none` leaves it bare.      |
-| `--border-width` | pixels    | `1`          | How thick that frame is.                                 |
-| `--radius`       | pixels    | `8`          | How round the window's corners are. `0` squares them.    |
-| `--shadow`       | CSS color | the chrome's | The drop shadow under the window. `none` leaves it flat. |
-| `--backdrop`     | CSS color | none         | A page behind the window, margin included.               |
-| `--margin`       | pixels    | `48`         | Transparent space around the window.                     |
-| `--padding`      | pixels    | `8`          | Space inside it, on top of the renderer's own.           |
-| `--line-numbers` | flag      | off          | A dim gutter numbering the captured lines.               |
-| `--title`        | text      | none         | A caption centered in the window's title bar.            |
+| Option           | Takes      | Default              | Draws                                                                        |
+| :--------------- | :--------- | :------------------- | :--------------------------------------------------------------------------- |
+| `--border`       | CSS color  | the chrome's         | The frame around the window. `none` leaves it bare.                          |
+| `--border-width` | pixels     | `1`                  | How thick that frame is.                                                     |
+| `--radius`       | pixels     | `8`, or the preset's | How round the window's corners are. `0` squares them.                        |
+| `--shadow`       | CSS color  | the chrome's         | The drop shadow under the window. `none` leaves it flat.                     |
+| `--backdrop`     | CSS color  | none                 | A page behind the window, margin included.                                   |
+| `--margin`       | pixels     | `48`                 | Transparent space around the window.                                         |
+| `--opacity`      | `0` to `1` | `1`                  | How solid the window's body is. Under `1` it lets what is behind it through. |
+| `--padding`      | pixels     | `8`                  | Space inside it, on top of the renderer's own.                               |
+| `--line-numbers` | flag       | off                  | A dim gutter numbering the captured lines.                                   |
+| `--title`        | text       | none                 | A caption centered in the window's title bar.                                |
 
 Two of them carry a default that is not a fixed value but the chrome's own. That is the whole reason they are not constants: a renderer frames its window in a translucent white, and a light capture wearing it is a white window on a white page, its edge left for the reader to infer.
 
@@ -198,6 +217,18 @@ $ click-extra screenshot --output card.svg --backdrop "linear-gradient(135deg, #
 
 An SVG `fill` has no syntax for that, so the CSS is read and re-emitted as the paint server SVG does understand ({func}`click_extra.screenshot.gradient_svg`), placed in user space rather than approximated: the gradient line runs through the image's center at the angle asked for, as long as the image measures along it, and a radial one reaches the farthest corner. Understood are `linear-gradient`, opening with an angle (`135deg`) or a side keyword (`to bottom right`), and `radial-gradient`, both followed by two or more color stops, each pinnable at a percentage (`#667eea 30%`). Anything else is taken for the plain color it presumably is, and HTML captures pass the value through to CSS untouched either way.
 
+#### Transparency
+
+`--opacity` thins the window's body out, the way a terminal set to transparency does. Below `1`, whatever the capture sits on comes through it, while its text, frame and title bar keep their own paint:
+
+```shell-session
+$ click-extra screenshot --output glass.svg --opacity 0.7 --backdrop "linear-gradient(135deg, #667eea, #764ba2)" -- my-cli --help
+```
+
+Over a backdrop it reads as frosted glass, the gradient tinting the terminal instead of stopping at its edge. With no backdrop it is the page that comes through, which is what a capture dropped on a surface you do not control wants: an image holding no opinion on the color behind it. What limits the value is legibility, and that is the reader's screen deciding, not the capture: a body much under half solid hands the text whatever contrast the backdrop happens to have.
+
+An HTML capture thins the block's background color with CSS `color-mix()` rather than a rectangle's fill, so the page it is pasted into shows through the same way.
+
 #### Line numbers
 
 `--line-numbers` draws each line's number in a dim gutter, the way Pygments does inline. Line 1 is the prompt, the invocation everything under it came from:
@@ -212,7 +243,7 @@ It also means the gutter spends columns the command already used: a screen wrapp
 
 #### All of it at once
 
-Here is the `pantry` screen again, on a gradient, captioned, numbered, rounded and given room to breathe. The second tab is the block that wrote it, options and assertions included:
+Here is the `pantry` screen again, on a gradient, captioned, numbered, rounded, given room to breathe, and left see-through enough for the gradient to tint it. The second tab is the block that wrote it, options and assertions included:
 
 ```{click:run}
 :screenshot: styled-window-screen
@@ -220,6 +251,7 @@ Here is the `pantry` screen again, on a gradient, captioned, numbered, rounded a
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
 :screenshot-line-numbers:
+:screenshot-opacity: 0.75
 :screenshot-radius: 12
 :screenshot-padding: 24
 :hide-results:
@@ -243,6 +275,7 @@ assert "--crates" in result.stdout
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
 :screenshot-line-numbers:
+:screenshot-opacity: 0.75
 :screenshot-radius: 12
 :screenshot-padding: 24
 :hide-results:
@@ -265,6 +298,8 @@ $ click-extra screenshot --output shot.svg --preset windows -- my-cli --help
 ```
 
 Each preset carries the four things that make a terminal recognizable: its window decorations, the palette its colors resolve against, the font it ships with, and the sigil its usual shell prompts with. Anything stated alongside wins, so `--preset windows --radius 8` rounds the corners Windows squares.
+
+A preset also paints the strip its buttons and caption sit in, a shade off the terminal's own background, because that strip belongs to the desktop rather than to the terminal. Which is what makes the fourth preset the odd one out: `plain` mimics no desktop, wears no buttons, and drops the strip entirely unless a `--title` gives it something to hold.
 
 ``````{tab-set}
 `````{tab-item} macos
@@ -324,12 +359,41 @@ assert result.exit_code == 0
 
 ![The pantry screen drawn as a plain block of output](assets/preset-plain-screen.svg)
 
-No buttons, no rounded corners: for a capture that has to read as a block of output rather than as a window, on a slide or in a paper.
+No buttons, no rounded corners, no title bar: for a capture that has to read as a block of output rather than as a window, on a slide or in a paper.
 `````
 ``````
 
 ```{caution}
 A preset's palette is the scheme its terminal *ships with*, not the one your reader has configured theirs to. It also decides how the captured CLI's own colors land: a screen rendered for a dark theme on a light preset washes out exactly as [the chrome section](#light-and-dark-chrome) describes, since the two halves have to agree either way.
+```
+
+### Stating a default once
+
+`screenshot` is itself a Click Extra CLI, so every option above is also a configuration key. A project drawing all of its captures the same way says so once, in the `pyproject.toml` [click-extra finds by walking up from the working directory](config.md#pyproject-toml):
+
+```toml
+[tool.click-extra.screenshot]
+preset = "macos"
+margin = 64
+opacity = 0.85
+```
+
+Any [dedicated configuration file](config.md) does the same under a `[click-extra.screenshot]`{l=toml} table. A flag on the command line still wins over both, following the [usual precedence](config.md#precedence), so a single capture can break the house style without editing anything.
+
+Inside a Sphinx documentation the captures are written by [`click:run` blocks](sphinx.md#committed-captures) rather than by the command, so the same wish is a `conf.py` value:
+
+```python
+click_extra_screenshot_preset = "macos"
+```
+
+It covers every block whose `:screenshot:` names no preset of its own, which leaves `:screenshot-preset:` for the pages that mean to depart from it. A project keeping its settings in one place can read the value back out of its `pyproject.toml`, `conf.py` being Python:
+
+```python
+import tomllib
+from pathlib import Path
+
+pyproject = tomllib.loads(Path("../pyproject.toml").read_text(encoding="utf-8"))
+click_extra_screenshot_preset = pyproject["tool"]["click-extra"]["screenshot"]["preset"]
 ```
 
 ### The captures on this page
@@ -392,7 +456,7 @@ Then hand both to a `<picture>` element, which GitHub renders in a README and wh
 
 The `<img>` is not a spare tyre: it is what every surface without the switch shows, PyPI and most editors' previews included, so it holds the capture that reads on the light background those default to. The `<source>` is the one a reader in dark mode gets instead.
 
-Both URLs are absolute on purpose. A README is read on PyPI and in a hundred forks of the page, none of which resolve a repository-relative path, which is why every capture in [this project's own README](https://github.com/kdeldycke/click-extra#documentation-tooling) is addressed through `raw.githubusercontent.com`. That entry is this exact markup, over the pair of captures [above](#light-and-dark-chrome).
+Both URLs are absolute on purpose. A README is read on PyPI and in a hundred forks of the page, none of which resolve a repository-relative path, which is why every capture in [this project's own README](https://github.com/kdeldycke/click-extra#documentation-tooling) is addressed through `raw.githubusercontent.com`.
 
 ```{note}
 The switch keys on the *browser's* color scheme, not on the theme toggle of a documentation site, so it belongs to a README rather than to these pages: Furo's own switch would leave it unmoved.

@@ -55,7 +55,9 @@ from click_extra.screenshot import (
     LIGHT_CAPTURE_FOREGROUND,
     MIN_COLUMNS,
     NO_PAINT,
+    OPAQUE,
     PADDING,
+    TITLEBAR_HEIGHT,
     CaptureBackground,
     CaptureFormat,
     _rich_svg,
@@ -102,6 +104,9 @@ class Capture(NamedTuple):
     head: int | None = None
     """Number of leading lines kept, or `None` when nothing was trimmed."""
 
+    background: CaptureBackground = CaptureBackground.DARK
+    """Chrome it was drawn on, which is also the terminal it was told it ran in."""
+
     @property
     def prompt(self) -> str:
         """The `$` line the capture draws above its output."""
@@ -120,6 +125,12 @@ class Capture(NamedTuple):
 
 
 COMMITTED_CAPTURES = (
+    Capture("auto-theme-dark-screen.svg", ("--theme", "auto", "themes", "--help")),
+    Capture(
+        "auto-theme-light-screen.svg",
+        ("--theme", "auto", "themes", "--help"),
+        background=CaptureBackground.LIGHT,
+    ),
     Capture("color-gradient-screen.svg", ("gradient",)),
     Capture("text-styles-screen.svg", ("styles",), columns=160, head=14),
     Capture("theme-gallery-screen.svg", ("themes",), head=34),
@@ -337,6 +348,7 @@ def test_committed_capture_matches_cli(committed):
         columns=committed.columns,
         prompt=committed.prompt.removeprefix("$ "),
         head=committed.head,
+        background=committed.background,
     )
     assert returncode == 0
     assert svg_to_lines(source) == svg_to_lines(fresh)
@@ -539,7 +551,12 @@ def test_preset_catalog(name):
     assert preset.label
     for palette in (preset.dark, preset.light):
         assert len(palette.ansi) == 16
-        for color in (palette.background, palette.foreground, *palette.ansi):
+        for color in (
+            palette.background,
+            palette.foreground,
+            palette.titlebar,
+            *palette.ansi,
+        ):
             assert re.fullmatch(r"#[0-9a-f]{6}", color), color
     # A stack always ends on the family every renderer resolves.
     assert preset.font_stack.endswith("monospace")
@@ -587,6 +604,52 @@ def test_render_draws_the_preset_it_is_given():
     assert 'rx="0"' in svg
     assert 'rx="8"' in render(
         "kiwi", unique_id="fruit", preset=PRESETS["windows"], radius=8
+    )
+
+
+@pytest.mark.parametrize("name", sorted(PRESETS))
+def test_preset_paints_its_own_titlebar(name):
+    """A window drawn as a desktop's carries that desktop's chrome on top."""
+    preset = PRESETS[name]
+    svg = render("kiwi", unique_id="fruit", preset=preset, title="Pantry")
+    assert f'fill="{preset.dark.titlebar}"' in svg
+    # Every desktop paints the strip a shade off the terminal it frames. Only
+    # the preset mimicking no desktop leaves the two the same color.
+    wears_chrome = preset.dark.titlebar != preset.dark.background
+    assert wears_chrome is (name != "plain")
+
+
+def test_titlebar_collapses_on_a_window_wearing_nothing():
+    """An empty strip is dropped, and comes back as soon as it holds something."""
+    bare, titled, decorated = (
+        render("kiwi", unique_id="fruit", preset=PRESETS[name], title=title)
+        for name, title in (("plain", ""), ("plain", "Pantry"), ("macos", ""))
+    )
+    boxes = [
+        re.search(r'viewBox="0 0 [\d.]+ ([\d.]+)"', svg)
+        for svg in (bare, titled, decorated)
+    ]
+    assert all(boxes)
+    heights = [float(box[1]) for box in boxes if box]
+    assert heights[0] == heights[1] - TITLEBAR_HEIGHT
+    assert heights[1] == heights[2]
+
+
+@pytest.mark.parametrize(
+    ("format", "expected"),
+    (
+        (CaptureFormat.SVG, 'fill-opacity="0.4"'),
+        (CaptureFormat.HTML, "color-mix(in srgb, #292929 40%, transparent)"),
+    ),
+)
+def test_render_thins_the_window_out(format, expected):
+    """Opacity below one lets whatever the capture sits on through its body."""
+    thinned = render("kiwi", format=format, unique_id="fruit", opacity=0.4)
+    assert expected in thinned
+    # The text keeps its own paint whatever the body does.
+    assert "kiwi" in thinned
+    assert expected not in render(
+        "kiwi", format=format, unique_id="fruit", opacity=OPAQUE
     )
 
 

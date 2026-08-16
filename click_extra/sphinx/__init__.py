@@ -98,6 +98,16 @@ matching where a Sphinx project conventionally keeps the images its pages embed,
 and where a README pointing at the repository finds them.
 """
 
+SCREENSHOT_PRESET_CONFIG = "click_extra_screenshot_preset"
+"""Name of the `conf.py` value naming the terminal every capture is drawn as.
+
+One of {data}`~click_extra.screenshot_presets.PRESETS`, applied to each
+`click:run` block whose `:screenshot:` does not name a preset of its own. Empty
+by default, which keeps the renderer's neutral window: a project wanting all of
+its captures to look like the same desktop states it once here instead of on
+every block.
+"""
+
 RUN_CAPTURE_CONFIG = "click_extra_run_capture"
 """Name of the `conf.py` value selecting the stream-capture mode for the CLIs that
 `click:run` and `click:tree` execute.
@@ -206,6 +216,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value(RUN_CAPTURE_CONFIG, "fd", "env", types=[str])
     # Where a `click:run` `:screenshot:` capture is written (see click.py).
     app.add_config_value(SCREENSHOT_DIR_CONFIG, "assets", "env", types=[str])
+    # Terminal every capture is drawn as, unless a block says otherwise.
+    app.add_config_value(SCREENSHOT_PRESET_CONFIG, "", "env", types=[str])
     app.connect("config-inited", _register_exec_directives)
 
     # Wire the man-page emit hook (see manpages.py). No-op until a project

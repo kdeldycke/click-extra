@@ -1,4 +1,4 @@
-<svg class="rich-terminal" viewBox="0 0 1106 552.4" xmlns="http://www.w3.org/2000/svg">
+<svg class="rich-terminal" viewBox="0 0 1106 512.4" xmlns="http://www.w3.org/2000/svg">
     <!-- Generated with Rich https://www.textualize.io -->
     <style>
 
@@ -83,10 +83,10 @@
 </defs>
 <g transform="translate(48, 48)">
 
-    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="454.4" rx="0" filter="url(#preset-plain-screen-shadow)"/>
+    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="414.4" rx="0" filter="url(#preset-plain-screen-shadow)"/>
             
         
-    <g transform="translate(17, 49)" clip-path="url(#preset-plain-screen-clip-terminal)">
+    <g transform="translate(17, 9)" clip-path="url(#preset-plain-screen-clip-terminal)">
     
     <g class="preset-plain-screen-matrix">
     <text class="preset-plain-screen-r1" x="0" y="20" textLength="341.6" clip-path="url(#preset-plain-screen-line-0)">$&#160;pantry&#160;--theme&#160;dark&#160;--help</text><text class="preset-plain-screen-r1" x="976" y="20" textLength="12.2" clip-path="url(#preset-plain-screen-line-0)">

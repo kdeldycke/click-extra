@@ -83,7 +83,7 @@
 </defs>
 <g transform="translate(48, 48)">
 
-    <rect fill="#2e3436" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="454.4" rx="6" filter="url(#preset-linux-screen-shadow)"/>
+    <rect fill="#2e3436" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="454.4" rx="6" filter="url(#preset-linux-screen-shadow)"/><path fill="#303030" d="M7,1 H1003 A6,6 0 0 1 1009,7 V41 H1 V7 A6,6 0 0 1 7,1 Z"/>
             <text x="994" y="27" text-anchor="end" fill="#d3d7cf" font-family="'Ubuntu Mono', 'DejaVu Sans Mono', monospace" font-size="15">✕</text>
         
     <g transform="translate(17, 49)" clip-path="url(#preset-linux-screen-clip-terminal)">

@@ -35,6 +35,7 @@ from click_extra.sphinx.click import (
     _rewrite_screenshot_regions,
     _screenshot_background,
     _screenshot_columns,
+    _screenshot_opacity,
     program_from_command_line,
 )
 
@@ -1274,6 +1275,65 @@ def test_click_run_screenshot_preset_swaps_the_prompt(sphinx_app_myst):
     # Campbell's background, and the square corners Windows draws.
     assert 'fill="#0c0c0c"' in svg
     assert 'rx="0"' in svg
+
+
+def test_click_run_screenshot_preset_defaults_to_the_project_wide_one(sphinx_app_myst):
+    """A project drawing every capture as the same terminal states it once."""
+    sphinx_app_myst.app.config.click_extra_screenshot_preset = "linux"
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{click:run}
+            :screenshot: gnome-greet-screen
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "gnome-greet-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    assert "Ubuntu Mono" in svg
+    # Tango's dark background, and the strip GNOME paints over it.
+    assert 'fill="#2e3436"' in svg
+    assert 'fill="#303030"' in svg
+
+
+def test_click_run_screenshot_opacity(sphinx_app_myst):
+    """A see-through window lets the page it is laid on show through its body."""
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{click:run}
+            :screenshot: glassy-greet-screen
+            :screenshot-opacity: 0.4
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "glassy-greet-screen.svg"
+    assert 'fill-opacity="0.4"' in asset.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("argument", ("-0.1", "1.5", "opaque"))
+def test_click_run_screenshot_opacity_rejects_what_is_not_one(argument):
+    """Anything outside the zero-to-one range fails the build instead of clamping."""
+    with pytest.raises(ValueError):
+        _screenshot_opacity(argument)
 
 
 def test_click_run_screenshot_background_rejects_an_unknown_chrome():

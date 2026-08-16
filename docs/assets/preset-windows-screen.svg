@@ -83,7 +83,7 @@
 </defs>
 <g transform="translate(48, 48)">
 
-    <rect fill="#0c0c0c" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="454.4" rx="0" filter="url(#preset-windows-screen-shadow)"/>
+    <rect fill="#0c0c0c" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1008" height="454.4" rx="0" filter="url(#preset-windows-screen-shadow)"/><rect fill="#202020" x="1" y="1" width="1008" height="40"/>
             <text x="994" y="27" text-anchor="end" fill="#cccccc" font-family="'Cascadia Code', 'Cascadia Mono', Consolas, monospace" font-size="15">－  □  ✕</text>
         
     <g transform="translate(17, 49)" clip-path="url(#preset-windows-screen-clip-terminal)">

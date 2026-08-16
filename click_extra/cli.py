@@ -68,6 +68,7 @@ from .screenshot import (
     DEFAULT_TRUNCATION,
     MIN_COLUMNS,
     NO_PAINT,
+    OPAQUE,
     CaptureBackground,
     CaptureFormat,
     capture,
@@ -496,9 +497,9 @@ def _parse_columns(
 @option(
     "--radius",
     type=IntRange(min=0),
-    default=DEFAULT_RADIUS,
-    show_default=True,
-    help="How round the window's corners are, in pixels. Zero squares them.",
+    default=None,
+    help="How round the window's corners are, in pixels. Zero squares them. "
+    f"Defaults to {DEFAULT_RADIUS}, or to the rounding --preset terminal draws.",
 )
 @option(
     "--backdrop",
@@ -528,6 +529,15 @@ def _parse_columns(
     show_default=True,
     help="Pixels added inside the window, around the captured text, on top of "
     "the few the renderer adds on its own.",
+)
+@option(
+    "--opacity",
+    type=FloatRange(min=0, max=1),
+    default=OPAQUE,
+    show_default=True,
+    help="How solid the window's body is. Under 1 it turns see-through, the way "
+    "a terminal set to transparency does: whatever the capture sits on shows "
+    "through it, while its text, frame and title bar keep their own paint.",
 )
 @option(
     "--prompt",
@@ -600,11 +610,12 @@ def screenshot_cmd(
     preset: str | None,
     border: str | None,
     border_width: int,
-    radius: int,
+    radius: int | None,
     backdrop: str,
     shadow: str | None,
     margin: int,
     padding: int,
+    opacity: float,
     prompt: str | None,
     head: int | None,
     tail: int | None,
@@ -694,6 +705,7 @@ def screenshot_cmd(
             shadow=shadow,
             margin=margin,
             padding=padding,
+            opacity=opacity,
         )
     except ImportError as error:
         raise ClickException(str(error)) from error

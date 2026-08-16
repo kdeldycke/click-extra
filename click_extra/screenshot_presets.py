@@ -66,6 +66,14 @@ class TerminalPalette(NamedTuple):
     ansi: tuple[str, ...]
     """The 16 palette entries, normal eight first."""
 
+    titlebar: str
+    """Color of the strip the window's title and buttons sit in.
+
+    A window's chrome, which the desktop paints rather than the terminal: a
+    shade off the background, so the top of the window reads as a window rather
+    than as the first line of output.
+    """
+
 
 class WindowButtons(NamedTuple):
     """The decorations a terminal draws in its title bar.
@@ -214,8 +222,8 @@ PRESETS: Final[dict[str, TerminalPreset]] = {
         radius=6,
         prompt="$",
         font_stack="'Ubuntu Mono', 'DejaVu Sans Mono', monospace",
-        dark=TerminalPalette("#2e3436", "#d3d7cf", TANGO_ANSI),
-        light=TerminalPalette("#ffffff", "#2e3436", TANGO_ANSI),
+        dark=TerminalPalette("#2e3436", "#d3d7cf", TANGO_ANSI, "#303030"),
+        light=TerminalPalette("#ffffff", "#2e3436", TANGO_ANSI, "#ebebeb"),
     ),
     "macos": TerminalPreset(
         label="Apple Terminal",
@@ -223,8 +231,8 @@ PRESETS: Final[dict[str, TerminalPreset]] = {
         radius=10,
         prompt="$",
         font_stack="'SF Mono', Menlo, Monaco, monospace",
-        dark=TerminalPalette("#000000", "#f2f2f2", APPLE_ANSI),
-        light=TerminalPalette("#ffffff", "#000000", APPLE_ANSI),
+        dark=TerminalPalette("#000000", "#f2f2f2", APPLE_ANSI, "#3a3a3a"),
+        light=TerminalPalette("#ffffff", "#000000", APPLE_ANSI, "#e9e9e9"),
     ),
     "plain": TerminalPreset(
         label="No terminal at all",
@@ -232,8 +240,8 @@ PRESETS: Final[dict[str, TerminalPreset]] = {
         radius=0,
         prompt="$",
         font_stack="'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace",
-        dark=TerminalPalette("#292929", "#c5c8c6", TANGO_ANSI),
-        light=TerminalPalette("#ffffff", "#000000", TANGO_ANSI),
+        dark=TerminalPalette("#292929", "#c5c8c6", TANGO_ANSI, "#292929"),
+        light=TerminalPalette("#ffffff", "#000000", TANGO_ANSI, "#ffffff"),
     ),
     "windows": TerminalPreset(
         label="Windows Terminal",
@@ -241,8 +249,8 @@ PRESETS: Final[dict[str, TerminalPreset]] = {
         radius=0,
         prompt="PS C:\\>",
         font_stack="'Cascadia Code', 'Cascadia Mono', Consolas, monospace",
-        dark=TerminalPalette("#0c0c0c", "#cccccc", CAMPBELL_ANSI),
-        light=TerminalPalette("#fafafa", "#383a42", ONE_HALF_LIGHT_ANSI),
+        dark=TerminalPalette("#0c0c0c", "#cccccc", CAMPBELL_ANSI, "#202020"),
+        light=TerminalPalette("#fafafa", "#383a42", ONE_HALF_LIGHT_ANSI, "#f3f3f3"),
     ),
 }
 """Every terminal a capture can be drawn as, alphabetically.
