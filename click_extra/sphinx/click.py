@@ -54,7 +54,13 @@ from sphinx.util import logging
 
 from ..blocks import OPTION_LINE_RE, fence_spans, marker_res, update_blocks
 from ..color import forced_color
-from ..screenshot import CaptureBackground, render
+from ..screenshot import (
+    AUTO_COLUMNS,
+    DEFAULT_COLUMNS,
+    MIN_COLUMNS,
+    CaptureBackground,
+    render,
+)
 from ._base import (
     StatelessDomain,
     compile_directive,
@@ -69,6 +75,8 @@ if TYPE_CHECKING:
     from typing import ClassVar, Literal
 
     from sphinx.util.typing import OptionSpec
+
+    from ..screenshot import TColumns
 
 
 logger = logging.getLogger(__name__)
@@ -704,6 +712,17 @@ class ClickDirective(SphinxDirective):
         """
         return self.options.get("screenshot-background", CaptureBackground.DARK)  # type: ignore[no-any-return]
 
+    @cached_property
+    def screenshot_columns(self) -> TColumns:
+        """Width the capture is laid out at, set by `:screenshot-columns:`.
+
+        Defaults to the fixed width a terminal capture is taken at. `auto` sizes
+        the image to the longest line the block printed, which is what a run
+        holding a line Click does not wrap needs to keep on one line: a prompt,
+        a wide table, a machine-readable dump.
+        """
+        return self.options.get("screenshot-columns", DEFAULT_COLUMNS)  # type: ignore[no-any-return]
+
     def write_screenshot(self, results: Iterable[str]) -> None:
         """Write the captured output as an SVG beside the documentation.
 
@@ -730,6 +749,7 @@ class ClickDirective(SphinxDirective):
         path.write_text(
             render(
                 "\n".join(results),
+                columns=self.screenshot_columns,
                 unique_id=self.screenshot,
                 background=self.screenshot_background,
             ),
@@ -782,6 +802,21 @@ class SourceDirective(ClickDirective):
     runner_method = "execute_source"
 
 
+def _screenshot_columns(argument: str) -> TColumns:
+    """Read the `:screenshot-columns:` option into a width, or into `auto`.
+
+    The block's own text is wrapped by Click at its fixed width whatever this
+    says: what it decides is the width the *image* is laid out at, which is what
+    a line the CLI does not wrap on its own needs to stay on one line.
+    """
+    if argument.strip().lower() == AUTO_COLUMNS:
+        return AUTO_COLUMNS
+    width = int(directives.positive_int(argument))
+    if width < MIN_COLUMNS:
+        raise ValueError(f"{width} is narrower than the {MIN_COLUMNS}-column floor.")
+    return width
+
+
 def _screenshot_background(argument: str) -> CaptureBackground:
     """Read the `:screenshot-background:` option into its enum member.
 
@@ -809,6 +844,7 @@ class RunDirective(ClickDirective):
     option_spec: ClassVar[OptionSpec] = ClickDirective.option_spec | {
         "screenshot": directives.unchanged_required,
         "screenshot-background": _screenshot_background,
+        "screenshot-columns": _screenshot_columns,
         "mirror": directives.flag,
     }
     """Adds the two options turning a run into a committed image.

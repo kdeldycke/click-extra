@@ -316,6 +316,7 @@ Pair it with `--columns` to hand a consumer only the fields it reads:
 
 ```{click:run}
 :screenshot: wrap-flask-json-screen
+:screenshot-columns: auto
 result = invoke(wrap, prog_name="click-extra wrap", args=["--params", "--table-format", "json", "--columns", "id,spec,envvars,default", "--", "flask", "routes"])
 assert result.exit_code == 0
 assert '"routes.sort"' in result.output

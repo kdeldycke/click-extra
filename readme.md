@@ -73,18 +73,25 @@ The colors, and every option below `--name`, come from that one line. Both scree
 
 ### Standard options on every CLI
 
-- [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
-- [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping
+Listed in the order they show up in a `--help` screen:
+
+- [`--time`/`--no-time`](https://kdeldycke.github.io/click-extra/execution.html#timer) to measure command execution duration
+- `--color[=WHEN]` tri-state flag (`auto`/`always`/`never`) with a hidden `--no-color` alias, recognizing `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
 - [`--params`](https://kdeldycke.github.io/click-extra/parameters.html#params-option) to debug parameter defaults, values, environment variables and provenance
+- [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between 40+ table-rendering styles, from terminal grids to machine-readable `json`, `yaml`, `toml`, `csv` and `xml` (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
+- [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping
 - [`--tree`](https://kdeldycke.github.io/click-extra/tree.html) to print the whole hierarchy of nested subcommands with their descriptions, aliases and deprecations:
   ![Nested subcommands printed as a tree](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/command-tree-screen.svg)
 - [`--man`](https://kdeldycke.github.io/click-extra/man-page.html) to print the command's man page as roff, produced from the command tree itself
-- [`--time`/`--no-time`](https://kdeldycke.github.io/click-extra/execution.html#timer) to measure command execution duration
-- [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between 40+ table-rendering styles, from terminal grids to machine-readable `json`, `yaml`, `toml`, `csv` and `xml` (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
+- [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
+
+Two more options are one decorator away, for a CLI that wants them:
+
 - [`--jobs`](https://kdeldycke.github.io/click-extra/execution.html#parallel-jobs) for parallel-execution worker counts
-- `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code
-- `--color[=WHEN]` tri-state flag (`auto`/`always`/`never`) with a hidden `--no-color` alias, recognizing `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
-- Recognition of `DO_NOT_TRACK` from [consoledonottrack.com](https://consoledonottrack.com) for telemetry
+- `--telemetry`/`--no-telemetry` flag to opt-in/out of tracking code, recognizing `DO_NOT_TRACK` from [consoledonottrack.com](https://consoledonottrack.com)
+
+And every CLI gets these on top:
+
 - Global `show_envvar` option to display all environment variables in help screens
 - Global `show_choices` to activate selection of choices on user input prompts
 - Auto-generation and normalization of environment variables for all options
@@ -133,6 +140,8 @@ The colors, and every option below `--name`, come from that one line. Both scree
 
 ### Documentation tooling
 
+- [`click-extra screenshot`](https://kdeldycke.github.io/click-extra/screenshots.html) captures any CLI's colored output as an SVG image or a self-contained HTML block, on [light or dark chrome](https://kdeldycke.github.io/click-extra/screenshots.html#light-and-dark-chrome). Every capture in this readme is one, rewritten on each documentation build:
+  ![A CLI help screen under the light theme, on light chrome](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/chrome-light-screen.svg)
 - [`click:source` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html#click-directives) in MyST Markdown and reStructuredText to document CLI source code and their execution
 - [`python:source`, `python:run`, `python:render`, `python:render-myst`, `python:render-rst`](https://kdeldycke.github.io/click-extra/sphinx.html#python-directives) — the same machinery for arbitrary Python, with a `render*` family that parses the captured output as live document content (replaces the `docs_update.py` + marker-region pattern)
 - [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation: every `click:run` block runs at build time and assertions fail the build

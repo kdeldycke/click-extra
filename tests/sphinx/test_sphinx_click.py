@@ -34,6 +34,7 @@ from click_extra.sphinx.click import (
     ClickRunner,
     _rewrite_screenshot_regions,
     _screenshot_background,
+    _screenshot_columns,
     program_from_command_line,
 )
 
@@ -1155,6 +1156,53 @@ def test_click_run_screenshot_background(sphinx_app_myst):
     svg = asset.read_text(encoding="utf-8")
     assert LIGHT_CAPTURE_BACKGROUND in svg
     assert CAPTURE_BACKGROUND not in svg
+
+
+def test_click_run_screenshot_columns_auto(sphinx_app_myst):
+    """``:screenshot-columns: auto`` widens the image to what the block printed.
+
+    Click wraps a CLI's own text at its fixed width whatever the option says.
+    What it decides is the picture, and a line the CLI never wrapped (the prompt
+    of a long invocation) is the one that needs the room.
+    """
+    source = dedent("""
+        ```{{click:source}}
+        from click_extra import command, echo
+
+        @command
+        def chant():
+            echo("papaya " * 20)
+        ```
+
+        ```{{click:run}}
+        :screenshot: {name}
+        {options}
+        result = invoke(chant)
+        ```
+    """)
+    assets = Path(sphinx_app_myst.app.srcdir) / "assets"
+
+    sphinx_app_myst.build_document(
+        source.format(name="pinned-chant-screen", options="")
+    )
+    sphinx_app_myst.build_document(
+        source.format(name="wide-chant-screen", options=":screenshot-columns: auto")
+    )
+
+    widths = {}
+    for name in ("pinned-chant-screen", "wide-chant-screen"):
+        svg = (assets / f"{name}.svg").read_text(encoding="utf-8")
+        match = re.search(r'viewBox="0 0 (?P<width>[\d.]+)', svg)
+        assert match
+        widths[name] = float(match["width"])
+    assert widths["wide-chant-screen"] > widths["pinned-chant-screen"]
+
+
+@pytest.mark.parametrize("value", ("beige", "0", "-3", "12"))
+def test_click_run_screenshot_columns_rejects_an_unusable_width(value):
+    """A width narrower than the floor, or no width at all, is a build error."""
+    with pytest.raises(ValueError):
+        _screenshot_columns(value)
 
 
 def test_click_run_screenshot_background_rejects_an_unknown_chrome():

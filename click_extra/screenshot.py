@@ -61,6 +61,8 @@ from enum import Enum
 from html import escape, unescape
 from io import StringIO
 
+from click import unstyle
+
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
 from .parameters import missing_extra_message
@@ -82,9 +84,13 @@ except ImportError:
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import Literal, TypeAlias
 
     from .execution import TArg, TEnvVars, TNestedArgs
     from .theme import HelpTheme
+
+    TColumns: TypeAlias = int | Literal["auto"]
+    """Width a capture is taken and rendered at, see {data}`AUTO_COLUMNS`."""
 
 
 class CaptureFormat(Enum):
@@ -198,6 +204,20 @@ Family names are single-quoted on purpose: this lands in a double-quoted
 `style` attribute, which a double quote here would terminate early.
 """
 
+AUTO_COLUMNS: Literal["auto"] = "auto"
+"""Width asking for the one the captured text itself decides.
+
+Neither end of the pipeline is pinned: the command wraps to whatever terminal it
+finds (Click's own 80 when that is a pipe, or a documentation build), and the
+image is laid out at the longest line that came back, see {func}`fit_columns`.
+Nothing the command printed folds inside the picture then, which is what a line
+the command does not wrap on its own needs: a prompt, a wide table, a
+machine-readable dump.
+
+The cost is that the picture stops being a fixed-width terminal, so a capture
+meant to sit beside others at the same width should name that width instead.
+"""
+
 DEFAULT_COLUMNS = 80
 """Terminal width a capture is taken at, in characters.
 
@@ -206,6 +226,14 @@ this width, and the renderer lays the image out at the same one. Let them
 disagree and the rendered lines overrun the image. 80 is the width Click itself
 falls back to off a terminal, which makes it the value a capture lands on by
 accident anyway.
+"""
+
+MIN_COLUMNS = 20
+"""Narrowest width a capture is rendered at.
+
+A floor on {data}`AUTO_COLUMNS` as much as on an explicit width: a command
+printing nothing but blank lines would otherwise ask for an image no glyph fits
+in.
 """
 
 DEFAULT_TRUNCATION = "[...]"
@@ -231,10 +259,24 @@ _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 """Characters a CSS class name cannot carry, as written into `unique_id`."""
 
 
+def fit_columns(text: str) -> int:
+    """Width, in characters, of the longest line in `text`.
+
+    ANSI escapes are stripped first: they style the glyphs around them and
+    occupy no cell of their own. Floored at {data}`MIN_COLUMNS`.
+
+    :param text: captured output, ANSI escape sequences included.
+    :return: the width laying every line out without folding any.
+    """
+    return max(
+        [MIN_COLUMNS, *(len(unstyle(line)) for line in text.splitlines())],
+    )
+
+
 def capture_output(
     args: TArg | TNestedArgs,
     *,
-    columns: int = DEFAULT_COLUMNS,
+    columns: TColumns = DEFAULT_COLUMNS,
     merge_stderr: bool = False,
     timeout: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
@@ -253,13 +295,13 @@ def capture_output(
     :param args: the command line, in the nested form
         {func}`~click_extra.execution.run_cli` accepts.
     :param columns: terminal width, in characters, the command wraps its output
-        to.
+        to. {data}`AUTO_COLUMNS` pins nothing and lets the command find its own.
     :param merge_stderr: fold `stderr` into the captured output, for a command
         printing its help there.
     :param timeout: seconds before the command is killed. `None` waits forever.
     :return: the completed process, whose `stdout` holds the captured text.
     """
-    extra_env: TEnvVars = {"COLUMNS": str(columns)}
+    extra_env: TEnvVars = {} if columns == AUTO_COLUMNS else {"COLUMNS": str(columns)}
     with forced_color():
         return run_cli(
             args,
@@ -435,7 +477,7 @@ def render(
     text: str,
     *,
     format: CaptureFormat = CaptureFormat.SVG,
-    columns: int = DEFAULT_COLUMNS,
+    columns: TColumns = DEFAULT_COLUMNS,
     title: str = "",
     unique_id: str | None = None,
     full: bool = True,
@@ -445,7 +487,8 @@ def render(
 
     :param text: captured output, ANSI escape sequences included.
     :param format: which document to produce.
-    :param columns: terminal width, in characters, an SVG is laid out at. HTML
+    :param columns: terminal width, in characters, an SVG is laid out at, or
+        {data}`AUTO_COLUMNS` for the width its own longest line asks for. HTML
         reflows, so it ignores this.
     :param title: caption drawn in an SVG's window chrome, or an HTML document's
         `<title>`.
@@ -466,7 +509,7 @@ def render(
     return harden_svg(
         _rich_svg(
             text,
-            columns=columns,
+            columns=fit_columns(text) if columns == AUTO_COLUMNS else columns,
             title=title,
             unique_id=unique_id,
             background=background,
@@ -478,7 +521,7 @@ def capture(
     args: TArg | TNestedArgs,
     *,
     format: CaptureFormat = CaptureFormat.SVG,
-    columns: int = DEFAULT_COLUMNS,
+    columns: TColumns = DEFAULT_COLUMNS,
     prompt: str | None = None,
     head: int | None = None,
     tail: int | None = None,
@@ -499,7 +542,8 @@ def capture(
 
     :param args: the command line to run.
     :param format: which document to produce.
-    :param columns: terminal width, in characters.
+    :param columns: terminal width, in characters, or {data}`AUTO_COLUMNS` to
+        pin none and lay the image out at what the command printed.
     :param prompt: command line to *display*, when it differs from the one run.
         `uv run --frozen -- my-cli` reproduces a capture from a checkout, but
         `my-cli` is what a reader types. An empty string draws no prompt at all.

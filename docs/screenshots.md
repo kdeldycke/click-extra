@@ -79,6 +79,18 @@ That separation is also why `--wrap` insists on the installed `click-extra` comm
 HTML carries two limitations SVG does not. An [OSC 8 hyperlink](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) loses its URL and keeps its visible text, and the eight base ANSI colors render as their CSS names, so the browser's palette decides their exact shade rather than the terminal's. Neither shows up on a help screen, which is why the format is worth having anyway.
 ```
 
+### Width
+
+`--columns` pins the width twice over: the command wraps its output to it, and the image is laid out at the same one. They have to agree, or the rendered lines overrun the picture.
+
+`--columns auto` pins neither. The command finds its own width (the terminal it runs in, or Click's own 80 through a pipe), and the image is laid out at the longest line that came back:
+
+```shell-session
+$ click-extra screenshot --output params.svg --columns auto -- my-cli --params
+```
+
+Reach for it when the output holds a line the command does not wrap on its own, which a pinned width folds mid-word: a long invocation drawn as the prompt, a wide table, a machine-readable dump. The trade-off is that the picture stops being a fixed-width terminal, so captures meant to sit side by side at the same width should name that width instead.
+
 ### Light and dark chrome
 
 A capture freezes the colors of the run it pictures, so the window it is drawn in has to answer to the theme that run rendered for. `--background light` swaps the dark chrome for white, along with the ANSI palette the capture's own colors resolve against:
@@ -90,6 +102,53 @@ $ click-extra screenshot --output light-help.svg --background light -- my-cli --
 Both halves are needed, and they are not the same half: `--theme light` is what the *CLI* renders with, `--background light` is what the *image* is drawn on. Pass one without the other and you get the washed-out screen the [theme gallery](theme.md#built-in-themes) warns about, in one direction or the other.
 
 The prompt line follows the chrome on its own. It is the one line a capture draws itself rather than collects, so on white it would otherwise land in the dark theme's near-white `invoked_command` style and vanish.
+
+Here is one help screen taken both ways, with the CLI's theme and the image's chrome moving together:
+
+```{click:source}
+:hide-source:
+import click
+
+from click_extra import Choice, IntRange, argument, option, theme_option
+from click_extra.commands import ColorizedCommand
+
+@click.command(cls=ColorizedCommand, name="pantry")
+@theme_option
+@option("--shelves", type=int, default=3, show_default=True,
+        help="Number of shelves to stock.")
+@option("--fruit", type=Choice(["apple", "banana", "cherry"]), default="apple",
+        show_default=True, show_envvar=True, envvar="PANTRY_FRUIT",
+        help="Which fruit to store.")
+@option("--crates", type=IntRange(1, 12), default=4, show_default=True,
+        help="Crates to stack on each shelf.")
+@option("--chill/--no-chill", default=True, help="Refrigerate the aisle afterwards.")
+@argument("aisle")
+def pantry(**kwargs):
+    """Stock a pantry AISLE with fruit."""
+```
+
+```{click:run}
+:screenshot: chrome-dark-screen
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+assert "--crates" in result.stdout
+```
+
+![The pantry help screen under the dark theme, drawn on dark chrome](assets/chrome-dark-screen.svg)
+
+```{click:run}
+:screenshot: chrome-light-screen
+:screenshot-background: light
+:hide-results:
+result = invoke(pantry, args=["--theme", "light", "--help"])
+assert result.exit_code == 0
+assert "--crates" in result.stdout
+```
+
+![The same screen under the light theme, drawn on light chrome](assets/chrome-light-screen.svg)
+
+Both blocks hide their results, which is the exception to what [`:screenshot:`](sphinx.md#committed-captures) is usually for: a results block on this page is colored by the site's stylesheet and follows the reader's own theme, so the one thing being compared here is the one thing it cannot show.
 
 ### The captures on this page
 

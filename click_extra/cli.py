@@ -30,6 +30,7 @@ from pathlib import Path
 import click
 import cloup
 from click import (
+    BadParameter,
     Choice,
     ClickException,
     FloatRange,
@@ -58,8 +59,10 @@ from .prebake import (
     prebake_version,
 )
 from .screenshot import (
+    AUTO_COLUMNS,
     DEFAULT_COLUMNS,
     DEFAULT_TRUNCATION,
+    MIN_COLUMNS,
     CaptureBackground,
     CaptureFormat,
     capture,
@@ -89,6 +92,10 @@ from .version import (
     GIT_RESOLVERS,
     run_git,
 )
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from .screenshot import TColumns
 
 logger = logging.getLogger(__name__)
 
@@ -408,6 +415,28 @@ def convert_to_myst_cmd(directory: str | None) -> None:
 demo.add_command(convert_to_myst_cmd)
 
 
+def _parse_columns(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: str,
+) -> int | str:
+    """Read `--columns` into a width, or into the sentinel asking for none.
+
+    A width and {data}`~click_extra.screenshot.AUTO_COLUMNS` are the two things
+    the capture pipeline accepts, and Click has no type spelling "an integer or
+    that one word".
+    """
+    if value.strip().lower() == AUTO_COLUMNS:
+        return AUTO_COLUMNS
+    try:
+        width = int(value)
+    except ValueError:
+        raise BadParameter(f"{value!r} is neither an integer nor {AUTO_COLUMNS!r}.")
+    if width < MIN_COLUMNS:
+        raise BadParameter(f"{width} is narrower than the {MIN_COLUMNS}-column floor.")
+    return width
+
+
 @command(name="screenshot")
 @argument("command_line", nargs=-1, required=True, type=click.UNPROCESSED)
 @option(
@@ -419,11 +448,14 @@ demo.add_command(convert_to_myst_cmd)
 )
 @option(
     "--columns",
-    type=IntRange(min=20),
-    default=DEFAULT_COLUMNS,
+    metavar="INTEGER|auto",
+    default=str(DEFAULT_COLUMNS),
     show_default=True,
+    callback=_parse_columns,
     help="Terminal width, in characters, the command wraps its output to and "
-    "the image is laid out at.",
+    "the image is laid out at. Pass auto to pin neither: the command finds its "
+    "own width, and the image is laid out at the longest line it printed, so "
+    "nothing folds inside the picture.",
 )
 @option(
     "--background",
@@ -493,7 +525,7 @@ demo.add_command(convert_to_myst_cmd)
 def screenshot_cmd(
     command_line: tuple[str, ...],
     output: Path,
-    columns: int,
+    columns: TColumns,
     background: CaptureBackground,
     prompt: str | None,
     head: int | None,

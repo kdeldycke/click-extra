@@ -18,6 +18,8 @@
 - Add a `:mirror:` option to the `click:run` directive, keeping a Markdown link to that capture in the source, refreshed by `refresh-directives`.
 - Add a `click_extra_screenshot_dir` configuration value, locating where `:screenshot:` writes.
 - Add a `--background` option to `click-extra screenshot`, and a `:screenshot-background:` option to the `click:run` directive, drawing a capture on light chrome instead of dark.
+- Add an `auto` width to `click-extra screenshot`, and a `:screenshot-columns:` option to the `click:run` directive, laying a capture out at the longest line it holds instead of folding it.
+- Demonstrate both chromes on the screenshots page, with one help screen captured under a dark and a light theme.
 - Add a `theme` parameter to `format_cli_prompt()` and `highlight_bin_name()`, so a caller drawing a prompt onto a surface of its own picks the palette.
 - Fix the `click:run` directive handing Click only the last word of a multi-word `prog_name`, which made a wrapped CLI report a name its own prompt line contradicted.
 - Show a `click:run` block's live text and its captured image side by side, in a tab set on the Sphinx page.

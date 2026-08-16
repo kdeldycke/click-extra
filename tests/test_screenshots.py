@@ -44,16 +44,20 @@ from click_extra import screenshot, unstyle
 from click_extra.cli import screenshot_cmd
 from click_extra.screenshot import (
     _TEXT_ELEMENT_RE,
+    AUTO_COLUMNS,
     CAPTURE_BACKGROUND,
     CAPTURE_FOREGROUND,
+    DEFAULT_COLUMNS,
     LIGHT_CAPTURE_BACKGROUND,
     LIGHT_CAPTURE_FOREGROUND,
+    MIN_COLUMNS,
     PADDING,
     CaptureBackground,
     CaptureFormat,
     _rich_svg,
     capture,
     capture_output,
+    fit_columns,
     format_from_path,
     harden_svg,
     measure_cell_width,
@@ -434,6 +438,51 @@ def html_to_text(markup: str) -> str:
     """Strip a capture's markup back off, leaving the terminal text."""
     body = markup[markup.index("<pre") : markup.index("</pre>")]
     return unescape(re.sub(r"<[^>]+>", "", body))
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        # Nothing to measure still asks for a picture glyphs fit in.
+        ("", MIN_COLUMNS),
+        ("kiwi", MIN_COLUMNS),
+        ("k" * 40, 40),
+        ("kiwi\n" + "banana " * 10, 70),
+        # An escape styles the glyphs around it and occupies no cell.
+        ("\x1b[31m" + "cherry" * 6 + "\x1b[0m", 36),
+    ),
+)
+def test_fit_columns(text, expected):
+    """The width `auto` resolves to is the longest line, floored."""
+    assert fit_columns(text) == expected
+
+
+def test_render_auto_columns_folds_nothing():
+    """`auto` lays the image out at what the text asks for.
+
+    A line the command does not wrap on its own (a prompt, a wide table) is
+    folded by a pinned width and kept whole by this one.
+    """
+    text = "banana " * 20
+    assert svg_to_lines(render(text, columns=AUTO_COLUMNS)) == [text.rstrip()]
+    assert len(svg_to_lines(render(text, columns=DEFAULT_COLUMNS))) > 1
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    (
+        ("wide", "neither an integer"),
+        ("4", "narrower than"),
+    ),
+)
+def test_screenshot_rejects_an_unusable_width(invoke, tmp_path, value, message):
+    """`--columns` takes a width or the one word standing for none of them."""
+    result = invoke(
+        screenshot_cmd,
+        ["--columns", value, "--output", str(tmp_path / "shot.svg"), "--", "echo"],
+    )
+    assert result.exit_code != 0
+    assert message in result.output
 
 
 def test_screenshot_wrap_needs_the_console_script(invoke, monkeypatch, tmp_path):
