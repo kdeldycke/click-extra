@@ -640,7 +640,7 @@ default_facts() | {"Docs": DOCS_URL}           # appends, at the end
 
 Three conditions gate it, and failing any one falls back to the plain `message` template unchanged. That is a deliberate guarantee rather than a default: the plain form is the one every machine reader parses.
 
-- **Color reaches the output.** Not because a mark needs it — a good one survives having its escapes stripped — but because it is the one lever a caller already has. A redirected `--version`, or one run under `--no-color` or [`NO_COLOR`](https://no-color.org), is asking for something parseable.
+- **Color reaches the output.** Partly because a mark may need it — a flat-shaded one carries its shape in the difference between its faces, and collapses into a single silhouette once the escapes are stripped — and partly because it is the one lever a caller already has. A redirected `--version`, or one run under `--no-color` or [`NO_COLOR`](https://no-color.org), is asking for something parseable.
 - **The terminal is wide enough** to seat the facts beside the mark without wrapping them.
 - **Accessible mode is off.** A mark read out character by character is noise to a screen reader, so `--accessible` keeps the plain message.
 
@@ -650,18 +650,24 @@ Three conditions gate it, and failing any one falls back to the plain `message` 
 
 ### Click Extra's own screen
 
-{data}`~click_extra.logo.BRAND_SCREEN` is the worked example: six wireframe cubes from `docs/assets/logo-square.svg`, redrawn as ASCII line art.
+{data}`~click_extra.logo.BRAND_SCREEN` is the worked example: the six cubes of `docs/assets/logo-square.svg`, flat-shaded and painted with half blocks, two sub-pixels to a line.
 
 ```{click:run}
 from boltons.strutils import strip_ansi
 from click_extra.cli import demo
 
 result = invoke(demo, args=["--version"])
-assert "\\/_/\\/_/\\/_/" in strip_ansi(result.output)
+plain = strip_ansi(result.output)
+assert "█" in plain
+assert "click-extra, version " in plain.replace("Click Extra", "click-extra")
 ```
 
 ```{hint}
-The mark is drawn with `/`, `\`, `_` and `|` alone. Every richer candidate was tried and dropped: a half-block rendition carries its structure in its colors and collapses into one silhouette without them, and every Unicode character that reads as a cube on its own — the quadrant blocks, `◤◥`, the hexagons — is missing from at least one widely-used monospace face. Four ASCII characters survive every terminal, every codepage, and the loss of color, which is what makes the color gate above a courtesy to machine readers rather than a legibility requirement.
+Two choices make the mark hold up where a copy of the artwork would not.
+
+Its faces are flat and unoutlined, which is what lets one palette serve a light terminal and a dark one. An outlined mark carries its shape in the outline, so every stroke has to out-contrast the background, and the artwork's own palette spans too wide a range for that — six of its colors vanish on white. A flat mark carries its shape in the difference between its three planes, which no background touches, leaving only the silhouette to keep its distance.
+
+It is drawn in 2:1 dimetric rather than the artwork's 30° isometric. A 30° edge advances 1.732 sub-pixels per row, which no grid can hold, so it comes out as a stair of alternating treads that reads as fraying at every size. Two across for every one down tiles a square grid exactly.
 ```
 ## Debug logs
 
