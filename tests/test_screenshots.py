@@ -17,11 +17,11 @@
 """Tests for `click_extra.screenshot` and the captures committed under `docs/`.
 
 A screenshot is CLI output that stopped re-running, so it rots the moment the
-command it pictures changes. Rich's SVG export happens to be machine-readable,
-which is what makes both halves of this module possible: every run of
-same-styled characters is one `<text>` element carrying its column as an `x`
-offset and its width as a `textLength`, so the terminal text can be rebuilt from
-the glyph coordinates and compared to what a CLI prints today.
+command it pictures changes. A rendered capture is machine-readable, which is
+what makes both halves of this module possible: every run of same-styled
+characters is one `<text>` element carrying its column as an `x` offset and its
+width as a `textLength`, so the terminal text can be rebuilt from the glyph
+coordinates and compared to what a CLI prints today.
 
 That comparison needs neither a network round-trip nor a capture tool, which
 keeps this an ordinary unit test. When the drift check fails, re-run the command
@@ -40,16 +40,16 @@ from typing import NamedTuple
 
 import pytest
 
-from click_extra import screenshot, unstyle
+from click_extra import unstyle
 from click_extra.cli import screenshot_cmd
 from click_extra.screenshot import (
-    _TEXT_ELEMENT_RE,
     AUTO_COLUMNS,
     CAPTURE_BACKGROUND,
     CAPTURE_BORDERS,
     CAPTURE_FOREGROUND,
     CAPTURE_SHADOWS,
     CAPTURE_TERMINAL_HINTS,
+    CELL_WIDTH,
     DEFAULT_COLUMNS,
     DEFAULT_WATERMARK,
     LIGHT_CAPTURE_BACKGROUND,
@@ -63,21 +63,29 @@ from click_extra.screenshot import (
     WATERMARK_INSET,
     CaptureBackground,
     CaptureFormat,
-    _rich_svg,
+    blend,
     capture,
     capture_output,
+    cell_width,
     fit_columns,
     format_from_path,
     gradient_svg,
-    harden_svg,
-    measure_cell_width,
+    grid,
     number_lines,
-    palette_theme,
+    palette_color,
     render,
+    render_svg,
     trim_lines,
     window_buttons,
 )
 from click_extra.screenshot_presets import PRESETS
+
+_TEXT_ELEMENT_RE = re.compile(r"<text(?P<attrs>[^>]*)>(?P<content>[^<]*)</text>")
+"""One run of same-styled characters in a rendered capture.
+
+Test-side only: the renderer builds these rather than reading them back, so the
+pattern belongs to whatever wants to inspect its output.
+"""
 
 ASSETS = Path(__file__).parent.parent / "docs" / "assets"
 """Directory the committed captures live in."""
@@ -153,8 +161,8 @@ SAMPLE_CAPTURE = (
 
 The second column is deliberately left unstyled: sharing a style with the
 padding that precedes it is what folds the two into a single run, which is the
-case {func}`~click_extra.screenshot.harden_svg` exists to fix. Style the column
-and the padding becomes a run of its own, which needs no fixing.
+case that would otherwise place a column by the width of the spaces before it.
+Style the column and the padding becomes a run of its own.
 """
 
 
@@ -163,16 +171,12 @@ def svg_to_lines(svg: str) -> list[str]:
 
     Groups the `<text>` runs into lines by their shared `y` baseline, then lays
     each one back on its column: the capture is monospaced, so dividing a run's
-    `x` offset by the cell width gives the character column it starts at.
-
-    Reads the same source of truth whether or not the file went through
-    {func}`~click_extra.screenshot.harden_svg`, since hardening only moves a
-    run's padding from its text into its offset.
+    `x` offset by {data}`~click_extra.screenshot.CELL_WIDTH` gives the character
+    column it starts at.
 
     :param svg: source of a rendered capture.
     :return: the captured lines, top to bottom, with trailing whitespace removed.
     """
-    cell_width = measure_cell_width(svg)
     lines: dict[float, str] = {}
     for element in _TEXT_ELEMENT_RE.finditer(svg):
         # The credit line is the one run no terminal printed, and the one that
@@ -185,15 +189,9 @@ def svg_to_lines(svg: str) -> list[str]:
         if not content or not offset or not baseline:
             continue
         y = float(baseline["value"])
-        column = round(float(offset["value"]) / cell_width)
+        column = round(float(offset["value"]) / CELL_WIDTH)
         lines[y] = lines.get(y, "").ljust(column) + content
     return [line.rstrip() for line in lines.values()]
-
-
-def test_measure_cell_width_rejects_a_foreign_document():
-    """A document carrying no sized text run is not a rendered capture."""
-    with pytest.raises(ValueError, match="not a rendered terminal capture"):
-        measure_cell_width("<svg><text x='0' y='0'>plain</text></svg>")
 
 
 @pytest.mark.parametrize(
@@ -217,13 +215,6 @@ def test_trim_lines(head, tail, expected):
     assert trimmed.splitlines() == expected
 
 
-def test_render_without_the_extra(monkeypatch):
-    """Rendering without Rich installed names the extra that ships it."""
-    monkeypatch.setattr(screenshot, "Console", None)
-    with pytest.raises(ImportError, match=r"screenshot"):
-        render(SAMPLE_CAPTURE)
-
-
 def test_render_folds_an_unusable_unique_id():
     """A file name that is not a CSS identifier cannot leak into a class name."""
     svg = render(SAMPLE_CAPTURE, unique_id="my shot (v2).final")
@@ -231,38 +222,119 @@ def test_render_folds_an_unusable_unique_id():
     assert 'class="my-shot-v2-final-r1"' in svg
 
 
-def test_harden_svg_preserves_every_column():
-    """Hardening moves padding out of the glyphs without moving the glyphs.
+def test_render_places_every_run_on_its_own_column():
+    """Rebuilding the terminal text from a capture gives the text back.
 
-    Rebuilding the terminal text from the raw render and from the hardened one
-    has to yield the same lines: the padding a run carried inline is exactly the
-    offset its `x` gained.
+    Each run is placed by its `x` offset alone, so laying the runs back on the
+    columns that offset names has to reproduce what the terminal printed.
     """
-    raw = _rich_svg(SAMPLE_CAPTURE, columns=40, title="", unique_id="sample")
-    assert svg_to_lines(harden_svg(raw)) == svg_to_lines(raw)
+    # A blank line draws no glyph, so it carries no baseline to group runs on.
+    assert svg_to_lines(render_svg(SAMPLE_CAPTURE, columns=40)) == [
+        line for line in unstyle(SAMPLE_CAPTURE).rstrip("\n").split("\n") if line
+    ]
 
 
-def test_harden_svg_leaves_no_run_behind_padding():
-    """No visible run in a hardened capture starts on padding.
+def test_no_run_starts_on_padding():
+    """No visible run in a capture is positioned by the spaces preceding it.
 
-    The invariant the whole hardening pass exists for: a renderer that ignores
-    `textLength` or cannot resolve the font still lands every run on its column,
-    because no glyph is positioned by the width of the spaces preceding it.
+    The invariant the column arithmetic exists for: a renderer that ignores
+    `textLength` or cannot resolve the font still lands every run where it
+    belongs. Checked against every committed capture as well as a fresh render,
+    so a regression cannot hide in the assets or in the renderer alone.
     """
     pads = tuple(PADDING)
-    for svg in (
-        *(
-            (ASSETS / committed.filename).read_text(encoding="utf-8")
-            for committed in COMMITTED_CAPTURES
-        ),
-        harden_svg(_rich_svg(SAMPLE_CAPTURE, columns=40, title="", unique_id="s")),
-    ):
+    captures = {
+        committed.filename: (ASSETS / committed.filename).read_text(encoding="utf-8")
+        for committed in COMMITTED_CAPTURES
+    }
+    captures["<fresh>"] = render_svg(SAMPLE_CAPTURE, columns=40)
+    for name, svg in captures.items():
         for element in _TEXT_ELEMENT_RE.finditer(svg):
             content = unescape(element["content"])
-            # Runs carrying no glyph (the newline ending each line) are left
-            # alone, having no column of their own to land on.
-            if content.strip(PADDING):
-                assert not content.startswith(pads), f"padded run: {content!r}"
+            assert content.strip(PADDING), f"{name}: run carrying no glyph"
+            assert not content.startswith(pads), f"{name}: padded run {content!r}"
+
+
+def test_capture_clip_holds_every_descender():
+    """The terminal's clip is never shorter than the text it contains.
+
+    A clip cropped to the text block's height minus a pixel cuts the descenders
+    off the last line, turning an underscore into a blank. Checked against every
+    committed capture, which is where such a crop would go unnoticed.
+    """
+    for committed in COMMITTED_CAPTURES:
+        svg = (ASSETS / committed.filename).read_text(encoding="utf-8")
+        clip = re.search(
+            r'<clipPath id="[^"]+-clip"><rect x="0" y="0" '
+            r'width="[\d.]+" height="(?P<height>[\d.]+)"',
+            svg,
+        )
+        assert clip, f"{committed.filename}: no terminal clip"
+        # Only the terminal's own runs: the caption and the credit line are
+        # drawn outside the clipped group, in the image's own coordinates.
+        lowest = max(
+            float(y)
+            for y in re.findall(r'<text class="[^"]+-r\d+"[^>]*\by="([\d.]+)"', svg)
+        )
+        assert float(clip["height"]) >= lowest, (
+            f"{committed.filename}: clip crops the last line"
+        )
+
+
+def test_no_capture_references_a_missing_clip():
+    """Every `clip-path` a capture uses resolves to a `clipPath` it defines.
+
+    A dangling reference is rendered inconsistently: a browser drops the clip, a
+    strict SVG 1.1 renderer drops the whole element with it.
+    """
+    for committed in COMMITTED_CAPTURES:
+        svg = (ASSETS / committed.filename).read_text(encoding="utf-8")
+        defined = set(re.findall(r'<clipPath id="([^"]+)">', svg))
+        referenced = set(re.findall(r'clip-path="url\(#([^)]+)\)"', svg))
+        assert not referenced - defined, (
+            f"{committed.filename}: dangling {sorted(referenced - defined)}"
+        )
+
+
+def test_no_capture_fetches_a_font():
+    """A capture resolves its fonts locally, or falls back down its own stack.
+
+    A committed image is read offline, on a page forbidding third-party
+    requests, and by renderers that speak no `@font-face`.
+    """
+    for committed in COMMITTED_CAPTURES:
+        svg = (ASSETS / committed.filename).read_text(encoding="utf-8")
+        assert "@font-face" not in svg, f"{committed.filename}: embeds a webfont"
+        # The XML namespace is a URI, not a request: only a fetched resource
+        # reaches the network, and every one of those is spelled `url(...)`.
+        assert not re.search(r"url\(\s*[\"']?https?:", svg), (
+            f"{committed.filename}: fetches over the network"
+        )
+
+
+@pytest.mark.parametrize(
+    ("text", "characters", "cells"),
+    (
+        ("apples", 6, 6),
+        ("水果", 2, 4),
+        ("水果 apples", 9, 11),
+        ("", 0, 0),
+    ),
+)
+def test_wide_glyphs_are_sized_by_cell(text, characters, cells):
+    """A run is drawn as wide as the cells it occupies, not its character count.
+
+    A CJK ideograph takes two terminal cells, so sizing a run by `len()` squeezes
+    it to half its width and stacks the glyphs on each other.
+    """
+    assert len(text) == characters
+    assert cell_width(text) == cells
+    if not text:
+        return
+    svg = render_svg(text, columns=40)
+    run = re.search(r'<text[^>]*textLength="(?P<length>[\d.]+)"', svg)
+    assert run
+    assert float(run["length"]) == pytest.approx(cells * CELL_WIDTH)
 
 
 def test_capture_output_forces_color_and_pins_width(monkeypatch):
@@ -442,7 +514,7 @@ def test_render_frames_with_a_border_its_chrome_can_show(background):
     assert f'flood-color="{CAPTURE_SHADOWS[background]}"' in svg
 
 
-def test_frame_svg_paints_what_it_is_given():
+def test_render_paints_what_it_is_given():
     """A caller's own frame and shadow reach the window."""
     svg = render("kiwi", unique_id="fruit", border="red", shadow="blue")
     assert 'stroke="red"' in svg
@@ -450,7 +522,7 @@ def test_frame_svg_paints_what_it_is_given():
     assert 'filter="url(#fruit-shadow)"' in svg
 
 
-def test_frame_svg_restates_the_whole_window():
+def test_render_states_the_whole_window():
     """Corner radius, frame thickness, backdrop and title all reach the source."""
     svg = render(
         "kiwi",
@@ -569,13 +641,66 @@ def test_preset_catalog(name):
     assert preset.font_stack.endswith("monospace")
 
 
-def test_palette_theme_carries_the_colors_over():
-    """A palette becomes the terminal theme a renderer resolves ANSI with."""
-    theme = palette_theme(PRESETS["windows"].dark)
-    assert theme.background_color.hex == "#0c0c0c"
-    assert theme.foreground_color.hex == "#cccccc"
-    # Campbell's bright blue, the thirteenth entry.
-    assert theme.ansi_colors[12].hex == "#3b78ff"
+@pytest.mark.parametrize(
+    ("color", "expected"),
+    (
+        # The 16 ANSI slots are names, and answer to the terminal's palette.
+        ("blue", "#0037da"),
+        ("bright_blue", "#3b78ff"),
+        (4, "#0037da"),
+        (12, "#3b78ff"),
+        # Everything else already states its own color.
+        ("#facade", "#facade"),
+        ((250, 202, 222), "#facade"),
+        # The 256-color cube and its grayscale ramp are fixed by xterm.
+        (208, "#ff8700"),
+        (232, "#080808"),
+    ),
+)
+def test_palette_color(color, expected):
+    """A style's color resolves against the palette only where it names a slot."""
+    assert palette_color(color, PRESETS["windows"].dark) == expected
+
+
+def test_palette_color_rejects_a_value_naming_no_color():
+    """A value that is not a color cannot silently paint something."""
+    with pytest.raises(ValueError, match="Cannot resolve color"):
+        palette_color(object(), PRESETS["windows"].dark)
+
+
+@pytest.mark.parametrize(
+    ("ratio", "expected"),
+    ((0.0, "#ffffff"), (0.5, "#808080"), (1.0, "#000000")),
+)
+def test_blend(ratio, expected):
+    """Dim text is mixed toward the background rather than made transparent."""
+    assert blend("#ffffff", "#000000", ratio) == expected
+
+
+def test_grid_wraps_at_the_terminal_edge():
+    """A line reaching past the last column continues on the next row.
+
+    Cropping it would drop text the command printed, and a capture is evidence
+    of what ran.
+    """
+    rows = grid("fruit basket", 5)
+    assert [[(run, column) for _, run, column in row] for row in rows] == [
+        [("fruit", 0)],
+        [(" bask", 0)],
+        [("et", 0)],
+    ]
+
+
+def test_grid_never_splits_a_wide_glyph():
+    """A wide glyph straddling the last column moves down whole."""
+    # The ideograph needs two cells and only one is left on the first row.
+    rows = grid("ab\u6c34", 3)
+    assert [[run for _, run, _ in row] for row in rows] == [["ab"], ["\u6c34"]]
+
+
+def test_grid_keeps_a_glyph_wider_than_the_grid():
+    """A glyph too wide for the whole grid is drawn rather than wrapped forever."""
+    assert [[run for _, run, _ in row] for row in grid("\u6c34", 1)] == [["\u6c34"]]
 
 
 @pytest.mark.parametrize(
@@ -694,7 +819,7 @@ def test_watermark_sits_where_the_margin_is():
     assert float(mark[2]) == float(box[2]) - WATERMARK_INSET
 
 
-def test_frame_svg_draws_neither_when_asked_for_neither():
+def test_render_draws_neither_when_asked_for_neither():
     """`none` is the value that leaves the window bare."""
     svg = render("kiwi", unique_id="fruit", border=NO_PAINT, shadow=NO_PAINT)
     assert 'stroke="none"' in svg
@@ -706,7 +831,7 @@ def test_frame_svg_draws_neither_when_asked_for_neither():
     ("margin", "padding"),
     ((0, 0), (16, 0), (0, 12), (10, 10)),
 )
-def test_frame_svg_geometry(margin, padding):
+def test_render_geometry(margin, padding):
     """Margin grows the image alone; padding grows the window inside it too.
 
     Neither moves a glyph relative to the others: the capture is repositioned as
@@ -786,12 +911,6 @@ def test_render_html_quotes_survive_the_style_attribute():
     opening = fragment[: fragment.index(">") + 1]
     assert opening.count('"') == 2, f"unbalanced quoting: {opening}"
     assert "monospace" in opening
-
-
-def test_render_html_needs_no_extra(monkeypatch):
-    """HTML renders with Rich absent: only SVG is behind the extra."""
-    monkeypatch.setattr(screenshot, "Console", None)
-    assert "banana" in render(SAMPLE_CAPTURE, format=CaptureFormat.HTML)
 
 
 def html_to_text(markup: str) -> str:

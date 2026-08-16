@@ -128,6 +128,23 @@ click-extra implements `NO_COLOR`, `FORCE_COLOR`, and full [help colorization](c
 - [`cloup#95` - Highlights options, choices and metavars](https://github.com/janluke/cloup/issues/95)
 - [`cloup#97` - Styling metavars, default values, env var, choices](https://github.com/janluke/cloup/issues/97)
 
+### Terminal captures as SVG
+
+click-extra's [`screenshot` command](screenshots.md) renders a captured terminal to SVG with its own {func}`click_extra.screenshot.render_svg`. It was built on [Rich](https://github.com/Textualize/rich)'s `Console.export_svg()` until `9.0.0`, which is where these came from: everything below is a defect the exported image carried, reported upstream and still unfixed.
+
+Open upstream, and fixed here:
+
+- [`rich#3576` - Underscores on the last captured line are clipped when exporting to SVG](https://github.com/Textualize/rich/issues/3576): the terminal's clip path is computed as `(rows + 1) × line_height - 1`, one pixel shorter than the text it contains, which cuts the descenders off the last line. Reported in 2024 with the fix named in the report; [`rich#3611`](https://github.com/Textualize/rich/pull/3611) and [`rich#3991`](https://github.com/Textualize/rich/pull/3991) both propose it and neither is merged, so `rich` `15.0.0` still ships it. `render_svg` sizes the clip to the text block.
+- [`rich#2742` - SVG font rendering too narrow for Asian language](https://github.com/Textualize/rich/issues/2742): a run's `textLength` is computed from its character count while its column advance uses terminal cells, so the two disagree for every glyph that is not exactly one cell. The error runs both ways. Chinese, Japanese, Hangul, fullwidth Latin and emoji are drawn at half their width and stack on each other; a decomposed `éàü` is drawn at twice its width, and a zero-width-joiner family emoji at two and a half times. Open since 2023. `render_svg` sizes both from {func}`click_extra.screenshot.cell_width`.
+- [`rich#2536` - Can we fix this render glitch in SVG output?](https://github.com/Textualize/rich/issues/2536): box-drawing characters do not meet cleanly, which the maintainer answers would need replacing them with drawn shapes. Open since 2022, and not addressed here either: click-extra's [tables](table.md) and [command tree](commands.md#command-tree) draw the same characters.
+
+Also carried by every image Rich exports, and dropped here:
+
+- The exported document references one `clipPath` per line but defines them for every line *but the last*, so the final row of every capture carries a dangling reference. A browser ignores it, a strict SVG 1.1 renderer drops the element it is attached to. `render_svg` clips the text block as a whole, which removes the per-line paths and the failure mode with them.
+- The stylesheet carries two `@font-face` rules pointing at a CDN, so a committed image reaches the network to render as intended, and falls back silently offline or behind a content-security policy. `render_svg` names a font stack and embeds nothing, which is also what [`rich#2153`](https://github.com/Textualize/rich/issues/2153) and [`rich#2526`](https://github.com/Textualize/rich/issues/2526) run into from the other end.
+- A run's inter-column padding is written inside its `<text>` element, so a column only lands correctly where the renderer both honors `textLength` and resolves the font: `librsvg`, and through it `rsvg-convert` and ImageMagick, does neither ([`rich#2153`](https://github.com/Textualize/rich/issues/2153), [`rich#3034`](https://github.com/Textualize/rich/issues/3034)). `render_svg` starts each run on its own column.
+- Every line ends with a `<text>` element containing only a newline, drawing nothing. Removing those, the per-line clip paths and the webfont rules together took this documentation's 21 committed captures from 451 KB to 247 KB.
+
 ### Themes and palettes
 
 click-extra ships [seven built-in themes](theme.md#built-in-themes) (`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`, plus a monochrome `manpage`) and covers every surface an end user reaches for: the [`--theme` flag](theme.md#the-theme-option), a [machine-wide `CLICK_EXTRA_THEME` variable](theme.md#environment-variables) next to the per-CLI `<CLI>_THEME`, and — alone in the Click ecosystem — [new themes and overrides declared in the CLI's own `--config` file](theme.md#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`). Click itself has no theme system (formatter-level customization is still WIP upstream), and the competing rich help layers stop at Python and environment variables:

@@ -753,7 +753,7 @@ class ClickDirective(SphinxDirective):
         capture carries here unless asked for.
         `:screenshot-line-numbers:` is a flag, numbering every line the block
         rendered, its prompt first. See
-        {func}`~click_extra.screenshot.frame_svg`.
+        {func}`~click_extra.screenshot.render_svg`.
 
         A block naming no preset falls back to the one the
         `click_extra_screenshot_preset` `conf.py` value names, so a project

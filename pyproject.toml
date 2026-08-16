@@ -111,7 +111,7 @@ dependencies = [
 optional-dependencies.all = [
   # Aggregate extra: pulls in every optional feature at once. Self-references the
   # package so the version pins stay defined once, in the extras below.
-  "click-extra[carapace,hjson,json5,jsonc,mkdocs,pygments,pytest,screenshot,sphinx,toml,xml,yaml]",
+  "click-extra[carapace,hjson,json5,jsonc,mkdocs,pygments,pytest,sphinx,toml,xml,yaml]",
 ]
 optional-dependencies.carapace = [
   # PyYAML serializes the Carapace completion spec (carapace.dump_carapace_spec).
@@ -145,12 +145,6 @@ optional-dependencies.pygments = [
 optional-dependencies.pytest = [
   # pytest 9.0.0 is the first supporting native TOML configuration files.
   "pytest>=9",
-]
-optional-dependencies.screenshot = [
-  # Rich renders a captured terminal to SVG (click_extra.screenshot). 12.6.0 added
-  # the font_aspect_ratio parameter of Console.export_svg(), which sizes the glyph
-  # cell the hardening pass then measures.
-  "rich>=12.6",
 ]
 optional-dependencies.sphinx = [
   # docutils 0.20 is the minimal version for Sphinx 8.0.0.
@@ -242,8 +236,6 @@ test = [
   # (test_pygments, test_pyproject); the runtime config-URL loader uses urllib.
   # 2.34 ships inline types, removing the need for the types-requests stub.
   "requests>=2.34",
-  # Matches the runtime screenshot extra floor; exercises the SVG renderer.
-  "rich>=12.6",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
   # tomli 2.0 aligned API with stdlib tomllib; only installed on Python 3.10.
@@ -271,8 +263,6 @@ docs = [
   "pytest>=9",
   # PyYAML renders the Carapace spec in carapace.md {click:run} blocks.
   "pyyaml>=6.0.3",
-  # Rich is needed for automodule/autoclasstree of click_extra.screenshot.
-  "rich>=12.6",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
   # sphinx-autodoc-typehints 2.4.0 is the first version that is aligned to our Python >= 3.10 requirement.

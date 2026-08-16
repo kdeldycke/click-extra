@@ -21,7 +21,7 @@ CLI and renders its real output at build time, so a documentation page never
 needs a screenshot. A README on GitHub or PyPI, a slide, or a social post cannot
 run code, and those surfaces need a capture instead.
 
-The pipeline is three steps, each replaceable on its own:
+The pipeline is two steps, each replaceable on its own:
 
 1. {func}`capture_output` runs the command through
    {func}`~click_extra.execution.run_cli`, under
@@ -29,27 +29,22 @@ The pipeline is three steps, each replaceable on its own:
    back its raw ANSI text.
 2. {func}`render` turns that text into a document, in one of the
    {class}`CaptureFormat` members.
-3. For SVG, {func}`harden_svg` rewrites the rendered source so it survives
-   renderers that are not a web browser. That function documents what goes wrong
-   without it. HTML needs no such pass: a `<pre>` keeps its own spacing.
 
-{func}`capture` chains all three, and is what the `click-extra screenshot`
-command calls.
+{func}`capture` chains both, and is what the `click-extra screenshot` command
+calls.
 
-The two formats are not interchangeable, and neither is a fallback for the
-other:
+Both formats read the same {func}`~click_extra.styling.split_ansi` stream, and
+neither needs a dependency the package does not already carry: SVG is laid out
+on a character grid by {func}`render_svg`, HTML is inline-styled markup from
+{func}`~click_extra.styling.ansi_to_html`.
+
+The two are not interchangeable, and neither is a fallback for the other:
 
 - **SVG** goes where you do not own the page. GitHub and PyPI render an image
   and strip inline HTML, so a README has no other option. It is a picture: the
   text is not selectable, and not searchable.
 - **HTML** goes where you do own the page. The text stays selectable,
   searchable and copy-pasteable, and reflows with the container.
-
-```{note}
-Only SVG needs the `screenshot` extra, whose Rich dependency renders it. HTML
-is built on {func}`~click_extra.styling.ansi_to_html`, which ships with the
-package, so it is always available.
-```
 """
 
 from __future__ import annotations
@@ -57,41 +52,35 @@ from __future__ import annotations
 import re
 import shlex
 import subprocess
+import zlib
 from enum import Enum
-from html import escape, unescape
+from html import escape
 from importlib import metadata
-from io import StringIO
-from math import cos, hypot, pi, sin
+from math import ceil, cos, hypot, pi, sin
+from unicodedata import bidirectional
 
 from click import style, unstyle
+from wcwidth import wcswidth
 
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
-from .parameters import missing_extra_message
+from .parameters import generator_tag
 from .screenshot_presets import (
+    MACOS_BUTTONS,
+    PRESETS,
     TerminalPalette,
     TerminalPreset,
     WindowButtons,
 )
-from .styling import ansi_to_html
+from .styling import (
+    _ANSI_NAMES,
+    _hex_to_rgb,
+    _palette_to_rgb,
+    _rgb_to_hex,
+    ansi_to_html,
+    split_ansi,
+)
 from .theme import BUILTIN_THEMES
-
-try:
-    from rich.console import Console
-    from rich.terminal_theme import (
-        DEFAULT_TERMINAL_THEME,
-        SVG_EXPORT_THEME,
-        TerminalTheme,
-    )
-    from rich.text import Text
-except ImportError:
-    # Rich ships behind the `screenshot` extra: importing this module stays cheap,
-    # and only the rendering entry point raises (see _rich_svg).
-    Console = None  # type: ignore[assignment,misc]
-    Text = None  # type: ignore[assignment,misc]
-    DEFAULT_TERMINAL_THEME = None  # type: ignore[assignment]
-    SVG_EXPORT_THEME = None  # type: ignore[assignment]
-    TerminalTheme = None  # type: ignore[assignment,misc]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -99,6 +88,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal, TypeAlias
 
     from .execution import TArg, TNestedArgs
+    from .styling import Style
     from .theme import HelpTheme
 
     TColumns: TypeAlias = int | Literal["auto"]
@@ -120,7 +110,7 @@ class CaptureFormat(Enum):
     SVG = "svg"
     """A picture of a terminal window, for a surface that strips inline HTML.
 
-    Rendered by Rich, behind the `screenshot` extra.
+    Laid out on a character grid by {func}`render_svg`.
     """
 
 
@@ -146,36 +136,50 @@ class CaptureBackground(Enum):
         return self.name.lower()
 
 
-CAPTURE_BACKGROUND = "#292929"
+DEFAULT_PRESET = PRESETS["plain"]
+"""Terminal a capture with no `--preset` is drawn as.
+
+`plain` mimics no desktop, which is what a capture wearing no decoration should
+resolve its colors against. Naming it here is what keeps the two formats looking
+like the same terminal, and keeps one catalog answering for every palette a
+capture can use: without it the default colors would be a second set of literals
+free to drift from the one the presets publish.
+"""
+
+CAPTURE_PALETTES: dict[CaptureBackground, TerminalPalette] = {
+    CaptureBackground.DARK: DEFAULT_PRESET.dark,
+    CaptureBackground.LIGHT: DEFAULT_PRESET.light,
+}
+"""Colors each chrome resolves a capture's ANSI codes against.
+
+A palette carries the 16 ANSI colors alongside the background and foreground,
+which is the other half of the job: a CLI naming `blue` leaves the shade to
+whoever draws it, and the one that reads on white is not the one that reads on
+`#292929`.
+"""
+
+CAPTURE_BACKGROUND = CAPTURE_PALETTES[CaptureBackground.DARK].background
 """Background a dark capture is drawn on.
 
-Matches the palette Rich's SVG export uses, so the two formats look like the
-same terminal. Stating it is not optional: a help screen colored for a dark
-terminal is unreadable on a page that defaults to white.
+Stating it is not optional: a help screen colored for a dark terminal is
+unreadable on a page that defaults to white.
 """
 
-CAPTURE_FOREGROUND = "#c5c8c6"
+CAPTURE_FOREGROUND = CAPTURE_PALETTES[CaptureBackground.DARK].foreground
 """Color of the text a dark capture leaves unstyled. See {data}`CAPTURE_BACKGROUND`."""
 
-LIGHT_CAPTURE_BACKGROUND = "#ffffff"
+LIGHT_CAPTURE_BACKGROUND = CAPTURE_PALETTES[CaptureBackground.LIGHT].background
 """Background a light capture is drawn on.
 
-The white Rich's own light terminal theme names, for the same reason
-{data}`CAPTURE_BACKGROUND` mirrors its dark one: an SVG and an HTML capture of
-the same run have to look like the same terminal.
+See {data}`CAPTURE_BACKGROUND`: an SVG and an HTML capture of the same run have
+to look like the same terminal.
 """
 
-LIGHT_CAPTURE_FOREGROUND = "#000000"
+LIGHT_CAPTURE_FOREGROUND = CAPTURE_PALETTES[CaptureBackground.LIGHT].foreground
 """Color of the text a light capture leaves unstyled.
 
 See {data}`LIGHT_CAPTURE_BACKGROUND`.
 """
-
-CAPTURE_COLORS: dict[CaptureBackground, tuple[str, str]] = {
-    CaptureBackground.DARK: (CAPTURE_BACKGROUND, CAPTURE_FOREGROUND),
-    CaptureBackground.LIGHT: (LIGHT_CAPTURE_BACKGROUND, LIGHT_CAPTURE_FOREGROUND),
-}
-"""Background and unstyled-foreground pair each chrome draws HTML with."""
 
 PROMPT_THEMES: dict[CaptureBackground, HelpTheme | None] = {
     CaptureBackground.DARK: None,
@@ -215,10 +219,10 @@ CAPTURE_BORDERS: dict[CaptureBackground, str] = {
 }
 """Color the window frame is drawn in, per chrome.
 
-The dark entry is the one Rich draws on its own, a translucent white that reads
-against `#292929` and against nothing else: a light capture framed with it is a
-white window on a white page, the shape of the terminal only guessable from its
-text. Each chrome names a frame its own background can show.
+The dark entry is a translucent white that reads against `#292929` and against
+nothing else: a light capture framed with it is a white window on a white page,
+the shape of the terminal only guessable from its text. Each chrome names a
+frame its own background can show.
 """
 
 CAPTURE_SHADOWS: dict[CaptureBackground, str] = {
@@ -372,26 +376,75 @@ inside a light window. A CLI that never asks is unaffected: the variables only
 answer a question it does not put.
 """
 
-CAPTURE_THEMES = {
-    CaptureBackground.DARK: SVG_EXPORT_THEME,
-    CaptureBackground.LIGHT: DEFAULT_TERMINAL_THEME,
-}
-"""Rich terminal theme each chrome renders SVG with.
+CAPTURE_FONT_STACK = DEFAULT_PRESET.font_stack
+"""Monospaced fonts a capture asks for, best first.
 
-A theme carries the 16 ANSI colors alongside the chrome, which is the other half
-of the job: a CLI naming `blue` leaves the shade to whoever draws it, and the
-one that reads on white is not the one that reads on `#292929`. Both entries are
-`None` without the `screenshot` extra, where no SVG is rendered anyway.
-"""
-
-CAPTURE_FONT_STACK = "'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace"
-"""Monospaced fonts an HTML capture asks for, best first.
-
-Opens with the family Rich's SVG export names, so a reader who has it sees both
-formats set identically.
+Nothing is embedded and nothing is fetched, so both formats set the text in the
+first family the reader already has, and a capture renders the same offline, on
+a page forbidding third-party requests, and in a viewer that speaks no CSS
+`@font-face`.
 
 Family names are single-quoted on purpose: this lands in a double-quoted
 `style` attribute, which a double quote here would terminate early.
+"""
+
+CELL_HEIGHT = 20.0
+"""Height of one glyph cell, in pixels, which is also the text's font size."""
+
+FONT_ASPECT_RATIO = 0.61
+"""Width-to-height ratio of the font a capture is laid out for.
+
+Fira Code's, the first family {data}`CAPTURE_FONT_STACK` asks for. Every
+monospaced fallback behind it is close enough that the grid holds, and
+`textLength` pins each run to its columns for the ones that are not.
+"""
+
+CELL_WIDTH = CELL_HEIGHT * FONT_ASPECT_RATIO
+"""Width of one glyph cell, in pixels. One character of a monospaced terminal."""
+
+LINE_HEIGHT = CELL_HEIGHT * 1.22
+"""Vertical distance between two consecutive text baselines, in pixels."""
+
+CELL_BLEED = 0.25
+"""Pixels a cell's background is grown by, past the line it belongs to.
+
+Two rectangles meeting on an exact boundary leave a hairline of page showing
+through when a renderer rounds their edges to different pixels. Overlapping them
+slightly is what closes that seam, and is invisible because the color painted
+twice is the same color.
+"""
+
+CELL_TOP_INSET = 1.5
+"""Pixels between a line's top edge and the cell backgrounds drawn on it.
+
+A glyph does not fill its line box: the leading sits above the tallest letter.
+Starting the paint just under that keeps a highlighted run reading as one block
+of color rather than as a band taller than the text it marks.
+"""
+
+DIM_RATIO = 0.4
+"""How far a `dim` run's ink is mixed toward the background, see {func}`blend`."""
+
+RTL_BIDI_CLASSES = frozenset({"R", "AL", "AN"})
+"""Unicode bidirectional classes written right to left.
+
+Right-to-left letters, Arabic letters and Arabic-Indic numbers, as
+{func}`unicodedata.bidirectional` names them. See {func}`is_bidirectional`.
+"""
+
+WINDOW_PADDING = 8
+"""Pixels every window keeps between its frame and its text, on three sides.
+
+The fourth is the top, where {data}`TITLEBAR_HEIGHT` answers instead. This is the
+window's own breathing room, before the `padding` a capture may ask for on top.
+"""
+
+WINDOW_INSET = 1
+"""Pixels between the image's edge and the window's frame.
+
+A stroke straddles the shape it outlines, so a frame drawn flush with the
+viewBox loses its outer half to the crop. Inset by more than that half and the
+whole line shows.
 """
 
 AUTO_COLUMNS: Literal["auto"] = "auto"
@@ -437,39 +490,14 @@ DEFAULT_TRUNCATION = "[...]"
 """Marker standing in for the lines {func}`trim_lines` cut away."""
 
 PADDING = " \N{NO-BREAK SPACE}"
-"""Characters a renderer pads a text run with to place it on its column.
+"""Characters separating one column of a capture from the next.
 
-Rich emits every space as a non-breaking one, so the padding survives an XML
-round-trip; a plain space is accepted too, for sources written by other tools.
+{func}`render_svg` emits every space as a non-breaking one, so the padding
+survives an XML round-trip and no renderer collapses a run of them.
 """
-
-_TEXT_ELEMENT_RE = re.compile(r"<text(?P<attrs>[^>]*)>(?P<content>[^<]*)</text>")
-"""One run of same-styled characters in a rendered capture."""
-
-_X_ATTR_RE = re.compile(r'\bx="(?P<value>-?[\d.]+)"')
-"""The horizontal offset a text run is drawn at, in pixels."""
-
-_TEXT_LENGTH_ATTR_RE = re.compile(r'\btextLength="(?P<value>[\d.]+)"')
-"""The width a text run is asked to occupy, in pixels."""
 
 _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 """Characters a CSS class name cannot carry, as written into `unique_id`."""
-
-_CHROME_RECT_RE = re.compile(r"<rect (?P<attrs>[^>]*\brx=\"8\")\s*/>")
-"""The rounded rectangle a renderer draws the terminal window as.
-
-Keyed on the corner radius, the one attribute no other rectangle in a capture
-carries: the rest are the opaque cells behind styled text, drawn square.
-"""
-
-_STROKE_ATTR_RE = re.compile(r'\bstroke="[^"]*"')
-"""The paint an element's outline is drawn with."""
-
-_STROKE_WIDTH_ATTR_RE = re.compile(r'\bstroke-width="[^"]*"')
-"""The thickness an element's outline is drawn at, in pixels."""
-
-_RADIUS_ATTR_RE = re.compile(r'\brx="[^"]*"')
-"""The corner radius a rectangle is rounded by, in pixels."""
 
 _GRADIENT_RE = re.compile(
     r"^(?P<kind>linear|radial)-gradient\((?P<args>.+)\)$", re.DOTALL
@@ -481,61 +509,6 @@ _ANGLE_RE = re.compile(r"^(?P<degrees>-?[\d.]+)deg$")
 
 _STOP_RE = re.compile(r"^(?P<color>.+?)(?:\s+(?P<position>[\d.]+)%)?$", re.DOTALL)
 """One color stop of a gradient, with the position it may pin itself at."""
-
-_VIEWBOX_RE = re.compile(r'\bviewBox="0 0 (?P<width>[\d.]+) (?P<height>[\d.]+)"')
-"""The box a capture's own coordinates are read in."""
-
-_GEOMETRY_ATTR_RE = re.compile(
-    r'(?<![-\w])(?P<name>x|y|width|height)="(?P<value>[\d.]+)"',
-)
-"""Where a rectangle sits and how big it is, in pixels."""
-
-_BUTTONS_GROUP_RE = re.compile(r'<g transform="translate\(26,22\)">.*?</g>', re.DOTALL)
-"""The title bar's decorations, as a renderer draws them: three round buttons.
-
-Keyed on the offset they are grouped at, which is the one group a capture
-translates by a bare pair of integers: the text sits at fractional coordinates,
-and carries a clip path besides.
-"""
-
-_MATRIX_FONT_RE = re.compile(
-    r"(?P<head>-matrix \{[^}]*?font-family: )[^;]+;", re.DOTALL
-)
-"""The fonts the captured text is set in, in a capture's own stylesheet.
-
-Scoped to the text's own class: the `@font-face` rules above it name a single
-family each, and a stack written into one of those declares a font nothing can
-resolve.
-"""
-
-_FONT_FACE_RE = re.compile(r"\s*@font-face \{[^}]*\}", re.DOTALL)
-"""A webfont a capture carries, pointing at a CDN.
-
-Dropped when a preset names its own fonts: the rules would go on fetching a
-family the text no longer asks for.
-"""
-
-_BOX_SIZE_ATTR_RE = re.compile(r'(?<![-\w])(?P<name>width|height)="(?P<value>[\d.]+)"')
-"""Either side of a rectangle, in pixels.
-
-The lookbehind is what keeps `stroke-width` out: a hyphenated attribute ending
-in `width` is a different measurement, and growing it by a window's padding
-draws a 41-pixel frame.
-"""
-
-_CLIP_ID_RE = re.compile(r'\bid="(?P<id>[^"]+)-clip-terminal"')
-"""The `unique_id` a capture namespaces its identifiers with, read back."""
-
-_TERMINAL_GROUP_RE = re.compile(
-    r'<g transform="translate\((?P<x>[\d.]+), (?P<y>[\d.]+)\)"'
-    r'(?P<rest> clip-path="url\(#[^"]+-clip-terminal\)")>',
-)
-"""The group holding the captured text, and every cell drawn behind it."""
-
-_TITLE_TEXT_RE = re.compile(
-    r'(?P<head><text class="[^"]+-title"[^>]*?)x="(?P<x>[\d.]+)"'
-)
-"""The caption a capture draws in its window chrome, when it carries one."""
 
 
 def number_lines(text: str, start: int = 1) -> str:
@@ -573,46 +546,48 @@ def preset_palette(
     return preset.dark if background is CaptureBackground.DARK else preset.light
 
 
-def palette_theme(palette: TerminalPalette) -> TerminalTheme:
-    """Build the terminal theme a renderer resolves a palette's colors with.
+def is_bidirectional(text: str) -> bool:
+    """Whether `text` carries a character written right to left.
 
-    The catalog carries palettes as plain hex strings, so importing it costs
-    nothing and needs no `screenshot` extra. They become Rich's own
-    {class}`~rich.terminal_theme.TerminalTheme` here, where Rich is already in
-    reach.
+    Arabic, Hebrew and their neighbours are reordered by whoever draws them, and
+    the cursive ones are shaped: a letter's form depends on what it joins. A
+    terminal grid describes neither, which is why {func}`render_svg` stops
+    pinning such a run to an exact width.
 
-    :param palette: the colors to resolve against.
-    :return: the theme an SVG export is rendered with.
-    :raises ImportError: without the `screenshot` extra installed.
+    :param text: the text to inspect.
+    :return: `True` when at least one character is right-to-left.
     """
-    if TerminalTheme is None:
-        raise ImportError(
-            missing_extra_message("screenshot", subject="Screenshot rendering"),
-        )
+    return any(bidirectional(char) in RTL_BIDI_CLASSES for char in text)
 
-    def triplet(color: str) -> tuple[int, int, int]:
-        value = color.lstrip("#")
-        return tuple(int(value[at : at + 2], 16) for at in (0, 2, 4))  # type: ignore[return-value]
 
-    return TerminalTheme(
-        triplet(palette.background),
-        triplet(palette.foreground),
-        [triplet(color) for color in palette.ansi[:8]],
-        [triplet(color) for color in palette.ansi[8:]],
-    )
+def cell_width(text: str) -> int:
+    """Columns `text` occupies on a terminal's character grid.
+
+    Not its length: a CJK ideograph is drawn two cells wide, a combining mark
+    none at all. {func}`wcwidth.wcswidth` answers for both, and returns `-1` for
+    a string carrying a control character, where the count of characters is the
+    closest thing to an answer left.
+
+    :param text: the text to measure.
+    :return: the number of cells it occupies.
+    """
+    width = wcswidth(text)
+    return width if width >= 0 else len(text)
 
 
 def fit_columns(text: str) -> int:
     """Width, in characters, of the longest line in `text`.
 
     ANSI escapes are stripped first: they style the glyphs around them and
-    occupy no cell of their own. Floored at {data}`MIN_COLUMNS`.
+    occupy no cell of their own. Measured in terminal cells, so a line of CJK
+    asks for the two columns per glyph it is drawn with. Floored at
+    {data}`MIN_COLUMNS`.
 
     :param text: captured output, ANSI escape sequences included.
     :return: the width laying every line out without folding any.
     """
     return max(
-        [MIN_COLUMNS, *(len(unstyle(line)) for line in text.splitlines())],
+        [MIN_COLUMNS, *(cell_width(unstyle(line)) for line in text.splitlines())],
     )
 
 
@@ -628,8 +603,8 @@ def capture_output(
 
     A command whose output is a pipe rather than a terminal strips its own
     colors, and wraps to whatever width it can guess. Both are pinned here:
-    {func}`~click_extra.color.forced_color` sets the `FORCE_COLOR` lever both
-    Click's and Rich's color systems obey and clears any opt-out the environment
+    {func}`~click_extra.color.forced_color` sets the `FORCE_COLOR` lever every
+    mainstream color system obeys and clears any opt-out the environment
     carries, while `COLUMNS` fixes the width the command wraps to.
 
     Only `stdout` is captured by default. That is what keeps a capture free of
@@ -691,80 +666,105 @@ def trim_lines(
     ])
 
 
-def measure_cell_width(svg: str) -> float:
-    """Measure the width of one glyph cell, in pixels, from a rendered capture.
+def palette_color(color: object, palette: TerminalPalette) -> str:
+    """Resolve any color a {class}`~click_extra.styling.Style` carries to a hex string.
 
-    A capture is monospaced, so every run of characters is `textLength` pixels
-    wide for exactly as many characters. The widest run gives that ratio with the
-    least rounding error.
+    The 16 named and indexed ANSI slots are not colors, they are *names*: a
+    terminal decides what its `red` looks like, and a capture has no terminal,
+    so they answer to `palette`. Every other form a style can carry (a 24-bit
+    triplet, a 256-cube index, a hex string) already states its own color and
+    passes through.
 
-    :param svg: source of a rendered capture.
-    :return: the width of a single character cell, in pixels.
-    :raises ValueError: when the source carries no sized text run.
+    :param color: the value to resolve, as {class}`~click_extra.styling.Style`
+        holds it.
+    :param palette: the terminal colors to resolve names against.
+    :return: the color, as `#rrggbb`.
+    :raises ValueError: when the value names no color.
     """
-    widest = 0
-    cell_width = 0.0
-    for element in _TEXT_ELEMENT_RE.finditer(svg):
-        length = _TEXT_LENGTH_ATTR_RE.search(element["attrs"])
-        content = unescape(element["content"])
-        if length and len(content) > widest:
-            widest = len(content)
-            cell_width = float(length["value"]) / widest
-    if not cell_width:
-        raise ValueError("No sized text run found: not a rendered terminal capture.")
-    return cell_width
+    if isinstance(color, str):
+        if color.startswith("#"):
+            return color
+        if color.startswith("bright_"):
+            return palette.ansi[_ANSI_NAMES.index(color.removeprefix("bright_")) + 8]
+        if color in _ANSI_NAMES:
+            return palette.ansi[_ANSI_NAMES.index(color)]
+    # `bool` is an `int`, and neither `True` nor `False` is a palette index.
+    elif isinstance(color, int) and not isinstance(color, bool):
+        if 0 <= color < 16:
+            return palette.ansi[color]
+        return _rgb_to_hex(_palette_to_rgb(color))
+    elif isinstance(color, tuple) and len(color) == 3:
+        return _rgb_to_hex(color)
+    elif hasattr(color, "name") and not isinstance(color, type):
+        return palette_color(color.name, palette)
+    raise ValueError(f"Cannot resolve color: {color!r}")
 
 
-def harden_svg(svg: str, cell_width: float | None = None) -> str:
-    """Move each text run's leading padding out of its glyphs and into its offset.
+def blend(color: str, into: str, ratio: float) -> str:
+    """Mix `color` toward `into`, the way a terminal fades dim text.
 
-    A renderer places a run of same-styled characters with an `x` offset, then
-    leans on `textLength` to hold that run to an exact width. The padding that
-    separates two columns lives *inside* the run, as spaces preceding the text.
-    So a column only lands where it belongs if the glyphs are the exact width the
-    renderer assumed, which asks two things of whoever displays the file: honor
-    `textLength`, and resolve the font the source names.
+    SVG has no dim, and thinning the glyphs with `opacity` would let whatever
+    sits behind the capture show through them. Mixing the two colors up front
+    keeps the text opaque and lands the same shade.
 
-    A web browser does both. Little else does. `librsvg` (and through it
-    `rsvg-convert` and ImageMagick) ignores `textLength` outright, and a file
-    manager, a git client or a thumbnailer commonly falls back to a proportional
-    font. Either way every glyph sitting behind padding slides out of its column,
-    and neighbouring words collide.
-
-    Stripping that padding and advancing `x` by as many cells makes each run start
-    on its own column, so a renderer only has to draw glyphs, not match metrics. A
-    browser is unaffected: `textLength` is rewritten to the width of what is left.
-
-    A run carrying no glyph is left alone. Rich ends every line with one holding
-    just a newline, and that is what keeps a blank line present in the source; a
-    run of pure padding (which Rich never emits, though another tool might) has
-    nothing to reposition anyway.
-
-    :param svg: source of a rendered capture.
-    :param cell_width: width of a character cell, in pixels. Measured from the
-        source when not given (see {func}`measure_cell_width`).
-    :return: the hardened source.
+    :param color: the color to fade, as `#rrggbb`.
+    :param into: the color to fade it toward, usually the background.
+    :param ratio: how far to go, from `0.0` (unchanged) to `1.0` (`into`).
+    :return: the blended color, as `#rrggbb`.
     """
-    measured = measure_cell_width(svg) if cell_width is None else cell_width
+    start, end = _hex_to_rgb(color), _hex_to_rgb(into)
+    return _rgb_to_hex(
+        tuple(round(a + (b - a) * ratio) for a, b in zip(start, end)),  # type: ignore[arg-type]
+    )
 
-    def rewrite(element: re.Match[str]) -> str:
-        attrs = element["attrs"]
-        content = unescape(element["content"])
-        stripped = content.strip(PADDING)
-        offset = _X_ATTR_RE.search(attrs)
-        if not stripped or not offset:
-            return element[0]
-        indent = len(content) - len(content.lstrip(PADDING))
-        column = float(offset["value"]) + indent * measured
-        attrs = _X_ATTR_RE.sub(lambda _: f'x="{_svg_number(column)}"', attrs, count=1)
-        attrs = _TEXT_LENGTH_ATTR_RE.sub(
-            lambda _: f'textLength="{_svg_number(len(stripped) * measured)}"',
-            attrs,
-            count=1,
-        )
-        return f"<text{attrs}>{_xml_escape(stripped)}</text>"
 
-    return _TEXT_ELEMENT_RE.sub(rewrite, svg)
+def grid(text: str, columns: int) -> list[list[tuple[Style, str, int]]]:
+    """Lay ANSI text out on a terminal's character grid.
+
+    The one place a capture stops being a stream and becomes a picture. Each
+    styled run of {func}`~click_extra.styling.split_ansi` is split at newlines
+    into rows, then placed on the column it starts at, measured in cells rather
+    than characters so a wide glyph takes the two it is drawn with.
+
+    A line reaching past `columns` soft-wraps onto the next row, the way it would
+    on a terminal that narrow, rather than being cropped: a command is free to
+    print a line it never wraps itself (a long URL, a wide table, a
+    machine-readable dump), and a picture that silently swallowed the overflow
+    would be lying about what ran. A glyph straddling the edge moves down whole.
+
+    Returning the column with each run is what lets {func}`render_svg` place a
+    run without measuring anything back out of its own output.
+
+    :param text: captured output, ANSI escape sequences included.
+    :param columns: width of the grid, in cells.
+    :return: one list of `(style, text, column)` runs per row.
+    """
+    rows: list[list[tuple[Style, str, int]]] = [[]]
+    column = 0
+    for run_style, run in split_ansi(text):
+        for index, line in enumerate(run.split("\n")):
+            if index:
+                rows.append([])
+                column = 0
+            if not line:
+                continue
+            kept: list[str] = []
+            start = column
+            for char in line:
+                size = cell_width(char)
+                # `and column` keeps a glyph wider than the whole grid on the
+                # row it started, instead of wrapping forever onto empty ones.
+                if column + size > columns and column:
+                    if kept:
+                        rows[-1].append((run_style, "".join(kept), start))
+                        kept = []
+                    rows.append([])
+                    column = start = 0
+                kept.append(char)
+                column += size
+            if kept:
+                rows[-1].append((run_style, "".join(kept), start))
+    return rows
 
 
 def _split_arguments(text: str) -> list[str]:
@@ -883,28 +883,30 @@ def gradient_svg(
     return (markup, f"url(#{unique_id})")
 
 
-def titlebar_strip(window_attrs: str, *, paint: str, radius: int) -> str:
+def titlebar_strip(
+    left: float,
+    top: float,
+    width: float,
+    *,
+    paint: str,
+    radius: int,
+) -> str:
     """Paint the strip a terminal seats its title and buttons in.
 
-    A renderer leaves that strip the color of the terminal itself, where a real
+    A capture leaves that strip the color of the terminal itself, where a real
     window carries a chrome of its own: the strip is what a reader's eye reads
     as the top of a window rather than as the first line of output.
 
     Drawn as a path rather than a rectangle because only its top corners follow
     the window's own rounding; the bottom two meet the text and stay square.
 
-    :param window_attrs: attributes of the window it is drawn over.
-    :param paint: color to fill it with.
+    :param left: where the window starts, in pixels.
+    :param top: where the window starts vertically, in pixels.
+    :param width: how wide the window is, in pixels.
+    :param paint: color to fill the strip with.
     :param radius: the window's corner radius, in pixels.
-    :return: the SVG markup, empty when the window's geometry cannot be read.
+    :return: the SVG markup.
     """
-    box = {
-        match["name"]: float(match["value"])
-        for match in _GEOMETRY_ATTR_RE.finditer(window_attrs)
-    }
-    if not {"x", "y", "width"} <= box.keys():
-        return ""
-    left, top, width = box["x"], box["y"], box["width"]
     right, bottom = left + width, top + TITLEBAR_HEIGHT
     corner = min(radius, TITLEBAR_HEIGHT)
     if not corner:
@@ -989,13 +991,58 @@ def window_buttons(
     return (
         f'<text x="{_svg_number(width - 14)}" y="27" text-anchor="end" '
         f'fill="{color}" font-family="{font_stack}" font-size="15">'
-        f"{_xml_escape('  '.join(buttons.glyphs))}</text>"
+        f"{_xml_escape('  '.join(buttons.glyphs), preserve_spaces=True)}</text>"
     )
 
 
-def frame_svg(
-    svg: str,
+def style_rules(style: Style, palette: TerminalPalette) -> str:
+    """Compile a style to the CSS an SVG text run is drawn with.
+
+    :param style: the run's style, as {func}`~click_extra.styling.split_ansi`
+        yields it.
+    :param palette: the terminal colors to resolve names against.
+    :return: the CSS declarations, semicolon-separated.
+    """
+    ink = palette.foreground if style.fg is None else palette_color(style.fg, palette)
+    paper = palette.background if style.bg is None else palette_color(style.bg, palette)
+    if style.reverse:
+        ink, paper = paper, ink
+    if style.dim:
+        ink = blend(ink, paper, DIM_RATIO)
+    rules = [f"fill: {ink}"]
+    if style.bold:
+        rules.append("font-weight: bold")
+    if style.italic:
+        rules.append("font-style: italic")
+    if style.underline:
+        rules.append("text-decoration: underline")
+    if style.strikethrough:
+        rules.append("text-decoration: line-through")
+    return ";".join(rules)
+
+
+def run_paint(style: Style, palette: TerminalPalette) -> str | None:
+    """The color painted behind a run, or `None` where it shows the terminal's own.
+
+    :param style: the run's style.
+    :param palette: the terminal colors to resolve names against.
+    :return: the background color, as `#rrggbb`, or `None` to paint nothing.
+    """
+    if style.reverse:
+        return (
+            palette.foreground if style.fg is None else palette_color(style.fg, palette)
+        )
+    return None if style.bg is None else palette_color(style.bg, palette)
+
+
+def render_svg(
+    text: str,
     *,
+    columns: int,
+    title: str = "",
+    unique_id: str | None = None,
+    palette: TerminalPalette = CAPTURE_PALETTES[CaptureBackground.DARK],
+    font_stack: str = CAPTURE_FONT_STACK,
     border: str = NO_PAINT,
     border_width: int = DEFAULT_BORDER_WIDTH,
     radius: int = DEFAULT_RADIUS,
@@ -1003,200 +1050,235 @@ def frame_svg(
     shadow: str = NO_PAINT,
     margin: int = 0,
     padding: int = 0,
-    buttons: WindowButtons | None = None,
-    buttons_color: str = CAPTURE_FOREGROUND,
-    font_stack: str | None = None,
+    buttons: WindowButtons = MACOS_BUTTONS,
+    buttons_color: str | None = None,
     titlebar: str = NO_PAINT,
     collapse_titlebar: bool = False,
     opacity: float = OPAQUE,
     watermark: str = "",
     watermark_color: str = WATERMARK_INK,
 ) -> str:
-    """Restate the window a rendered capture is drawn in.
+    """Draw captured terminal text as a picture of a terminal window.
 
-    A renderer draws the terminal as a rounded rectangle, and frames it with a
-    translucent white that only a dark background can show. Everything about that
-    window is decided before the capture knows which chrome it is headed for, so
-    it is restated here rather than asked for up front:
+    A terminal is a fixed grid of identically-sized cells, which is what makes
+    this arithmetic rather than typesetting: {func}`grid` says which cell each
+    run of same-styled characters starts on, and every coordinate below is that
+    column times {data}`CELL_WIDTH`.
 
-    - `border` repaints the frame, so a light capture stops being a white window
-      on a white page;
-    - `shadow` lifts the window off the page under it, drawn as an SVG filter so
-      a renderer that skips filters still gets the frame;
-    - `margin` grows the image around the window, which is what gives the shadow
-      somewhere to fall: a filter draws outside its shape, and the image's own
-      box cuts whatever lands past it;
-    - `padding` grows the window around the text.
+    Two primitives draw everything. A `<rect>` fills the cells behind a run that
+    carries a background, and a `<text>` draws its glyphs, pinned to its columns
+    with `textLength` so the layout survives a reader who does not have the font.
 
-    The geometry is rewritten rather than recomputed: the coordinates a renderer
-    already resolved stay as they are, moved as a whole by wrapping them in one
-    translation, which is what keeps this independent of how the source was laid
-    out.
+    ```{note}
+    A run's padding is left out of its `<text>` and paid for in the `x` offset
+    instead. Written the other way, a column only lands where it belongs if the
+    glyphs are exactly the width assumed here, which asks the renderer to both
+    honor `textLength` and resolve the font. A web browser does both. `librsvg`
+    (and through it `rsvg-convert` and ImageMagick) ignores `textLength`, and a
+    file manager, a git client or a thumbnailer commonly falls back to a
+    proportional font. Starting each run on its own column asks neither.
+    ```
 
-    :param svg: source of a rendered capture.
-    :param border: SVG paint for the window's frame. {data}`NO_PAINT` draws none.
+    :param text: captured output, ANSI escape sequences included.
+    :param columns: width of the terminal, in characters.
+    :param title: caption drawn in the window's title bar. Empty draws none.
+    :param unique_id: prefix namespacing this document's CSS classes and element
+        IDs, see {func}`render`. Derived from the content when not given.
+    :param palette: terminal colors the capture's ANSI codes resolve against.
+    :param font_stack: fonts the text is set in, best first.
+    :param border: paint for the window's frame. {data}`NO_PAINT` draws none.
     :param border_width: thickness of that frame, in pixels.
-    :param radius: how round the window's corners are, in pixels. Zero squares
-        them.
-    :param backdrop: paint filling the whole image, window and margin alike.
-        {data}`NO_PAINT` leaves it transparent, showing the page through.
-    :param shadow: color the drop shadow floods with. {data}`NO_PAINT` draws none.
-    :param margin: transparent pixels to leave on each side of the window.
-    :param padding: pixels to add inside the window, around the text.
-    :param buttons: decorations to draw in the title bar, replacing the ones a
-        renderer drew. `None` keeps those, an empty
-        {class}`~click_extra.screenshot_presets.WindowButtons` draws none.
-    :param buttons_color: paint the glyph decorations are drawn with. Circles
-        carry their own colors.
-    :param font_stack: fonts the capture asks for, replacing the renderer's.
-    :param titlebar: paint for the strip the title and buttons sit in, see
-        {func}`titlebar_strip`. {data}`NO_PAINT` leaves it the terminal's own
-        color, which is what a renderer draws.
-    :param collapse_titlebar: drop that strip altogether, closing the window
-        over its first line of text. For a capture wearing no decorations and
-        carrying no caption, where the strip is empty space announcing a window
-        that is not being drawn.
+    :param radius: how round the window's corners are, in pixels.
+    :param backdrop: paint filling the whole image, margin included, or a CSS
+        gradient, see {func}`gradient_svg`. {data}`NO_PAINT` leaves it
+        transparent.
+    :param shadow: color the window's drop shadow floods with.
+    :param margin: transparent pixels left around the window, on all four sides.
+    :param padding: pixels added inside the window, around the text.
+    :param buttons: decorations drawn in the title bar.
+    :param buttons_color: paint for the glyph decorations. Circles carry their
+        own colors. `None` takes the palette's foreground.
+    :param titlebar: paint for the strip the title and buttons sit in.
+        {data}`NO_PAINT` leaves it the terminal's own color.
+    :param collapse_titlebar: drop that strip, closing the window over the first
+        line of text. For a capture wearing neither decoration nor caption.
     :param opacity: how solid the window's body is, from {data}`OPAQUE` down to
         `0.0`. Only the body thins out: the frame, the title bar and the text
         keep their own paint.
-    :param watermark: credit line drawn in the image's bottom-right corner, see
-        {func}`watermark_svg`. Empty draws none.
+    :param watermark: credit line drawn in the image's bottom-right corner.
     :param watermark_color: color that line is drawn in, alpha included.
-    :return: the reframed source.
+    :return: the SVG source.
     """
-    window = _CHROME_RECT_RE.search(svg)
-    if not window:
-        return svg
-    unique_id = _CLIP_ID_RE.search(svg)
-    shaded = shadow != NO_PAINT and unique_id is not None
+    rows = grid(text.rstrip("\n"), columns)
+    if unique_id is None:
+        unique_id = f"terminal-{zlib.adler32((text + title).encode()):d}"
+    unique_id = _NON_IDENTIFIER_RE.sub("-", unique_id)
+    if buttons_color is None:
+        buttons_color = palette.foreground
+
+    classes: dict[str, int] = {}
+    cells: list[str] = []
+    glyphs: list[str] = []
+    for row, runs in enumerate(rows):
+        baseline = row * LINE_HEIGHT + CELL_HEIGHT
+        for run_style, run, column in runs:
+            # The paint spans the whole run, padding included: a styled column
+            # keeps its background across the spaces trailing it.
+            paint = run_paint(run_style, palette)
+            if paint is not None:
+                cells.append(
+                    f'<rect fill="{paint}" x="{_svg_number(column * CELL_WIDTH)}" '
+                    f'y="{_svg_number(row * LINE_HEIGHT + CELL_TOP_INSET)}" '
+                    f'width="{_svg_number(cell_width(run) * CELL_WIDTH)}" '
+                    f'height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}" '
+                    'shape-rendering="crispEdges"/>'
+                )
+            # The glyphs do not, see this function's note.
+            drawn = run.strip(PADDING)
+            if not drawn:
+                continue
+            indent = cell_width(run) - cell_width(run.lstrip(PADDING))
+            rule = classes.setdefault(style_rules(run_style, palette), len(classes) + 1)
+            # A right-to-left run is reordered and shaped by whoever draws it,
+            # and `textLength` pays for any difference in letter spacing, which
+            # pulls a cursive word apart at its joins. Such a run keeps its own
+            # width. Only that width floats: every run is placed by its own `x`,
+            # so the columns around it are unaffected.
+            length = (
+                ""
+                if is_bidirectional(drawn)
+                else f'textLength="{_svg_number(cell_width(drawn) * CELL_WIDTH)}"'
+            )
+            glyphs.append(
+                f'<text class="{unique_id}-r{rule}" '
+                f'x="{_svg_number((column + indent) * CELL_WIDTH)}" '
+                f'y="{_svg_number(baseline)}"{length and " " + length}>'
+                f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
+            )
 
     # A collapsed title bar is negative padding applied to the top alone, which
     # is why both travel together through every measurement below.
     dropped = TITLEBAR_HEIGHT if collapse_titlebar else 0
+    text_width = columns * CELL_WIDTH
+    text_height = len(rows) * LINE_HEIGHT
+    window_width = ceil(text_width + 2 * (WINDOW_PADDING + padding))
+    window_height = (
+        text_height + TITLEBAR_HEIGHT + WINDOW_PADDING - dropped + 2 * padding
+    )
+    width = window_width + 2 * (margin + WINDOW_INSET)
+    height = window_height + 2 * (margin + WINDOW_INSET)
+    origin_x = margin + WINDOW_INSET + WINDOW_PADDING + padding
+    origin_y = margin + WINDOW_INSET + TITLEBAR_HEIGHT + padding - dropped
 
-    def resize(match: re.Match[str]) -> str:
-        """Grow the window by its padding, less the strip it may have shed."""
-        gained = 2 * padding - (dropped if match["name"] == "height" else 0)
-        return f'{match["name"]}="{_svg_number(float(match["value"]) + gained)}"'
+    defs = [
+        (
+            f'<clipPath id="{unique_id}-clip">'
+            f'<rect x="0" y="0" width="{_svg_number(text_width)}" '
+            f'height="{_svg_number(text_height)}"/></clipPath>'
+        )
+    ]
+    body = []
 
-    attrs = window["attrs"]
-    attrs = _STROKE_ATTR_RE.sub(f'stroke="{border}"', attrs, count=1)
-    attrs = _STROKE_WIDTH_ATTR_RE.sub(f'stroke-width="{border_width}"', attrs, count=1)
-    attrs = _RADIUS_ATTR_RE.sub(f'rx="{radius}"', attrs, count=1)
-    if padding or dropped:
-        attrs = _BOX_SIZE_ATTR_RE.sub(resize, attrs, count=2)
+    paint = backdrop
+    if backdrop != NO_PAINT:
+        ramp = gradient_svg(backdrop, f"{unique_id}-backdrop", width, height)
+        if ramp:
+            defs.append(ramp[0])
+            paint = ramp[1]
+        body.append(
+            f'<rect fill="{paint}" x="0" y="0" '
+            f'width="{_svg_number(width)}" height="{_svg_number(height)}"/>'
+        )
+
+    window = (
+        f'<rect fill="{palette.background}" stroke="{border}" '
+        f'stroke-width="{border_width}" x="{_svg_number(margin + WINDOW_INSET)}" '
+        f'y="{_svg_number(margin + WINDOW_INSET)}" '
+        f'width="{_svg_number(window_width)}" height="{_svg_number(window_height)}" '
+        f'rx="{radius}"'
+    )
     if opacity != OPAQUE:
         # Set on the fill alone, so the frame drawn by the same rect's stroke
         # keeps stating where the window ends.
-        attrs = f'{attrs} fill-opacity="{opacity}"'
-    if shaded:
-        assert unique_id
-        attrs = f'{attrs} filter="url(#{unique_id["id"]}-shadow)"'
-    strip = ""
-    if titlebar != NO_PAINT and not collapse_titlebar:
-        strip = titlebar_strip(attrs, paint=titlebar, radius=radius)
-    svg = svg.replace(window[0], f"<rect {attrs}/>{strip}", 1)
-
-    if padding or dropped:
-        svg = _TERMINAL_GROUP_RE.sub(
-            lambda match: (
-                f'<g transform="translate({_svg_number(float(match["x"]) + padding)}, '
-                f'{_svg_number(float(match["y"]) + padding - dropped)})"{match["rest"]}>'
-            ),
-            svg,
-            count=1,
+        window += f' fill-opacity="{opacity}"'
+    if shadow != NO_PAINT:
+        defs.append(
+            f'<filter id="{unique_id}-shadow" x="-50%" y="-50%" '
+            'width="200%" height="200%">'
+            f'<feDropShadow dx="0" dy="{SHADOW_OFFSET}" stdDeviation="{SHADOW_BLUR}" '
+            f'flood-color="{shadow}"/></filter>'
         )
-        svg = _TITLE_TEXT_RE.sub(
-            lambda match: (
-                f'{match["head"]}x="{_svg_number(float(match["x"]) + padding)}"'
-            ),
-            svg,
-            count=1,
-        )
+        window += f' filter="url(#{unique_id}-shadow)"'
+    body.append(f"{window}/>")
 
-    grown = 2 * (margin + padding)
-    box = _VIEWBOX_RE.search(svg)
-    if (grown or dropped) and box:
-        svg = svg.replace(
-            box[0],
-            f'viewBox="0 0 {_svg_number(float(box["width"]) + grown)} '
-            f'{_svg_number(float(box["height"]) + grown - dropped)}"',
-            1,
-        )
-
-    if shaded:
-        assert unique_id
-        svg = svg.replace(
-            "</defs>",
-            f'<filter id="{unique_id["id"]}-shadow" x="-50%" y="-50%" '
-            'width="200%" height="200%">\n'
-            f'<feDropShadow dx="0" dy="{SHADOW_OFFSET}" '
-            f'stdDeviation="{SHADOW_BLUR}" flood-color="{shadow}"/>\n'
-            "</filter>\n</defs>",
-            1,
-        )
-
-    if buttons is not None:
-        # Sized and placed from the window the rewrite above settled, so the
-        # right-hand glyphs land on its edge whatever the padding did to it.
-        span = _BOX_SIZE_ATTR_RE.search(attrs)
-        svg = _BUTTONS_GROUP_RE.sub(
-            window_buttons(
-                buttons,
-                width=float(span["value"]) if span else 0.0,
-                color=buttons_color,
-                font_stack=font_stack or CAPTURE_FONT_STACK,
-            ),
-            svg,
-            count=1,
-        )
-
-    if font_stack:
-        svg = _FONT_FACE_RE.sub("", svg)
-        svg = _MATRIX_FONT_RE.sub(rf"\g<head>{font_stack};", svg, count=1)
-
-    if margin:
-        head, defs, body = svg.partition("</defs>")
-        drawing, close, tail = body.rpartition("</svg>")
-        svg = (
-            f'{head}{defs}\n<g transform="translate({margin}, {margin})">'
-            f"{drawing}</g>\n{close}{tail}"
-        )
-
-    # Painted last so it can be inserted first, under everything already drawn,
-    # and sized from the box the two growths above settled.
-    if backdrop != NO_PAINT and box:
-        width = float(box["width"]) + grown
-        height = float(box["height"]) + grown
-        paint = backdrop
-        gradient = ""
-        if unique_id:
-            ramp = gradient_svg(backdrop, f"{unique_id['id']}-backdrop", width, height)
-            if ramp:
-                gradient, paint = ramp
-        head, defs, body = svg.partition("</defs>")
-        svg = (
-            f'{head}{gradient}{defs}\n<rect fill="{paint}" x="0" y="0" '
-            f'width="{_svg_number(width)}" height="{_svg_number(height)}"/>{body}'
-        )
-
-    # Drawn last of all, in the image's own coordinates rather than the window's:
-    # the mark sits in the margin, which is outside everything moved above.
-    if watermark and box:
-        svg = svg.replace(
-            "</svg>",
-            watermark_svg(
-                watermark,
-                width=float(box["width"]) + grown,
-                height=float(box["height"]) + grown - dropped,
-                paint=watermark_color,
-                font_stack=font_stack or CAPTURE_FONT_STACK,
+    if not collapse_titlebar:
+        if titlebar != NO_PAINT:
+            body.append(
+                titlebar_strip(
+                    margin + WINDOW_INSET,
+                    margin + WINDOW_INSET,
+                    window_width,
+                    paint=titlebar,
+                    radius=radius,
+                )
             )
-            + "\n</svg>",
-            1,
+        body.append(
+            f'<g transform="translate({_svg_number(margin + WINDOW_INSET)}, '
+            f'{_svg_number(margin + WINDOW_INSET)})">'
+            f"{window_buttons(buttons, width=window_width, color=buttons_color, font_stack=font_stack)}"
+            "</g>"
         )
+        if title:
+            body.append(
+                f'<text class="{unique_id}-title" fill="{palette.foreground}" '
+                f'text-anchor="middle" '
+                f'x="{_svg_number(margin + WINDOW_INSET + window_width / 2)}" '
+                f'y="{_svg_number(margin + WINDOW_INSET + CELL_HEIGHT + 6)}">'
+                f"{_xml_escape(title)}</text>"
+            )
 
-    return svg
+    body.append(
+        f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})" '
+        f'clip-path="url(#{unique_id}-clip)">'
+        f"{''.join(cells)}"
+        f'<g class="{unique_id}-matrix">{"".join(glyphs)}</g>'
+        "</g>"
+    )
+    body.append(
+        watermark_svg(
+            watermark,
+            width=width,
+            height=height,
+            paint=watermark_color,
+            font_stack=font_stack,
+        )
+    )
+
+    styles = "\n".join(
+        f"    .{unique_id}-r{rule} {{ {css} }}" for css, rule in classes.items()
+    )
+    return (
+        f'<svg viewBox="0 0 {_svg_number(width)} {_svg_number(height)}" '
+        'xmlns="http://www.w3.org/2000/svg">\n'
+        f"<!-- @generated by {generator_tag()} -->\n"
+        "<style>\n"
+        f"    .{unique_id}-matrix {{\n"
+        f"        font-family: {font_stack};\n"
+        f"        font-size: {_svg_number(CELL_HEIGHT)}px;\n"
+        f"        line-height: {_svg_number(LINE_HEIGHT)}px;\n"
+        "        font-variant-east-asian: full-width;\n"
+        "    }\n"
+        f"    .{unique_id}-title {{\n"
+        "        font-size: 18px;\n"
+        "        font-weight: bold;\n"
+        f"        font-family: {font_stack};\n"
+        "    }\n"
+        f"{styles}\n"
+        "</style>\n"
+        f"<defs>{''.join(defs)}</defs>\n"
+        f"{chr(10).join(part for part in body if part)}\n"
+        "</svg>\n"
+    )
 
 
 def render_html(
@@ -1227,8 +1309,8 @@ def render_html(
     The `<pre>` carries its own inline styling, so a fragment pasted into an
     existing page needs no stylesheet and cannot be restyled out of legibility
     by the host. Nothing else is needed either: a `<pre>` preserves the
-    capture's own spacing, which is what spares HTML the offset surgery
-    {func}`harden_svg` performs on SVG.
+    capture's own spacing, which is what spares HTML the column arithmetic
+    {func}`render_svg` performs for a picture.
 
     ```{caution}
     The text is escaped before its ANSI is translated, the order
@@ -1247,11 +1329,11 @@ def render_html(
     :param full: wrap the `<pre>` in a standalone document. `False` returns the
         `<pre>` alone, to paste into a page that has its own.
     :param background: chrome to draw on, see {class}`CaptureBackground`.
-    :param border: color of the block's frame, see {func}`frame_svg`.
+    :param border: color of the block's frame, see {func}`render_svg`.
     :param border_width: thickness of that frame, in pixels.
     :param radius: how round the block's corners are, in pixels.
     :param backdrop: paint filling the page behind the block.
-    :param shadow: color of the block's drop shadow, see {func}`frame_svg`.
+    :param shadow: color of the block's drop shadow, see {func}`render_svg`.
     :param margin: pixels left around the block, on all four sides.
     :param padding: pixels added inside the block, on top of its own.
     :param buttons: ignored. HTML reflows with the page embedding it, so it
@@ -1266,10 +1348,12 @@ def render_html(
     :param watermark_color: color that line is drawn in, alpha included.
     :return: the rendered markup.
     """
-    chrome, ink = CAPTURE_COLORS[background]
-    if preset is not None:
-        palette = preset_palette(preset, background)
-        chrome, ink = palette.background, palette.foreground
+    palette = (
+        CAPTURE_PALETTES[background]
+        if preset is None
+        else preset_palette(preset, background)
+    )
+    chrome, ink = palette.background, palette.foreground
     if opacity != OPAQUE:
         # CSS carries no background-opacity, and the `opacity` property would
         # take the text down with it, so the color itself is thinned instead.
@@ -1413,18 +1497,15 @@ def render(
             preset=preset,
             **frame,
         )
-    if unique_id:
-        unique_id = _NON_IDENTIFIER_RE.sub("-", unique_id)
-    return frame_svg(
-        harden_svg(
-            _rich_svg(
-                text,
-                columns=fit_columns(text) if columns == AUTO_COLUMNS else columns,
-                title=title,
-                unique_id=unique_id,
-                background=background,
-                preset=preset,
-            ),
+    return render_svg(
+        text,
+        columns=fit_columns(text) if columns == AUTO_COLUMNS else columns,
+        title=title,
+        unique_id=unique_id,
+        palette=(
+            CAPTURE_PALETTES[background]
+            if preset is None
+            else preset_palette(preset, background)
         ),
         **frame,
     )
@@ -1578,50 +1659,18 @@ def _svg_number(value: float) -> str:
     return f"{rounded if rounded else 0.0:.1f}".removesuffix(".0")
 
 
-def _xml_escape(text: str) -> str:
+def _xml_escape(text: str, *, preserve_spaces: bool = False) -> str:
     """Escape text for an XML element, spelling padding as a character reference.
 
     A literal non-breaking space is valid XML but invisible in a diff, and easily
-    mangled by an editor stripping trailing whitespace.
+    mangled by an editor stripping trailing whitespace, so it is always written
+    as `&#160;`.
+
+    `preserve_spaces` promotes the ordinary ones too, for text whose spacing is
+    load-bearing: an XML parser is free to collapse a run of them into one, and
+    the default `xml:space` says it may. Two spaces of a monospaced grid are two
+    columns, and losing one shifts the rest of the line. Prose drawn outside that
+    grid (a caption, a credit line) is left to wrap as prose does.
     """
-    return escape(text, quote=False).replace("\N{NO-BREAK SPACE}", "&#160;")
-
-
-def _rich_svg(
-    text: str,
-    *,
-    columns: int,
-    title: str,
-    unique_id: str | None,
-    background: CaptureBackground = CaptureBackground.DARK,
-    preset: TerminalPreset | None = None,
-) -> str:
-    """Render terminal text to SVG source with Rich.
-
-    The only place in Click Extra that talks to Rich. It takes ANSI text and
-    returns SVG source, which is the whole contract {func}`render_svg` needs: a
-    replacement backend has to satisfy that signature and emit `<text>` runs
-    carrying `x` and `textLength`, and nothing else in the package changes.
-
-    The console writes to a throwaway buffer because only the recording is
-    wanted, and is forced into terminal mode at full color depth: it is fed text
-    that already carries ANSI escapes, so nothing here should decide the output
-    is not worth coloring.
-    """
-    if Console is None:
-        raise ImportError(
-            missing_extra_message("screenshot", subject="Screenshot rendering"),
-        )
-    console = Console(
-        record=True,
-        width=columns,
-        file=StringIO(),
-        force_terminal=True,
-        color_system="truecolor",
-        legacy_windows=False,
-    )
-    console.print(Text.from_ansi(text.rstrip("\n")))
-    theme = CAPTURE_THEMES[background]
-    if preset is not None:
-        theme = palette_theme(preset_palette(preset, background))
-    return console.export_svg(title=title, unique_id=unique_id, theme=theme)
+    escaped = escape(text, quote=False).replace("\N{NO-BREAK SPACE}", "&#160;")
+    return escaped.replace(" ", "&#160;") if preserve_spaces else escaped

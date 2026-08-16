@@ -671,10 +671,11 @@ def screenshot_cmd(
     not built on Click Extra prints its help uncolored, so --wrap routes it
     through the wrap subcommand first and captures the colored rendering.
 
-    An SVG is hardened so it does not need a web browser to render correctly.
+    An SVG starts each run of text on its own column, so it renders correctly
+    outside a web browser, where a file manager, a git client or a thumbnailer
+    would otherwise slide the columns out of place.
 
-    Only SVG needs Rich, which ships behind the screenshot extra. HTML is
-    always available.
+    Neither format needs an optional dependency.
     """
     try:
         capture_format = format_from_path(output)

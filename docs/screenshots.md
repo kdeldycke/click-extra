@@ -18,20 +18,14 @@ $ click-extra screenshot --output cli-help.svg -- my-cli --help
 
 The extension of `--output` picks what gets written, and the two are not interchangeable:
 
-| Format  | Text is                          | Goes where                                                    | Needs                  |
-| :------ | :------------------------------- | :------------------------------------------------------------ | :--------------------- |
-| `.svg`  | a picture                        | a surface that strips inline HTML: a README on GitHub or PyPI | the `screenshot` extra |
-| `.html` | selectable, searchable, copyable | a page you own: your site, a blog post, a slide deck          | nothing                |
+| Format  | Text is                          | Goes where                                                    |
+| :------ | :------------------------------- | :------------------------------------------------------------ |
+| `.svg`  | a picture                        | a surface that strips inline HTML: a README on GitHub or PyPI |
+| `.html` | selectable, searchable, copyable | a page you own: your site, a blog post, a slide deck          |
 
 So the choice is really made for you. GitHub and PyPI render an image and drop inline styling, which leaves a README no option but SVG. Everywhere you control the markup, HTML is the better artifact: a reader can select a flag out of the help screen and paste it into their terminal, and search finds it.
 
-Only SVG needs Rich:
-
-```shell-session
-$ uv pip install "click-extra[screenshot]"
-```
-
-HTML is built on {func}`click_extra.styling.ansi_to_html`, which ships with the package, so it is always available:
+Neither format needs an optional dependency. Both read the same {func}`click_extra.styling.split_ansi` stream: SVG is laid out on a character grid by {func}`click_extra.screenshot.render_svg`, HTML is inline-styled markup from {func}`click_extra.styling.ansi_to_html`.
 
 ```shell-session
 $ click-extra screenshot --output cli-help.html -- my-cli --help
@@ -49,11 +43,13 @@ assert "--merge-stderr" in result.stdout
 
 Three things it settles that a general-purpose capture tool leaves to you:
 
-- Colors, which a command strips on its own the moment its output is a pipe rather than a terminal. The capture runs under {func}`click_extra.color.forced_color`, setting the `FORCE_COLOR` lever both Click's and Rich's color systems obey and clearing any `NO_COLOR` the environment carries.
+- Colors, which a command strips on its own the moment its output is a pipe rather than a terminal. The capture runs under {func}`click_extra.color.forced_color`, setting the `FORCE_COLOR` lever every mainstream color system obeys and clearing any `NO_COLOR` the environment carries.
 - Width, where `--columns` pins what the command wraps to *and* what the image is drawn at. Let those two disagree and the rendered lines overrun the image.
 - `stderr`, which stays out of the capture unless `--merge-stderr` asks for it. That is what keeps a wrapper's build chatter out of the picture with no shell redirection to remember.
 
-Every SVG it writes is also hardened, so it renders correctly outside a web browser, where a file manager, a git client or a thumbnailer would otherwise slide each column out of place. {func}`click_extra.screenshot.harden_svg` documents what that fixes and why the renderer does not do it. The renderer itself sits behind a one-function seam ({func}`click_extra.screenshot._rich_svg`), so Rich can be swapped for another engine without touching the capture or the CLI.
+Every SVG it writes also starts each run of text on its own column, rather than padding the run with spaces and leaning on `textLength` to hold it in place. Written the other way, a column only lands where it belongs if the reader's renderer both honors `textLength` and resolves the font the file names. A web browser does both; `librsvg` (and through it `rsvg-convert` and ImageMagick) ignores `textLength`, and a file manager, a git client or a thumbnailer commonly falls back to a proportional font. {func}`click_extra.screenshot.render_svg` documents the trade in full.
+
+Nothing is fetched either: the text is set in the first family of {data}`click_extra.screenshot.CAPTURE_FONT_STACK` the reader already has, so a capture renders the same offline and on a page that forbids third-party requests.
 
 ### Capturing a CLI that is not yours
 
@@ -94,6 +90,49 @@ $ click-extra screenshot --output params.svg --columns auto -- my-cli --params
 ```
 
 Reach for it when the output holds a line the command does not wrap on its own, which a pinned width folds mid-word: a long invocation drawn as the prompt, a wide table, a machine-readable dump. The trade-off is that the picture stops being a fixed-width terminal, so captures meant to sit side by side at the same width should name that width instead.
+
+### Wide glyphs and writing systems
+
+A terminal cell is not a character. A Chinese ideograph, a Hangul syllable, a fullwidth Latin letter and most emoji are each drawn two cells wide, while a combining accent is drawn in none at all. A capture measures its runs in cells, through {func}`click_extra.screenshot.cell_width`, which is the same [`wcwidth`](https://github.com/jquast/wcwidth) measurement click-extra already uses to align [tables](table.md) and the [command tree](commands.md#command-tree).
+
+The CLI below pads with that measurement, so every name lands on column 12 whatever script precedes it:
+
+```{click:source}
+from click_extra import command, echo
+from click_extra.screenshot import cell_width
+
+FRUITS = (
+    ("苹果", "apple"),
+    ("バナナ", "banana"),
+    ("체리", "cherry"),
+    ("ＫＩＷＩ", "kiwi"),
+    ("🍎🍌🍒", "basket"),
+    ("┌──┬──┐", "crate"),
+    ("مشمش", "apricot"),
+)
+
+@command
+def market():
+    """List each fruit beside its name, aligned on a fixed column."""
+    for glyphs, name in FRUITS:
+        echo(f"{glyphs}{' ' * (12 - cell_width(glyphs))}{name}")
+```
+
+```{click:run}
+:screenshot: unicode-market-screen
+:screenshot-margin: 16
+result = invoke(market)
+assert result.exit_code == 0
+assert "apricot" in result.stdout
+```
+
+Size a run by its character count instead and the picture drifts: the seven lines above would land on four different columns, the wide scripts drawn at half their width and stacking on each other. That is [`rich#2742`](https://github.com/Textualize/rich/issues/2742), open upstream since 2023 and one of the reasons this renderer is click-extra's own. The [upstream page](upstream.md#terminal-captures-as-svg) collects the rest.
+
+```{note}
+Right-to-left scripts are the case cell arithmetic cannot settle. Arabic and Hebrew are reordered by whoever draws them, and the cursive ones are *shaped*: a letter's form depends on the letters it joins. A run carrying any of them is therefore left to size itself, rather than pinned to an exact width that would pay for the difference in letter spacing and pull the word apart at its joins. The run still starts on its own column, so the grid around it holds; only its own width floats.
+
+Box-drawing characters carry a smaller version of the same caveat: adjacent glyphs may not meet cleanly, since a font is under no obligation to draw them edge to edge. That one is [`rich#2536`](https://github.com/Textualize/rich/issues/2536), and click-extra does not solve it either.
+```
 
 ### Light and dark chrome
 
@@ -203,7 +242,7 @@ Two of them carry a default that is not a fixed value but the chrome's own. That
 
 The rest answer to what the capture is *for*. A shadow needs `--margin` to fall into, since a filter paints outside the shape it is applied to and the image's own box cuts whatever lands past it. `--backdrop` fills that same space instead of leaving the page through, which is what turns a capture into a self-contained picture for a slide or a social card. `--radius 0` drops the desktop-window look, for a capture meant to read as a plain block of output.
 
-The frame is rewritten into the rendered source rather than requested up front ({func}`click_extra.screenshot.frame_svg`), which is what lets the same pass serve an HTML capture, where these land on the block's `border`, `border-radius`, `box-shadow`, `margin`, `padding` and the page's `background`.
+Both formats take the same set of options ({func}`click_extra.screenshot.render_svg` draws them, {func}`click_extra.screenshot.render_html` translates them), so an HTML capture lands them on the block's `border`, `border-radius`, `box-shadow`, `margin`, `padding` and the page's `background`.
 
 ```{tip}
 A shadow is an SVG filter. A renderer that skips filters, and a few outside the browser do, still draws the border, so the window keeps an edge either way.
