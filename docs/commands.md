@@ -294,6 +294,36 @@ print([param.name for param in measured.params])
 
 Priorities are floats rather than integers, so a new option can be wedged between two existing ones without renumbering the rest: `1.5` lands between `1` and `2`. See {py:data}`~click_extra.commands.DEFAULT_PRIORITY` for where that convention comes from.
 
+A priority can also be written against that constant instead of against the literal `100`, which reads well when a single option has to clear the crowd it was declared in:
+
+```{click:source}
+from click_extra import command, option
+from click_extra.commands import DEFAULT_PRIORITY
+
+@command(
+    params=[],
+    option_priorities={
+        "--flour": DEFAULT_PRIORITY - 1,
+        "--sugar": DEFAULT_PRIORITY + 1,
+    },
+)
+@option("--sugar", help="Grams of sugar.")
+@option("--butter", help="Grams of butter.")
+@option("--flour", help="Grams of flour.")
+def relative(sugar, butter, flour):
+    """Bake a cake."""
+```
+
+Mind the sign, as it runs against the screen: the lowest priority is listed first, so subtracting from `DEFAULT_PRIORITY` raises an option and adding to it lowers one. `--butter` was left out of the mapping and holds the default line between the two. `--help` is appended by Click after the sort, so it stays last whatever the mapping says:
+
+```{click:run}
+result = invoke(relative, args=["--help"])
+assert result.exit_code == 0
+options = result.stdout
+assert options.index("--flour") < options.index("--butter") < options.index("--sugar")
+assert options.index("--sugar") < options.index("--help")
+```
+
 Positional arguments are never reordered: their sequence is part of the command's grammar, not a matter of presentation.
 
 ### Option's defaults
@@ -577,6 +607,48 @@ assert listing.index("prep") < listing.index("cook") < listing.index("plate")
 ```
 
 See {py:data}`~click_extra.commands.DEFAULT_PRIORITY` for where that convention comes from.
+
+As with options, a priority can be written against that constant rather than against the literal `100`, which is enough to bookend a listing you are otherwise happy to leave alphabetical:
+
+```{click:source}
+from click_extra import group
+from click_extra.commands import DEFAULT_PRIORITY
+
+@group(
+    subcommand_priorities={
+        "prep": DEFAULT_PRIORITY - 1,
+        "plate": DEFAULT_PRIORITY + 1,
+    },
+)
+def bookended():
+    """Run the kitchen."""
+
+@bookended.command()
+def plate():
+    """Plate the dish."""
+
+@bookended.command()
+def prep():
+    """Prep the ingredients."""
+
+@bookended.command()
+def brine():
+    """Brine overnight."""
+
+@bookended.command()
+def cook():
+    """Cook the dish."""
+```
+
+The same inversion applies: subtracting lifts `prep` above the pack and adding drops `plate` below it, while `brine` and `cook` stay on the default line and keep the alphabetical tie-break between them. The `help` subcommand takes a priority like any other, and ties on that same line here:
+
+```{click:run}
+result = invoke(bookended, args=["--help"])
+assert result.exit_code == 0
+listing = result.stdout.split("Commands:")[1]
+assert listing.index("prep") < listing.index("brine") < listing.index("cook")
+assert listing.index("cook") < listing.index("help") < listing.index("plate")
+```
 
 ### One setting for a whole tree
 
