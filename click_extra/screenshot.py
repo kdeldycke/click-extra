@@ -1307,7 +1307,7 @@ def render_svg(
         if title:
             body.append(
                 f'<text class="{unique_id}-title" fill="{palette.foreground}" '
-                f'font-family="{font_stack}" font-size="{TITLE_SIZE}" '
+                f'font-family="monospace" font-size="{TITLE_SIZE}" '
                 f'font-weight="bold" text-anchor="middle" '
                 f'x="{_svg_number(margin + WINDOW_INSET + window_width / 2)}" '
                 f'y="{_svg_number(margin + WINDOW_INSET + CELL_HEIGHT + 6)}">'
@@ -1322,10 +1322,19 @@ def render_svg(
         # here as presentation attributes because a renderer is free to ignore a
         # `<style>` block, and several do: the text then falls back to a
         # proportional face at a default size in default black, which is a
-        # terminal capture with neither its grid nor its colors. An attribute
-        # loses to a stylesheet wherever one is read, so this changes nothing
-        # for a renderer that reads both.
-        f'<g class="{unique_id}-matrix" font-family="{font_stack}" '
+        # terminal capture with neither its grid nor its colors. A presentation
+        # attribute loses to any stylesheet rule, so this changes nothing for a
+        # renderer that reads both.
+        #
+        # The face is named as the bare generic keyword rather than as the
+        # stack, deliberately: a renderer poor enough to skip the stylesheet is
+        # one to hand the single most parseable value CSS has, instead of a
+        # comma-separated list of quoted family names it may take for one exotic
+        # family and fail to resolve. The stack still reaches everything that
+        # reads the stylesheet, which is what picks the nice face. This only
+        # decides what the rest fall back to, and to a picture of a terminal any
+        # monospace is worth more than the right one.
+        f'<g class="{unique_id}-matrix" font-family="monospace" '
         f'font-size="{_svg_number(CELL_HEIGHT)}" fill="{palette.foreground}">'
         f"{''.join(glyphs)}</g>"
         "</g></g>"
