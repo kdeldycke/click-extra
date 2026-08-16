@@ -73,6 +73,7 @@ from .screenshot import (
     capture,
     format_from_path,
 )
+from .screenshot_presets import PRESETS
 from .spinner import (
     _DEFAULT_SHOWCASE,
     OperationTrail,
@@ -472,6 +473,14 @@ def _parse_columns(
     "light-background theme washes out on the dark default.",
 )
 @option(
+    "--preset",
+    type=Choice(sorted(PRESETS), case_sensitive=False),
+    default=None,
+    help="Terminal to draw the capture as: its window decorations, palette, "
+    "font and prompt sigil. Anything stated alongside wins over it. Left out, "
+    "the capture keeps the renderer's own neutral window.",
+)
+@option(
     "--border",
     default=None,
     help="Color of the frame drawn around the terminal window, as CSS names it. "
@@ -588,6 +597,7 @@ def screenshot_cmd(
     output: Path,
     columns: TColumns,
     background: CaptureBackground,
+    preset: str | None,
     border: str | None,
     border_width: int,
     radius: int,
@@ -676,6 +686,7 @@ def screenshot_cmd(
             unique_id=output.stem,
             full=not fragment,
             background=background,
+            preset=None if preset is None else PRESETS[preset.lower()],
             border=border,
             border_width=border_width,
             radius=radius,

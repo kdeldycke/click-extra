@@ -34,6 +34,9 @@
 - Add a `:screenshot-title:` option to the `click:run` directive, captioning a capture's title bar like the command's own `--title`.
 - Accept a CSS `linear-gradient()` or `radial-gradient()` as a capture's `--backdrop`, translated into the paint server an SVG draws it with.
 - Add a `--line-numbers` option to `click-extra screenshot`, and a `:screenshot-line-numbers:` option to the `click:run` directive, numbering every line of a capture, its invocation first.
+- Add a `--preset` option to `click-extra screenshot`, and a `:screenshot-preset:` option to the `click:run` directive, drawing a capture as a macOS, Windows, GNOME or plain terminal.
+- Add a `click_extra.screenshot_presets` module, cataloguing each terminal's window decorations, palette, font stack and prompt sigil.
+- Add a `prompt` parameter to `format_cli_prompt()`, so a capture can draw the sigil of the shell it pictures rather than the one it runs under.
 - Advertise the `auto` value of `--theme` in the help screen's choice list and in shell completion, instead of accepting it silently.
 - Widen the default capture margin to 48 pixels and its padding to 8, so a window has room for its shadow and its text room from its frame.
 - State a capture's chrome to the command it runs through `CLITHEME` and `COLORFGBG`, so a CLI passing `--theme auto` renders for the window it lands in.

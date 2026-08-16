@@ -67,12 +67,21 @@ from click import style, unstyle
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
 from .parameters import missing_extra_message
+from .screenshot_presets import (
+    TerminalPalette,
+    TerminalPreset,
+    WindowButtons,
+)
 from .styling import ansi_to_html
 from .theme import BUILTIN_THEMES
 
 try:
     from rich.console import Console
-    from rich.terminal_theme import DEFAULT_TERMINAL_THEME, SVG_EXPORT_THEME
+    from rich.terminal_theme import (
+        DEFAULT_TERMINAL_THEME,
+        SVG_EXPORT_THEME,
+        TerminalTheme,
+    )
     from rich.text import Text
 except ImportError:
     # Rich ships behind the `screenshot` extra: importing this module stays cheap,
@@ -81,6 +90,7 @@ except ImportError:
     Text = None  # type: ignore[assignment,misc]
     DEFAULT_TERMINAL_THEME = None  # type: ignore[assignment]
     SVG_EXPORT_THEME = None  # type: ignore[assignment]
+    TerminalTheme = None  # type: ignore[assignment,misc]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -398,6 +408,31 @@ _STOP_RE = re.compile(r"^(?P<color>.+?)(?:\s+(?P<position>[\d.]+)%)?$", re.DOTAL
 _VIEWBOX_RE = re.compile(r'\bviewBox="0 0 (?P<width>[\d.]+) (?P<height>[\d.]+)"')
 """The box a capture's own coordinates are read in."""
 
+_BUTTONS_GROUP_RE = re.compile(r'<g transform="translate\(26,22\)">.*?</g>', re.DOTALL)
+"""The title bar's decorations, as a renderer draws them: three round buttons.
+
+Keyed on the offset they are grouped at, which is the one group a capture
+translates by a bare pair of integers: the text sits at fractional coordinates,
+and carries a clip path besides.
+"""
+
+_MATRIX_FONT_RE = re.compile(
+    r"(?P<head>-matrix \{[^}]*?font-family: )[^;]+;", re.DOTALL
+)
+"""The fonts the captured text is set in, in a capture's own stylesheet.
+
+Scoped to the text's own class: the `@font-face` rules above it name a single
+family each, and a stack written into one of those declares a font nothing can
+resolve.
+"""
+
+_FONT_FACE_RE = re.compile(r"\s*@font-face \{[^}]*\}", re.DOTALL)
+"""A webfont a capture carries, pointing at a CDN.
+
+Dropped when a preset names its own fonts: the rules would go on fetching a
+family the text no longer asks for.
+"""
+
 _BOX_SIZE_ATTR_RE = re.compile(r'(?<![-\w])(?P<name>width|height)="(?P<value>[\d.]+)"')
 """Either side of a rectangle, in pixels.
 
@@ -446,6 +481,43 @@ def number_lines(text: str, start: int = 1) -> str:
         for number in range(start, start + len(lines))
     )
     return "\n".join(f"{prefix}{line}" for prefix, line in zip(gutter, lines))
+
+
+def preset_palette(
+    preset: TerminalPreset,
+    background: CaptureBackground,
+) -> TerminalPalette:
+    """The colors a preset shows on the given chrome."""
+    return preset.dark if background is CaptureBackground.DARK else preset.light
+
+
+def palette_theme(palette: TerminalPalette) -> TerminalTheme:
+    """Build the terminal theme a renderer resolves a palette's colors with.
+
+    The catalog carries palettes as plain hex strings, so importing it costs
+    nothing and needs no `screenshot` extra. They become Rich's own
+    {class}`~rich.terminal_theme.TerminalTheme` here, where Rich is already in
+    reach.
+
+    :param palette: the colors to resolve against.
+    :return: the theme an SVG export is rendered with.
+    :raises ImportError: without the `screenshot` extra installed.
+    """
+    if TerminalTheme is None:
+        raise ImportError(
+            missing_extra_message("screenshot", subject="Screenshot rendering"),
+        )
+
+    def triplet(color: str) -> tuple[int, int, int]:
+        value = color.lstrip("#")
+        return tuple(int(value[at : at + 2], 16) for at in (0, 2, 4))  # type: ignore[return-value]
+
+    return TerminalTheme(
+        triplet(palette.background),
+        triplet(palette.foreground),
+        [triplet(color) for color in palette.ansi[:8]],
+        [triplet(color) for color in palette.ansi[8:]],
+    )
 
 
 def fit_columns(text: str) -> int:
@@ -729,6 +801,41 @@ def gradient_svg(
     return (markup, f"url(#{unique_id})")
 
 
+def window_buttons(
+    buttons: WindowButtons,
+    *,
+    width: float,
+    color: str,
+    font_stack: str = CAPTURE_FONT_STACK,
+) -> str:
+    """Draw a title bar's decorations, as the terminal being mimicked draws them.
+
+    Two conventions, and a window carries one or the other: macOS fills round
+    buttons on the left, Windows and GNOME set glyphs against the right edge.
+    Both are placed in the window's own coordinates, so they follow it wherever
+    the frame moves it.
+
+    :param buttons: which decorations to draw.
+    :param width: width of the window they are drawn in, in pixels.
+    :param color: paint for the glyphs. Circles carry their own.
+    :param font_stack: fonts the glyphs are set in, the window's own.
+    :return: the SVG markup, empty when the window wears none.
+    """
+    drawn = [
+        f'<circle cx="{index * 22}" cy="0" r="7" fill="{paint}"/>'
+        for index, paint in enumerate(buttons.circles)
+    ]
+    if drawn:
+        return f'<g transform="translate(26,22)">{"".join(drawn)}</g>'
+    if not buttons.glyphs:
+        return ""
+    return (
+        f'<text x="{_svg_number(width - 14)}" y="27" text-anchor="end" '
+        f'fill="{color}" font-family="{font_stack}" font-size="15">'
+        f"{_xml_escape('  '.join(buttons.glyphs))}</text>"
+    )
+
+
 def frame_svg(
     svg: str,
     *,
@@ -739,6 +846,9 @@ def frame_svg(
     shadow: str = NO_PAINT,
     margin: int = 0,
     padding: int = 0,
+    buttons: WindowButtons | None = None,
+    buttons_color: str = CAPTURE_FOREGROUND,
+    font_stack: str | None = None,
 ) -> str:
     """Restate the window a rendered capture is drawn in.
 
@@ -771,6 +881,12 @@ def frame_svg(
     :param shadow: color the drop shadow floods with. {data}`NO_PAINT` draws none.
     :param margin: transparent pixels to leave on each side of the window.
     :param padding: pixels to add inside the window, around the text.
+    :param buttons: decorations to draw in the title bar, replacing the ones a
+        renderer drew. `None` keeps those, an empty
+        {class}`~click_extra.screenshot_presets.WindowButtons` draws none.
+    :param buttons_color: paint the glyph decorations are drawn with. Circles
+        carry their own colors.
+    :param font_stack: fonts the capture asks for, replacing the renderer's.
     :return: the reframed source.
     """
     window = _CHROME_RECT_RE.search(svg)
@@ -833,6 +949,25 @@ def frame_svg(
             1,
         )
 
+    if buttons is not None:
+        # Sized and placed from the window the rewrite above settled, so the
+        # right-hand glyphs land on its edge whatever the padding did to it.
+        span = _BOX_SIZE_ATTR_RE.search(attrs)
+        svg = _BUTTONS_GROUP_RE.sub(
+            window_buttons(
+                buttons,
+                width=float(span["value"]) if span else 0.0,
+                color=buttons_color,
+                font_stack=font_stack or CAPTURE_FONT_STACK,
+            ),
+            svg,
+            count=1,
+        )
+
+    if font_stack:
+        svg = _FONT_FACE_RE.sub("", svg)
+        svg = _MATRIX_FONT_RE.sub(rf"\g<head>{font_stack};", svg, count=1)
+
     if margin:
         head, defs, body = svg.partition("</defs>")
         drawing, close, tail = body.rpartition("</svg>")
@@ -867,6 +1002,7 @@ def render_html(
     title: str = "",
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
+    preset: TerminalPreset | None = None,
     border: str = NO_PAINT,
     border_width: int = DEFAULT_BORDER_WIDTH,
     radius: int = DEFAULT_RADIUS,
@@ -874,6 +1010,9 @@ def render_html(
     shadow: str = NO_PAINT,
     margin: int = 0,
     padding: int = 0,
+    buttons: WindowButtons | None = None,
+    buttons_color: str = CAPTURE_FOREGROUND,
+    font_stack: str = CAPTURE_FONT_STACK,
 ) -> str:
     """Render captured terminal text to HTML.
 
@@ -910,12 +1049,14 @@ def render_html(
     :return: the rendered markup.
     """
     chrome, ink = CAPTURE_COLORS[background]
+    if preset is not None:
+        chrome, ink, _ = preset_palette(preset, background)
     frame = "" if border == NO_PAINT else f"border: {border_width}px solid {border}; "
     if shadow != NO_PAINT:
         frame += f"box-shadow: 0 {SHADOW_OFFSET}px {SHADOW_BLUR * 2}px {shadow}; "
     body = (
         f'<pre style="background: {chrome}; color: {ink}; '
-        f"font-family: {CAPTURE_FONT_STACK}; line-height: 1.25; "
+        f"font-family: {font_stack}; line-height: 1.25; "
         f"margin: {margin}px; padding: calc(1em + {padding}px); "
         f"{frame}border-radius: {radius}px; "
         f'overflow-x: auto">{ansi_to_html(escape(text, quote=False))}</pre>'
@@ -945,9 +1086,10 @@ def render(
     unique_id: str | None = None,
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
+    preset: TerminalPreset | None = None,
     border: str | None = None,
     border_width: int = DEFAULT_BORDER_WIDTH,
-    radius: int = DEFAULT_RADIUS,
+    radius: int | None = None,
     backdrop: str = NO_PAINT,
     shadow: str | None = None,
     margin: int = DEFAULT_MARGIN,
@@ -987,6 +1129,8 @@ def render(
         border = CAPTURE_BORDERS[background]
     if shadow is None:
         shadow = CAPTURE_SHADOWS[background]
+    if radius is None:
+        radius = DEFAULT_RADIUS if preset is None else preset.radius
     frame: dict[str, Any] = {
         "border": border,
         "border_width": border_width,
@@ -996,8 +1140,20 @@ def render(
         "margin": margin,
         "padding": padding,
     }
+    if preset is not None:
+        palette = preset_palette(preset, background)
+        frame["buttons"] = preset.buttons
+        frame["buttons_color"] = palette.foreground
+        frame["font_stack"] = preset.font_stack
     if format is CaptureFormat.HTML:
-        return render_html(text, title=title, full=full, background=background, **frame)
+        return render_html(
+            text,
+            title=title,
+            full=full,
+            background=background,
+            preset=preset,
+            **frame,
+        )
     if unique_id:
         unique_id = _NON_IDENTIFIER_RE.sub("-", unique_id)
     return frame_svg(
@@ -1008,6 +1164,7 @@ def render(
                 title=title,
                 unique_id=unique_id,
                 background=background,
+                preset=preset,
             ),
         ),
         **frame,
@@ -1030,9 +1187,10 @@ def capture(
     unique_id: str | None = None,
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
+    preset: TerminalPreset | None = None,
     border: str | None = None,
     border_width: int = DEFAULT_BORDER_WIDTH,
-    radius: int = DEFAULT_RADIUS,
+    radius: int | None = None,
     backdrop: str = NO_PAINT,
     shadow: str | None = None,
     margin: int = DEFAULT_MARGIN,
@@ -1089,7 +1247,11 @@ def capture(
     displayed = args_cleanup(args) if prompt is None else tuple(shlex.split(prompt))
     if displayed:
         with forced_color():
-            prompt_line = format_cli_prompt(displayed, theme=PROMPT_THEMES[background])
+            prompt_line = format_cli_prompt(
+                displayed,
+                theme=PROMPT_THEMES[background],
+                prompt=None if preset is None else preset.prompt,
+            )
             text = f"{prompt_line}\n{text}"
     # Numbered after the prompt joins it, so line 1 is the invocation that
     # produced everything under it.
@@ -1104,6 +1266,7 @@ def capture(
             unique_id=unique_id,
             full=full,
             background=background,
+            preset=preset,
             border=border,
             border_width=border_width,
             radius=radius,
@@ -1163,6 +1326,7 @@ def _rich_svg(
     title: str,
     unique_id: str | None,
     background: CaptureBackground = CaptureBackground.DARK,
+    preset: TerminalPreset | None = None,
 ) -> str:
     """Render terminal text to SVG source with Rich.
 
@@ -1189,8 +1353,7 @@ def _rich_svg(
         legacy_windows=False,
     )
     console.print(Text.from_ansi(text.rstrip("\n")))
-    return console.export_svg(
-        title=title,
-        unique_id=unique_id,
-        theme=CAPTURE_THEMES[background],
-    )
+    theme = CAPTURE_THEMES[background]
+    if preset is not None:
+        theme = palette_theme(preset_palette(preset, background))
+    return console.export_svg(title=title, unique_id=unique_id, theme=theme)

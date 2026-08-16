@@ -117,6 +117,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.logo module
+
+```{eval-rst}
+.. automodule:: click_extra.logo
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.myst_converter module
 
 ```{eval-rst}
@@ -184,6 +193,15 @@ click_extra.sphinx
 
 ```{eval-rst}
 .. automodule:: click_extra.screenshot
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.screenshot_presets module
+
+```{eval-rst}
+.. automodule:: click_extra.screenshot_presets
    :members:
    :show-inheritance:
    :undoc-members:

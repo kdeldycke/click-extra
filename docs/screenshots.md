@@ -256,6 +256,82 @@ A caption takes any text a terminal can draw, emoji included. `:hide-results:` i
 `````
 ``````
 
+### Terminal presets
+
+A capture is a picture of a terminal, and terminals do not look alike. `--preset` draws one as a named desktop's:
+
+```shell-session
+$ click-extra screenshot --output shot.svg --preset windows -- my-cli --help
+```
+
+Each preset carries the four things that make a terminal recognizable: its window decorations, the palette its colors resolve against, the font it ships with, and the sigil its usual shell prompts with. Anything stated alongside wins, so `--preset windows --radius 8` rounds the corners Windows squares.
+
+``````{tab-set}
+`````{tab-item} macos
+:sync: preset-macos
+```{click:run}
+:screenshot: preset-macos-screen
+:screenshot-preset: macos
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+
+![The pantry screen drawn as an Apple Terminal window](assets/preset-macos-screen.svg)
+
+Round buttons on the left, Apple's `Pro` and `Basic` palettes, SF Mono, and a `$` prompt.
+`````
+
+`````{tab-item} windows
+:sync: preset-windows
+```{click:run}
+:screenshot: preset-windows-screen
+:screenshot-preset: windows
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+
+![The pantry screen drawn as a Windows Terminal window](assets/preset-windows-screen.svg)
+
+Minimize, maximize and close on the right, square corners, the `Campbell` and `One Half Light` schemes, Cascadia Code, and a `PS C:\>` prompt.
+`````
+
+`````{tab-item} linux
+:sync: preset-linux
+```{click:run}
+:screenshot: preset-linux-screen
+:screenshot-preset: linux
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+
+![The pantry screen drawn as a GNOME Terminal window](assets/preset-linux-screen.svg)
+
+A single close button, the Tango palette GNOME Terminal ships, Ubuntu Mono, and a `$` prompt.
+`````
+
+`````{tab-item} plain
+:sync: preset-plain
+```{click:run}
+:screenshot: preset-plain-screen
+:screenshot-preset: plain
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+
+![The pantry screen drawn as a plain block of output](assets/preset-plain-screen.svg)
+
+No buttons, no rounded corners: for a capture that has to read as a block of output rather than as a window, on a slide or in a paper.
+`````
+``````
+
+```{caution}
+A preset's palette is the scheme its terminal *ships with*, not the one your reader has configured theirs to. It also decides how the captured CLI's own colors land: a screen rendered for a dark theme on a light preset washes out exactly as [the chrome section](#light-and-dark-chrome) describes, since the two halves have to agree either way.
+```
+
 ### The captures on this page
 
 Here is the command turned on click-extra itself, whose [bundled CLI](cli.md) doubles as a live demo of the rendering features. Each image below was produced by the line printed under it, run from a checkout.
@@ -326,6 +402,16 @@ The switch keys on the *browser's* color scheme, not on the theme toggle of a do
 
 ```{eval-rst}
 .. automodule:: click_extra.screenshot
+   :no-index:
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.screenshot_presets` API
+
+```{eval-rst}
+.. automodule:: click_extra.screenshot_presets
    :no-index:
    :members:
    :show-inheritance:

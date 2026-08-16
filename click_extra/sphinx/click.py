@@ -62,6 +62,7 @@ from ..screenshot import (
     number_lines,
     render,
 )
+from ..screenshot_presets import PRESETS, TerminalPreset
 from ._base import (
     StatelessDomain,
     compile_directive,
@@ -85,6 +86,17 @@ logger = logging.getLogger(__name__)
 
 RST_INDENT = " " * 3
 """The indentation used for rST code blocks lines."""
+
+
+PROMPT_SIGIL = "$"
+"""Sigil a block draws before the command it ran.
+
+Fixed rather than taken from {data}`~click_extra.execution.PROMPT`, which
+answers to the platform the build runs on: a page would otherwise prompt with a
+`>` for every reader whose documentation was built on Windows. A capture drawn
+as another terminal swaps it for that terminal's own, see
+{class}`~click_extra.screenshot_presets.TerminalPreset`.
+"""
 
 
 DEFAULT_SCREENSHOT_DIR = "assets"
@@ -353,7 +365,7 @@ class ClickRunner(CliRunner):
         if prog_name is None:
             prog_name = cli.name.replace("_", "-")
 
-        output_lines.append(f"$ {prog_name} {shlex.join(args)}".rstrip())
+        output_lines.append(f"{PROMPT_SIGIL} {prog_name} {shlex.join(args)}".rstrip())
         prog_name = program_from_command_line(prog_name)
 
         if isinstance(input, (tuple, list)):
@@ -747,6 +759,7 @@ class ClickDirective(SphinxDirective):
                 "border-width",
                 "margin",
                 "padding",
+                "preset",
                 "radius",
                 "shadow",
                 "title",
@@ -772,6 +785,12 @@ class ClickDirective(SphinxDirective):
         """
         assert self.screenshot
         lines = list(results)
+        preset = self.screenshot_frame.get("preset")
+        if preset is not None and lines and lines[0].startswith(f"{PROMPT_SIGIL} "):
+            # A block prompts with this platform's sigil, being run by a
+            # documentation build rather than by the terminal it pictures. The
+            # capture answers to the terminal it is drawn as instead.
+            lines[0] = f"{preset.prompt} {lines[0].removeprefix(f'{PROMPT_SIGIL} ')}"
         if "screenshot-line-numbers" in self.options and lines:
             # Numbered whole, so line 1 is the prompt: the invocation everything
             # under it came from.
@@ -854,6 +873,11 @@ def _screenshot_columns(argument: str) -> TColumns:
     return width
 
 
+def _screenshot_preset(argument: str) -> TerminalPreset:
+    """Read the `:screenshot-preset:` option into the terminal it names."""
+    return PRESETS[directives.choice(argument, tuple(sorted(PRESETS)))]
+
+
 def _screenshot_background(argument: str) -> CaptureBackground:
     """Read the `:screenshot-background:` option into its enum member.
 
@@ -888,6 +912,7 @@ class RunDirective(ClickDirective):
         "screenshot-line-numbers": directives.flag,
         "screenshot-margin": directives.nonnegative_int,
         "screenshot-padding": directives.nonnegative_int,
+        "screenshot-preset": _screenshot_preset,
         "screenshot-radius": directives.nonnegative_int,
         "screenshot-shadow": directives.unchanged_required,
         "screenshot-title": directives.unchanged_required,

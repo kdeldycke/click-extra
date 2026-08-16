@@ -1242,6 +1242,40 @@ def test_click_run_screenshot_frame_options(sphinx_app_myst):
     assert "greeter" in svg
 
 
+def test_click_run_screenshot_preset_swaps_the_prompt(sphinx_app_myst):
+    """A capture drawn as another terminal prompts the way that one does.
+
+    A block runs under a documentation build, so its own prompt is this
+    platform's `$`. The picture is of a Windows terminal, whose shell prompts
+    with something else entirely.
+    """
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{click:run}
+            :screenshot: windows-greet-screen
+            :screenshot-preset: windows
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "windows-greet-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    assert "PS&#160;C:\\&gt;&#160;greet" in svg
+    assert "Cascadia Code" in svg
+    # Campbell's background, and the square corners Windows draws.
+    assert 'fill="#0c0c0c"' in svg
+    assert 'rx="0"' in svg
+
+
 def test_click_run_screenshot_background_rejects_an_unknown_chrome():
     """A typo names the chromes it could have been, instead of drawing a default."""
     with pytest.raises(ValueError, match=r'"dark".+"light"'):

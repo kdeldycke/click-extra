@@ -773,6 +773,7 @@ def format_cli_prompt(
     cmd_args: Iterable[str],
     extra_env: TEnvVars | None = None,
     theme: HelpTheme | None = None,
+    prompt: str | None = None,
 ) -> str:
     """Render the shell prompt simulating a CLI invocation, for logs and dry-runs.
 
@@ -798,6 +799,9 @@ def format_cli_prompt(
         trace wants. A caller drawing the line onto a surface of its own choosing
         (a light [capture](screenshots.md), say) passes the one that surface can
         show.
+    :param prompt: sigil to draw before the command, when the shell being
+        pictured is not the one running. A capture mimicking a Windows terminal
+        passes `PS C:\\>`; `None` keeps {data}`PROMPT`, which is this platform's.
     :return: the styled prompt line.
     """
     active_theme = get_current_theme() if theme is None else theme
@@ -817,7 +821,7 @@ def format_cli_prompt(
                 active_theme.option(part) if part.startswith("-") else part,
             )
 
-    sigil, _, spacing = PROMPT.partition(" ")
+    sigil, _, spacing = (PROMPT if prompt is None else f"{prompt} ").partition(" ")
     return (
         active_theme.bracket(sigil)
         + f" {spacing}"

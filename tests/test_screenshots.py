@@ -67,9 +67,12 @@ from click_extra.screenshot import (
     harden_svg,
     measure_cell_width,
     number_lines,
+    palette_theme,
     render,
     trim_lines,
+    window_buttons,
 )
+from click_extra.screenshot_presets import PRESETS
 
 ASSETS = Path(__file__).parent.parent / "docs" / "assets"
 """Directory the committed captures live in."""
@@ -527,6 +530,64 @@ def test_number_lines(text, expected):
         lines = numbered.splitlines()
         assert lines[0].startswith(" 1 │ ")
         assert lines[-1].startswith("10 │ ")
+
+
+@pytest.mark.parametrize("name", sorted(PRESETS))
+def test_preset_catalog(name):
+    """Every preset carries a full palette on both of its dresses."""
+    preset = PRESETS[name]
+    assert preset.label
+    for palette in (preset.dark, preset.light):
+        assert len(palette.ansi) == 16
+        for color in (palette.background, palette.foreground, *palette.ansi):
+            assert re.fullmatch(r"#[0-9a-f]{6}", color), color
+    # A stack always ends on the family every renderer resolves.
+    assert preset.font_stack.endswith("monospace")
+
+
+def test_palette_theme_carries_the_colors_over():
+    """A palette becomes the terminal theme a renderer resolves ANSI with."""
+    theme = palette_theme(PRESETS["windows"].dark)
+    assert theme.background_color.hex == "#0c0c0c"
+    assert theme.foreground_color.hex == "#cccccc"
+    # Campbell's bright blue, the thirteenth entry.
+    assert theme.ansi_colors[12].hex == "#3b78ff"
+
+
+@pytest.mark.parametrize(
+    ("name", "expected", "unwanted"),
+    (
+        # Round buttons on the left, the colors Aqua paints them.
+        ("macos", "<circle", "<text"),
+        # Glyphs against the right edge, close last.
+        ("windows", 'text-anchor="end"', "<circle"),
+        ("linux", 'text-anchor="end"', "<circle"),
+        # A window wearing none of it.
+        ("plain", "", "<circle"),
+    ),
+)
+def test_window_buttons(name, expected, unwanted):
+    """Each preset draws the decorations its desktop does, or none at all."""
+    markup = window_buttons(PRESETS[name].buttons, width=500, color="#ffffff")
+    if expected:
+        assert expected in markup
+    else:
+        assert markup == ""
+    assert unwanted not in markup
+
+
+def test_render_draws_the_preset_it_is_given():
+    """A preset reaches the capture: its palette, its font, its decorations."""
+    svg = render("kiwi", unique_id="fruit", preset=PRESETS["windows"])
+    assert 'fill="#0c0c0c"' in svg
+    assert "Cascadia Code" in svg
+    assert 'text-anchor="end"' in svg
+    assert "Fira Code" not in svg
+    # Its square corners come along, unless the caller states otherwise.
+    assert 'rx="0"' in svg
+    assert 'rx="8"' in render(
+        "kiwi", unique_id="fruit", preset=PRESETS["windows"], radius=8
+    )
 
 
 def test_frame_svg_draws_neither_when_asked_for_neither():
