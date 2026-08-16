@@ -135,7 +135,7 @@ Size a run by its character count instead and the picture drifts: the seven line
 ```{note}
 Right-to-left scripts are the case cell arithmetic cannot settle. Arabic and Hebrew are reordered by whoever draws them, and the cursive ones are *shaped*: a letter's form depends on the letters it joins. A run carrying any of them is therefore left to size itself, rather than pinned to an exact width that would pay for the difference in letter spacing and pull the word apart at its joins. The run still starts on its own column, so the grid around it holds; only its own width floats.
 
-Box-drawing characters carry a smaller version of the same caveat: adjacent glyphs may not meet cleanly, since a font is under no obligation to draw them edge to edge. That one is [`rich#2536`](https://github.com/Textualize/rich/issues/2536), and click-extra does not solve it either.
+Box-drawing and block characters are not letters but *tiles*: a table's rule, a tree's elbow and a gradient's bar are drawn by butting them edge to edge. They are emitted in short groups, each landing on a stated offset, so a font drawing them a fraction of a pixel off the grid cannot accumulate that error across a rule and leave the table's corners missing their own border. What remains is whether two adjacent tiles *join* cleanly, which is the font's business and no renderer's: that one is [`rich#2536`](https://github.com/Textualize/rich/issues/2536), where the answer upstream is that it would take replacing the characters with drawn shapes. click-extra does not do that either.
 ```
 
 ### Light and dark chrome

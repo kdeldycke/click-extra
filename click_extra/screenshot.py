@@ -426,6 +426,15 @@ Starting the paint just under that keeps a highlighted run reading as one block
 of color rather than as a band taller than the text it marks.
 """
 
+TILE_RUN = 8
+"""Cells of tiling characters drawn before their offset is restated.
+
+Small enough that a font whose tiles are a fraction of a pixel off the grid
+cannot drift a visible amount before the next offset resets it, and large enough
+that a table's rule stays a handful of elements rather than one per cell. See
+{func}`tile_runs`.
+"""
+
 DIM_RATIO = 0.4
 """How far a `dim` run's ink is mixed toward the background, see {func}`blend`."""
 
@@ -502,6 +511,16 @@ survives an XML round-trip and no renderer collapses a run of them.
 
 _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 """Characters a CSS class name cannot carry, as written into `unique_id`."""
+
+_TILING_RE = re.compile(r"[─-▟]")
+"""A Box Drawing or Block Elements character.
+
+These are not letters, they are tiles: a table's rule, a tree's elbow and a
+gradient's bar are drawn by butting them edge to edge, and a fraction of a pixel
+of drift between two of them shows as a seam or a kink. They also never ligate,
+which is what makes it free to place each one on its own cell rather than
+letting the renderer space them, see {func}`glyph_offsets`.
+"""
 
 _COLUMN_GAP_RE = re.compile(f"[{PADDING}]{{2,}}")
 """The run of blanks separating one column of output from the next.
@@ -1036,6 +1055,53 @@ def column_segments(text: str, column: int) -> Iterator[tuple[str, int]]:
         position = gap.end()
 
 
+def tile_runs(text: str, column: int) -> Iterator[tuple[str, int]]:
+    """Break a column's text into the pieces drawn as one element each.
+
+    Ordinary text is one piece: the renderer lays it out and `textLength` holds
+    the result to the width it occupies.
+
+    Text carrying a tile ({data}`_TILING_RE`) is cut into groups of at most
+    {data}`TILE_RUN` cells, each landing on a stated offset. A `<text>` element
+    is the smallest thing some renderers position at all: `librsvg` (and through
+    it `rsvg-convert` and ImageMagick) honors the first `x` of an element and
+    then lays every following glyph out at the font's own advance, ignoring both
+    `textLength` and any further `x`. A rule of 75 tiles drawn a tenth of a pixel
+    narrow therefore ends a whole cell short of the `│` below it, and the table's
+    corners miss. Restating the offset every few cells bounds that error to well
+    under a pixel, whatever the font, and costs a tile nothing since none of them
+    ligate.
+
+    :param text: the column's text.
+    :param column: the terminal column it starts on.
+    :return: each piece, with the column it starts on.
+    """
+    if not _TILING_RE.search(text):
+        yield text, column
+        return
+    cell = column
+    for start in range(0, len(text), TILE_RUN):
+        piece = text[start : start + TILE_RUN]
+        yield piece, cell
+        cell += cell_width(piece)
+
+
+def glyph_offsets(text: str, column: int) -> str:
+    """Place a piece of text on the grid, as the attributes SVG reads.
+
+    A right-to-left piece is pinned by its offset alone: it is reordered and
+    shaped by whoever draws it, and holding it to a width fights that.
+
+    :param text: the piece's glyphs.
+    :param column: the terminal column it starts on.
+    :return: the `x` attribute, and a `textLength` where one applies.
+    """
+    start = f'x="{_svg_number(column * CELL_WIDTH)}"'
+    if is_bidirectional(text):
+        return start
+    return f'{start} textLength="{_svg_number(cell_width(text) * CELL_WIDTH)}"'
+
+
 def style_rules(style: Style, palette: TerminalPalette) -> str:
     """Compile a style to the CSS an SVG text run is drawn with.
 
@@ -1178,23 +1244,14 @@ def render_svg(
             if not run.strip(PADDING):
                 continue
             rule = classes.setdefault(style_rules(run_style, palette), len(classes) + 1)
-            for drawn, at in column_segments(run, column):
-                # A right-to-left segment is reordered and shaped by whoever
-                # draws it, and `textLength` pays for any difference in letter
-                # spacing, which pulls a cursive word apart at its joins. Such a
-                # segment keeps its own width. Only that width floats: every one
-                # is placed by its own `x`, so the columns around it hold.
-                length = (
-                    ""
-                    if is_bidirectional(drawn)
-                    else f' textLength="{_svg_number(cell_width(drawn) * CELL_WIDTH)}"'
-                )
-                glyphs.append(
-                    f'<text class="{unique_id}-r{rule}" '
-                    f'x="{_svg_number(at * CELL_WIDTH)}" '
-                    f'y="{_svg_number(baseline)}"{length}>'
-                    f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
-                )
+            for column_text, start in column_segments(run, column):
+                for drawn, at in tile_runs(column_text, start):
+                    glyphs.append(
+                        f'<text class="{unique_id}-r{rule}" '
+                        f"{glyph_offsets(drawn, at)} "
+                        f'y="{_svg_number(baseline)}">'
+                        f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
+                    )
 
     # A collapsed title bar is negative padding applied to the top alone, which
     # is why both travel together through every measurement below.
