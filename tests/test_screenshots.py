@@ -43,6 +43,7 @@ import pytest
 from click_extra import unstyle
 from click_extra.cli import screenshot_cmd
 from click_extra.screenshot import (
+    _COLUMN_GAP_RE,
     AUTO_COLUMNS,
     CAPTURE_BACKGROUND,
     CAPTURE_BORDERS,
@@ -67,6 +68,7 @@ from click_extra.screenshot import (
     capture,
     capture_output,
     cell_width,
+    column_segments,
     fit_columns,
     format_from_path,
     gradient_svg,
@@ -293,6 +295,73 @@ def test_no_capture_references_a_missing_clip():
         referenced = set(re.findall(r'clip-path="url\(#([^)]+)\)"', svg))
         assert not referenced - defined, (
             f"{committed.filename}: dangling {sorted(referenced - defined)}"
+        )
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        # A gutter of two blanks or more separates one column from the next.
+        ("苹果        apple", [("苹果", 0), ("apple", 12)]),
+        (
+            "--count INTEGER  Number of greetings.",
+            [
+                ("--count INTEGER", 0),
+                ("Number of greetings.", 17),
+            ],
+        ),
+        # A single blank is a word break inside a phrase, and stays put.
+        ("$ market", [("$ market", 0)]),
+        ("± ≈ ∞ → ★", [("± ≈ ∞ → ★", 0)]),
+        # Leading and trailing padding is an offset, never a glyph.
+        ("   indented", [("indented", 3)]),
+        ("trailing   ", [("trailing", 0)]),
+        ("", []),
+        ("      ", []),
+        # Three columns, the middle one wide.
+        ("a  水果  z", [("a", 0), ("水果", 3), ("z", 9)]),
+    ),
+)
+def test_column_segments(text, expected):
+    """A run is cut at its gutters, and each column carries the one it starts on."""
+    assert list(column_segments(text, 0)) == expected
+
+
+def test_no_capture_places_a_column_by_its_padding():
+    """No column in a capture is positioned by the blanks in front of it.
+
+    The invariant that lets a capture survive a renderer ignoring `textLength`:
+    `librsvg` (and through it `rsvg-convert` and ImageMagick) lays every run out
+    at the font's natural width, so a gutter paid for in glyphs collapses and
+    the columns slide onto each other. Each column carrying its own `x` asks the
+    renderer for nothing but coordinates.
+    """
+    captures = {
+        committed.filename: (ASSETS / committed.filename).read_text(encoding="utf-8")
+        for committed in COMMITTED_CAPTURES
+    }
+    captures["<fresh>"] = render_svg(SAMPLE_CAPTURE, columns=40)
+    for name, svg in captures.items():
+        for element in _TEXT_ELEMENT_RE.finditer(svg):
+            content = unescape(element["content"])
+            assert not _COLUMN_GAP_RE.search(content), (
+                f"{name}: run holds a gutter its glyphs pay for: {content!r}"
+            )
+
+
+def test_every_capture_declares_its_encoding():
+    """A capture states UTF-8 outright rather than leaving it to be guessed.
+
+    A standalone SVG carries no HTTP header to say so. XML defaults to UTF-8
+    with no declaration, but WebKit applies its HTML fallback to the document
+    encoding instead, which renders every multi-byte character as mojibake: a
+    full block becomes `â`, and a capture of colored output becomes a wall of
+    accented letters in macOS Quick Look.
+    """
+    for committed in COMMITTED_CAPTURES:
+        raw = (ASSETS / committed.filename).read_bytes()
+        assert raw.startswith(b'<?xml version="1.0" encoding="UTF-8"?>'), (
+            f"{committed.filename}: no encoding declared"
         )
 
 

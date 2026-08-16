@@ -13,7 +13,8 @@
 - Add a `--fragment` option to `click-extra screenshot`, emitting an HTML capture as a bare inline-styled block instead of a standalone document.
 - Add a `--wrap` option to `click-extra screenshot`, routing the target through the `wrap` subcommand so a foreign Click CLI is captured with its colors.
 - Add a `click_extra.screenshot` module rendering a capture on a character grid, needing no optional dependency for either format.
-- Start each SVG text run on its own column and size it in terminal cells, so a capture renders correctly outside a browser and never squeezes wide glyphs.
+- Give each SVG column its own offset and size it in terminal cells, so a capture renders correctly outside a browser and never squeezes wide glyphs.
+- Declare `UTF-8` in every SVG capture, which a reader assuming the platform's encoding would otherwise render as mojibake.
 - Add a `--help-format FORMAT` option on every command, rendering it as `json`, `json-full`, `man`, `markdown`, `markdown-full` or `carapace`.
 - Add a `--help-format` mode to `click-extra wrap`, rendering any foreign Click CLI in those same formats without running it.
 - Add `to_markdown()` and `to_dict()` / `to_json()` backends to the document model behind `--man`, plus the `render_help()` entry point and the `HELP_FORMATS` registry.

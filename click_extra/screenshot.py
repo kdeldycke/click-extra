@@ -84,6 +84,7 @@ from .theme import BUILTIN_THEMES
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
     from typing import Any, Literal, TypeAlias
 
@@ -498,6 +499,14 @@ survives an XML round-trip and no renderer collapses a run of them.
 
 _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 """Characters a CSS class name cannot carry, as written into `unique_id`."""
+
+_COLUMN_GAP_RE = re.compile(f"[{PADDING}]{{2,}}")
+"""The run of blanks separating one column of output from the next.
+
+Two, because one space is a word break inside a phrase and two is a gutter. A
+terminal has no other way to say "new column", which is what makes this the
+boundary {func}`column_segments` cuts on.
+"""
 
 _GRADIENT_RE = re.compile(
     r"^(?P<kind>linear|radial)-gradient\((?P<args>.+)\)$", re.DOTALL
@@ -995,6 +1004,35 @@ def window_buttons(
     )
 
 
+def column_segments(text: str, column: int) -> Iterator[tuple[str, int]]:
+    """Cut a run of text into the columns it actually occupies.
+
+    A run carries its own padding: a help screen's `--count INTEGER  Number of
+    greetings.` is one styled run holding two columns and the gutter between
+    them. Drawn as a single element, the second column only lands where it
+    belongs if the renderer honors `textLength` and resolves the font, because
+    the gutter's width is being paid for in glyphs. `librsvg` does neither, and
+    the columns collapse onto each other.
+
+    Cutting the run at its gutters and giving each piece its own offset asks
+    nothing of the renderer but to draw glyphs at coordinates.
+
+    :param text: the run's text, padding included.
+    :param column: the terminal column the run starts on.
+    :return: each column's text, with the column it starts on.
+    """
+    position = 0
+    for gap in (*_COLUMN_GAP_RE.finditer(text), None):
+        chunk = text[position : gap.start() if gap else len(text)]
+        glyphs = chunk.strip(PADDING)
+        if glyphs:
+            indent = cell_width(chunk) - cell_width(chunk.lstrip(PADDING))
+            yield glyphs, column + cell_width(text[:position]) + indent
+        if gap is None:
+            break
+        position = gap.end()
+
+
 def style_rules(style: Style, palette: TerminalPalette) -> str:
     """Compile a style to the CSS an SVG text run is drawn with.
 
@@ -1134,27 +1172,26 @@ def render_svg(
                     'shape-rendering="crispEdges"/>'
                 )
             # The glyphs do not, see this function's note.
-            drawn = run.strip(PADDING)
-            if not drawn:
+            if not run.strip(PADDING):
                 continue
-            indent = cell_width(run) - cell_width(run.lstrip(PADDING))
             rule = classes.setdefault(style_rules(run_style, palette), len(classes) + 1)
-            # A right-to-left run is reordered and shaped by whoever draws it,
-            # and `textLength` pays for any difference in letter spacing, which
-            # pulls a cursive word apart at its joins. Such a run keeps its own
-            # width. Only that width floats: every run is placed by its own `x`,
-            # so the columns around it are unaffected.
-            length = (
-                ""
-                if is_bidirectional(drawn)
-                else f'textLength="{_svg_number(cell_width(drawn) * CELL_WIDTH)}"'
-            )
-            glyphs.append(
-                f'<text class="{unique_id}-r{rule}" '
-                f'x="{_svg_number((column + indent) * CELL_WIDTH)}" '
-                f'y="{_svg_number(baseline)}"{length and " " + length}>'
-                f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
-            )
+            for drawn, at in column_segments(run, column):
+                # A right-to-left segment is reordered and shaped by whoever
+                # draws it, and `textLength` pays for any difference in letter
+                # spacing, which pulls a cursive word apart at its joins. Such a
+                # segment keeps its own width. Only that width floats: every one
+                # is placed by its own `x`, so the columns around it hold.
+                length = (
+                    ""
+                    if is_bidirectional(drawn)
+                    else f' textLength="{_svg_number(cell_width(drawn) * CELL_WIDTH)}"'
+                )
+                glyphs.append(
+                    f'<text class="{unique_id}-r{rule}" '
+                    f'x="{_svg_number(at * CELL_WIDTH)}" '
+                    f'y="{_svg_number(baseline)}"{length}>'
+                    f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
+                )
 
     # A collapsed title bar is negative padding applied to the top alone, which
     # is why both travel together through every measurement below.
@@ -1258,6 +1295,14 @@ def render_svg(
         f"    .{unique_id}-r{rule} {{ {css} }}" for css, rule in classes.items()
     )
     return (
+        # A standalone SVG carries no HTTP header to state its encoding, and a
+        # reader that assumes the platform's instead renders every multi-byte
+        # character as mojibake: a full block becomes `â`, and a capture of
+        # colored output becomes a wall of accented letters. XML defaults to
+        # UTF-8 in the absence of a declaration, but WebKit (and therefore
+        # macOS Quick Look) applies its HTML fallback to the document encoding.
+        # Saying so outright costs one line and settles it everywhere.
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
         f'<svg viewBox="0 0 {_svg_number(width)} {_svg_number(height)}" '
         'xmlns="http://www.w3.org/2000/svg">\n'
         f"<!-- @generated by {generator_tag()} -->\n"
