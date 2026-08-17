@@ -246,9 +246,12 @@ docs = [
   "flask>=3",
   # furo 2024.8.6+ supports Sphinx 8; pinned to recent CalVer release.
   "furo>=2025.9.25",
-  # All optional config format dependencies are needed for {click:run} blocks in config.md.
+  # The optional config format parsers, all needed by config.md's {click:run}
+  # blocks. Each floor mirrors the runtime extra declaring it, justified there.
   "hjson>=3.1",
+  # Mirrors the jsonc extra floor.
   "json-with-comments>=1.2.10",
+  # Mirrors the json5 extra floor.
   "json5>=0.12.1",
   # MkDocs is needed for automodule/autoclasstree of click_extra.mkdocs.
   "mkdocs>=1.4",
@@ -278,8 +281,12 @@ docs = [
   "sphinxcontrib-mermaid>=1.2.3",
   # sphinxext-opengraph 0.13 stabilized OpenGraph metadata generation for Sphinx 8+.
   "sphinxext-opengraph>=0.13",
+  # Mirrors the xml extra floor, exercised by config.md's XML {click:run} blocks.
   "xmltodict>=1",
 ]
+# Every stub floor tracks the library release it describes (types-jsonschema
+# against jsonschema 4.18). Below it the stubs describe an older API than the
+# library installed beside them, and mypy flags symbols that do exist.
 typing = [
   "types-boltons>=25.0.0.20250919",
   "types-docutils>=0.22.3.20251115",
