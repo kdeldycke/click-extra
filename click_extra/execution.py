@@ -1110,7 +1110,17 @@ def run_cli(
         prompt raised from inside the child (`sudo` reading `/dev/tty`)
         would fail, and `sudo`'s tty-keyed credential cache would no longer
         match. No-op on Windows, where the timeout path already kills the full
-        tree.
+        tree. Only the reaping half of this flag has that Windows equivalent,
+        and the other half has none: a POSIX session also detaches the child
+        from the controlling terminal, where a Windows child keeps sharing the
+        parent's console and can still reach back into it. A subprocess-heavy
+        test suite is where that surfaces — `meta-package-manager`'s Windows
+        CI saw a package manager's own teardown land in the parent `pytest`
+        process as a mid-run {exc}`KeyboardInterrupt`, which a console control
+        event on the shared console explains and which no POSIX runner showed.
+        The lever there is `windows_creation_flags`
+        (`CREATE_NEW_PROCESS_GROUP`), left to the caller because it also
+        changes how a real Ctrl-C reaches the child.
     :param command_level: logging level of the invocation-disclosure line.
         Defaults to {data}`logging.INFO`; lower it to {data}`logging.DEBUG` for
         internal probes not worth narrating.
