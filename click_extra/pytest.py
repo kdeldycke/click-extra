@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from .parameters import missing_extra_message
+from ._utils import missing_extra_message
 
 try:
     import pytest
@@ -67,6 +67,17 @@ def runner():
     tear it down *after* `isolated_filesystem` removed the working directory
     it tries to restore, breaking unrelated tests that `chdir` within the
     runner.
+
+    ```{warning}
+    The pinning is scoped to each test requesting this fixture, but a cache
+    filled from inside one is not: a module-global populated lazily during a
+    test records what a home-less environment answered, and keeps serving that
+    for the rest of the worker's session. A binary resolved through a
+    `$HOME`-dependent shim is the usual victim, answering an error rather than
+    a version, after which every later test on that worker sees the tool as
+    missing. Seed such a cache from a session-scoped fixture, which runs
+    before the first test and outside this isolation.
+    ```
     """
     home_vars = ("HOME", "USERPROFILE", "XDG_CONFIG_HOME", "APPDATA", "LOCALAPPDATA")
     runner = CliRunner()

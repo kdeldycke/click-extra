@@ -7,8 +7,11 @@
 
 - **Breaking:** `--man` now typesets the manual and pages it, the way `man` does, instead of printing roff to stdout; the source moved to `--help-format man`.
 - **Breaking:** Remove `click-extra wrap --carapace` in favor of `wrap --help-format carapace`, one option carrying every rendering.
-- **Deprecated:** Rename the `click_extra.man_page` module to `click_extra.command_doc`, after the model it is built around rather than one of the four formats it renders; the old path resolves until `9.0.0`.
-- **Deprecated:** Rename `ManPage` to `CommandDoc`, `ManOptionItem` to `DocOptionItem`, `ManOptionGroup` to `DocOptionGroup` and `extract_manpage()` to `extract_command_doc()`; old names resolve until `9.0.0`.
+- **Breaking:** Rename the `click_extra.man_page` module to `click_extra.command_doc`, after the model it is built around rather than one of the four formats it renders.
+- **Breaking:** Rename `ManPage` to `CommandDoc`, `ManOptionItem` to `DocOptionItem`, `ManOptionGroup` to `DocOptionGroup` and `extract_manpage()` to `extract_command_doc()`.
+- **Breaking:** Remove every deprecated alias scheduled for removal in `9.0.0`: the `click_extra.test_plan` module, the root-level test-plan and config-schema names, and the invocation and pre-baking helpers' old homes.
+- **Deprecated:** Rename the `color_envvars` and `nocolor_theme` constants to `COLOR_ENVVARS` and `NOCOLOR_THEME`, following the uppercase convention; the old names resolve until `10.0.0`.
+- **Deprecated:** Move the generic `patch_attr()`, `generator_tag()` and `missing_extra_message()` helpers from `click_extra.parameters` to the new `click_extra._utils` module; the old homes resolve until `10.0.0`.
 - Add a `click-extra screenshot` subcommand capturing any CLI's colored output and rendering it as an SVG image or an HTML document, picked from the `--output` extension.
 - Add a `--fragment` option to `click-extra screenshot`, emitting an HTML capture as a bare inline-styled block instead of a standalone document.
 - Add a `--wrap` option to `click-extra screenshot`, routing the target through the `wrap` subcommand so a foreign Click CLI is captured with its colors.
@@ -30,6 +33,7 @@
 - Add a `sort_subcommands` context setting, inherited by every subgroup below the group declaring it.
 - Add an `option_priorities` argument to `@command` and `@group`, reordering the help screen without moving the order option callbacks run in. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
 - Add `iter_params_for_display()` to `click_extra.parameters`, yielding a command's parameters in the order its help screen lists them.
+- Add `parse_envvar_flag()` to `click_extra.envvar`, the one permissive boolean reading shared by the color, `--accessible` and `--telemetry` environment flags.
 - Add a machine-wide `CLICK_EXTRA_THEME` environment variable naming the help-screen palette of every Click Extra CLI at once.
 - Add a `VersionScreen` drawing `--version` as a logo with facts beside it, mounted via `@version_option(screen=…)` or `default_params(screen=…)`.
 - Add a `click_extra.logo` module rendering the brand mark as flat-shaded half blocks, and draw it on `click-extra --version`.
@@ -47,6 +51,11 @@
 - Add a test rebuilding each committed screenshot's terminal text from its SVG glyph coordinates and comparing it to the CLI's live output.
 - Fix the `gradient` demo overflowing an 80-column terminal by one character, which wrapped every ramp onto a second line.
 - Reword the `--accessible` help so cross-reference highlighting stops painting its `plain` as a `--table-format` choice.
+- Speed up ANSI tokenization: `split_ansi()` only builds a style when the escape state changes, and style comparisons walk a pre-computed field list.
+- Speed up help-screen highlighting by coalescing keyword matches into merged spans instead of flagging characters one by one.
+- Cache per-character cell widths while laying an SVG capture out on its grid.
+- Fix `HelpFormatter` instances sharing one class-level keyword collection as their default.
+- Fix `--color` and `--no-color` callbacks publishing the process-wide color state from resilient introspection contexts, pinning a `NO_COLOR` environment onto every CLI lacking its own color option.
 - Add a `:screenshot:` option to the `click:run` directive, writing the block's output as an SVG beside the documentation on every build.
 - Add a `:mirror:` option to the `click:run` directive, keeping a Markdown link to that capture in the source, refreshed by `refresh-directives`.
 - Add a `click_extra_screenshot_dir` configuration value, locating where `:screenshot:` writes.

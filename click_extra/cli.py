@@ -43,6 +43,7 @@ from cloup import Color, file_path
 from extra_platforms import ALL_IDS
 
 from . import context
+from ._utils import missing_extra_message
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
 from .color import is_a_tty
 from .commands import ColorizedCommand, default_params
@@ -53,7 +54,7 @@ from .envvar import merge_envvar_ids
 from .execution import run_jobs
 from .logo import BRAND_SCREEN
 from .myst_converter import convert_directory, detect_source_package
-from .parameters import make_resilient_context, missing_extra_message
+from .parameters import make_resilient_context
 from .prebake import (
     _find_dunder_str,
     discover_package_init_files,

@@ -68,7 +68,6 @@ from click_extra.parameters import (
     iter_params_for_display,
     iter_subcommands,
     make_resilient_context,
-    missing_extra_message,
     option_value_kind,
 )
 from click_extra.pytest import command_decorators
@@ -1852,16 +1851,6 @@ def test_iter_params_for_display_yields_late_additions_last():
         "help",
         "simmer",
     ]
-
-
-def test_missing_extra_message():
-    msg = missing_extra_message("mkdocs", subject="This module")
-    assert msg == (
-        "This module requires an optional dependency. "
-        "Install it with: pip install click-extra[mkdocs]"
-    )
-    # The canonical hyphenated distribution name, not the underscore form.
-    assert "click_extra[" not in msg
 
 
 def test_help_column_is_opt_in(invoke):

@@ -41,7 +41,7 @@ from __future__ import annotations
 import re
 from io import StringIO
 
-from .parameters import missing_extra_message
+from ._utils import missing_extra_message
 
 try:
     import pygments  # noqa: F401

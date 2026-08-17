@@ -620,14 +620,12 @@ materializes them all, at the cost of loading the test tooling.
 
 
 def __getattr__(name: str) -> Any:
-    """Resolve lazy and deprecated top-level symbols via PEP 562.
+    """Resolve lazy top-level symbols via PEP 562.
 
     Test-tooling names registered in {data}`_LAZY_TEST_TOOLING` are imported
     from their hosting module on first access, then cached in the module
-    namespace so later accesses bypass this hook. Every other unknown name is
-    delegated to the deprecated-aliases resolver. Fires only for names not
-    defined in this module, so live exports stay zero-overhead. See
-    {mod}`click_extra._deprecated`.
+    namespace so later accesses bypass this hook. Fires only for names not
+    defined in this module, so live exports stay zero-overhead.
     """
     lazy_module = _LAZY_TEST_TOOLING.get(name)
     if lazy_module:
@@ -638,9 +636,7 @@ def __getattr__(name: str) -> Any:
         globals()[name] = value
         return value
 
-    from ._deprecated import resolve_deprecated
-
-    return resolve_deprecated(__name__, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def __dir__() -> list[str]:

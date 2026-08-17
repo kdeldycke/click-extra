@@ -32,7 +32,7 @@ import pytest
 from click.testing import CliRunner
 
 from click_extra import context
-from click_extra.color import color_envvars
+from click_extra.color import COLOR_ENVVARS
 from click_extra.commands import Command
 from click_extra.context import (
     META_NAMESPACE,
@@ -199,7 +199,7 @@ def test_context_color(
     inherit the parent's color unless they override it explicitly.
     """
     # Clear color env vars so a parentless context's auto default is deterministic.
-    for var in color_envvars:
+    for var in COLOR_ENVVARS:
         monkeypatch.delenv(var, raising=False)
 
     parent = None

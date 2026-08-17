@@ -358,6 +358,18 @@ class HelpFormatter(cloup.HelpFormatter):
 
     theme: HelpTheme
 
+    keywords: HelpKeywords
+    """Keywords to highlight, collected from the rendered command's context.
+
+    Instance state, initialized per formatter: `_HelpColorsMixin.format_help`
+    fills it before rendering, and {meth}`highlight_extra_keywords` mutates it
+    (see the `excluded_keywords` subtraction), so a shared class-level default
+    would leak keywords across formatters.
+    """
+
+    excluded_keywords: HelpKeywords | None
+    """Keywords subtracted from the cross-reference passes, or `None`."""
+
     def __init__(self, *args, **kwargs) -> None:
         """Forces theme to the active one for the current Click context.
 
@@ -373,6 +385,8 @@ class HelpFormatter(cloup.HelpFormatter):
         if not isinstance(theme, HelpTheme):
             theme = active_theme.with_(**theme._asdict())
         kwargs["theme"] = theme
+        self.keywords = HelpKeywords()
+        self.excluded_keywords = None
         super().__init__(*args, **kwargs)
 
     def write_usage(
@@ -439,9 +453,6 @@ class HelpFormatter(cloup.HelpFormatter):
             args,
             styled_prefix,
         )
-
-    keywords: HelpKeywords = HelpKeywords()
-    excluded_keywords: HelpKeywords | None = None
 
     #: Matches range expressions like `0<=x<=9`, `x>=1024`, `0<=x<100`.
     #:
@@ -787,8 +798,8 @@ def highlight(
     else:
         pattern_list = set(patterns)
 
-    # Set of character indices flagged for highlighting.
-    matched_indices: set[int] = set()
+    # Character spans flagged for highlighting, as (start, end) intervals.
+    spans: list[tuple[int, int]] = []
 
     # Normalize patterns into regular expressions and find matches.
     for pattern in pattern_list:
@@ -822,29 +833,32 @@ def highlight(
                 start_pos = start_idx + 1
                 continue
 
-            matched_indices.update(range(start_idx, end_idx))
+            spans.append((start_idx, end_idx))
             start_pos = start_idx + 1
 
-    if not matched_indices:
+    if not spans:
         return content
 
-    # Build the styled string in one pass: contiguous runs of matched or
-    # unmatched characters are grouped, and only matched runs are styled.
+    # Coalesce overlapping and touching spans, so the styling function is
+    # applied once per contiguous run of matched characters, exactly as if the
+    # matches had been unioned character by character.
+    spans.sort()
+    merged: list[list[int]] = [list(spans[0])]
+    for start, end in spans[1:]:
+        if start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+
+    # Stitch the result back: unmatched gaps verbatim, matched runs styled.
     parts: list[str] = []
-    in_match = 0 in matched_indices
-    run_start = 0
-
-    for i in range(1, len(content) + 1):
-        current_in_match = i in matched_indices if i < len(content) else not in_match
-        if current_in_match != in_match:
-            segment = content[run_start:i]
-            parts.append(styling_func(segment) if in_match else segment)
-            run_start = i
-            in_match = current_in_match
-
-    # Flush the last run.
-    if run_start < len(content):
-        segment = content[run_start:]
-        parts.append(styling_func(segment) if in_match else segment)
+    cursor = 0
+    for start, end in merged:
+        if start > cursor:
+            parts.append(content[cursor:start])
+        parts.append(styling_func(content[start:end]))
+        cursor = end
+    if cursor < len(content):
+        parts.append(content[cursor:])
 
     return "".join(parts)

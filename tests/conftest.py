@@ -22,7 +22,7 @@ import os
 import pytest
 from extra_platforms.pytest import skip_windows
 
-from click_extra.color import color_envvars
+from click_extra.color import COLOR_ENVVARS
 from click_extra.pytest import (  # noqa: F401
     assert_output_regex,
     create_config,
@@ -62,7 +62,7 @@ def _isolate_color_envvars():
     so a developer running the suite is precisely who is likely to have it set,
     and it would repaint every help screen the assertions pin.
     """
-    isolated = (*color_envvars, "ACCESSIBLE", THEME_ENVVAR)
+    isolated = (*COLOR_ENVVARS, "ACCESSIBLE", THEME_ENVVAR)
     saved = {var: os.environ.pop(var) for var in isolated if var in os.environ}
     yield
     os.environ.update(saved)

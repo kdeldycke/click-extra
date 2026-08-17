@@ -62,15 +62,14 @@ from click.shell_completion import (
 )
 from cloup.constraints import mutually_exclusive
 
+from ._utils import generator_tag, missing_extra_message
 from .commands import DEFAULT_HELP_NAMES, default_params
 from .parameters import (
     full_short_help,
-    generator_tag,
     is_repeatable,
     iter_params_for_display,
     iter_subcommands,
     make_resilient_context,
-    missing_extra_message,
     option_value_kind,
     param_spellings,
     short_long_opts,

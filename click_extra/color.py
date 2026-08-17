@@ -29,7 +29,6 @@ import re
 import select
 import sys
 from collections.abc import Iterator
-from configparser import RawConfigParser
 from contextlib import contextmanager
 from gettext import gettext as _
 
@@ -37,7 +36,7 @@ import click
 from click.core import ParameterSource
 from extra_platforms import is_unix
 
-from .envvar import temporary_env
+from .envvar import parse_envvar_flag, temporary_env
 from .parameters import ExtraOption
 from .styling import _relative_luminance
 
@@ -59,7 +58,7 @@ if TYPE_CHECKING:
     from click.parser import _OptionParser
 
 
-color_envvars = {
+COLOR_ENVVARS: dict[str, bool] = {
     # Colors.
     "COLOR": True,
     "COLORS": True,
@@ -124,7 +123,7 @@ def is_a_tty(stream: IO[str]) -> bool:
 def resolve_color_env() -> bool | None:
     """Reconcile the recognized color environment variables into a tri-state.
 
-    Inspects every variable listed in {data}`color_envvars` and returns:
+    Inspects every variable listed in {data}`COLOR_ENVVARS` and returns:
 
     - `True` if at least one *enabling* variable (`FORCE_COLOR`, `CLICOLOR`, …)
       is set. Enabling wins over disabling, so a single one is enough to keep colors.
@@ -141,12 +140,12 @@ def resolve_color_env() -> bool | None:
     `FORCE_COLOR` stays authoritative over it.
     """
     enabling = set()
-    for var, enables in color_envvars.items():
+    for var, enables in COLOR_ENVVARS.items():
         if var in os.environ:
             # Presence without a value encodes an activation, hence the default to
-            # "true"; an unparsable value falls back to True in the same spirit.
-            raw_value = os.environ.get(var, "true")
-            parsed = RawConfigParser.BOOLEAN_STATES.get(raw_value.lower(), True)
+            # "true"; an unparsable value counts as activation too, see
+            # parse_envvar_flag.
+            parsed = parse_envvar_flag(os.environ.get(var, "true"))
             enabling.add(enables ^ (not parsed))
     # A dumb/unknown terminal cannot render ANSI color: cast a disabling vote that an
     # explicit enabling variable still overrides, but which beats the auto default
@@ -176,7 +175,7 @@ def forced_color() -> Iterator[None]:
       uses, and `color=True` never reaches it.
 
     `FORCE_COLOR` is the only signal common to both systems (Rich reads it directly;
-    Click Extra recognizes it through {data}`color_envvars`), so it is the lever we set
+    Click Extra recognizes it through {data}`COLOR_ENVVARS`), so it is the lever we set
     here. We also clear the color-disabling variables Click Extra recognizes
     (`NO_COLOR`, `LLM`, …) so an opt-out in the build environment cannot suppress the
     rendering, and pin `COLORTERM=truecolor` so the branded 24-bit themes render at
@@ -184,7 +183,7 @@ def forced_color() -> Iterator[None]:
     {func}`~click_extra.styling.supports_truecolor`). The previous environment is
     restored on exit, so the override never leaks beyond a single capture.
     """
-    disabling = (var for var, enables in color_envvars.items() if not enables)
+    disabling = (var for var, enables in COLOR_ENVVARS.items() if not enables)
     with temporary_env(
         {"FORCE_COLOR": "1", "COLORTERM": "truecolor"},
         unset_vars=disabling,
@@ -603,7 +602,7 @@ class ColorOption(ExtraOption):
     `--color` is deliberately not wired to an `envvar`. The color environment
     variables (`NO_COLOR`, `FORCE_COLOR`, …) are read manually through
     {func}`~click_extra.color.resolve_color_env`. Letting Click manage them would
-    dump the whole {data}`~click_extra.color.color_envvars` set into the
+    dump the whole {data}`~click_extra.color.COLOR_ENVVARS` set into the
     `--params` env-var column, and only bind one variable per option anyway.
     ```
     """
@@ -671,7 +670,17 @@ class ColorOption(ExtraOption):
         Whatever branch settles it, the resolution is mirrored process-wide by
         {func}`~click_extra.color.publish_invocation_color` so output produced
         from background threads honors it too.
+
+        Stays dormant under resilient parsing, like every other eager callback:
+        an introspection context ({func}`~click_extra.parameters.make_resilient_context`,
+        behind the man-page, tree and completion-spec exporters) is never closed,
+        so publishing from one would leave the process-wide mirror pinned to that
+        context's environment resolution. A `NO_COLOR` build environment would
+        then strip the output of every later CLI carrying no color option of its
+        own.
         """
+        if ctx.resilient_parsing:
+            return
         try:
             when = value
             source = ctx.get_parameter_source("color")
@@ -753,7 +762,14 @@ class NoColorOption(ExtraOption):
         param: click.Parameter,
         value: bool,
     ) -> None:
-        """Force `ctx.color` off when a negative alias is passed; no-op otherwise."""
+        """Force `ctx.color` off when a negative alias is passed; no-op otherwise.
+
+        Dormant under resilient parsing, for the same reason as
+        {meth}`ColorOption.set_color`: a never-closed introspection context must
+        not publish the process-wide color mirror.
+        """
+        if ctx.resilient_parsing:
+            return
         if value:
             ctx.color = False
             # Flag the explicit choice so ColorOption keeps the environment from
@@ -786,3 +802,15 @@ class NoColorOption(ExtraOption):
             help=help,
             **kwargs,
         )
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve deprecated `color` symbols via the PEP 562 `__getattr__` hook.
+
+    The `color_envvars` constant was renamed `COLOR_ENVVARS`, following the
+    uppercase constant convention. Fires only for names not defined in this
+    module. See {mod}`click_extra._deprecated`.
+    """
+    from ._deprecated import resolve_deprecated
+
+    return resolve_deprecated(__name__, name)

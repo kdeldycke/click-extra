@@ -68,9 +68,9 @@ from .parameters import (
 from .table import DEFAULT_FORMAT, TableFormat
 from .theme import (
     BUILTIN_THEMES,
+    NOCOLOR_THEME,
     HelpTheme,
     get_current_theme,
-    nocolor_theme,
     set_default_theme,
 )
 from .tree import render_command_tree
@@ -273,7 +273,7 @@ def unpatch_click() -> None:
     # Restore the default theme. Fall back to the colorless theme when
     # themes.toml is absent (some packaging setups drop the data file, so the
     # built-in "dark" palette is unavailable).
-    set_default_theme(BUILTIN_THEMES.get("dark", nocolor_theme))
+    set_default_theme(BUILTIN_THEMES.get("dark", NOCOLOR_THEME))
 
 
 def _read_project_scripts(directory: Path) -> dict[str, str]:

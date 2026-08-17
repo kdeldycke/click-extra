@@ -54,6 +54,7 @@ import shlex
 import subprocess
 import zlib
 from enum import Enum
+from functools import cache
 from html import escape
 from importlib import metadata
 from math import ceil, cos, hypot, pi, sin
@@ -62,9 +63,9 @@ from unicodedata import bidirectional
 from click import style, unstyle
 from wcwidth import wcswidth
 
+from ._utils import generator_tag
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
-from .parameters import generator_tag
 from .screenshot_presets import (
     MACOS_BUTTONS,
     PRESETS,
@@ -73,7 +74,7 @@ from .screenshot_presets import (
     WindowButtons,
 )
 from .styling import (
-    _ANSI_NAMES,
+    _ANSI_INDEX,
     _hex_to_rgb,
     _palette_to_rgb,
     _rgb_to_hex,
@@ -577,6 +578,22 @@ def preset_palette(
     return preset.dark if background is CaptureBackground.DARK else preset.light
 
 
+def resolve_palette(
+    preset: TerminalPreset | None,
+    background: CaptureBackground,
+) -> TerminalPalette:
+    """The colors a capture resolves its ANSI codes against.
+
+    The preset's palette on the given chrome, or the default terminal's
+    ({data}`CAPTURE_PALETTES`) when no preset dresses the capture. The one
+    resolution rule shared by {func}`render` and {func}`render_html`, so the
+    two formats cannot disagree on what a chrome looks like.
+    """
+    if preset is None:
+        return CAPTURE_PALETTES[background]
+    return preset_palette(preset, background)
+
+
 def is_bidirectional(text: str) -> bool:
     """Whether `text` carries a character written right to left.
 
@@ -604,6 +621,17 @@ def cell_width(text: str) -> int:
     """
     width = wcswidth(text)
     return width if width >= 0 else len(text)
+
+
+@cache
+def _char_width(char: str) -> int:
+    """Cells one character occupies, cached.
+
+    {func}`grid` measures every character of a capture one at a time, and
+    terminal output draws from a small alphabet, so the cache turns the
+    repeated width-table walks of {func}`cell_width` into dict hits.
+    """
+    return cell_width(char)
 
 
 def fit_columns(text: str) -> int:
@@ -716,9 +744,11 @@ def palette_color(color: object, palette: TerminalPalette) -> str:
         if color.startswith("#"):
             return color
         if color.startswith("bright_"):
-            return palette.ansi[_ANSI_NAMES.index(color.removeprefix("bright_")) + 8]
-        if color in _ANSI_NAMES:
-            return palette.ansi[_ANSI_NAMES.index(color)]
+            index = _ANSI_INDEX.get(color.removeprefix("bright_"))
+            if index is not None:
+                return palette.ansi[index + 8]
+        elif color in _ANSI_INDEX:
+            return palette.ansi[_ANSI_INDEX[color]]
     # `bool` is an `int`, and neither `True` nor `False` is a palette index.
     elif isinstance(color, int) and not isinstance(color, bool):
         if 0 <= color < 16:
@@ -782,7 +812,7 @@ def grid(text: str, columns: int) -> list[list[tuple[Style, str, int]]]:
             kept: list[str] = []
             start = column
             for char in line:
-                size = cell_width(char)
+                size = _char_width(char)
                 # `and column` keeps a glyph wider than the whole grid on the
                 # row it started, instead of wrapping forever onto empty ones.
                 if column + size > columns and column:
@@ -1508,11 +1538,7 @@ def render_html(
     :param watermark_color: color that line is drawn in, alpha included.
     :return: the rendered markup.
     """
-    palette = (
-        CAPTURE_PALETTES[background]
-        if preset is None
-        else preset_palette(preset, background)
-    )
+    palette = resolve_palette(preset, background)
     chrome, ink = palette.background, palette.foreground
     if opacity != OPAQUE:
         # CSS carries no background-opacity, and the `opacity` property would
@@ -1662,11 +1688,7 @@ def render(
         columns=fit_columns(text) if columns == AUTO_COLUMNS else columns,
         title=title,
         unique_id=unique_id,
-        palette=(
-            CAPTURE_PALETTES[background]
-            if preset is None
-            else preset_palette(preset, background)
-        ),
+        palette=resolve_palette(preset, background),
         **frame,
     )
 

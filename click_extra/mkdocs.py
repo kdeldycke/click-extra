@@ -44,7 +44,7 @@ from collections.abc import Iterator
 from functools import wraps
 from pathlib import Path
 
-from .parameters import missing_extra_message
+from ._utils import missing_extra_message
 
 try:
     from mkdocs.plugins import BasePlugin

@@ -115,6 +115,10 @@ _ANSI_NAMES: tuple[str, ...] = (
     "white",
 )
 
+_ANSI_INDEX: dict[str, int] = {name: index for index, name in enumerate(_ANSI_NAMES)}
+"""Palette index of each base ANSI color name, the O(1) mirror of
+{data}`_ANSI_NAMES` for the name-to-slot lookups color resolution performs."""
+
 # Channel values for the 6×6×6 color cube (palette indices 16–231).
 _CUBE_VALUES: tuple[int, ...] = (0, 95, 135, 175, 215, 255)
 
@@ -318,11 +322,16 @@ def _resolve_rgb(color: object) -> tuple[int, int, int]:
         if color.startswith("#"):
             return _hex_to_rgb(color)
         if color.startswith("bright_"):
-            return _ANSI_16_RGB[_ANSI_NAMES.index(color[7:]) + 8]
-        return _ANSI_16_RGB[_ANSI_NAMES.index(color)]
-    if isinstance(color, int):
+            index = _ANSI_INDEX.get(color[7:])
+            if index is not None:
+                return _ANSI_16_RGB[index + 8]
+        else:
+            index = _ANSI_INDEX.get(color)
+            if index is not None:
+                return _ANSI_16_RGB[index]
+    elif isinstance(color, int):
         return _palette_to_rgb(color)
-    if hasattr(color, "name") and not isinstance(color, type):
+    elif hasattr(color, "name") and not isinstance(color, type):
         return _resolve_rgb(color.name)
     raise ValueError(f"Cannot resolve color: {color!r}")
 
@@ -501,39 +510,33 @@ class Style(cloup.Style):
 
         Excludes cloup's lazily-populated `_style_kwargs` cache so two
         otherwise-identical styles compare equal whether or not either has
-        been called yet.
+        been called yet. Walks the pre-computed {data}`_STYLE_FIELDS` rather
+        than calling {func}`dataclasses.fields` per comparison: every styled
+        run {func}`split_ansi` yields lands here.
         """
         if not isinstance(other, cloup.Style):
             return NotImplemented
-        for f in fields(self):
-            if f.name == "_style_kwargs":
-                continue
-            if getattr(self, f.name) != getattr(other, f.name):
+        for name in _STYLE_FIELDS:
+            if getattr(self, name) != getattr(other, name):
                 return False
         return True
 
     def __hash__(self) -> int:
         """Hash mirroring {meth}`__eq__`: skip the lazy `_style_kwargs` cache."""
-        return hash(
-            tuple(
-                getattr(self, f.name) for f in fields(self) if f.name != "_style_kwargs"
-            )
-        )
+        return hash(tuple(getattr(self, name) for name in _STYLE_FIELDS))
 
     @staticmethod
     def _merge(base: cloup.Style, top: cloup.Style) -> Style:
         """Return a {class}`Style` where *top*'s set fields override *base*'s.
 
-        Field walked from *base* so we don't depend on *top* being our own
-        subclass: cloup's {class}`~cloup.Style` works fine as the right
-        operand of `|`.
+        Walks the shared {data}`_STYLE_FIELDS` names, which cover cloup's
+        {class}`~cloup.Style` too (this subclass adds no field of its own), so
+        cloup's class works fine as either operand of `|`.
         """
         merged: dict[str, Any] = {}
-        for f in fields(base):
-            if f.name == "_style_kwargs":
-                continue
-            top_val = getattr(top, f.name)
-            merged[f.name] = top_val if top_val is not None else getattr(base, f.name)
+        for name in _STYLE_FIELDS:
+            top_val = getattr(top, name)
+            merged[name] = top_val if top_val is not None else getattr(base, name)
         # Pick the most specific class present so `my_style | cloup_style`
         # still returns a `Style` (this subclass).
         cls = type(top) if isinstance(top, Style) else type(base)
@@ -675,6 +678,19 @@ class Style(cloup.Style):
         return (a + 0.05) / (b + 0.05)
 
 
+_STYLE_FIELDS: tuple[str, ...] = tuple(
+    f.name for f in fields(Style) if f.name != "_style_kwargs"
+)
+"""Names of {class}`Style`'s public fields, cloup's lazy `_style_kwargs` cache
+excluded.
+
+Computed once at import: {func}`dataclasses.fields` rebuilds its tuple on every
+call, and {meth}`Style.__eq__` / {meth}`Style.__hash__` walk the fields for
+every styled run {func}`split_ansi` compares. The names also cover the parent
+`cloup.Style` (this subclass only re-types `fg` / `bg`), which is what lets
+{meth}`Style._merge` accept either class."""
+
+
 # --- ANSI stream parsing and markup rendering ---------------------------------
 
 _OSC_HYPERLINK_RE: re.Pattern[str] = re.compile(r"\x1b\]8;[^\x1b\x07]*(?:\x07|\x1b\\)")
@@ -814,6 +830,14 @@ def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
     """
     state: dict[str, Any] = {}
     current = Style()
+    # Snapshot of the state `current` was built from. The SGR appliers keep the
+    # state dict canonical (attributes are popped on reset, never set falsy, and
+    # values arrive in one spelling each), so two runs share a style exactly
+    # when their state dicts are equal: comparing dicts is what lets the hot
+    # loop skip a Style construction, and its field-walking equality, for every
+    # escape that lands back on the same state (a reset closing an unstyled
+    # run, a style re-opened identically).
+    current_state: dict[str, Any] = {}
     buffer: list[str] = []
     pos = 0
     for match in _ANSI_SGR_RE.finditer(text):
@@ -822,12 +846,12 @@ def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
         if segment:
             buffer.append(segment)
         _apply_sgr_codes(_sgr_params(match.group(1)), state)
-        new_style = Style(**state)
-        if new_style != current:
+        if state != current_state:
             if buffer:
                 yield current, "".join(buffer)
                 buffer = []
-            current = new_style
+            current = Style(**state)
+            current_state = dict(state)
     tail = _strip_unsupported_ansi(text[pos:])
     if tail:
         buffer.append(tail)

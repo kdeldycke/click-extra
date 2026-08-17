@@ -258,7 +258,7 @@ Three flavors ship in `click_extra/themes.toml`:
 `click_extra.theme.BUILTIN_THEMES` is a `dict[str, HelpTheme]` mapping the names above to their instances; it is built by parsing `click_extra/themes.toml` at import time and is seeded into `theme_registry` immediately afterwards. Read the TOML file directly for the exact palette mapping, or call `theme.to_dict()` at runtime to get a TOML/JSON-friendly dict.
 
 ```{note}
-Some standalone-binary builders (Nuitka, PyInstaller) and trimmed downstream packages omit package data files, dropping `click_extra/themes.toml`. The file is then loaded leniently rather than aborting the import: click-extra logs a warning, leaves `BUILTIN_THEMES` empty, and keeps the colorless `nocolor_theme` as the default. CLIs stay usable, and you can still define your own palettes in a `[tool.<cli>.themes.<name>]` config table (see [Themes from your config file](#themes-from-your-config-file) below); only the built-in palettes are missing until the data file is restored. For Nuitka, bundle it with `--include-package-data=click_extra`.
+Some standalone-binary builders (Nuitka, PyInstaller) and trimmed downstream packages omit package data files, dropping `click_extra/themes.toml`. The file is then loaded leniently rather than aborting the import: click-extra logs a warning, leaves `BUILTIN_THEMES` empty, and keeps the colorless `NOCOLOR_THEME` as the default. CLIs stay usable, and you can still define your own palettes in a `[tool.<cli>.themes.<name>]` config table (see [Themes from your config file](#themes-from-your-config-file) below); only the built-in palettes are missing until the data file is restored. For Nuitka, bundle it with `--include-package-data=click_extra`.
 ```
 
 ### Palettes
@@ -280,7 +280,7 @@ for name, theme in BUILTIN_THEMES.items():
 
 `click_extra.theme` exposes two themes and a pair of accessor helpers:
 
-- `nocolor_theme`: an all-`identity` theme used when ANSI rendering is suppressed.
+- `NOCOLOR_THEME`: an all-`identity` theme used when ANSI rendering is suppressed.
 - `get_default_theme()` / `set_default_theme(theme)`: read or override the process-wide fallback. The default is the built-in `dark` palette. `ThemeOption` does *not* call `set_default_theme`: per-invocation choices live on `ctx.meta` instead. `click_extra.cli_wrapper.patch_click()` calls `set_default_theme()` to override the fallback for the entire patched session.
 
 Use `click_extra.theme.get_current_theme()` to read the theme that applies to the current invocation: it consults the active Click context first and falls back to `get_default_theme()`.
@@ -511,7 +511,7 @@ The built-in `ConfigValidator` for the `themes` sub-tree is auto-registered on e
 - `--theme dark` with `--color` (the default) emits the dark theme's ANSI codes.
 - `NO_COLOR=1` in the environment overrides any `--theme` choice by silencing all ANSI output.
 
-The `--color` callback inspects the standard set of color environment variables (`NO_COLOR`, `CLICOLOR`, `FORCE_COLOR`, `LLM`, etc.) before the theme is applied: see [`color_envvars`](colorize.md) for the full list.
+The `--color` callback inspects the standard set of color environment variables (`NO_COLOR`, `CLICOLOR`, `FORCE_COLOR`, `LLM`, etc.) before the theme is applied: see [`COLOR_ENVVARS`](colorize.md) for the full list.
 
 ## `click_extra.theme` API
 

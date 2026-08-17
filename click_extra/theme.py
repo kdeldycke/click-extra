@@ -16,7 +16,7 @@
 """Help-screen color themes for Click Extra.
 
 Holds the {class}`HelpTheme` dataclass (pure data, no factory methods),
-the {data}`nocolor_theme` constant, the process-wide fallback accessed via
+the {data}`NOCOLOR_THEME` constant, the process-wide fallback accessed via
 {func}`get_default_theme` / {func}`set_default_theme`, the named-theme
 {data}`theme_registry` plus {func}`register_theme` helper, and the
 {class}`ThemeOption` that exposes `--theme` on every Click Extra command.
@@ -410,7 +410,7 @@ for the bold counterpart and the full rationale.
 """
 
 
-nocolor_theme: HelpTheme = HelpTheme()
+NOCOLOR_THEME: HelpTheme = HelpTheme()
 """Color theme for Click Extra to force no colors.
 
 All style slots default to `identity`, so styling
@@ -418,10 +418,10 @@ calls return the raw text unchanged.
 """
 
 
-_default_theme: HelpTheme = nocolor_theme
+_default_theme: HelpTheme = NOCOLOR_THEME
 """Process-wide fallback theme. See {func}`get_default_theme`.
 
-Initialized to {data}`nocolor_theme` here, then reassigned to the `dark`
+Initialized to {data}`NOCOLOR_THEME` here, then reassigned to the `dark`
 built-in theme at the bottom of this module once {file}`themes.toml` is loaded.
 """
 
@@ -890,7 +890,7 @@ def _load_builtin_themes() -> dict[str, HelpTheme]:
     file is tolerated rather than fatal: the function logs a warning on
     the `click_extra` logger and returns an empty mapping, so importing
     the package never aborts. The CLI then keeps the colorless
-    {data}`nocolor_theme` as its default (see the module footer) and
+    {data}`NOCOLOR_THEME` as its default (see the module footer) and
     `--theme` offers no built-in choices, though themes declared in a
     CLI's config file (`[tool.<cli>.themes.<name>]`) remain available.
     ```
@@ -954,3 +954,15 @@ theme_registry.update(BUILTIN_THEMES)
 # rather than crashing on a missing "dark" key.
 if "dark" in BUILTIN_THEMES:
     set_default_theme(BUILTIN_THEMES["dark"])
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve deprecated `theme` symbols via the PEP 562 `__getattr__` hook.
+
+    The `nocolor_theme` constant was renamed `NOCOLOR_THEME`, following the
+    uppercase constant convention. Fires only for names not defined in this
+    module. See {mod}`click_extra._deprecated`.
+    """
+    from ._deprecated import resolve_deprecated
+
+    return resolve_deprecated(__name__, name)

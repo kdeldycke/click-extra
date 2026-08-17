@@ -670,19 +670,16 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         pass, in time for everything the command itself prints.
         ```
         """
-        accessible_params = [
-            param
-            for param in self.get_params(ctx)
-            if isinstance(param, AccessibleOption)
-        ]
-        color_params = [
-            param
-            for param in self.get_params(ctx)
-            if isinstance(param, (ColorOption, NoColorOption))
-        ]
-        theme_params = [
-            param for param in self.get_params(ctx) if isinstance(param, ThemeOption)
-        ]
+        accessible_params: list[click.Parameter] = []
+        color_params: list[click.Parameter] = []
+        theme_params: list[click.Parameter] = []
+        for param in self.get_params(ctx):
+            if isinstance(param, AccessibleOption):
+                accessible_params.append(param)
+            elif isinstance(param, (ColorOption, NoColorOption)):
+                color_params.append(param)
+            elif isinstance(param, ThemeOption):
+                theme_params.append(param)
         if not accessible_params and not color_params and not theme_params:
             return
 

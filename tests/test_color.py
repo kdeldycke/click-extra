@@ -40,9 +40,9 @@ from click_extra import (
 )
 from click_extra.color import (
     COLOR_DISABLING_TERMS,
+    COLOR_ENVVARS,
     _is_dark_rgb,
     _parse_osc_rgb,
-    color_envvars,
     forced_color,
     invocation_color,
     is_a_tty,
@@ -180,7 +180,7 @@ def test_no_color_env_convention(
     # Unset all recognized color env vars so the outer environment (like
     # LLM=1 set by AI agents) doesn't leak into the baseline case.
     if env is None:
-        env = {var: None for var in color_envvars if var in os.environ}
+        env = {var: None for var in COLOR_ENVVARS if var in os.environ}
 
     result = invoke(color_cli7, param, color=True, env=env)
 
@@ -212,7 +212,7 @@ def test_no_color_env_convention(
 def test_resolve_color_env_term(monkeypatch, term, expected):
     """A dumb/unknown TERM votes color-off, while any other value stays neutral."""
     # Clear every recognized color variable so only TERM is under test.
-    for var in color_envvars:
+    for var in COLOR_ENVVARS:
         monkeypatch.delenv(var, raising=False)
     if term is None:
         monkeypatch.delenv("TERM", raising=False)
@@ -224,7 +224,7 @@ def test_resolve_color_env_term(monkeypatch, term, expected):
 @pytest.mark.parametrize("term", sorted(COLOR_DISABLING_TERMS))
 def test_resolve_color_env_force_color_beats_dumb_term(monkeypatch, term):
     """An explicit FORCE_COLOR stays authoritative over a dumb/unknown TERM."""
-    for var in color_envvars:
+    for var in COLOR_ENVVARS:
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("TERM", term)
     monkeypatch.setenv("FORCE_COLOR", "1")
@@ -242,7 +242,7 @@ def test_resolve_color_env_force_color_beats_dumb_term(monkeypatch, term):
 def _no_color_env():
     """Unset every recognized color env var so auto/tty resolve to None and the
     outer environment cannot leak into the synonym resolution."""
-    return {var: None for var in color_envvars if var in os.environ}
+    return {var: None for var in COLOR_ENVVARS if var in os.environ}
 
 
 @skip_windows_colors
@@ -812,4 +812,30 @@ def test_invocation_color_reaches_background_threads(invoke, args, expected):
     assert result.exit_code == 0
 
     # The mirror is reset to the auto default when the invocation's context closes.
+    assert invocation_color() is None
+
+
+def test_resilient_context_does_not_publish_invocation_color(monkeypatch):
+    """Building an introspection context must leave the color mirror untouched.
+
+    Module-level completion-spec building (like the Carapace samples of
+    tests/test_carapace.py) runs at pytest collection, ahead of every test.
+    A resilient context is never closed, so publishing from one pinned the
+    process-wide mirror to the build environment's NO_COLOR, randomly stripping
+    ANSI from the log output of any CLI carrying no color option of its own,
+    depending on the test order the random seed drew.
+    """
+    from click_extra import color as color_module
+    from click_extra.parameters import make_resilient_context
+
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.setattr(color_module, "_invocation_color", None)
+
+    @command
+    def probe():
+        pass
+
+    make_resilient_context(probe, "probe")
+
+    assert color_module._invocation_color is None
     assert invocation_color() is None

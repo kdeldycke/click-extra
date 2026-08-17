@@ -35,7 +35,8 @@ from boltons.strutils import strip_ansi
 from click.types import IntRange
 
 from . import context
-from .parameters import ExtraOption, last_param, patch_attr
+from ._utils import patch_attr
+from .parameters import ExtraOption, last_param
 from .theme import get_current_theme
 from .types import EnumChoice
 

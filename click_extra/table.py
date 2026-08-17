@@ -32,8 +32,9 @@ from click import echo
 from wcwidth import wcswidth
 
 from . import context
+from ._utils import missing_extra_message
 from .config.formats import ConfigFormat, serialize_content
-from .parameters import ExtraOption, missing_extra_message
+from .parameters import ExtraOption
 from .styling import (
     ansi_to_html,
     ansi_to_jira,

@@ -33,19 +33,18 @@ from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
 from cloup import Color
 
+from ._utils import patch_attr
+
 # The CLI-invocation serialization and disclosure atoms moved to
 # click_extra.execution once production code (subprocess wrappers, not just
-# tests) started depending on them. They are imported here under private names
-# for this module's own use; their historical public click_extra.testing names
-# (INDENT, PROMPT, args_cleanup, format_cli_prompt) still resolve through the
-# deprecated-alias __getattr__ hook at the bottom of this module. See
-# click_extra._deprecated.
+# tests) started depending on them. They are imported under private names so
+# this module's namespace does not re-export them: their canonical home is
+# click_extra.execution.
 from .execution import (
     INDENT as _INDENT,
     args_cleanup as _args_cleanup,
     format_cli_prompt as _format_cli_prompt,
 )
-from .parameters import patch_attr
 from .styling import Style
 
 TYPE_CHECKING = False
@@ -433,15 +432,3 @@ def regex_fullmatch_line_by_line(regex: re.Pattern | str, content: str) -> None:
             )
         else:
             raise RegexLineMismatch(regex_line, content_line, i + 1)
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated `testing` symbols via the PEP 562 `__getattr__` hook.
-
-    INDENT, PROMPT, args_cleanup and format_cli_prompt moved to
-    {mod}`click_extra.execution`. Fires only for names not defined in this
-    module. See {mod}`click_extra._deprecated`.
-    """
-    from ._deprecated import resolve_deprecated
-
-    return resolve_deprecated(__name__, name)

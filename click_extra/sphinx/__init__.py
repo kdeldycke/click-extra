@@ -23,7 +23,7 @@ ANSI color rendering by patching `pymdownx.highlight`'s formatter classes.
 
 from __future__ import annotations
 
-from ..parameters import missing_extra_message
+from .._utils import missing_extra_message
 
 try:
     import sphinx  # noqa: F401

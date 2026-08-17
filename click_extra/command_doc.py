@@ -13,13 +13,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Generate roff/troff man pages from Click commands.
+"""Extract a Click command into a structured document and render it.
 
-Produces one man page per command, mirroring the man-pages(7) section
-structure documented in {doc}`/man-page`: NAME, SYNOPSIS, DESCRIPTION,
-OPTIONS, COMMANDS, ENVIRONMENT, FILES and EXIT STATUS.
+{func}`extract_command_doc` walks a command (and, through
+{func}`iter_command_contexts`, its whole tree) into a {class}`CommandDoc`: one
+extraction carrying the man-pages(7) sections documented in {doc}`/man-page`
+(NAME, SYNOPSIS, DESCRIPTION, OPTIONS, COMMANDS, ENVIRONMENT, FILES and EXIT
+STATUS). The model then renders to any of the {data}`HELP_FORMATS` backends:
+roff ({meth}`CommandDoc.to_roff`), Markdown ({meth}`CommandDoc.to_markdown`)
+and JSON ({meth}`CommandDoc.to_dict` / {meth}`CommandDoc.to_json`), with the
+Carapace completion spec delegated to {mod}`click_extra.carapace`.
 
-This is Click Extra's answer to the unmaintained [click-man](https://github.com/click-contrib/click-man) package. It improves on it by:
+The roff backend is Click Extra's answer to the unmaintained [click-man](https://github.com/click-contrib/click-man) package. It improves on it by:
 
 - working on a command *object* via {meth}`click.Command.make_context`, so it
   needs no `console_scripts` entry point;
@@ -60,13 +65,13 @@ import click
 from cloup import OptionGroupMixin
 
 from . import context
+from ._utils import generator_tag
 from .accessibility import echo_via_pager
 from .config import ConfigOption
 from .envvar import param_envvar_ids
 from .parameters import (
     ExtraOption,
     full_short_help,
-    generator_tag,
     iter_params_for_display,
     iter_subcommands,
     make_resilient_context,
@@ -1436,16 +1441,3 @@ class HelpFormatOption(ExtraOption):
             return
         click.echo(render_help(ctx.command, value, ctx=ctx), color=False)
         ctx.exit()
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated `man_page` symbols via the PEP 562 `__getattr__` hook.
-
-    The document model shed its `Man` prefix when roff stopped being its only
-    backend: it now describes a command for a Markdown, JSON or carapace render
-    just as well. Fires only for names not defined in this module. See
-    {mod}`click_extra._deprecated`.
-    """
-    from ._deprecated import resolve_deprecated
-
-    return resolve_deprecated(__name__, name)

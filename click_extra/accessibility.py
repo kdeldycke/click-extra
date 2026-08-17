@@ -41,13 +41,13 @@ from __future__ import annotations
 
 import inspect
 import os
-from configparser import RawConfigParser
 from gettext import gettext as _
 from typing import cast
 
 import click
 
 from . import context
+from .envvar import parse_envvar_flag
 from .parameters import ExtraOption
 from .table import TableFormat
 
@@ -133,7 +133,7 @@ class AccessibleOption(ExtraOption):
             if raw is not None:
                 # Bare presence (or an unparsable value) counts as activation, in
                 # the same spirit as the color environment variables.
-                value = RawConfigParser.BOOLEAN_STATES.get(raw.lower(), True)
+                value = parse_envvar_flag(raw)
 
         # Publish the resolved intent so output helpers (clear, echo_via_pager)
         # can degrade their interactive behavior to a linear stream.

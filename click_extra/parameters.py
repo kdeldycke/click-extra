@@ -18,10 +18,9 @@
 from __future__ import annotations
 
 import logging
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
-from importlib import metadata
 from operator import getitem
 from typing import TypeVar
 
@@ -32,6 +31,11 @@ from click._utils import UNSET
 from deepmerge import always_merger
 
 from . import context
+
+# Imported under a private name so this module's namespace does not resurrect
+# the moved helper: its canonical home is click_extra._utils, and the public
+# `parameters.patch_attr` spelling resolves through the deprecation hook below.
+from ._utils import patch_attr as _patch_attr
 from .envvar import param_envvar_ids
 from .styling import Style
 from .types import EnumChoice
@@ -50,33 +54,6 @@ P = TypeVar("P", bound=click.Parameter)
 #: Separator joining the keys of a parameter's fully-qualified path
 #: (`cli.subcommand.param`).
 PARAM_PATH_SEP = "."
-
-
-@contextmanager
-def patch_attr(obj: object, name: str, value: Any) -> Iterator[None]:
-    """Temporarily set `obj.name` to `value`, restoring the original on exit.
-
-    A minimal, dependency-free stand-in for `unittest.mock.patch.object` for
-    the simple save-set-restore monkeypatching Click Extra performs at runtime
-    (in {mod}`~click_extra.logging`, {mod}`~click_extra.parameters` and
-    {mod}`~click_extra.testing`).
-
-    ```{note}
-    `unittest.mock` drags the whole test framework, and its heavy
-    transitive imports, into the startup path of every CLI built with Click
-    Extra. Reimplementing the single feature actually used keeps that cost
-    out of import time. Do not swap this back for `unittest.mock`.
-    ```
-
-    Like `patch.object` without `create=True`, the attribute must already
-    exist: a missing `name` raises {exc}`AttributeError`.
-    """
-    original = getattr(obj, name)
-    setattr(obj, name, value)
-    try:
-        yield
-    finally:
-        setattr(obj, name, original)
 
 
 def search_params(
@@ -274,41 +251,6 @@ def option_value_kind(
 def is_repeatable(param: click.Parameter) -> bool:
     """Whether the parameter may be supplied several times (`multiple` or `count`)."""
     return bool(getattr(param, "multiple", False) or getattr(param, "count", False))
-
-
-def missing_extra_message(
-    extra: str,
-    *,
-    package: str = "click-extra",
-    subject: str = "This feature",
-) -> str:
-    """Build the uniform "install the optional extra" error message.
-
-    `subject` names what needs the dependency, `extra` is the optional
-    dependency group and `package` its distribution name. Every feature gated
-    behind an extra (the documentation integrations, the Carapace exporter, the
-    table formatters) routes through this so they all point at the same canonical
-    `pip install package[extra]` target, with the hyphenated distribution name.
-    """
-    return (
-        f"{subject} requires an optional dependency. "
-        f"Install it with: pip install {package}[{extra}]"
-    )
-
-
-def generator_tag() -> str:
-    """Provenance tag for generated artifacts: `Click Extra <version>`.
-
-    Stamped into the header comments of the documents Click Extra generates
-    from a CLI (man pages, Carapace completion specs). This is Click Extra's
-    *own* version (the generator), not the documented CLI's version. Falls back
-    to the bare name when the distribution metadata is unavailable (such as
-    running from an uninstalled source tree).
-    """
-    try:
-        return f"Click Extra {metadata.version('click-extra')}"
-    except metadata.PackageNotFoundError:
-        return "Click Extra"
 
 
 class _ParameterMixin:
@@ -607,8 +549,8 @@ class ParamStructure:
         # See: https://click.palletsprojects.com/en/stable/api/#click.ParamType
         return str
 
-    def build_param_trees(self) -> None:
-        """Build the parameters tree structure and cache it.
+    def build_param_trees(self) -> dict[str, Any]:
+        """Build and return the parameters tree structure.
 
         This removes parameters whose fully-qualified IDs are in the `excluded_params`
         blocklist.
@@ -633,7 +575,7 @@ class ParamStructure:
                 objects, self.init_tree_dict(*keys, leaf=[param])
             )
 
-        self.params_objects = objects
+        return objects
 
     @staticmethod
     def _nullify_leaves(tree: dict[str, Any]) -> dict[str, Any]:
@@ -659,8 +601,7 @@ class ParamStructure:
 
         Perfect to parse configuration files and user-provided parameters.
         """
-        self.build_param_trees()
-        return self.params_objects
+        return self.build_param_trees()
 
 
 def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
@@ -681,7 +622,7 @@ def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
     """
     if not hasattr(param, "hidden"):
         return None
-    with patch_attr(param, "hidden", False) if param.hidden else nullcontext():
+    with _patch_attr(param, "hidden", False) if param.hidden else nullcontext():
         help_record = param.get_help_record(ctx)
         return help_record[0] if help_record else None
 
@@ -1538,3 +1479,15 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
         render_params_table(ctx)
         ctx.exit()
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve deprecated `parameters` symbols via the PEP 562 `__getattr__` hook.
+
+    The generic helpers (`patch_attr`, `generator_tag`,
+    `missing_extra_message`) moved to {mod}`click_extra._utils`. Fires only for
+    names not defined in this module. See {mod}`click_extra._deprecated`.
+    """
+    from ._deprecated import resolve_deprecated
+
+    return resolve_deprecated(__name__, name)

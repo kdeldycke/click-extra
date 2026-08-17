@@ -18,12 +18,12 @@
 from __future__ import annotations
 
 import os
-from configparser import RawConfigParser
 from gettext import gettext as _
 
 from click.core import ParameterSource
 
 from . import context
+from .envvar import parse_envvar_flag
 from .parameters import ExtraOption
 
 TYPE_CHECKING = False
@@ -83,9 +83,7 @@ class TelemetryOption(ExtraOption):
         assert self.name is not None  # Always set for Option subclasses.
         if ctx.get_parameter_source(self.name) is not ParameterSource.COMMANDLINE:
             raw = os.environ.get("DO_NOT_TRACK")
-            if raw is not None and RawConfigParser.BOOLEAN_STATES.get(
-                raw.lower(), True
-            ):
+            if raw is not None and parse_envvar_flag(raw):
                 value = False
         context.set(ctx, context.TELEMETRY, value)
 
