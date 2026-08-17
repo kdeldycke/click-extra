@@ -105,6 +105,7 @@
 - Pin the application directory resolved while building the documentation, so a `--config` default no longer renders the building host's platform.
 - Replace the readme and tutorial before/after screenshots with captures the tutorial's own blocks maintain, superseding hand-drawn images that still advertised `--show-params` and `-C, --config`.
 - Show the one-line import diff turning the canonical Click example into its Click Extra counterpart, below the screenshots it accounts for.
+- Replace the star-history.com embed on the benchmark page, broken by GitHub's 2026 stargazer restriction, with a star history chart sampled weekly into the repository by `repomatic sample-metrics`.
 
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 

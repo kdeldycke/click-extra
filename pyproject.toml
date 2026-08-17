@@ -628,8 +628,6 @@ exclude = [
   "^https://github.com/.+/releases/.+/download/.*$",
   # Allow redirects of generic DOI URLs to their specific Zenodo release page.
   "^https://doi.org/.+/zenodo.*$",
-  # star-history uses client-side hash routing; fragments are not real HTML anchors.
-  "^https://star-history.com/#.*$",
   # crates.io blocks automated link checkers.
   "^https://crates.io/crates/.*$",
   # VirusTotal analysis pages are a JS app that rate-limits bots, and the
@@ -662,6 +660,30 @@ exclude = [ "workflows/debug.yaml" ]
 # tarball and the HTML docs site stay in lockstep. Requires repomatic
 # >= 6.25.0 in the release engine.
 manpages.script = "click_extra.cli:demo"
+# The comparison is logarithmic because Click outweighs click-extra by two
+# orders of magnitude, and a linear axis draws click-extra and most peers
+# along the bottom edge. Replaces the star-history.com embed GitHub's 2026
+# stargazer restriction broke: the store accrues here and cannot be revoked.
+metrics.charts = [
+  { output = "./docs/assets/star-history-compared.svg", scale = "logarithmic", title = "GitHub star history of click-extra and its alternatives" },
+]
+metrics.store = "./docs/assets/metrics.csv"
+# The frameworks the benchmark page tabulates. Sampled weekly so the page's
+# maintenance claims rest on a dated reading rather than on whenever someone
+# last looked. Keyed by the name the benchmark's own columns use.
+metrics.subjects.bpaf = "pacak/bpaf"
+metrics.subjects.cement = "datafolklabs/cement"
+metrics.subjects.clap = "clap-rs/clap"
+metrics.subjects.click = "pallets/click"
+metrics.subjects.click-extra = "kdeldycke/click-extra"
+metrics.subjects.cloup = "janluke/cloup"
+metrics.subjects.cobra = "spf13/cobra"
+metrics.subjects.cyclopts = "BrianPugh/cyclopts"
+metrics.subjects.fire = "google/python-fire"
+metrics.subjects.rich-click = "ewels/rich-click"
+metrics.subjects.typer = "fastapi/typer"
+metrics.subjects.tyro = "brentyi/tyro"
+metrics.sync = true
 # Align the sync updaters' stabilization cooldown (default 8 days) with uv's
 # 7-day `exclude-newer` window configured in [tool.uv] above.
 minimum-release-age = "7 days"

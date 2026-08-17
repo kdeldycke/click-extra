@@ -338,8 +338,6 @@ html_theme_options = {
 # skip anchor checks for the whole host instead of stacking per-anchor patterns.
 linkcheck_anchors_ignore_for_url = [
     r"https://github\.com/",
-    # star-history.com builds its chart and anchor with JavaScript.
-    r"https://star-history\.com/",
 ]
 
 # Some links time out the linkcheck bot intermittently; retry before reporting
