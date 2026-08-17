@@ -47,6 +47,7 @@
 - Fix options computing their help from the context (`-v`, `-q`) rendering blank in man pages and `--params`.
 - Fix a `--theme` resolved from the environment, or typed after `--help`, not reaching the screens that render and exit.
 - Fix `--color=always` leaving a wrapped CLI uncolored when its commands come from plain `@click.command()` decorators.
+- Fix `wrap` leaking click-extra's own launch mode into a wrapped CLI's usage line, so it reads `flask run` whatever the invocation.
 - Illustrate the screenshots page with captures of the `gradient`, `styles` and `themes` demos, produced by the new subcommand.
 - Add a test rebuilding each committed screenshot's terminal text from its SVG glyph coordinates and comparing it to the CLI's live output.
 - Fix the `gradient` demo overflowing an 80-column terminal by one character, which wrapped every ramp onto a second line.

@@ -481,7 +481,20 @@ def invoke_target(
     """Import and call the target CLI.
 
     Reconstructs `sys.argv` so Click's argument parsing sees the
-    target's program name and arguments.
+    target's program name and arguments, and pins `__main__.__package__`
+    so the program name Click *detects* is that same script name.
+
+    ```{note}
+    A target whose Click command is invoked without an explicit `prog_name`
+    falls back to `click.utils._detect_program_name()`, which reads
+    `__main__.__package__`. That attribute states how *click-extra itself*
+    was launched: a documentation build running `python -m sphinx` leaked
+    `python -m sphinx.flask` into a wrapped usage line, and
+    `python -m click_extra` leaks `python -m click_extra.flask` the same
+    way. Emptying it for the call pins the detection on its file-execution
+    branch, which answers the basename of `sys.argv[0]`: the script name
+    set above.
+    ```
 
     :param script: Original script name (used as `sys.argv[0]`).
     :param module_path: Dotted module path or `.py` file path.
@@ -496,8 +509,13 @@ def invoke_target(
         args,
     )
     original_argv = sys.argv
+    main_module = sys.modules["__main__"]
+    original_package = getattr(main_module, "__package__", None)
     try:
         sys.argv = [script, *args]
+        # Hide how click-extra itself was launched, so a target detecting its
+        # own program name lands on the script above, not on the launcher.
+        main_module.__package__ = ""
 
         if function_name:
             logger.debug("Importing %s and calling %s().", module_path, function_name)
@@ -512,6 +530,7 @@ def invoke_target(
             runpy.run_module(module_path, run_name="__main__")
     finally:
         sys.argv = original_argv
+        main_module.__package__ = original_package
 
 
 def resolve_target_command(

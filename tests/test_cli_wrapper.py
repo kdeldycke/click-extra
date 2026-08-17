@@ -429,6 +429,28 @@ def test_run_unresolvable_target(runner):
     assert "Cannot resolve" in result.output
 
 
+@pytest.mark.parametrize("outer_package", ["sphinx", "click_extra", "", None])
+def test_run_usage_line_ignores_the_launcher(
+    runner, make_project, outer_package, monkeypatch
+):
+    """The wrapped target's usage line names the script, not click-extra's launcher.
+
+    A target whose Click command detects its own program name reads
+    `__main__.__package__`, which states how click-extra itself was launched.
+    Left alone, a documentation build running `python -m sphinx` paints a
+    wrapped usage line as `python -m sphinx.flask`. Pinning the detection on
+    the script name keeps it identical whatever the launcher.
+    """
+    project = make_project("orchard")
+    monkeypatch.setattr(
+        sys.modules["__main__"], "__package__", outer_package, raising=False
+    )
+    result = runner.invoke(wrap, [str(project), "--help"])
+    assert result.exit_code == 0
+    assert f"Usage: {project.name} [OPTIONS]" in result.output
+    assert "python -m" not in result.output
+
+
 # -- shared external-CLI command resolution -----------------------------------
 
 
