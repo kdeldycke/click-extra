@@ -66,7 +66,7 @@ result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
 
-See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.sqlite,*.sqlite3,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -508,7 +508,7 @@ An unparsable file produces exit code 2:
 ```{code-block} shell-session
 :emphasize-lines: 2,4
 $ my-cli --validate-config garbage.txt
-Error parsing garbage.txt as TOML, YAML, JSON, INI, XML or pyproject.toml.
+Error parsing garbage.txt as TOML, YAML, JSON, INI, XML, SQLite or pyproject.toml.
 $ echo $?
 2
 ```
@@ -570,7 +570,7 @@ Redirect the output to your configuration file to persist it:
 $ weather --city Oslo --export-config toml > ~/.config/weather/config.toml
 ```
 
-The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
+The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini`, `sqlite` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
 
 Exported keys use the canonical kebab-case spelling (see [Key spelling](#key-spelling)), so the generated file reads like the CLI flags it mirrors.
 
@@ -1140,6 +1140,7 @@ Several dialects are supported:
 | [`HJSON`](#hjson)                   | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
 | [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
 | [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
+| [`SQLITE`](#sqlite)                 | `*.sqlite`, `*.sqlite3` | Reads a `config` table of dotted keys and JSON-encoded values                       | ✅                 |
 | [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]`{l=toml}{l=toml} sections from `pyproject.toml`                           | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#extra-dependencies) to enable them.
@@ -1279,6 +1280,19 @@ random_stuff = will be ignored
 </my-cli>
 ```
 ````
+
+````{tab-item} SQLite
+```{code-block} sql
+CREATE TABLE config (key TEXT PRIMARY KEY, value TEXT);
+
+INSERT INTO config VALUES
+  ('my-cli.extra_value', '"is ignored too"'),
+  ('my-cli.dummy_flag', 'true'),
+  ('my-cli.my_list', '["item 1", "item #2", "Very Last Item!"]'),
+  ('my-cli.subcommand.int_param', '3'),
+  ('my-cli.subcommand.random_stuff', '"will be ignored"');
+```
+````
 `````
 
 ### TOML
@@ -1324,6 +1338,12 @@ random_stuff = will be ignored
 ```
 
 The root element is the CLI's name. A repeated element (like `my_list` above) is collected into a list, and every value is read as a string, then coerced to its matching parameter's type.
+
+### SQLite
+
+`SQLITE` is enabled by default, and read through Python's built-in [`sqlite3`](https://docs.python.org/3/library/sqlite3.html) module, so no extra dependency is needed. The database holds a single `config` table of `key`/`value` rows: keys are parameter paths, with a dot (`.`) separating each level, and values are JSON-encoded, which carries every type the other formats do. Other tables in the database are ignored, so a configuration table can live alongside an application's own data.
+
+`SQLITE` is read-only: it cannot be produced by [`--export-config`](#exporting-the-configuration), and a database fetched over `http://` or `https://` is skipped.
 
 ### `pyproject.toml`
 
@@ -1435,7 +1455,7 @@ By default, the pattern is `<app_dir>/{*.toml,*.json,*.ini}`, where:
 - `{*.toml,*.json,*.ini}` are the [extensions of formats](#formats) enabled by default, wrapped in brace-expansion syntax
 
 ```{hint}
-Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,pyproject.toml}`.
+Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.sqlite,*.sqlite3,pyproject.toml}`.
 ```
 
 ```{tip}

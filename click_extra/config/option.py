@@ -43,6 +43,7 @@ import copy
 import json
 import logging
 import os
+import sqlite3
 from collections import ChainMap
 from collections.abc import Iterable
 from configparser import ConfigParser, ExtendedInterpolation
@@ -82,8 +83,10 @@ from ..types import EnumChoice
 from .builtin import THEMES_CONFIG_KEY, _builtin_config_validators
 from .formats import (
     SERIALIZABLE_FORMATS,
+    SQLITE_CONFIG_TABLE,
     ConfigFormat,
     disabled_format_message,
+    format_from_path,
     parse_content,
     serialize_content,
 )
@@ -899,7 +902,12 @@ class ConfigOption(ExtraOption, ParamStructure):
                         logger.debug(f"Skipping non-file {file_path}")
                         continue
                     files_found += 1
-                    yield file_path, file_path.read_text(encoding="utf-8")
+                    if format_from_path(file_path, (ConfigFormat.SQLITE,)):
+                        # A SQLite database is binary: it is read from its path
+                        # by load_sqlite_config(), not from a text payload.
+                        yield file_path, ""
+                    else:
+                        yield file_path, file_path.read_text(encoding="utf-8")
 
         if not files_found:
             raise FileNotFoundError(f"No file found matching {pattern}")
@@ -908,12 +916,18 @@ class ConfigOption(ExtraOption, ParamStructure):
         self,
         content: str,
         formats: Sequence[ConfigFormat],
+        location: Path | URL | None = None,
     ) -> Iterable[dict[str, Any] | None]:
         """Parse the `content` with the given `formats`.
 
         Tries to parse the given raw `content` string with each of the given
         `formats`, in order. Yields the resulting data structure for each
         successful parse.
+
+        `location` is the path the `content` was read from. It is only needed
+        by formats that cannot be parsed from a text payload, like `SQLITE`,
+        which is read straight from its file. Such formats are skipped when
+        `location` is missing or is not a local file.
 
         ```{attention}
         Formats whose parsing raises an exception or does not return a `dict`
@@ -926,11 +940,16 @@ class ConfigOption(ExtraOption, ParamStructure):
         conf = None
         for fmt in formats:
             try:
-                conf = (
-                    self.load_ini_config(content)
-                    if fmt is ConfigFormat.INI
-                    else parse_content(fmt, content)
-                )
+                if fmt is ConfigFormat.INI:
+                    conf = self.load_ini_config(content)
+                elif fmt is ConfigFormat.SQLITE:
+                    if not isinstance(location, Path):
+                        raise ValueError(
+                            "SQLite configurations can only be read from a local file."
+                        )
+                    conf = self.load_sqlite_config(location)
+                else:
+                    conf = parse_content(fmt, content)
 
             except Exception as ex:  # noqa: BLE001
                 logger.debug(f"{fmt} parsing failed: {ex}")
@@ -1052,7 +1071,9 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(
                 f"Parsing {location} with {','.join(map(str, matching_formats))}"
             )
-            for conf in self.parse_conf(content, formats=matching_formats):
+            for conf in self.parse_conf(
+                content, formats=matching_formats, location=location
+            ):
                 if conf:
                     return location, conf
                 logger.debug("Empty configuration, try next file.")
@@ -1137,6 +1158,37 @@ class ConfigOption(ExtraOption, ParamStructure):
             conf = always_merger.merge(
                 conf,
                 self.init_tree_dict(*section_id.split(PARAM_PATH_SEP), leaf=sub_conf),
+            )
+
+        return conf
+
+    def load_sqlite_config(self, path: Path) -> dict[str, Any]:
+        """Utility method to parse a SQLite configuration database.
+
+        The database holds a single {data}`~click_extra.config.formats.SQLITE_CONFIG_TABLE`
+        table of `key`/`value` rows. Keys are parameter paths, with a dot
+        (`.`, as set by {data}`~click_extra.parameters.PARAM_PATH_SEP`)
+        separating each level, like `my-cli.default.int_param`. Values are
+        JSON-encoded, which carries every type the other formats do:
+        booleans, numbers, strings, lists and nested objects alike.
+
+        Returns a ready-to-use data structure.
+        """
+        connection = sqlite3.connect(str(path))
+        try:
+            rows = connection.execute(
+                f"SELECT key, value FROM {SQLITE_CONFIG_TABLE}"
+            ).fetchall()
+        finally:
+            connection.close()
+
+        conf: dict[str, Any] = {}
+        for key, raw_value in rows:
+            conf = always_merger.merge(
+                conf,
+                self.init_tree_dict(
+                    *key.split(PARAM_PATH_SEP), leaf=json.loads(raw_value)
+                ),
             )
 
         return conf

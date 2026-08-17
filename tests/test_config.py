@@ -16,9 +16,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
+import sqlite3
 import sys
 import unittest.mock
 from pathlib import Path
@@ -54,6 +56,7 @@ from click_extra import (
     search_params,
     validate_config_option,
 )
+from click_extra.config import SQLITE_CONFIG_TABLE
 from click_extra.config.schema import (
     _expand_dotted_keys,
 )
@@ -342,6 +345,58 @@ PYPROJECT_TOML_FILE, PYPROJECT_TOML_DATA = (
         },
     },
 )
+
+SQLITE_DATA = {
+    "config-cli1": {
+        "dummy_flag": True,
+        "my_list": ["pip", "npm", "gem"],
+        "default": {
+            "int_param": 3,
+            "random_stuff": "will be ignored",
+        },
+    },
+}
+"""The shared reference configuration, as `SQLITE_CONFIG_TABLE` rows.
+
+Keys are dotted parameter paths, values are JSON-encoded. This mirrors
+`TOML_DATA`, minus the verbosity bump and the sections the other formats
+use to exercise their own quirks."""
+
+
+def flatten_sqlite_keys(data: dict, prefix: str = "") -> dict:
+    """Flatten a nested mapping into dotted keys, the SQLite config layout."""
+    flat: dict = {}
+    for key, value in data.items():
+        full_key = f"{prefix}.{key}" if prefix else key
+        if isinstance(value, dict):
+            flat.update(flatten_sqlite_keys(value, full_key))
+        else:
+            flat[full_key] = value
+    return flat
+
+
+def make_sqlite_config(
+    path: Path,
+    data: dict | None = None,
+    *,
+    create_table: bool = True,
+) -> Path:
+    """Write a nested mapping into a SQLite configuration database."""
+    connection = sqlite3.connect(path)
+    if create_table:
+        connection.execute(
+            f"CREATE TABLE {SQLITE_CONFIG_TABLE} (key TEXT PRIMARY KEY, value TEXT)"
+        )
+    if data:
+        for key, value in flatten_sqlite_keys(data).items():
+            connection.execute(
+                f"INSERT INTO {SQLITE_CONFIG_TABLE} VALUES (?, ?)",
+                (key, json.dumps(value)),
+            )
+    connection.commit()
+    connection.close()
+    return path
+
 
 all_config_formats = pytest.mark.parametrize(
     ("conf_name, conf_text, conf_data"),
@@ -1044,6 +1099,122 @@ def test_conf_metadata_no_config(invoke):
     assert result.exit_code == 0
     assert "conf_source=MISSING" in result.stdout
     assert "conf_full=MISSING" in result.stdout
+
+
+@pytest.mark.parametrize("ext", ["sqlite", "sqlite3"])
+def test_sqlite_conf_file_overrides_defaults(
+    invoke,
+    simple_config_cli,
+    tmp_path,
+    ext,
+):
+    conf_path = make_sqlite_config(tmp_path / f"configuration.{ext}", SQLITE_DATA)
+
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default",
+        color=False,
+    )
+    assert result.stdout == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+    )
+    assert result.stderr == f"Load configuration matching {conf_path}\n"
+    assert result.exit_code == 0
+
+
+def test_sqlite_conf_metadata(invoke, tmp_path):
+    conf_path = make_sqlite_config(tmp_path / "configuration.sqlite", SQLITE_DATA)
+
+    @click.command
+    @config_option
+    @pass_context
+    def config_metadata(ctx):
+        echo(f"conf_source={ctx.meta['click_extra.conf_source']}")
+        echo(f"conf_full={ctx.meta['click_extra.conf_full']}")
+        echo(f"default_map={ctx.default_map}")
+
+    result = invoke(config_metadata, "--config", str(conf_path))
+    assert result.stdout == (
+        f"conf_source={conf_path}\n"
+        f"conf_full={SQLITE_DATA}\n"
+        # No configuration values match the CLI's parameter structure, so the
+        # ChainMap layered onto the existing default_map holds two empty maps.
+        "default_map=ChainMap({}, {})\n"
+    )
+    assert result.stderr == f"Load configuration matching {conf_path}\n"
+    assert result.exit_code == 0
+
+
+def test_sqlite_read_and_parse_conf(tmp_path):
+    """The default format patterns discover SQLite databases by extension."""
+    conf_path = make_sqlite_config(tmp_path / "my-cli.sqlite", SQLITE_DATA)
+
+    conf_option = ConfigOption()
+    location, conf = conf_option.read_and_parse_conf(str(tmp_path / "*"))
+    assert location == conf_path.resolve()
+    assert conf == SQLITE_DATA
+
+
+@pytest.mark.parametrize(
+    "make_db",
+    [
+        pytest.param("garbage", id="garbage-content"),
+        pytest.param("missing-table", id="missing-table"),
+        pytest.param("empty-table", id="empty-table"),
+    ],
+)
+def test_sqlite_conf_unparsable(invoke, simple_config_cli, tmp_path, make_db):
+    """A SQLite file that cannot yield a configuration is rejected."""
+    conf_path = tmp_path / "configuration.sqlite"
+    if make_db == "garbage":
+        conf_path.write_text("this is not a SQLite database", encoding="UTF-8")
+    else:
+        make_sqlite_config(conf_path, create_table=(make_db != "missing-table"))
+
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default",
+        color=False,
+    )
+    assert result.exit_code == 2
+    assert "critical: Error parsing file as" in result.stderr
+
+
+def test_validate_config_sqlite_valid(invoke, tmp_path):
+    """--validate-config accepts a valid SQLite configuration database."""
+    conf_path = make_sqlite_config(
+        tmp_path / "valid.sqlite",
+        {
+            "validate-cli": {
+                "dummy_flag": True,
+                "my_list": ["pip", "npm"],
+                "sub": {
+                    "int_param": 3,
+                },
+            },
+        },
+    )
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @option("--my-list", multiple=True)
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag, my_list):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @validate_cli.command
+    @option("--int-param", type=int, default=10)
+    def sub(int_param):
+        echo(f"int_parameter = {int_param!r}")
+
+    result = invoke(validate_cli, "--validate-config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert "is valid" in result.stderr
 
 
 def test_default_map_populated(invoke, create_config):

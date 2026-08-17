@@ -105,6 +105,7 @@ class ConfigFormat(Enum):
     HJSON = (("*.hjson",), PARSER_SUPPORT["hjson"], "Hjson")
     INI = (("*.ini",), True, "INI")
     XML = (("*.xml",), PARSER_SUPPORT["xml"], "XML")
+    SQLITE = (("*.sqlite", "*.sqlite3"), True, "SQLite")
     PYPROJECT_TOML = (("pyproject.toml",), True, "pyproject.toml")
 
     def __str__(self) -> str:
@@ -126,11 +127,21 @@ class ConfigFormat(Enum):
         return self.value[0]  # type: ignore[no-any-return]
 
 
+SQLITE_CONFIG_TABLE = "config"
+"""Name of the table {func}`click_extra.config.option.ConfigOption.load_sqlite_config`
+reads a `SQLITE` configuration from.
+
+The table holds `key`/`value` columns: dotted parameter paths and their
+JSON-encoded values."""
+
+
 def parse_content(fmt: ConfigFormat, content: str) -> Any:
     """Parse content with a single stateless format.
 
     INI is excluded: it needs the CLI parameter structure for type
-    coercion and is handled by ConfigOption.load_ini_config.
+    coercion and is handled by ConfigOption.load_ini_config. SQLITE is
+    excluded too: it is a binary format, read from its file path by
+    ConfigOption.load_sqlite_config instead of a text payload.
 
     ```{note}
     Optional third-party parsers are imported lazily, at the point of use,
@@ -188,8 +199,9 @@ SERIALIZABLE_FORMATS: tuple[ConfigFormat, ...] = (
 )
 """Configuration formats {func}`serialize_content` can write, in priority order.
 
-Every {class}`ConfigFormat` except {attr}`~ConfigFormat.INI` and
-{attr}`~ConfigFormat.PYPROJECT_TOML`, which have no serializer. `JSON`,
+Every {class}`ConfigFormat` except {attr}`~ConfigFormat.INI`,
+{attr}`~ConfigFormat.SQLITE` and {attr}`~ConfigFormat.PYPROJECT_TOML`, which
+have no serializer. `JSON`,
 `JSON5` and `JSONC` are emitted as plain JSON through the standard library,
 so they need no optional dependency; the others require their format's extra.
 
@@ -209,7 +221,7 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
     ```{caution}
     Not every format round-trips: `TOML` and `XML` have no null type, and
     `XML` expects a single root mapping, so the caller is responsible for
-    shaping `data` accordingly. `INI` and `pyproject.toml` have no
+    shaping `data` accordingly. `INI`, `SQLITE` and `pyproject.toml` have no
     serializer here.
     ```
 
