@@ -812,6 +812,14 @@ class ClickDirective(SphinxDirective):
         without anyone remembering to refresh it, and it is deterministic:
         `unique_id` is pinned to the asset's name, so an unchanged CLI rewrites
         byte-identical bytes and leaves the working tree clean.
+
+        ```{note}
+        That refresh only happens when the document carrying the block is
+        re-parsed: Sphinx's environment cache skips unchanged sources. A
+        change on the *package* side (a new config format widening a
+        `--config` default, say) leaves every capture stale until a rebuild
+        with a fresh environment (`sphinx-build -E`).
+        ```
         """
         assert self.screenshot
         lines = list(results)

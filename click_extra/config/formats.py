@@ -19,6 +19,16 @@ Holds the {class}`ConfigFormat` enum, the optional third-party parser probes
 that decide which formats are enabled, and {func}`parse_content`, the stateless
 dispatch used by {class}`~click_extra.config.option.ConfigOption` for every format that
 does not need the CLI parameter structure.
+
+```{caution}
+This module is imported early in the package's import graph
+({mod}`~click_extra.table` reaches it before the
+{mod}`~click_extra.parameters` / {mod}`~click_extra.context` chain has
+settled), so it takes no top-level import from `click_extra` itself. A format
+whose parsing needs the CLI structure or a binary file, like `INI` and
+`SQLITE`, lives as a `ConfigOption` method in
+{mod}`~click_extra.config.option` instead of here.
+```
 """
 
 from __future__ import annotations
