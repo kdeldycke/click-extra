@@ -11,11 +11,17 @@ name: 📚 Docs
       - citation.cff
       - "docs/**"
       - pyproject.toml
+      - "readme.*.md"
       - readme.md
       - uv.lock
       - "**/*.py"
+  schedule:
+    - cron: "43 6 15 * *"
 
 jobs:
 
   docs:
-    uses: kdeldycke/repomatic/.github/workflows/docs.yaml@66650046de54a8032f4c38358b7ef8c9ae39e7b5 # v7.11.0
+    uses: kdeldycke/repomatic/.github/workflows/docs.yaml@a9a1d6a43119f85ad7e04c2adf2f7bd9a0abdd10 # v7.13.0
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
