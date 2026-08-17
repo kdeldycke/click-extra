@@ -669,6 +669,7 @@ Its faces are flat and unoutlined, which is what lets one palette serve a light 
 
 It is drawn in 2:1 dimetric rather than the artwork's 30° isometric. A 30° edge advances 1.732 sub-pixels per row, which no grid can hold, so it comes out as a stair of alternating treads that reads as fraying at every size. Two across for every one down tiles a square grid exactly.
 ```
+
 ## Debug logs
 
 When the `DEBUG` level is enabled, all available variables will be printed in the log:
