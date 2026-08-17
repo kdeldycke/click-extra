@@ -62,7 +62,9 @@ from click_extra.execution import (
     _LIVE_PROCESSES_LOCK,
     _WORKER_WINDOW_FACTOR,
     CPU_COUNT,
+    DEFAULT_JOBS,
     PROMPT,
+    _logical_cpu_count,
     install_interrupt_handler,
     terminate_live_processes,
 )
@@ -94,7 +96,7 @@ def test_standalone_jobs_option(invoke, cmd_decorator, option_decorator):
 
 
 def test_default_value(invoke):
-    """Default is one fewer than available CPU cores."""
+    """Default reserves one core, except on hosts with fewer than three CPUs."""
 
     @command
     @jobs_option
@@ -103,24 +105,23 @@ def test_default_value(invoke):
         echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
 
     result = invoke(cli)
-    expected = max(1, CPU_COUNT - 1) if CPU_COUNT else 1
-    assert result.stdout == f"Jobs: {expected}\n"
+    assert result.stdout == f"Jobs: {DEFAULT_JOBS}\n"
     assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
     ("keyword", "expected"),
     (
-        ("auto", max(1, CPU_COUNT - 1) if CPU_COUNT else 1),
+        ("auto", DEFAULT_JOBS),
         ("max", CPU_COUNT or 1),
     ),
 )
 def test_keyword_resolution(invoke, keyword, expected):
-    """'auto' resolves to logical CPUs minus one, 'max' to all logical CPUs.
+    """'auto' resolves to the reserved-core default, 'max' to all logical CPUs.
 
-    On a host with enough cores the resolution is silent; on a 1- or 2-core
-    host the keyword collapses to a single (sequential) job with a warning, so
-    the assertion adapts to the host running the suite.
+    On a host with at least two logical CPUs the resolution is silent; on a
+    single-CPU host the keyword collapses to a single (sequential) job with a
+    warning, so the assertion adapts to the host running the suite.
     """
 
     @command
@@ -141,11 +142,9 @@ def test_keyword_resolution(invoke, keyword, expected):
 @pytest.mark.parametrize(
     ("keyword", "cpu_count", "default_jobs", "cpu_phrase"),
     (
-        # A single logical CPU: 'max' is the whole machine, still just 1 job.
+        # A single logical CPU: both keywords are the whole machine, 1 job.
         ("max", 1, 1, "only 1 logical CPU is available"),
-        # 'auto' reserves one core, so one or two logical CPUs leave a single job.
         ("auto", 1, 1, "only 1 logical CPU is available"),
-        ("auto", 2, 1, "only 2 logical CPUs are available"),
     ),
 )
 def test_parallel_keyword_collapses_to_sequential_warns(
@@ -204,7 +203,7 @@ def test_default_collapse_to_sequential_is_quiet(invoke):
     def cli(ctx):
         echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
 
-    with patch.multiple("click_extra.execution", CPU_COUNT=2, DEFAULT_JOBS=1):
+    with patch.multiple("click_extra.execution", CPU_COUNT=1, DEFAULT_JOBS=1):
         result = invoke(cli)  # No --jobs: exercise the default value.
 
     assert result.stdout == "Jobs: 1\n"
@@ -215,10 +214,9 @@ def test_default_collapse_to_sequential_is_quiet(invoke):
 def test_default_collapse_to_sequential_logged_at_info(invoke):
     """The default's collapse to a single job stays discoverable at info level.
 
-    This is the silent trap on a two-core host: no flag is passed, yet the
-    default reserves one core and runs sequentially. The trace lives at info
-    level, next to the resolved-jobs line, instead of a default-verbosity
-    warning.
+    This is the silent trap on a single-CPU host: no flag is passed, yet
+    execution runs sequentially. The trace lives at info level, next to the
+    resolved-jobs line, instead of a default-verbosity warning.
     """
 
     @command
@@ -227,13 +225,13 @@ def test_default_collapse_to_sequential_logged_at_info(invoke):
     def cli(ctx):
         echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
 
-    with patch.multiple("click_extra.execution", CPU_COUNT=2, DEFAULT_JOBS=1):
+    with patch.multiple("click_extra.execution", CPU_COUNT=1, DEFAULT_JOBS=1):
         result = invoke(cli, "--verbosity", "INFO", color=False)
 
     assert result.stdout == "Jobs: 1\n"
     assert result.exit_code == 0
     assert "'--jobs auto' resolved to a single job" in result.stderr
-    assert "only 2 logical CPUs are available" in result.stderr
+    assert "only 1 logical CPU is available" in result.stderr
 
 
 def test_resolved_job_count_logged_at_info(invoke):
@@ -251,7 +249,7 @@ def test_resolved_job_count_logged_at_info(invoke):
     assert result.stdout == "Jobs: 4\n"
     assert result.exit_code == 0
     assert "Resolved --jobs to 4" in result.stderr
-    assert "os.cpu_count()=8 logical CPUs" in result.stderr
+    assert "8 logical CPUs" in result.stderr
 
 
 @pytest.mark.parametrize("jobs", (1, 2, 5))
@@ -615,7 +613,7 @@ def test_clamp_to_one(invoke, value, warning):
 
 
 def test_exceeds_cpu_count(invoke):
-    """Warn when requested jobs exceed available CPU cores."""
+    """A count above the core count is honored, with an I/O-bound caveat."""
 
     @command
     @jobs_option
@@ -628,7 +626,8 @@ def test_exceeds_cpu_count(invoke):
 
     assert result.stdout == "Jobs: 8\n"
     assert result.exit_code == 0
-    assert "exceeds available CPU cores (4)" in result.stderr
+    assert "exceeds the 4 logical CPUs" in result.stderr
+    assert "honored, but pays only for I/O-bound work" in result.stderr
 
 
 def test_no_warning_within_bounds(invoke):
@@ -649,14 +648,52 @@ def test_no_warning_within_bounds(invoke):
 
 
 def test_single_core_default():
-    """DEFAULT_JOBS is 1 when cpu_count is 1."""
-    assert max(1, 1 - 1) == 1
+    """DEFAULT_JOBS is 1 when the logical CPU count is 1."""
+    cpu_count = 1
+    assert (cpu_count - 1 if cpu_count and cpu_count >= 3 else (cpu_count or 1)) == 1
+
+
+def test_two_core_default_uses_both_cpus():
+    """DEFAULT_JOBS drops the core reservation on a two-CPU host.
+
+    Reserving one of two logical CPUs would collapse the pool to a single
+    (sequential) worker, and threads waiting on subprocesses and I/O cost
+    nothing there, so the whole machine is used instead.
+    """
+    cpu_count = 2
+    assert (cpu_count - 1 if cpu_count and cpu_count >= 3 else (cpu_count or 1)) == 2
 
 
 def test_none_cpu_count_default():
     """DEFAULT_JOBS is 1 when cpu_count returns None."""
     cpu_count = None
-    assert (max(1, cpu_count - 1) if cpu_count else 1) == 1
+    assert (cpu_count - 1 if cpu_count and cpu_count >= 3 else (cpu_count or 1)) == 1
+
+
+@pytest.mark.parametrize(
+    ("process_count", "fallback", "expected"),
+    (
+        # The process-aware count wins when it answers.
+        (4, 8, 4),
+        # A None answer (unsupported platform) falls back to os.cpu_count().
+        (None, 8, 8),
+    ),
+)
+def test_logical_cpu_count_prefers_process_count(process_count, fallback, expected):
+    """os.process_cpu_count() is preferred, os.cpu_count() is the fallback."""
+    with (
+        patch("os.process_cpu_count", create=True, return_value=process_count),
+        patch("os.cpu_count", return_value=fallback),
+    ):
+        assert _logical_cpu_count() == expected
+
+
+def test_logical_cpu_count_fallback_without_process_count():
+    """On runtimes lacking os.process_cpu_count(), os.cpu_count() answers."""
+    with patch("click_extra.execution.os") as mock_os:
+        del mock_os.process_cpu_count  # Simulate a Python older than 3.13.
+        mock_os.cpu_count.return_value = 8
+        assert _logical_cpu_count() == 8
 
 
 # --- Timer ------------------------------------------------------------------

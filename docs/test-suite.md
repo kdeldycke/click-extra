@@ -165,7 +165,7 @@ The `click-extra test-suite` subcommand runs a suite against a target. Point it 
 
 ```{code-block} shell-session
 $ click-extra test-suite --command weather --suite-file suite.yaml
-Running 3 test cases across 7 workers (os.cpu_count()=8).
+Running 3 test cases across 7 workers (8 logical CPUs).
 Test suite results - Total: 3, Skipped: 0, Failed: 0
 ```
 

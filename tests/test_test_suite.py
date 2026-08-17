@@ -372,7 +372,7 @@ def test_run_stats_echoes_summary(capsys):
     )
     out = capsys.readouterr().out
     assert "Running 2 test cases across 2 workers" in out
-    assert "os.cpu_count()=" in out
+    assert "logical CPUs" in out
     assert "Total: 2" in out
     assert "Failed: 0" in out
 
@@ -387,7 +387,7 @@ def test_run_no_stats_is_quiet(capsys):
     )
     out = capsys.readouterr().out
     assert "Test suite results" not in out
-    assert "os.cpu_count()" not in out
+    assert "logical CPUs" not in out
 
 
 # --- click-extra test-suite subcommand ----------------------------------------

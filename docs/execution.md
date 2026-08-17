@@ -72,7 +72,7 @@ A pre-configured `--jobs` option to control parallel execution. It accepts an in
 The option itself does not drive any concurrency: it only captures the user's intent.
 
 ```{important}
-The core count is the number of **logical** CPUs reported by Python's `os.cpu_count()`: hardware threads, not physical cores. On a CPU with simultaneous multi-threading (Intel Hyper-Threading, AMD SMT) a 4-physical-core chip reports `8`. This is deliberately the logical count, since subprocess- and I/O-bound work overlaps well across hardware threads. It can differ from the physical-core counts used elsewhere (`psutil.cpu_count(logical=False)`, or pytest-xdist's `-n auto`), so `--jobs auto` may pick a higher number than a physical-core heuristic would.
+The core count is the number of **logical** CPUs available to the process: hardware threads, not physical cores. It comes from Python's `os.process_cpu_count()` on Python 3.13+, which honors the process's CPU affinity mask and, on Linux, the cgroup quota, so a container limited to two CPUs counts two, not the host's full core count. On older runtimes it falls back to `os.cpu_count()`, which is cgroup-blind. On a CPU with simultaneous multi-threading (Intel Hyper-Threading, AMD SMT) a 4-physical-core chip reports `8`. This is deliberately the logical count, since subprocess- and I/O-bound work overlaps well across hardware threads. It can differ from the physical-core counts used elsewhere (`psutil.cpu_count(logical=False)`, or pytest-xdist's `-n auto`), so `--jobs auto` may pick a higher number than a physical-core heuristic would.
 ```
 
 ```{click:source}
@@ -110,16 +110,47 @@ assert result.exit_code == 0
 assert "parallel jobs." in result.stdout
 ```
 
+The option's default *is* `auto` (the help screen shows `[default: auto]`), so a bare invocation resolves exactly like the keyword, on whatever host it runs:
+
+```{click:run}
+from click_extra.execution import CPU_COUNT, DEFAULT_JOBS
+
+result = invoke(build, args=[])
+assert result.exit_code == 0
+assert result.stdout == f"Building with {DEFAULT_JOBS} parallel jobs.\n"
+
+result = invoke(build, args=["--jobs", "auto"])
+assert result.stdout == f"Building with {DEFAULT_JOBS} parallel jobs.\n"
+
+result = invoke(build, args=["--jobs", "max"])
+assert result.stdout == f"Building with {CPU_COUNT} parallel jobs.\n"
+```
+
+How each value resolves across hosts:
+
+| Scenario                                        | `CPU_COUNT` | `auto` (the default) | `max` |
+| :---------------------------------------------- | ----------: | -------------------: | ----: |
+| Count cannot be determined                      |      `None` |                    1 |     1 |
+| Single-CPU host or container                    |           1 |                    1 |     1 |
+| Two-CPU host                                    |           2 |                    2 |     2 |
+| Four-vCPU CI runner                             |           4 |                    3 |     4 |
+| Ten-core workstation                            |          10 |                    9 |    10 |
+| Eight physical cores with SMT                   |          16 |                   15 |    16 |
+| 64-CPU host, cgroup quota of 2, on Python 3.13+ |           2 |                    2 |     2 |
+| The same container, on Python 3.12 and older    |          64 |                   63 |    64 |
+
+`auto` reserves one logical CPU for the main process and system tasks, but only from three CPUs up: below that, the reservation would leave a single worker, so the whole machine is used instead. A count of `1` runs sequentially, warned about when an explicit `auto`/`max` request collapses to it, silently when it is the option's own default. The last two rows are {func}`os.process_cpu_count` at work: on Python 3.13+ it reads the container's quota, where older runtimes' `os.cpu_count()` sees the whole host and would oversubscribe the allocation.
+
 ```{warning}
-A value of `0` disables parallelism: it is rounded up to `1` and a warning notes that execution will run sequentially. Negative values are likewise clamped to `1`. When the count exceeds the available logical CPU cores, a warning is logged but the value is honored.
+A value of `0` disables parallelism: it is rounded up to `1` and a warning notes that execution will run sequentially. Negative values are likewise clamped to `1`. When the count exceeds the available logical CPU cores, a warning is logged but the value is honored: the pool is a thread pool, and oversubscription is exactly how I/O- and subprocess-bound work overlaps, so the caveat only bites CPU-bound workloads, where the extra threads just contend for the GIL.
 ```
 
 ```{warning}
-`auto` and `max` express a wish for parallelism, but on hosts with few logical CPUs they resolve to a single job and run sequentially: `max` on a single-core host, or `auto` on a one- or two-core host (it reserves one core). An explicit request (on the command line, or through an environment variable or configuration file) logs a warning, so the silent sequential fallback is not mistaken for parallel execution. The option's own default only logs at info level, sparing every bare invocation on a 1-CPU host a warning it cannot act on. An explicit `--jobs 1` is treated as a deliberate sequential choice and stays silent.
+`auto` and `max` express a wish for parallelism, but on a single-CPU host they resolve to a single job and run sequentially. An explicit request (on the command line, or through an environment variable or configuration file) logs a warning when it collapses, so the silent sequential fallback is not mistaken for parallel execution. The option's own default only logs at info level, sparing every bare invocation on a 1-CPU host a warning it cannot act on. An explicit `--jobs 1` is treated as a deliberate sequential choice and stays silent.
 ```
 
 ```{tip}
-The resolved (clamped, validated) job count is published on `ctx.meta` as `JOBS` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks. It is also logged at info level alongside the host's `os.cpu_count()`, so `--verbosity INFO` reveals how many workers a `--jobs` command will use.
+The resolved (clamped, validated) job count is published on `ctx.meta` as `JOBS` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks. It is also logged at info level alongside the host's logical CPU count, so `--verbosity INFO` reveals how many workers a `--jobs` command will use.
 ```
 
 ## Running jobs in parallel

@@ -59,7 +59,7 @@ from .config.formats import (
     parse_content,
     read_file,
 )
-from .execution import args_cleanup, run_cli, run_jobs
+from .execution import CPU_COUNT, args_cleanup, run_cli, run_jobs
 from .spinner import Spinner
 from .testing import (
     STREAM_FIELDS,
@@ -667,12 +667,12 @@ def run_test_suite(
 
     # Surface the parallelism picture up front so logs make clear whether cases
     # run concurrently, and how that maps to the host's logical CPU count.
-    # os.cpu_count() reports logical CPUs (hardware threads), which is what the
-    # --jobs option keys on: on a 2-core host `auto` resolves to 1 (sequential).
+    # CPU_COUNT is the same process-aware logical CPU count the --jobs option
+    # keys on: on a single-CPU host `auto` resolves to 1 (sequential).
     if stats:
         echo(
             f"Running {len(pending)} test cases across {jobs} workers "
-            f"(os.cpu_count()={os.cpu_count()})."
+            f"({CPU_COUNT if CPU_COUNT is not None else 'unknown'} logical CPUs)."
         )
 
     # An indeterminate spinner reports live progress on an interactive terminal.

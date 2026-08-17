@@ -92,6 +92,9 @@
 - Illustrate the readme's `--tree` entry with a capture the tree page maintains.
 - Render Flask's help through the wrapper on the CLI wrapper page, and illustrate the readme's wrapper entries with the captures it maintains.
 - Extend the themes capture to a second palette, so it shows what `--theme` does to the same help screen, and illustrate the readme's theme entry with it.
+- Change `--jobs` to count the host with `os.process_cpu_count()` on Python 3.13+, honoring a container's cgroup quota and CPU affinity, with a fallback to `os.cpu_count()` on older runtimes.
+- Change the `--jobs` default (`auto`) to use both logical CPUs on a two-CPU host instead of silently running sequentially: the one-core reservation now applies only to hosts with three CPUs or more.
+- Illustrate how the `--jobs` default, `auto` and `max` resolve across CPU arrangements in a table on the parallel-jobs page, from single-CPU containers to quota-limited ones.
 - Advertise `--man`, the `--carapace` completion spec and machine-readable parameter exports in the readme, which listed none of them.
 - Render Flask's Carapace spec on the completion page, and illustrate the readme's `--carapace` entry with the capture it maintains.
 - Lead the readme's feature list with the sections a capture can show, moving configuration and types below them.

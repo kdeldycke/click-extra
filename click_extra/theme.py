@@ -125,7 +125,7 @@ class HelpTheme(cloup.HelpTheme):
     warning: IStyle = identity
     """Style applied to the `WARNING` level name in log records.
 
-    Example: `WARNING: Requested 16 jobs exceeds available CPU cores (8).`
+    Example: `WARNING: Requested 16 jobs exceeds the 8 logical CPUs: honored, but pays only for I/O-bound work.`
     """
 
     info: IStyle = identity

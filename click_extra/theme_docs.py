@@ -104,7 +104,7 @@ _PALETTE_EXAMPLES: dict[str, str] = {
     # Log-level slots: rendered by Formatter on the levelname token.
     "critical": "«CRITICAL»: Database connection lost.",
     "error": "«ERROR»: Configuration file not found.",
-    "warning": "«WARNING»: Requested 16 jobs exceeds available CPU cores (8).",
+    "warning": "«WARNING»: Requested 16 jobs exceeds the 8 logical CPUs: honored, but pays only for I/O-bound work.",
     "info": "INFO: Loaded 23 records.",
     "debug": "«DEBUG»: Resolved /etc/myapp/config.toml.",
     # Cloup-inherited help-screen slots: rendered by HelpFormatter on
