@@ -654,6 +654,12 @@ dependency-graph.all-groups = false
 # single `--extra all` box and the per-extra subgraphs render empty.
 dependency-graph.no-extras = [ "all" ]
 exclude = [ "workflows/debug.yaml" ]
+# Opt into the `agent` component, excluded by default because its first run
+# reorders a file the repository already maintains. That one-time merge is
+# done, so `sync-repomatic` now opens a pull request whenever an upstream
+# audience-tagged section changes. Untagged sections (the "click-extra house
+# rules" block, and everything below "Commands") are never touched.
+include = [ "agent" ]
 # Render the Click command tree as roff `.1` files and attach a
 # `click-extra-manpages.tar.gz` asset to every GitHub release. The script
 # target mirrors `click_extra_manpages` in `docs/conf.py`, so the release
