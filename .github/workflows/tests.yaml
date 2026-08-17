@@ -70,6 +70,10 @@ jobs:
       && !startsWith(github.event.head_commit.message || '', '[changelog] Bump major version to ')
       && !startsWith(github.event.head_commit.message || '', '[changelog] Bump minor version to ')
     runs-on: ubuntu-26.04
+    # Caps below GitHub's 6-hour default, so a hung job frees its runner in
+    # minutes. Sized off `repomatic job-timings`: this job's bucket medians
+    # ~1 min and peaks at ~3 min.
+    timeout-minutes: 15
     outputs:
       metadata: ${{ steps.metadata.outputs.metadata }}
     steps:
@@ -96,6 +100,7 @@ jobs:
     needs:
       - metadata
     runs-on: ubuntu-26.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -142,6 +147,7 @@ jobs:
     # couple PR status to external state.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-26.04
+    timeout-minutes: 15
     env:
       # The one job that opts out of the workflow-wide supply-chain cooldown, by
       # setting a zero-length window. Its subject IS the freshly published
@@ -222,6 +228,10 @@ jobs:
       Click ${{ matrix.click-version }} /
       Cloup ${{ matrix.cloup-version }}
     runs-on: ${{ matrix.os }}
+    # One cap for every cell, so it has to clear the slowest runner: `repomatic
+    # job-timings` puts macOS at a ~23 min median and a ~44 min worst case,
+    # against ~1 min on ubuntu-26.04-arm and ~3 min on windows-2025.
+    timeout-minutes: 60
     # We keep going when a job flagged as not stable fails.
     continue-on-error: ${{ matrix.state == 'unstable' }}
     steps:
