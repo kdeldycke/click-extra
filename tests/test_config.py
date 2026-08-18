@@ -346,6 +346,26 @@ PYPROJECT_TOML_FILE, PYPROJECT_TOML_DATA = (
     },
 )
 
+ARGFILE_FILE, ARGFILE_DATA = (
+    dedent(
+        """\
+        # Comment
+
+        --dummy-flag
+        --my-list pip
+        --my-list npm --my-list gem
+        --verbosity DEBUG
+        """,
+    ),
+    {
+        "config-cli1": {
+            "dummy_flag": True,
+            "my_list": ["pip", "npm", "gem"],
+            "verbosity": "DEBUG",
+        },
+    },
+)
+
 SQLITE_DATA = {
     "config-cli1": {
         "dummy_flag": True,
@@ -1099,6 +1119,212 @@ def test_conf_metadata_no_config(invoke):
     assert result.exit_code == 0
     assert "conf_source=MISSING" in result.stdout
     assert "conf_full=MISSING" in result.stdout
+
+
+def test_argfile_conf_file_overrides_defaults(
+    invoke,
+    simple_config_cli,
+    create_config,
+    assert_output_regex,
+):
+    """An argfile feeds CLI tokens into the same default_map pipeline."""
+    conf_path = create_config("configuration.conf", ARGFILE_FILE)
+
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default",
+        color=False,
+    )
+    # Subcommand options cannot be addressed from an argfile, so int_param
+    # keeps its default.
+    assert result.stdout == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 10\n"
+    )
+
+    # Debug level has been activated by the configuration file.
+    assert_output_regex(
+        result.stderr,
+        rf"Load configuration matching {re.escape(str(conf_path))}\n"
+        + default_debug_uncolored_logging
+        + default_debug_uncolored_version_details
+        + default_debug_uncolored_log_end,
+    )
+    assert result.exit_code == 0
+
+
+def test_argfile_conf_metadata(invoke, create_config):
+    @click.command
+    @config_option
+    @pass_context
+    def config_metadata(ctx):
+        echo(f"conf_source={ctx.meta['click_extra.conf_source']}")
+        echo(f"conf_full={ctx.meta['click_extra.conf_full']}")
+
+    conf_path = create_config(
+        "configuration.conf",
+        "--verbosity DEBUG\n--unknown-token some value\n",
+    )
+
+    result = invoke(config_metadata, "--config", str(conf_path))
+    assert result.stdout == (
+        f"conf_source={conf_path}\n"
+        "conf_full={'config-metadata': "
+        "{'verbosity': 'DEBUG', 'unknown_token': 'some'}}\n"
+    )
+    assert result.stderr == f"Load configuration matching {conf_path}\n"
+    assert result.exit_code == 0
+
+
+def test_argfile_cli_overrides_conf(invoke, create_config):
+    """Command-line parameters take precedence over argfile values."""
+
+    @click.command
+    @config_option
+    @option("--dummy-flag/--no-flag", default=True)
+    @option("--name", default="nobody")
+    def argfile_cli(dummy_flag, name):
+        echo(f"dummy_flag = {dummy_flag!r}")
+        echo(f"name = {name!r}")
+
+    conf_path = create_config(
+        "override.conf",
+        '--no-flag\n--name "from config"\n',
+    )
+
+    result = invoke(
+        argfile_cli,
+        "--config",
+        str(conf_path),
+        "--dummy-flag",
+        "--name",
+        "from CLI",
+        color=False,
+    )
+    assert result.stdout == "dummy_flag = True\nname = 'from CLI'\n"
+    assert result.exit_code == 0
+
+
+def test_argfile_secondary_flag_and_inline_value(invoke, create_config):
+    @click.command
+    @config_option
+    @option("--dummy-flag/--no-flag", default=True)
+    @option("--name", default="nobody")
+    @option("--ratio", type=float, default=1.0)
+    def argfile_cli(dummy_flag, name, ratio):
+        echo(f"dummy_flag = {dummy_flag!r}")
+        echo(f"name = {name!r}")
+        echo(f"ratio = {ratio!r}")
+
+    conf_path = create_config(
+        "secondary.conf",
+        "# A comment.\n--no-flag\n--name='John #1 Doe'\n--ratio=0.5\n",
+    )
+
+    result = invoke(argfile_cli, "--config", str(conf_path), color=False)
+    assert result.stdout == (
+        "dummy_flag = False\nname = 'John #1 Doe'\nratio = 0.5\n"
+    )
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("conf_text", "expect_error"),
+    [
+        pytest.param(
+            "--unknown-option some value\n--name ok\n",
+            True,
+            id="unknown-option-rejected",
+        ),
+        pytest.param("--name ok\n", False, id="clean-config-accepted"),
+    ],
+)
+def test_argfile_strict_conf(invoke, create_config, conf_text, expect_error):
+    """Strict mode rejects unknown options with the standard error."""
+
+    @click.command
+    @config_option(strict=True)
+    @option("--name", default="nobody")
+    def argfile_strict_cli(name):
+        echo(f"name = {name!r}")
+
+    conf_path = create_config("strict.conf", conf_text)
+    result = invoke(argfile_strict_cli, "--config", str(conf_path), color=False)
+
+    if expect_error:
+        assert result.exit_code == 1
+        assert not result.stdout
+        assert (
+            "Configuration validation error: "
+            "Unknown configuration key 'unknown_option'." in result.stderr
+        )
+    else:
+        assert result.exit_code == 0
+        assert result.stdout == "name = 'ok'\n"
+
+
+def test_argfile_unknown_option_ignored_when_not_strict(invoke, create_config):
+    @click.command
+    @config_option
+    @option("--name", default="nobody")
+    def argfile_lax_cli(name):
+        echo(f"name = {name!r}")
+
+    conf_path = create_config(
+        "lax.conf", "--unknown-option some value\n--name ok\n"
+    )
+    result = invoke(argfile_lax_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert result.stdout == "name = 'ok'\n"
+
+
+@pytest.mark.parametrize(
+    "conf_text",
+    [
+        pytest.param("--name\n", id="missing-value"),
+        pytest.param("# Only a comment.\n", id="comment-only"),
+        pytest.param("key = value\n", id="foreign-ini-style"),
+    ],
+)
+def test_argfile_unparseable_conf(invoke, create_config, conf_text):
+    """An argfile that produces no option is skipped like any other format."""
+
+    @command
+    @option("--name", default="nobody")
+    def argfile_cli(name):
+        echo(f"name = {name!r}")
+
+    conf_path = create_config("broken.conf", conf_text)
+    result = invoke(argfile_cli, "--config", str(conf_path), color=False)
+    assert not result.stdout
+    assert "critical: Error parsing file as" in result.stderr
+    assert result.exit_code == 2
+
+
+def test_argfile_positional_tokens_skipped(invoke, create_config):
+    @click.command
+    @config_option
+    @option("--name", default="nobody")
+    def argfile_cli(name):
+        echo(f"name = {name!r}")
+
+    conf_path = create_config("positionals.conf", "subcommand\n--name ok\n")
+    result = invoke(argfile_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert result.stdout == "name = 'ok'\n"
+
+
+def test_argfile_export_config_rejected(invoke):
+    """Argfile has no serializer, so --export-config rejects it."""
+
+    @command
+    def dump_cli():
+        echo("ran")
+
+    result = invoke(dump_cli, "--export-config", "argfile", color=False)
+    assert result.exit_code == 2
+    assert "'argfile' is not one of" in result.stderr
 
 
 @pytest.mark.parametrize("ext", ["sqlite", "sqlite3"])

@@ -443,7 +443,7 @@ default_config_file_pattern = (
     # pattern further down.
     r"\{\*\.toml,\*\.yaml,\*\.yml,\*\.json"
     r"(?:,\*\.json5)?(?:,\*\.jsonc)?"
-    r",\*\.hjson,\*\.ini,\*\.xml,\*\.sqlite,\*\.sqlite3,pyproject\.toml\}"
+    r",\*\.hjson,\*\.ini,\*\.xml,\*\.sqlite,\*\.sqlite3,\*\.conf,pyproject\.toml\}"
 )
 default_debug_uncolored_config = (
     rf"debug: Load configuration matching .+{default_config_file_pattern}\n"

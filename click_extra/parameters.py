@@ -517,6 +517,31 @@ class ParamStructure:
     """
 
     @staticmethod
+    def map_click_type(click_type: ParamType) -> type[str | int | float | bool | list]:
+        """Map a Click parameter type instance to its Python equivalent.
+
+        Returns `str` for unrecognised custom types, since command-line
+        parameters are strings by default.
+
+        See the list of
+        [custom types provided by Click](https://click.palletsprojects.com/en/stable/api/#types).
+        """
+        # Try to directly map the Click type to a Python type.
+        py_type = ParamStructure.TYPE_MAP.get(click_type.__class__)
+        if py_type is not None:
+            return py_type
+
+        # Try to indirectly map the type by looking at inheritance.
+        for param_type, mapped_type in ParamStructure.TYPE_MAP.items():
+            if isinstance(click_type, param_type):
+                return mapped_type
+
+        # Custom parameters are expected to convert from strings, as that's
+        # the default type of command lines.
+        # See: https://click.palletsprojects.com/en/stable/api/#click.ParamType
+        return str
+
+    @staticmethod
     def get_param_type(
         param: click.Parameter,
     ) -> type[str | int | float | bool | list]:
@@ -534,20 +559,7 @@ class ParamStructure:
         if hasattr(param, "is_bool_flag") and param.is_bool_flag:
             return bool
 
-        # Try to directly map the Click type to a Python type.
-        py_type = ParamStructure.TYPE_MAP.get(param.type.__class__)
-        if py_type is not None:
-            return py_type
-
-        # Try to indirectly map the type by looking at inheritance.
-        for click_type, py_type in ParamStructure.TYPE_MAP.items():
-            if isinstance(param.type, click_type):
-                return py_type
-
-        # Custom parameters are expected to convert from strings, as that's
-        # the default type of command lines.
-        # See: https://click.palletsprojects.com/en/stable/api/#click.ParamType
-        return str
+        return ParamStructure.map_click_type(param.type)
 
     def build_param_trees(self) -> dict[str, Any]:
         """Build and return the parameters tree structure.

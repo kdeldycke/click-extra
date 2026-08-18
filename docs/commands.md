@@ -872,10 +872,10 @@ Options:
                                [default: no-time]
   --config CONFIG_PATH         Location of the configuration file. Supports
                                local path with glob patterns or remote URL.
-                               [default: ~/Library/Application Support/wrap.py/
-                               {*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hj
-                               son,*.ini,*.xml,*.sqlite,*.sqlite3,pyproject.tom
-                               l}]
+                               [default: ~/Library/Application Support/wrap.py/{
+                               *.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjso
+                               n,*.ini,*.xml,*.sqlite,*.sqlite3,*.conf,pyproject
+                               .toml}]
   --no-config                  Ignore all configuration files and only use
                                command line parameters and environment
                                variables.

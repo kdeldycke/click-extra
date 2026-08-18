@@ -43,6 +43,7 @@ import copy
 import json
 import logging
 import os
+import shlex
 import sqlite3
 from collections import ChainMap
 from collections.abc import Iterable
@@ -942,6 +943,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             try:
                 if fmt is ConfigFormat.INI:
                     conf = self.load_ini_config(content)
+                elif fmt is ConfigFormat.ARGFILE:
+                    conf = self.load_argfile_config(content)
                 elif fmt is ConfigFormat.SQLITE:
                     if not isinstance(location, Path):
                         raise ValueError(
@@ -1161,6 +1164,146 @@ class ConfigOption(ExtraOption, ParamStructure):
             )
 
         return conf
+
+    def load_argfile_config(self, content: str) -> dict[str, Any]:
+        """Utility method to parse a plain-text argfile configuration file.
+
+        The file holds command-line tokens, one option per line, in the style of
+        `mpv`'s and `yt-dlp`'s configuration files:
+
+        ```{code-block} text
+        # Comments start with a hash sign.
+        --option-name some value
+        --flag
+        ```
+
+        Tokens are split with {func}`shlex.split`, so shell quoting rules apply
+        and a `#` starts a comment. Each option is matched against the CLI's
+        root-level parameter declarations, and its value is converted to the
+        parameter's Python type, like {meth}`load_ini_config` does. A boolean
+        flag needs no value: its primary declaration sets it to `True`, its
+        secondary one (`--no-*`) to `False`. An option flagged `multiple`
+        accumulates one list item per occurrence. Unknown options are kept
+        under a normalized key so the strict check can reject them like any
+        other unrecognized configuration key, while positional tokens are
+        skipped; subcommand options cannot be addressed from an argfile.
+
+        Returns a ready-to-use data structure, wrapped in the app's section
+        name like the `[my-cli]` section of the other formats.
+
+        :raises ValueError: the content cannot be tokenized, or an option is
+            missing its value.
+        """
+        tokens = shlex.split(content, comments=True)
+
+        # Map each option declaration, primary and secondary, to its parameter.
+        # Only root-level options are reachable from an argfile: subcommand
+        # subtrees of the parameter structure are skipped.
+        app_name = self._app_section_name(get_current_context())
+        root_params = self.params_objects.get(app_name, {})
+        primary_decls: dict[str, click.Parameter] = {}
+        secondary_decls: dict[str, click.Parameter] = {}
+        for leaf in root_params.values():
+            if not isinstance(leaf, list):
+                continue
+            for param in leaf:
+                for decl in getattr(param, "opts", ()):
+                    primary_decls[decl] = param
+                for decl in getattr(param, "secondary_opts", ()):
+                    secondary_decls[decl] = param
+
+        def store(param: click.Parameter, value: Any) -> None:
+            assert param.name is not None
+            if param.multiple:
+                conf.setdefault(param.name, []).append(value)
+            else:
+                conf[param.name] = value
+
+        def convert(param: click.Parameter, decl: str, raw_value: str) -> Any:
+            target_type = (
+                ParamStructure.map_click_type(param.type)
+                if param.multiple
+                else self.get_param_type(param)
+            )
+            try:
+                if target_type is bool:
+                    # Mirror configparser's getboolean() accepted spellings.
+                    lowered = raw_value.strip().lower()
+                    if lowered in ("1", "yes", "true", "on"):
+                        return True
+                    if lowered in ("0", "no", "false", "off"):
+                        return False
+                    raise ValueError(f"not a boolean: {raw_value!r}")
+                if target_type is int:
+                    return int(raw_value)
+                if target_type is float:
+                    return float(raw_value)
+                if target_type in (list, tuple, set, frozenset, dict):
+                    return json.loads(raw_value)
+                if target_type in (None, str):
+                    return raw_value
+            except (ValueError, json.JSONDecodeError) as ex:
+                raise ValueError(
+                    f"Cannot convert {decl} value {raw_value!r} to "
+                    f"{target_type} type."
+                ) from ex
+            raise ValueError(
+                f"Cannot handle the conversion of {decl} value {raw_value!r} "
+                f"to {target_type} type."
+            )
+
+        conf: dict[str, Any] = {}
+        index = 0
+        while index < len(tokens):
+            token = tokens[index]
+            index += 1
+
+            # Positional arguments and subcommand names have no place in an
+            # argfile: the structureless format cannot address them.
+            if not token.startswith("-"):
+                logger.debug(f"Skip positional token {token!r}: not supported.")
+                continue
+
+            decl, _, inline_value = token.partition("=")
+
+            # A secondary declaration (--no-*) unambiguously sets its boolean
+            # flag to False and never consumes a value.
+            param = secondary_decls.get(decl)
+            if param is not None:
+                store(param, False)
+                continue
+
+            param = primary_decls.get(decl)
+            if param is None:
+                # Keep the unknown entry under its normalized key so the strict
+                # check rejects it with the standard error message, instead of
+                # failing the whole parse.
+                key = decl.lstrip("-").replace("-", "_")
+                value: Any = True
+                if index < len(tokens) and not tokens[index].startswith("-"):
+                    value = tokens[index]
+                    index += 1
+                conf[key] = value
+                logger.debug(f"Unknown option {decl!r} kept as {key!r}.")
+                continue
+
+            # Flags carry their value in the declaration itself.
+            if getattr(param, "is_flag", False):
+                store(param, param.flag_value)
+                continue
+
+            if "=" in token:
+                raw_value = inline_value
+            elif index < len(tokens):
+                raw_value = tokens[index]
+                index += 1
+            else:
+                raise ValueError(f"Option {decl} is missing its value.")
+            store(param, convert(param, decl, raw_value))
+
+        if not conf:
+            return conf
+        return {app_name: conf} if app_name else conf
 
     def load_sqlite_config(self, path: Path) -> dict[str, Any]:
         """Utility method to parse a SQLite configuration database.
@@ -1849,8 +1992,8 @@ class ExportConfigOption(ExtraOption):
     ```{note}
     The accepted formats are those
     {func}`~click_extra.config.formats.serialize_content` can write
-    ({data}`~click_extra.config.formats.SERIALIZABLE_FORMATS`). `INI` and
-    `pyproject.toml` have no serializer and cannot be dumped.
+    ({data}`~click_extra.config.formats.SERIALIZABLE_FORMATS`). `INI`,
+    `Argfile` and `pyproject.toml` have no serializer and cannot be dumped.
     ```
     """
 

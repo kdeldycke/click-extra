@@ -25,8 +25,8 @@ This module is imported early in the package's import graph
 ({mod}`~click_extra.table` reaches it before the
 {mod}`~click_extra.parameters` / {mod}`~click_extra.context` chain has
 settled), so it takes no top-level import from `click_extra` itself. A format
-whose parsing needs the CLI structure or a binary file, like `INI` and
-`SQLITE`, lives as a `ConfigOption` method in
+whose parsing needs the CLI structure or a binary file, like `INI`, `ARGFILE`
+and `SQLITE`, lives as a `ConfigOption` method in
 {mod}`~click_extra.config.option` instead of here.
 ```
 """
@@ -116,6 +116,7 @@ class ConfigFormat(Enum):
     INI = (("*.ini",), True, "INI")
     XML = (("*.xml",), PARSER_SUPPORT["xml"], "XML")
     SQLITE = (("*.sqlite", "*.sqlite3"), True, "SQLite")
+    ARGFILE = (("*.conf",), True, "Argfile")
     PYPROJECT_TOML = (("pyproject.toml",), True, "pyproject.toml")
 
     def __str__(self) -> str:
@@ -149,7 +150,9 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
     """Parse content with a single stateless format.
 
     INI is excluded: it needs the CLI parameter structure for type
-    coercion and is handled by ConfigOption.load_ini_config. SQLITE is
+    coercion and is handled by ConfigOption.load_ini_config. ARGFILE is
+    excluded for the same reason: it maps command-line tokens to the CLI's
+    parameters and is handled by ConfigOption.load_argfile_config. SQLITE is
     excluded too: it is a binary format, read from its file path by
     ConfigOption.load_sqlite_config instead of a text payload.
 
@@ -210,8 +213,8 @@ SERIALIZABLE_FORMATS: tuple[ConfigFormat, ...] = (
 """Configuration formats {func}`serialize_content` can write, in priority order.
 
 Every {class}`ConfigFormat` except {attr}`~ConfigFormat.INI`,
-{attr}`~ConfigFormat.SQLITE` and {attr}`~ConfigFormat.PYPROJECT_TOML`, which
-have no serializer. `JSON`,
+{attr}`~ConfigFormat.SQLITE`, {attr}`~ConfigFormat.ARGFILE` and
+{attr}`~ConfigFormat.PYPROJECT_TOML`, which have no serializer. `JSON`,
 `JSON5` and `JSONC` are emitted as plain JSON through the standard library,
 so they need no optional dependency; the others require their format's extra.
 

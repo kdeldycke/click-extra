@@ -66,7 +66,7 @@ result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
 
-See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.sqlite,*.sqlite3,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.sqlite,*.sqlite3,*.conf,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -508,7 +508,7 @@ An unparsable file produces exit code 2:
 ```{code-block} shell-session
 :emphasize-lines: 2,4
 $ my-cli --validate-config garbage.txt
-Error parsing garbage.txt as TOML, YAML, JSON, INI, XML, SQLite or pyproject.toml.
+Error parsing garbage.txt as TOML, YAML, JSON, INI, XML, SQLite, Argfile or pyproject.toml.
 $ echo $?
 2
 ```
@@ -570,7 +570,7 @@ Redirect the output to your configuration file to persist it:
 $ weather --city Oslo --export-config toml > ~/.config/weather/config.toml
 ```
 
-The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini`, `sqlite` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
+The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini`, `sqlite`, `argfile` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
 
 Exported keys use the canonical kebab-case spelling (see [Key spelling](#key-spelling)), so the generated file reads like the CLI flags it mirrors.
 
@@ -1141,11 +1141,12 @@ Several dialects are supported:
 | [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
 | [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
 | [`SQLITE`](#sqlite)                 | `*.sqlite`, `*.sqlite3` | Reads a `config` table of dotted keys and JSON-encoded values                       | ✅                 |
+| [`ARGFILE`](#argfile)               | `*.conf`          | Plain-text list of command-line options, in the style of `mpv` and `yt-dlp`            | ✅                 |
 | [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]`{l=toml}{l=toml} sections from `pyproject.toml`                           | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#extra-dependencies) to enable them.
 
-Every supported format expresses the same configuration. Here is the `my-cli` section from the [example above](#standalone-option), written in each one: they all set the same defaults and produce the same result.
+Every supported format expresses the same configuration. Here is the `my-cli` section from the [example above](#standalone-option), written in each one: they all set the same defaults and produce the same result. The one exception is [`ARGFILE`](#argfile), which cannot reach a subcommand's options and is shown on its own below.
 
 `````{tab-set}
 
@@ -1345,6 +1346,32 @@ The root element is the CLI's name. A repeated element (like `my_list` above) is
 
 `SQLITE` is read-only: it cannot be produced by [`--export-config`](#exporting-the-configuration), and a database fetched over `http://` or `https://` is skipped.
 
+### Argfile
+
+`ARGFILE` is enabled by default, and needs no extra dependency. The file is a plain-text list of command-line options, one per line, in the style of [`mpv`](https://mpv.io/manual/stable/#configuration-files) and [`yt-dlp`](https://github.com/yt-dlp/yt-dlp#configuration) configuration files. Each line is written exactly as it would be typed on the command line, and comments start with a hash sign (`#`):
+
+```{code-block} text
+:caption: `~/.config/my-cli/my-cli.conf`
+# Print more details.
+--verbose
+
+# Repeat the operation three times, in French.
+--count 3
+--language fr
+
+# A list is fed one item per occurrence.
+--my-list pip
+--my-list npm
+```
+
+Both the `--option value` and `--option=value` spellings are supported, and shell quoting rules apply, so a value containing spaces or a `#` is wrapped in quotes. A boolean flag takes no value: `--flag` sets it, and its `--no-flag` counterpart unsets it.
+
+```{note}
+An argfile can only address the options of the CLI's top-level command: the format has no section syntax with which to reach a subcommand's own options, and positional arguments are skipped.
+```
+
+`ARGFILE` is read-only: it cannot be produced by [`--export-config`](#exporting-the-configuration).
+
 ### `pyproject.toml`
 
 The `PYPROJECT_TOML` format reads `[tool.<cli-name>]`{l=toml} sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata: not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
@@ -1455,7 +1482,7 @@ By default, the pattern is `<app_dir>/{*.toml,*.json,*.ini}`, where:
 - `{*.toml,*.json,*.ini}` are the [extensions of formats](#formats) enabled by default, wrapped in brace-expansion syntax
 
 ```{hint}
-Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.sqlite,*.sqlite3,pyproject.toml}`.
+Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.sqlite,*.sqlite3,*.conf,pyproject.toml}`.
 ```
 
 ```{tip}
@@ -2004,7 +2031,7 @@ If no `config_schema` was set, `get_tool_config()` returns `None`. When a `confi
 
 ### Format-agnostic
 
-The `config_schema` feature works with all configuration formats supported by `ConfigOption`: TOML, YAML, JSON, JSON5, JSONC, Hjson, INI, and XML. The parsed configuration is normalized into a Python dict before the schema is applied, so the same schema works regardless of the source format.
+The `config_schema` feature works with all configuration formats supported by `ConfigOption`: TOML, YAML, JSON, JSON5, JSONC, Hjson, INI, XML, SQLite and Argfile. The parsed configuration is normalized into a Python dict before the schema is applied, so the same schema works regardless of the source format.
 
 For example, the same `AppConfig` dataclass works with YAML:
 

@@ -94,6 +94,7 @@
 - Render Flask's help through the wrapper on the CLI wrapper page, and illustrate the readme's wrapper entries with the captures it maintains.
 - Extend the themes capture to a second palette, so it shows what `--theme` does to the same help screen, and illustrate the readme's theme entry with it.
 - Add a `sqlite` configuration file format, reading a `config` table of dotted keys and JSON-encoded values from `*.sqlite` and `*.sqlite3` databases with the built-in `sqlite3` module. Closes [#124](https://github.com/kdeldycke/click-extra/issues/124).
+- Add an `argfile` configuration file format, reading `*.conf` files as a plain-text list of command-line options, one per line, in the style of `mpv` and `yt-dlp`. Closes [#340](https://github.com/kdeldycke/click-extra/issues/340).
 - Change `--jobs` to count the host with `os.process_cpu_count()` on Python 3.13+, honoring a container's cgroup quota and CPU affinity, with a fallback to `os.cpu_count()` on older runtimes.
 - Change the `--jobs` default (`auto`) to use both logical CPUs on a two-CPU host instead of silently running sequentially: the one-core reservation now applies only to hosts with three CPUs or more.
 - Illustrate how the `--jobs` default, `auto` and `max` resolve across CPU arrangements in a table on the parallel-jobs page, from single-CPU containers to quota-limited ones.
