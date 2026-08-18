@@ -43,6 +43,7 @@ import copy
 import json
 import logging
 import os
+import plistlib
 import shlex
 import sqlite3
 from collections import ChainMap
@@ -903,9 +904,12 @@ class ConfigOption(ExtraOption, ParamStructure):
                         logger.debug(f"Skipping non-file {file_path}")
                         continue
                     files_found += 1
-                    if format_from_path(file_path, (ConfigFormat.SQLITE,)):
-                        # A SQLite database is binary: it is read from its path
-                        # by load_sqlite_config(), not from a text payload.
+                    if format_from_path(
+                        file_path, (ConfigFormat.SQLITE, ConfigFormat.PLIST)
+                    ):
+                        # SQLite databases and binary plists are read from
+                        # their path, not from a text payload: see
+                        # load_sqlite_config() and load_plist_config().
                         yield file_path, ""
                     else:
                         yield file_path, file_path.read_text(encoding="utf-8")
@@ -927,7 +931,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         `location` is the path the `content` was read from. It is only needed
         by formats that cannot be parsed from a text payload, like `SQLITE`,
-        which is read straight from its file. Such formats are skipped when
+        which is read straight from its file, and the binary variant of
+        `PLIST`, which only exists on disk. Such formats are skipped when
         `location` is missing or is not a local file.
 
         ```{attention}
@@ -951,6 +956,11 @@ class ConfigOption(ExtraOption, ParamStructure):
                             "SQLite configurations can only be read from a local file."
                         )
                     conf = self.load_sqlite_config(location)
+                elif fmt is ConfigFormat.PLIST and isinstance(location, Path):
+                    # Local files are read as raw bytes so the binary plist
+                    # variant parses too; text payloads (URL downloads) fall
+                    # through to parse_content(), which handles the XML one.
+                    conf = self.load_plist_config(location)
                 else:
                     conf = parse_content(fmt, content)
 
@@ -1334,6 +1344,21 @@ class ConfigOption(ExtraOption, ParamStructure):
                 ),
             )
 
+        return conf
+
+    def load_plist_config(self, path: Path) -> dict[str, Any]:
+        """Utility method to parse a `plist` configuration file.
+
+        The file is read as raw bytes and handed to the standard library's
+        {mod}`plistlib`, which transparently decodes both the XML and the
+        binary variants of the format. The XML variant also parses from a
+        text payload through
+        {func}`~click_extra.config.formats.parse_content`, which is how a
+        `plist` fetched over `http://` or `https://` is loaded.
+
+        Returns a ready-to-use data structure.
+        """
+        conf: dict[str, Any] = plistlib.loads(path.read_bytes())
         return conf
 
     def _app_section_name(self, ctx: click.Context) -> str:
@@ -1846,7 +1871,7 @@ _EXPORT_FORMAT_BY_TOKEN: dict[str, ConfigFormat] = {
 Built from {data}`~click_extra.config.formats.SERIALIZABLE_FORMATS`, so the
 accepted tokens are exactly the formats
 {func}`~click_extra.config.formats.serialize_content` can write: `toml`,
-`yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`.
+`yaml`, `json`, `json5`, `jsonc`, `hjson`, `xml` and `plist`.
 """
 
 
@@ -2117,6 +2142,10 @@ class ExportConfigOption(ExtraOption):
             # TOML cannot hold nulls: unset parameters are commented out.
             if fmt is ConfigFormat.TOML:
                 output = _serialize_toml_with_unset(tree)
+            elif fmt is ConfigFormat.PLIST:
+                # plist has no null type either, and plistlib raises on None
+                # values: unset parameters are dropped from the export.
+                output = serialize_content(fmt, _remove_blanks(tree, remove_str=False))
             else:
                 output = serialize_content(fmt, tree)
         except ImportError:

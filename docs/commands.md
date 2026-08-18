@@ -874,8 +874,8 @@ Options:
                                local path with glob patterns or remote URL.
                                [default: ~/Library/Application Support/wrap.py/{
                                *.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjso
-                               n,*.ini,*.xml,*.sqlite,*.sqlite3,*.conf,pyproject
-                               .toml}]
+                               n,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,p
+                               yproject.toml}]
   --no-config                  Ignore all configuration files and only use
                                command line parameters and environment
                                variables.

@@ -36,6 +36,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import logging
+import plistlib
 import sys
 from enum import Enum
 from fnmatch import fnmatch
@@ -115,6 +116,7 @@ class ConfigFormat(Enum):
     HJSON = (("*.hjson",), PARSER_SUPPORT["hjson"], "Hjson")
     INI = (("*.ini",), True, "INI")
     XML = (("*.xml",), PARSER_SUPPORT["xml"], "XML")
+    PLIST = (("*.plist",), True, "plist")
     SQLITE = (("*.sqlite", "*.sqlite3"), True, "SQLite")
     ARGFILE = (("*.conf",), True, "Argfile")
     PYPROJECT_TOML = (("pyproject.toml",), True, "pyproject.toml")
@@ -156,6 +158,10 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
     excluded too: it is a binary format, read from its file path by
     ConfigOption.load_sqlite_config instead of a text payload.
 
+    `PLIST` parses here from its XML variant, the only one expressible as a
+    text payload; the binary variant is read from its file path by
+    ConfigOption.load_plist_config.
+
     ```{note}
     Optional third-party parsers are imported lazily, at the point of use,
     rather than at module load. Only enabled formats reach this function
@@ -195,6 +201,9 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
 
             return xmltodict.parse(content)
 
+        case ConfigFormat.PLIST:
+            return plistlib.loads(content.encode("utf-8"))
+
         case ConfigFormat.PYPROJECT_TOML:
             return tomllib.loads(content).get("tool", {})
 
@@ -209,14 +218,16 @@ SERIALIZABLE_FORMATS: tuple[ConfigFormat, ...] = (
     ConfigFormat.JSONC,
     ConfigFormat.HJSON,
     ConfigFormat.XML,
+    ConfigFormat.PLIST,
 )
 """Configuration formats {func}`serialize_content` can write, in priority order.
 
 Every {class}`ConfigFormat` except {attr}`~ConfigFormat.INI`,
 {attr}`~ConfigFormat.SQLITE`, {attr}`~ConfigFormat.ARGFILE` and
 {attr}`~ConfigFormat.PYPROJECT_TOML`, which have no serializer. `JSON`,
-`JSON5` and `JSONC` are emitted as plain JSON through the standard library,
-so they need no optional dependency; the others require their format's extra.
+`JSON5` and `JSONC` are emitted as plain JSON and `PLIST` through
+{mod}`plistlib`, all from the standard library, so they need no optional
+dependency; the others require their format's extra.
 
 ```{caution}
 Keep this in sync with the `match` statement in {func}`serialize_content`.
@@ -232,10 +243,11 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
     and JSONC are emitted as plain JSON, a valid subset of both.
 
     ```{caution}
-    Not every format round-trips: `TOML` and `XML` have no null type, and
-    `XML` expects a single root mapping, so the caller is responsible for
-    shaping `data` accordingly. `INI`, `SQLITE` and `pyproject.toml` have no
-    serializer here.
+    Not every format round-trips: `TOML`, `XML` and `PLIST` have no null
+    type (`plistlib` even raises on `None` values), and `XML` expects a
+    single root mapping, so the caller is responsible for shaping `data`
+    accordingly. `INI`, `SQLITE` and `pyproject.toml` have no serializer
+    here.
     ```
 
     ```{note}
@@ -285,6 +297,8 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
                 },
             )
             return result + "\n"
+        case ConfigFormat.PLIST:
+            return plistlib.dumps(data, **kwargs).decode("utf-8") + "\n"
     raise ValueError(f"{fmt!r} is not handled by serialize_content().")
 
 

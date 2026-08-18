@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import plistlib
 import re
 import sqlite3
 import sys
@@ -317,6 +318,64 @@ XML_FILE, XML_DATA = (
     },
 )
 
+PLIST_FILE, PLIST_DATA = (
+    dedent(
+        """\
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <!-- Comment -->
+        <dict>
+            <key>top_level_param</key>
+            <string>to_ignore</string>
+
+            <key>config-cli1</key>
+            <dict>
+                <key>verbosity</key>
+                <string>DEBUG</string>
+                <key>blahblah</key>
+                <integer>234</integer>
+                <key>dummy_flag</key>
+                <true/>
+                <key>my_list</key>
+                <array>
+                    <string>pip</string>
+                    <string>npm</string>
+                    <string>gem</string>
+                </array>
+
+                <key>default</key>
+                <dict>
+                    <key>int_param</key>
+                    <integer>3</integer>
+                    <key>random_stuff</key>
+                    <string>will be ignored</string>
+                </dict>
+            </dict>
+
+            <key>garbage</key>
+            <dict/>
+        </dict>
+        </plist>
+        """,
+    ),
+    {
+        "top_level_param": "to_ignore",
+        "config-cli1": {
+            "verbosity": "DEBUG",
+            "blahblah": 234,
+            "dummy_flag": True,
+            "my_list": ["pip", "npm", "gem"],
+            "default": {
+                "int_param": 3,
+                "random_stuff": "will be ignored",
+            },
+        },
+        "garbage": {},
+    },
+)
+
 PYPROJECT_TOML_FILE, PYPROJECT_TOML_DATA = (
     dedent("""\
         [build-system]
@@ -428,6 +487,7 @@ all_config_formats = pytest.mark.parametrize(
             ("json", JSON_FILE, JSON_DATA),
             ("ini", INI_FILE, INI_DATA),
             ("xml", XML_FILE, XML_DATA),
+            ("plist", PLIST_FILE, PLIST_DATA),
         )
     ],
 )
@@ -857,6 +917,12 @@ def test_export_config_includes_unset_params(invoke):
     assert result.exit_code == 0
     assert '"tag": []' in result.stdout
     assert '"regexp": null' in result.stdout
+
+    result = invoke(unset_cli, "--export-config", "plist", color=False)
+    assert result.exit_code == 0
+    assert "<key>tag</key>" in result.stdout
+    # plist has no null type: the unset parameter is dropped from the export.
+    assert "regexp" not in result.stdout
 
 
 def test_export_config_kebab_case_keys(invoke, tmp_path):
@@ -1408,6 +1474,57 @@ def test_sqlite_conf_unparsable(invoke, simple_config_cli, tmp_path, make_db):
     )
     assert result.exit_code == 2
     assert "critical: Error parsing file as" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "plist_variant",
+    [
+        pytest.param(plistlib.FMT_XML, id="xml"),
+        pytest.param(plistlib.FMT_BINARY, id="binary"),
+    ],
+)
+def test_plist_conf_file_overrides_defaults(
+    invoke,
+    simple_config_cli,
+    assert_output_regex,
+    tmp_path,
+    plist_variant,
+):
+    """Both the XML and the binary plist variants load through --config."""
+    conf_path = tmp_path / "configuration.plist"
+    conf_path.write_bytes(plistlib.dumps(PLIST_DATA, fmt=plist_variant))
+
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default",
+        color=False,
+    )
+    assert result.stdout == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+    )
+
+    # Debug level has been activated by the configuration file.
+    assert_output_regex(
+        result.stderr,
+        rf"Load configuration matching {re.escape(str(conf_path))}\n"
+        + default_debug_uncolored_logging
+        + default_debug_uncolored_version_details
+        + default_debug_uncolored_log_end,
+    )
+    assert result.exit_code == 0
+
+
+def test_plist_read_and_parse_conf(tmp_path):
+    """The default format patterns discover plist files by extension."""
+    conf_path = tmp_path / "my-cli.plist"
+    conf_path.write_bytes(plistlib.dumps(PLIST_DATA, fmt=plistlib.FMT_BINARY))
+
+    conf_option = ConfigOption()
+    location, conf = conf_option.read_and_parse_conf(str(tmp_path / "*"))
+    assert location == conf_path.resolve()
+    assert conf == PLIST_DATA
 
 
 def test_validate_config_sqlite_valid(invoke, tmp_path):
@@ -3017,7 +3134,7 @@ def test_export_config_numeric_values_keep_their_type(invoke):
     assert 'count = "7"' not in result.stdout
 
 
-@pytest.mark.parametrize("fmt", ["toml", "json", "yaml"])
+@pytest.mark.parametrize("fmt", ["toml", "json", "yaml", "plist"])
 def test_export_config_round_trip(invoke, tmp_path, fmt):
     """A dumped configuration reloads to the same values through --config."""
 

@@ -66,7 +66,7 @@ result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
 
-See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.sqlite,*.sqlite3,*.conf,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -508,7 +508,7 @@ An unparsable file produces exit code 2:
 ```{code-block} shell-session
 :emphasize-lines: 2,4
 $ my-cli --validate-config garbage.txt
-Error parsing garbage.txt as TOML, YAML, JSON, INI, XML, SQLite, Argfile or pyproject.toml.
+Error parsing garbage.txt as TOML, YAML, JSON, INI, XML, plist, SQLite, Argfile or pyproject.toml.
 $ echo $?
 2
 ```
@@ -570,7 +570,7 @@ Redirect the output to your configuration file to persist it:
 $ weather --city Oslo --export-config toml > ~/.config/weather/config.toml
 ```
 
-The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson` and `xml`. `ini`, `sqlite`, `argfile` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
+The accepted formats are the ones click-extra can serialize: `toml`, `yaml`, `json`, `json5`, `jsonc`, `hjson`, `xml` and `plist`. `ini`, `sqlite`, `argfile` and `pyproject.toml` have no serializer and cannot be exported. A format whose optional dependency is missing exits with code 1 and an install hint.
 
 Exported keys use the canonical kebab-case spelling (see [Key spelling](#key-spelling)), so the generated file reads like the CLI flags it mirrors.
 
@@ -1140,6 +1140,7 @@ Several dialects are supported:
 | [`HJSON`](#hjson)                   | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
 | [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
 | [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
+| [`plist`](#plist)                   | `*.plist`         | Apple's property list, in its XML or binary variant                                       | ✅                 |
 | [`SQLITE`](#sqlite)                 | `*.sqlite`, `*.sqlite3` | Reads a `config` table of dotted keys and JSON-encoded values                       | ✅                 |
 | [`ARGFILE`](#argfile)               | `*.conf`          | Plain-text list of command-line options, in the style of `mpv` and `yt-dlp`            | ✅                 |
 | [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]`{l=toml}{l=toml} sections from `pyproject.toml`                           | ✅                 |
@@ -1282,6 +1283,38 @@ random_stuff = will be ignored
 ```
 ````
 
+````{tab-item} plist
+```{code-block} xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>my-cli</key>
+  <dict>
+    <key>extra_value</key>
+    <string>is ignored too</string>
+    <key>dummy_flag</key>
+    <true/>
+    <key>my_list</key>
+    <array>
+      <string>item 1</string>
+      <string>item #2</string>
+      <string>Very Last Item!</string>
+    </array>
+    <key>subcommand</key>
+    <dict>
+      <key>int_param</key>
+      <integer>3</integer>
+      <key>random_stuff</key>
+      <string>will be ignored</string>
+    </dict>
+  </dict>
+</dict>
+</plist>
+```
+````
+
 ````{tab-item} SQLite
 ```{code-block} sql
 CREATE TABLE config (key TEXT PRIMARY KEY, value TEXT);
@@ -1339,6 +1372,12 @@ INSERT INTO config VALUES
 ```
 
 The root element is the CLI's name. A repeated element (like `my_list` above) is collected into a list, and every value is read as a string, then coerced to its matching parameter's type.
+
+### plist
+
+`plist` is enabled by default, and read through Python's built-in [`plistlib`](https://docs.python.org/3/library/plistlib.html) module, so no extra dependency is needed. Both the XML and the binary variants of the format are supported, but a `plist` fetched over `http://` or `https://` is only parsed in its XML variant, as remote content is downloaded as text. The root of the property list is a dictionary, with the same top-level sections as every other format.
+
+[`--export-config`](#exporting-the-configuration) writes the XML variant, and drops parameters without a value from the export, as `plist` has no null type.
 
 ### SQLite
 
@@ -1482,7 +1521,7 @@ By default, the pattern is `<app_dir>/{*.toml,*.json,*.ini}`, where:
 - `{*.toml,*.json,*.ini}` are the [extensions of formats](#formats) enabled by default, wrapped in brace-expansion syntax
 
 ```{hint}
-Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.sqlite,*.sqlite3,*.conf,pyproject.toml}`.
+Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyproject.toml}`.
 ```
 
 ```{tip}
@@ -2031,7 +2070,7 @@ If no `config_schema` was set, `get_tool_config()` returns `None`. When a `confi
 
 ### Format-agnostic
 
-The `config_schema` feature works with all configuration formats supported by `ConfigOption`: TOML, YAML, JSON, JSON5, JSONC, Hjson, INI, XML, SQLite and Argfile. The parsed configuration is normalized into a Python dict before the schema is applied, so the same schema works regardless of the source format.
+The `config_schema` feature works with all configuration formats supported by `ConfigOption`: TOML, YAML, JSON, JSON5, JSONC, Hjson, INI, XML, plist, SQLite and Argfile. The parsed configuration is normalized into a Python dict before the schema is applied, so the same schema works regardless of the source format.
 
 For example, the same `AppConfig` dataclass works with YAML:
 

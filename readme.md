@@ -122,6 +122,7 @@ And every CLI gets these on top:
   - `JSON`, `JSON5`, `JSONC` and `HJSON`
   - `INI`, with extended interpolation, multi-level sections and non-native types (`list`, `set`, …)
   - `XML`
+  - `plist`, in both its XML and binary variants
 - Automatic [`pyproject.toml` integration](https://kdeldycke.github.io/click-extra/config.html#dotted-keys): the CLI reads its `[tool.<cli>]` section from the user's project file, including a CWD-aware walk that skips unrelated `pyproject.toml` files
 - [Inference of the configuration file structure](https://kdeldycke.github.io/click-extra/config.html#standalone-option) from your CLI's options, with optional [dataclass schema typing](https://kdeldycke.github.io/click-extra/config.html#schema-only-configuration) so values arrive parsed and validated
 - Remote loading of [configuration from URLs](https://kdeldycke.github.io/click-extra/config.html#remote-url)
