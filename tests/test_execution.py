@@ -666,7 +666,7 @@ def test_two_core_default_uses_both_cpus():
 
 def test_none_cpu_count_default():
     """DEFAULT_JOBS is 1 when cpu_count returns None."""
-    cpu_count = None
+    cpu_count: int | None = None
     assert (cpu_count - 1 if cpu_count and cpu_count >= 3 else (cpu_count or 1)) == 1
 
 

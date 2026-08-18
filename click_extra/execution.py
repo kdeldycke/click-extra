@@ -97,7 +97,7 @@ def _logical_cpu_count() -> int | None:
     process-aware count is unavailable.
     """
     if hasattr(os, "process_cpu_count"):
-        count = os.process_cpu_count()
+        count: int | None = os.process_cpu_count()
         if count is not None:
             return count
     return os.cpu_count()

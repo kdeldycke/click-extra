@@ -1299,7 +1299,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
             # Flags carry their value in the declaration itself.
             if getattr(param, "is_flag", False):
-                store(param, param.flag_value)
+                store(param, getattr(param, "flag_value", True))
                 continue
 
             if "=" in token:
