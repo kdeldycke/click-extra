@@ -49,6 +49,8 @@
 - Fix `wrap --help-format carapace` naming the spec after the script path, producing one that binds to nothing.
 - Split the machine-readable renderings out of the man page documentation into their own page, aimed at the tools and models that read a CLI they did not write, and move the `examples=` guide beside the other command-authoring options.
 - Name every `wrap` rendering after the name its target runs under, so a man page, a spec, a Markdown document and a tree can no longer disagree.
+- Add `:show-prompt:` and `:hide-prompt:` options to the `click:run` Sphinx directive, drawing or dropping the invocation above the output it produced.
+- Render a `click:run` block's environment variables as assignments on the invocation (`$ WEATHER_UNITS=fahrenheit weather Paris`) instead of a separate `$ export` line, matching how the runner scopes them.
 - Fix options computing their help from the context (`-v`, `-q`) rendering blank in man pages and `--params`.
 - Fix a `--theme` resolved from the environment, or typed after `--help`, not reaching the screens that render and exit.
 - Fix `--color=always` leaving a wrapped CLI uncolored when its commands come from plain `@click.command()` decorators.

@@ -1099,6 +1099,125 @@ def test_clickrunner_keeps_a_multi_word_prog_name(monkeypatch):
     assert lines[1] == "parent child"
 
 
+def test_clickrunner_prompt_inlines_environment_assignments(monkeypatch):
+    """Variables are set on the invocation, the way the runner applies them.
+
+    `CliRunner` scopes `env` to the one call, so an `export` line would advertise
+    a persistence the next block does not inherit.
+    """
+    monkeypatch.setenv("FORCE_COLOR", "0")
+
+    @click.command()
+    def forecast():
+        click.echo("18 degrees.")
+
+    lines: list[str] = []
+    ClickRunner().invoke(
+        forecast,
+        env={"WEATHER_UNITS": "celsius", "WEATHER_CITY": "Paris"},
+        _output_lines=lines,
+    )
+    assert lines[0] == "$ WEATHER_CITY=Paris WEATHER_UNITS=celsius forecast"
+
+
+def test_clickrunner_prompt_quotes_a_spaced_argument(monkeypatch):
+    """An argument holding spaces stays the single token a reader must type."""
+    monkeypatch.setenv("FORCE_COLOR", "0")
+
+    @click.command()
+    @click.option("--city")
+    def forecast(city):
+        click.echo(city)
+
+    lines: list[str] = []
+    ClickRunner().invoke(
+        forecast,
+        args=["--city", "Rio de Janeiro"],
+        _output_lines=lines,
+    )
+    assert lines[0] == "$ forecast --city 'Rio de Janeiro'"
+
+
+def test_clickrunner_hide_prompt_drops_the_invocation(monkeypatch):
+    """`_show_prompt=False` leaves the output alone and drops the line above it."""
+    monkeypatch.setenv("FORCE_COLOR", "0")
+
+    @click.command()
+    def forecast():
+        click.echo("18 degrees.")
+
+    lines: list[str] = []
+    ClickRunner().invoke(
+        forecast,
+        env={"WEATHER_UNITS": "celsius"},
+        _output_lines=lines,
+        _show_prompt=False,
+    )
+    assert lines == ["18 degrees."]
+
+
+@pytest.mark.parametrize(
+    ("options", "prompted"),
+    (
+        pytest.param("", True, id="default"),
+        pytest.param(":show-prompt:\n", True, id="show-prompt"),
+        pytest.param(":hide-prompt:\n", False, id="hide-prompt"),
+        # Last occurrence wins, mirroring the source and results flags.
+        pytest.param(":hide-prompt:\n:show-prompt:\n", True, id="hide-then-show"),
+    ),
+)
+def test_click_run_prompt_options(sphinx_app_myst, options, prompted):
+    """`:show-prompt:` / `:hide-prompt:` gate the invocation line."""
+    html = sphinx_app_myst.build_document(
+        dedent("""
+            ```{{click:source}}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{{click:run}}
+            {options}result = invoke(greet)
+            ```
+        """).format(options=options)
+    )
+    assert html
+    # The output is rendered either way; only the prompt above it moves.
+    assert "Hello, papaya!" in html
+    assert ('<span class="gp">$ </span>greet' in html) is prompted
+
+
+def test_click_run_hide_prompt_reaches_the_screenshot(sphinx_app_myst):
+    """A capture is drawn from the same lines, so it loses the prompt too."""
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def greet():
+                echo("Hello, papaya!")
+            ```
+
+            ```{click:run}
+            :hide-prompt:
+            :screenshot: bare-greet-screen
+            :screenshot-preset: windows
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "bare-greet-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    assert "Hello," in svg
+    # Neither this platform's sigil nor the one the preset would have swapped in.
+    assert "$&#160;greet" not in svg
+    assert "PS&#160;C:\\&gt;" not in svg
+
+
 def test_click_run_screenshot_writes_the_asset(sphinx_app_myst):
     """``:screenshot:`` writes the capture beside the documentation.
 

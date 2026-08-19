@@ -223,21 +223,21 @@ Click Extra's own documentation extensively use `click:source` and `click:run` d
 
 You can pass options to both the `click:source` and `click:run` directives to customize their behavior:
 
-| Option                                                                                                                                         | Description                                                                                                                                                        | Example                              |
-| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
-| [`:linenos:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-linenos)                 | Display line numbers.                                                                                                                                              | `:linenos:`                          |
-| [`:lineno-start:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-lineno-start)       | Specify the starting line number.                                                                                                                                  | `:lineno-start: 10`                  |
-| [`:emphasize-lines:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-emphasize-lines) | Highlight specific lines in the source block.                                                                                                                      | `:emphasize-lines: 2,4-6`            |
-| `:emphasize-result-lines:`                                                                                                                     | Highlight specific lines in the captured output block. Same syntax as `:emphasize-lines:`. Only applies to `click:run`; ignored by `click:source`.                 | `:emphasize-result-lines: 1,3`       |
-| [`:force:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-force)                     | Ignore minor errors on highlighting.                                                                                                                               | `:force:`                            |
-| [`:caption:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-caption)                 | Set a caption for the code block.                                                                                                                                  | `:caption: My Code Example`          |
-| [`:name:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-name)                       | Set a name for the code block (useful for cross-referencing).                                                                                                      | `:name: example-1`                   |
-| [`:class:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-class)                     | Set a CSS class for the code block.                                                                                                                                | `:class: highlight`                  |
-| [`:dedent:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-dedent)                   | Specify the number of spaces to remove from the beginning of each line.                                                                                            | `:dedent: 4`                         |
-| [`:language:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-literalinclude-language)           | Specify the programming language for syntax highlighting. This can be used as an alternative to [passing the language as an argument](#syntax-highlight-language). | `:language: sql`                     |
-| `:show-source:`/`:hide-source:`                                                                                                                | Flags to force the source code within the directive to be rendered or not.                                                                                         | `:show-source:` or `:hide-source:`   |
-| `:show-results:`/`:hide-results:`                                                                                                              | Flags to force the results of the CLI invocation to be rendered or not. Only applies to `click:run`. Is silently ignored in `click:source`.                        | `:show-results:` or `:hide-results:` |
-| `:show-prompt:`/`:hide-prompt:`                                                                                                                | TODO                                                                                                                                                               | TODO                                 |
+| Option                                                                                                                                         | Description                                                                                                                                                                                                             | Example                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| [`:linenos:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-linenos)                 | Display line numbers.                                                                                                                                                                                                   | `:linenos:`                          |
+| [`:lineno-start:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-lineno-start)       | Specify the starting line number.                                                                                                                                                                                       | `:lineno-start: 10`                  |
+| [`:emphasize-lines:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-emphasize-lines) | Highlight specific lines in the source block.                                                                                                                                                                           | `:emphasize-lines: 2,4-6`            |
+| `:emphasize-result-lines:`                                                                                                                     | Highlight specific lines in the captured output block. Same syntax as `:emphasize-lines:`. Only applies to `click:run`; ignored by `click:source`.                                                                      | `:emphasize-result-lines: 1,3`       |
+| [`:force:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-force)                     | Ignore minor errors on highlighting.                                                                                                                                                                                    | `:force:`                            |
+| [`:caption:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-caption)                 | Set a caption for the code block.                                                                                                                                                                                       | `:caption: My Code Example`          |
+| [`:name:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-name)                       | Set a name for the code block (useful for cross-referencing).                                                                                                                                                           | `:name: example-1`                   |
+| [`:class:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-class)                     | Set a CSS class for the code block.                                                                                                                                                                                     | `:class: highlight`                  |
+| [`:dedent:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-code-block-dedent)                   | Specify the number of spaces to remove from the beginning of each line.                                                                                                                                                 | `:dedent: 4`                         |
+| [`:language:`](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-option-literalinclude-language)           | Specify the programming language for syntax highlighting. This can be used as an alternative to [passing the language as an argument](#syntax-highlight-language).                                                      | `:language: sql`                     |
+| `:show-source:`/`:hide-source:`                                                                                                                | Flags to force the source code within the directive to be rendered or not.                                                                                                                                              | `:show-source:` or `:hide-source:`   |
+| `:show-results:`/`:hide-results:`                                                                                                              | Flags to force the results of the CLI invocation to be rendered or not. Only applies to `click:run`. Is silently ignored in `click:source`.                                                                             | `:show-results:` or `:hide-results:` |
+| `:show-prompt:`/`:hide-prompt:`                                                                                                                | Flags to force the shell prompt drawn above the results to be rendered or not. Only applies to `click:run`. Hiding it also drops the prompt from the SVG written by `:screenshot:`, which is drawn from the same lines. | `:show-prompt:` or `:hide-prompt:`   |
 
 #### `code-block` options
 
@@ -414,6 +414,45 @@ assert not result.stderr, "Found error messages in <stderr>"
 ```{caution}
 `:show-results:`/`:hide-results:` options have no effect on the `click:source` directive and will be ignored. That's because this directive does not execute the CLI: it only displays its source code.
 ```
+
+### Hiding the prompt
+
+A `click:run` block opens its results with the invocation that produced them, drawn as a shell prompt:
+
+```{click:run}
+result = invoke(simple_print)
+assert result.exit_code == 0
+assert result.output.endswith(" to print.\n")
+```
+
+`:hide-prompt:` drops that line and leaves the output on its own. Reach for it when the surrounding prose already names the command, or when the block exists to show what a CLI prints rather than how to call it:
+
+```{click:run}
+:hide-prompt:
+result = invoke(simple_print)
+assert result.exit_code == 0
+assert result.output.endswith(" to print.\n")
+```
+
+Environment variables handed to `invoke()` are rendered as assignments on the invocation itself, which is how the runner applies them: they are scoped to that one call and are not inherited by the blocks below.
+
+```{click:source}
+:hide-source:
+from click_extra import command, echo, option
+
+@command
+@option("--unit", envvar="WEATHER_UNITS", default="celsius")
+def forecast(unit):
+    echo(f"Paris: 18 {unit}.")
+```
+
+```{click:run}
+result = invoke(forecast, env={"WEATHER_UNITS": "fahrenheit"})
+assert result.exit_code == 0
+assert result.output == "Paris: 18 fahrenheit.\n"
+```
+
+The prompt is one line prepended to the captured output, so it is part of the results rather than a block of its own. It is rendered by {func}`~click_extra.execution.format_cli_prompt`, the same helper that draws it onto an SVG [capture](#committed-captures): a block combining `:hide-prompt:` with `:screenshot:` therefore writes an image without one either.
 
 ### Committed captures
 

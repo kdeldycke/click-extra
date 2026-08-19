@@ -54,6 +54,7 @@ from sphinx.util import logging
 
 from ..blocks import OPTION_LINE_RE, fence_spans, marker_res, update_blocks
 from ..color import forced_color
+from ..execution import format_cli_prompt
 from ..screenshot import (
     AUTO_COLUMNS,
     DEFAULT_COLUMNS,
@@ -64,6 +65,7 @@ from ..screenshot import (
     render,
 )
 from ..screenshot_presets import PRESETS, TerminalPreset
+from ..theme import NOCOLOR_THEME
 from ._base import (
     StatelessDomain,
     compile_directive,
@@ -97,6 +99,10 @@ answers to the platform the build runs on: a page would otherwise prompt with a
 `>` for every reader whose documentation was built on Windows. A capture drawn
 as another terminal swaps it for that terminal's own, see
 {class}`~click_extra.screenshot_presets.TerminalPreset`.
+
+Passed as the `prompt` argument of
+{func}`~click_extra.execution.format_cli_prompt`, which is what builds the line
+for both the results code block and the SVG capture drawn from it.
 """
 
 
@@ -343,6 +349,7 @@ class ClickRunner(CliRunner):
         terminate_input=False,
         env=None,
         _output_lines=None,
+        _show_prompt=True,
         **extra,
     ) -> click.testing.Result:
         """Like `CliRunner.invoke` but displays what the user
@@ -353,20 +360,36 @@ class ClickRunner(CliRunner):
             input.
         :param _output_lines: A list used internally to collect lines to
             be displayed.
+        :param _show_prompt: Whether to draw the invocation above the output.
+            Set from the directive's `:show-prompt:` / `:hide-prompt:` options,
+            see {attr}`ClickDirective.show_prompt`.
         """
         output_lines = _output_lines if _output_lines is not None else []
-
-        if env:
-            for key, value in sorted(env.items()):
-                value = shlex.quote(value)
-                output_lines.append(f"$ export {key}={value}")
 
         args = args or []
 
         if prog_name is None:
             prog_name = cli.name.replace("_", "-")
 
-        output_lines.append(f"{PROMPT_SIGIL} {prog_name} {shlex.join(args)}".rstrip())
+        if _show_prompt:
+            # The same renderer the SVG captures draw their prompt with, so a
+            # block and its `:screenshot:` cannot word the invocation
+            # differently. `NOCOLOR_THEME` keeps the line plain: the results
+            # block is lexed as `ansi-shell-session`, which highlights the
+            # prompt itself, and ANSI of our own would fight it.
+            output_lines.append(
+                format_cli_prompt(
+                    # Pre-quoted so an argument holding spaces stays one token,
+                    # matching what a reader would have to type. The renderer
+                    # joins on spaces and quotes nothing itself.
+                    (prog_name, *(shlex.quote(arg) for arg in args)),
+                    extra_env={k: shlex.quote(v) for k, v in sorted(env.items())}
+                    if env
+                    else None,
+                    theme=NOCOLOR_THEME,
+                    prompt=PROMPT_SIGIL,
+                )
+            )
         prog_name = program_from_command_line(prog_name)
 
         if isinstance(input, (tuple, list)):
@@ -422,7 +445,14 @@ class ClickRunner(CliRunner):
 
         # Functions available as local variables when executing the code.
         local_vars = {
-            "invoke": partial(self.invoke, _output_lines=buffer),
+            "invoke": partial(
+                self.invoke,
+                _output_lines=buffer,
+                # Read off the directive rather than the runner: one runner
+                # serves every block of a document, so the flag has to travel
+                # per-invocation.
+                _show_prompt=directive.show_prompt,
+            ),
             "isolated_filesystem": self.isolated_filesystem,
         }
 
@@ -505,8 +535,9 @@ class ClickDirective(SphinxDirective):
         "hide-source": directives.flag,
         "show-results": directives.flag,
         "hide-results": directives.flag,
+        "show-prompt": directives.flag,
+        "hide-prompt": directives.flag,
         "emphasize-result-lines": CodeBlock.option_spec["emphasize-lines"],
-        # TODO: Add a show-prompts and hide-prompts options?
     }
     """Options supported by this directive.
 
@@ -530,6 +561,8 @@ class ClickDirective(SphinxDirective):
     """Whether to render the source code of the example in the code block."""
     show_results_by_default: bool = True
     """Whether to render the results of the example in the code block."""
+    show_prompt_by_default: bool = True
+    """Whether to draw the invocation above the results it produced."""
 
     runner_method: str
     """The name of the method to call on the {class}`ClickRunner` instance."""
@@ -633,6 +666,30 @@ class ClickDirective(SphinxDirective):
             elif option_id == "hide-results":
                 show_results = False
         return show_results
+
+    @cached_property
+    def show_prompt(self) -> bool:
+        """Whether to draw the invocation above the output it produced.
+
+        The last occurrence of either `show-prompt` or `hide-prompt` options
+        wins. If neither is set, the default is taken from
+        `show_prompt_by_default`.
+
+        The prompt is one line rendered by
+        {func}`~click_extra.execution.format_cli_prompt`, prepended to the
+        captured output. It is therefore part of the results, not a block of its
+        own: hiding it drops it from the results code block *and* from the SVG a
+        `:screenshot:` writes, which is drawn from the same lines. Reach for it
+        when the invocation is noise the surrounding prose already carries, or
+        when a capture is wanted as bare output.
+        """
+        show_prompt = self.show_prompt_by_default
+        for option_id in self.options:
+            if option_id == "show-prompt":
+                show_prompt = True
+            elif option_id == "hide-prompt":
+                show_prompt = False
+        return show_prompt
 
     @cached_property
     def is_myst_syntax(self) -> bool:
@@ -824,10 +881,17 @@ class ClickDirective(SphinxDirective):
         assert self.screenshot
         lines = list(results)
         preset = self.screenshot_frame.get("preset")
-        if preset is not None and lines and lines[0].startswith(f"{PROMPT_SIGIL} "):
+        if (
+            self.show_prompt
+            and preset is not None
+            and lines
+            and lines[0].startswith(f"{PROMPT_SIGIL} ")
+        ):
             # A block prompts with this platform's sigil, being run by a
             # documentation build rather than by the terminal it pictures. The
-            # capture answers to the terminal it is drawn as instead.
+            # capture answers to the terminal it is drawn as instead. Gated on
+            # `show_prompt` so a `:hide-prompt:` block whose first *output* line
+            # happens to open with "$ " is not mistaken for an invocation.
             lines[0] = f"{preset.prompt} {lines[0].removeprefix(f'{PROMPT_SIGIL} ')}"
         if "screenshot-line-numbers" in self.options and lines:
             # Numbered whole, so line 1 is the prompt: the invocation everything
