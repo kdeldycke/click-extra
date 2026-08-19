@@ -25,6 +25,7 @@ import signal
 import subprocess
 import sys
 import threading
+from pathlib import Path
 from textwrap import dedent
 from time import monotonic, sleep
 from unittest.mock import patch
@@ -870,6 +871,18 @@ def test_run_cli_returns_completed_process(caplog):
     assert result.returncode == 0
     assert result.stdout == "to out\n"
     assert result.stderr == "to err\n"
+
+
+def test_run_cli_cwd_moves_the_child(tmp_path):
+    """`cwd` runs the child elsewhere; omitted, it inherits the caller's."""
+    code = "import os; print(os.path.basename(os.getcwd()))"
+
+    result = run_cli((sys.executable, "-c", code), cwd=tmp_path)
+    assert result.stdout.strip() == tmp_path.name
+
+    # The caller's own directory is never changed by the call.
+    assert Path.cwd() != tmp_path
+    assert run_cli((sys.executable, "-c", code)).stdout.strip() == Path.cwd().name
 
 
 def test_run_cli_flattens_nested_args(caplog):

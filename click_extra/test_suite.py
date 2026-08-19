@@ -392,6 +392,7 @@ class CLITestCase:
         command: Path | str,
         additional_skip_platforms: _TNestedReferences | None,
         default_timeout: float | None,
+        work_directory: Path | str | None = None,
     ) -> None:
         """Run a CLI command and check its output against the test case.
 
@@ -403,6 +404,12 @@ class CLITestCase:
 
         The case's `env` and `unset_env` directives are layered over the
         inherited environment for this child process only.
+
+        `work_directory` is the directory the command runs in, defaulting to the
+        one the runner itself is in. `command` is resolved to an absolute path
+        *before* it takes effect, so moving the target elsewhere never changes
+        which binary is executed, only what a relative path inside the command
+        resolves against.
         """
         if self.only_platforms and current_platform() not in self.only_platforms:  # type: ignore[operator]
             required = ", ".join(
@@ -466,6 +473,7 @@ class CLITestCase:
             result = run_cli(
                 clean_args,
                 extra_env=extra_env,
+                cwd=work_directory,
                 timeout=self.timeout,  # type: ignore[arg-type]
                 # When the case asserts on the merged stream (output_* directives),
                 # route stderr into stdout so the OS interleaves both in write
@@ -656,6 +664,7 @@ def run_test_suite(
     select_test: Sequence[int] | None = None,
     skip_platform: _TNestedReferences | None = None,
     timeout: float | None = None,
+    work_directory: Path | str | None = None,
     exit_on_error: bool = False,
     show_trace_on_error: bool = True,
     stats: bool = True,
@@ -678,6 +687,10 @@ def run_test_suite(
     :param select_test: 1-based case numbers to run; others are skipped.
     :param skip_platform: Extra platforms (or group IDs) to skip every case on.
     :param timeout: Default per-case timeout in seconds when a case sets none.
+    :param work_directory: Directory every case runs its command in, defaulting
+        to the runner's own. It moves the *target*, never the runner: the suite
+        file is read before any case starts, and `command` is resolved to an
+        absolute path first, so neither is looked up relative to it.
     :param exit_on_error: Stop at the first failure (sequential runs only).
     :param show_trace_on_error: Echo the execution trace of each failed case.
     :param stats: Echo a one-line worker summary up front and a result tally.
@@ -709,6 +722,7 @@ def run_test_suite(
                 command,
                 additional_skip_platforms=skip_platform,
                 default_timeout=timeout,
+                work_directory=work_directory,
             )
         except SkippedTest as ex:
             logging.warning(f"Test #{test_number} skipped: {ex}")

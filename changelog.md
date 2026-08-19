@@ -50,6 +50,8 @@
 - Split the machine-readable renderings out of the man page documentation into their own page, aimed at the tools and models that read a CLI they did not write, and move the `examples=` guide beside the other command-authoring options.
 - Name every `wrap` rendering after the name its target runs under, so a man page, a spec, a Markdown document and a tree can no longer disagree.
 - Add `env` and `unset_env` directives to `test-suite` cases, setting or removing environment variables on the command a case runs, so a suite can reach a variable-only feature.
+- Add a `--work-directory` option to `test-suite`, running every case's command in the given directory instead of the current one.
+- Add a `cwd` argument to `run_cli()`, mirroring `subprocess.run()`'s own.
 - Fix `env_copy()` rejecting a `None` value instead of removing that variable, as its `Mapping[str, str | None]` type and `click.testing.CliRunner` both promise.
 - Add `:show-prompt:` and `:hide-prompt:` options to the `click:run` Sphinx directive, drawing or dropping the invocation above the output it produced.
 - Deduplicate the Sphinx `todolist` page, which `sphinx.ext.todo` fills with one entry per rendering of a `{todo}` directive instead of one per directive.

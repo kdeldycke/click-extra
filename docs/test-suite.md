@@ -174,6 +174,14 @@ stdout_contains = "°F"
 
 They are two directives rather than one mapping accepting a null, because TOML has no null literal and a suite is as likely to be written in TOML as in YAML. Removing a variable that is not set is a no-op.
 
+`--work-directory` is the third input, and the one that stays global: it is a flag on `click-extra test-suite`, not a per-case directive, because a suite is a portable document and a path baked into one only works on the machine it was written on.
+
+```{code-block} shell-session
+$ click-extra test-suite --command weather --work-directory ./tests/fixtures
+```
+
+It moves the *command*, never the runner. Suite files are read before any case starts, and the target is resolved to an absolute path first, so neither a relative `--suite-file` nor a `--command` naming something on the `PATH` is looked up relative to it.
+
 Reach for `unset_env` whenever a case would otherwise answer to whatever the shell running the suite happens to export. It is not interchangeable with assigning an empty string: a variable set to `""` is still *set*, and a flag read by bare presence (the [`NO_COLOR` and `FORCE_COLOR`](colorize.md#environment-variables) family) counts that as activation. Removing it is the only way to ask what the command does without it:
 
 ```{code-block} toml
@@ -270,4 +278,4 @@ The current design is a declarative list of directives. Two points of comparison
 
 Click Extra's [`click:run` and `click:source` Sphinx directives](sphinx.md) apply the same run-and-check idea from the documentation side: they execute a CLI in-process while the docs build and assert on its output, so every example doubles as a test. A test suite does it at the subprocess level instead, against any binary. Letting a documented example and a test case share one source is an open avenue.
 
-[scrut](https://github.com/facebookincubator/scrut) is a standalone toolkit aimed at the same black-box CLI testing problem, with a different authoring model: expectations are written inline beneath each command in a Markdown or Cram file, and `scrut update` regenerates them. I came across it after building this feature for my own needs, so the resemblance is convergence, not lineage. Its snapshot-style workflow (generate and refresh expectations instead of hand-writing them), working-directory controls and glob expectations are the directions worth weighing for a later revision; the per-case environment controls it also has landed here as [`env` and `unset_env`](#the-environment-a-case-runs-in).
+[scrut](https://github.com/facebookincubator/scrut) is a standalone toolkit aimed at the same black-box CLI testing problem, with a different authoring model: expectations are written inline beneath each command in a Markdown or Cram file, and `scrut update` regenerates them. I came across it after building this feature for my own needs, so the resemblance is convergence, not lineage. Its snapshot-style workflow, where `scrut create` and `scrut update` generate and refresh expectations instead of asking you to hand-write them, is the direction worth weighing for a later revision. It is not a small port: scrut's expectations sit inline beneath each command, where a suite here is a separate document whose comments a regenerator would have to preserve. Beyond that, its shared `prepend`/`append` setup documents, its `detached`/`wait` pair for testing a client against a server it started, and its JSON Schema output mode are the capabilities with no answer here. Its glob expectations are not among them: globs exist there for Cram compatibility and are a strict subset of the [regex directives](#writing-a-suite) above. Its per-case environment and its working-directory control have both landed, as [`env` and `unset_env`](#the-environment-a-case-runs-in) and as `--work-directory`.

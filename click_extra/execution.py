@@ -1058,6 +1058,7 @@ def run_cli(
     args: TArg | TNestedArgs,
     *,
     extra_env: TEnvVars | None = None,
+    cwd: Path | str | None = None,
     timeout: float | None = None,
     label: str | None = None,
     merge_streams: bool = False,
@@ -1113,6 +1114,10 @@ def run_cli(
     :param extra_env: environment variables forced over the inherited environment
         for this call (see {func}`~click_extra.envvar.env_copy`). They are part of
         the disclosed prompt line, since reproducing the call requires them.
+    :param cwd: directory to run the child in. `None` inherits the caller's, which
+        is {func}`subprocess.run`'s own default. A relative `args[0]` is resolved
+        by the OS against this directory, not the caller's, so pass an absolute
+        path (or a name on the `PATH`) when moving the child elsewhere.
     :param timeout: seconds before the child is killed. `None` waits forever.
     :param label: tag identifying this call on each streamed output line, for
         when several children interleave in one log. Carried as the record's
@@ -1189,6 +1194,7 @@ def run_cli(
         encoding="utf-8",
         errors=errors,
         env=cast("subprocess._ENV", env_copy(extra_env)),
+        cwd=cwd,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
         | windows_creation_flags,
         startupinfo=startupinfo,

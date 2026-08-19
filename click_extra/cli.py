@@ -39,7 +39,7 @@ from click import (
     echo,
     style,
 )
-from cloup import Color, file_path
+from cloup import Color, dir_path, file_path
 from extra_platforms import ALL_IDS
 
 from . import context
@@ -233,6 +233,15 @@ demo.add_command(wrap_cmd)
     help="Default timeout for each CLI call, unless the case sets its own.",
 )
 @option(
+    "-W",
+    "--work-directory",
+    type=dir_path(exists=True, readable=True, resolve_path=True),
+    metavar="DIR_PATH",
+    help="Directory to run each case's command in. Defaults to the current one. "
+    "Moves the command under test, not the runner: suite files are read before "
+    "any case starts.",
+)
+@option(
     "--show-trace-on-error/--hide-trace-on-error",
     default=True,
     help="Show the execution trace of failed cases.",
@@ -253,6 +262,7 @@ def test_suite_cmd(
     skip_platform: tuple[str, ...],
     exit_on_error: bool,
     timeout: float | None,
+    work_directory: Path | None,
     show_trace_on_error: bool,
     stats: bool,
 ) -> None:
@@ -308,6 +318,7 @@ def test_suite_cmd(
         select_test=select_test,
         skip_platform=skip_platform,
         timeout=timeout,
+        work_directory=work_directory,
         exit_on_error=exit_on_error,
         show_trace_on_error=show_trace_on_error,
         stats=stats,

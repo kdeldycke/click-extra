@@ -418,6 +418,71 @@ def test_unset_env_normalizes_like_the_envvar_helpers():
     assert case.unset_env == ("A", "B")
 
 
+# --- work_directory -----------------------------------------------------------
+
+LIST_CWD = ("-c", "import os; print(sorted(os.listdir('.')))")
+"""Command line printing the names the working directory holds."""
+
+
+def test_work_directory_moves_the_command(tmp_path):
+    """The command runs where asked, not where the runner sits."""
+    (tmp_path / "marker.txt").touch()
+
+    CLITestCase(
+        cli_parameters=LIST_CWD,
+        exit_code=0,
+        stdout_contains="marker.txt",
+    ).run_cli_test(sys.executable, None, None, work_directory=tmp_path)
+
+
+def test_work_directory_defaults_to_the_runner_directory(tmp_path):
+    """Left unset, a case sees what it always saw."""
+    (tmp_path / "marker.txt").touch()
+
+    case = CLITestCase(
+        cli_parameters=LIST_CWD,
+        exit_code=0,
+        stdout_contains="marker.txt",
+    )
+    with pytest.raises(AssertionError):
+        case.run_cli_test(sys.executable, None, None)
+
+
+def test_work_directory_leaves_the_command_resolution_alone(tmp_path):
+    """The target is resolved before the move, so it is never looked for there.
+
+    `run_cli_test` resolves a `PATH` name (and `.absolute()`s a path) against the
+    runner's own directory first, which is what lets a relative target survive a
+    `work_directory` pointing somewhere that does not hold it.
+    """
+    assert not list(tmp_path.iterdir())
+
+    CLITestCase(
+        cli_parameters=("-c", "print('ran')"),
+        exit_code=0,
+        stdout_contains="ran",
+    ).run_cli_test(sys.executable, None, None, work_directory=tmp_path)
+
+
+def test_run_suite_applies_the_work_directory_to_every_case(tmp_path):
+    """The orchestrator hands it down, so a whole suite moves at once."""
+    (tmp_path / "marker.txt").touch()
+
+    cases = [
+        CLITestCase(cli_parameters=LIST_CWD, stdout_contains="marker.txt"),
+        CLITestCase(cli_parameters=LIST_CWD, stdout_contains="marker.txt"),
+    ]
+    counter = run_test_suite(
+        sys.executable,
+        cases,
+        work_directory=tmp_path,
+        stats=False,
+        show_progress=False,
+    )
+    assert counter["failed"] == 0
+    assert counter["total"] == 2
+
+
 def test_env_and_unset_env_are_valid_suite_directives():
     """Both reach a case through a serialized suite, not just the Python API."""
     (case,) = cases_from_data([
