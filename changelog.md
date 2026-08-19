@@ -52,6 +52,7 @@
 - Add `env` and `unset_env` directives to `test-suite` cases, setting or removing environment variables on the command a case runs, so a suite can reach a variable-only feature.
 - Fix `env_copy()` rejecting a `None` value instead of removing that variable, as its `Mapping[str, str | None]` type and `click.testing.CliRunner` both promise.
 - Add `:show-prompt:` and `:hide-prompt:` options to the `click:run` Sphinx directive, drawing or dropping the invocation above the output it produced.
+- Deduplicate the Sphinx `todolist` page, which `sphinx.ext.todo` fills with one entry per rendering of a `{todo}` directive instead of one per directive.
 - Render a `click:run` block's environment variables as assignments on the invocation (`$ WEATHER_UNITS=fahrenheit weather Paris`) instead of a separate `$ export` line, matching how the runner scopes them.
 - Fix options computing their help from the context (`-v`, `-q`) rendering blank in man pages and `--params`.
 - Fix a `--theme` resolved from the environment, or typed after `--help`, not reaching the screens that render and exit.

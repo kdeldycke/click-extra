@@ -27,7 +27,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter and the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter. The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter, and [todo-list deduplication](#todo-list-deduplication). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -1535,6 +1535,26 @@ Which renders as:
 > ```bash
 > $ make backup
 > ```
+
+## Todo-list deduplication
+
+[`sphinx.ext.todo`](https://www.sphinx-doc.org/en/master/usage/extensions/todo.html) collects doctree nodes, not documented objects. A `{todo}` written once in a docstring therefore lands on the `todolist` page once per *rendering* of that docstring, and two conventions common to autodoc projects render one docstring several times:
+
+- **A full-API page plus per-feature pages.** A project that documents every module on one page, then documents the same modules again next to the prose explaining them, renders each docstring twice. Marking the second block `:no-index:` does not help: that option suppresses the cross-reference target and the search-index entry, and leaves the docstring rendered in full.
+- **A package that re-exports its members.** `automodule` documents the imported names a package lists in `__all__`, so a symbol shows up once under the package and once under the module defining it. Both renderings can land on the same page.
+
+The two multiply. Before this hook, [Click Extra's own todo-list](todolist.md) showed 35 entries for 17 distinct `{todo}` directives, one of them repeated four times.
+
+Nothing upstream deduplicates, so `click_extra.sphinx` trims the surplus nodes just before the list is rendered. No configuration is needed, and a project that enables neither the extension nor a `todolist` never notices the hook.
+
+Among the renderings of one directive, the surviving entry is the first in *(reached through a defining module, document name, position in the document)* order. So a symbol reached through both its package and its module keeps the module's attribution, and a reader following the *original entry* backlink lands on the same page from one build to the next.
+
+Set the flag to get Sphinx's raw output back, one entry per rendering:
+
+```{code-block} python
+:caption: `conf.py`
+click_extra_dedupe_todos = False
+```
 
 ## ANSI shell sessions
 

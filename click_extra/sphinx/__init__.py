@@ -42,7 +42,7 @@ from ..blocks import (
     update_blocks as update_blocks,
 )
 from ..pygments import AnsiHtmlFormatter
-from . import manpages, matrix
+from . import manpages, matrix, todos
 from .alerts import convert_github_alerts
 from .click import ClickDomain, cleanup_runner
 from .python import (
@@ -192,6 +192,12 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       history. It runs a canned generator rather than user-supplied Python, so
       it carries no execution surface and needs no opt-in. See
       {mod}`click_extra.sphinx.matrix`.
+    - Deduplication of the `todolist` page, which `sphinx.ext.todo` fills
+      with one entry per *rendering* of a `{todo}` directive rather than one
+      per directive. Inert on a project that enables neither the extension
+      nor a `todolist`, and switched off with
+      {data}`click_extra.sphinx.todos.DEDUPE_TODOS_CONFIG`. See
+      {mod}`click_extra.sphinx.todos`.
 
     Opt-in features (gated behind `click_extra_enable_exec_directives`):
 
@@ -241,6 +247,11 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # canned generator against the documented project's git history rather
     # than user-supplied Python, so they need no exec opt-in.
     matrix.setup(app)
+
+    # Collapse the duplicate `todolist` entries autodoc's repeated docstring
+    # renderings produce (see todos.py). Inert unless the project enables
+    # `sphinx.ext.todo` and writes a `todolist`.
+    todos.setup(app)
 
     # Register GitHub alerts converter only when myst-parser predates
     # the native "alert" syntax extension (added in 5.1.0). On newer
