@@ -763,10 +763,8 @@ def test_enum_choice_duplicate_string() -> None:
 
 
 @pytest.mark.parametrize(
-    # XXX Got a strange issue with double <Option my_enum> in the cli()
-    # with the click_extra.command(), hence the no_extra=True parameter here.
     "cmd_decorator",
-    command_decorators(no_groups=True, no_extra=True),
+    command_decorators(no_groups=True),
 )
 @pytest.mark.parametrize(
     "opt_decorator", option_decorators(no_arguments=True, with_parenthesis=False)
@@ -979,12 +977,8 @@ def test_enum_choice_multiple_default_value(
 
 
 @pytest.mark.parametrize(
-    # XXX Reuse the same no_extra=True workaround as test_enum_choice_command and
-    # test_enum_choice_callback: click_extra.command() re-decorates the command,
-    # producing a second nargs=-1 parameter that Click's parser rejects with
-    # "Cannot have two nargs < 0".
     "cmd_decorator",
-    command_decorators(no_groups=True, no_extra=True),
+    command_decorators(no_groups=True),
 )
 @pytest.mark.parametrize(
     "opt_decorator",
@@ -1038,10 +1032,8 @@ def test_enum_choice_variadic_default_value(
 
 
 @pytest.mark.parametrize(
-    # XXX Reuse the same no_extra=True workaround as test_enum_choice_command to
-    # avoid the double <Option my_enum> issue with click_extra.command().
     "cmd_decorator",
-    command_decorators(no_groups=True, no_extra=True),
+    command_decorators(no_groups=True),
 )
 @pytest.mark.parametrize(
     "opt_decorator",
