@@ -148,6 +148,7 @@ from .decorators import (  # type: ignore[no-redef]
     jobs_option,
     lazy_group,
     man_option,
+    multicall_group,
     no_color_option,
     no_config_option,
     option,
@@ -196,6 +197,7 @@ from .logging import (
     basicConfig,
     new_logger,
 )
+from .multicall import MulticallGroup
 from .myst_converter import (
     convert_directory,
     convert_file,
@@ -357,6 +359,7 @@ __all__ = [
     "ManOption",
     "MissingParameter",
     "MultiChoice",
+    "MulticallGroup",
     "NoColorOption",
     "NoConfigOption",
     "NoSuchCommand",
@@ -465,6 +468,7 @@ __all__ = [
     "make_pass_decorator",
     "make_schema_callable",
     "man_option",
+    "multicall_group",
     "new_logger",
     "no_color_option",
     "no_config_option",

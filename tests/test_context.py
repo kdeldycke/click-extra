@@ -51,6 +51,7 @@ if TYPE_CHECKING:
 
 KEY_CONSTANTS: tuple[tuple[str, str], ...] = (
     ("RAW_ARGS", "click_extra.raw_args"),
+    ("INVOCATION_NAME", "click_extra.invocation_name"),
     ("CONF_SOURCE", "click_extra.conf_source"),
     ("CONF_FULL", "click_extra.conf_full"),
     ("CONF_SOURCES", "click_extra.conf_sources"),

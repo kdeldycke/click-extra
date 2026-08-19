@@ -340,6 +340,26 @@ matching what `click.Command.parse_args` does for `ctx.params`.
 # not help the foreign-CLI wrap path, which has no live parse to capture from.
 
 
+# --- Invocation name ----------------------------------------------------------
+
+INVOCATION_NAME: Final[str] = "click_extra.invocation_name"
+"""The name the CLI was invoked under, as resolved on the root context.
+
+Written by {class}`click_extra.commands.Command.make_context` on the root
+context only (`ctx.meta` is shared down the whole hierarchy, so a subcommand
+must not overwrite it). Equals Click's root `info_name`: the entry-point
+script name, the symlink name in {mod}`~click_extra.multicall` personality
+mode, or an explicit `prog_name` override passed to `main()`. Read it with
+{func}`click.pass_context` to implement invocation-name-aware behavior
+without the full multicall machinery:
+
+```{code-block} python
+if ctx.meta[context.INVOCATION_NAME] == "bunzip2":
+    ...
+```
+"""
+
+
 # --- Configuration loading ----------------------------------------------------
 
 CONF_SOURCE: Final[str] = "click_extra.conf_source"

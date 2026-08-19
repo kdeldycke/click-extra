@@ -304,6 +304,11 @@ class CliRunner(click.testing.CliRunner):
         # No-op context manager without any effects.
         extra_params_bypass: AbstractContextManager = nullcontext()
 
+        # Capture a simulated prog name before `extra` is consumed: an explicit
+        # `prog_name` (how multicall personalities are simulated) is what the
+        # printed command line should show, not the CLI's own name.
+        simulated_prog_name = extra.get("prog_name") or self.get_default_prog_name(cli)
+
         # If `extra` contains parameters that collide with the original `invoke()`
         # parameters, we need to remove them from `extra`, then use a monkeypatch to
         # properly pass them to the CLI.
@@ -342,7 +347,7 @@ class CliRunner(click.testing.CliRunner):
             extra_result.output_bytes = strip_ansi(extra_result.output_bytes)  # type: ignore[assignment,arg-type]
 
         _print_cli_run(
-            [self.get_default_prog_name(cli), *clean_args],
+            [simulated_prog_name, *clean_args],
             extra_result,
             env=env,
         )

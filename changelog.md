@@ -39,7 +39,10 @@
 - Add a machine-wide `CLICK_EXTRA_THEME` environment variable naming the help-screen palette of every Click Extra CLI at once.
 - Add a `VersionScreen` drawing `--version` as a logo with facts beside it, mounted via `@version_option(screen=…)` or `default_params(screen=…)`.
 - Add a `click_extra.logo` module rendering the brand mark as flat-shaded half blocks, and draw it on `click-extra --version`.
+- Add `@multicall_group`, BusyBox-style `argv[0]` dispatch: invoked under a subcommand's name, the group runs as that subcommand itself. Closes [#1619](https://github.com/kdeldycke/click-extra/issues/1619).
+- Add a `click_extra.context.INVOCATION_NAME` `ctx.meta` entry, exposing the name any command was invoked under.
 - Fix `--version` painting the program name and version from the `dark` palette whatever `--theme` was picked, leaving it white-on-white on a light terminal.
+- Fix `--version` caching the program name of the first invocation forever, which a process running one CLI under several names kept printing.
 - Add `--output-dir` and `--install` to every installable `wrap --help-format` rendering, so a man page reaches your man directory the way a Carapace spec reaches Carapace's.
 - Add `read_manpage()`, `format_manpage()` and `install_manpages()`, plus the `INSTALLABLE_FORMATS` registry.
 - Strip the man page's overstrike emphasis under `--accessible`, which a screen reader voices instead of skipping.

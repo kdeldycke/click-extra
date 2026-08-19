@@ -43,6 +43,7 @@ from .config import (
 )
 from .execution import JobsOption, TimerOption, ZeroExitOption
 from .logging import QuietOption, VerboseOption, VerbosityOption
+from .multicall import MulticallGroup
 from .parameters import Argument, Option, ShowParamsOption
 from .table import ColumnsOption, SortByOption, TableFormatOption
 from .telemetry import TelemetryOption
@@ -338,6 +339,7 @@ def version_option(version=None, *param_decls, cls=VersionOption, group=None, **
 
 # Introduce new commands decorators specific to Click Extra.
 lazy_group = decorator_factory(dec=group, cls=LazyGroup)
+multicall_group = decorator_factory(dec=group, cls=MulticallGroup)
 
 
 # Introduce new parameter decorators specific to Click Extra.

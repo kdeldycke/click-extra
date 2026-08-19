@@ -13,6 +13,7 @@ binaries
 cli
 tutorial
 commands
+multicall
 parameters
 context
 types

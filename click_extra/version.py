@@ -29,6 +29,7 @@ by `git archive`.
 
 from __future__ import annotations
 
+import copy
 import importlib
 import inspect
 import json
@@ -790,6 +791,25 @@ class VersionOption(ExtraOption):
             **kwargs,
         )
 
+    def __deepcopy__(self, memo: dict[int, Any]) -> VersionOption:
+        """Copy the option, dropping every cached field value.
+
+        {mod}`~click_extra.multicall` deep-copies a group's parameters to
+        build each personality, and the cache cannot travel along: the
+        `module` entry holds a module object `copy.deepcopy` cannot
+        reconstruct, and a copy is a new option anyway, free to resolve its
+        fields against its own invocations. Only the configuration state
+        (message template, styles, screen, field overrides) is carried over.
+        """
+        cls = type(self)
+        clone = cls.__new__(cls)
+        memo[id(self)] = clone
+        for key, value in self.__dict__.items():
+            if isinstance(getattr(cls, key, None), cached_property):
+                continue
+            setattr(clone, key, copy.deepcopy(value, memo))
+        return clone
+
     @staticmethod
     def cli_frame() -> FrameType:
         """Returns the frame in which the CLI is implemented.
@@ -1331,15 +1351,38 @@ class VersionOption(ExtraOption):
             return None
         return resolve_git_dirty(self.git_repo_path)
 
-    @cached_property
+    @property
     def prog_name(self) -> str | None:
         """Return the name of the CLI, from Click's point of view.
 
         Get the [info_name](https://click.palletsprojects.com/en/stable/api/#click.Context.info_name) of
         the [root](https://click.palletsprojects.com/en/stable/api/#click.Context.find_root)
         command.
+
+        ```{note}
+        Unlike its siblings, this field is resolved on every access instead
+        of being cached on the instance: it is the one template field whose
+        value legitimately varies between invocations of the same option
+        instance sharing a process. {mod}`~click_extra.multicall` dispatch
+        relies on that, running one CLI under many names in sequence, and a
+        `prog_name` passed to `main()` varies it without any multicall at
+        all. A cached value would pin the first name seen forever.
+        ```
         """
+        if "_prog_name_override" in self.__dict__:
+            override: str | None = self.__dict__["_prog_name_override"]
+            return override
         return get_current_context().find_root().info_name
+
+    @prog_name.setter
+    def prog_name(self, value: str | None) -> None:
+        """Pin a forced value, the way `fields={"prog_name": …}` does.
+
+        Field overrides are applied with `setattr()`, which needs a setter
+        now that the field is a property instead of a `@cached_property` its
+        instance `__dict__` entry could shadow.
+        """
+        self.__dict__["_prog_name_override"] = value
 
     @cached_property
     def env_info(self) -> dict[str, Any]:

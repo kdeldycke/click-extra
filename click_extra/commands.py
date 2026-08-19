@@ -564,7 +564,13 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         ```
         """
         # `args` needs to be copied: its items are consumed by the parsing process.
-        extra.update({"meta": {context.RAW_ARGS: args.copy()}})
+        meta: dict[str, Any] = {context.RAW_ARGS: args.copy()}
+        # Record the invocation name once, on the root context: `ctx.meta` is
+        # shared down the whole context hierarchy, and a subcommand's own
+        # `info_name` is not the name the binary was invoked under.
+        if parent is None:
+            meta[context.INVOCATION_NAME] = info_name
+        extra.update({"meta": meta})
         return super().make_context(info_name, args, parent, **extra)
 
     def format_examples(
