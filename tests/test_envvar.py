@@ -109,62 +109,84 @@ def test_show_auto_envvar_help(invoke, cmd_decorator, option_help):
 def envvars_test_cases():
     params = []
 
+    # Which spellings each framework answers to, given `auto_envvar_prefix="yo"`
+    # and `envvar=["Magic", "sUper"]` on the option.
+    #
+    # Two rules explain every row, and neither is a defect:
+    #
+    # 1. A *user-defined* envvar is matched byte-for-byte, so `Magic` works and
+    #    `MAGIC` does not.
+    # 2. An *auto-generated* envvar is uppercased by Click: `Context.__init__`
+    #    upper-cases `auto_envvar_prefix`, and `Parameter.resolve_envvar_value`
+    #    builds `f"{prefix}_{name.upper()}"`. So the generated name is `YO_FLAG`,
+    #    whatever case the prefix was declared in, and the literal `yo_FLAG` is
+    #    not a name Click ever looks up.
+    #
+    # Rule 2 was raised upstream as a case-sensitivity bug in
+    # https://github.com/pallets/click/issues/2483 and declined: "Environment
+    # variables are case sensitive except on Windows. Traditionally, variables
+    # are all uppercase... there's nothing to fix regarding case." So the
+    # `YO_FLAG` rows below pin Click's intended behavior rather than a bug
+    # awaiting a fix, and a Click release that stopped matching it would be a
+    # real regression this test is meant to catch.
+    #
+    # What click-extra adds is the missing half: it registers the literal
+    # `yo_FLAG` alongside, so an option answers to the prefix as it was written.
+    # Neither framework matches an arbitrary mixed case like `yo_FlAg`.
     matrix = {
         (click.command, "click.command"): {
             "working_envvar": (
-                # User-defined envvars are recognized as-is.
+                # User-defined envvars are recognized as-is (rule 1).
                 "Magic",
                 "sUper",
-                # XXX Uppercased auto-generated envvar is recognized but should not be.
+                # The uppercased form is the generated name (rule 2).
                 "YO_FLAG",
             ),
             "unknown_envvar": (
-                # Uppercased user-defined envvar is not recognized.
+                # Uppercased user-defined envvar is not recognized (rule 1).
                 "MAGIC",
-                # XXX Literal auto-generated is not recognized but should be.
+                # The prefix as declared is never looked up (rule 2); this is
+                # the spelling click-extra adds below.
                 "yo_FLAG",
-                # Mixed-cased auto-generated envvat is not recognized.
+                # Mixed-cased auto-generated envvar matches neither form.
                 "yo_FlAg",
             ),
         },
         (cloup.command, "cloup.command"): {
+            # Cloup inherits Click's resolution untouched, so the two agree.
             "working_envvar": (
-                # User-defined envvars are recognized as-is.
                 "Magic",
                 "sUper",
-                # XXX Uppercased auto-generated envvar is recognized but should not be.
                 "YO_FLAG",
             ),
             "unknown_envvar": (
-                # Uppercased user-defined envvar is not recognized.
                 "MAGIC",
-                # XXX Literal auto-generated is not recognized but should be.
                 "yo_FLAG",
-                # Mixed-cased auto-generated envvat is not recognized.
                 "yo_FlAg",
             ),
         },
         (command, "click_extra.command"): {
             "working_envvar": (
-                # User-defined envvars are recognized as-is.
+                # User-defined envvars are recognized as-is (rule 1).
                 "Magic",
                 "sUper",
-                # Literal auto-generated is properly recognized but is not in vanilla
-                # Click (see above).
+                # click-extra's addition: the prefix as declared is registered
+                # explicitly, so this spelling resolves where vanilla Click
+                # leaves it unmatched.
                 "yo_FLAG",
-                # XXX Uppercased auto-generated envvar is recognized but should not be.
+                # Click's generated name still resolves (rule 2).
                 "YO_FLAG",
             ),
             "unknown_envvar": (
-                # Uppercased user-defined envvar is not recognized.
+                # Uppercased user-defined envvar is not recognized (rule 1).
                 "MAGIC",
-                # Mixed-cased auto-generated envvat is not recognized.
+                # Mixed-cased auto-generated envvar matches neither form.
                 "yo_FlAg",
             ),
         },
     }
 
-    # Windows is automaticcaly normalizing any env var to upper-case, see:
+    # Windows automatically normalizes any env var to upper-case, see:
     # https://github.com/python/cpython/blob/e715da6/Lib/os.py#L748-L749
     # https://docs.python.org/3/library/os.html?highlight=environ#os.environ
     # So Windows needs its own test case.
@@ -198,7 +220,18 @@ def envvars_test_cases():
         "true": True,
         "tRuE": True,
         "1": True,
-        "": False,  # XXX: Should be True?
+        # An empty value never reaches the flag's type: `resolve_envvar_value`
+        # guards its lookup with a bare `if rv`, and its docstring states that a
+        # variable "present but has an empty string" resolves to `None`. So the
+        # option falls back to its default, and `False` here is that default
+        # rather than a parse of `""`. Flipping the option's default to `True`
+        # flips this expectation with it.
+        #
+        # This is the one point where click-extra reads a flag differently:
+        # `parse_envvar_flag("")` returns `True`, since the variables it serves
+        # by hand (`NO_COLOR` and friends) follow the convention that bare
+        # presence is the signal. Those never route through a Click option.
+        "": False,
         "False": False,
         "false": False,
         "fAlsE": False,
@@ -261,6 +294,37 @@ def test_auto_envvar_parsing(invoke, cmd_decorator, envvars, expected_flag):
     assert result.stdout == f"Flag value: {expected_flag}\n"
     assert not result.stderr
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("default", (False, True))
+@pytest.mark.parametrize("cmd_decorator", (click.command, cloup.command, command))
+def test_empty_envvar_falls_back_to_the_default(invoke, cmd_decorator, default):
+    """An empty variable is read as unset, so the flag keeps its own default.
+
+    Pins the rule the ``""`` row of :func:`envvars_test_cases` relies on:
+    ``Parameter.resolve_envvar_value`` guards its lookup with a bare ``if rv``,
+    so an empty value never reaches the flag's type. The ``False`` that row
+    expects is the option's default showing through, which is why flipping the
+    default flips the outcome with it.
+    """
+
+    # Parenthesized: Cloup rejects the naked form, and the rest of this module
+    # calls every decorator anyway.
+    @cmd_decorator()
+    @option("--flag/--no-flag", default=default, envvar="Magic")
+    def my_cli(flag):
+        echo(f"Flag value: {flag}")
+
+    for env in (None, {"Magic": ""}):
+        result = invoke(my_cli, env=env)
+        assert result.stdout == f"Flag value: {default}\n"
+        assert result.exit_code == 0
+
+    # A value that does parse still wins over the default, in both directions.
+    for value, expected in (("1", True), ("0", False)):
+        result = invoke(my_cli, env={"Magic": value})
+        assert result.stdout == f"Flag value: {expected}\n"
+        assert result.exit_code == 0
 
 
 def test_env_copy():
