@@ -36,6 +36,7 @@ The table below lists every entry Click Extra writes, the option that triggers i
 | `context.RAW_ARGS`        | `click_extra.raw_args`        | `Command.make_context` (always, on `@command` group)         | `list[str]`: pre-parsed `argv` slice fed to the current command       |
 | `context.CONF_SOURCE`     | `click_extra.conf_source`     | `ConfigOption.load_conf` (`@config_option`)                  | `pathlib.Path \| URL \| None`: file the configuration was loaded from |
 | `context.CONF_FULL`       | `click_extra.conf_full`       | `ConfigOption.load_conf` (`@config_option`)                  | `dict \| None`: full parsed configuration document                    |
+| `context.CONF_SOURCES`    | `click_extra.conf_sources`    | `ConfigOption.load_conf` (`@config_option`)                  | `tuple[(path, dict), ...]`: every loaded file, highest precedence first |
 | `context.TOOL_CONFIG`     | `click_extra.tool_config`     | `ConfigOption._apply_config_schema` (with `config_schema`)   | The deserialised app section (also reachable via `get_tool_config()`) |
 | `context.VERBOSITY_LEVEL` | `click_extra.verbosity_level` | `--verbosity` / `--verbose` callbacks (reconciled)           | `LogLevel`: the highest level any verbosity option picked             |
 | `context.VERBOSITY`       | `click_extra.verbosity`       | `--verbosity` callback                                       | `LogLevel`: raw value of `--verbosity LEVEL` *(write-only)*           |

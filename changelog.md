@@ -96,6 +96,8 @@
 - Add a `sqlite` configuration file format, reading a `config` table of dotted keys and JSON-encoded values from `*.sqlite` and `*.sqlite3` databases with the built-in `sqlite3` module. Closes [#124](https://github.com/kdeldycke/click-extra/issues/124).
 - Add a `plist` configuration file format, reading `*.plist` property lists in both their XML and binary variant through the built-in `plistlib` module, and dumping them with `--export-config`. Closes [#123](https://github.com/kdeldycke/click-extra/issues/123).
 - Add an `argfile` configuration file format, reading `*.conf` files as a plain-text list of command-line options, one per line, in the style of `mpv` and `yt-dlp`. Closes [#340](https://github.com/kdeldycke/click-extra/issues/340).
+- Add a `cascade` argument to `@config_option`, layering every discovered configuration file into the defaults, most-local first, instead of stopping at the first parseable one. Closes [#581](https://github.com/kdeldycke/click-extra/issues/581).
+- Add a `CONF_SOURCES` context key listing every configuration file loaded, in precedence order, beside the existing `CONF_SOURCE` and `CONF_FULL`.
 - Change `--jobs` to count the host with `os.process_cpu_count()` on Python 3.13+, honoring a container's cgroup quota and CPU affinity, with a fallback to `os.cpu_count()` on older runtimes.
 - Change the `--jobs` default (`auto`) to use both logical CPUs on a two-CPU host instead of silently running sequentially: the one-core reservation now applies only to hosts with three CPUs or more.
 - Illustrate how the `--jobs` default, `auto` and `max` resolve across CPU arrangements in a table on the parallel-jobs page, from single-CPU containers to quota-limited ones.

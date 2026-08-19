@@ -53,6 +53,7 @@ KEY_CONSTANTS: tuple[tuple[str, str], ...] = (
     ("RAW_ARGS", "click_extra.raw_args"),
     ("CONF_SOURCE", "click_extra.conf_source"),
     ("CONF_FULL", "click_extra.conf_full"),
+    ("CONF_SOURCES", "click_extra.conf_sources"),
     ("TOOL_CONFIG", "click_extra.tool_config"),
     ("VERBOSITY_LEVEL", "click_extra.verbosity_level"),
     ("VERBOSITY", "click_extra.verbosity"),

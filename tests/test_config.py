@@ -1289,9 +1289,7 @@ def test_argfile_secondary_flag_and_inline_value(invoke, create_config):
     )
 
     result = invoke(argfile_cli, "--config", str(conf_path), color=False)
-    assert result.stdout == (
-        "dummy_flag = False\nname = 'John #1 Doe'\nratio = 0.5\n"
-    )
+    assert result.stdout == ("dummy_flag = False\nname = 'John #1 Doe'\nratio = 0.5\n")
     assert result.exit_code == 0
 
 
@@ -1337,9 +1335,7 @@ def test_argfile_unknown_option_ignored_when_not_strict(invoke, create_config):
     def argfile_lax_cli(name):
         echo(f"name = {name!r}")
 
-    conf_path = create_config(
-        "lax.conf", "--unknown-option some value\n--name ok\n"
-    )
+    conf_path = create_config("lax.conf", "--unknown-option some value\n--name ok\n")
     result = invoke(argfile_lax_cli, "--config", str(conf_path), color=False)
     assert result.exit_code == 0
     assert result.stdout == "name = 'ok'\n"
@@ -2469,6 +2465,250 @@ def test_parent_patterns_inaccessible_directory(tmp_path):
         assert root_dir is not None
         assert Path(root_dir) != tmp_path / "a"
         assert Path(root_dir) != tmp_path
+
+
+# --- Cascading configuration files --------------------------------------------
+
+
+@pytest.fixture
+def cascade_tree(tmp_path, monkeypatch):
+    """Point auto-discovery at a temporary app dir nested inside `tmp_path`.
+
+    Returns `(tmp_path, app_dir)`: a config file dropped in `app_dir` is the
+    most local source, one in `tmp_path` sits one level up the parent walk.
+    """
+    app_dir = tmp_path / "appdir"
+    app_dir.mkdir()
+    monkeypatch.setattr(
+        "click_extra.config.option.get_app_dir", lambda *a, **k: str(app_dir)
+    )
+    return tmp_path, app_dir
+
+
+LOCAL_CONF = dedent(
+    """
+    [cascade-cli]
+    int_param = 1
+    dummy_flag = true
+    """,
+)
+
+PARENT_CONF = dedent(
+    """
+    [cascade-cli]
+    int_param = 99
+    other_param = "from_parent"
+    """,
+)
+
+
+def _cascade_cli_factory(stop_at, cascade):
+    """A CLI reading `--int-param`, `--dummy-flag` and `--other-param`.
+
+    Built on plain `click.command` so the single `@config_option` below is
+    not duplicated by click-extra's auto-injected default one.
+    """
+
+    @click.command
+    @config_option(search_parents=True, stop_at=stop_at, cascade=cascade)
+    @click.option("--int-param", type=int, default=10)
+    @click.option("--dummy-flag/--no-flag")
+    @click.option("--other-param", default="none")
+    def cascade_cli(int_param, dummy_flag, other_param):
+        echo(f"int_param = {int_param!r}")
+        echo(f"dummy_flag = {dummy_flag!r}")
+        echo(f"other_param = {other_param!r}")
+
+    return cascade_cli
+
+
+def test_cascade_merges_files_local_wins(invoke, cascade_tree):
+    """With cascade=True, local values win and parent values fill the gaps."""
+    tmp_path, app_dir = cascade_tree
+    (app_dir / "config.toml").write_text(LOCAL_CONF, encoding="utf-8")
+    (tmp_path / "config.toml").write_text(PARENT_CONF, encoding="utf-8")
+
+    result = invoke(_cascade_cli_factory(tmp_path, cascade=True), color=False)
+    assert result.stdout == (
+        "int_param = 1\ndummy_flag = True\nother_param = 'from_parent'\n"
+    )
+    assert result.exit_code == 0
+
+
+def test_no_cascade_first_file_wins(invoke, cascade_tree):
+    """Without cascade, the first parseable file wins entirely."""
+    tmp_path, app_dir = cascade_tree
+    (app_dir / "config.toml").write_text(LOCAL_CONF, encoding="utf-8")
+    (tmp_path / "config.toml").write_text(PARENT_CONF, encoding="utf-8")
+
+    result = invoke(_cascade_cli_factory(tmp_path, cascade=False), color=False)
+    assert result.stdout == ("int_param = 1\ndummy_flag = True\nother_param = 'none'\n")
+    assert result.exit_code == 0
+
+
+def test_cascade_single_layer_from_parent(invoke, cascade_tree):
+    """A lone file found up the walk is applied as-is."""
+    tmp_path, _app_dir = cascade_tree
+    (tmp_path / "config.toml").write_text(PARENT_CONF, encoding="utf-8")
+
+    result = invoke(_cascade_cli_factory(tmp_path, cascade=True), color=False)
+    assert result.stdout == (
+        "int_param = 99\ndummy_flag = False\nother_param = 'from_parent'\n"
+    )
+    assert result.exit_code == 0
+
+
+def test_cascade_explicit_config_does_not_cascade(invoke, cascade_tree):
+    """An explicit --config pins a single source, even with cascade=True."""
+    tmp_path, app_dir = cascade_tree
+    (app_dir / "config.toml").write_text(LOCAL_CONF, encoding="utf-8")
+    parent_conf = tmp_path / "config.toml"
+    parent_conf.write_text(PARENT_CONF, encoding="utf-8")
+
+    result = invoke(
+        _cascade_cli_factory(tmp_path, cascade=True),
+        "--config",
+        str(parent_conf),
+        color=False,
+    )
+    assert result.stdout == (
+        "int_param = 99\ndummy_flag = False\nother_param = 'from_parent'\n"
+    )
+    assert result.exit_code == 0
+
+
+def test_cascade_conf_sources_metadata(invoke, cascade_tree):
+    """ctx.meta[CONF_SOURCES] lists every loaded file, highest precedence first."""
+    from click_extra import context
+
+    tmp_path, app_dir = cascade_tree
+    local_conf = app_dir / "config.toml"
+    local_conf.write_text(LOCAL_CONF, encoding="utf-8")
+    parent_conf = tmp_path / "config.toml"
+    parent_conf.write_text(PARENT_CONF, encoding="utf-8")
+
+    @click.command
+    @config_option(search_parents=True, stop_at=tmp_path, cascade=True)
+    @click.option("--int-param", type=int, default=10)
+    @pass_context
+    def cascade_cli(ctx, int_param):
+        sources = context.get(ctx, context.CONF_SOURCES)
+        for location, _conf in sources:
+            echo(str(location))
+        echo(f"conf_source = {context.get(ctx, context.CONF_SOURCE)}")
+
+    result = invoke(cascade_cli, color=False)
+    assert result.stdout == (
+        f"{local_conf.resolve()}\n"
+        f"{parent_conf.resolve()}\n"
+        f"conf_source = {local_conf.resolve()}\n"
+    )
+    assert result.exit_code == 0
+
+
+def test_cascade_conf_full_is_merged_view(invoke, cascade_tree):
+    """ctx.meta[CONF_FULL] exposes the deep-merged document."""
+    from click_extra import context
+
+    tmp_path, app_dir = cascade_tree
+    (app_dir / "config.toml").write_text(LOCAL_CONF, encoding="utf-8")
+    (tmp_path / "config.toml").write_text(PARENT_CONF, encoding="utf-8")
+
+    @click.command
+    @config_option(search_parents=True, stop_at=tmp_path, cascade=True)
+    @click.option("--int-param", type=int, default=10)
+    @pass_context
+    def cascade_cli(ctx, int_param):
+        full = context.get(ctx, context.CONF_FULL)
+        section = full["cascade-cli"]
+        echo(f"int_param = {section['int_param']!r}")
+        echo(f"other_param = {section['other_param']!r}")
+
+    result = invoke(cascade_cli, color=False)
+    assert result.stdout == "int_param = 1\nother_param = 'from_parent'\n"
+    assert result.exit_code == 0
+
+
+def test_cascade_validation_error_names_file(invoke, cascade_tree, caplog):
+    """A strict-check failure in one layer names that file and exits 1."""
+    tmp_path, app_dir = cascade_tree
+    (app_dir / "config.toml").write_text(LOCAL_CONF, encoding="utf-8")
+    bad_parent = tmp_path / "config.toml"
+    bad_parent.write_text(
+        dedent(
+            """
+            [cascade-cli]
+            unknown_key = "boom"
+            """,
+        ),
+        encoding="utf-8",
+    )
+
+    @click.command
+    @config_option(search_parents=True, stop_at=tmp_path, cascade=True, strict=True)
+    @click.option("--int-param", type=int, default=10)
+    @click.option("--dummy-flag/--no-flag")
+    @click.option("--other-param", default="none")
+    def cascade_cli(int_param, dummy_flag, other_param):
+        echo(f"int_param = {int_param!r}")
+
+    result = invoke(cascade_cli, color=False)
+    assert not result.stdout
+    assert f"Configuration validation error in {bad_parent.resolve()}" in caplog.text
+    assert "Unknown configuration key 'unknown_key'" in caplog.text
+    assert result.exit_code == 1
+
+
+def test_read_and_parse_all_conf_orders_local_first(tmp_path):
+    """All parseable files are yielded, deepest first; unparsable ones skip."""
+    (tmp_path / "a" / "b").mkdir(parents=True)
+    deep = tmp_path / "a" / "b" / "config.toml"
+    deep.write_text("[test-cli]\nk = 2", encoding="utf-8")
+    middle = tmp_path / "a" / "config.toml"
+    middle.write_text("[test-cli]\nk = 1", encoding="utf-8")
+    # Unparseable content: found, but not yielded.
+    (tmp_path / "config.toml").write_text("not toml {{{", encoding="utf-8")
+
+    @click.command
+    @config_option(search_parents=True, stop_at=tmp_path)
+    def test_cli():
+        pass
+
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
+        results = list(
+            config_opt.read_and_parse_all_conf(str(tmp_path / "a" / "b" / "*.toml"))
+        )
+
+    assert [location for location, _ in results] == [
+        deep.resolve(),
+        middle.resolve(),
+    ]
+    assert [conf["test-cli"]["k"] for _, conf in results] == [2, 1]
+
+
+def test_read_and_parse_conf_returns_first(tmp_path):
+    """read_and_parse_conf keeps its first-match contract on top of the generator."""
+    (tmp_path / "a" / "b").mkdir(parents=True)
+    deep = tmp_path / "a" / "b" / "config.toml"
+    deep.write_text("[test-cli]\nk = 2", encoding="utf-8")
+    (tmp_path / "a" / "config.toml").write_text("[test-cli]\nk = 1", encoding="utf-8")
+
+    @click.command
+    @config_option(search_parents=True, stop_at=tmp_path)
+    def test_cli():
+        pass
+
+    with click.Context(test_cli, info_name="test-cli"):
+        config_opt = search_params(test_cli.params, ConfigOption)
+        assert isinstance(config_opt, ConfigOption)
+        location, conf = config_opt.read_and_parse_conf(
+            str(tmp_path / "a" / "b" / "*.toml")
+        )
+
+    assert location == deep.resolve()
+    assert conf == {"test-cli": {"k": 2}}
 
 
 @pytest.mark.parametrize(

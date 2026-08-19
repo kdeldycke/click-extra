@@ -26,12 +26,14 @@ import click
 import pytest
 
 from click_extra import (
+    ConfigOption,
     config_option,
     echo,
     group,
     make_schema_callable,
     option,
     pass_context,
+    search_params,
     validate_config_option,
 )
 from click_extra.config import (
@@ -98,6 +100,61 @@ def test_config_schema_dataclass(invoke, create_config):
     assert "extra_stuff  is 'from_config'" in result.stdout
     assert "my_list      is ['a', 'b']" in result.stdout
     assert "int_param    is 42" in result.stdout
+
+
+def test_config_schema_cascade(invoke, tmp_path, monkeypatch):
+    """With cascade=True, the schema is built from the merged view."""
+
+    @dataclass
+    class AppConfig:
+        extra_stuff: str = "default_value"
+        other_stuff: str = "other_default"
+
+    app_dir = tmp_path / "appdir"
+    app_dir.mkdir()
+    monkeypatch.setattr(
+        "click_extra.config.option.get_app_dir", lambda *a, **k: str(app_dir)
+    )
+
+    # The local file sets one schema field, the parent the other.
+    (app_dir / "config.toml").write_text(
+        '[schema-cascade-cli]\nextra-stuff = "from_local"\n', encoding="utf-8"
+    )
+    (tmp_path / "config.toml").write_text(
+        dedent(
+            """
+            [schema-cascade-cli]
+            extra-stuff = "from_parent"
+            other-stuff = "parent_other"
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    @group(config_schema=AppConfig)
+    @pass_context
+    def schema_cascade_cli(ctx):
+        config = get_tool_config(ctx)
+        echo(f"extra_stuff  is {config.extra_stuff!r}")
+        echo(f"other_stuff  is {config.other_stuff!r}")
+
+    @schema_cascade_cli.command()
+    def subcommand():
+        pass
+
+    # Configure the auto-injected ConfigOption for cascading discovery.
+    config_opt = search_params(schema_cascade_cli.params, ConfigOption)
+    assert isinstance(config_opt, ConfigOption)
+    config_opt.search_parents = True
+    config_opt.stop_at = tmp_path
+    config_opt.cascade = True
+
+    result = invoke(schema_cascade_cli, "subcommand", color=False)
+    assert result.exit_code == 0
+    # Local value wins on conflict...
+    assert "extra_stuff  is 'from_local'" in result.stdout
+    # ...and the parent-only field is still picked up.
+    assert "other_stuff  is 'parent_other'" in result.stdout
 
 
 def test_config_schema_callable(invoke, create_config):

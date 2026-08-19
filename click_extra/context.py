@@ -356,6 +356,18 @@ Written by {class}`click_extra.config.option.ConfigOption.load_conf`. Read by
 {class}`click_extra.commands.Group` (for subcommand inheritance) and by
 {func}`click_extra.cli_wrapper.invoke_target` (to forward the loaded config to
 wrapped CLIs).
+
+With `cascade=True` this holds the deep-merged view of every loaded file,
+which is the configuration as it was actually applied.
+"""
+
+CONF_SOURCES: Final[str] = "click_extra.conf_sources"
+"""Every configuration file loaded, in precedence order (highest first).
+
+Written by {class}`click_extra.config.option.ConfigOption.load_conf` as a
+(possibly empty) tuple of `(location, parsed_conf)` pairs. Holds a single
+entry in the default first-file-wins mode, and one entry per loaded file
+when `cascade=True`.
 """
 
 TOOL_CONFIG: Final[str] = "click_extra.tool_config"

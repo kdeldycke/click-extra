@@ -5,7 +5,7 @@ parameters](parameters.md#parameter-structure) of the CLI and their types. There
 data structure to mirror the CLI.
 
 ```{tip}
-After loading, the resolved file path, the full parsed document, and (when a `config_schema` is set) the typed app section are exposed on `ctx.meta` as `CONF_SOURCE`, `CONF_FULL`, and `TOOL_CONFIG`. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
+After loading, the resolved file path, the full parsed document, and (when a `config_schema` is set) the typed app section are exposed on `ctx.meta` as `CONF_SOURCE`, `CONF_FULL`, and `TOOL_CONFIG`. With [`cascade=True`](#cascading-configuration-files), `CONF_SOURCES` additionally lists every file that was loaded. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
 ```
 
 ## Resolving a configuration file
@@ -1462,7 +1462,7 @@ Running `cli` from anywhere inside the project tree will find `pyproject.toml` a
 
 #### Dedicated file wins, no merging
 
-When both a dedicated configuration file (like `my-cli.toml`) and a `pyproject.toml` with a `[tool.my-cli]`{l=toml} section exist, Click Extra uses the **first parseable file** it finds and ignores all others. There is no merging across files.
+When both a dedicated configuration file (like `my-cli.toml`) and a `pyproject.toml` with a `[tool.my-cli]`{l=toml} section exist, Click Extra uses the **first parseable file** it finds and ignores all others. There is no merging across files, unless [`cascade=True`](#cascading-configuration-files) opts into layering every discovered file.
 
 This is the de facto standard across the ecosystem. Every major tool that supports both a dedicated config file and `pyproject.toml` follows the same strict precedence (dedicated file wins, `pyproject.toml` is ignored entirely):
 
@@ -1513,7 +1513,7 @@ There is multiple stages to locate and parse the configuration file:
 
 1. Locate all files matching the search pattern
 2. Match each file against the supported formats, in order, until one is successfully parsed
-3. Use the first successfully parsed file as the configuration source
+3. Use the first successfully parsed file as the configuration source, or layer every one of them with [`cascade=True`](#cascading-configuration-files)
 
 By default, the pattern is `<app_dir>/{*.toml,*.json,*.ini}`, where:
 
@@ -1893,7 +1893,7 @@ For a CLI named `cli` on a Unix system, this searches for configuration files in
 3. `~/{*.toml,*.yaml,…}`
 4. `/{*.toml,*.yaml,…}`
 
-The first successfully [parsed file wins](#parsing-priority). This is useful for monorepo or project-local configuration, where a config file placed higher in the tree acts as a fallback.
+By default, the first successfully [parsed file wins](#parsing-priority). This is useful for monorepo or project-local configuration, where a config file placed higher in the tree acts as a fallback. Set [`cascade=True`](#cascading-configuration-files) to load and merge every file found instead.
 
 ```{note}
 Parent search works with both plain paths and [glob patterns](#search-pattern-specifications). For glob patterns, the non-magic directory prefix is identified and the file pattern is searched at each parent level via `root_dir`. Entirely magic patterns like `*.toml` have no directory prefix to walk up, so only the original pattern is searched.
@@ -1938,6 +1938,36 @@ def cli():
 ```{tip}
 The default `stop_at=VCS` mirrors the behavior of tools like `bump-my-version` and prevents the walk from escaping the repository into unrelated parent directories.
 ```
+
+#### Cascading configuration files
+
+By default, discovery stops at the first parseable file. With `cascade=True`, **every** file discovered by auto-discovery is loaded and layered into the defaults, the most local one winning on each key:
+
+```{code-block} python
+:caption: Merge user-wide and project-local configuration
+:emphasize-lines: 6
+from click import command
+
+from click_extra import config_option
+
+@command
+@config_option(search_parents=True, cascade=True)
+def cli():
+    pass
+```
+
+Precedence, highest first:
+
+1. The nearest `pyproject.toml` with a `[tool.<cli>]`{l=toml} section, found by the [CWD-first discovery](#cwd-first-discovery) walk, then its parents.
+2. The files found by the app-dir search, walking up: a config in `~/.config/cli/` beats one found in a parent of that folder.
+
+A key defined in several files resolves to the most local one; a key defined in a single file applies wherever it sits in the hierarchy. Each file is validated individually, so an error message names the file it comes from, and the `config_schema` is built from the merged result.
+
+```{important}
+An explicit `--config` value never cascades: it pins a single configuration source, whatever `cascade` is set to. Cascading only applies to auto-discovery.
+```
+
+Every loaded file is recorded in `ctx.meta[context.CONF_SOURCES]` as `(location, parsed_conf)` pairs, highest precedence first, and `ctx.meta[context.CONF_FULL]` holds the deep-merged document as it was applied.
 
 ### Remote URL
 
