@@ -40,6 +40,7 @@ from click_extra import (
     UUID,
     Choice,
     ConfigFormat,
+    ConfigOption,
     DateTime,
     File,
     FloatRange,
@@ -1006,6 +1007,164 @@ def test_show_params_no_default_renders_none(invoke):
         assert rows[param_id]["Default"] is None
         assert rows[param_id]["Value"] is None
         assert rows[param_id]["Source"] == "DEFAULT"
+
+
+def test_show_params_config_file_cascade(invoke, tmp_path, monkeypatch):
+    """The config_file column names the cascade layer a value resolved from.
+
+    The local file wins the root-level parameter; the parent file owns the
+    `[sub]` section the local file does not define. A parameter overridden on
+    the command line keeps an empty column: the file did not supply the
+    effective value.
+    """
+    app_dir = tmp_path / "appdir"
+    app_dir.mkdir()
+    monkeypatch.setattr(
+        "click_extra.config.option.get_app_dir", lambda *a, **k: str(app_dir)
+    )
+
+    local_conf = app_dir / "config.toml"
+    local_conf.write_text(
+        dedent(
+            """
+            [provenance-cli]
+            int_param = 1
+            """
+        ),
+        encoding="utf-8",
+    )
+    parent_conf = tmp_path / "config.toml"
+    parent_conf.write_text(
+        dedent(
+            """
+            [provenance-cli]
+            int_param = 99
+
+            [provenance-cli.sub]
+            sub_param = "from_parent"
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    @group
+    @columns_option(columns=ShowParamsOption.TABLE_HEADERS)
+    @option("--int-param", type=int, default=10)
+    def provenance_cli(int_param):
+        echo(f"int_param = {int_param!r}")
+
+    @provenance_cli.command()
+    @option("--sub-param", default="nothing")
+    def sub(sub_param):
+        echo(f"sub_param = {sub_param!r}")
+
+    config_opt = search_params(provenance_cli.params, ConfigOption)
+    assert isinstance(config_opt, ConfigOption)
+    config_opt.search_parents = True
+    config_opt.stop_at = tmp_path
+    config_opt.cascade = True
+
+    result = invoke(
+        provenance_cli,
+        # --int-param on the command line outranks both files.
+        "--int-param",
+        "5",
+        "--params",
+        "--table-format",
+        "json",
+        "--columns",
+        "id,value,source,config_file",
+        color=False,
+    )
+    assert result.exit_code == 0
+    rows = {row["ID"]: row for row in json.loads(result.stdout)}
+
+    # Command-line value: no file supplied the effective value. The replay
+    # path reports CLI tokens before type conversion, so compare as text.
+    int_row = rows["provenance-cli.int_param"]
+    assert str(int_row["Value"]) == "5"
+    assert int_row["Source"] == "COMMANDLINE"
+    assert int_row["Config file"] is None
+
+    # Subcommand section owned by the parent file: local defines none.
+    sub_row = rows["provenance-cli.sub.sub_param"]
+    assert sub_row["Value"] == "from_parent"
+    assert sub_row["Source"] == "DEFAULT_MAP"
+    assert sub_row["Config file"] == str(parent_conf.resolve())
+
+    # Drop the command-line override: the same parameter now resolves from
+    # the most local layer.
+    result = invoke(
+        provenance_cli,
+        "--params",
+        "--table-format",
+        "json",
+        "--columns",
+        "id,value,source,config_file",
+        color=False,
+    )
+    assert result.exit_code == 0
+    rows = {row["ID"]: row for row in json.loads(result.stdout)}
+    int_row = rows["provenance-cli.int_param"]
+    assert int_row["Value"] == 1
+    assert int_row["Source"] == "DEFAULT_MAP"
+    assert int_row["Config file"] == str(local_conf.resolve())
+
+
+def test_show_params_config_file_single_file(invoke, create_config):
+    """A single loaded file is attributed to every config-sourced parameter."""
+
+    @command
+    @columns_option(columns=ShowParamsOption.TABLE_HEADERS)
+    @option("--int-param", type=int, default=10)
+    def provenance_cli(int_param):
+        echo(f"int_param = {int_param!r}")
+
+    conf_path = create_config(
+        "provenance.toml",
+        dedent(
+            """\
+            [provenance-cli]
+            int_param = 42
+            """
+        ),
+    )
+
+    result = invoke(
+        provenance_cli,
+        "--params",
+        "--table-format",
+        "json",
+        "--columns",
+        "id,source,config_file",
+        "--config",
+        str(conf_path),
+        color=False,
+    )
+    assert result.exit_code == 0
+    rows = {row["ID"]: row for row in json.loads(result.stdout)}
+
+    int_row = rows["provenance-cli.int_param"]
+    assert int_row["Source"] == "DEFAULT_MAP"
+    assert int_row["Config file"] == str(conf_path.resolve())
+
+    # Params untouched by the file keep an empty column.
+    assert rows["provenance-cli.params"]["Config file"] is None
+
+
+def test_show_params_config_file_column_is_opt_in(invoke):
+    """config_file is addressable by ID but stays out of the default table."""
+    assert "config_file" in ShowParamsOption.column_ids()
+    assert "config_file" not in ShowParamsOption.default_column_ids()
+
+    @command
+    @option("--int-param", type=int, default=10)
+    def provenance_cli(int_param):
+        echo(f"int_param = {int_param!r}")
+
+    result = invoke(provenance_cli, "--params", "--table-format", "csv", color=False)
+    assert result.exit_code == 0
+    assert "Config file" not in result.stdout
 
 
 def test_column_registry_is_consistent():

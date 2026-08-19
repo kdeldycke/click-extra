@@ -1967,7 +1967,11 @@ A key defined in several files resolves to the most local one; a key defined in 
 An explicit `--config` value never cascades: it pins a single configuration source, whatever `cascade` is set to. Cascading only applies to auto-discovery.
 ```
 
-Every loaded file is recorded in `ctx.meta[context.CONF_SOURCES]` as `(location, parsed_conf)` pairs, highest precedence first, and `ctx.meta[context.CONF_FULL]` holds the deep-merged document as it was applied.
+Every loaded file is recorded in `ctx.meta[context.CONF_SOURCES]` as `(location, parsed_conf)` pairs, highest precedence first, and `ctx.meta[context.CONF_FULL]` holds the deep-merged document as it was applied. To see the layering at work, ask [`--params`](parameters.md) for the opt-in `config_file` column: it names, for every parameter sourced from a configuration file, the exact file its value resolved from:
+
+```{code-block} shell-session
+$ my-cli --params --columns id,value,source,config_file
+```
 
 ### Remote URL
 

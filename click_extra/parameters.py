@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+from collections import ChainMap
 from contextlib import nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
@@ -26,8 +27,10 @@ from typing import TypeVar
 
 import click
 import cloup
+from boltons.pathutils import shrinkuser
 from click import ParamType, get_current_context
 from click._utils import UNSET
+from click.core import ParameterSource
 from deepmerge import always_merger
 
 from . import context
@@ -43,7 +46,10 @@ from .types import EnumChoice
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence
+    from pathlib import Path
     from typing import Any, ClassVar, Literal
+
+    from boltons.urlutils import URL
 
 logger = logging.getLogger(__name__)
 
@@ -676,8 +682,8 @@ def format_param_row(
     For structured formats (JSON, YAML, etc.), values are native Python types.
     For visual formats, values are themed strings matching help-screen styling.
 
-    The remaining table columns (`allowed_in_conf`, `value`, `source`)
-    require live context and are filled in by
+    The remaining table columns (`allowed_in_conf`, `value`, `source`,
+    `config_file`) require live context and are filled in by
     {func}`~click_extra.parameters.render_params_table`.
     """
     param_spec = get_param_spec(param, ctx)
@@ -921,6 +927,71 @@ def replay_raw_args(subject_ctx: click.Context) -> dict[str, Any]:
     return opts
 
 
+def param_config_source(
+    root_ctx: click.Context,
+    keys: Sequence[str],
+) -> Path | URL | None:
+    """Return the configuration file supplying a parameter's `default_map` value.
+
+    *keys* is the parameter's fully-qualified path, root command name first
+    and parameter name last, as yielded by {func}`walk_command_params`.
+    Returns `None` when no configuration file was loaded, when the parameter
+    is absent from every loaded layer, or when the context carries no layered
+    `default_map` at all.
+
+    The walk mirrors how Click resolves `default_map`, so the attribution
+    matches the value Click actually picks:
+
+    - Root-level parameters are looked up in the root context's
+      `~collections.ChainMap`, whose first layers are the loaded files in
+      precedence order (see
+      {data}`~click_extra.context.CONF_SOURCES`): the first layer naming the
+      parameter wins.
+    - A subcommand section resolves against that same `ChainMap`, but Click
+      keeps descending *inside the single layer* that named the first
+      segment: the file owning a subcommand section owns its whole sub-tree.
+
+    ```{note}
+    Lazy subcommands receive their section from the merged configuration
+    document, injected into the front layer by
+    {meth}`~click_extra.commands.Group._apply_config_to_parent_context`:
+    those values are attributed to the highest-precedence file even when
+    several files contributed to the merge.
+    ```
+    """
+    sources: tuple[tuple[Path | URL, dict[str, Any]], ...] | None = context.get(
+        root_ctx, context.CONF_SOURCES
+    )
+    if not sources:
+        return None
+    default_map = root_ctx.default_map
+    if not isinstance(default_map, ChainMap):
+        return None
+    layers = default_map.maps[: len(sources)]
+
+    segments = keys[1:-1]
+    param_name = keys[-1]
+
+    if segments:
+        for index, layer in enumerate(layers):
+            if segments[0] not in layer:
+                continue
+            subtree = layer[segments[0]]
+            for segment in segments[1:]:
+                if not isinstance(subtree, dict):
+                    return None
+                subtree = subtree.get(segment)
+            if isinstance(subtree, dict) and param_name in subtree:
+                return sources[index][0]
+            return None
+        return None
+
+    for index, layer in enumerate(layers):
+        if param_name in layer:
+            return sources[index][0]
+    return None
+
+
 def render_params_table(
     subject_ctx: click.Context,
     *,
@@ -977,25 +1048,28 @@ def render_params_table(
 
     # Resolve the value getter. When the original arguments are available we
     # replay them through the command parser to recover each value and its
-    # provenance; otherwise we only know the parameter defaults.
+    # provenance; otherwise we only know the parameter defaults. Values are
+    # resolved against each parameter's owning context, so subcommand
+    # parameters read their `default_map` from the subcommand's own section
+    # and their environment variables from the correct nesting level.
     opts: dict = {}
     raw_args = context.get(subject_ctx, context.RAW_ARGS)
     if raw_args is not None:
         logger.debug(f"{context.RAW_ARGS}: {raw_args}")
         opts = replay_raw_args(subject_ctx)
 
-        def get_param_value(param):
+        def get_param_value(param, param_ctx):
             # consume_value() can return the UNSET sentinel for a parameter with
             # no user input and no default. Normalize it to None, mirroring the
             # step click.Command.parse_args runs after parsing, which this
             # re-parse bypasses. See the RAW_ARGS dossier in click_extra.context.
-            value, source = param.consume_value(subject_ctx, opts)
+            value, source = param.consume_value(param_ctx, opts)
             return (None if value is UNSET else value), source
 
     else:
 
-        def get_param_value(param):
-            return None, subject_ctx.get_parameter_source(param.name)
+        def get_param_value(param, param_ctx):
+            return None, param_ctx.get_parameter_source(param.name)
 
     # Locate a --config option to fill the "allowed in conf?" column.
     config_option = search_params(cmd.get_params(subject_ctx), ConfigOption)
@@ -1056,7 +1130,7 @@ def render_params_table(
         cmd, subject_ctx, (cmd.name or "",)
     ):
         path = PARAM_PATH_SEP.join(keys)
-        param_value, source = get_param_value(param)
+        param_value, source = get_param_value(param, owning_ctx)
 
         # Whether the parameter is reachable from a configuration file.
         allowed_in_conf_bool = None
@@ -1066,11 +1140,21 @@ def render_params_table(
 
         row = format_param_row(param, owning_ctx, path, is_structured)
 
+        # Config-file provenance: only meaningful when the effective value
+        # came from the default_map; the layer walk then names the file it
+        # resolved from.
+        config_file: Path | URL | str | None = None
+        if source is ParameterSource.DEFAULT_MAP:
+            location = param_config_source(subject_ctx.find_root(), keys)
+            if location is not None:
+                config_file = location if is_structured else shrinkuser(str(location))
+
         if is_structured:
             param_value = _structured_value(param_value)
             row["allowed_in_conf"] = allowed_in_conf_bool
             row["value"] = param_value
             row["source"] = source.name if source else None
+            row["config_file"] = str(config_file) if config_file else None
         else:
             allowed_in_conf = None
             if allowed_in_conf_bool is not None:
@@ -1078,6 +1162,7 @@ def render_params_table(
             row["allowed_in_conf"] = allowed_in_conf
             row["value"] = repr(param_value)
             row["source"] = source.name if source else None
+            row["config_file"] = config_file
 
         table.append(select_row(row, selected_ids, canonical_ids))
 
@@ -1354,6 +1439,22 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "(https://click.palletsprojects.com/en/stable/api/"
                 "#click.core.ParameterSource) enum member such as `COMMANDLINE`, "
                 "`ENVIRONMENT`, `DEFAULT_MAP`, or `DEFAULT`."
+            ),
+        ),
+        _ColumnSpec(
+            id="config_file",
+            label="Config file",
+            optional=True,
+            description=(
+                "The configuration file the effective value was loaded from, "
+                "when `Source` reports `DEFAULT_MAP`. With "
+                "[`cascade=True`](config.md#cascading-configuration-files) "
+                "several files are layered and this column names the one that "
+                "won the parameter; with a single loaded file, every "
+                "config-sourced parameter names that file. Empty for every "
+                "other source and when no configuration file was loaded. "
+                "Opt-in, like `help`: paths are wide and stay redundant with "
+                "`Source` until several files take part."
             ),
         ),
     )

@@ -28,6 +28,8 @@
 - Add `to_markdown()` and `to_dict()` / `to_json()` backends to the document model behind `--man`, plus the `render_help()` entry point and the `HELP_FORMATS` registry.
 - Add an `examples=[("description", "command")]` parameter to `@command` and `@group`, rendered in help screens, man pages and every `--help-format`.
 - Add an opt-in `help` column to `--params`, carrying each parameter's help text; select it with `--columns id,spec,help`.
+- Add an opt-in `config_file` column to `--params`, naming the configuration file a `DEFAULT_MAP` value resolved from: with `cascade=True` each parameter points at the layer that won it; select it with `--columns id,value,source,config_file`.
+- Fix `--params` resolving subcommand parameter values and sources against the root context, which left their `Value` and `Source` columns at the defaults instead of reading the subcommand's own configuration and environment.
 - Add an `optional` field to `ColumnSpec`, keeping a column out of an unprojected table while leaving it addressable by ID.
 - Add `sort_subcommands` and `subcommand_priorities` to `@group`, listing subcommands in registration order or by float priority instead of alphabetically. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
 - Add a `sort_subcommands` context setting, inherited by every subgroup below the group declaring it.
