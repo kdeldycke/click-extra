@@ -28,7 +28,6 @@ from boltons.strutils import strip_ansi
 from click_extra import (
     LogLevel,
     Spinner,
-    command,
     echo,
     quiet_option,
     verbose_option,
@@ -136,15 +135,39 @@ def test_root_logger_defaults():
         (("--verbosity", "DEBUG", "-v", "-q"), "DEBUG"),
     ),
 )
-# TODO: test click_extra.group
+@pytest.mark.parametrize(
+    ("cmd_decorator", "cmd_type"),
+    # Only Click Extra's own decorators carry the verbosity options by default,
+    # which is what this test drives.
+    command_decorators(no_click=True, no_cloup=True, with_types=True),
+)
 def test_integrated_verbosity_options(
-    invoke, args, expected_level, assert_output_regex
+    invoke, cmd_decorator, cmd_type, args, expected_level, assert_output_regex
 ):
-    @command
-    def logging_cli3():
-        echo("It works!")
+    if "group" in cmd_type:
 
-    result = invoke(logging_cli3, args, color=True)
+        @cmd_decorator
+        def logging_cli3():
+            pass
+
+        # Parenthesized: the group is Cloup-based, which rejects the naked form.
+        @logging_cli3.command()
+        def worker():
+            echo("It works!")
+
+        # The group's own options are parsed before the subcommand name, which
+        # is where a reader would type them too.
+        cli_args = (*(args or ()), "worker")
+
+    else:
+
+        @cmd_decorator
+        def logging_cli3():
+            echo("It works!")
+
+        cli_args = args
+
+    result = invoke(logging_cli3, cli_args, color=True)
     assert result.stdout == "It works!\n"
     if expected_level == "DEBUG":
         debug_log = default_debug_colored_logging
@@ -523,8 +546,28 @@ def test_new_logger_object_passing(invoke):
     assert result.exit_code == 0
 
 
-@pytest.mark.skip(reason="Test is flacky because of the logger's propagation.")
-def test_new_logger_root_config(invoke):
+@pytest.fixture
+def restored_root_logger():
+    """Put the root logger back the way the test found it.
+
+    ``new_logger()`` naming no logger reconfigures the process-wide root one
+    through ``basicConfig(force=True)``, which drops whatever handlers were
+    already attached. Nothing in ``logging`` undoes that, so a test doing it
+    once decides how every later test in the same worker renders: leaving the
+    handler behind is what made ``test_logger_propagation`` fail whenever this
+    module's root-logger test ran before it.
+    """
+    root = logging.getLogger()
+    saved_handlers = root.handlers[:]
+    saved_level = root.level
+    try:
+        yield root
+    finally:
+        root.handlers[:] = saved_handlers
+        root.setLevel(saved_level)
+
+
+def test_new_logger_root_config(invoke, restored_root_logger):
     """Modify the root logger via ``new_logger()``"""
 
     root_logger = new_logger(format="{levelname} | {name} | {message}")
@@ -536,29 +579,39 @@ def test_new_logger_root_config(invoke):
         logging.warning("Root logger warning")
         logging.debug("Root logger debug")
         logging.info("Root logger info")
-        # Create a new custom logger object.
-        my_logger = logging.getLogger("my_logger")
-        my_logger.warning("My logger warning")
-        my_logger.debug("My logger debug")
-        my_logger.info("My logger info")
+        # A logger this module configures nowhere else, so it is always the
+        # bare child the assertions below describe: one with no handler and no
+        # level of its own, inheriting both from the root logger just
+        # reconfigured. Reusing a name a sibling test passed to `new_logger()`
+        # would instead fetch that logger, carrying its handler and its
+        # `propagate=False`, and the output would depend on test order.
+        inherited_logger = logging.getLogger("inherited_logger")
+        inherited_logger.warning("Inherited logger warning")
+        inherited_logger.debug("Inherited logger debug")
+        inherited_logger.info("Inherited logger info")
 
     result = invoke(custom_root_logger_cli, color=False)
     assert result.output == dedent("""\
         warning | root | Root logger warning
-        warning | my_logger | My logger warning
+        warning | inherited_logger | Inherited logger warning
         """)
     assert result.exit_code == 0
 
     result = invoke(custom_root_logger_cli, ("--verbosity", "DEBUG"), color=False)
+    # The internal messages are emitted by `click_extra.logging` and reach the
+    # root handler this test installed, so they are rendered with its format,
+    # under the name of the module that logged them.
     assert result.output == dedent("""\
-        debug | click_extra | Set <Logger click_extra (DEBUG)> to DEBUG.
-        debug | click_extra | Set <RootLogger root (DEBUG)> to DEBUG.
+        debug | click_extra.logging | Set <Logger click_extra (DEBUG)> to DEBUG.
+        debug | click_extra.logging | Set <RootLogger root (DEBUG)> to DEBUG.
         warning | root | Root logger warning
         debug | root | Root logger debug
         info | root | Root logger info
-        warning | my_logger | My logger warning
-        debug | click_extra | Reset <RootLogger root (DEBUG)> to WARNING.
-        debug | click_extra | Reset <Logger click_extra (DEBUG)> to WARNING.
+        warning | inherited_logger | Inherited logger warning
+        debug | inherited_logger | Inherited logger debug
+        info | inherited_logger | Inherited logger info
+        debug | click_extra.logging | Reset <RootLogger root (DEBUG)> to WARNING.
+        debug | click_extra.logging | Reset <Logger click_extra (DEBUG)> to WARNING.
         """)
     assert result.exit_code == 0
 
