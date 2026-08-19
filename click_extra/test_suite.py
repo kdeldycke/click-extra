@@ -59,6 +59,7 @@ from .config.formats import (
     parse_content,
     read_file,
 )
+from .envvar import merge_envvar_ids
 from .execution import CPU_COUNT, args_cleanup, run_cli, run_jobs
 from .spinner import Spinner
 from .testing import (
@@ -138,6 +139,34 @@ class CLITestCase:
 
     A plain string is split into arguments (on spaces on Windows, with `shlex`
     elsewhere); a list or tuple is used as-is.
+    """
+
+    env: dict[str, str] = field(default_factory=dict)
+    """Environment variables set on the command, over the inherited environment.
+
+    The second input surface of a CLI, and the only way to reach a variable-only
+    feature from a suite: an option can be typed as a `cli_parameters` flag, a
+    variable cannot. Values must be strings, so a number or a boolean is quoted
+    (`"1"`, not `1`): an environment holds strings only, and coercing would have
+    to pick between `True` and `true` on the author's behalf.
+
+    Applied to that one child process, never to the suite runner's own
+    environment, so cases stay independent under `--jobs`. See `unset_env` to
+    take a variable away instead.
+    """
+
+    unset_env: tuple[str, ...] | str = field(default_factory=tuple)
+    """Environment variables removed from the inherited environment.
+
+    The half `env` cannot express. Assigning the empty string leaves a variable
+    *set*, and a flag read by bare presence (`NO_COLOR` and its family) counts
+    that as activation, so hiding one from the command means removing it. This
+    is what keeps a case from answering to whatever the shell running the suite
+    happens to export.
+
+    A separate directive rather than a `null` value in `env` because TOML has no
+    null literal, and a suite is as likely to be written in TOML as in YAML.
+    Removing a variable that is not set is a no-op.
     """
 
     skip_platforms: _TNestedReferences = field(default_factory=tuple)
@@ -272,6 +301,31 @@ class CLITestCase:
                 if not isinstance(field_data, bool):
                     raise ValueError(f"strip_ansi is not a boolean: {field_data}")
 
+            # Validates and normalize the environment mapping.
+            elif field_id == "env":
+                if not field_data:
+                    field_data = {}
+                elif not isinstance(field_data, dict):
+                    raise TypeError(f"env is not a mapping: {field_data}")
+                else:
+                    for name, value in field_data.items():
+                        if not isinstance(name, str):
+                            raise TypeError(f"Invalid env variable name: {name}")
+                        if not isinstance(value, str):
+                            raise TypeError(
+                                f"Value of env variable {name} is not a string: "
+                                f"{value!r}. Quote it, as an environment only "
+                                "holds strings."
+                            )
+                    # Windows matches variable names case-insensitively and
+                    # upper-cases them in `os.environ`, so a suite pinning a
+                    # mixed-case name would otherwise behave differently there.
+                    # Same normalization as `merge_envvar_ids`.
+                    field_data = {
+                        (name.upper() if is_windows() else name): value
+                        for name, value in field_data.items()
+                    }
+
             # Validates and normalize tuple of strings.
             else:
                 if field_data:
@@ -291,6 +345,11 @@ class CLITestCase:
                             raise TypeError(f"Invalid string in {field_id}: {item}")
                     # Ignore blank value.
                     field_data = tuple(i for i in field_data if i.strip())
+
+            # Deduplicate the names to unset, and apply the same Windows
+            # upper-casing `env` gets above.
+            if field_id == "unset_env" and field_data:
+                field_data = merge_envvar_ids(field_data)
 
             # Normalize any mishmash of platform and group IDs into a set of platforms.
             if field_id.endswith("_platforms") and field_data:
@@ -342,9 +401,8 @@ class CLITestCase:
         - a command name to be searched in the `PATH`,
         - a command line with arguments to be parsed and executed by the shell.
 
-        ```{todo}
-        Add support for environment variables.
-        ```
+        The case's `env` and `unset_env` directives are layered over the
+        inherited environment for this child process only.
         """
         if self.only_platforms and current_platform() not in self.only_platforms:  # type: ignore[operator]
             required = ", ".join(
@@ -393,9 +451,14 @@ class CLITestCase:
         # binary (including Nuitka builds) honors PYTHONIOENCODING and emits UTF-8
         # on piped stdout, where Windows would default to cp1252. Set as a default
         # only: an explicitly exported PYTHONIOENCODING keeps winning.
-        extra_env = None
+        extra_env: dict[str, str | None] = {}
         if "PYTHONIOENCODING" not in os.environ:
-            extra_env = {"PYTHONIOENCODING": "utf8"}
+            extra_env["PYTHONIOENCODING"] = "utf8"
+        # The case's own directives come last, so a suite deliberately pinning
+        # one of the above wins over the default. `env_copy` reads a `None` as a
+        # removal, which is how `unset_env` reaches the child.
+        extra_env.update(self.env)
+        extra_env.update(dict.fromkeys(self.unset_env))
 
         # run_cli discloses the invocation at INFO and streams the output live at
         # DEBUG, then returns the same CompletedProcess shape subprocess.run did.

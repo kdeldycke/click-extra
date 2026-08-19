@@ -339,3 +339,20 @@ def test_env_copy():
     assert envvar in extended_env
     assert extended_env[envvar] == "yo"
     assert envvar not in os.environ
+
+
+def test_env_copy_removes_on_none(monkeypatch):
+    """A `None` value drops its variable, the way Click's ``CliRunner`` reads it.
+
+    The only way to hide an inherited variable from a child: assigning the empty
+    string leaves it set, which :func:`parse_envvar_flag` counts as activation.
+    """
+    envvar = "MPM_DUMMY_ENVVAR_93725"
+    monkeypatch.setenv(envvar, "inherited")
+
+    assert env_copy({envvar: "override"})[envvar] == "override"  # type: ignore[index]
+    assert envvar not in env_copy({envvar: None})  # type: ignore[operator]
+    # Removing what is not there is a no-op, not a KeyError.
+    assert "MPM_DUMMY_ENVVAR_93726" not in env_copy({"MPM_DUMMY_ENVVAR_93726": None})  # type: ignore[operator]
+    # The process environment is never touched.
+    assert os.environ[envvar] == "inherited"

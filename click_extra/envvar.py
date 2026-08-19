@@ -180,12 +180,19 @@ def env_copy(extend: TEnvVars | None = None) -> TEnvVars | None:
     Mimics [Python's original implementation](https://github.com/python/cpython/blob/3.14/Lib/subprocess.py#L1907-L1908) by
     returning `None` if no `extend` content are provided.
 
-    Environment variables are expected to be a `dict` of `str:str`.
+    A `None` value removes its variable from the copy instead of setting it,
+    which is the only way to hide an inherited variable from a child process:
+    assigning the empty string leaves it set, and a flag read by bare presence
+    (see {func}`parse_envvar_flag`) counts that as activation. Same convention
+    as {meth}`click.testing.CliRunner.invoke`'s own `env` argument, and the
+    reason {data}`TEnvVars` values are typed optional.
+
+    Environment variables are expected to be a `dict` of `str:str | None`.
     """
     if isinstance(extend, dict):
         for k, v in extend.items():
             assert isinstance(k, str)
-            assert isinstance(v, str)
+            assert v is None or isinstance(v, str)
     else:
         assert not extend
     env_copy: TEnvVars | None = None
@@ -193,5 +200,9 @@ def env_copy(extend: TEnvVars | None = None) -> TEnvVars | None:
         # By casting to dict we make a copy and prevent the modification of the
         # global environment.
         env_copy = dict(os.environ)
-        env_copy.update(extend)
+        for name, value in extend.items():
+            if value is None:
+                env_copy.pop(name, None)
+            else:
+                env_copy[name] = value
     return env_copy

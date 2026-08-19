@@ -148,6 +148,8 @@ The directives map one-to-one onto {class}`~click_extra.test_suite.CLITestCase` 
 | Directive                                                             | Meaning                                                                                                                                                |
 | :-------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cli_parameters`                                                      | Arguments appended to the command (a string is split, a list is used as-is).                                                                           |
+| `env`                                                                 | Environment variables set on the command, over the inherited environment. Values are strings, so a number or a boolean is quoted.                      |
+| `unset_env`                                                           | Environment variables removed from the inherited environment (a name, or a list of them).                                                              |
 | `exit_code`                                                           | The expected process exit code.                                                                                                                        |
 | `stdout_contains` / `stderr_contains`                                 | Substrings that must appear.                                                                                                                           |
 | `stdout_regex_matches` / `stderr_regex_matches`                       | Regexes that must each match somewhere.                                                                                                                |
@@ -158,6 +160,30 @@ The directives map one-to-one onto {class}`~click_extra.test_suite.CLITestCase` 
 | `skip_platforms` / `only_platforms`                                   | [`extra_platforms`](https://kdeldycke.github.io/extra-platforms) identifiers (`linux`, `macos`, `windows`, group IDs) controlling where the case runs. |
 
 The `output_*` directives are mutually exclusive with the `stdout_*` / `stderr_*` ones in a single case, since one subprocess run captures either the merged stream or the separate ones. For order-sensitive checks make the command write unbuffered (like `python -u`): a child that block-buffers stdout will have it surface after stderr.
+
+### The environment a case runs in
+
+`env` and `unset_env` are the second input surface of a CLI, and the only way a suite can reach a variable-only feature: an option can be typed as a `cli_parameters` flag, a variable cannot. Both apply to that one child process, never to the environment the suite runner itself is in, so cases stay independent under `--jobs`.
+
+```{code-block} toml
+[[cases]]
+cli_parameters = ["forecast", "--city", "paris"]
+env = { WEATHER_UNITS = "fahrenheit", WEATHER_CACHE = "0" }
+stdout_contains = "°F"
+```
+
+They are two directives rather than one mapping accepting a null, because TOML has no null literal and a suite is as likely to be written in TOML as in YAML. Removing a variable that is not set is a no-op.
+
+Reach for `unset_env` whenever a case would otherwise answer to whatever the shell running the suite happens to export. It is not interchangeable with assigning an empty string: a variable set to `""` is still *set*, and a flag read by bare presence (the [`NO_COLOR` and `FORCE_COLOR`](colorize.md#environment-variables) family) counts that as activation. Removing it is the only way to ask what the command does without it:
+
+```{code-block} toml
+# Whatever the developer running this exports, the command is asked the same
+# question: what does it print with no color forced on it?
+[[cases]]
+cli_parameters = ["--help"]
+unset_env = ["FORCE_COLOR", "CLICK_EXTRA_THEME"]
+stdout_regex_fullmatch = "Usage: weather .*"
+```
 
 ## Running from the command line
 
@@ -244,4 +270,4 @@ The current design is a declarative list of directives. Two points of comparison
 
 Click Extra's [`click:run` and `click:source` Sphinx directives](sphinx.md) apply the same run-and-check idea from the documentation side: they execute a CLI in-process while the docs build and assert on its output, so every example doubles as a test. A test suite does it at the subprocess level instead, against any binary. Letting a documented example and a test case share one source is an open avenue.
 
-[scrut](https://github.com/facebookincubator/scrut) is a standalone toolkit aimed at the same black-box CLI testing problem, with a different authoring model: expectations are written inline beneath each command in a Markdown or Cram file, and `scrut update` regenerates them. I came across it after building this feature for my own needs, so the resemblance is convergence, not lineage. Its snapshot-style workflow (generate and refresh expectations instead of hand-writing them), per-case environment and working-directory controls, and glob expectations are the directions worth weighing for a later revision.
+[scrut](https://github.com/facebookincubator/scrut) is a standalone toolkit aimed at the same black-box CLI testing problem, with a different authoring model: expectations are written inline beneath each command in a Markdown or Cram file, and `scrut update` regenerates them. I came across it after building this feature for my own needs, so the resemblance is convergence, not lineage. Its snapshot-style workflow (generate and refresh expectations instead of hand-writing them), working-directory controls and glob expectations are the directions worth weighing for a later revision; the per-case environment controls it also has landed here as [`env` and `unset_env`](#the-environment-a-case-runs-in).

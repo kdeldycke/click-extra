@@ -16,6 +16,11 @@ exit_code = 0
 # click-extra 8.0's --color=auto strips color on captured (non-TTY)
 # output, so the version line is plain text. strip_ansi stays robust.
 strip_ansi = true
+# FORCE_COLOR switches --version to the VersionScreen, which draws the logo
+# over several lines and no longer matches the one-line fullmatch below. So a
+# maintainer with it exported would see this case fail on their machine only:
+# take it away rather than depend on the shell running the suite.
+unset_env = "FORCE_COLOR"
 stdout_contains = "Click Extra, version "
 stdout_regex_fullmatch = "Click Extra, version [0-9]+\\.[0-9]+\\.[0-9]+(\\.[a-z]+[0-9]+(\\+[0-9a-f]+)?)?\n"
 
@@ -201,3 +206,52 @@ stdout_contains = [
   "--progress-bar",
   "--spinner",
 ]
+
+
+# -- Environment variables -----------------------------------------------------
+
+# The variable-only surfaces below have no command-line equivalent to stand in
+# for them, so these cases are the black-box coverage of the packaged entry
+# point reading its own environment. Escapes are written as \u001B: an
+# environment value and an expectation are both plain TOML strings.
+
+# CLICK_EXTRA_THEME repaints the help screen machine-wide. Nord's frost blue
+# arrives as a 24-bit escape, where the built-in dark default emits the 4-bit
+# 94, so the two palettes cannot be confused for one another.
+[[cases]]
+cli_parameters = ["--color=always", "--help"]
+env = { CLICK_EXTRA_THEME = "nord" }
+exit_code = 0
+stdout_contains = "\u001B[38;2;94;129;172m\u001B[4mUsage:"
+
+# The same invocation with the variable taken away falls back to the dark
+# default. `unset_env` is what makes this deterministic: a maintainer running
+# the suite with CLICK_EXTRA_THEME exported would otherwise get their palette.
+[[cases]]
+cli_parameters = ["--color=always", "--help"]
+unset_env = "CLICK_EXTRA_THEME"
+exit_code = 0
+stdout_contains = "\u001B[94m\u001B[4mUsage:"
+
+# FORCE_COLOR paints output the default --color=auto would have left plain,
+# a suite capturing stdout through a pipe never being a terminal. No flag is
+# passed here, so the color can only have come from the environment.
+[[cases]]
+cli_parameters = ["--help"]
+env = { FORCE_COLOR = "1" }
+# Everything else that repaints or strips this screen is taken away, so the
+# escape below can only be the built-in dark palette: CLICK_EXTRA_THEME would
+# swap it, and ACCESSIBLE or NO_COLOR would remove the color altogether.
+unset_env = ["ACCESSIBLE", "CLICK_EXTRA_THEME", "NO_COLOR"]
+exit_code = 0
+stdout_contains = "\u001B[94m\u001B[4mUsage:"
+
+# And with it taken away, the same invocation is plain again. FORCE_COLOR is
+# read by bare presence, so assigning the empty string would still count as
+# activation: removing it is the only way to answer this question, which is the
+# rule that forces `unset_env` to exist beside `env`.
+[[cases]]
+cli_parameters = ["--help"]
+unset_env = ["FORCE_COLOR", "CLICK_EXTRA_THEME"]
+exit_code = 0
+stdout_regex_fullmatch = "Usage: click-extra \\[OPTIONS\\] COMMAND \\[ARGS\\]\\.\\.\\..*"
