@@ -350,6 +350,7 @@ def test_normalize_personality():
     assert normalize_personality("chill") == ("chill",)
     assert normalize_personality(("chill", "--hours", "1")) == ("chill", "--hours", "1")
 
+    bad: Sequence[str]
     for bad in ((), [], ("",), ("chill", "")):
         with pytest.raises(ValueError):
             normalize_personality(bad)
