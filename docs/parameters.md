@@ -207,9 +207,87 @@ assert "-p, --port INTEGER" in result.output
 
 ## Parameter structure
 
-```{todo}
-Write example and tutorial.
+The table `--params` prints is the flattened view of a tree, and {py:class}`~click_extra.parameters.ParamStructure` is what builds it. The same tree is what [`--config`](config.md) maps a configuration file's sections onto: a node is a subcommand, a leaf is a parameter, and the path from the root spells the fully-qualified ID.
+
+Take a group with two subcommands:
+
+```{python:source}
+import click
+
+
+@click.group
+@click.option("--unit", type=click.Choice(("celsius", "fahrenheit")), default="celsius")
+def weather(unit):
+    """Report the weather of a city."""
+
+
+@weather.command
+@click.option("--days", type=int, default=3)
+@click.option("--tag", multiple=True)
+@click.argument("city")
+def forecast(days, tag, city):
+    """Forecast the days to come."""
+
+
+@weather.command
+@click.option("--since", type=click.DateTime())
+def history(since):
+    """Look back at recorded weather."""
 ```
+
+`ParamStructure` is a mixin: it expects the class using it to settle which parameters the tree covers. Freezing both filters open covers everything.
+
+```{python:source}
+from click_extra.parameters import ParamStructure
+
+
+class Structure(ParamStructure):
+    excluded_params = frozenset()
+    included_params = None
+```
+
+{py:attr}`~click_extra.parameters.ParamStructure.params_template` then returns the command tree with every leaf nulled out, which is the skeleton a configuration file is expected to fill:
+
+```{python:run}
+:show-source:
+:language: json
+import json
+
+with click.Context(weather):
+    print(json.dumps(Structure().params_template, indent=2))
+```
+
+The walk resolves its root command from the active context, which a CLI callback already sits in. Outside of one, a bare {py:class}`click.Context` around the group is enough, as above.
+
+{py:attr}`~click_extra.parameters.ParamStructure.params_objects` is the same tree with the parameter objects kept at the leaves, which is what a consumer needs to coerce a configuration value or report where one came from:
+
+```{python:run}
+:show-source:
+with click.Context(weather):
+    structure = Structure()
+    print(structure.params_objects["weather"]["forecast"])
+    print(ParamStructure.get_tree_value(structure.params_objects, "weather", "forecast", "days"))
+```
+
+{py:meth}`~click_extra.parameters.ParamStructure.get_tree_value` descends a path in one call, and raises a `KeyError` when the path leads nowhere. Its counterpart {py:meth}`~click_extra.parameters.ParamStructure.init_tree_dict` builds a nested dict from a path and a leaf, which is how the tree gets assembled one parameter at a time.
+
+### Fully-qualified IDs
+
+Joining a path with {py:data}`~click_extra.parameters.PARAM_PATH_SEP` produces the ID shown in the `ID` column of `--params`, and the same string [`excluded_params` and `included_params`](config.md#excluding-parameters) are matched against. {py:meth}`~click_extra.parameters.ParamStructure.walk_params` yields those paths directly, unfiltered and flat:
+
+```{python:run}
+:show-source:
+from click_extra.parameters import PARAM_PATH_SEP
+
+with click.Context(weather):
+    for keys, param in Structure().walk_params():
+        param_type = ParamStructure.get_param_type(param)
+        print(f"{PARAM_PATH_SEP.join(keys):26} {param_type.__name__}")
+```
+
+The second column is {py:meth}`~click_extra.parameters.ParamStructure.get_param_type`, which reduces a Click type to the Python type a configuration file has to carry, through the {py:attr}`~click_extra.parameters.ParamStructure.TYPE_MAP` table. A repeatable parameter is a `list` whatever its items are, a boolean flag is a `bool`, and an unrecognized custom type falls back to `str`, since a command line carries nothing else.
+
+`--help` sits in that tree like any other option, and a subcommand sharing its name with a parameter of the same level is left out of it, since a single path cannot address both. What a consumer does with the tree is its own decision: `--params` reports every node, while `--config` narrows it down through [`excluded_params`](config.md#excluding-parameters).
 
 ## `click_extra.parameters` API
 
