@@ -1130,20 +1130,20 @@ assert "Syncing" not in result.stdout
 
 Several dialects are supported:
 
-| Format                              | Extensions        | Description                                                                               | Enabled by default |
-| :---------------------------------- | :---------------- | :---------------------------------------------------------------------------------------- | :----------------- |
-| [`TOML`](#toml)                     | `*.toml`          | -                                                                                         | ✅                 |
-| [`YAML`](#yaml)                     | `*.yaml`, `*.yml` | -                                                                                         | ❌                 |
-| [`JSON`](#json)                     | `*.json`          | -                                                                                         | ✅                 |
-| [`JSON5`](#json5)                   | `*.json5`         | A [superset of JSON made for configuration file](https://json5.org)                       | ❌                 |
-| [`JSONC`](#jsonc)                   | `*.jsonc`         | Like JSON, but with comments and trailing commas                                          | ❌                 |
-| [`HJSON`](#hjson)                   | `*.hjson`         | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
-| [`INI`](#ini)                       | `*.ini`           | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
-| [`XML`](#xml)                       | `*.xml`           | -                                                                                         | ❌                 |
-| [`plist`](#plist)                   | `*.plist`         | Apple's property list, in its XML or binary variant                                       | ✅                 |
-| [`SQLITE`](#sqlite)                 | `*.sqlite`, `*.sqlite3` | Reads a `config` table of dotted keys and JSON-encoded values                       | ✅                 |
-| [`ARGFILE`](#argfile)               | `*.conf`          | Plain-text list of command-line options, in the style of `mpv` and `yt-dlp`            | ✅                 |
-| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`  | Reads `[tool.*]`{l=toml}{l=toml} sections from `pyproject.toml`                           | ✅                 |
+| Format                              | Extensions              | Description                                                                               | Enabled by default |
+| :---------------------------------- | :---------------------- | :---------------------------------------------------------------------------------------- | :----------------- |
+| [`TOML`](#toml)                     | `*.toml`                | -                                                                                         | ✅                 |
+| [`YAML`](#yaml)                     | `*.yaml`, `*.yml`       | -                                                                                         | ❌                 |
+| [`JSON`](#json)                     | `*.json`                | -                                                                                         | ✅                 |
+| [`JSON5`](#json5)                   | `*.json5`               | A [superset of JSON made for configuration file](https://json5.org)                       | ❌                 |
+| [`JSONC`](#jsonc)                   | `*.jsonc`               | Like JSON, but with comments and trailing commas                                          | ❌                 |
+| [`HJSON`](#hjson)                   | `*.hjson`               | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
+| [`INI`](#ini)                       | `*.ini`                 | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
+| [`XML`](#xml)                       | `*.xml`                 | -                                                                                         | ❌                 |
+| [`plist`](#plist)                   | `*.plist`               | Apple's property list, in its XML or binary variant                                       | ✅                 |
+| [`SQLITE`](#sqlite)                 | `*.sqlite`, `*.sqlite3` | Reads a `config` table of dotted keys and JSON-encoded values                             | ✅                 |
+| [`ARGFILE`](#argfile)               | `*.conf`                | Plain-text list of command-line options, in the style of `mpv` and `yt-dlp`               | ✅                 |
+| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`        | Reads `[tool.*]`{l=toml}{l=toml} sections from `pyproject.toml`                           | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#extra-dependencies) to enable them.
 
