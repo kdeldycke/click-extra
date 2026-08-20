@@ -57,7 +57,6 @@ from pathlib import Path
 
 from docutils import nodes
 from docutils.parsers.rst import Parser as RstParser, directives
-from docutils.statemachine import StringList
 from docutils.utils import new_document
 
 from ..blocks import (
@@ -282,15 +281,7 @@ class PythonRenderBaseDirective(PythonDirective):
         """
         if not self.show_source:
             return []
-        section = nodes.section()
-        source_file, _ = self.get_source_info()
-        source_lines = list(self.render_code_block(self.content, "python"))
-        self.state.nested_parse(
-            StringList(source_lines, source_file),
-            self.content_offset,
-            section,
-        )
-        return section.children
+        return parse_into_section(self, self.render_code_block(self.content, "python"))
 
     def run(self) -> list[nodes.Node]:
         """Render the captured stdout as live document content."""
@@ -302,27 +293,22 @@ class PythonRenderBaseDirective(PythonDirective):
         if not self.show_source and not self.show_results:
             return []
 
-        section = nodes.section()
-        source_file, _ = self.get_source_info()
+        children: list[nodes.Node] = []
 
         if self.show_source:
-            source_lines = list(self.render_code_block(self.content, "python"))
-            self.state.nested_parse(
-                StringList(source_lines, source_file),
-                self.content_offset,
-                section,
+            children += parse_into_section(
+                self,
+                self.render_code_block(self.content, "python"),
             )
 
         if self.show_results and results:
             if self.forced_parser is None:
                 # Host parser: reuse the surrounding state machine so cross
                 # references and Sphinx-aware roles resolve naturally.
-                self.state.nested_parse(
-                    StringList(results, source_file),
-                    self.content_offset,
-                    section,
-                )
+                children += parse_into_section(self, results)
             else:
+                section = nodes.section()
+                source_file, _ = self.get_source_info()
                 _parse_with(
                     self.forced_parser(),
                     "\n".join(results),
@@ -330,8 +316,9 @@ class PythonRenderBaseDirective(PythonDirective):
                     section,
                     source_file,
                 )
+                children += section.children
 
-        return section.children
+        return children
 
 
 class PythonRenderDirective(PythonRenderBaseDirective):

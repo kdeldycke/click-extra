@@ -126,6 +126,7 @@
 - Replace the readme and tutorial before/after screenshots with captures the tutorial's own blocks maintain, superseding hand-drawn images that still advertised `--show-params` and `-C, --config`.
 - Show the one-line import diff turning the canonical Click example into its Click Extra counterpart, below the screenshots it accounts for.
 - Replace the star-history.com embed on the benchmark page, broken by GitHub's 2026 stargazer restriction, with a star history chart sampled weekly into the repository by `repomatic sample-metrics`.
+- Fix the source line a Sphinx warning reports when raised inside a block a `click:*` or `python:*` directive generates: it now points at the directive's body in both reST and MyST.
 
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 

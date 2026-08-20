@@ -25,6 +25,7 @@ from textwrap import dedent
 
 import click
 import pytest
+from docutils import nodes
 
 from click_extra.screenshot import CAPTURE_BACKGROUND, LIGHT_CAPTURE_BACKGROUND
 from click_extra.sphinx.click import (
@@ -894,6 +895,142 @@ def test_directive_variable_conflict(
         rf"Line: {var_name} = \"Do not overwrite me!\""
     )
     assert re.fullmatch(expected_pattern, str(exc_info.value))
+
+
+GENERATED_BLOCK_ANCHOR = "from click_extra import command, echo"
+"""First body line of the ``GENERATED_BLOCK_LINE_CASES`` documents below.
+
+The line a generated block is expected to be attributed to, located in the
+document itself so editing a case moves the expectation with it.
+"""
+
+GENERATED_BLOCK_LINE_CASES = format_params(
+    DirectiveTestCase(
+        name="plain-body",
+        format_type=FormatType.RST,
+        document=f"""
+            Title
+            =====
+
+            Filler paragraph.
+
+            .. click:run::
+               :emphasize-result-lines: 1
+
+               {GENERATED_BLOCK_ANCHOR}
+
+               @command
+               def hello():
+                   echo("Hello")
+
+               invoke(hello, args=[])
+        """,
+    ),
+    DirectiveTestCase(
+        name="plain-body",
+        format_type=FormatType.MYST,
+        document=f"""
+            # Title
+
+            Filler paragraph.
+
+            ```{{click:run}}
+            :emphasize-result-lines: 1
+
+            {GENERATED_BLOCK_ANCHOR}
+
+            @command
+            def hello():
+                echo("Hello")
+
+            invoke(hello, args=[])
+            ```
+        """,
+    ),
+    DirectiveTestCase(
+        name="body-ending-on-blank-lines",
+        format_type=FormatType.RST,
+        document=f"""
+            Title
+            =====
+
+            Filler paragraph.
+
+            .. click:run::
+               :emphasize-result-lines: 1
+
+               {GENERATED_BLOCK_ANCHOR}
+
+               @command
+               def hello():
+                   echo("Hello")
+
+               invoke(hello, args=[])
+
+
+            Trailer paragraph.
+        """,
+    ),
+    DirectiveTestCase(
+        name="body-ending-on-blank-lines",
+        format_type=FormatType.MYST,
+        document=f"""
+            # Title
+
+            Filler paragraph.
+
+            ```{{click:run}}
+            :emphasize-result-lines: 1
+
+            {GENERATED_BLOCK_ANCHOR}
+
+            @command
+            def hello():
+                echo("Hello")
+
+            invoke(hello, args=[])
+
+
+            ```
+        """,
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    ("sphinx_app_for_format", "test_case"),
+    GENERATED_BLOCK_LINE_CASES,
+    indirect=["sphinx_app_for_format"],
+)
+def test_generated_block_is_attributed_to_the_directive_body(
+    sphinx_app_for_format, test_case
+):
+    """A block a directive generates is attributed to its first body line.
+
+    The generated lines exist nowhere in the document, so the parser has to be
+    told which document line to hang a diagnostic raised inside them on. Both
+    formats must answer the same way, and neither is free to fall back on its
+    own default: docutils numbers an unlabelled block from the top of the
+    *file*, and ``myst-parser`` measures its offsets from the directive rather
+    than the document.
+
+    The last two cases pin the ``content_offset`` inflation
+    ``click_extra.sphinx.click.MYST_CONTENT_OFFSET_INFLATED_MAX`` documents,
+    which only fires on a directive carrying both an option block and a body
+    ending in blank lines.
+    """
+    document = test_case.document
+    sphinx_app_for_format.build_document(document)
+
+    expected_line = next(
+        number
+        for number, line in enumerate(document.splitlines(), start=1)
+        if line.strip() == GENERATED_BLOCK_ANCHOR
+    )
+    generated = sphinx_app_for_format.env.get_doctree("index").findall(
+        nodes.literal_block
+    )
+    assert [block.line for block in generated] == [expected_line]
 
 
 def test_exit_exception_percolate(sphinx_app):

@@ -164,18 +164,17 @@ high. This shifts the reported source line of every body element down by one.
 This fix is not yet upstream: the open rework in
 [`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) does not
 include it, and also makes `content_offset` document-relative. So the release
-that eventually lands the fix requires the MyST branch of
-{meth}`ClickRunner.run_cli` to converge on the rST formula
-(`content_offset + python_lineno`), not merely drop this compensation. See
-`docs/upstream.md`.
+that eventually lands the fix requires
+{attr}`ClickDirective.abs_content_offset` to converge on the rST branch it
+already carries, not merely drop this compensation. See `docs/upstream.md`.
 
 ```{todo}
 Retire the MyST `content_offset` workaround once the pinned `myst-parser`
 floor rises past the release carrying the fix:
 
 - delete {func}`_myst_content_offset_inflation` and this constant, and
-  converge the MyST branch of {meth}`ClickRunner.run_cli` on the rST formula
-  (`content_offset + python_lineno`);
+  collapse {attr}`ClickDirective.abs_content_offset` onto its rST branch
+  (`content_offset` verbatim);
 - drop the `directive.content` fallback in
   `click_extra.sphinx._base.directive_source()`, which stays off `block_text`
   only because that attribute is body-only in `myst-parser <= 5.1.0`
@@ -496,22 +495,7 @@ class ClickRunner(CliRunner):
                 python_lineno = node.lineno
                 python_line = source_lines[python_lineno - 1]
                 # Compute the absolute line number in the document.
-                if directive.is_myst_syntax:
-                    # In MyST, the content offset is the position of the first line
-                    # of the source code, relative to the directive itself.
-                    doc_lineno = (
-                        directive.lineno + directive.content_offset + python_lineno
-                    )
-                    # Correct a myst-parser <= 5.1.0 bug that inflates
-                    # content_offset by one when an option block precedes a body
-                    # ending in blank line(s). See the mechanism and the
-                    # single-trailing-blank caveat in
-                    # _myst_content_offset_inflation().
-                    doc_lineno -= _myst_content_offset_inflation(directive)
-                else:
-                    # In rST, the content offset is the absolute position at which
-                    # the source code starts in the document.
-                    doc_lineno = directive.content_offset + python_lineno
+                doc_lineno = directive.abs_content_offset + python_lineno
                 raise RuntimeError(
                     f"Local variable {node.id!r} at "
                     f"{location}:{directive.name}:{doc_lineno} conflicts with "
@@ -549,13 +533,9 @@ def _resolve_run_capture(
 class ClickDirective(SphinxDirective):
     """Base class of every `click:*` directive.
 
-    ```{todo}
-    Check that the line offset {func}`run` hands to `parse_into_section` is
-    computed correctly in both rST and MyST. The two directive parsers report
-    `content_offset` differently (see
-    {data}`MYST_CONTENT_OFFSET_INFLATED_MAX`), so an error raised inside a
-    rendered block may point at the wrong source line in one of them.
-    ```
+    The two directive parsers count `content_offset` from different places, so
+    anything naming a document line goes through {attr}`abs_content_offset`
+    rather than reading `content_offset` directly.
     """
 
     has_content = True
@@ -732,6 +712,34 @@ class ClickDirective(SphinxDirective):
     def is_myst_syntax(self) -> bool:
         """Check if the current directive is written with MyST syntax."""
         return bool(self.state.__module__.split(".", 1)[0] == "myst_parser")
+
+    @cached_property
+    def abs_content_offset(self) -> int:
+        """0-based offset of the directive's first content line in the document.
+
+        Both parsers expose a `content_offset` and they count it from
+        different places: docutils from the top of the document, `myst-parser`
+        from the directive's own first line. Everything naming a document line
+        reads this property instead, so the two conventions are reconciled in
+        one place: the variable-conflict error of {meth}`ClickRunner.run_cli`,
+        and the source-line labels
+        {func}`~click_extra.sphinx._base.parse_into_section` attaches to a
+        generated block.
+
+        Named after docutils' `abs_line_offset()`, whose convention it
+        follows.
+        """
+        # Both attributes reach mypy as Any, since the [tool.mypy] overrides
+        # skip following `sphinx.*`. Restate the contract docutils declares.
+        content_offset: int = self.content_offset
+        if not self.is_myst_syntax:
+            return content_offset
+        lineno: int = self.lineno
+        # Correct a myst-parser <= 5.1.0 bug that inflates content_offset by
+        # one when an option block precedes a body ending in blank line(s).
+        # See the mechanism and the single-trailing-blank caveat in
+        # _myst_content_offset_inflation().
+        return lineno + content_offset - _myst_content_offset_inflation(self)
 
     @staticmethod
     def _slug(value: str) -> str:

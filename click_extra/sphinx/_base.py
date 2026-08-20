@@ -45,6 +45,8 @@ if TYPE_CHECKING:
     from sphinx.directives import SphinxDirective
     from sphinx.environment import BuildEnvironment
 
+    from .click import ClickDirective
+
 
 def directive_source(directive: SphinxDirective) -> tuple[str, str]:
     """Return the `(source_code, location)` pair for `directive`.
@@ -94,7 +96,7 @@ def compile_directive(directive: SphinxDirective) -> CodeType:
 
 
 def parse_into_section(
-    directive: SphinxDirective,
+    directive: ClickDirective,
     lines: list[str],
 ) -> list[nodes.Node]:
     """Hand generated source *lines* back to the directive's parser.
@@ -102,12 +104,29 @@ def parse_into_section(
     Nested directives inside *lines* execute during this pass and share the
     directive's runner namespace. Returns the parsed children, ready to be
     returned from the directive's `run()`.
+
+    ```{note}
+    A generated line has no source line of its own, so each is labelled with
+    the document line the directive's content starts at
+    ({attr}`~click_extra.sphinx.click.ClickDirective.abs_content_offset`) plus
+    its index in the block, and the offset handed to `nested_parse()` says the
+    same thing in the convention that parser reads it in. Both halves are
+    needed because the two parsers consult different ones: docutils resolves a
+    diagnostic's line through the labels, and numbers the block from the top
+    of the *file* when they are left to default; `myst-parser` drops them and
+    re-renders the joined text against the offset alone.
+    ```
     """
     section = nodes.section()
     source_file, _ = directive.get_source_info()
+    offset = directive.abs_content_offset
     directive.state.nested_parse(
-        StringList(lines, source_file),
-        directive.content_offset,
+        StringList(
+            lines,
+            source_file,
+            items=[(source_file, offset + index) for index in range(len(lines))],
+        ),
+        offset - directive.lineno if directive.is_myst_syntax else offset,
         section,
     )
     return section.children
