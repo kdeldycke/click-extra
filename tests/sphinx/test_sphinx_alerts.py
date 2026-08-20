@@ -32,6 +32,7 @@ from .conftest import (
     DirectiveTestCase,
     FormatType,
     admonition_block,
+    format_params,
 )
 
 skip_when_native_alerts = pytest.mark.skipif(
@@ -1028,8 +1029,8 @@ COMPLEX_NESTED_CONTENT_TEST_CASE = DirectiveTestCase(
 
 
 @pytest.mark.parametrize(
-    "test_case",
-    [
+    ("sphinx_app_for_format", "test_case"),
+    format_params(
         EMPTY_DIRECTIVE_TEST_CASE,
         CODE_BLOCK_TEST_CASE,
         CODE_BLOCK_DIRECTIVE_TEST_CASE,
@@ -1039,17 +1040,13 @@ COMPLEX_NESTED_CONTENT_TEST_CASE = DirectiveTestCase(
         TRIPLE_NESTED_TEST_CASE,
         BACKTICK_FENCE_MIXED_DIRECTIVES_TEST_CASE,
         COMPLEX_NESTED_CONTENT_TEST_CASE,
-    ],
+    ),
+    indirect=["sphinx_app_for_format"],
 )
-def test_sphinx_integration(sphinx_app, test_case):
+def test_sphinx_integration(sphinx_app_for_format, test_case):
     """Integration-critical tests that verify Sphinx rendering behavior."""
-    if not test_case.supports_format(sphinx_app.format_type):
-        pytest.skip(
-            f"Test case '{test_case.name}' only supports {test_case.format_type}"
-        )
-
-    content = sphinx_app.generate_test_content(test_case)
-    html_output = sphinx_app.build_document(content)
+    content = sphinx_app_for_format.generate_test_content(test_case)
+    html_output = sphinx_app_for_format.build_document(content)
 
     for fragment in test_case.html_matches:
         assert fragment in html_output

@@ -39,7 +39,7 @@ from click_extra.sphinx.click import (
     program_from_command_line,
 )
 
-from .conftest import HTML, DirectiveTestCase, FormatType
+from .conftest import HTML, DirectiveTestCase, FormatType, format_params
 
 # Test case definitions
 BASIC_DIRECTIVES_TEST_CASE = DirectiveTestCase(
@@ -468,8 +468,8 @@ RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
 
 
 @pytest.mark.parametrize(
-    "test_case",
-    [
+    ("sphinx_app_for_format", "test_case"),
+    format_params(
         BASIC_DIRECTIVES_TEST_CASE,
         EMPHASIZE_LINES_TEST_CASE,
         LINENOS_TEST_CASE,
@@ -482,18 +482,13 @@ RST_WITHIN_MYST_EVAL_TEST_CASE = DirectiveTestCase(
         MIXED_OUTPUT_TEST_CASE,
         ISOLATED_FILESYSTEM_TEST_CASE,
         RST_WITHIN_MYST_EVAL_TEST_CASE,
-    ],
+    ),
+    indirect=["sphinx_app_for_format"],
 )
-def test_directive_functionality(sphinx_app, test_case):
-    """Test standard directive functionalities in both rST and MyST."""
-    # Skip test if format doesn't match
-    if not test_case.supports_format(sphinx_app.format_type):
-        pytest.skip(
-            f"Test case '{test_case.name}' only supports {test_case.format_type}"
-        )
-
-    content = sphinx_app.generate_test_content(test_case)
-    html_output = sphinx_app.build_document(content)
+def test_directive_functionality(sphinx_app_for_format, test_case):
+    """Test standard directive functionalities in each format a case targets."""
+    content = sphinx_app_for_format.generate_test_content(test_case)
+    html_output = sphinx_app_for_format.build_document(content)
 
     # Assert all expected fragments are present.
     for fragment in test_case.html_matches:

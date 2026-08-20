@@ -58,6 +58,11 @@ else:
     admonition HTML."""
 
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from _pytest.mark.structures import ParameterSet
+
+
 class FormatType(Enum):
     """Sphinx document format types and their file extensions."""
 
@@ -217,7 +222,8 @@ def sphinx_app_for_format(request, tmp_path):
     :class:`FormatType` is taken from the test's indirect parametrization. A
     ``params``-bearing fixture cannot also be parametrized by a test (pytest
     rejects it as a duplicate parametrization), so a test that drives the
-    format per case parametrizes this variant instead.
+    format per case parametrizes this variant instead, usually through
+    :func:`format_params`.
     """
     yield from SphinxAppWrapper.create(request.param, tmp_path)
 
@@ -288,16 +294,30 @@ class DirectiveTestCase:
         if self.document:
             self.document = cleandoc(self.document)
 
-    def supports_format(self, format_type: FormatType) -> bool:
-        """Check if this test case supports the given format type.
-
-        .. todo::
-            Get rid of this method, and make the test case provide its own sphinx_app.
-        """
-        return self.format_type is None or self.format_type == format_type
-
     def __str__(self) -> str:
         return self.name
+
+
+def format_params(*test_cases: DirectiveTestCase) -> tuple[ParameterSet, ...]:
+    """Pair each test case with every document format it is written for.
+
+    Feeds the indirect parametrization of :func:`sphinx_app_for_format`, so a
+    case is only ever built by an app whose format it can render: a case
+    pinned to a :class:`FormatType` yields that format alone, a
+    format-agnostic one yields a parameter per format.
+    """
+    params: list[ParameterSet] = []
+    for test_case in test_cases:
+        formats = (
+            tuple(FormatType)
+            if test_case.format_type is None
+            else (test_case.format_type,)
+        )
+        params.extend(
+            pytest.param(format_type, test_case, id=f"{test_case}-{format_type.name}")
+            for format_type in formats
+        )
+    return tuple(params)
 
 
 # Common HTML fragments for assertions.
