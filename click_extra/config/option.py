@@ -865,6 +865,13 @@ class ConfigOption(ExtraOption, ParamStructure):
         `True`.
 
         Raises `FileNotFoundError` if no file was found after searching all locations.
+
+        ```{todo}
+        Guess the format of a downloaded configuration from the `Content-Type`
+        MIME type the server advertises, instead of deriving it from the URL's
+        file extension. The response headers are already parsed for their
+        charset, so the media type is one attribute away.
+        ```
         """
         files_found = 0
 
@@ -892,7 +899,6 @@ class ConfigOption(ExtraOption, ParamStructure):
                     # header, defaulting to UTF-8: the near-universal encoding
                     # for configuration files.
                     charset = response.headers.get_content_charset() or "utf-8"
-                    # TODO: use mime-type to guess file format?
                     yield location, response.read().decode(charset)
             # A 4xx/5xx leaves files_found at 0, so the search falls through to
             # the FileNotFoundError below, like a missing local file. Lower-level

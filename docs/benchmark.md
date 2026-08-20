@@ -68,6 +68,21 @@ Features unique to click-extra or significantly stronger than all competitors:
 
 ## Gaps and opportunities
 
+```{todo}
+Close the click-extra-side gaps the sections below identify:
+
+- a `@persistent_option` decorator (or a `persistent=True` kwarg on
+  `@option`) registering an option on a group and injecting it into every
+  subcommand at decoration time, covering the inherited-flags family Click
+  has consistently declined;
+- populate `ctx.params` during shell completion, so a completion callback can
+  depend on parameter values already typed on the command line;
+- native `NushellComplete` and `PowerShellComplete` classes, for users
+  without the `carapace` binary the [Carapace spec](carapace.md) needs;
+- a `@completion_option` bundling multi-shell detection and auto-install,
+  matching Typer's `--install-completion`.
+```
+
 ### Persistent / inherited flags
 
 cobra's persistent flags propagate from a parent command to all subcommands automatically. Click's maintainers have consistently stated that options belong to the command they modify, and positional dependence (`cli --opt subcmd` vs `cli subcmd --opt`) is intentional ([pallets/click#66](https://github.com/pallets/click/issues/66), [pallets/click#1034](https://github.com/pallets/click/issues/1034)). The official workaround is custom decorators that apply the same options to multiple commands.
@@ -90,7 +105,7 @@ Click's built-in completion covers command and option names but has several know
 
 **Enum Choice mismatch** ([pallets/click#3015](https://github.com/pallets/click/issues/3015)): `click.Choice(MyEnum)` completed `MyEnum.foo` instead of `foo` because completion skipped the normalization the `Choice` type applies at parse time. **Fixed upstream** in [pallets/click#3471](https://github.com/pallets/click/pull/3471) (merged 2026-05-19, first released in Click `8.4.1`), which routes completion through `Choice.normalize_choice()` so suggestions match what the parser accepts. click-extra's lock already resolves to a Click carrying the fix; once its floor rises from `8.3.1` to `>=8.4.1` the gap closes for every supported Click version. click-extra's own [`EnumChoice`](types.md#enumchoice) was never affected: it stores choice strings rather than `Enum` members, so its completions never carried the `Enum.member` form.
 
-**Additional shells rejected upstream** ([pallets/click#2888](https://github.com/pallets/click/issues/2888), [pallets/click#3188](https://github.com/pallets/click/issues/3188), [pallets/click#2672](https://github.com/pallets/click/issues/2672)): Click explicitly rejected adding nushell, Carapace, and PowerShell completion to core: all three issues are closed as `not_planned`, so the door is closed upstream and remains a click-extra opportunity. click-extra could provide `NushellComplete` and `PowerShellComplete` classes, and generate Carapace YAML from its parameter introspection.
+**Additional shells rejected upstream** ([pallets/click#2888](https://github.com/pallets/click/issues/2888), [pallets/click#3188](https://github.com/pallets/click/issues/3188), [pallets/click#2672](https://github.com/pallets/click/issues/2672)): Click explicitly rejected adding nushell, Carapace, and PowerShell completion to core: all three issues are closed as `not_planned`, so the door is closed upstream and remains a click-extra opportunity. click-extra already answers [`pallets/click#3188`](https://github.com/pallets/click/issues/3188) with the [Carapace spec generator](carapace.md), which drives nushell and PowerShell completion through the `carapace` binary. Native `NushellComplete` and `PowerShellComplete` classes would close the remaining gap for users who do not install it.
 
 **Multi-shell auto-install**: Typer's `--install-completion` detects the current shell and installs the completion script automatically. click-extra could bundle a similar `@completion_option`.
 

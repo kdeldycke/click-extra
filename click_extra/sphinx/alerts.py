@@ -24,9 +24,15 @@ is below `5.1.0` (see
 {data}`click_extra.sphinx.MYST_NATIVE_ALERTS_VERSION`); on newer
 releases the hook is skipped at setup time and a log message points
 projects at `myst-parser`'s native extension, which they enable by
-adding `"alert"` to `myst_enable_extensions`. I plan to remove
-the module entirely once the `myst-parser` floor moves to
-`>=5.1`.
+adding `"alert"` to `myst_enable_extensions`.
+```
+
+```{todo}
+Remove this module entirely once the `myst-parser` floor moves to `>=5.1`.
+Every supported release then ships the native `"alert"` syntax extension, so
+the regex-based converter, its setup-time version gate
+({data}`click_extra.sphinx.MYST_NATIVE_ALERTS_VERSION`) and the log message
+pointing projects at the upstream extension all become dead weight.
 ```
 
 ```{seealso}

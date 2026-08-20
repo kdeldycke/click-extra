@@ -286,6 +286,21 @@ Written by {class}`click_extra.commands.Command.make_context` so that
 arguments for the `--params` table without re-running the callbacks.
 Consumers normalize the parser's `UNSET` sentinel back to `None` on read,
 matching what `click.Command.parse_args` does for `ctx.params`.
+
+```{todo}
+Open a narrowly-scoped Click issue and PR for a public
+{class}`click.Context` accessor returning a parameter's resolved
+`(value, ParameterSource)` after parsing, without re-firing eager callbacks.
+That is the forward resolution `--params` actually consumes, and landing it
+retires the re-parse this constant exists to feed.
+
+Reference [`pallets/click#1279`](https://github.com/pallets/click/issues/1279)
+as related, not as home: it asks for the inverse direction (reconstructing a
+normalized argv from a Context), was scoped with about a dozen normalization
+rules, flagged underdefined, and has stalled since 2023. Tracked in
+`docs/upstream.md` under "Normalized arguments"; the developer note below
+records why the cheaper alternatives do not work.
+```
 """
 
 # Developer note: why RAW_ARGS exists, and what to actually propose upstream.
@@ -317,9 +332,8 @@ matching what `click.Command.parse_args` does for `ctx.params`.
 #   - It depends on `Command.make_parser()` handing back
 #     `click.parser._OptionParser`, private since the Click 8.2 parser rework.
 #
-# Upstream proposal (revisit later: tracked in docs/upstream.md under
-# "Normalized arguments", linked to click#1279). Three different features get
-# muddled under the "raw_args" label:
+# Upstream proposal (the actionable half is the `{todo}` on RAW_ARGS above).
+# Three different features get muddled under the "raw_args" label:
 #   1. Preserve the raw input argv on the Context. Trivial; what we do here.
 #   2. Expose the parsed `opts`, or better, a per-parameter resolved
 #      (value, ParameterSource), on the Context. Modest; this is what

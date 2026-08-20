@@ -13,7 +13,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Logging utilities."""
+"""Logging utilities.
+
+```{todo}
+Let the `-v`/`-q` counter reach beyond the current {class}`LogLevel` range, as
+sketched by the `-vvvv` (trace) and `-q` (silence everything) notes that used
+to live on `_VerbosityOption`:
+
+- a `TRACE` pseudo-level below {attr}`LogLevel.DEBUG` (numeric value `5`,
+  mirroring `logging.DEBUG - 5`) so repeated `-v` can surface finer-grained
+  tracing past `DEBUG`;
+- a `SILENT` pseudo-level above {attr}`LogLevel.CRITICAL` (any value above
+  `logging.CRITICAL`) so repeated `-q` can suppress every record, including
+  {attr}`LogLevel.CRITICAL`.
+
+Both require extending {class}`LogLevel`, which ripples into the `--verbosity`
+{class}`~click_extra.types.EnumChoice`, the {class}`Formatter` level-name color
+lookup and the level-ordering tests. They are intentionally left out of the
+symmetric-counter change that introduced `-q`, where the counter simply clamps
+at `DEBUG`/`CRITICAL`.
+```
+"""
 
 from __future__ import annotations
 
@@ -418,25 +438,6 @@ class _VerbosityOption(ExtraOption):
     `-q` only lowers the *logging* verbosity. It deliberately does not silence
     {func}`click.echo`: a command's primary output is not a diagnostic and stays
     on its stream.
-    ```
-
-    ```{todo}
-    Let the counter reach beyond the current {class}`LogLevel` range, as sketched
-    by the `-vvvv` (trace) and `-q` (silence everything) notes that used to
-    live here:
-
-    - a `TRACE` pseudo-level below {attr}`LogLevel.DEBUG` (numeric value `5`,
-      mirroring `logging.DEBUG - 5`) so repeated `-v` can surface
-      finer-grained tracing past `DEBUG`;
-    - a `SILENT` pseudo-level above {attr}`LogLevel.CRITICAL` (any value above
-      `logging.CRITICAL`) so repeated `-q` can suppress every record,
-      including {attr}`LogLevel.CRITICAL`.
-
-    Both require extending {class}`LogLevel`, which ripples into the
-    `--verbosity` {class}`~click_extra.types.EnumChoice`, the
-    {class}`Formatter` level-name color lookup and the level-ordering tests.
-    They are intentionally left out of the symmetric-counter change that
-    introduced `-q`, where the counter simply clamps at `DEBUG`/`CRITICAL`.
     ```
     """
 

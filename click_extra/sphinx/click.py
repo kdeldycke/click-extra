@@ -166,9 +166,27 @@ This fix is not yet upstream: the open rework in
 include it, and also makes `content_offset` document-relative. So the release
 that eventually lands the fix requires the MyST branch of
 {meth}`ClickRunner.run_cli` to converge on the rST formula
-(`content_offset + python_lineno`), not merely drop this compensation. Once
-that release is the pinned floor, delete {func}`_myst_content_offset_inflation`
-and this constant. See `docs/upstream.md`.
+(`content_offset + python_lineno`), not merely drop this compensation. See
+`docs/upstream.md`.
+
+```{todo}
+Retire the MyST `content_offset` workaround once the pinned `myst-parser`
+floor rises past the release carrying the fix:
+
+- delete {func}`_myst_content_offset_inflation` and this constant, and
+  converge the MyST branch of {meth}`ClickRunner.run_cli` on the rST formula
+  (`content_offset + python_lineno`);
+- drop the `directive.content` fallback in
+  `click_extra.sphinx._base.directive_source()`, which stays off `block_text`
+  only because that attribute is body-only in `myst-parser <= 5.1.0`
+  ([`#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164) is
+  merged but unreleased). A released `block_text` anchors a robust
+  line-number computation and retires the workaround from both sides.
+
+The single-trailing-blank-line case documented on
+{func}`_myst_content_offset_inflation` stays off by one until then, and no
+local fix can reach it: the round-trip consumes that line without a trace.
+```
 """
 
 
@@ -325,6 +343,16 @@ class ClickRunner(CliRunner):
 
     @contextlib.contextmanager
     def isolation(self, *args, **kwargs):
+        """Echo a `^D` marker at the end of the isolated stdin.
+
+        ```{todo}
+        Declare {class}`TerminatedEchoingStdin` instead of rewriting the
+        `__class__` of the instance Click already built. That needs Click to
+        make `EchoingStdin` overridable: an `echo_stdin_class` attribute on
+        {class}`click.testing.CliRunner`, say, that `isolation()` instantiates
+        rather than hard-coding. Worth proposing upstream.
+        ```
+        """
         iso = super().isolation(*args, **kwargs)
 
         with iso as streams:
@@ -333,10 +361,8 @@ class ClickRunner(CliRunner):
             except AttributeError:
                 buffer = sys.stdin
 
-            # FIXME: We need to replace EchoingStdin with our custom
-            # class that outputs "^D". At this point we know sys.stdin
-            # has been patched so it's safe to reassign the class.
-            # Remove this once EchoingStdin is overridable.
+            # sys.stdin is patched by now, so swapping the class of the buffer
+            # Click built is safe: it is the only handle on that object.
             buffer.__class__ = TerminatedEchoingStdin
             yield streams
 
@@ -521,6 +547,17 @@ def _resolve_run_capture(
 
 
 class ClickDirective(SphinxDirective):
+    """Base class of every `click:*` directive.
+
+    ```{todo}
+    Check that the line offset {func}`run` hands to `parse_into_section` is
+    computed correctly in both rST and MyST. The two directive parsers report
+    `content_offset` differently (see
+    {data}`MYST_CONTENT_OFFSET_INFLATED_MAX`), so an error raised inside a
+    rendered block may point at the wrong source line in one of them.
+    ```
+    """
+
     has_content = True
 
     required_arguments = 0
@@ -915,6 +952,7 @@ class ClickDirective(SphinxDirective):
         )
 
     def run(self) -> list[nodes.Node]:
+        """Execute the directive and render its source and results."""
         assert hasattr(self.runner, self.runner_method), (
             f"{self.runner!r} does not have a method named {self.runner_method!r}."
         )
@@ -942,7 +980,6 @@ class ClickDirective(SphinxDirective):
             lines.extend(self.render_code_block(results, self.language, "results"))
 
         # Convert code block lines to a Docutils node tree.
-        # XXX Check that the offset here is properly computed in both rST and MyST.
         return parse_into_section(self, lines)
 
 

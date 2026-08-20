@@ -33,6 +33,15 @@ a target, parallelized per the resolved `--jobs` count (see
 
 This is the black-box, subprocess-level complement to
 {class}`click_extra.testing.CliRunner`, which drives a CLI in-process.
+
+```{todo}
+Tokenize a Windows command line with quoting/escaping support, like `shlex`
+does on POSIX. The `str.split()` fallback `_split_args` uses there only splits
+on whitespace, so a quoted argument such as `--name "two words"` is wrongly
+broken into three tokens. Use
+[w32lex](https://github.com/maxpat78/w32lex), the Windows counterpart to
+`shlex`.
+```
 """
 
 from __future__ import annotations
@@ -107,16 +116,7 @@ class SkippedTest(Exception):
 
 
 def _split_args(cli: str) -> list[str]:
-    """Split a command-line string into a list of arguments.
-
-    ```{todo}
-    Tokenize Windows command lines with quoting/escaping support, like `shlex`
-    does on POSIX. The current `str.split()` fallback only splits on whitespace,
-    so a quoted argument such as `--name "two words"` is wrongly broken into
-    three tokens. Use [w32lex](https://github.com/maxpat78/w32lex), the Windows
-    counterpart to `shlex`.
-    ```
-    """
+    """Split a command-line string into a list of arguments."""
     if is_windows():
         return cli.split()
     # For Unix platforms, we have the dedicated shlex module.
