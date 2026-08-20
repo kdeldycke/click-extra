@@ -20,6 +20,7 @@ from __future__ import annotations
 import copy
 import re
 from collections.abc import Mapping, Sequence
+from enum import Enum
 
 import pytest
 
@@ -32,7 +33,7 @@ from click_extra import (
     option,
     pass_context,
 )
-from click_extra.multicall import normalize_personality
+from click_extra.multicall import _deepcopy_params, normalize_personality
 from click_extra.version import VersionOption
 
 
@@ -354,6 +355,35 @@ def test_normalize_personality():
             normalize_personality(bad)
     with pytest.raises(TypeError):
         normalize_personality(42)
+
+
+def test_deepcopy_params_keeps_every_sentinel_identical():
+    """A copied parameter carries its enum members over, it does not rebuild them.
+
+    An enum member is a singleton, so a copy handing back an equal-but-distinct
+    one is already wrong. Python 3.10 does exactly that, rebuilding the member
+    from a deep copy of its value, which the `object()` behind a
+    [PEP 661](https://peps.python.org/pep-0661/) sentinel never survives. Walking
+    the whole default option set catches the next parameter to grow one.
+    """
+    kitchen = make_kitchen()
+    clones = _deepcopy_params(kitchen.params)
+    assert len(clones) == len(kitchen.params)
+
+    # Pair by position, not by name: `--config` and `--no-config` share the
+    # `config` destination, so a name lookup matches the wrong parameter. Read
+    # the stored attribute rather than the resolved one, since `ConfigOption`
+    # answers `default` with a bound method computing the pattern.
+    guarded = 0
+    for source, clone in zip(kitchen.params, clones, strict=True):
+        for attribute, value in vars(source).items():
+            if not isinstance(value, Enum):
+                continue
+            guarded += 1
+            assert vars(clone)[attribute] is value, (
+                f"{source.name}.{attribute} was rebuilt instead of carried over."
+            )
+    assert guarded, "No enum-valued parameter attribute left to guard."
 
 
 def test_version_option_deepcopy_drops_cache():

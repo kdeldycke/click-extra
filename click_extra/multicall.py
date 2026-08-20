@@ -89,6 +89,7 @@ import logging
 import os
 import sys
 from collections.abc import Sequence
+from enum import Enum
 from typing import cast
 
 import click
@@ -335,8 +336,8 @@ class MulticallGroup(Group):
             msg = f"Personality {name!r} maps to unknown subcommand {sub_name!r}."
             raise RuntimeError(msg)
 
-        group_params = copy.deepcopy(self.params)
-        sub_params = copy.deepcopy(sub.params)
+        group_params = _deepcopy_params(self.params)
+        sub_params = _deepcopy_params(sub.params)
 
         # The subcommand's context settings carry over, minus the ones the
         # personality re-derives from its own name: keeping the subcommand's
@@ -413,6 +414,29 @@ class MulticallGroup(Group):
             sub = lazy_load(name)
             self.add_command(sub)
         return sub
+
+
+def _deepcopy_params(params: list[click.Parameter]) -> list[click.Parameter]:
+    """Deep-copy *params*, handing back the enum sentinels they carry untouched.
+
+    Python 3.10's `Enum` implements no `__deepcopy__`, so `copy.deepcopy` rebuilds
+    a member by calling its class with a deep copy of the member's *value*. Click
+    and Click Extra both follow
+    [PEP 661](https://peps.python.org/pep-0661/) and back their sentinels with
+    bare `object()` values, which copy into a different object no lookup can
+    resolve, raising `ValueError: <object object> is not a valid Sentinel`. Since
+    Click 8.3 one of those sentinels sits on every parameter as its unset default,
+    so copying any parameter at all crashes there.
+
+    Pre-seeding the memo with each sentinel makes `copy.deepcopy` return them as
+    they are, which is what Python 3.11 and later do natively.
+    """
+    memo: dict[int, Any] = {}
+    for param in params:
+        for value in vars(param).values():
+            if isinstance(value, Enum):
+                memo.update({id(member): member for member in type(value)})
+    return copy.deepcopy(params, memo)
 
 
 def _merge_params(
