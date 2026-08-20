@@ -42,6 +42,7 @@ import pytest
 
 from click_extra import unstyle
 from click_extra.cli import screenshot_cmd
+from click_extra.execution import PROMPT
 from click_extra.screenshot import (
     _COLUMN_GAP_RE,
     AUTO_COLUMNS,
@@ -93,6 +94,15 @@ pattern belongs to whatever wants to inspect its output.
 ASSETS = Path(__file__).parent.parent / "docs" / "assets"
 """Directory the committed captures live in."""
 
+COMMITTED_PROMPT = "$ "
+"""Prompt sigil every committed capture was shot under.
+
+{data}`~click_extra.execution.PROMPT` is the *running* platform's, and Windows
+draws `> ` there, so a reshoot has to be normalized back to this one before the
+two are compared. What the check is about is the command's output, not which
+shell drew the line above it.
+"""
+
 
 class Capture(NamedTuple):
     """A terminal capture committed under `docs/assets` and embedded in the docs.
@@ -123,8 +133,8 @@ class Capture(NamedTuple):
 
     @property
     def prompt(self) -> str:
-        """The `$` line the capture draws above its output."""
-        return f"$ click-extra {' '.join(self.args)}"
+        """The {data}`COMMITTED_PROMPT` line the capture draws above its output."""
+        return f"{COMMITTED_PROMPT}click-extra {' '.join(self.args)}"
 
     @property
     def command(self) -> tuple[str, ...]:
@@ -549,12 +559,15 @@ def test_committed_capture_matches_cli(committed):
     fresh, returncode = capture(
         list(committed.command),
         columns=committed.columns,
-        prompt=committed.prompt.removeprefix("$ "),
+        prompt=committed.prompt.removeprefix(COMMITTED_PROMPT),
         head=committed.head,
         background=committed.background,
     )
     assert returncode == 0
-    assert svg_to_lines(source) == svg_to_lines(fresh)
+    fresh_lines = svg_to_lines(fresh)
+    if fresh_lines:
+        fresh_lines[0] = COMMITTED_PROMPT + fresh_lines[0].removeprefix(PROMPT)
+    assert svg_to_lines(source) == fresh_lines
 
 
 @pytest.mark.parametrize(
@@ -1157,8 +1170,9 @@ def test_screenshot_wrap_matches_the_composition(invoke, tmp_path):
 
     text = html_to_text(shortcut.read_text(encoding="utf-8"))
     assert text == html_to_text(composed.read_text(encoding="utf-8"))
-    # The prompt shows what a reader types, not the plumbing that ran.
+    # The prompt shows what a reader types, not the plumbing that ran. Its sigil
+    # is the running platform's, so both captures draw the same one.
     assert (
         text.splitlines()[0]
-        == "$ click-extra wrap -- click_extra.cli:demo_themes --help"
+        == f"{PROMPT}click-extra wrap -- click_extra.cli:demo_themes --help"
     )
