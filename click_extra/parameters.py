@@ -254,6 +254,23 @@ def option_value_kind(
     return "required"
 
 
+def resolve_flag_value(param: click.Parameter) -> Any:
+    """The value *param*'s primary declaration stands for.
+
+    Released Click materializes it in `flag_value`: `None` for a plain option or
+    a counter, `True` for a boolean flag, and the declared value otherwise
+    (`--color` standing for `always`). Click's development branch leaves that
+    attribute as the `UNSET` sentinel and answers the same question lazily in
+    `flag_activation_value`, so reading either attribute on its own is right on
+    only one of the two, and storing the sentinel anywhere it will be read back
+    as a value silently turns the flag off.
+    """
+    flag_value = getattr(param, "flag_value", None)
+    if flag_value is UNSET:
+        return getattr(param, "flag_activation_value", None)
+    return flag_value
+
+
 def is_repeatable(param: click.Parameter) -> bool:
     """Whether the parameter may be supplied several times (`multiple` or `count`)."""
     return bool(getattr(param, "multiple", False) or getattr(param, "count", False))
@@ -694,7 +711,7 @@ def format_param_row(
 
     hidden = getattr(param, "hidden", None)
     is_flag = getattr(param, "is_flag", None)
-    flag_value = getattr(param, "flag_value", None)
+    flag_value = resolve_flag_value(param)
     is_bool_flag = getattr(param, "is_bool_flag", None)
     prompt = getattr(param, "prompt", None)
     confirmation_prompt = getattr(param, "confirmation_prompt", None)
@@ -706,14 +723,6 @@ def format_param_row(
     default_val = param.get_default(ctx)
     if default_val is UNSET:
         default_val = None
-
-    # Click's development branch models an absent flag_value as the UNSET
-    # sentinel and resolves the effective value lazily in the
-    # flag_activation_value property. Read the latter to mirror the value
-    # released Click materializes in flag_value (None for a plain option or a
-    # counter, True for a boolean flag, the declared value otherwise).
-    if flag_value is UNSET:
-        flag_value = getattr(param, "flag_activation_value", None)
 
     if is_structured:
         default_val = _structured_value(default_val)

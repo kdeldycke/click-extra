@@ -79,6 +79,7 @@ from ..parameters import (
     ParamStructure,
     replay_raw_args,
     require_sibling_param,
+    resolve_flag_value,
     search_params,
 )
 from ..types import EnumChoice
@@ -1049,9 +1050,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                     yield candidate, conf
                     break
             else:
-                logger.debug(
-                    f"{candidate} has no [tool.{cli_name}] section; skipping."
-                )
+                logger.debug(f"{candidate} has no [tool.{cli_name}] section; skipping.")
 
     def _search_pyproject_cwd(
         self,
@@ -1133,10 +1132,10 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"{location} does not match {self.file_pattern}.")
             return None
 
-        logger.debug(
-            f"Parsing {location} with {','.join(map(str, matching_formats))}"
-        )
-        for conf in self.parse_conf(content, formats=matching_formats, location=location):
+        logger.debug(f"Parsing {location} with {','.join(map(str, matching_formats))}")
+        for conf in self.parse_conf(
+            content, formats=matching_formats, location=location
+        ):
             if conf:
                 return conf
             logger.debug("Empty configuration, try next format.")
@@ -1331,8 +1330,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                     return raw_value
             except (ValueError, json.JSONDecodeError) as ex:
                 raise ValueError(
-                    f"Cannot convert {decl} value {raw_value!r} to "
-                    f"{target_type} type."
+                    f"Cannot convert {decl} value {raw_value!r} to {target_type} type."
                 ) from ex
             raise ValueError(
                 f"Cannot handle the conversion of {decl} value {raw_value!r} "
@@ -1374,9 +1372,14 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.debug(f"Unknown option {decl!r} kept as {key!r}.")
                 continue
 
-            # Flags carry their value in the declaration itself.
+            # Flags carry their value in the declaration itself, which
+            # {func}`~click_extra.parameters.resolve_flag_value` reads the same
+            # way on every Click line. Reading `flag_value` directly stores the
+            # UNSET sentinel under Click's development branch, and a boolean
+            # flag set from an argfile then comes back off.
             if getattr(param, "is_flag", False):
-                store(param, getattr(param, "flag_value", True))
+                flag_value = resolve_flag_value(param)
+                store(param, True if flag_value is None else flag_value)
                 continue
 
             if "=" in token:
@@ -1615,8 +1618,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             )
             if not report.ok:
                 logger.critical(
-                    f"Configuration validation error in {location}: "
-                    f"{report.errors[0]}"
+                    f"Configuration validation error in {location}: {report.errors[0]}"
                 )
                 ctx.exit(1)
             assert report.merged_conf is not None  # params_template is always set.
@@ -1801,8 +1803,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             if not layers:
                 formats = list(map(str, self.file_format_patterns))
                 message = (
-                    f"Error parsing file as "
-                    f"{', '.join(formats[:-1])} or {formats[-1]}."
+                    f"Error parsing file as {', '.join(formats[:-1])} or {formats[-1]}."
                 )
                 if explicit_conf:
                     logger.critical(message)
