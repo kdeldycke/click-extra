@@ -1208,7 +1208,7 @@ def render_help(
 
 
 MAN_FORMATTERS: tuple[tuple[str, ...], ...] = (
-    ("groff", "-man", "-Tutf8", "-rLL={width}n"),
+    ("groff", "-man", "-Tutf8", "-rLL={width}n", "-P-c"),
     ("mandoc", "-Tutf8", "-Owidth={width}"),
 )
 """Commands able to typeset roff into readable terminal text, best first.
@@ -1216,6 +1216,17 @@ MAN_FORMATTERS: tuple[tuple[str, ...], ...] = (
 Each entry is an argv template read on stdin, with `{width}` filled from the
 terminal. `groff` is the GNU implementation found nearly everywhere a man page
 is; `mandoc` covers the BSDs and Alpine, which ship it instead.
+
+```{note}
+`-P-c` hands `-c` down to `grotty`, groff's terminal driver, pinning the
+emphasis it produces to the character-backspace pairs {data}`OVERSTRIKE_RE`
+matches and {func}`read_manpage` strips under `--accessible`. Left to its own
+default a `grotty` recent enough writes SGR escape sequences instead, which
+that regular expression cannot see: the manual then reaches a screen reader
+with its emphasis intact, and loses it altogether once the output is not a
+terminal and the codes are stripped as color. `mandoc` needs no counterpart:
+it overstrikes already.
+```
 
 ```{note}
 The `man` binary is deliberately not in this list, even though it is the tool
