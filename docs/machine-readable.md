@@ -73,7 +73,7 @@ assert "- `CITY`: Name of the city to report on." in result.output
 | `carapace`      | A [Carapace completion spec](carapace.md) (YAML), which doubles as a command-and-flag tree. |
 | `json`          | This command as a JSON object, its direct subcommands listed by name.                       |
 | `json-full`     | Every command of the tree, under a `commands` array.                                        |
-| `man`           | This command as a man page: the roff source [`--man`](#reading-a-manual) typesets to read.  |
+| `man`           | This command as a man page: the roff source [`--man`](man-page.md#reading-a-manual) typesets to read.  |
 | `markdown`      | This command as a Markdown document, one section per topic.                                 |
 | `markdown-full` | Every command of the tree as one Markdown document.                                         |
 

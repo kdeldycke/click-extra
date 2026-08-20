@@ -207,7 +207,7 @@ The same resolver backs every `wrap` mode, including [`--params`](#introspecting
 
 ## Dependencies of the wrapped CLI
 
-`wrap` runs the target inside Click Extra's own interpreter: it imports the resolved module and calls it in-process (see [How it works](#how-it-works)). The target is never installed into a separate environment, so **every third-party package the target imports must already be importable where `wrap` runs**, exactly as if you had launched the target directly.
+`wrap` runs the target inside Click Extra's own interpreter: it imports the resolved module and calls it in-process (see [Script resolution](#script-resolution)). The target is never installed into a separate environment, so **every third-party package the target imports must already be importable where `wrap` runs**, exactly as if you had launched the target directly.
 
 This bites hardest when [wrapping a project directory](#script-resolution). Pointing `wrap` at a checked-out project makes its package importable by putting it on `sys.path`, but it does *not* install that project's declared dependencies. If the target's CLI imports a package that is absent, the failure surfaces from the target's own code:
 
