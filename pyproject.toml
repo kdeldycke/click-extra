@@ -693,7 +693,7 @@ minimum-release-age = "7 days"
 # leaner repomatic default never strips the debugger stack this binary needs.
 # Read by repomatic >= 7.4.0; earlier releases warn on the unknown key.
 nuitka.nofollow-imports = [ "tkinter" ]
-# Full test matrix (25 jobs; runs on push-to-main and the monthly schedule,
+# Full test matrix (24 jobs; runs on push-to-main and the monthly schedule,
 # never on PRs). It composes from two parts: a shipped cross-product for
 # cross-platform coverage, and explicit `full-include` rows for forward-looking
 # dependency coverage. Everything forward-looking runs on the single fastest
@@ -703,17 +703,27 @@ nuitka.nofollow-imports = [ "tkinter" ]
 #     single-runner free-threaded 3.14t probe (ubuntu-26.04-arm) and the
 #     prerelease 3.15 probe held to ubuntu-26.04-arm by the `exclude` rows
 #     below. 10 jobs.
-#   - {8.3.1, 8.3.2, 8.3.3, 8.4.0, 8.4.1} click × released cloup: ubuntu-26.04-arm ×
-#     Python 3.10 (the floor corner). Every Click release from the floor through
-#     8.4.1, past the 8.4.0 param-source regression, verifying the whole >=8.3.1
-#     range. 5 jobs. ("Python" prefixes the version on purpose: an indented
-#     comment opening on a `N.N` literal reads as a Markdown ordered-list marker
-#     and panics pyproject-fmt 2.27.0, which then formats nothing at all.)
+#   - {8.3.1, 8.3.2, 8.3.3, 8.4.1} click × released cloup: ubuntu-26.04-arm ×
+#     Python 3.10 (the floor corner), covering the declared >=8.3.1 range.
+#     4 jobs. ("Python" prefixes the version on purpose: an indented comment
+#     opening on a `N.N` literal reads as a Markdown ordered-list marker and
+#     panics pyproject-fmt 2.27.0, which then formats nothing at all.)
+#     Click 8.4.0 is deliberately absent, and it is the one release in that
+#     range nothing here exercises: its own CliRunner closes stdout on any
+#     command reaching echo_via_pager, then raises from its own flush(), which
+#     no downstream code can work around. Reproduced on that release alone,
+#     against plain Click with no click-extra involved, and gone again in
+#     8.4.1; the neighbouring 8.3.3 and 8.4.1 rows bracket it.
 #   - {stable, main} click × released cloup: ubuntu-26.04-arm × {3.14, 3.14t}.
-#     4 jobs.
+#     4 jobs, unstable.
 #   - {released, stable, main} click × master cloup: ubuntu-26.04-arm ×
-#     {3.14, 3.14t}. 6 jobs.
-# The last three slices (15 jobs) are the `full-include` rows below.
+#     {3.14, 3.14t}. 6 jobs, the 4 on a Click dev branch unstable.
+# The Click dev branches are probes, not gates: they move under us, and a help
+# screen they reshape (positional arguments in a section of their own) cannot
+# be pictured by a committed capture shot against the released Click the
+# project ships with. Left gating, every such upstream change reddens the whole
+# workflow until someone chases it.
+# The last three slices (14 jobs) are the `full-include` rows below.
 # Runner selection favors measured speed over architecture: on Linux the ARM
 # runner beat its x86 twin by ~2x back when the axis carried ubuntu-24.04-arm
 # and ubuntu-slim, before repomatic 7.10.0 moved it to the 26.04 pair. Per OS
@@ -750,20 +760,19 @@ test-matrix.full-include = [
   { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.3.1", cloup-version = "released" },
   { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.3.2", cloup-version = "released" },
   { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.3.3", cloup-version = "released" },
-  { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.0", cloup-version = "released" },
   { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.1", cloup-version = "released" },
   # Click's stable and main dev branches on released Cloup, latest Pythons.
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "stable", cloup-version = "released" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "stable", cloup-version = "released" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "main", cloup-version = "released" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "main", cloup-version = "released" },
+  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "stable", cloup-version = "released", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "stable", cloup-version = "released", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "main", cloup-version = "released", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "main", cloup-version = "released", state = "unstable" },
   # Cloup's master branch on released, stable, and main Click, latest Pythons.
   { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "released", cloup-version = "master" },
   { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "released", cloup-version = "master" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "stable", cloup-version = "master" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "stable", cloup-version = "master" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "main", cloup-version = "master" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "main", cloup-version = "master" },
+  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "stable", cloup-version = "master", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "stable", cloup-version = "master", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "main", cloup-version = "master", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "main", cloup-version = "master", state = "unstable" },
 ]
 
 [tool.click-extra]
