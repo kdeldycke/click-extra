@@ -1959,7 +1959,7 @@ def test_iter_params_for_display_follows_the_help_screen():
         "zest",
         "simmer",
         "chop",
-        "help",
+        CLICK_HELP_PARAM_NAME,
     ]
 
 
@@ -1977,7 +1977,7 @@ def test_iter_params_for_display_keeps_option_groups_together():
         "salt",
         "pepper",
         "bowl",
-        "help",
+        CLICK_HELP_PARAM_NAME,
     ]
 
 
@@ -1991,7 +1991,7 @@ def test_iter_params_for_display_falls_back_to_get_params():
     assert [p.name for p in iter_params_for_display(cli, ctx)] == [
         "chop",
         "bowl",
-        "help",
+        CLICK_HELP_PARAM_NAME,
     ]
 
 
@@ -2007,7 +2007,7 @@ def test_iter_params_for_display_yields_late_additions_last():
     ctx = make_resilient_context(cli, "cli")
     assert [p.name for p in iter_params_for_display(cli, ctx)] == [
         "chop",
-        "help",
+        CLICK_HELP_PARAM_NAME,
         "simmer",
     ]
 
