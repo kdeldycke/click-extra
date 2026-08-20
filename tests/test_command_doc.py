@@ -36,6 +36,7 @@ from click_extra import (
 from click_extra.command_doc import (
     HELP_FORMATS,
     MAN_FORMATTERS,
+    OVERSTRIKE_RE,
     render_help,
     render_manpage,
     render_manpages,
@@ -381,10 +382,13 @@ def test_man_option_reads_the_manual():
 
     result = CliRunner().invoke(greet, ["--man"], color=False)
     assert result.exit_code == 0
-    # Typeset output, not the roff that produced it.
-    assert ".TH" not in result.stdout
-    assert "GREET(1)" in result.stdout
-    assert "Greet the world." in result.stdout
+    # Typeset output, not the roff that produced it. Drop the emphasis first:
+    # groff underlines the page header, which no plain substring would match,
+    # while mandoc leaves it alone.
+    plain = OVERSTRIKE_RE.sub("", result.stdout)
+    assert ".TH" not in plain
+    assert "GREET(1)" in plain
+    assert "Greet the world." in plain
 
 
 def test_man_option_falls_back_to_the_source(monkeypatch):
