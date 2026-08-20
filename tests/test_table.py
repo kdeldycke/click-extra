@@ -61,6 +61,7 @@ from click_extra.table import (
     _column_sort_key,
     _setup_tabulate,
     _strip_none,
+    _visible_width,
     column_sort_key,
     print_data,
     print_table,
@@ -764,6 +765,53 @@ def test_all_table_rendering(
     assert result.stdout == f"Table format: {format_name}\n{expected}"
     assert not result.stderr
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("term_program", "expected"),
+    [("Ghostty", 2), ("", 2), ("Apple_Terminal", 1)],
+)
+def test_emoji_presentation_width_follows_the_terminal(
+    monkeypatch, term_program, expected
+):
+    """An emoji-presentation sequence measures as its terminal advances it."""
+    monkeypatch.setenv("TERM_PROGRAM", term_program)
+    assert _visible_width("⁉️") == expected
+    # A character wide in its own right carries no selector and never varies.
+    assert _visible_width("✅") == 2
+
+
+def test_emoji_presentation_gains_the_column_it_paints_into(monkeypatch):
+    """A terminal painting the glyph wider than it advances gets a column for it."""
+    monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
+    padded = render_table((("⁉️ ripe",),), ("state",), table_format=TableFormat.PLAIN)
+    assert "⁉️  ripe" in padded
+    # A terminal advancing the two columns it paints needs no compensation.
+    monkeypatch.setenv("TERM_PROGRAM", "Ghostty")
+    bare = render_table((("⁉️ ripe",),), ("state",), table_format=TableFormat.PLAIN)
+    assert "⁉️ ripe" in bare
+
+
+def test_emoji_presentation_padding_stays_out_of_markup(monkeypatch):
+    """A markup rendering outlives this terminal, so its cells keep their text."""
+    monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
+    markup = render_table((("⁉️ ripe",),), ("state",), table_format=TableFormat.GITHUB)
+    assert "⁉️ ripe" in markup
+
+
+def test_table_rows_are_uniform_under_a_narrow_emoji_terminal(monkeypatch):
+    """Every row of a rendered table advances the same width in that terminal.
+
+    Measured with the terminal's own rule, which is the one deciding whether
+    the table's vertical rules line up on screen.
+    """
+    monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
+    table = render_table(
+        (("papaya", "⁉️ ripe"), ("cherry", "✅ ripe")),
+        ("fruit", "state"),
+        table_format=TableFormat.ROUNDED_OUTLINE,
+    )
+    assert len({_visible_width(line) for line in table.splitlines()}) == 1
 
 
 @pytest.mark.parametrize(

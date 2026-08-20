@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import csv
+import os
 import re
 import shutil
 from dataclasses import dataclass
@@ -25,11 +26,12 @@ from enum import Enum
 from functools import cache, partial
 from gettext import gettext as _
 from io import StringIO
+from types import SimpleNamespace
 
 import click
 from boltons.strutils import strip_ansi
 from click import echo
-from wcwidth import wcswidth
+from wcwidth import wcswidth, wcwidth as char_width
 
 from . import context
 from ._utils import missing_extra_message
@@ -77,6 +79,17 @@ def _setup_tabulate() -> None:
 
     # Neutralize spurious double-spacing in table rendering.
     tabulate.MIN_PADDING = 0
+
+    # tabulate pads cells with its own import of wcwidth. Point it at the
+    # measure Click Extra uses everywhere else, so a table's padding and its
+    # wrapping cannot disagree on an emoji-presentation sequence: see
+    # NARROW_EMOJI_PRESENTATION_TERMINALS.
+    # Only the string entry point changes: the emoji-presentation rule is one
+    # about a sequence, which a single character cannot carry.
+    tabulate.wcwidth = SimpleNamespace(  # type: ignore[attr-defined]
+        wcswidth=_terminal_wcswidth,
+        wcwidth=char_width,
+    )
 
     fmts = tabulate._table_formats  # type: ignore[attr-defined]
 
@@ -545,6 +558,79 @@ def _render_xml(
     )
 
 
+EMOJI_PRESENTATION_SELECTOR = "\ufe0f"
+"""Unicode VARIATION SELECTOR-16, asking for the emoji form of what precedes it."""
+
+NARROW_EMOJI_PRESENTATION_TERMINALS = frozenset({"Apple_Terminal"})
+"""`$TERM_PROGRAM` values of terminals ignoring an emoji-presentation request.
+
+[UTS #51](https://www.unicode.org/reports/tr51/) makes an emoji-presentation
+sequence (a character followed by {data}`EMOJI_PRESENTATION_SELECTOR`) two
+columns wide. That is what `wcwidth` measures, and what a terminal
+implementing Unicode 9 widths advances the cursor by. A terminal named here
+advances by the base character's own width instead, so `⁉️` (U+2049 U+FE0F)
+takes one column and its glyph is painted over the next one.
+
+Measuring such a cell as two columns there pads its row one column short, and
+every rule right of that cell lands early: the table looks broken on exactly
+the rows carrying an emoji. A character wide in its own right (`✅`, U+2705)
+carries no selector and is never in question.
+
+Detection reads `$TERM_PROGRAM`, which a multiplexer overwrites with its own
+name, and rightly so: under `tmux` or `screen` it is the multiplexer that lays
+the cells out.
+"""
+
+
+EMOJI_PRESENTATION_RE = re.compile(f".{EMOJI_PRESENTATION_SELECTOR}")
+"""Matches one emoji-presentation sequence: a character and the selector."""
+
+
+def _emoji_presentation_is_narrow() -> bool:
+    """Whether the running terminal advances one column for such a sequence.
+
+    Read per call rather than at import, so a test can name a terminal and a
+    long-running process can be handed a different environment.
+    """
+    return os.environ.get("TERM_PROGRAM", "") in NARROW_EMOJI_PRESENTATION_TERMINALS
+
+
+def _terminal_wcswidth(text: str) -> int:
+    """Columns the running terminal advances the cursor by for `text`.
+
+    {func}`wcwidth.wcswidth`, with the emoji-presentation rule of the terminal
+    at hand: see {data}`NARROW_EMOJI_PRESENTATION_TERMINALS`. Dropping the
+    selector before measuring leaves every base character measured on its own,
+    which is what such a terminal does with the sequence.
+
+    Keeps `wcswidth`'s own convention of returning `-1` for a string carrying a
+    non-printable character, since `tabulate` measures with this too and reads
+    that value.
+    """
+    if _emoji_presentation_is_narrow():
+        text = text.replace(EMOJI_PRESENTATION_SELECTOR, "")
+    return wcswidth(text)
+
+
+def _pad_emoji_presentation(cell: str | None) -> str | None:
+    """Give an emoji-presentation glyph the column it paints into.
+
+    A terminal from {data}`NARROW_EMOJI_PRESENTATION_TERMINALS` advances a
+    single column for the sequence and paints its glyph across two, over
+    whatever follows: a space disappears and a letter is half covered, so
+    `⁉️ unstable` reads as `⁉️unstable` while `✅ stable` keeps its gap. A space
+    inserted after each sequence is the column the glyph paints into, and it
+    measures like any other, so the layout follows it.
+
+    Terminal renderings only. A markup or serialization format carries the cell
+    to a reader who never sees this terminal, and a space added there would be
+    content, not presentation.
+    """
+    if not isinstance(cell, str) or not _emoji_presentation_is_narrow():
+        return cell
+    return EMOJI_PRESENTATION_RE.sub(r"\g<0> ", cell)
+
+
 def _visible_width(cell: object) -> int:
     """Number of terminal columns a cell occupies once rendered.
 
@@ -554,7 +640,7 @@ def _visible_width(cell: object) -> int:
     """
     if cell is None:
         return 0
-    return max(wcswidth(strip_ansi(str(cell))), 0)
+    return max(_terminal_wcswidth(strip_ansi(str(cell))), 0)
 
 
 def _natural_column_widths(
@@ -716,6 +802,11 @@ def _render_tabulate(
     if max_column_widths is not None:
         defaults["maxcolwidths"] = list(max_column_widths)
     defaults.update(kwargs)
+    if not table_format.is_markup:
+        table_data = [
+            [_pad_emoji_presentation(cell) for cell in row] for row in table_data
+        ]
+        headers = [_pad_emoji_presentation(header) for header in headers]
     _setup_tabulate()
     import tabulate
 

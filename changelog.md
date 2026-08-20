@@ -31,6 +31,8 @@
 - Add an opt-in `config_file` column to `--params`, naming the configuration file a `DEFAULT_MAP` value resolved from: with `cascade=True` each parameter points at the layer that won it; select it with `--columns id,value,source,config_file`.
 - Fix `--params` resolving subcommand parameter values and sources against the root context, which left their `Value` and `Source` columns at the defaults instead of reading the subcommand's own configuration and environment.
 - Add an `optional` field to `ColumnSpec`, keeping a column out of an unprojected table while leaving it addressable by ID.
+- Measure an emoji-presentation sequence (`⁉️`) as the running terminal advances it, so a table carrying one keeps its columns aligned in a terminal ignoring the selector, like Apple Terminal.
+- Give an emoji-presentation glyph a column of its own where a terminal paints it wider than it advances, so a table cell reads `⁉️ unstable` instead of `⁉️unstable` with its space painted over.
 - Add `sort_subcommands` and `subcommand_priorities` to `@group`, listing subcommands in registration order or by float priority instead of alphabetically. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
 - Add a `sort_subcommands` context setting, inherited by every subgroup below the group declaring it.
 - Add an `option_priorities` argument to `@command` and `@group`, reordering the help screen without moving the order option callbacks run in. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
