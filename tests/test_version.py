@@ -13,15 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Test the ``--version`` option.
-
-.. todo::
-    Test standalone scripts setting package name to filename and version to
-    `None`.
-
-.. todo::
-    Test standalone script fetching version from ``__version__`` variable.
-"""
+"""Test the `--version` option."""
 
 from __future__ import annotations
 
@@ -30,8 +22,10 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from functools import partial
+from textwrap import dedent
 
 import click
 import pytest
@@ -474,6 +468,68 @@ def test_cli_frame_fallback(monkeypatch):
                 frame_globals.pop("__name__", None)
             else:
                 frame_globals["__name__"] = original
+
+
+STANDALONE_SCRIPT = dedent("""\
+    import click
+    from click_extra import echo, version_option
+
+
+    @click.command
+    @version_option(
+        message=(
+            "{prog_name} | {exec_name} | {package_name}"
+            " | {module_version} | {version}"
+        )
+    )
+    def weather():
+        echo("Sunny.")
+
+
+    if __name__ == "__main__":
+        weather()
+    """)
+"""A CLI run straight from a file as `__main__`, with no package around it.
+
+Its version message renders every field the unpackaged case resolves on its
+own, so a single invocation pins them all.
+"""
+
+
+@pytest.mark.parametrize(
+    ("dunder", "expected_version"),
+    (
+        pytest.param('__version__ = "1.2.3"\n\n', "1.2.3", id="with_dunder"),
+        pytest.param("", "None", id="without_dunder"),
+    ),
+)
+def test_standalone_script(tmp_path, dunder, expected_version):
+    """A standalone script is named after its file, and versioned by `__version__`.
+
+    With no package to read metadata from, `exec_name` falls back to the
+    script's file name and `package_name` to `None`. The version is read from
+    a `__version__` variable defined alongside the CLI, and stays `None` when
+    the script defines none.
+
+    Only a real interpreter reaches that code path: a CLI declared inside a
+    test function belongs to the test module, and that module has a package.
+    """
+    script = tmp_path / "weather.py"
+    script.write_text(dunder + STANDALONE_SCRIPT, encoding="UTF-8")
+
+    result = subprocess.run(
+        [sys.executable, str(script), "--version"],
+        capture_output=True,
+        text=True,
+        encoding="UTF-8",
+        cwd=tmp_path,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert strip_ansi(result.stdout) == (
+        f"weather.py | weather.py | None | {expected_version} | {expected_version}\n"
+    )
 
 
 @pytest.mark.parametrize(
