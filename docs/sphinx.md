@@ -1297,9 +1297,13 @@ Click Extra's Sphinx extension automatically converts [GitHub-flavored Markdown 
 
 This allows you to write documentation that renders correctly both on GitHub and in your Sphinx-generated documentation.
 
+```{deprecated} 7.16.0
+`myst-parser` `5.1.0` ships a native [`alert` syntax extension](https://myst-parser.readthedocs.io/en/latest/syntax/optional.html) covering the same five alert types. On that release and above, Click Extra's converter steps aside: add `"alert"` to `myst_enable_extensions` and the rest of this section no longer applies, `colon_fence` included.
+```
+
 ### Setup
 
-To use GitHub alerts, you need to enable the [`colon_fence` extension](https://myst-parser.readthedocs.io/en/latest/syntax/optional.html#code-fences-using-colons) in your Sphinx configuration:
+On `myst-parser` below `5.1.0`, you need to enable the [`colon_fence` extension](https://myst-parser.readthedocs.io/en/latest/syntax/optional.html#code-fences-using-colons) in your Sphinx configuration, as the converter renders each alert as a colon fence:
 
 ```{code-block} python
 :caption: `conf.py`

@@ -17,6 +17,49 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+from textwrap import dedent
+
+import pytest
+
+# Import click_extra.sphinx with myst_parser blocked, to check the module does not
+# hard-depend on it. Runs in a subprocess: a meta-path blocker installed in-process
+# would leak into every later test of the session.
+NO_MYST_PARSER_SCRIPT = dedent("""
+    import sys
+    from importlib.abc import MetaPathFinder
+
+    class MystParserBlocker(MetaPathFinder):
+        def find_spec(self, fullname, path=None, target=None):
+            if fullname.partition(".")[0] == "myst_parser":
+                raise ImportError("myst-parser is not installed")
+            return None
+
+    sys.meta_path.insert(0, MystParserBlocker())
+
+    import click_extra.sphinx
+
+    assert click_extra.sphinx.myst_parser is None
+""")
+
+
+@pytest.mark.once
+def test_import_without_myst_parser():
+    """The extension imports for a reST-only project, which installs no myst-parser.
+
+    The `sphinx` extra does not declare `myst-parser` and Sphinx does not depend on
+    it, so a hard import of it in `click_extra.sphinx` breaks such a project outright.
+    """
+    result = subprocess.run(
+        (sys.executable, "-c", NO_MYST_PARSER_SCRIPT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
 
 def test_sphinx_extension_setup(sphinx_app):
     """Test that the Sphinx extension is properly loaded."""

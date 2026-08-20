@@ -30,7 +30,6 @@ try:
 except ImportError as err:
     raise ImportError(missing_extra_message("sphinx", subject="This module")) from err
 
-import myst_parser
 from packaging.version import Version
 from sphinx.highlighting import PygmentsBridge
 from sphinx.util import logging
@@ -51,6 +50,15 @@ from .python import (
     rewrite_python_mirror_regions,
 )
 
+try:
+    import myst_parser
+except ImportError:
+    # The `sphinx` extra does not declare myst-parser and Sphinx does not pull it
+    # in, so a reST-only project has none installed. Keep this module importable
+    # for it: setup() then skips the GitHub-alerts converter, which would emit
+    # `:::{note}` fences no parser is there to render.
+    myst_parser = None  # type: ignore[assignment]
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from sphinx.application import Sphinx
@@ -69,7 +77,8 @@ Below this version, {mod}`click_extra.sphinx.alerts` patches GitHub alert
 syntax into MyST admonitions via a `source-read` / `include-read`
 hook. At or above this version, the converter is skipped at
 {func}`setup` time and projects should add `"alert"` to
-`myst_enable_extensions` instead.
+`myst_enable_extensions` instead. A project with no `myst-parser`
+installed writes no MyST document, so the converter is skipped there too.
 """
 
 
@@ -185,7 +194,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       Registered only when the installed `myst-parser` is below
       {data}`MYST_NATIVE_ALERTS_VERSION` (`5.1.0`). On newer versions,
       the converter is skipped and a one-shot info message points users
-      at `myst-parser`'s native `"alert"` extension. See
+      at `myst-parser`'s native `"alert"` extension; with no `myst-parser`
+      installed it is skipped without a message. See
       {mod}`click_extra.sphinx.alerts` for the deprecation plan.
     - The `matrix` directive, which renders a package's compatibility grid
       (``{matrix} python`` or ``{matrix} <distribution>``) from its git tag
@@ -257,18 +267,20 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # the native "alert" syntax extension (added in 5.1.0). On newer
     # versions, log a migration notice and skip the converter:
     # projects should add "alert" to myst_enable_extensions to use
-    # myst-parser's native rendering instead.
-    if Version(myst_parser.__version__) < MYST_NATIVE_ALERTS_VERSION:
-        app.connect("source-read", convert_github_alerts)
-        app.connect("include-read", convert_github_alerts)
-    else:
-        logger.info(
-            "click_extra.sphinx: skipping the GitHub alerts converter "
-            "(myst-parser %s ships the native 'alert' syntax extension). "
-            "Add 'alert' to myst_enable_extensions to render "
-            "'> [!NOTE]' blockquotes as Sphinx admonitions.",
-            myst_parser.__version__,
-        )
+    # myst-parser's native rendering instead. With no myst-parser at all
+    # there is no MyST document to convert, so it is skipped silently.
+    if myst_parser is not None:
+        if Version(myst_parser.__version__) < MYST_NATIVE_ALERTS_VERSION:
+            app.connect("source-read", convert_github_alerts)
+            app.connect("include-read", convert_github_alerts)
+        else:
+            logger.info(
+                "click_extra.sphinx: skipping the GitHub alerts converter "
+                "(myst-parser %s ships the native 'alert' syntax extension). "
+                "Add 'alert' to myst_enable_extensions to render "
+                "'> [!NOTE]' blockquotes as Sphinx admonitions.",
+                myst_parser.__version__,
+            )
 
     return {
         "version": __version__,

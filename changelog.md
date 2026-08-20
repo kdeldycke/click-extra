@@ -57,6 +57,7 @@
 - Fix `env_copy()` rejecting a `None` value instead of removing that variable, as its `Mapping[str, str | None]` type and `click.testing.CliRunner` both promise.
 - Add `:show-prompt:` and `:hide-prompt:` options to the `click:run` Sphinx directive, drawing or dropping the invocation above the output it produced.
 - Deduplicate the Sphinx `todolist` page, which `sphinx.ext.todo` fills with one entry per rendering of a `{todo}` directive instead of one per directive.
+- Fix `click_extra.sphinx` refusing to import when `myst-parser` is not installed, which broke reST-only documentation builds.
 - Surface every planned change on the `todolist` page, by collecting scattered `TODO`/`FIXME` comments and upstream-proposal notes into `{todo}` admonitions.
 - Render a `click:run` block's environment variables as assignments on the invocation (`$ WEATHER_UNITS=fahrenheit weather Paris`) instead of a separate `$ export` line, matching how the runner scopes them.
 - Fix options computing their help from the context (`-v`, `-q`) rendering blank in man pages and `--params`.
