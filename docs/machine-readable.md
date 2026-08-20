@@ -68,14 +68,14 @@ assert "- `CITY`: Name of the city to report on." in result.output
 
 ### The format list
 
-| Format          | What it renders                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------- |
-| `carapace`      | A [Carapace completion spec](carapace.md) (YAML), which doubles as a command-and-flag tree. |
-| `json`          | This command as a JSON object, its direct subcommands listed by name.                       |
-| `json-full`     | Every command of the tree, under a `commands` array.                                        |
-| `man`           | This command as a man page: the roff source [`--man`](man-page.md#reading-a-manual) typesets to read.  |
-| `markdown`      | This command as a Markdown document, one section per topic.                                 |
-| `markdown-full` | Every command of the tree as one Markdown document.                                         |
+| Format          | What it renders                                                                                       |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| `carapace`      | A [Carapace completion spec](carapace.md) (YAML), which doubles as a command-and-flag tree.           |
+| `json`          | This command as a JSON object, its direct subcommands listed by name.                                 |
+| `json-full`     | Every command of the tree, under a `commands` array.                                                  |
+| `man`           | This command as a man page: the roff source [`--man`](man-page.md#reading-a-manual) typesets to read. |
+| `markdown`      | This command as a Markdown document, one section per topic.                                           |
+| `markdown-full` | Every command of the tree as one Markdown document.                                                   |
 
 ```{note}
 The plain and `-full` variants differ in how much they hand over at once. A plain render describes one command and *names* its children, so a reader descends one level at a time rather than pulling a whole tree into a context window to answer a question about one leaf. The `-full` variants are for the opposite job: generating documentation, or diffing a CLI's whole surface between two releases.
