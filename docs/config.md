@@ -1985,10 +1985,33 @@ my_list       is ('point 1', 'point #2', 'Very Last Point!')
 int_parameter is 77
 ```
 
-```{warning}
-URLs do not support multi-format matching. You need to provide a direct link to the configuration file, including its extension.
+#### Typing a download
 
-Glob patterns are also not supported for URLs. Unless you want to let your users download the whole internet…
+A URL is free to carry no file extension at all, so the format of a download is guessed from two sources, tried in that order:
+
+1. The `Content-Type` header the server answers with. This is the only clue an endpoint like `https://example.com/api/settings` gives, and it is what a private API's own media type (`application/vnd.acme.settings+json`) resolves through, following [RFC 6839](https://www.rfc-editor.org/rfc/rfc6839.html) structured syntax suffixes.
+2. The last segment of the URL path, matched against [file format patterns](#custom-file-format-patterns) exactly as a local file name is.
+
+Each format is served as the media types below:
+
+| Format              | Media types                                                          |
+| :------------------ | :------------------------------------------------------------------- |
+| [`TOML`](#toml)     | `application/toml`, `text/x-toml`                                    |
+| [`YAML`](#yaml)     | `application/yaml`, `text/yaml`, `application/x-yaml`, `text/x-yaml` |
+| [`JSON`](#json)     | `application/json`, `text/json`                                      |
+| [`JSON5`](#json5)   | `application/json5`                                                  |
+| [`JSONC`](#jsonc)   | `application/jsonc`                                                  |
+| [`HJSON`](#hjson)   | `application/hjson`                                                  |
+| [`XML`](#xml)       | `application/xml`, `text/xml`                                        |
+| [`plist`](#plist)   | `application/x-plist`                                                |
+| [`SQLITE`](#sqlite) | `application/vnd.sqlite3`, `application/x-sqlite3`                   |
+
+[`INI`](#ini) and [`ARGFILE`](#argfile) are both served as `text/plain`, which names no format, and [`PYPROJECT_TOML`](#pyproject-toml) is keyed on a file name no media type tells apart from plain `TOML`. All three are matched on the URL path alone.
+
+The two sources are layered rather than exclusive, so a server advertising a generic `text/plain`, an `application/octet-stream`, or a plain wrong type costs nothing: the formats derived from the URL path are still tried behind it. A media type never widens the format set either, as it is resolved against the formats the option accepts.
+
+```{warning}
+Glob patterns are not supported for URLs. Unless you want to let your users download the whole internet…
 ```
 
 ## Typed configuration schema

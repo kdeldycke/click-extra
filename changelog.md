@@ -10,6 +10,7 @@
 - **Breaking:** Rename the `click_extra.man_page` module to `click_extra.command_doc`, after the model it is built around rather than one of the four formats it renders.
 - **Breaking:** Rename `ManPage` to `CommandDoc`, `ManOptionItem` to `DocOptionItem`, `ManOptionGroup` to `DocOptionGroup` and `extract_manpage()` to `extract_command_doc()`.
 - **Breaking:** Remove every deprecated alias scheduled for removal in `9.0.0`: the `click_extra.test_plan` module, the root-level test-plan and config-schema names, and the invocation and pre-baking helpers' old homes.
+- **Breaking:** `ConfigOption.search_and_read_file()` yields `(location, content, media_type)` triples instead of `(location, content)` pairs.
 - **Deprecated:** Rename the `color_envvars` and `nocolor_theme` constants to `COLOR_ENVVARS` and `NOCOLOR_THEME`, following the uppercase convention; the old names resolve until `10.0.0`.
 - **Deprecated:** Move the generic `patch_attr()`, `generator_tag()` and `missing_extra_message()` helpers from `click_extra.parameters` to the new `click_extra._utils` module; the old homes resolve until `10.0.0`.
 - Add a `click-extra screenshot` subcommand capturing any CLI's colored output and rendering it as an SVG image or an HTML document, picked from the `--output` extension.
@@ -28,6 +29,9 @@
 - Add `to_markdown()` and `to_dict()` / `to_json()` backends to the document model behind `--man`, plus the `render_help()` entry point and the `HELP_FORMATS` registry.
 - Add an `examples=[("description", "command")]` parameter to `@command` and `@group`, rendered in help screens, man pages and every `--help-format`.
 - Add an opt-in `help` column to `--params`, carrying each parameter's help text; select it with `--columns id,spec,help`.
+- Guess the format of a configuration downloaded over HTTP from the `Content-Type` the server advertises, so a URL carrying no file extension loads.
+- Add `format_from_mime()` to `click_extra.config`, resolving a media type to a `ConfigFormat`, and a `mime_types` attribute on each format.
+- Fix the configuration parse-error message leaving a dangling `or` when the `--config` option accepts a single format.
 - Add an opt-in `config_file` column to `--params`, naming the configuration file a `DEFAULT_MAP` value resolved from: with `cascade=True` each parameter points at the layer that won it; select it with `--columns id,value,source,config_file`.
 - Fix `--params` resolving subcommand parameter values and sources against the root context, which left their `Value` and `Source` columns at the defaults instead of reading the subcommand's own configuration and environment.
 - Add an `optional` field to `ColumnSpec`, keeping a column out of an unprojected table while leaving it addressable by ID.

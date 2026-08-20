@@ -49,6 +49,7 @@ from click_extra import (
     config_option,
     echo,
     export_config_option,
+    format_from_mime,
     get_app_dir,
     group,
     no_config_option,
@@ -67,6 +68,9 @@ from click_extra.pytest import (
     default_debug_uncolored_logging,
     default_debug_uncolored_version_details,
 )
+
+DOCS_CONFIG_PAGE = Path(__file__).parent.parent / "docs" / "config.md"
+"""The documentation page transcribing part of ``ConfigFormat``."""
 
 # The complete set of glob search flags ``ConfigOption`` enforces by default.
 FULL_SEARCH_FLAGS = (
@@ -1185,6 +1189,246 @@ def test_conf_metadata_no_config(invoke):
     assert result.exit_code == 0
     assert "conf_source=MISSING" in result.stdout
     assert "conf_full=MISSING" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("media_type", "expected"),
+    (
+        # Media types each format is served as.
+        ("application/toml", ConfigFormat.TOML),
+        ("text/x-toml", ConfigFormat.TOML),
+        ("application/yaml", ConfigFormat.YAML),
+        ("text/yaml", ConfigFormat.YAML),
+        ("application/x-yaml", ConfigFormat.YAML),
+        ("text/x-yaml", ConfigFormat.YAML),
+        ("application/json", ConfigFormat.JSON),
+        ("text/json", ConfigFormat.JSON),
+        ("application/json5", ConfigFormat.JSON5),
+        ("application/jsonc", ConfigFormat.JSONC),
+        ("application/hjson", ConfigFormat.HJSON),
+        ("application/xml", ConfigFormat.XML),
+        ("text/xml", ConfigFormat.XML),
+        ("application/x-plist", ConfigFormat.PLIST),
+        ("application/vnd.sqlite3", ConfigFormat.SQLITE),
+        ("application/x-sqlite3", ConfigFormat.SQLITE),
+        # Parameters are stripped and case is ignored.
+        ("application/toml; charset=utf-8", ConfigFormat.TOML),
+        ("  Application/TOML  ", ConfigFormat.TOML),
+        # RFC 6839 structured syntax suffixes.
+        ("application/vnd.acme.settings+json", ConfigFormat.JSON),
+        ("application/atom+xml", ConfigFormat.XML),
+        # Types no format claims.
+        ("text/plain", None),
+        ("application/octet-stream", None),
+        ("application/unknown", None),
+        ("", None),
+        ("   ", None),
+    ),
+)
+def test_format_from_mime(media_type, expected):
+    assert format_from_mime(media_type) == expected
+
+
+def test_format_from_mime_restricted_to_candidates():
+    """`formats` narrows the resolution, like `format_from_path` does."""
+    assert format_from_mime("application/json") is ConfigFormat.JSON
+    assert format_from_mime("application/json", [ConfigFormat.TOML]) is None
+
+
+def test_mime_types_are_unambiguous():
+    """No media type is claimed by two formats.
+
+    A duplicate would leave `format_from_mime` resolving on `ConfigFormat`
+    declaration order alone, silently handing the media type to whichever
+    format happens to be declared first.
+    """
+    owners: dict[str, str] = {}
+    for fmt in ConfigFormat:
+        for media_type in fmt.mime_types:
+            assert media_type == media_type.strip().lower(), (
+                f"{fmt.name} declares {media_type!r}, which is not normalized."
+            )
+            assert media_type.count("/") == 1, (
+                f"{fmt.name} declares {media_type!r}, which is not a type/subtype."
+            )
+            assert media_type not in owners, (
+                f"{media_type!r} is claimed by both {owners.get(media_type)} "
+                f"and {fmt.name}."
+            )
+            owners[media_type] = fmt.name
+
+
+def test_docs_media_types_table_matches_formats():
+    """The media-type table in the docs is `ConfigFormat.mime_types`, transcribed.
+
+    A format gaining or losing a media type otherwise leaves the table stale,
+    and that table is the only place a user reads the mapping from.
+    """
+    page = DOCS_CONFIG_PAGE.read_text(encoding="utf-8")
+    table = page.split("#### Typing a download", 1)[1].split("```{warning}", 1)[0]
+
+    # Each row links its format to the section documenting it, whose anchor is
+    # the member name kebab-cased.
+    documented = {}
+    for row in table.splitlines():
+        match = re.match(r"\|\s*\[`[^`]+`\]\(#([\w-]+)\)\s*\|([^|]+)\|", row)
+        if not match:
+            continue
+        anchor, cell = match.groups()
+        for media_type in re.findall(r"`([^`]+)`", cell):
+            documented[media_type] = anchor
+
+    declared = {
+        media_type: fmt.name.lower().replace("_", "-")
+        for fmt in ConfigFormat
+        for media_type in fmt.mime_types
+    }
+    assert documented == declared
+
+
+@pytest.mark.parametrize(
+    ("media_type", "conf_text"),
+    (
+        pytest.param("application/toml", TOML_FILE, id="toml"),
+        pytest.param("application/yaml", YAML_FILE, id="yaml"),
+        pytest.param("application/json", JSON_FILE, id="json"),
+        pytest.param("application/xml", XML_FILE, id="xml"),
+        pytest.param("application/x-plist", PLIST_FILE, id="plist"),
+        pytest.param(
+            "application/vnd.acme.settings+json", JSON_FILE, id="vendor-suffix"
+        ),
+    ),
+)
+def test_remote_conf_typed_by_content_type(
+    invoke,
+    simple_config_cli,
+    httpserver,
+    media_type,
+    conf_text,
+):
+    """An extension-less URL is typed by the media type its server advertises."""
+    httpserver.expect_request("/settings").respond_with_data(
+        conf_text, content_type=media_type
+    )
+
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        httpserver.url_for("/settings"),
+        "default",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert result.stdout == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+    )
+
+
+@pytest.mark.parametrize(
+    "media_type",
+    ("text/plain", "application/octet-stream", "application/json"),
+)
+def test_remote_conf_falls_back_to_the_url_name(
+    invoke,
+    simple_config_cli,
+    httpserver,
+    media_type,
+):
+    """A generic or plain wrong media type still leaves the URL name to match on."""
+    httpserver.expect_request("/configuration.toml").respond_with_data(
+        TOML_FILE, content_type=media_type
+    )
+
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        httpserver.url_for("/configuration.toml"),
+        "default",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert result.stdout == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("file_format_patterns", "exit_code", "stdout"),
+    (
+        pytest.param({}, 0, "dummy_flag = True\n", id="all-formats"),
+        pytest.param(
+            {"file_format_patterns": ConfigFormat.TOML}, 2, "", id="toml-only"
+        ),
+    ),
+)
+def test_remote_conf_content_type_never_widens_the_format_set(
+    invoke,
+    httpserver,
+    file_format_patterns,
+    exit_code,
+    stdout,
+):
+    """A media type is resolved against `file_format_patterns` alone.
+
+    The same `application/json` download feeds the CLI when `JSON` is accepted,
+    and is rejected outright when the option only declares `TOML`.
+    """
+
+    @click.command
+    @option("--dummy-flag/--no-flag")
+    @config_option(**file_format_patterns)
+    def config_cli1(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    httpserver.expect_request("/settings").respond_with_data(
+        JSON_FILE, content_type="application/json"
+    )
+
+    result = invoke(
+        config_cli1,
+        "--config",
+        httpserver.url_for("/settings"),
+        color=False,
+    )
+    assert result.exit_code == exit_code
+    assert result.stdout == stdout
+    if exit_code:
+        assert "Error parsing file as TOML." in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("file_format_patterns", "expected"),
+    (
+        pytest.param(ConfigFormat.TOML, "TOML", id="single"),
+        pytest.param([ConfigFormat.TOML, ConfigFormat.JSON], "TOML or JSON", id="pair"),
+        pytest.param(
+            [ConfigFormat.TOML, ConfigFormat.JSON, ConfigFormat.INI],
+            "TOML, JSON or INI",
+            id="triple",
+        ),
+    ),
+)
+def test_unparsable_conf_message_enumerates_formats(
+    invoke,
+    create_config,
+    caplog,
+    file_format_patterns,
+    expected,
+):
+    """The "error parsing" message never dangles its conjunction."""
+    conf_path = create_config("configuration.toml", "This is not a TOML file.")
+
+    @click.command
+    @option("--dummy-flag/--no-flag")
+    @config_option(file_format_patterns=file_format_patterns)
+    def config_cli1(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    with caplog.at_level(logging.CRITICAL, logger="click_extra"):
+        result = invoke(config_cli1, "--config", str(conf_path), color=False)
+
+    assert result.exit_code == 2
+    assert f"Error parsing file as {expected}." in caplog.text
 
 
 def test_argfile_conf_file_overrides_defaults(

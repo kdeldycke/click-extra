@@ -97,6 +97,10 @@ class ConfigFormat(Enum):
     the availability of the required third-party packages. This evaluation is performed
     at runtime when this module is imported.
 
+    The third element is the human-readable label of the format, and the fourth
+    the media types a server may serve it as, as matched by
+    {func}`format_from_mime`.
+
     ```{caution}
     The order is important for both format members and file patterns. It defines the
     priority order in which formats are tried when multiple candidate files are found.
@@ -108,18 +112,28 @@ class ConfigFormat(Enum):
     ```
     """
 
-    TOML = (("*.toml",), True, "TOML")
-    YAML = (("*.yaml", "*.yml"), PARSER_SUPPORT["yaml"], "YAML")
-    JSON = (("*.json",), True, "JSON")
-    JSON5 = (("*.json5",), PARSER_SUPPORT["json5"], "JSON5")
-    JSONC = (("*.jsonc",), PARSER_SUPPORT["jsonc"], "JSONC")
-    HJSON = (("*.hjson",), PARSER_SUPPORT["hjson"], "Hjson")
-    INI = (("*.ini",), True, "INI")
-    XML = (("*.xml",), PARSER_SUPPORT["xml"], "XML")
-    PLIST = (("*.plist",), True, "plist")
-    SQLITE = (("*.sqlite", "*.sqlite3"), True, "SQLite")
-    ARGFILE = (("*.conf",), True, "Argfile")
-    PYPROJECT_TOML = (("pyproject.toml",), True, "pyproject.toml")
+    TOML = (("*.toml",), True, "TOML", ("application/toml", "text/x-toml"))
+    YAML = (
+        ("*.yaml", "*.yml"),
+        PARSER_SUPPORT["yaml"],
+        "YAML",
+        ("application/yaml", "text/yaml", "application/x-yaml", "text/x-yaml"),
+    )
+    JSON = (("*.json",), True, "JSON", ("application/json", "text/json"))
+    JSON5 = (("*.json5",), PARSER_SUPPORT["json5"], "JSON5", ("application/json5",))
+    JSONC = (("*.jsonc",), PARSER_SUPPORT["jsonc"], "JSONC", ("application/jsonc",))
+    HJSON = (("*.hjson",), PARSER_SUPPORT["hjson"], "Hjson", ("application/hjson",))
+    INI = (("*.ini",), True, "INI", ())
+    XML = (("*.xml",), PARSER_SUPPORT["xml"], "XML", ("application/xml", "text/xml"))
+    PLIST = (("*.plist",), True, "plist", ("application/x-plist",))
+    SQLITE = (
+        ("*.sqlite", "*.sqlite3"),
+        True,
+        "SQLite",
+        ("application/vnd.sqlite3", "application/x-sqlite3"),
+    )
+    ARGFILE = (("*.conf",), True, "Argfile", ())
+    PYPROJECT_TOML = (("pyproject.toml",), True, "pyproject.toml", ())
 
     def __str__(self) -> str:
         return self.label
@@ -138,6 +152,17 @@ class ConfigFormat(Enum):
     def patterns(self) -> tuple[str, ...]:
         """Returns the default file patterns associated to the format."""
         return self.value[0]  # type: ignore[no-any-return]
+
+    @property
+    def mime_types(self) -> tuple[str, ...]:
+        """Media types a server may advertise the format as.
+
+        Feeds {func}`format_from_mime`. Empty for a format no `Content-Type`
+        header designates: `INI` and `ARGFILE` are both served as `text/plain`,
+        which names no format, and `PYPROJECT_TOML` is keyed on a file name, so
+        no media type tells it apart from plain `TOML`.
+        """
+        return self.value[3]  # type: ignore[no-any-return]
 
 
 SQLITE_CONFIG_TABLE = "config"
@@ -318,6 +343,52 @@ def format_from_path(
     for fmt in candidates:
         if any(fnmatch(path.name, pattern) for pattern in fmt.patterns):
             return fmt
+    return None
+
+
+def format_from_mime(
+    mime_type: str,
+    formats: Iterable[ConfigFormat] | None = None,
+) -> ConfigFormat | None:
+    """Return the configuration format a media type designates.
+
+    The counterpart of {func}`format_from_path` for a configuration fetched over
+    HTTP, whose URL often carries no usable file extension: the `Content-Type`
+    header is then the only thing typing the payload. The media type is matched
+    against each format's {attr}`~ConfigFormat.mime_types`, so `application/toml`
+    resolves to `TOML` and `text/yaml` to `YAML`. `formats` restricts and orders
+    the candidates (the first match wins); it defaults to every
+    {class}`ConfigFormat`.
+
+    Parameters are stripped, so a raw `application/yaml; charset=utf-8` header
+    value can be passed as-is, and matching is case-insensitive.
+
+    ```{note}
+    A [RFC 6839](https://www.rfc-editor.org/rfc/rfc6839.html) structured syntax
+    suffix is honored, so the `application/vnd.acme.settings+json` a private API
+    answers with resolves to `JSON`. An exact match wins over a suffix.
+    ```
+
+    Returns `None` for a media type no format claims, which covers the generic
+    `text/plain` and `application/octet-stream` a server falls back to for an
+    extension it does not recognize.
+    """
+    media_type = mime_type.partition(";")[0].strip().lower()
+    if not media_type:
+        return None
+
+    lookups = [media_type]
+    suffix = media_type.rpartition("+")[2]
+    if suffix != media_type:
+        lookups.append(f"application/{suffix}")
+
+    # Materialize: `formats` may be a one-shot iterable, and the suffix lookup
+    # walks the candidates a second time.
+    candidates = tuple(ConfigFormat) if formats is None else tuple(formats)
+    for lookup in lookups:
+        for fmt in candidates:
+            if lookup in fmt.mime_types:
+                return fmt
     return None
 
 

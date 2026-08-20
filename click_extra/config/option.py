@@ -89,6 +89,7 @@ from .formats import (
     SQLITE_CONFIG_TABLE,
     ConfigFormat,
     disabled_format_message,
+    format_from_mime,
     format_from_path,
     parse_content,
     serialize_content,
@@ -189,6 +190,20 @@ NO_CONFIG = Sentinel.NO_CONFIG
 
 VCS = Sentinel.VCS
 """Sentinel used to stop parent directory walking at the nearest VCS root."""
+
+
+def _join_format_labels(formats: Iterable[ConfigFormat]) -> str:
+    """Enumerate format labels in the `A, B or C` form used by error messages.
+
+    A single format is returned bare: the generic
+    `", ".join(labels[:-1]) + " or " + labels[-1]` shape leaves a dangling
+    conjunction on a one-item list, which is what an option restricted to one
+    format always produces.
+    """
+    labels = [str(fmt) for fmt in formats]
+    if len(labels) < 2:
+        return "".join(labels)
+    return f"{', '.join(labels[:-1])} or {labels[-1]}"
 
 
 class ConfigOption(ExtraOption, ParamStructure):
@@ -847,15 +862,21 @@ class ConfigOption(ExtraOption, ParamStructure):
                 return
             yield str(parent), file_pattern
 
-    def search_and_read_file(self, pattern: str) -> Iterable[tuple[Path | URL, str]]:
+    def search_and_read_file(
+        self,
+        pattern: str,
+    ) -> Iterable[tuple[Path | URL, str, str | None]]:
         """Search filesystem or URL for files matching the `pattern`.
 
         If `pattern` is an URL, download its content. A pattern is considered an URL
         only if it validates as one and starts with `http://` or `https://`. All
         other patterns are considered glob patterns for local filesystem search.
 
-        Returns an iterator of the normalized location and its raw content, for each
-        one matching the pattern. Only files are returned, directories are silently
+        Returns an iterator of `(location, content, media_type)` triples, for each
+        one matching the pattern. `location` is normalized and `content` raw.
+        `media_type` is the bare `type/subtype` the server advertised in its
+        `Content-Type` header, and is `None` for a local file, whose format is
+        derived from its name. Only files are returned, directories are silently
         skipped.
 
         This method returns the raw content of all matching patterns, without trying to
@@ -865,13 +886,6 @@ class ConfigOption(ExtraOption, ParamStructure):
         `True`.
 
         Raises `FileNotFoundError` if no file was found after searching all locations.
-
-        ```{todo}
-        Guess the format of a downloaded configuration from the `Content-Type`
-        MIME type the server advertises, instead of deriving it from the URL's
-        file extension. The response headers are already parsed for their
-        charset, so the media type is one attribute away.
-        ```
         """
         files_found = 0
 
@@ -899,7 +913,11 @@ class ConfigOption(ExtraOption, ParamStructure):
                     # header, defaulting to UTF-8: the near-universal encoding
                     # for configuration files.
                     charset = response.headers.get_content_charset() or "utf-8"
-                    yield location, response.read().decode(charset)
+                    # The same header types the payload. A server sending no
+                    # Content-Type at all reads as `text/plain`, which no format
+                    # claims, so the URL's file name still decides.
+                    media_type = response.headers.get_content_type()
+                    yield location, response.read().decode(charset), media_type
             # A 4xx/5xx leaves files_found at 0, so the search falls through to
             # the FileNotFoundError below, like a missing local file. Lower-level
             # URLError failures (DNS, refused connection, TLS) still propagate.
@@ -942,9 +960,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                         # SQLite databases and binary plists are read from
                         # their path, not from a text payload: see
                         # load_sqlite_config() and load_plist_config().
-                        yield file_path, ""
+                        yield file_path, "", None
                     else:
-                        yield file_path, file_path.read_text(encoding="utf-8")
+                        yield file_path, file_path.read_text(encoding="utf-8"), None
 
         if not files_found:
             raise FileNotFoundError(f"No file found matching {pattern}")
@@ -1089,13 +1107,13 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         seen: set[str] = set()
 
-        for location, content in self.search_and_read_file(pattern):
+        for location, content, media_type in self.search_and_read_file(pattern):
             if str(location) in seen:
                 logger.debug(f"Skipping duplicate {location}.")
                 continue
             seen.add(str(location))
 
-            conf = self._parse_one_conf(location, content)
+            conf = self._parse_one_conf(location, content, media_type)
             if conf is None:
                 logger.debug(f"No parseable configuration in {location}.")
                 continue
@@ -1103,14 +1121,28 @@ class ConfigOption(ExtraOption, ParamStructure):
             yield location, conf
 
     def _parse_one_conf(
-        self, location: Path | URL, content: str
+        self,
+        location: Path | URL,
+        content: str,
+        media_type: str | None = None,
     ) -> dict[str, Any] | None:
         """Parse a single file's `content` into a configuration dict.
 
-        Matches the file name against `file_format_patterns` and tries each
-        matching format in order, returning the first non-empty parsed
-        structure. Returns `None` when the file matches no format or no
-        parse attempt produces a non-empty structure.
+        Candidate formats come from two sources, and are tried in order until
+        one returns a non-empty structure:
+
+        1. `media_type`, the `Content-Type` a server advertised for a downloaded
+           configuration. It leads, because a URL is free to carry no file
+           extension at all, or one that says nothing about the payload.
+        2. The file name, matched against `file_format_patterns`.
+
+        The two are layered rather than exclusive, so a server advertising a
+        generic or plain wrong type costs nothing: the name-derived formats are
+        still tried behind it. A media type never widens the format set either,
+        as it is resolved against `file_format_patterns` alone.
+
+        Returns `None` when the file matches no format or no parse attempt
+        produces a non-empty structure.
         """
         if isinstance(location, URL):
             filename = location.path_parts[-1]
@@ -1123,6 +1155,18 @@ class ConfigOption(ExtraOption, ParamStructure):
             for fmt, patterns in self.file_format_patterns.items()
             if fnmatch.fnmatch(filename, patterns, flags=self.file_pattern_flags)
         )
+
+        # Type a download from the media type its server advertised, and try
+        # that format first. Iterating the mapping yields the formats the option
+        # accepts, in their declared priority order.
+        if media_type:
+            mime_format = format_from_mime(media_type, self.file_format_patterns)
+            if mime_format:
+                logger.debug(f"{media_type} advertised by {location} is {mime_format}.")
+                matching_formats = (
+                    mime_format,
+                    *(fmt for fmt in matching_formats if fmt is not mime_format),
+                )
 
         # PYPROJECT_TOML is a specialization of TOML that unwraps [tool].
         # When both match, drop generic TOML so [tool] unwrapping takes effect.
@@ -1807,10 +1851,8 @@ class ConfigOption(ExtraOption, ParamStructure):
                     logger.debug(message)
         else:
             if not layers:
-                formats = list(map(str, self.file_format_patterns))
-                message = (
-                    f"Error parsing file as {', '.join(formats[:-1])} or {formats[-1]}."
-                )
+                formats = _join_format_labels(self.file_format_patterns)
+                message = f"Error parsing file as {formats}."
                 if explicit_conf:
                     logger.critical(message)
                     ctx.exit(2)
@@ -2016,10 +2058,8 @@ class ValidateConfigOption(ExtraOption):
             ctx.exit(2)
 
         if user_conf is None:
-            formats = list(map(str, config_option.file_format_patterns))
-            info_msg(
-                f"Error parsing {value} as {', '.join(formats[:-1])} or {formats[-1]}."
-            )
+            formats = _join_format_labels(config_option.file_format_patterns)
+            info_msg(f"Error parsing {value} as {formats}.")
             ctx.exit(2)
 
         # Delegate every check to the unified pipeline in collect-all mode so a
