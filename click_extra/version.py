@@ -89,6 +89,11 @@ def theme_slot(slot: str) -> IStyle:
     return apply
 
 
+def unstyled(text: str) -> str:
+    """Identity style, for a segment left with no color of its own."""
+    return text
+
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -1399,6 +1404,16 @@ class VersionOption(ExtraOption):
 
         return get_profile(scrub=True)
 
+    def field_style(self, field_id: str | None = None) -> IStyle:
+        """Style painting the *field_id* segment of a rendered message.
+
+        A field carrying no style of its own falls back to `message_style`, and one
+        left unset by the caller too renders bare. Call with no `field_id` for the
+        style of the template's literal segments, which is `message_style` alone.
+        """
+        style = self.styles.get(field_id) if field_id else None
+        return style or self.message_style or unstyled
+
     def colored_template(self, template: str | None = None) -> str:
         """Insert ANSI styles to a message template.
 
@@ -1413,22 +1428,7 @@ class VersionOption(ExtraOption):
         if template is None:
             template = self.message
 
-        # Normalize the default to a no-op Style() callable to simplify the code
-        # of the colorization step.
-        def noop(s: str) -> str:
-            return s
-
-        default_style = self.message_style if self.message_style else noop
-
-        # Associate each field with its own style.
-        field_styles = {}
-        for field_id in self.template_fields:
-            field_style = self.styles.get(field_id)
-            # If no style is defined for this field, use the default style of the
-            # message.
-            if not field_style:
-                field_style = default_style
-            field_styles[field_id] = field_style
+        default_style = self.field_style()
 
         # Split the template semantically between fields and literals.
         segments = tokenize_format_str(template, resolve_pos=False)
@@ -1459,9 +1459,9 @@ class VersionOption(ExtraOption):
 
             # Add the field to the template copy, colored with its own style.
             if is_field:
-                colored_template += field_styles[
+                colored_template += self.field_style(
                     segment.base_name  # type: ignore[union-attr]
-                ](str(segment))
+                )(str(segment))
 
         return colored_template
 
@@ -1513,23 +1513,38 @@ class VersionOption(ExtraOption):
     def print_debug_message(self) -> None:
         """Render in debug logs all template fields in color.
 
-        ```{todo}
-        Pretty print JSON output (easier to read in bug reports)?
-        ```
+        A field resolving to a nested structure is dumped as indented JSON under its
+        own label, instead of the single-line `repr` a template would produce for it.
+        Only `{env_info}` is built that way today, and it alone accounts for two
+        thirds of this listing: a thousand characters on one line is what a bug
+        report carries otherwise. Upstream reads its profile the same way, through
+        [`boltons.ecoutils.get_profile_json(indent=True)`](https://boltons.readthedocs.io/en/latest/ecoutils.html).
         """
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            all_fields = {
-                f"{{{{{field_id}}}}}": f"{{{field_id}}}"
-                for field_id in self.template_fields
-            }
-            max_len = max(map(len, all_fields))
-            raw_format = "\n".join(
-                f"{k:<{max_len}}: {v}" for k, v in all_fields.items()
-            )
-            msg = self.render_message(self.colored_template(raw_format))
-            logger.debug("Version string template variables:")
-            for line in msg.splitlines():
-                logger.debug(line)
+        if logger.getEffectiveLevel() != logging.DEBUG:
+            return
+
+        # Double the braces: the label renders as a literal `{field_id}`, naming the
+        # placeholder a template would write, rather than expanding it.
+        labels = {field_id: f"{{{{{field_id}}}}}" for field_id in self.template_fields}
+        max_len = max(map(len, labels.values()))
+
+        logger.debug("Version string template variables:")
+        for field_id, label in labels.items():
+            value = getattr(self, field_id)
+            if isinstance(value, (dict, list)):
+                logger.debug(
+                    self.render_message(self.colored_template(f"{label:<{max_len}}:"))
+                )
+                style = self.field_style(field_id)
+                dump = json.dumps(value, sort_keys=True, indent=2, default=str)
+                for line in dump.splitlines():
+                    logger.debug(style(f"  {line}"))
+            else:
+                logger.debug(
+                    self.render_message(
+                        self.colored_template(f"{label:<{max_len}}: {{{field_id}}}")
+                    )
+                )
 
     def print_and_exit(
         self,

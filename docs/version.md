@@ -695,6 +695,8 @@ result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
 assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.output
 ```
 
+A variable holding a nested structure is dumped as indented JSON under its own label, rather than the single line a template renders it as. Only `{env_info}` is built that way, and it is the one variable a thousand characters wide.
+
 ## Get metadata values
 
 You can get the uncolored, Python values used in the composition of the version message from the context:

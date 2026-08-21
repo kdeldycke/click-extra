@@ -41,6 +41,8 @@
 - Add `sort_subcommands` and `subcommand_priorities` to `@group`, listing subcommands in registration order or by float priority instead of alphabetically. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
 - Add a `sort_subcommands` context setting, inherited by every subgroup below the group declaring it.
 - Add `LazySubcommand`, declaring a lazy subcommand's Cloup `section` and `fallback_to_default_section` beside its import path.
+- Dump `{env_info}` as indented JSON in `DEBUG` logs, instead of the single thousand-character line a bug report had to carry.
+- Add `VersionOption.field_style()`, resolving the style painting a given template field.
 - Add an `option_priorities` argument to `@command` and `@group`, reordering the help screen without moving the order option callbacks run in. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
 - Add `iter_params_for_display()` to `click_extra.parameters`, yielding a command's parameters in the order its help screen lists them.
 - Add `parse_envvar_flag()` to `click_extra.envvar`, the one permissive boolean reading shared by the color, `--accessible` and `--telemetry` environment flags.

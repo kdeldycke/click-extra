@@ -491,7 +491,9 @@ default_debug_uncolored_version_details = (
     r"debug: {git_distance}   : (?:\d+|None)\n"
     r"debug: {git_dirty}      : (?:dirty|clean|None)\n"
     r"debug: {prog_name}      : \S+\n"
-    r"debug: {env_info}       : {.*}\n"
+    r"debug: {env_info}       :\n"
+    # The nested profile is dumped as indented JSON, one log line per JSON line.
+    r"(?:debug:   .+\n)+"
 )
 default_debug_colored_version_details = (
     r"\x1b\[34mdebug\x1b\[0m: Version string template variables:\n"
@@ -515,7 +517,8 @@ default_debug_colored_version_details = (
     r"\x1b\[34mdebug\x1b\[0m: {git_distance}   : \x1b\[32m(?:\d+|None)\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {git_dirty}      : \x1b\[31m(?:dirty|clean|None)\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {prog_name}      : \x1b\[97m\S+\x1b\[0m\n"
-    r"\x1b\[34mdebug\x1b\[0m: {env_info}       : \x1b\[90m{.*}\x1b\[0m\n"
+    r"\x1b\[34mdebug\x1b\[0m: {env_info}       :\n"
+    r"(?:\x1b\[34mdebug\x1b\[0m: \x1b\[90m  .+\x1b\[0m\n)+"
 )
 
 
