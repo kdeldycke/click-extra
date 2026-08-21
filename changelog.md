@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.0.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.0.0` (2026-08-21)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
 
 - **Breaking:** `--man` now typesets the manual and pages it, the way `man` does, instead of printing roff to stdout; the source moved to `--help-format man`.
