@@ -25,6 +25,7 @@ from __future__ import annotations
 import importlib
 import logging
 import os
+from dataclasses import dataclass
 from difflib import get_close_matches
 from gettext import gettext as _
 
@@ -1308,6 +1309,37 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         return raw
 
 
+@dataclass(frozen=True)
+class LazySubcommand:
+    """Declaration of a lazily-imported subcommand of a {class}`LazyGroup`.
+
+    Carries the registration settings {meth}`cloup.Group.add_command` accepts, which
+    a bare import path cannot express. A subcommand needing none of them is declared
+    as a plain string instead.
+    """
+
+    import_path: str
+    """Where to import the command object from, as `"<module-name>.<command-name>"`."""
+
+    section: cloup.Section | None = None
+    """Help-screen section the subcommand is filed under, once imported.
+
+    A section declared here is registered on the group right away, so the help screen
+    orders its sections as they are declared, not as their subcommands happen to be
+    imported. The same `Section` instance can be shared with eagerly-registered
+    subcommands.
+    """
+
+    fallback_to_default_section: bool = True
+    """Whether to file the subcommand under the default section when {attr}`section`
+    is `None`.
+
+    Set to `False` to leave the subcommand out of every section, which hides it from
+    the help screen while keeping it invocable. Cloup calls this an escape hatch for
+    internal code: do not disable it unless you know what you are doing.
+    """
+
+
 class LazyGroup(Group):
     """A `Group` that supports lazy loading of subcommands.
 
@@ -1323,7 +1355,7 @@ class LazyGroup(Group):
     def __init__(
         self,
         *args: Any,
-        lazy_subcommands: dict[str, str] | None = None,
+        lazy_subcommands: Mapping[str, str | LazySubcommand] | None = None,
         **kwargs: Any,
     ) -> None:
         """`lazy_subcommands` maps command names to their import paths.
@@ -1341,9 +1373,30 @@ class LazyGroup(Group):
 
             {"mycmd": "my_cli.commands.mycmd"}
         ```
+
+        A subcommand needing registration settings on top of its import path is
+        declared with a {class}`LazySubcommand` instead of a bare string:
+
+        .. code-block:: python
+
+            {"mycmd": LazySubcommand("my_cli.commands.mycmd", section=my_section)}
+
+        Every section declared that way is registered on the group here, so the help
+        screen orders its sections as the author declared them. Waiting for each
+        subcommand to be imported would instead order them by import, which is
+        alphabetical and says nothing about intent.
         """
         super().__init__(*args, **kwargs)
-        self.lazy_subcommands: dict[str, str] = dict(lazy_subcommands or {})
+        self.lazy_subcommands: dict[str, LazySubcommand] = {
+            name: LazySubcommand(spec) if isinstance(spec, str) else spec
+            for name, spec in (lazy_subcommands or {}).items()
+        }
+
+        for spec in self.lazy_subcommands.values():
+            # Sections passed to the constructor are already registered, and Cloup
+            # refuses the same instance twice.
+            if spec.section is not None and spec.section not in self._section_set:
+                self.add_section(spec.section)
 
     def _registered_subcommands(self, ctx: click.Context) -> list[str]:
         """Like the parent, but folding in the not-yet-imported subcommands.
@@ -1362,32 +1415,34 @@ class LazyGroup(Group):
         return eager + list(self.lazy_subcommands)
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
-        """Get a command by name, loading lazily if necessary.
-
-        ```{todo}
-        Allow passing extra parameters to the `self.lazy_subcommands` so we can
-        register commands with custom settings like Cloup's `section` or
-        `fallback_to_default_section`:
-
-        - section: Section | None = None,
-        - fallback_to_default_section: bool = True,
-
-        See: https://github.com/janluke/cloup/blob/master/cloup/_sections.py#L169
-        ```
-        """
+        """Get a command by name, loading lazily if necessary."""
         if cmd_name in self.lazy_subcommands and cmd_name not in self.commands:
-            cmd_object = self._lazy_load(cmd_name)
-            # Register with Click's API so help and Cloup sections work properly.
-            self.add_command(cmd_object)
+            self._register_lazy(cmd_name)
             # Inject the lazy command's config section into the context's
             # default_map, since it was missed by ConfigOption.merge_default_map.
             self._apply_config_to_parent_context(ctx, cmd_name)
 
         return super().get_command(ctx, cmd_name)
 
+    def _register_lazy(self, cmd_name: str) -> click.Command:
+        """Import `cmd_name` and register it with the settings it was declared with.
+
+        The single place a lazy subcommand enters the group, so a settings-carrying
+        {class}`LazySubcommand` reaches Cloup whichever route triggered the import.
+        """
+        spec = self.lazy_subcommands[cmd_name]
+        cmd_object = self._lazy_load(cmd_name)
+        # Register with Click's API so help and Cloup sections work properly.
+        self.add_command(
+            cmd_object,
+            section=spec.section,
+            fallback_to_default_section=spec.fallback_to_default_section,
+        )
+        return cmd_object
+
     def _lazy_load(self, cmd_name: str) -> click.Command:
         """Import and return the command object for `cmd_name`."""
-        import_path = self.lazy_subcommands[cmd_name]
+        import_path = self.lazy_subcommands[cmd_name].import_path
 
         if "." not in import_path:
             raise ValueError(

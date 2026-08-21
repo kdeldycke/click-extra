@@ -401,18 +401,18 @@ class MulticallGroup(Group):
         """Resolve *name* to a command object, importing lazy ones on the way.
 
         Personality dispatch runs ahead of any context, so lazy groups cannot
-        be resolved through `get_command()`: their import path is used
-        directly, the way {class}`~click_extra.commands.LazyGroup` does.
+        be resolved through `get_command()`. Registration is delegated to
+        {meth}`~click_extra.commands.LazyGroup._register_lazy` instead, so the
+        subcommand lands in the section it was declared with.
         """
         sub = self.commands.get(name)
-        lazy_load = getattr(self, "_lazy_load", None)
+        register_lazy = getattr(self, "_register_lazy", None)
         if (
             sub is None
-            and lazy_load is not None
+            and register_lazy is not None
             and name in getattr(self, "lazy_subcommands", {})
         ):
-            sub = lazy_load(name)
-            self.add_command(sub)
+            sub = register_lazy(name)
         return sub
 
 

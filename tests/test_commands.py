@@ -33,6 +33,7 @@ import click_extra
 from click_extra import (
     HelpCommand,
     LazyGroup,
+    LazySubcommand,
     VersionOption,
     argument,
     command,
@@ -1017,6 +1018,221 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator, lazy_group_decorator):
 
     finally:
         sys.path.remove(str(tmp_path))
+
+
+def write_produce_modules(tmp_path):
+    """Write the command modules the sectioned lazy-group tests import."""
+    (tmp_path / "apple_cmd.py").write_text(
+        dedent(
+            """
+            from click_extra import command, echo
+
+
+            @command
+            def apple_cli():
+                "Count the apples."
+                echo("apples = 3")
+            """
+        )
+    )
+
+    (tmp_path / "banana_cmd.py").write_text(
+        dedent(
+            """
+            from click_extra import command, echo
+
+
+            @command
+            def banana_cli():
+                "Count the bananas."
+                echo("bananas = 5")
+            """
+        )
+    )
+
+    (tmp_path / "carrot_cmd.py").write_text(
+        dedent(
+            """
+            from click_extra import command, echo
+
+
+            @command
+            def carrot_cli():
+                "Count the carrots."
+                echo("carrots = 7")
+            """
+        )
+    )
+
+
+def test_lazy_group_sections(invoke, tmp_path):
+    """A `LazySubcommand` files its command under the section it declares."""
+    write_produce_modules(tmp_path)
+
+    fruits = cloup.Section("Fruits")
+    vegetables = cloup.Section("Vegetables")
+
+    # Sections are declared out of alphabetical order, and interleaved, to prove the
+    # help screen follows declaration order instead of import order.
+    @click.group(
+        cls=LazyGroup,
+        lazy_subcommands={
+            "carrot": LazySubcommand("carrot_cmd.carrot_cli", section=vegetables),
+            "apple": LazySubcommand("apple_cmd.apple_cli", section=fruits),
+            "banana": LazySubcommand("banana_cmd.banana_cli", section=fruits),
+        },
+        help="Count the produce.",
+    )
+    def basket():
+        pass
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        result = invoke(basket, "--help", color=False)
+        assert result.stdout == dedent(
+            """\
+            Usage: basket [OPTIONS] COMMAND [ARGS]...
+
+              Count the produce.
+
+            Options:
+              -h, --help  Show this message and exit.
+
+            Vegetables:
+              carrot  Count the carrots.
+
+            Fruits:
+              apple   Count the apples.
+              banana  Count the bananas.
+
+            Other commands:
+              help    Show help for a command.
+            """
+        )
+        assert not result.stderr
+        assert result.exit_code == 0
+
+        # A sectioned subcommand is still invocable.
+        result = invoke(basket, "banana", color=False)
+        assert result.stdout == "bananas = 5\n"
+        assert not result.stderr
+        assert result.exit_code == 0
+
+    finally:
+        sys.path.remove(str(tmp_path))
+
+
+def test_lazy_group_section_shared_with_eager_subcommand(invoke, tmp_path):
+    """A `Section` can hold both eagerly and lazily registered subcommands."""
+    write_produce_modules(tmp_path)
+
+    @click_extra.command
+    def cherry():
+        """Count the cherries."""
+        echo("cherries = 11")
+
+    fruits = cloup.Section("Fruits", [cherry])
+
+    @click.group(
+        cls=LazyGroup,
+        sections=[fruits],
+        lazy_subcommands={"apple": LazySubcommand("apple_cmd.apple_cli", fruits)},
+        help="Count the produce.",
+    )
+    def basket():
+        pass
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        result = invoke(basket, "--help", color=False)
+        assert result.stdout == dedent(
+            """\
+            Usage: basket [OPTIONS] COMMAND [ARGS]...
+
+              Count the produce.
+
+            Options:
+              -h, --help  Show this message and exit.
+
+            Fruits:
+              cherry  Count the cherries.
+              apple   Count the apples.
+
+            Other commands:
+              help    Show help for a command.
+            """
+        )
+        assert not result.stderr
+        assert result.exit_code == 0
+
+    finally:
+        sys.path.remove(str(tmp_path))
+
+
+def test_lazy_group_no_default_section(invoke, tmp_path):
+    """`fallback_to_default_section=False` hides a subcommand but keeps it invocable."""
+    write_produce_modules(tmp_path)
+
+    @click.group(
+        cls=LazyGroup,
+        lazy_subcommands={
+            "apple": "apple_cmd.apple_cli",
+            "carrot": LazySubcommand(
+                "carrot_cmd.carrot_cli",
+                fallback_to_default_section=False,
+            ),
+        },
+        help="Count the produce.",
+    )
+    def basket():
+        pass
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        result = invoke(basket, "--help", color=False)
+        assert result.stdout == dedent(
+            """\
+            Usage: basket [OPTIONS] COMMAND [ARGS]...
+
+              Count the produce.
+
+            Options:
+              -h, --help  Show this message and exit.
+
+            Commands:
+              apple  Count the apples.
+              help   Show help for a command.
+            """
+        )
+        assert not result.stderr
+        assert result.exit_code == 0
+
+        result = invoke(basket, "carrot", color=False)
+        assert result.stdout == "carrots = 7\n"
+        assert not result.stderr
+        assert result.exit_code == 0
+
+    finally:
+        sys.path.remove(str(tmp_path))
+
+
+def test_lazy_subcommand_normalizes_bare_import_paths(tmp_path):
+    """A bare import path is normalized into a `LazySubcommand`."""
+
+    @click.group(
+        cls=LazyGroup,
+        lazy_subcommands={"apple": "apple_cmd.apple_cli"},
+    )
+    def basket():
+        pass
+
+    assert basket.lazy_subcommands == {
+        "apple": LazySubcommand(
+            "apple_cmd.apple_cli",
+            section=None,
+            fallback_to_default_section=True,
+        ),
+    }
 
 
 def test_decorator_overrides():

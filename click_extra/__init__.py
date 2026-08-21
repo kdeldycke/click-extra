@@ -102,6 +102,7 @@ from .commands import (
     Group,
     HelpCommand,
     LazyGroup,
+    LazySubcommand,
 )
 from .config import (
     CONFIG_PATH_METADATA_KEY,
@@ -356,6 +357,7 @@ __all__ = [
     "IntRange",
     "JobsOption",
     "LazyGroup",
+    "LazySubcommand",
     "LogLevel",
     "ManOption",
     "MissingParameter",

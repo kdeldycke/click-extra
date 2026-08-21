@@ -11,6 +11,7 @@
 - **Breaking:** Rename `ManPage` to `CommandDoc`, `ManOptionItem` to `DocOptionItem`, `ManOptionGroup` to `DocOptionGroup` and `extract_manpage()` to `extract_command_doc()`.
 - **Breaking:** Remove every deprecated alias scheduled for removal in `9.0.0`: the `click_extra.test_plan` module, the root-level test-plan and config-schema names, and the invocation and pre-baking helpers' old homes.
 - **Breaking:** `ConfigOption.search_and_read_file()` yields `(location, content, media_type)` triples instead of `(location, content)` pairs.
+- **Breaking:** `LazyGroup.lazy_subcommands` holds `LazySubcommand` instances instead of import-path strings; the constructor still accepts either.
 - **Deprecated:** Rename the `color_envvars` and `nocolor_theme` constants to `COLOR_ENVVARS` and `NOCOLOR_THEME`, following the uppercase convention; the old names resolve until `10.0.0`.
 - **Deprecated:** Move the generic `patch_attr()`, `generator_tag()` and `missing_extra_message()` helpers from `click_extra.parameters` to the new `click_extra._utils` module; the old homes resolve until `10.0.0`.
 - Add a `click-extra screenshot` subcommand capturing any CLI's colored output and rendering it as an SVG image or an HTML document, picked from the `--output` extension.
@@ -39,6 +40,7 @@
 - Give an emoji-presentation glyph a column of its own where a terminal paints it wider than it advances, so a table cell reads `⁉️ unstable` instead of `⁉️unstable` with its space painted over.
 - Add `sort_subcommands` and `subcommand_priorities` to `@group`, listing subcommands in registration order or by float priority instead of alphabetically. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
 - Add a `sort_subcommands` context setting, inherited by every subgroup below the group declaring it.
+- Add `LazySubcommand`, declaring a lazy subcommand's Cloup `section` and `fallback_to_default_section` beside its import path.
 - Add an `option_priorities` argument to `@command` and `@group`, reordering the help screen without moving the order option callbacks run in. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
 - Add `iter_params_for_display()` to `click_extra.parameters`, yielding a command's parameters in the order its help screen lists them.
 - Add `parse_envvar_flag()` to `click_extra.envvar`, the one permissive boolean reading shared by the color, `--accessible` and `--telemetry` environment flags.

@@ -772,6 +772,121 @@ Click Extra provides a `LazyGroup` class and `@lazy_group` decorator to create c
 
 This implementation is based on the one provided in Click's documentation, so refer to the [*Lazily loading subcommands*](https://click.palletsprojects.com/en/stable/complex/#defining-the-lazy-group) section for more details.
 
+Each entry of `lazy_subcommands` maps a subcommand name to the import path of its command object, written as `"<module-name>.<command-object-name>"`:
+
+```{click:source}
+:hide-source:
+import sys
+from types import ModuleType
+
+from click_extra import command, echo
+
+# Stands in for a module the project would ship on disk.
+produce_module = ModuleType("produce")
+
+@command
+def apple_cli():
+    """Count the apples."""
+    echo("apples = 3")
+
+@command
+def banana_cli():
+    """Count the bananas."""
+    echo("bananas = 5")
+
+@command
+def carrot_cli():
+    """Count the carrots."""
+    echo("carrots = 7")
+
+produce_module.apple_cli = apple_cli
+produce_module.banana_cli = banana_cli
+produce_module.carrot_cli = carrot_cli
+sys.modules["produce"] = produce_module
+```
+
+```{click:source}
+from click_extra import lazy_group
+
+@lazy_group(lazy_subcommands={
+    "apple": "produce.apple_cli",
+    "banana": "produce.banana_cli",
+    "carrot": "produce.carrot_cli",
+})
+def basket():
+    """Count the produce."""
+```
+
+Invoking `apple` imports the module holding it, and leaves the other subcommands alone:
+
+```{click:run}
+result = invoke(basket, args=["apple"])
+assert result.exit_code == 0
+assert result.stdout == "apples = 3\n"
+```
+
+### Registration settings
+
+A bare import path registers its subcommand with Cloup's defaults, which files it under the default help section. Wrap the path in a `LazySubcommand` to carry the settings [`Group.add_command()`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/index.html#cloup.Group.add_command) accepts:
+
+```{click:source}
+from click_extra import LazySubcommand, Section, lazy_group
+
+fruits = Section("Fruits")
+vegetables = Section("Vegetables")
+
+@lazy_group(lazy_subcommands={
+    "carrot": LazySubcommand("produce.carrot_cli", section=vegetables),
+    "apple": LazySubcommand("produce.apple_cli", section=fruits),
+    "banana": LazySubcommand("produce.banana_cli", section=fruits),
+})
+def sectioned_basket():
+    """Count the produce."""
+```
+
+Sections show up in the order they are declared, not in the order their subcommands happen to be imported. `LazyGroup` registers every section as soon as it reads the declaration, so the ordering holds whatever a run imports:
+
+```{click:run}
+result = invoke(sectioned_basket, args=["--help"])
+assert result.exit_code == 0
+listing = result.stdout
+assert listing.index("Vegetables:") < listing.index("Fruits:")
+assert listing.index("carrot") < listing.index("apple") < listing.index("banana")
+```
+
+Set `fallback_to_default_section=False` to keep a subcommand out of every section. It disappears from the help screen, and stays invocable:
+
+```{click:source}
+from click_extra import LazySubcommand, lazy_group
+
+@lazy_group(lazy_subcommands={
+    "apple": "produce.apple_cli",
+    "carrot": LazySubcommand(
+        "produce.carrot_cli", fallback_to_default_section=False
+    ),
+})
+def stealth_basket():
+    """Count the produce."""
+```
+
+```{click:run}
+result = invoke(stealth_basket, args=["--help"])
+assert result.exit_code == 0
+assert "apple" in result.stdout
+assert "carrot" not in result.stdout
+```
+
+```{click:run}
+result = invoke(stealth_basket, args=["carrot"])
+assert result.exit_code == 0
+assert result.stdout == "carrots = 7\n"
+```
+
+```{admonition} Lazy loading and the help screen
+:class: note
+A help screen prints the short help of every subcommand, so `--help` imports them all. Lazy loading pays off on a plain `mycli apple`, which imports the one module carrying `apple`.
+```
+
 ## Third-party commands composition
 
 Click Extra is capable of composing with existing Click CLI in various situation.
