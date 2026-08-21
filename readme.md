@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/kdeldycke/click-extra/">
-    <img src="https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/logo-banner.svg" alt="Click Extra">
+    <img src="https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/logo-banner.svg" alt="Click Extra">
   </a>
 </p>
 
@@ -43,11 +43,11 @@ This is a great way to play with Click Extra and check that it runs fine on your
 
 It transforms this vanilla `click` CLI:
 
-![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/hello-click-screen.svg)
+![click CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/hello-click-screen.svg)
 
 Into this:
 
-![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/hello-click-extra-screen.svg)
+![click-extra CLI help screen](https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/hello-click-extra-screen.svg)
 
 And here is the entire diff between the two. Click Extra proxies the whole `click` namespace, so aliasing it back leaves every decorator and call untouched:
 
@@ -64,7 +64,7 @@ The colors, and every option below `--name`, come from that one line. Both scree
 
 - [Colorized help screens](https://kdeldycke.github.io/click-extra/colorize.html): options, choices, metavars, arguments, defaults, ranges, required labels, environment variables, subcommands and aliases all get distinct styles. Option names referenced in descriptions and docstrings are [highlighted automatically](https://kdeldycke.github.io/click-extra/colorize.html#cross-reference-highlighting)
 - [Theme system](https://kdeldycke.github.io/click-extra/theme.html) with seven built-in themes ([`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized_dark`, and a monochrome `manpage`](https://kdeldycke.github.io/click-extra/theme.html#built-in-themes)), here recoloring the same help screen:
-  ![The same help screen under the dark and dracula themes](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/theme-gallery-screen.svg)
+  ![The same help screen under the dark and dracula themes](https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/theme-gallery-screen.svg)
 - [User-defined themes and partial overrides loaded from the CLI's `--config` file](https://kdeldycke.github.io/click-extra/theme.html#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`), scoped per invocation so concurrent runs don't bleed into each other
 - [`--theme` flag](https://kdeldycke.github.io/click-extra/theme.html#the-theme-option) on every command, with case-insensitive validation against the live registry
 - [`CLICK_EXTRA_THEME`](https://kdeldycke.github.io/click-extra/theme.html#environment-variables) exported once from a shell profile themes every Click Extra CLI on the machine, with a per-CLI `<CLI>_THEME` taking precedence over it
@@ -83,7 +83,7 @@ Listed in the order they show up in a `--help` screen:
 - [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between 40+ table-rendering styles, from terminal grids to machine-readable `json`, `yaml`, `toml`, `csv` and `xml` (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
 - [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping
 - [`--tree`](https://kdeldycke.github.io/click-extra/tree.html) to print the whole hierarchy of nested subcommands with their descriptions, aliases and deprecations:
-  ![Nested subcommands printed as a tree](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/command-tree-screen.svg)
+  ![Nested subcommands printed as a tree](https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/command-tree-screen.svg)
 - [`--man`](https://kdeldycke.github.io/click-extra/man-page.html#reading-a-manual) to typeset the command's manual and page it, the way `man` does, for a CLI that ships no man page at all
 - [`--help-format`](https://kdeldycke.github.io/click-extra/machine-readable.html) to render the command as JSON, Markdown, a man page or a [Carapace](https://carapace.sh) spec, for the readers that are programs rather than people: one option carrying a format, not one flag per format
 - [Colored `--version`](https://kdeldycke.github.io/click-extra/version.html) with [template variables](https://kdeldycke.github.io/click-extra/version.html#variables) for git metadata (branch, hash, date, tag) and [pre-baking](https://kdeldycke.github.io/click-extra/version.html#pre-baking-git-metadata) for compiled binaries (Nuitka, PyInstaller)
@@ -102,13 +102,13 @@ And every CLI gets these on top:
 ### CLI wrapper
 
 - [CLI wrapper](https://kdeldycke.github.io/click-extra/wrap.html) (`click-extra wrap`) applies help colorization, themes, and config loading to any Click CLI without modifying its source code:
-  ![Flask's help screen rendered through the wrapper](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-flask-help-screen.svg)
+  ![Flask's help screen rendered through the wrapper](https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/wrap-flask-help-screen.svg)
 - [`--params` mode](https://kdeldycke.github.io/click-extra/wrap.html#introspecting-external-clis) to introspect any external Click CLI's parameters, restricted to the columns you care about:
-  ![Flask's parameters listed by the wrapper](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-flask-params-screen.svg)
+  ![Flask's parameters listed by the wrapper](https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/wrap-flask-params-screen.svg)
 - That same inventory in any [machine-readable format](https://kdeldycke.github.io/click-extra/machine-readable.html#any-click-cli), for a script that has to consume another CLI's interface:
-  ![Flask's parameters exported as JSON](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-flask-json-screen.svg)
+  ![Flask's parameters exported as JSON](https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/wrap-flask-json-screen.svg)
 - [`--help-format carapace`](https://kdeldycke.github.io/click-extra/carapace.html#the-wrap-help-format-carapace-mode) to export any Click CLI's [Carapace](https://carapace.sh) completion spec, for identical completions in Bash, Zsh, Fish, Nushell, PowerShell, Elvish and Xonsh, with `--install` putting it where Carapace looks (and `--help-format man --install` doing the same for a man page):
-  ![A Carapace completion spec generated from Flask](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/wrap-carapace-screen.svg)
+  ![A Carapace completion spec generated from Flask](https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/wrap-carapace-screen.svg)
 - [`--man` mode](https://kdeldycke.github.io/click-extra/man-page.html#reading-a-manual) to read the manual of a CLI that never wrote one
 - [`--help-format` mode](https://kdeldycke.github.io/click-extra/machine-readable.html#any-click-cli) to describe any Click CLI as JSON, Markdown, a man page or a Carapace spec: usage line, option groups, subcommands and all, with no cooperation from the target
 - [`--tree` mode](https://kdeldycke.github.io/click-extra/tree.html#foreign-clis) to print any external Click CLI's subcommand hierarchy without running it
@@ -146,7 +146,7 @@ And every CLI gets these on top:
 ### Documentation tooling
 
 - [`click-extra screenshot`](https://kdeldycke.github.io/click-extra/screenshots.html) captures any CLI's colored output as an SVG image or a self-contained HTML block, and the window it is drawn in is yours to set: [terminal preset](https://kdeldycke.github.io/click-extra/screenshots.html#terminal-presets), [light or dark chrome](https://kdeldycke.github.io/click-extra/screenshots.html#light-and-dark-chrome), gradient backdrop, caption, line numbers, transparency, credit line, border, shadow, corner radius and margins. Every capture in this readme is one, rewritten on each documentation build, and a pair of them can be [switched on the reader's own color scheme](https://kdeldycke.github.io/click-extra/screenshots.html#github-integration):
-  ![A CLI help screen captioned, numbered and left see-through on a gradient backdrop](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/styled-window-screen.svg)
+  ![A CLI help screen captioned, numbered and left see-through on a gradient backdrop](https://raw.githubusercontent.com/kdeldycke/click-extra/v9.0.0/docs/assets/styled-window-screen.svg)
 - [`click:source` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html#click-directives) in MyST Markdown and reStructuredText to document CLI source code and their execution
 - [`python:source`, `python:run`, `python:render`, `python:render-myst`, `python:render-rst`](https://kdeldycke.github.io/click-extra/sphinx.html#python-directives) — the same machinery for arbitrary Python, with a `render*` family that parses the captured output as live document content (replaces the `docs_update.py` + marker-region pattern)
 - [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation: every `click:run` block runs at build time and assertions fail the build

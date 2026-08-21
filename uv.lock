@@ -286,7 +286,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "9.0.0.dev0"
+version = "9.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
