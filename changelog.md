@@ -137,6 +137,7 @@
 - Replace the star-history.com embed on the benchmark page, broken by GitHub's 2026 stargazer restriction, with a star history chart sampled weekly into the repository by `repomatic sample-metrics`.
 - Fix the source line a Sphinx warning reports when raised inside a block a `click:*` or `python:*` directive generates: it now points at the directive's body in both reST and MyST.
 - Document `CliRunner`, the Pytest fixtures and helpers, and the parameter tree behind `--params`, replacing four placeholder sections.
+- Escape quotes in an OSC 8 hyperlink's URL when `AnsiHtmlFormatter` renders it, so a quote in the URL can no longer break out of the `href` attribute.
 
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 

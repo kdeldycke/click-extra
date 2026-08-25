@@ -632,8 +632,8 @@ _LINK_CLOSE = "\ue002"
 _LINK_MARKER_RE = re.compile(f"{_LINK_OPEN}([^{_LINK_SEP}]*){_LINK_SEP}")
 """Regex matching link-open markers in post-processed HTML.
 
-Captures the HTML-escaped URL between `_LINK_OPEN` and `_LINK_SEP` for replacement
-with an `<a href="...">` tag.
+Captures the URL between `_LINK_OPEN` and `_LINK_SEP`, for replacement with an
+`<a href="...">` tag by `AnsiHtmlFormatter._link_marker_to_anchor`.
 """
 
 _RGB_FG_OPEN = "\ue010"
@@ -706,11 +706,25 @@ class AnsiHtmlFormatter(HtmlFormatter):
             buffer,
         )
         html = buffer.getvalue()
-        html = _LINK_MARKER_RE.sub(lambda m: f'<a href="{m.group(1)}">', html)
+        html = _LINK_MARKER_RE.sub(self._link_marker_to_anchor, html)
         html = html.replace(_LINK_CLOSE, "</a>")
         html = _RGB_MARKER_RE.sub(self._rgb_marker_to_span, html)
         html = html.replace(_RGB_CLOSE, "</span>")
         outfile.write(html)
+
+    @staticmethod
+    def _link_marker_to_anchor(match: re.Match) -> str:
+        """Replace a link-open marker with an `<a>` tag pointing to the captured URL.
+
+        Pygments escapes `&`, `<` and `>` in token text. It stopped escaping quotes in
+        2.21.0, where `escape_html()` gave way to `html.escape(value, quote=False)`.
+        Quotes are escaped here, at the point the URL enters an attribute value: a bare
+        `"` closes `href` and lets the rest of the URL through as markup. The entities
+        are the ones older Pygments produced, so the rendered link is the same on both
+        sides of that release.
+        """
+        url = match.group(1).replace('"', "&quot;").replace("'", "&#39;")
+        return f'<a href="{url}">'
 
     @staticmethod
     def _rgb_marker_to_span(match: re.Match) -> str:

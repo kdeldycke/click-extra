@@ -1252,6 +1252,24 @@ def test_formatter_osc8_unsafe_scheme_no_link():
     assert "click" in result
 
 
+def test_formatter_osc8_quotes_escaped_in_href():
+    """Quotes in a hyperlink URL cannot break out of the href attribute.
+
+    Pygments stopped escaping quotes in token text in 2.21.0, so the formatter
+    escapes them itself, and emits the same entities on both sides of that release.
+    Ampersands are left to Pygments, and are escaped once.
+    """
+    formatter = AnsiHtmlFormatter(nowrap=True)
+    url = "https://example.com/fruits?sort=\"name\"&limit='5'"
+    text = f"\x1b]8;;{url}\x07bananas\x1b]8;;\x07"
+    result = highlight(text, AnsiColorLexer(), formatter)
+    assert (
+        '<a href="https://example.com/fruits?sort=&quot;name&quot;'
+        '&amp;limit=&#39;5&#39;">'
+    ) in result
+    assert 'sort="name"' not in result
+
+
 # --- Real-world ANSI patterns ---
 #
 # Test cases inspired by:
