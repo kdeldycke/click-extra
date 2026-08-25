@@ -40,7 +40,13 @@ from click_extra.sphinx.click import (
     program_from_command_line,
 )
 
-from .conftest import HTML, DirectiveTestCase, FormatType, format_params
+from .conftest import (
+    HTML,
+    DirectiveTestCase,
+    FormatType,
+    format_params,
+    unescape_quotes,
+)
 
 # Test case definitions
 BASIC_DIRECTIVES_TEST_CASE = DirectiveTestCase(
@@ -493,7 +499,7 @@ def test_directive_functionality(sphinx_app_for_format, test_case):
 
     # Assert all expected fragments are present.
     for fragment in test_case.html_matches:
-        assert fragment in html_output
+        assert unescape_quotes(fragment) in unescape_quotes(html_output)
 
 
 def test_directive_option_format(sphinx_app_rst):
@@ -558,12 +564,13 @@ def test_directive_option_language_override(sphinx_app):
 
     html_output = sphinx_app.build_document(content)
 
-    assert (
+    expected = (
         HTML["sql_highlight"]
         + '<span class="err">$</span><span class="w"> </span><span class="k">sql</span><span class="o">-</span><span class="k">output</span><span class="w"> </span><span class="c1">--name Joe</span>\n'
         + '<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Joe&#39;</span><span class="p">;</span>\n'
         + "</pre></div>\n"
-    ) in html_output
+    )
+    assert unescape_quotes(expected) in unescape_quotes(html_output)
 
 
 def test_sphinx_directive_state_persistence(sphinx_app):

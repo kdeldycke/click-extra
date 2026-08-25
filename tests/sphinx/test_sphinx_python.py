@@ -40,7 +40,7 @@ from click_extra.sphinx.python import (
     update_mirror_blocks,
 )
 
-from .conftest import FormatType, SphinxAppWrapper
+from .conftest import FormatType, SphinxAppWrapper, unescape_quotes
 
 
 def test_python_run_renders_stdout(sphinx_app_myst):
@@ -85,8 +85,8 @@ def test_python_run_language_override(sphinx_app_myst):
     html = sphinx_app_myst.build_document(content)
     assert html is not None
     assert 'class="highlight-json' in html
-    assert "&quot;name&quot;" in html
-    assert "&quot;sphinx&quot;" in html
+    assert '"name"' in unescape_quotes(html)
+    assert '"sphinx"' in unescape_quotes(html)
 
 
 def test_python_run_emphasize_lines_split(sphinx_app_myst):

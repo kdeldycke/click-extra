@@ -330,6 +330,18 @@ HTML = {
 }
 
 
+def unescape_quotes(text: str) -> str:
+    """Replace quote entities with bare quotes, so both escapings compare equal.
+
+    Pygments 2.21.0 replaced its ``escape_html()`` helper with
+    ``html.escape(value, quote=False)``. Token text carries bare ``"`` and ``'``
+    since then, where older releases produced ``&quot;`` and ``&#39;``. Both forms
+    render the same, and the ``pygments`` extra declares a floor spanning that
+    release, so HTML fragments are compared with quotes normalized.
+    """
+    return text.replace("&quot;", '"').replace("&#39;", "'")
+
+
 def python_block(*lines: str) -> str:
     """Build expected Python highlight block."""
     return HTML["python_highlight"] + "".join(lines) + "</pre></div>\n"
