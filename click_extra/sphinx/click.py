@@ -972,6 +972,21 @@ class ClickDirective(SphinxDirective):
             return None
         return self.resolve_animation(expression, ":screenshot-animate:")
 
+    def numbered(self, frames: tuple[str, ...]) -> tuple[str, ...]:
+        """Number every frame's lines when `:screenshot-line-numbers:` asks.
+
+        Counted within each frame rather than once across the animation: a frame
+        is a screen, and a screen's gutter numbers the rows it is showing. An
+        animation whose rows accumulate therefore grows its gutter alongside
+        them, which is what a terminal does.
+
+        :param frames: the animation's frames.
+        :return: the same frames, each with a gutter, or unchanged.
+        """
+        if "screenshot-line-numbers" not in self.options:
+            return frames
+        return tuple(number_lines(frame) for frame in frames)
+
     def screenshot_hold(self, fallback: float) -> float:
         """Seconds the last frame stays up, set by `:screenshot-hold:`.
 
@@ -1092,7 +1107,7 @@ class ClickDirective(SphinxDirective):
                     columns=self.screenshot_columns,
                     unique_id=self.screenshot,
                     background=self.screenshot_background,
-                    frames=frames,
+                    frames=self.numbered(frames),
                     interval=interval,
                     hold=self.screenshot_hold(DEFAULT_RECORDING_HOLD),
                     blank=self.options.get("screenshot-blank", DEFAULT_RECORDING_BLANK),
@@ -1110,7 +1125,7 @@ class ClickDirective(SphinxDirective):
                 columns=self.screenshot_columns,
                 unique_id=self.screenshot,
                 background=self.screenshot_background,
-                frames=frames,
+                frames=self.numbered(frames),
                 interval=interval,
                 hold=self.screenshot_hold(0.0),
                 blank=self.options.get("screenshot-blank", 0.0),

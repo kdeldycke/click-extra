@@ -28,7 +28,8 @@
 - Pause an animated capture on its last frame, close its cycle on an empty beat, and replay it faster or slower, with `hold`, `blank` and `speed`.
 - Draw a row that never moves once in an animated capture instead of once per frame, shrinking a recording of a mostly-still screen.
 - Add a `:screenshot-record:` option to `click:run`, committing a recorded animation once instead of rewriting it on every build.
-- Hide an animated capture's frames with an attribute rather than a stylesheet rule, so a renderer ignoring `<style>` stops stacking every frame at once.
+- Hide an animated capture's frames with `visibility` and `opacity` attributes rather than a stylesheet rule, so a renderer ignoring `<style>` stops stacking every frame at once.
+- Number an animated capture's lines when `:screenshot-line-numbers:` asks, which previously only reached a still.
 - Fall back to an animated capture's last frame rather than its first, which is the one an accumulating animation says the most with.
 - Illustrate the spinner page's concurrency, progress-bar and outcome sections with recorded animations.
 - Ship a subset of JuliaMono with the documentation, so box-drawing and Braille glyphs stop breaking the alignment of captured terminal tables.

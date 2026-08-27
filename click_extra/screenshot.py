@@ -448,6 +448,17 @@ Right-to-left letters, Arabic letters and Arabic-Indic numbers, as
 {func}`unicodedata.bidirectional` names them. See {func}`is_bidirectional`.
 """
 
+HIDDEN_FRAME_ATTRIBUTES = ' visibility="hidden" opacity="0"'
+"""How an animated capture hides the frames its still is not made of.
+
+Presentation attributes rather than a stylesheet rule, so a renderer reading no
+CSS still shows one picture instead of every frame at once. Both properties are
+stated because renderers have been seen honoring one and not the other, and
+either alone is enough to hide a frame. A CSS animation outranks a presentation
+attribute, so {func}`frame_animation_css` restores both together and the two
+mechanisms never disagree.
+"""
+
 ANIMATION_METADATA_RE = re.compile(r"<!-- @recording (?P<fields>[^>]*?) -->")
 """The line an animated capture states its own identity on.
 
@@ -1209,6 +1220,11 @@ def _css_number(value: float) -> str:
     return f"{value:g}"
 
 
+def _frame_visibility(state: str) -> str:
+    """Declare a frame shown or hidden, in both of the ways a renderer reads."""
+    return f"visibility: {state}; opacity: {1 if state == 'visible' else 0};"
+
+
 def _row_group(
     rows: Sequence[tuple[str, str]],
     wanted: Sequence[int],
@@ -1307,12 +1323,20 @@ def frame_animation_css(unique_id: str, durations: Sequence[float]) -> str:
     # on the sum it was accumulated from. The cycle ends at its end regardless.
     boundaries[-1] = "100"
 
+    # Two properties, not one. A frame is hidden by presentation attributes so a
+    # renderer reading no stylesheet still shows one picture, and a renderer
+    # honoring only one of the two is common enough to be worth answering: file
+    # managers and git clients have both been seen drawing every frame at once.
+    # The animation therefore has to restore whichever attribute was honored.
     rules = []
     for index, end in enumerate(boundaries):
-        steps = [f"0% {{ visibility: {'visible' if index == 0 else 'hidden'}; }}"]
+        opening = "visible" if index == 0 else "hidden"
+        steps = [f"0% {{ {_frame_visibility(opening)} }}"]
         if index:
-            steps.append(f"{boundaries[index - 1]}% {{ visibility: visible; }}")
-        steps.append(f"{end}% {{ visibility: hidden; }}")
+            steps.append(
+                f"{boundaries[index - 1]}% {{ {_frame_visibility('visible')} }}"
+            )
+        steps.append(f"{end}% {{ {_frame_visibility('hidden')} }}")
         rules.append(
             f"    @keyframes {unique_id}-f{index} {{ {' '.join(steps)} }}\n"
             f"    .{unique_id}-f{index} {{ animation: {unique_id}-f{index} "
@@ -1689,7 +1713,7 @@ def render_svg(
         for index, frame_rows in enumerate(padded):
             # Stated as an attribute, not a rule: a renderer free to ignore the
             # stylesheet would otherwise stack every frame on top of the poster.
-            hidden = "" if index == poster else ' visibility="hidden"'
+            hidden = "" if index == poster else HIDDEN_FRAME_ATTRIBUTES
             stack += (
                 f'<g class="{unique_id}-f{index}"{hidden}>'
                 f"{_row_group(frame_rows, moving, matrix)}</g>"

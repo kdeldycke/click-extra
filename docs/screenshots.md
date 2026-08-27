@@ -361,6 +361,52 @@ A caption takes any text a terminal can draw, emoji included. `:hide-results:` i
 `````
 ``````
 
+None of that is spent on the still. An [animated capture](#animated-captures) is drawn through the same window, so a recording carries the gradient, the caption, the rounding, the transparency and the gutter exactly as a screenshot does. Here is a pantry being restocked, wearing everything above:
+
+```{click:source}
+:hide-source:
+from time import sleep
+
+from click_extra import SPINNERS, Spinner, Style
+from click_extra.recording import ScreenRecorder
+
+
+def restock(stream=None):
+    """Shelve four crates, tracing each one as it lands."""
+    crates = ["apricots", "biscuits", "coffee", "damsons"]
+    style = Style(fg="bright_cyan")
+    with Spinner("Restocking pantry", spinner=SPINNERS["moon"], style=style,
+                 stream=stream) as spinner:
+        for crate in crates:
+            sleep(1.1)
+            spinner.echo(style(f"shelved {crate}"))
+
+
+def record(demo):
+    """Run a demo against a recorder, and keep the screens it drew."""
+    recorder = ScreenRecorder()
+    demo(stream=recorder)
+    return recorder.frames()
+```
+
+```{click:run}
+:screenshot: styled-window-animated-screen
+:screenshot-record: record(restock)
+:screenshot-columns: auto
+:screenshot-title: 🍎 pantry restock
+:screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-line-numbers:
+:screenshot-opacity: 0.75
+:screenshot-radius: 12
+:screenshot-padding: 24
+:hide-results:
+assert callable(restock)
+```
+
+![A spinner restocking a pantry, numbered and see-through on a gradient backdrop](assets/styled-window-animated-screen.svg)
+
+The gutter counts each frame's own rows, so it grows as the trail does. The window is drawn once and every frame is stacked inside it, which is why a gradient this size costs the animation nothing over the still.
+
 ### Terminal presets
 
 A capture is a picture of a terminal, and terminals do not look alike. `--preset` draws one as a named desktop's:
@@ -470,7 +516,9 @@ Because the frames differ in nothing but their text, one stylesheet covers the l
 
 A row drawn the same in every frame is drawn once, outside them, and only the rows that actually move are copied per frame. A spinner moves its one line, so nothing is shared and the picture is the same either way. A recording of a screen where one line advances under twenty that do not is where this tells: those twenty are written once instead of once per frame, which on a ten-frame recording is around 80% of the file.
 
-One frame stays visible wherever the animation does not run, and the rest carry `visibility="hidden"` as a presentation attribute rather than as a rule. That covers three readers at once: a viewer that speaks no CSS animation, one that ignores the stylesheet altogether and would otherwise draw every frame stacked on the last, and a reader whose system asks for reduced motion, which the capture honors by keeping every animation rule behind a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard.
+One frame stays visible wherever the animation does not run, and the rest carry `visibility="hidden"` **and** `opacity="0"` as presentation attributes rather than as a stylesheet rule. That covers three readers at once: a viewer that speaks no CSS animation, one that ignores the stylesheet altogether and would otherwise draw every frame stacked on the last, and a reader whose system asks for reduced motion, which the capture honors by keeping every animation rule behind a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard.
+
+Both properties are stated because either alone hides a frame, and renderers have been seen honoring one and not the other: browsers, `librsvg` and Quick Look's thumbnailer all draw a single frame, while some file-manager preview panes and git clients have been observed drawing every frame at once. The animation restores both together, so the two mechanisms never disagree.
 
 A recorded animation also **pauses on its last frame** and then **closes on an empty beat**, two seconds and six tenths by default. An animation that ends somewhere is usually there for the end (a trail filled in, a bar run out, an outcome landed), and a loop restarting the instant it arrives gives a reader no time to read any of it. The empty beat then says plainly that this is where the loop comes round, rather than leaving the jump back to the first frame to read as the command doing something strange.
 

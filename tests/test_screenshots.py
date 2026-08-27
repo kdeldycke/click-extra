@@ -384,7 +384,7 @@ def test_animation_windows_tile_the_cycle(name):
         steps = [
             (float(at), state)
             for at, state in re.findall(
-                r"([\d.]+)% \{ visibility: (\w+); \}", keyframes
+                r"([\d.]+)% \{ visibility: (\w+);", keyframes
             )
         ]
         opens = next(at for at, state in steps if state == "visible")
@@ -455,7 +455,7 @@ def test_frame_animation_css_only_ever_animates():
     assert "animation:" in css
     # No rule outlives the guard, which closes on the stylesheet's last brace.
     assert css.rstrip().endswith("}")
-    assert "visibility: hidden; }" not in css.split(REDUCED_MOTION_QUERY, 1)[0]
+    assert "visibility: hidden;" not in css.split(REDUCED_MOTION_QUERY, 1)[0]
 
 
 @pytest.mark.parametrize("name", ("bouncingBar", "dots", "moon"))
@@ -467,10 +467,16 @@ def test_animated_capture_hides_its_frames_outside_the_stylesheet(name):
     an animation that accumulates is the one that says the most.
     """
     svg = animated_capture(name)
-    frames = re.findall(r'<g class="spin-[\w-]+-f(\d+)"( visibility="hidden")?>', svg)
+    frames = re.findall(r'<g class="spin-[\w-]+-f(\d+)"([^>]*)>', svg)
     assert frames
-    shown = [index for index, hidden in frames if not hidden]
+    shown = [index for index, attrs in frames if not attrs]
     assert shown == [str(len(frames) - 1)], "exactly the last frame is the poster"
+    # Both properties, because renderers have been seen honoring one only.
+    for index, attrs in frames:
+        if index in shown:
+            continue
+        assert 'visibility="hidden"' in attrs, index
+        assert 'opacity="0"' in attrs, index
 
 
 @pytest.mark.parametrize("name", ("bouncingBar", "dots", "moon"))
