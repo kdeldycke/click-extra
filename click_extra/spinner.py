@@ -386,14 +386,22 @@ class Spinner:
             return False
         return is_a_tty(stream)
 
-    def _style(self, text: str) -> str:
+    def _style(self, text: str, *, color: bool | None = None) -> str:
         """Apply the configured {class}`~click_extra.styling.Style`, or return bare.
 
         A no-op when no style was set or color is disabled, so the same call site
         produces colored output on a capable terminal and plain output under
         `NO_COLOR` / a pipe.
+
+        :param text: what to style.
+        :param color: override whether any color is applied. `None` follows what
+            {meth}`start` resolved for the spinner's own stream, which is what
+            the animation wants. A picture of the spinner overrides it, having
+            its own answer to whether ANSI survives.
+        :return: the text, styled or bare.
         """
-        if self._color_enabled and self.style is not None:
+        enabled = self._color_enabled if color is None else color
+        if enabled and self.style is not None:
             return self.style(text)
         return text
 
@@ -440,6 +448,47 @@ class Spinner:
         if not self.timer:
             return ""
         return f" ({_format_timer(self.timer, self.elapsed_time)})"
+
+    @property
+    def _ordered_frames(self) -> tuple[str, ...]:
+        """The frames in the order the animation cycles them, `reverse` applied."""
+        return tuple(reversed(self.frames)) if self.reverse else tuple(self.frames)
+
+    def _compose_frame(self, frame: str, *, color: bool | None = None) -> str:
+        """Build the line one animation frame draws.
+
+        The glyph, the label and the timer, in the order and the styling the
+        animation writes them. Held in one place so a picture of a spinner shows
+        what the spinner draws, instead of a second guess at it that drifts the
+        first time this composition changes.
+
+        :param frame: one of {attr}`frames`, the glyph the line opens with.
+        :param color: see {meth}`_style`.
+        :return: the line, ANSI escape sequences included.
+        """
+        label = f" {self.label}" if self.label else ""
+        return self._style(f"{frame}{label}{self._clock()}", color=color)
+
+    def frame_lines(self, *, color: bool = True) -> tuple[str, ...]:
+        """Every line this spinner's animation draws, one per frame.
+
+        One turn of the animation, held still. `reverse`, the label, the style
+        and the timer all land the way {meth}`start` would draw them, which is
+        what an animated capture stacks into a picture of this spinner.
+
+        ```{note}
+        The timer is read once, here, so every line carries the same elapsed
+        time rather than a counting one: a still cannot show a clock running.
+        A spinner that never started reads zero.
+        ```
+
+        :param color: style each line. On by default, because a capture renders
+            ANSI whatever the terminal the spinner would have drawn on accepts.
+        :return: the lines, in the order the animation cycles them.
+        """
+        return tuple(
+            self._compose_frame(frame, color=color) for frame in self._ordered_frames
+        )
 
     @staticmethod
     def _enable_windows_ansi(stream: IO[str]) -> None:
@@ -641,7 +690,7 @@ class Spinner:
         if self._stop.wait(self.delay):
             return
         # Resolve the rotation direction once: `reverse` flips the frame order.
-        frames = tuple(reversed(self.frames)) if self.reverse else self.frames
+        frames = self._ordered_frames
         try:
             if self.hide_cursor:
                 stream.write("\x1b[?25l")
@@ -649,10 +698,7 @@ class Spinner:
                 stream.flush()
             index = 0
             while not self._stop.is_set():
-                frame = frames[index % len(frames)]
-                label = f" {self.label}" if self.label else ""
-                clock = self._clock()
-                content = self._style(f"{frame}{label}{clock}")
+                content = self._compose_frame(frames[index % len(frames)])
                 # Hold the draw lock so a concurrent `echo()` cannot interleave
                 # with a half-written frame. Return to the line start, then
                 # clear to end-of-line so a shrinking label leaves no stale

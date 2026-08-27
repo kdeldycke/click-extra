@@ -45,6 +45,19 @@ with Spinner("Chilling lemonade", reverse=True):
 
 The animation source is just a sequence of strings. `click_extra.spinner` ships the default Braille `SPINNER_FRAMES` and a plain `ASCII_SPINNER_FRAMES` for terminals without Unicode glyphs; pass your own to `frames` for anything else.
 
+### Picturing a spinner
+
+`frame_lines()` hands back one turn of the animation held still, one line per frame. The glyph, the label, the style and the timer land where the running spinner puts them, `reverse` included, so the picture cannot drift from what the terminal shows. No thread starts and no terminal is needed:
+
+```python
+from click_extra import SPINNERS, Spinner, Style
+
+spinner = Spinner("Brewing tea", spinner=SPINNERS["moon"], style=Style(fg="green"))
+lines = spinner.frame_lines()
+```
+
+Colors are applied by default, whatever stream the spinner itself would have drawn on: a picture carries its own answer to whether ANSI survives. Pass `color=False` for the bare text. These lines are what an [animated capture](screenshots.md#animated-captures) stacks into an SVG.
+
 ## Spinner catalog
 
 `SPINNERS` is a catalog of around 90 ready-made animations, each a `SpinnerPreset` bundling the frames and the interval they were tuned for. They are ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners), the de-facto reference collection. Pick one with `spinner=`:

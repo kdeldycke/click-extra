@@ -558,6 +558,66 @@ def test_invalid_style_raises():
         Spinner(style=Style(fg="notacolor"))
 
 
+def test_frame_lines_are_what_the_animation_draws(monkeypatch):
+    """A picture of a spinner shows the lines the spinner really writes.
+
+    Spins for real, recovers every frame written to the stream, and asserts each
+    one is a line `frame_lines()` offers. Composing the picture separately from
+    the animation is what lets the two drift the first time the glyph, the label
+    or the timer change places; comparing them is what stops that.
+    """
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    stream = TTYStringIO()
+    spinner = Spinner(
+        "Brewing tea",
+        spinner=SPINNERS["moon"],
+        style=Style(fg="green"),
+        stream=stream,
+        interval=0.02,
+    )
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    spinner.stop()
+
+    # Every frame is written as a carriage return, the line, then a clear to
+    # end-of-line. The last one is the erasure `stop()` leaves, carrying no line.
+    drawn = set()
+    for written in stream.getvalue().split("\r"):
+        if not written.endswith(CLEAR_LINE):
+            continue
+        content = written.removesuffix(CLEAR_LINE)
+        if content:
+            drawn.add(content)
+
+    assert drawn
+    assert drawn <= set(spinner.frame_lines())
+
+
+def test_frame_lines_honors_reverse():
+    """A spinner cycling backwards is pictured spinning the way it animates."""
+    preset = SPINNERS["moon"]
+    forward = Spinner("Brewing tea", spinner=preset).frame_lines(color=False)
+    backward = Spinner("Brewing tea", spinner=preset, reverse=True).frame_lines(
+        color=False
+    )
+    assert backward == tuple(reversed(forward))
+
+
+@pytest.mark.parametrize("color", (True, False))
+def test_frame_lines_colors_on_request(color):
+    """A capture asks for color whatever stream the spinner would have drawn on.
+
+    A spinner that never started resolved no color for itself, so the picture
+    has to state its own answer rather than inherit that one.
+    """
+    spinner = Spinner("Brewing tea", spinner=SPINNERS["moon"], style=Style(fg="green"))
+    assert not spinner._color_enabled
+    lines = spinner.frame_lines(color=color)
+    assert lines
+    assert all((GREEN in line) is color for line in lines)
+
+
 @pytest.mark.parametrize(
     ("outcome", "glyph", "color"),
     (
