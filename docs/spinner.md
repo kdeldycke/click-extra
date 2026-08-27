@@ -119,16 +119,54 @@ with Spinner("Baking bread", beep=True):
     sleep(5)
 ```
 
+```{click:source}
+:hide-source:
+from click_extra.recording import ScreenRecorder
+
+
+def record(demo, **kwargs):
+    """Run one of this page's demos against a recorder, and keep its screens.
+
+    A ScreenRecorder answers `isatty()` in the affirmative without being a
+    terminal, so the spinner animates into it with no pseudo-terminal involved.
+    """
+    recorder = ScreenRecorder()
+    demo(stream=recorder, **kwargs)
+    return recorder.frames()
+```
+
 ## Printing while spinning
 
 Because the spinner draws to `stderr`, results written to `stdout` never collide with the animation. To emit a line on the *same* stream as the spinner, use `echo()`: it erases the current frame, prints the message above the spinner, and lets the animation carry on underneath. A bare `print` would instead leave a frame glyph stranded mid-line.
 
-```python
-with Spinner("Picking apples") as spinner:
-    for basket in range(3):
-        sleep(2)
-        spinner.echo(f"Filled basket {basket}")
+```{click:source}
+from time import sleep
+
+from click_extra import Spinner
+
+
+def pick(stream=None):
+    """Fill three baskets, tracing each one as it lands."""
+    with Spinner("Picking apples", stream=stream) as spinner:
+        for basket in range(3):
+            sleep(0.6)
+            spinner.echo(f"Filled basket {basket}")
 ```
+
+The `stream` argument is threaded through only so this page can record the animation below. A real call leaves it out, and the spinner finds `stderr` on its own.
+
+```{click:run}
+:screenshot: picking-apples-screen
+:screenshot-record: record(pick)
+:screenshot-columns: auto
+:screenshot-margin: 16
+:hide-results:
+assert callable(pick)
+```
+
+![A spinner turning under a growing trail of filled baskets](assets/picking-apples-screen.svg)
+
+Each echoed line is kept where it landed and the animation carries on below it, which is the whole difference from a bare `print`.
 
 ## Parallel work
 
@@ -136,36 +174,61 @@ A `Spinner` drives a single line, so a pool of concurrent tasks does not need on
 
 Update the `label` for a running count:
 
-```python
+```{click:source}
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from time import sleep
-
-from click_extra import Spinner
 
 cities = ["Cairo", "Lima", "Oslo", "Paris", "Tokyo"]
 
 
 def fetch(city):
-    sleep(1)  # The blocking call: a download, a query, a subprocess.
+    sleep(0.3)  # The blocking call: a download, a query, a subprocess.
     return city
 
 
-with Spinner(f"Fetching forecasts (0/{len(cities)})") as spinner:
-    with ThreadPoolExecutor() as pool:
-        futures = [pool.submit(fetch, city) for city in cities]
-        for done, _ in enumerate(as_completed(futures), 1):
-            spinner.label = f"Fetching forecasts ({done}/{len(cities)})"
+def count_forecasts(stream=None):
+    """Fetch every forecast at once, counting them off as they land."""
+    with Spinner(f"Fetching forecasts (0/{len(cities)})", stream=stream) as spinner:
+        with ThreadPoolExecutor() as pool:
+            futures = [pool.submit(fetch, city) for city in cities]
+            for done, _ in enumerate(as_completed(futures), 1):
+                spinner.label = f"Fetching forecasts ({done}/{len(cities)})"
 ```
+
+```{click:run}
+:screenshot: forecast-count-screen
+:screenshot-record: record(count_forecasts)
+:screenshot-columns: auto
+:screenshot-margin: 16
+:hide-results:
+assert callable(count_forecasts)
+```
+
+![One spinner counting five forecasts off as they land](assets/forecast-count-screen.svg)
 
 Or `echo()` a line as each task lands, leaving a trail of finished work that scrolls up while the spinner keeps turning below it:
 
-```python
-with Spinner("Fetching forecasts") as spinner:
-    with ThreadPoolExecutor() as pool:
-        futures = {pool.submit(fetch, city): city for city in cities}
-        for future in as_completed(futures):
-            spinner.echo(f"✓ {futures[future]}")
+```{click:source}
+def trail_forecasts(stream=None):
+    """Fetch every forecast at once, leaving a line behind for each."""
+    with Spinner("Fetching forecasts", stream=stream) as spinner:
+        with ThreadPoolExecutor() as pool:
+            futures = {pool.submit(fetch, city): city for city in cities}
+            for future in as_completed(futures):
+                spinner.echo(f"✓ {futures[future]}")
 ```
+
+```{click:run}
+:screenshot: forecast-trail-screen
+:screenshot-record: record(trail_forecasts)
+:screenshot-columns: auto
+:screenshot-margin: 16
+:hide-results:
+assert callable(trail_forecasts)
+```
+
+![Finished cities stacking up above a spinner that keeps turning](assets/forecast-trail-screen.svg)
+
+The cities land in whatever order the pool finishes them, which is why the trail above is not alphabetical.
 
 Both `label` and `echo()` are safe to touch while the animation runs, so a worker thread can stream its own progress mid-task rather than only reporting on completion. A genuine spinner *per* task, several rotating at once on their own lines, is a separate capability: it needs a coordinated multi-line region, which `Spinner` does not attempt.
 
@@ -192,6 +255,43 @@ with OperationTrail(
         f"Fetched {trail.ok_count}/{len(feeds)} feeds",
     )
 ```
+
+Run concurrently, that is one aggregate spinner carrying the tally while the finished operations stack up above it:
+
+```{click:source}
+:hide-source:
+from click_extra.spinner import OperationTrail
+
+
+def fetch_feeds(stream=None):
+    """Pull five feeds four at a time, tracing each outcome as it lands."""
+    feeds = ["apples", "bread", "cheese", "damsons", "eggs"]
+    with OperationTrail(
+        label="Fetching", unit="feeds", total=len(feeds), jobs=4,
+        enabled=True, stream=stream,
+    ) as trail:
+        def pull(feed):
+            sleep(0.4)
+            trail.mark(feed != "cheese", f"{feed} fetched" if feed != "cheese"
+                       else "cheese went off")
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            list(pool.map(pull, feeds))
+        trail.finish(
+            trail.ok_count == len(feeds),
+            f"Fetched {trail.ok_count}/{len(feeds)} feeds",
+        )
+```
+
+```{click:run}
+:screenshot: feed-trail-screen
+:screenshot-record: record(fetch_feeds)
+:screenshot-columns: auto
+:screenshot-margin: 16
+:hide-results:
+assert callable(fetch_feeds)
+```
+
+![Fetched feeds stacking above an aggregate spinner carrying the tally](assets/feed-trail-screen.svg)
 
 The rendering adapts to the batch's concurrency, and you pick neither mode by hand. Run concurrently (`jobs > 1`), one aggregate spinner carries the `Fetching 3/5 feeds` tally while the trail lines stream above it, its animation picked from the [catalog](#spinner-catalog) with `spinner=SPINNERS["moon"]`. Run sequentially (`jobs <= 1`), each outcome echoes as a plain line and every operation stays free to keep its own per-call `Spinner`. Either way the finisher carries the elapsed time. {class}`~click_extra.spinner.OperationTrail` details what each mode drives.
 
@@ -278,15 +378,40 @@ with OperationTrail(
 
 The aggregate indicator becomes a bar holding the `done/total` count, the same `✓`/`✘` outcomes streaming above it, and a kept summary replaces the bar on `finish()`. It serves sequential and concurrent batches alike.
 
-Unlike the sequential trail above, the bar is driven by cursor-control codes, so it draws only on an interactive terminal (unless `enabled` forces it) and this page cannot render it live. Mid-batch, the landed outcomes sit above a bar tracking the tally:
+Unlike the sequential trail above, the bar is driven by cursor-control codes, so it draws only on an interactive terminal, unless `enabled` forces it. Recorded off one, the landed outcomes sit above a bar tracking the tally:
 
-```console
-$ roast
-✓ carrots roasted
-✓ fennel roasted
-✘ leeks scorched
-Roasting  [###########################---------]  3/4  vegetables
+```{click:source}
+:hide-source:
+def roast_with_bar(stream=None):
+    """Roast a tray of vegetables behind a determinate bar."""
+    vegetables = ["carrots", "fennel", "leeks", "peppers"]
+    with OperationTrail(
+        label="Roasting", unit="vegetables", total=len(vegetables),
+        progress_bar=True, enabled=True, stream=stream,
+    ) as trail:
+        for vegetable in vegetables:
+            sleep(0.5)
+            roasted = vegetable != "leeks"
+            trail.mark(
+                roasted,
+                f"{vegetable} roasted" if roasted else f"{vegetable} scorched",
+            )
+        trail.finish(
+            trail.ok_count == len(vegetables),
+            f"Roasted {trail.ok_count}/{len(vegetables)} vegetables",
+        )
 ```
+
+```{click:run}
+:screenshot: roast-bar-screen
+:screenshot-record: record(roast_with_bar)
+:screenshot-columns: auto
+:screenshot-margin: 16
+:hide-results:
+assert callable(roast_with_bar)
+```
+
+![A determinate bar filling under a trail of roasted vegetables](assets/roast-bar-screen.svg)
 
 When the last vegetable lands, `finish()` replaces the bar with the kept `✘ Roasted 3/4 vegetables (0.0s)` summary, the same trail a sequential run leaves behind. A log record emitted mid-batch still lands on its own line above the bar, through the same cooperation the spinner uses. To watch a bar drive a live batch, run `click-extra trail --progress-bar` in a terminal.
 
@@ -320,11 +445,31 @@ The same `Style` type colors the `ok()` / `fail()` finishers: they default to th
 
 Stopping the spinner (or leaving its context) erases it. To leave a result on screen instead, finish with `ok()` or `fail()`: each replaces the final frame with a kept line. The marker defaults to the theme's success/error glyph (`✓` / `✘`), painted with the active theme's `success`/`error` [`Style`](theme.md), so a finished spinner matches the rest of a themed CLI.
 
+```{click:source}
+:hide-source:
+def bake(stream=None):
+    """Bake a loaf, leaving the outcome on screen."""
+    with Spinner("Baking bread", stream=stream) as spinner:
+        sleep(0.8)
+        spinner.ok()
+```
+
 ```python
 with Spinner("Baking bread") as spinner:
     sleep(5)
     spinner.ok()  # ✓ Baking bread
 ```
+
+```{click:run}
+:screenshot: baking-bread-screen
+:screenshot-record: record(bake)
+:screenshot-columns: auto
+:screenshot-margin: 16
+:hide-results:
+assert callable(bake)
+```
+
+![A spinner turning, then replaced by a kept success line](assets/baking-bread-screen.svg)
 
 Pass your own marker (`spinner.ok("done")`) or override the paint with a `Style` (`spinner.fail(style=Style(fg="bright_red"))`). Color is stripped under `--no-color`/`NO_COLOR`; off a terminal the line is still written, so the outcome is recorded in logs and pipes.
 
@@ -341,11 +486,31 @@ with Spinner("Baking bread") as spinner:
 
 Set `timer=True` to append the running wall-clock time to the spinner, and to any `ok()`/`fail()` line:
 
+```{click:source}
+:hide-source:
+def simmer(stream=None):
+    """Simmer stock, with the clock running beside the label."""
+    with Spinner("Simmering stock", timer=True, stream=stream) as spinner:
+        sleep(1.5)
+        spinner.ok()
+```
+
 ```python
 with Spinner("Simmering stock", timer=True) as spinner:
     sleep(5)
     spinner.ok()  # ✓ Simmering stock (5.0s)
 ```
+
+```{click:run}
+:screenshot: simmering-stock-screen
+:screenshot-record: record(simmer)
+:screenshot-columns: auto
+:screenshot-margin: 16
+:hide-results:
+assert callable(simmer)
+```
+
+![A spinner counting the seconds up beside its label](assets/simmering-stock-screen.svg)
 
 The default format is compact: `2.3s`, then `1:05`, then `1:02:03`. For anything else, pass a callable instead of `True`: it receives the elapsed seconds and returns the string to show:
 
