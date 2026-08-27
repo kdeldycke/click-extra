@@ -1331,6 +1331,8 @@ def render_svg(
     frames: Sequence[str] | None = None,
     interval: float | Sequence[float] | None = None,
     hold: float = 0.0,
+    blank: float = 0.0,
+    speed: float = 1.0,
     palette: TerminalPalette = CAPTURE_PALETTES[CaptureBackground.DARK],
     font_stack: str = CAPTURE_FONT_STACK,
     border: str = NO_PAINT,
@@ -1400,6 +1402,14 @@ def render_svg(
         run out, an outcome landed) is worth reading, and a loop that restarts
         the instant it arrives never lets anyone. A spinner turning in place
         ends nowhere, so it wants none of this and defaults to none.
+    :param blank: seconds of empty screen closing the cycle, after `hold`. A
+        loop that jumps from its last frame back to its first reads as one long
+        animation doing something odd; an empty beat says plainly that this is
+        where it starts over. Never the frame a still falls back to.
+    :param speed: how much faster to play than it was recorded, so `2` halves
+        every frame's time and `0.5` doubles it. `hold` and `blank` are stated
+        in real seconds and are not scaled: they are how long a reader is given,
+        not part of what is being replayed.
     :param palette: terminal colors the capture's ANSI codes resolve against.
     :param font_stack: fonts the text is set in, best first.
     :param border: paint for the window's frame. {data}`NO_PAINT` draws none.
@@ -1443,10 +1453,22 @@ def render_svg(
                 raise ValueError(
                     f"{len(pictures)} frames carry {len(durations)} durations."
                 )
+        if speed <= 0:
+            raise ValueError(f"{speed} is not a speed, which is positive.")
+        if speed != 1:
+            durations = tuple(each / speed for each in durations)
         if hold:
             # Spent on the last frame rather than on a pause of its own, so the
-            # cycle keeps one window per frame and nothing has to draw a blank.
+            # frame a still falls back to is the one that was held.
             durations = (*durations[:-1], durations[-1] + hold)
+        if blank:
+            if blank < 0:
+                raise ValueError(f"{blank} is not a pause, which is not negative.")
+            # An empty picture, which draws nothing and reads as the cycle
+            # turning over. It also leaves no row identical across every frame,
+            # so a blank costs the saving a still row would otherwise make.
+            pictures = (*pictures, "")
+            durations = (*durations, blank)
     if unique_id is None:
         seed = "".join(pictures) + title
         unique_id = f"terminal-{zlib.adler32(seed.encode()):d}"
@@ -1652,11 +1674,17 @@ def render_svg(
         moving = [row for row in range(row_count) if row not in set(still)]
         # Each frame carries its own matrix, so the attribute fallback above
         # reaches the frames a renderer shows after the first one too.
-        # The frame a renderer showing no animation is left with. The last one,
-        # because an animation that accumulates (a trail filling up, a bar
-        # advancing, an outcome landing) says most once it has finished. A
+        # The frame a renderer showing no animation is left with. The last one
+        # that draws something, because an animation that accumulates (a trail
+        # filling up, a bar advancing, an outcome landing) says most once it has
+        # finished, and a `blank` closing the cycle says nothing at all. A
         # spinner cycling in place reads the same whichever frame is picked.
-        poster = len(padded) - 1
+        pictured = [
+            index
+            for index, frame_rows in enumerate(padded)
+            if any(cells or glyphs for cells, glyphs in frame_rows)
+        ]
+        poster = pictured[-1] if pictured else len(padded) - 1
         stack = _row_group(padded[0], still, matrix)
         for index, frame_rows in enumerate(padded):
             # Stated as an attribute, not a rule: a renderer free to ignore the
@@ -1861,6 +1889,8 @@ def render(
     frames: Sequence[str] | None = None,
     interval: float | Sequence[float] | None = None,
     hold: float = 0.0,
+    blank: float = 0.0,
+    speed: float = 1.0,
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
@@ -1893,6 +1923,10 @@ def render(
     :param interval: SVG only. How long each of them is shown, see
         {func}`render_svg`.
     :param hold: SVG only. Extra seconds the last frame stays up, see
+        {func}`render_svg`.
+    :param blank: SVG only. Seconds of empty screen closing the cycle, see
+        {func}`render_svg`.
+    :param speed: SVG only. How much faster to play than recorded, see
         {func}`render_svg`.
     :param full: HTML only. See {func}`render_html`.
     :param background: chrome to draw on, see {class}`CaptureBackground`.
@@ -1973,6 +2007,8 @@ def render(
         frames=frames,
         interval=interval,
         hold=hold,
+        blank=blank,
+        speed=speed,
         palette=resolve_palette(preset, background),
         **frame,
     )

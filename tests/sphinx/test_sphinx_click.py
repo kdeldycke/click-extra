@@ -1638,10 +1638,10 @@ def test_click_run_screenshot_record_holds_its_last_frame(sphinx_app_myst):
         """)
     )
 
-    # Two frames of 0.2s, the last one holding for the default two seconds.
+    # Two frames of 0.2s, the last held two seconds, then a 0.6s blank beat.
     svg = asset.read_text(encoding="utf-8")
-    assert "period=2.4s" in svg
-    assert "2.4s step-end" in svg
+    assert "period=3s" in svg
+    assert "3s step-end" in svg
 
 
 def test_click_run_screenshot_hold_overrides_the_pause(sphinx_app_myst):
@@ -1660,7 +1660,60 @@ def test_click_run_screenshot_hold_overrides_the_pause(sphinx_app_myst):
         """)
     )
 
-    assert "period=0.4s" in asset.read_text(encoding="utf-8")
+    # The recorded frames alone, plus the blank beat closing the cycle.
+    assert "period=1s" in asset.read_text(encoding="utf-8")
+
+
+def test_click_run_screenshot_blank_closes_the_cycle(sphinx_app_myst):
+    """A recording ends on an empty beat, so the loop's turnover is visible.
+
+    Without it, a loop jumping from its last frame back to its first reads as
+    one long animation doing something odd rather than as a repetition.
+    """
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "blanked-screen.svg"
+    sphinx_app_myst.build_document(
+        dedent(RECORDED_SOURCE)
+        + dedent("""
+            ```{click:run}
+            :screenshot: blanked-screen
+            :screenshot-record: kettle
+            :hide-results:
+            assert kettle
+            ```
+        """)
+    )
+
+    svg = asset.read_text(encoding="utf-8")
+    frames = re.findall(r'<g class="blanked-screen-f(\d+)"([^>]*)>(.*?)</g>', svg)
+    empty = [index for index, _, body in frames if not body.strip()]
+    assert empty, "the cycle closes on nothing"
+    # A frame drawing nothing is never what a still falls back to.
+    posters = [index for index, attrs, _ in frames if "hidden" not in attrs]
+    assert posters and posters[0] not in empty
+
+
+def test_click_run_screenshot_speed_scales_the_recorded_frames(sphinx_app_myst):
+    """`:screenshot-speed:` replays faster, leaving the pauses as stated.
+
+    The pauses are how long a reader is given, not part of what is replayed, so
+    they are stated in real seconds and speed does not touch them.
+    """
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "quick-screen.svg"
+    sphinx_app_myst.build_document(
+        dedent(RECORDED_SOURCE)
+        + dedent("""
+            ```{click:run}
+            :screenshot: quick-screen
+            :screenshot-record: kettle
+            :screenshot-speed: 2
+            :hide-results:
+            assert kettle
+            ```
+        """)
+    )
+
+    # Two 0.2s frames replayed at double speed, then the 2s hold and 0.6s blank.
+    assert "period=2.8s" in asset.read_text(encoding="utf-8")
 
 
 def test_click_run_screenshot_background(sphinx_app_myst):

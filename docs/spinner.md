@@ -179,9 +179,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 cities = ["Cairo", "Lima", "Oslo", "Paris", "Tokyo"]
 
+# How long each forecast takes to come back, standing in for a real fetch.
+latency = {"Cairo": 1.7, "Lima": 0.5, "Oslo": 2.1, "Paris": 0.9, "Tokyo": 1.3}
+
 
 def fetch(city):
-    sleep(1.2)  # The blocking call: a download, a query, a subprocess.
+    sleep(latency[city])  # The blocking call: a download, a query, a subprocess.
     return city
 
 
@@ -192,6 +195,9 @@ def count_forecasts(stream=None):
             futures = [pool.submit(fetch, city) for city in cities]
             for done, _ in enumerate(as_completed(futures), 1):
                 spinner.label = f"Fetching forecasts ({done}/{len(cities)})"
+        # A spinner erases itself on the way out, so the final tally only
+        # reaches the screen if the animation gets one more beat to draw it.
+        sleep(0.3)
 ```
 
 ```{click:run}
@@ -271,7 +277,8 @@ def fetch_feeds(stream=None):
         enabled=True, stream=stream,
     ) as trail:
         def pull(feed):
-            sleep(1.5)
+            # Staggered, so four jobs running at once still land one by one.
+            sleep(0.8 + 0.7 * feeds.index(feed))
             trail.mark(feed != "cheese", f"{feed} fetched" if feed != "cheese"
                        else "cheese went off")
         with ThreadPoolExecutor(max_workers=4) as pool:

@@ -472,7 +472,17 @@ A row drawn the same in every frame is drawn once, outside them, and only the ro
 
 One frame stays visible wherever the animation does not run, and the rest carry `visibility="hidden"` as a presentation attribute rather than as a rule. That covers three readers at once: a viewer that speaks no CSS animation, one that ignores the stylesheet altogether and would otherwise draw every frame stacked on the last, and a reader whose system asks for reduced motion, which the capture honors by keeping every animation rule behind a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard.
 
-A recorded animation also **pauses on its last frame** before starting over, two seconds by default. An animation that ends somewhere is usually there for the end (a trail filled in, a bar run out, an outcome landed), and a loop restarting the instant it arrives gives a reader no time to read any of it. A declared spinner cycles in place and ends nowhere, so it pauses for nothing unless asked. `hold` states the pause on `render_svg`, and `:screenshot-hold:` on a documentation block.
+A recorded animation also **pauses on its last frame** and then **closes on an empty beat**, two seconds and six tenths by default. An animation that ends somewhere is usually there for the end (a trail filled in, a bar run out, an outcome landed), and a loop restarting the instant it arrives gives a reader no time to read any of it. The empty beat then says plainly that this is where the loop comes round, rather than leaving the jump back to the first frame to read as the command doing something strange.
+
+Three knobs state all of it, on `render_svg` and on a documentation block alike:
+
+| `render_svg` | Directive             | What it sets                                                     |
+| :----------- | :-------------------- | :--------------------------------------------------------------- |
+| `hold`       | `:screenshot-hold:`   | Extra seconds on the last frame.                                 |
+| `blank`      | `:screenshot-blank:`  | Seconds of empty screen closing the cycle.                       |
+| `speed`      | `:screenshot-speed:`  | How much faster to play than recorded: `2` halves every frame.   |
+
+`speed` scales the replay only. The two pauses are stated in real seconds and are left alone, being how long a reader is given rather than part of what is replayed. A declared spinner cycles in place and ends nowhere, so it holds and blanks for nothing unless a page asks.
 
 The frame left visible is the **last** one. An animation that accumulates says most once it has finished: a trail filled up, a bar advanced, an outcome landed. A spinner cycling in place reads the same whichever frame is picked, so nothing is lost there. An animated capture is therefore always a still as well, and never a blank rectangle.
 

@@ -127,6 +127,15 @@ time to read any of it. A declared animation cycles in place and ends nowhere,
 so it holds for nothing unless a page asks.
 """
 
+DEFAULT_RECORDING_BLANK = 0.6
+"""Seconds of empty screen closing a recorded animation's cycle.
+
+Long enough to read as a deliberate beat, short enough not to look broken. It is
+what tells a reader the loop has come round rather than the command having done
+something strange. A declared animation cycles in place with no end to mark, so
+it blanks for nothing unless a page asks.
+"""
+
 SCREENSHOT_MARKER_START = "<!-- screenshot -->"
 """Opening marker of a `click:run` `:mirror:` region.
 
@@ -1086,6 +1095,8 @@ class ClickDirective(SphinxDirective):
                     frames=frames,
                     interval=interval,
                     hold=self.screenshot_hold(DEFAULT_RECORDING_HOLD),
+                    blank=self.options.get("screenshot-blank", DEFAULT_RECORDING_BLANK),
+                    speed=self.options.get("screenshot-speed", 1.0),
                     **self.screenshot_frame,
                 ),
                 encoding="utf-8",
@@ -1102,6 +1113,8 @@ class ClickDirective(SphinxDirective):
                 frames=frames,
                 interval=interval,
                 hold=self.screenshot_hold(0.0),
+                blank=self.options.get("screenshot-blank", 0.0),
+                speed=self.options.get("screenshot-speed", 1.0),
                 **self.screenshot_frame,
             )
             path.write_text(drawn, encoding="utf-8")
@@ -1257,6 +1270,7 @@ class RunDirective(ClickDirective):
         "screenshot-background": _screenshot_background,
         "screenshot-interval": _screenshot_interval,
         "screenshot-border": directives.unchanged_required,
+        "screenshot-blank": _screenshot_hold,
         "screenshot-border-width": directives.nonnegative_int,
         "screenshot-columns": _screenshot_columns,
         "screenshot-hold": _screenshot_hold,
@@ -1269,6 +1283,7 @@ class RunDirective(ClickDirective):
         "screenshot-radius": directives.nonnegative_int,
         "screenshot-record": directives.unchanged_required,
         "screenshot-shadow": directives.unchanged_required,
+        "screenshot-speed": _screenshot_interval,
         "screenshot-title": directives.unchanged_required,
         "screenshot-watermark": directives.unchanged_required,
         "screenshot-watermark-color": directives.unchanged_required,
