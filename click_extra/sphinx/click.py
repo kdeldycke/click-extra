@@ -40,6 +40,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from collections.abc import Sequence
 from dataclasses import is_dataclass
 from functools import cached_property, partial
 from pathlib import Path
@@ -65,6 +66,7 @@ from ..screenshot import (
     render,
 )
 from ..screenshot_presets import PRESETS, TerminalPreset
+from ..spinner import Spinner
 from ..testing import isolated_filesystem
 from ..theme import NOCOLOR_THEME
 from ._base import (
@@ -843,6 +845,72 @@ class ClickDirective(SphinxDirective):
         return self.options.get("screenshot-columns", DEFAULT_COLUMNS)  # type: ignore[no-any-return]
 
     @cached_property
+    def screenshot_animation(self) -> tuple[tuple[str, ...], float] | None:
+        """Frames the capture animates, set by `:screenshot-animate:`.
+
+        The option is a Python expression, evaluated in the same per-document
+        namespace the block's own source runs in, so a `click:source` block
+        above can build the subject and this one picture it. It yields either:
+
+        - a {class}`~click_extra.spinner.Spinner`, whose
+          {meth}`~click_extra.spinner.Spinner.frame_lines` and `interval` are
+          taken as they stand, which is the whole declaration for a spinner;
+        - any other sequence of strings, one captured text per frame, whose
+          `:screenshot-interval:` says how long each is shown.
+
+        `:screenshot-interval:` overrides a spinner's own when both are stated.
+
+        ```{caution}
+        An animated block pictures its *frames*, not its results. The block
+        still runs, and its results still render on the page as any other
+        block's do, but they are not what the image shows.
+        ```
+
+        Deriving the frames from a declared subject rather than from a timing
+        is what keeps the committed asset deterministic: the same expression
+        composes the same lines on every build, so an unchanged subject rewrites
+        byte-identical bytes and leaves the working tree clean.
+
+        :return: the frames and how long each is shown, or `None` when the block
+            draws a still.
+        :raises RuntimeError: when the expression cannot be evaluated.
+        :raises TypeError: when it yields neither a spinner nor strings.
+        :raises ValueError: when a bare sequence of frames states no interval.
+        """
+        expression = self.options.get("screenshot-animate")
+        if expression is None:
+            return None
+        interval = self.options.get("screenshot-interval")
+        try:
+            subject = eval(expression, self.runner.namespace)
+        except Exception as exc:
+            raise RuntimeError(
+                f"click:run: :screenshot-animate: failed to evaluate "
+                f"{expression!r}: {exc}",
+            ) from exc
+
+        if isinstance(subject, Spinner):
+            return (subject.frame_lines(), interval or subject.interval)
+        if isinstance(subject, str) or not isinstance(subject, Sequence):
+            raise TypeError(
+                f"click:run: :screenshot-animate: {expression!r} yielded neither "
+                f"a Spinner nor a sequence of frames (got "
+                f"{type(subject).__name__}).",
+            )
+        frames = tuple(subject)
+        if not all(isinstance(frame, str) for frame in frames):
+            raise TypeError(
+                f"click:run: :screenshot-animate: {expression!r} yielded a "
+                "sequence holding something other than a frame's text.",
+            )
+        if interval is None:
+            raise ValueError(
+                "click:run: :screenshot-animate: needs a :screenshot-interval: "
+                "when it does not name a spinner carrying one.",
+            )
+        return (frames, interval)
+
+    @cached_property
     def screenshot_frame(self) -> dict[str, Any]:
         """Window the capture is drawn in, set by the `:screenshot-*:` options.
 
@@ -927,6 +995,29 @@ class ClickDirective(SphinxDirective):
         ```
         """
         assert self.screenshot
+        path = (
+            Path(self.env.srcdir)
+            / self.env.config.click_extra_screenshot_dir
+            / f"{self.screenshot}.svg"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        animation = self.screenshot_animation
+        if animation is not None:
+            frames, interval = animation
+            path.write_text(
+                render(
+                    columns=self.screenshot_columns,
+                    unique_id=self.screenshot,
+                    background=self.screenshot_background,
+                    frames=frames,
+                    interval=interval,
+                    **self.screenshot_frame,
+                ),
+                encoding="utf-8",
+            )
+            return
+
         lines = list(results)
         preset = self.screenshot_frame.get("preset")
         if (
@@ -945,12 +1036,6 @@ class ClickDirective(SphinxDirective):
             # Numbered whole, so line 1 is the prompt: the invocation everything
             # under it came from.
             lines = number_lines("\n".join(lines)).splitlines()
-        path = (
-            Path(self.env.srcdir)
-            / self.env.config.click_extra_screenshot_dir
-            / f"{self.screenshot}.svg"
-        )
-        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             render(
                 "\n".join(lines),
@@ -1031,6 +1116,14 @@ def _screenshot_opacity(argument: str) -> float:
     return opacity
 
 
+def _screenshot_interval(argument: str) -> float:
+    """Read the `:screenshot-interval:` option into seconds per frame."""
+    interval = float(argument)
+    if interval <= 0:
+        raise ValueError(f"{argument} is not a frame duration, which is positive.")
+    return interval
+
+
 def _screenshot_preset(argument: str) -> TerminalPreset:
     """Read the `:screenshot-preset:` option into the terminal it names."""
     return PRESETS[directives.choice(argument, tuple(sorted(PRESETS)))]
@@ -1062,8 +1155,10 @@ class RunDirective(ClickDirective):
 
     option_spec: ClassVar[OptionSpec] = ClickDirective.option_spec | {
         "screenshot": directives.unchanged_required,
+        "screenshot-animate": directives.unchanged_required,
         "screenshot-backdrop": directives.unchanged_required,
         "screenshot-background": _screenshot_background,
+        "screenshot-interval": _screenshot_interval,
         "screenshot-border": directives.unchanged_required,
         "screenshot-border-width": directives.nonnegative_int,
         "screenshot-columns": _screenshot_columns,

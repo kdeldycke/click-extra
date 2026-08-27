@@ -39,6 +39,7 @@ from click_extra.sphinx.click import (
     _screenshot_opacity,
     program_from_command_line,
 )
+from click_extra.spinner_presets import SPINNERS
 
 from .conftest import (
     HTML,
@@ -1389,6 +1390,146 @@ def test_click_run_screenshot_writes_the_asset(sphinx_app_myst):
     assert "papaya" in svg
     # The results block is still rendered, rather than swapped for the image.
     assert "papaya" in html_output
+
+
+ANIMATED_SOURCE = """
+    ```{click:source}
+    :hide-source:
+    from click_extra import SPINNERS, Spinner, Style, command, echo
+
+    @command
+    def greet():
+        echo("Hello, papaya!")
+
+    steeping = Spinner("Steeping", spinner=SPINNERS["moon"], style=Style(fg="green"))
+    ```
+"""
+"""A spinner and a CLI, seeded for the animated-capture blocks below."""
+
+
+def test_click_run_screenshot_animate_stacks_a_spinner(sphinx_app_myst):
+    """``:screenshot-animate:`` draws every frame of the spinner it names.
+
+    The frames and the interval are taken off the spinner itself, so the picture
+    and the animation cannot disagree about either.
+    """
+    sphinx_app_myst.build_document(
+        dedent(ANIMATED_SOURCE)
+        + dedent("""
+            ```{click:run}
+            :screenshot: steeping-screen
+            :screenshot-animate: steeping
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "steeping-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    frame_count = len(SPINNERS["moon"].frames)
+    assert len(re.findall(r'class="steeping-screen-f\d+"', svg)) == frame_count
+    assert svg.count("@keyframes ") == frame_count
+    assert "prefers-reduced-motion" in svg
+    # The block's own results are not what the picture shows.
+    assert "papaya" not in svg
+    # Chrome is drawn once, whatever the frame count.
+    assert svg.count("<clipPath") == 1
+
+
+def test_click_run_screenshot_animate_defines_every_class_it_uses(sphinx_app_myst):
+    """No frame names a class the animated capture leaves undefined.
+
+    A frame whose rules are missing does not vanish: it falls back to the
+    presentation attributes and draws in the wrong face and the wrong color,
+    which reads as the animation resetting its styling once a cycle.
+    """
+    sphinx_app_myst.build_document(
+        dedent(ANIMATED_SOURCE)
+        + dedent("""
+            ```{click:run}
+            :screenshot: styled-steeping-screen
+            :screenshot-animate: steeping
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "styled-steeping-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    stylesheet = re.search(r"<style>(.*?)</style>", svg, re.DOTALL).group(1)
+    used = set(re.findall(r'class="([\w-]+)"', svg))
+    defined = set(re.findall(r"\.([\w-]+)\s*\{", stylesheet))
+    assert not used - defined, f"undefined: {sorted(used - defined)}"
+
+
+def test_click_run_screenshot_animate_accepts_bare_frames(sphinx_app_myst):
+    """A sequence of texts animates too, timed by ``:screenshot-interval:``."""
+    sphinx_app_myst.build_document(
+        dedent(ANIMATED_SOURCE)
+        + dedent("""
+            ```{click:run}
+            :screenshot: pears-screen
+            :screenshot-animate: ["one pear", "two pears", "three pears"]
+            :screenshot-interval: 0.25
+            result = invoke(greet)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "pears-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    assert len(re.findall(r'class="pears-screen-f\d+"', svg)) == 3
+    # Three frames of a quarter second each cycle in three quarters of one.
+    assert "0.75s" in svg
+
+
+def test_click_run_screenshot_animate_bare_frames_need_an_interval(sphinx_app_myst):
+    """Bare frames carry no timing of their own, so one has to be stated."""
+    content = dedent(ANIMATED_SOURCE) + dedent("""
+        ```{click:run}
+        :screenshot: untimed-screen
+        :screenshot-animate: ["one pear", "two pears"]
+        result = invoke(greet)
+        ```
+    """)
+
+    with pytest.raises(ValueError, match="screenshot-interval"):
+        sphinx_app_myst.build_document(content)
+
+
+def test_click_run_screenshot_animate_rejects_a_foreign_subject(sphinx_app_myst):
+    """Something that is neither a spinner nor frames fails the build."""
+    content = dedent(ANIMATED_SOURCE) + dedent("""
+        ```{click:run}
+        :screenshot: foreign-screen
+        :screenshot-animate: 42
+        result = invoke(greet)
+        ```
+    """)
+
+    with pytest.raises(TypeError, match="neither a Spinner nor a sequence"):
+        sphinx_app_myst.build_document(content)
+
+
+def test_click_run_screenshot_animate_is_deterministic(sphinx_app_myst):
+    """A declared subject composes the same lines on every build.
+
+    This is what lets an animated capture be committed at all: a recording would
+    time its frames a little differently on every run and dirty the tree.
+    """
+    content = dedent(ANIMATED_SOURCE) + dedent("""
+        ```{click:run}
+        :screenshot: stable-screen
+        :screenshot-animate: steeping
+        result = invoke(greet)
+        ```
+    """)
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "stable-screen.svg"
+    sphinx_app_myst.build_document(content)
+    first = asset.read_text(encoding="utf-8")
+    sphinx_app_myst.build_document(content)
+    assert asset.read_text(encoding="utf-8") == first
 
 
 def test_click_run_screenshot_background(sphinx_app_myst):

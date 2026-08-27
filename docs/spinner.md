@@ -58,6 +58,29 @@ lines = spinner.frame_lines()
 
 Colors are applied by default, whatever stream the spinner itself would have drawn on: a picture carries its own answer to whether ANSI survives. Pass `color=False` for the bare text. These lines are what an [animated capture](screenshots.md#animated-captures) stacks into an SVG.
 
+A documentation page asks for that picture with [`:screenshot-animate:`](sphinx.md#committed-captures), naming the spinner to draw. The option takes the frames and the interval straight off it, so the image below is built from the same object the paragraph above describes:
+
+```{click:source}
+:hide-source:
+from click_extra import SPINNERS, Spinner, Style
+
+brewing = Spinner("Brewing tea", spinner=SPINNERS["moon"], style=Style(fg="#f1fa8c"))
+```
+
+```{click:run}
+:screenshot: moon-spinner
+:screenshot-animate: brewing
+:screenshot-columns: 24
+:screenshot-margin: 16
+:hide-results:
+assert len(brewing.frame_lines()) == len(SPINNERS["moon"].frames)
+assert "Brewing tea" in brewing.frame_lines()[0]
+```
+
+![A spinner cycling the phases of the moon beside a Brewing tea label](assets/moon-spinner.svg)
+
+Because the frames come from a declared spinner rather than from a timed recording, the same expression composes the same lines on every build: the committed asset is rewritten byte for byte and the working tree stays clean.
+
 ## Spinner catalog
 
 `SPINNERS` is a catalog of around 90 ready-made animations, each a `SpinnerPreset` bundling the frames and the interval they were tuned for. They are ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners), the de-facto reference collection. Pick one with `spinner=`:
