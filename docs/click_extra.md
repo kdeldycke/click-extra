@@ -198,6 +198,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.recording module
+
+```{eval-rst}
+.. automodule:: click_extra.recording
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.rst_to_myst module
 
 ```{eval-rst}
