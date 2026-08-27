@@ -31,6 +31,7 @@
 - Hide an animated capture's frames with an attribute rather than a stylesheet rule, so a renderer ignoring `<style>` stops stacking every frame at once.
 - Fall back to an animated capture's last frame rather than its first, which is the one an accumulating animation says the most with.
 - Illustrate the spinner page's concurrency, progress-bar and outcome sections with recorded animations.
+- Ship a subset of JuliaMono with the documentation, so box-drawing and Braille glyphs stop breaking the alignment of captured terminal tables.
 - Give each SVG column its own offset and size it in terminal cells, so a capture renders correctly outside a browser and never squeezes wide glyphs.
 - Declare `UTF-8` in every SVG capture, which a reader assuming the platform's encoding would otherwise render as mojibake.
 - Cast an SVG capture's shadow from a rectangle of its own, so a renderer refusing the filter no longer drops the window's background and frame with it.

@@ -23,6 +23,7 @@ import sys
 import threading
 import time
 from collections.abc import Callable
+from pathlib import Path
 
 import click
 import pytest
@@ -1302,3 +1303,73 @@ def test_progress_bar_registers_as_active_line_not_spinner():
         assert active_spinner(stream) is None
     # The trail deregisters its indicator on exit.
     assert _active_line(stream) is None
+
+
+CUSTOM_CSS = Path(__file__).parent.parent / "docs" / "_static" / "custom.css"
+"""Stylesheet carrying the documentation's `unicode-range` declaration."""
+
+GRIDLESS_BLOCKS = (
+    (0x2500, 0x257F),  # Box drawing, which the catalog's own table borders use.
+    (0x2580, 0x259F),  # Block elements.
+    (0x25A0, 0x25FF),  # Geometric shapes.
+    (0x2800, 0x28FF),  # Braille patterns.
+)
+"""Ranges no mainstream monospace font carries a glyph for.
+
+A browser substitutes one that knows nothing of the character grid, so these
+come out narrow or wide and a captured table's columns slide apart along the
+row. `docs/_static/custom.css` binds a subset font to exactly these.
+"""
+
+
+def declared_unicode_ranges() -> list[tuple[int, int]]:
+    """Read the codepoint spans the documentation's stylesheet claims."""
+    css = CUSTOM_CSS.read_text(encoding="utf-8")
+    declaration = re.search(r"unicode-range:\s*([^;]+);", css)
+    assert declaration, "the stylesheet declares no unicode-range"
+    spans = []
+    for entry in declaration.group(1).split(","):
+        # A span is written `U+2500-257F`, with the `U+` stated once only.
+        bounds = re.match(r"U\+([0-9A-Fa-f]+)(?:-([0-9A-Fa-f]+))?", entry.strip())
+        assert bounds, f"{entry.strip()!r} is not a codepoint span"
+        low = int(bounds.group(1), 16)
+        spans.append((low, int(bounds.group(2), 16) if bounds.group(2) else low))
+    return spans
+
+
+@pytest.mark.once
+def test_catalog_gridless_glyphs_are_covered_by_the_docs_font(invoke):
+    """Every glyph a browser cannot size is one the documentation ships a font for.
+
+    The catalog table is laid out on a character grid, and a browser only
+    reproduces that if every glyph advances by one cell. `custom.css` binds a
+    subset font to the ranges no ordinary monospace font carries; this checks
+    the two have not drifted apart, which they would the moment the declaration
+    is narrowed or a spinner starts drawing from a range it omits.
+
+    ```{note}
+    Narrower than the problem it guards: it checks the ranges already known to
+    need a font, not that a *newly* used range has been noticed. A spinner
+    drawn from some other gridless block would pass here and still misalign.
+    ```
+    """
+    result = invoke(demo, args=["--no-color", "spinner", "--all", "--table"])
+    assert result.exit_code == 0
+
+    declared = declared_unicode_ranges()
+    used = {
+        ord(character)
+        for character in result.stdout
+        if any(low <= ord(character) <= high for low, high in GRIDLESS_BLOCKS)
+    }
+    assert used, "the catalog drew none of the glyphs this is about"
+
+    uncovered = sorted(
+        codepoint
+        for codepoint in used
+        if not any(low <= codepoint <= high for low, high in declared)
+    )
+    assert not uncovered, (
+        "the documentation ships no font for "
+        f"{', '.join(f'U+{codepoint:04X}' for codepoint in uncovered)}"
+    )

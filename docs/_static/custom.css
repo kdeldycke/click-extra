@@ -100,3 +100,38 @@
 article p[align="center"]:has(img[alt="Click Extra"]) {
   display: none;
 }
+
+/* Hold a terminal capture's columns in line inside a <pre>.
+ *
+ * A capture is laid out on a character grid: every row of the spinner catalog
+ * table is exactly 109 terminal cells wide. A browser only reproduces that if
+ * every glyph advances by one cell, and for two ranges none of the monospace
+ * fonts named below carries a glyph at all. The system substitutes one that
+ * knows nothing of the grid, so box-drawing characters come out narrow, Braille
+ * comes out wide, and the error accumulates along the row until the table's
+ * right border wanders off. Emoji are fine, being genuinely double-width.
+ *
+ * The fix is a subset of JuliaMono, which carries all 512 of those glyphs on a
+ * single 0.6 em advance, bound to `unicode-range` so it is consulted for those
+ * codepoints and nothing else: every other character keeps whatever monospace
+ * font the reader already has. 0.6 em is what SF Mono, Menlo and Consolas all
+ * advance by, so the two fonts share one grid.
+ *
+ * Regenerate with `fonttools subset` from the JuliaMono webfonts release,
+ * keeping U+2500-257F, U+2580-259F, U+25A0-25FF and U+2800-28FF. Licensed
+ * under the SIL Open Font License, see juliamono-license.txt next door.
+ * Source: https://github.com/cormullion/juliamono
+ */
+@font-face {
+  font-family: "JuliaMono Symbols";
+  src: url("juliamono-symbols.woff2") format("woff2");
+  font-display: swap;
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+2500-257F, U+2580-259F, U+25A0-25FF, U+2800-28FF;
+}
+
+body {
+  --font-stack--monospace: "JuliaMono Symbols", "SFMono-Regular", Menlo, Consolas,
+    Monaco, "Liberation Mono", "Lucida Console", monospace;
+}
