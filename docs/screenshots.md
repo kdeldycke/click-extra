@@ -2,9 +2,9 @@
 
 click-extra produces colored terminal output, and inside this Sphinx documentation the [`click:run`](sphinx.md) directive executes each CLI and renders its real output at build time, so these pages need no screenshots. A README on GitHub or PyPI, a slide, a social post or a page of your own cannot run code, and those surfaces need a capture instead. click-extra ships the command that produces one, as an image or as HTML:
 
-![A help screen captioned, numbered and left see-through on a gradient backdrop](assets/styled-window-screen.svg)
+![A help screen captioned, numbered, part-highlighted and left see-through on a gradient backdrop](assets/styled-window-screen.svg)
 
-Every part of that window answers to an option: the [terminal it is drawn as](#terminal-presets), the [chrome under its colors](#light-and-dark-chrome), the backdrop, the caption, the line numbers, the transparency, the border, the shadow, the corner radius and the room around it. The [block that produced it](#all-of-it-at-once) sits further down this page, and rewrites the image on every build.
+Every part of that window answers to an option: the [terminal it is drawn as](#terminal-presets), the [chrome under its colors](#light-and-dark-chrome), the backdrop, the caption, the line numbers, the lines picked out, the transparency, the border, the shadow, the corner radius and the room around it. The [block that produced it](#all-of-it-at-once) sits further down this page, and rewrites the image on every build.
 
 ## The `screenshot` command
 
@@ -344,13 +344,14 @@ A capture written by a [`click:run` block](sphinx.md#committed-captures) carries
 
 #### All of it at once
 
-Here is the `pantry` screen again, on a gradient, captioned, numbered, rounded, given room to breathe, and left see-through enough for the gradient to tint it. The second tab is the block that wrote it, options and assertions included:
+Here is the `pantry` screen again, on a gradient, captioned, numbered, rounded, given room to breathe, left see-through enough for the gradient to tint it, and with its `Options:` heading and its `--crates` entry picked out. The second tab is the block that wrote it, options and assertions included:
 
 ```{click:run}
 :screenshot: styled-window-screen
 :screenshot-columns: auto
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-emphasize-lines: 9,15-16
 :screenshot-line-numbers:
 :screenshot-opacity: 0.75
 :screenshot-radius: 12
@@ -364,7 +365,7 @@ assert "--crates" in result.stdout
 ``````{tab-set}
 `````{tab-item} Captured image
 :sync: captured-image
-![The pantry help screen, captioned and numbered on a gradient backdrop](assets/styled-window-screen.svg)
+![The pantry help screen, captioned, numbered and part-highlighted on a gradient backdrop](assets/styled-window-screen.svg)
 `````
 
 `````{tab-item} The block behind it
@@ -375,6 +376,7 @@ assert "--crates" in result.stdout
 :screenshot-columns: auto
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-emphasize-lines: 9,15-16
 :screenshot-line-numbers:
 :screenshot-opacity: 0.75
 :screenshot-radius: 12
@@ -424,6 +426,7 @@ def record(demo):
 :screenshot-columns: auto
 :screenshot-title: 🍎 pantry restock
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-emphasize-lines: 3
 :screenshot-line-numbers:
 :screenshot-opacity: 0.75
 :screenshot-radius: 12
@@ -432,9 +435,9 @@ def record(demo):
 assert callable(restock)
 ```
 
-![A spinner restocking a pantry, numbered and see-through on a gradient backdrop](assets/styled-window-animated-screen.svg)
+![A spinner restocking a pantry, numbered and see-through on a gradient backdrop, its third line picked out](assets/styled-window-animated-screen.svg)
 
-The gutter counts each frame's own rows, so it grows as the trail does. The window is drawn once and every frame is stacked inside it, which is why a gradient this size costs the animation nothing over the still.
+The gutter counts each frame's own rows, so it grows as the trail does, while the band on the third line does not move: emphasis marks a row of the screen, and the trail grows into it and past it. The window is drawn once and every frame is stacked inside it, which is why a gradient this size costs the animation nothing over the still.
 
 ### Terminal presets
 
