@@ -286,6 +286,35 @@ The numbers land in the terminal text rather than in a column of their own, whic
 
 It also means the gutter spends columns the command already used: a screen wrapped at 80 comes back a few characters too wide, and folds. Pair the flag with [`--columns auto`](#width), or with a width that leaves room for the gutter, so the image grows instead of the lines breaking.
 
+#### Emphasized lines
+
+`--emphasize-lines` draws a band behind the lines it names, the way Pygments marks a highlighted line in a code block. Line 1 is the prompt, the same line the gutter counts first:
+
+```shell-session
+$ click-extra screenshot --output marked.svg --emphasize-lines 2,4-5 -- my-cli --help
+```
+
+The band is mixed from the chrome it is drawn on rather than stated outright, so one setting answers for both: a shade lighter than a dark terminal is a shade darker than a light one, and each reads as the same emphasis. It spans the full width of the grid, gutter included, and sits behind the text and behind any background a run of output painted for itself.
+
+```{click:run}
+:screenshot: emphasized-screen
+:screenshot-columns: auto
+:screenshot-emphasize-lines: 9,15-16
+:screenshot-margin: 16
+:hide-results:
+result = invoke(pantry, args=["--help"])
+assert result.exit_code == 0
+assert "--crates" in result.stdout
+```
+
+![A help screen with its Options heading and the two lines of --crates banded](assets/emphasized-screen.svg)
+
+Lines are counted on the *canvas*, blanks included, which is what a gutter would number rather than what a reader counts by eye. Turn `:screenshot-line-numbers:` on while choosing them and the two agree.
+
+Ranges on the command line are closed, so state both ends: a capture's height is only known once the command has run and its output has been trimmed, which is too late for `4-` to mean anything. Inside a documentation block that height *is* known, so [`:screenshot-emphasize-lines:`](sphinx.md#committed-captures) takes the open-ended form too.
+
+An [animated capture](#animated-captures) bands the same way. The emphasis marks a row of the screen rather than anything one frame drew there, so it is drawn once behind every frame and holds still while the animation moves under it.
+
 #### The credit line
 
 Every capture the command writes carries a credit in its bottom-right corner, in the margin around the window. Here is one, reading `generated with pantry 1.4.2` because that is what shot it:

@@ -1716,6 +1716,86 @@ def test_click_run_screenshot_speed_scales_the_recorded_frames(sphinx_app_myst):
     assert "period=2.8s" in asset.read_text(encoding="utf-8")
 
 
+def test_click_run_screenshot_emphasize_lines_bands_a_still(sphinx_app_myst):
+    """`:screenshot-emphasize-lines:` draws a band behind the lines it names."""
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            @command
+            def stock():
+                for fruit in ("apples", "bread", "cheese", "damsons"):
+                    echo(f"{fruit} shelved")
+            ```
+
+            ```{click:run}
+            :screenshot: banded-screen
+            :screenshot-emphasize-lines: 2,4-5
+            result = invoke(stock)
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "banded-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    bands = re.findall(r'<rect fill="(#[0-9a-f]+)" x="0" y="([\d.]+)"', svg)
+    assert len(bands) == 3, "one band per emphasized line"
+    # All three share the one blended shade, and none sits on the first line.
+    assert len({fill for fill, _ in bands}) == 1
+    assert "0" not in {offset for _, offset in bands}
+
+
+def test_click_run_screenshot_emphasize_lines_bands_an_animation(sphinx_app_myst):
+    """A band marks a row of the screen, so an animation keeps it throughout.
+
+    Drawn once behind every frame rather than per frame: the emphasis is on the
+    row, not on whatever a given frame happened to put there.
+    """
+    sphinx_app_myst.build_document(
+        dedent(RECORDED_SOURCE)
+        + dedent("""
+            ```{click:run}
+            :screenshot: banded-animation-screen
+            :screenshot-record: kettle
+            :screenshot-emphasize-lines: 1
+            :hide-results:
+            assert kettle
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "banded-animation-screen.svg"
+    svg = asset.read_text(encoding="utf-8")
+    assert len(re.findall(r'<rect fill="#[0-9a-f]+" x="0" y="[\d.]+"', svg)) == 1
+    # Outside every frame group, so no frame can take the band with it.
+    assert svg.index('x="0" y="') < svg.index('<g class="banded-animation-screen-f0"')
+
+
+def test_click_run_screenshot_emphasize_lines_rejects_a_line_that_is_not_there(
+    sphinx_app_myst,
+):
+    """Naming a line the capture never drew fails the build rather than passing."""
+    content = dedent("""
+        ```{click:source}
+        from click_extra import command, echo
+
+        @command
+        def stock():
+            echo("apples shelved")
+        ```
+
+        ```{click:run}
+        :screenshot: overreach-screen
+        :screenshot-emphasize-lines: 40
+        result = invoke(stock)
+        ```
+    """)
+
+    with pytest.raises(ValueError, match="emphasize line 40"):
+        sphinx_app_myst.build_document(content)
+
+
 def test_click_run_screenshot_background(sphinx_app_myst):
     """``:screenshot-background:`` draws the capture on the chrome it names."""
     sphinx_app_myst.build_document(

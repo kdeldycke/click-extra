@@ -441,6 +441,15 @@ that a table's rule stays a handful of elements rather than one per cell. See
 DIM_RATIO = 0.4
 """How far a `dim` run's ink is mixed toward the background, see {func}`blend`."""
 
+EMPHASIS_RATIO = 0.16
+"""How far an emphasized line's band is mixed from the background toward the ink.
+
+Mixed rather than stated outright, so one number answers for every chrome: a
+band a shade lighter than a dark terminal is a shade darker than a light one,
+and both read as the same emphasis. Far enough to find the line at a glance,
+near enough to leave its text the thing being read.
+"""
+
 RTL_BIDI_CLASSES = frozenset({"R", "AL", "AN"})
 """Unicode bidirectional classes written right to left.
 
@@ -1365,6 +1374,7 @@ def render_svg(
     hold: float = 0.0,
     blank: float = 0.0,
     speed: float = 1.0,
+    emphasize: Sequence[int] = (),
     palette: TerminalPalette = CAPTURE_PALETTES[CaptureBackground.DARK],
     font_stack: str = CAPTURE_FONT_STACK,
     border: str = NO_PAINT,
@@ -1442,6 +1452,11 @@ def render_svg(
         every frame's time and `0.5` doubles it. `hold` and `blank` are stated
         in real seconds and are not scaled: they are how long a reader is given,
         not part of what is being replayed.
+    :param emphasize: lines to draw a band behind, counted from `1` the way
+        `:emphasize-lines:` counts them. The band is a property of the row
+        rather than of any one frame, so an animation carries it at the same
+        place throughout, and a line that is empty in one frame still marks
+        where the emphasis sits.
     :param palette: terminal colors the capture's ANSI codes resolve against.
     :param font_stack: fonts the text is set in, best first.
     :param border: paint for the window's frame. {data}`NO_PAINT` draws none.
@@ -1467,7 +1482,8 @@ def render_svg(
     :param watermark_color: color that line is drawn in, alpha included.
     :return: the SVG source.
     :raises ValueError: when `frames` is given without an `interval`, when the
-        two disagree on how many frames there are, or when no frame is given.
+        two disagree on how many frames there are, when no frame is given, or
+        when `emphasize` names a line the capture does not have.
     """
     animated = frames is not None
     pictures = tuple(frames) if frames is not None else (text,)
@@ -1557,6 +1573,12 @@ def render_svg(
     dropped = TITLEBAR_HEIGHT if collapse_titlebar else 0
     text_width = columns * CELL_WIDTH
     text_height = row_count * LINE_HEIGHT
+    beyond = sorted(line for line in emphasize if not 1 <= line <= row_count)
+    if beyond:
+        raise ValueError(
+            f"Cannot emphasize line {', '.join(map(str, beyond))} of a capture "
+            f"{row_count} lines long."
+        )
     window_width = ceil(text_width + 2 * (WINDOW_PADDING + padding))
     window_height = (
         text_height + TITLEBAR_HEIGHT + WINDOW_PADDING - dropped + 2 * padding
@@ -1730,12 +1752,23 @@ def render_svg(
         still_cells = "".join(row_cells for row_cells, _ in painted[0])
         still_glyphs = "".join(row_glyphs for _, row_glyphs in painted[0])
         stack = f"{still_cells}{matrix}{still_glyphs}</g>"
+    # Behind the text and behind every frame, because an emphasized line marks a
+    # row of the screen rather than anything a particular frame drew there.
+    banded = "".join(
+        f'<rect fill="{blend(palette.background, palette.foreground, EMPHASIS_RATIO)}"'
+        f' x="0" y="{_svg_number((line - 1) * LINE_HEIGHT + CELL_TOP_INSET)}"'
+        f' width="{_svg_number(text_width)}"'
+        f' height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}"'
+        ' shape-rendering="crispEdges"/>'
+        for line in sorted(set(emphasize))
+    )
+
     # The clip and the offset are the window's, not a frame's, so they wrap the
     # whole stack rather than being repeated inside it.
     body.append(
         f'<g clip-path="url(#{unique_id}-clip)">'
         f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})">'
-        f"{stack}"
+        f"{banded}{stack}"
         "</g></g>"
     )
     body.append(
@@ -1923,6 +1956,7 @@ def render(
     hold: float = 0.0,
     blank: float = 0.0,
     speed: float = 1.0,
+    emphasize: Sequence[int] = (),
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
@@ -1959,6 +1993,8 @@ def render(
     :param blank: SVG only. Seconds of empty screen closing the cycle, see
         {func}`render_svg`.
     :param speed: SVG only. How much faster to play than recorded, see
+        {func}`render_svg`.
+    :param emphasize: SVG only. Lines to draw a band behind, see
         {func}`render_svg`.
     :param full: HTML only. See {func}`render_html`.
     :param background: chrome to draw on, see {class}`CaptureBackground`.
@@ -2041,6 +2077,7 @@ def render(
         hold=hold,
         blank=blank,
         speed=speed,
+        emphasize=emphasize,
         palette=resolve_palette(preset, background),
         **frame,
     )
@@ -2058,6 +2095,7 @@ def capture(
     merge_stderr: bool = False,
     timeout: float | None = None,
     line_numbers: bool = False,
+    emphasize: Sequence[int] = (),
     title: str = "",
     unique_id: str | None = None,
     full: bool = True,
@@ -2096,6 +2134,8 @@ def capture(
     :param line_numbers: draw each line's number in a gutter, see
         {func}`number_lines`. The prompt counts as the first of them, being the
         invocation everything under it came from.
+    :param emphasize: lines to draw a band behind, see {func}`render_svg`. The
+        prompt is line 1 here too, and a gutter does not shift the count.
     :param title: see {func}`render`.
     :param unique_id: see {func}`render`.
     :param full: see {func}`render`.
@@ -2143,6 +2183,7 @@ def capture(
             text,
             format=format,
             columns=columns,
+            emphasize=emphasize,
             title=title,
             unique_id=unique_id,
             full=full,

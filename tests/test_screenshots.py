@@ -58,6 +58,7 @@ from click_extra.screenshot import (
     DEFAULT_WATERMARK,
     LIGHT_CAPTURE_BACKGROUND,
     LIGHT_CAPTURE_FOREGROUND,
+    LINE_HEIGHT,
     MIN_COLUMNS,
     NO_PAINT,
     OPAQUE,
@@ -425,6 +426,65 @@ def test_animated_capture_keeps_a_row_that_moves_in_every_frame():
     head = svg[: svg.index('<g class="one-f0"')]
     assert "pear" not in head, "a moving row was drawn outside the frames"
     assert svg.count("pear") == 4
+
+
+BAND_RE = re.compile(r'<rect fill="(#[0-9a-f]+)" x="0" y="([\d.]+)"')
+"""A band drawn behind an emphasized line, which is the only full-width rect."""
+
+
+def test_emphasized_lines_are_banded_where_they_sit():
+    """A band lands on the row it names, counted from one."""
+    text = "\n".join(f"crate {index}" for index in range(1, 6))
+    bands = BAND_RE.findall(render_svg(text, columns=20, emphasize=(1, 3)))
+
+    assert len(bands) == 2
+    offsets = sorted(float(offset) for _, offset in bands)
+    # Two rows apart, so two line heights apart on the canvas.
+    assert offsets[1] - offsets[0] == pytest.approx(2 * LINE_HEIGHT)
+
+
+def test_emphasis_is_mixed_from_the_chrome_it_is_drawn_on():
+    """One ratio answers for both chromes: lighter on dark, darker on light."""
+    text = "crate 1\ncrate 2"
+    shades = {}
+    for background in CaptureBackground:
+        svg = render_svg(
+            text,
+            columns=20,
+            emphasize=(1,),
+            palette=CAPTURE_PALETTES[background],
+        )
+        (fill, _), = BAND_RE.findall(svg)
+        shades[background] = fill
+
+    assert shades[CaptureBackground.DARK] != shades[CaptureBackground.LIGHT]
+    # Neither band is the background it sits on, or it would not read as one.
+    for background, fill in shades.items():
+        assert fill != CAPTURE_PALETTES[background].background
+
+
+def test_emphasis_rejects_a_line_the_capture_does_not_have():
+    """Naming a line past the end is an authoring error, not a silent no-op."""
+    with pytest.raises(ValueError, match="emphasize line 7 of a capture 2 lines"):
+        render_svg("crate 1\ncrate 2", columns=20, emphasize=(7,))
+
+
+def test_emphasis_is_drawn_once_behind_an_animation():
+    """A band marks a row of the screen, not anything a frame put there.
+
+    Drawn once, ahead of every frame group, so no frame can carry it away and
+    the emphasis holds still while the animation moves under it.
+    """
+    svg = render_svg(
+        columns=20,
+        unique_id="banded",
+        frames=("one pear", "two pears", "three pears"),
+        interval=0.1,
+        emphasize=(1,),
+    )
+
+    assert len(BAND_RE.findall(svg)) == 1
+    assert svg.index('x="0" y="') < svg.index('<g class="banded-f0"')
 
 
 def test_two_animations_share_no_selector():

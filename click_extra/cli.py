@@ -463,6 +463,36 @@ def _parse_columns(
     return width
 
 
+def _parse_emphasis(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: str | None,
+) -> tuple[int, ...]:
+    """Read `--emphasize-lines` into the lines it names.
+
+    Takes the shape `:emphasize-lines:` takes, `2,4-5`, minus the open-ended
+    range: a range needs the capture's height to close, and that is not known
+    until the command has run and its output has been trimmed.
+    """
+    if not value:
+        return ()
+    lines: set[int] = set()
+    for entry in value.split(","):
+        piece = entry.strip()
+        if not piece:
+            continue
+        bounds = piece.split("-")
+        if len(bounds) > 2 or not all(bound.strip().isdigit() for bound in bounds):
+            raise BadParameter(
+                f"{piece!r} is neither a line nor a closed range of them.",
+            )
+        first, last = int(bounds[0]), int(bounds[-1])
+        if first < 1 or last < first:
+            raise BadParameter(f"{piece!r} is not a range of lines, counted from 1.")
+        lines.update(range(first, last + 1))
+    return tuple(sorted(lines))
+
+
 @command(name="screenshot")
 @argument("command_line", nargs=-1, required=True, type=click.UNPROCESSED)
 @option(
@@ -613,6 +643,15 @@ def _parse_columns(
     "from.",
 )
 @option(
+    "--emphasize-lines",
+    "emphasize",
+    metavar="LINES",
+    default=None,
+    callback=_parse_emphasis,
+    help="Draw a band behind the lines named, as 2,4-5. Counted from 1, where "
+    "line 1 is the prompt. Ranges are closed: state both ends.",
+)
+@option(
     "--title",
     default="",
     help="Caption drawn in an SVG's window chrome, or an HTML document's title.",
@@ -658,6 +697,7 @@ def screenshot_cmd(
     truncation: str,
     merge_stderr: bool,
     line_numbers: bool,
+    emphasize: tuple[int, ...],
     title: str,
     fragment: bool,
     wrap: bool,
@@ -730,6 +770,7 @@ def screenshot_cmd(
             merge_stderr=merge_stderr,
             timeout=timeout,
             line_numbers=line_numbers,
+            emphasize=emphasize,
             title=title,
             unique_id=output.stem,
             full=not fragment,

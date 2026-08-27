@@ -51,7 +51,7 @@ from docutils import nodes
 from packaging.version import Version
 from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
-from sphinx.util import logging
+from sphinx.util import logging, parselinenos
 
 from ..blocks import OPTION_LINE_RE, fence_spans, marker_res, update_blocks
 from ..color import forced_color
@@ -972,6 +972,29 @@ class ClickDirective(SphinxDirective):
             return None
         return self.resolve_animation(expression, ":screenshot-animate:")
 
+    def screenshot_emphasis(self, total: int) -> tuple[int, ...]:
+        """Lines the capture bands, set by `:screenshot-emphasize-lines:`.
+
+        Takes the same specification `:emphasize-lines:` does, `1,3-5` and the
+        rest, and counts from one the same way. It is read here rather than at
+        option-parsing time because the specification may name a range open at
+        one end, which only means something once the capture's height is known.
+
+        :param total: how many lines the capture is drawing.
+        :return: the lines to band, counted from one.
+        :raises ValueError: when the specification names no readable line.
+        """
+        spec = self.options.get("screenshot-emphasize-lines")
+        if not spec:
+            return ()
+        try:
+            wanted = parselinenos(spec, total)
+        except ValueError as exc:
+            raise ValueError(
+                f"click:run: :screenshot-emphasize-lines: {spec!r}: {exc}",
+            ) from exc
+        return tuple(index + 1 for index in wanted)
+
     def numbered(self, frames: tuple[str, ...]) -> tuple[str, ...]:
         """Number every frame's lines when `:screenshot-line-numbers:` asks.
 
@@ -1108,6 +1131,9 @@ class ClickDirective(SphinxDirective):
                     unique_id=self.screenshot,
                     background=self.screenshot_background,
                     frames=self.numbered(frames),
+                    emphasize=self.screenshot_emphasis(
+                        max(frame.count("\n") + 1 for frame in frames)
+                    ),
                     interval=interval,
                     hold=self.screenshot_hold(DEFAULT_RECORDING_HOLD),
                     blank=self.options.get("screenshot-blank", DEFAULT_RECORDING_BLANK),
@@ -1126,6 +1152,9 @@ class ClickDirective(SphinxDirective):
                 unique_id=self.screenshot,
                 background=self.screenshot_background,
                 frames=self.numbered(frames),
+                emphasize=self.screenshot_emphasis(
+                    max(frame.count("\n") + 1 for frame in frames)
+                ),
                 interval=interval,
                 hold=self.screenshot_hold(0.0),
                 blank=self.options.get("screenshot-blank", 0.0),
@@ -1156,6 +1185,7 @@ class ClickDirective(SphinxDirective):
         path.write_text(
             render(
                 "\n".join(lines),
+                emphasize=self.screenshot_emphasis(len(lines)),
                 columns=self.screenshot_columns,
                 unique_id=self.screenshot,
                 background=self.screenshot_background,
@@ -1288,6 +1318,7 @@ class RunDirective(ClickDirective):
         "screenshot-blank": _screenshot_hold,
         "screenshot-border-width": directives.nonnegative_int,
         "screenshot-columns": _screenshot_columns,
+        "screenshot-emphasize-lines": directives.unchanged_required,
         "screenshot-hold": _screenshot_hold,
         "screenshot-line-numbers": directives.flag,
         "screenshot-margin": directives.nonnegative_int,
