@@ -85,7 +85,7 @@ from .theme import BUILTIN_THEMES
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Sequence
     from pathlib import Path
     from typing import Any, Literal, TypeAlias
 
@@ -444,6 +444,28 @@ RTL_BIDI_CLASSES = frozenset({"R", "AL", "AN"})
 
 Right-to-left letters, Arabic letters and Arabic-Indic numbers, as
 {func}`unicodedata.bidirectional` names them. See {func}`is_bidirectional`.
+"""
+
+FRAME_TIMING_FUNCTION = "step-end"
+"""How an animated capture moves between two frames: it does not.
+
+A terminal repaints a whole cell at once, so a capture of one has nothing to
+interpolate. `step-end` holds each keyframe's value until the next one is
+reached, which turns a percentage ladder into discrete frames and lets every
+frame state its own window. That is what carries a recording, whose frames each
+last as long as the terminal held them, on the same machinery as a spinner,
+whose frames are all the same length.
+"""
+
+REDUCED_MOTION_QUERY = "@media (prefers-reduced-motion: no-preference)"
+"""Guard every animation rule an animated capture emits sits behind.
+
+{mod}`click_extra.accessibility` counts an endlessly repeating spinner among the
+things `--accessible` exists to lower, and an image looping forever on a
+documentation page is the same imposition on a reader who asked their system for
+less motion. Outside the guard the first frame stays visible and the rest stay
+hidden, which is the picture a renderer that reads no CSS animation already
+gets, so honoring the preference costs a media query and no second code path.
 """
 
 WINDOW_PADDING = 8
@@ -1172,12 +1194,75 @@ def run_paint(style: Style, palette: TerminalPalette) -> str | None:
     return None if style.bg is None else palette_color(style.bg, palette)
 
 
+def _css_number(value: float) -> str:
+    """Render a CSS percentage or duration compactly, and the same every time."""
+    return f"{value:g}"
+
+
+def frame_animation_css(unique_id: str, durations: Sequence[float]) -> str:
+    """Time an animated capture's frames into CSS animation rules.
+
+    Every frame is shown for its own slice of one cycle, so a recording whose
+    frames each lasted as long as the terminal held them rides the same
+    machinery as a spinner whose frames are all one interval.
+
+    ```{note}
+    Each boundary is computed once and handed to both the frame that ends on it
+    and the frame that starts there. Rounding the two sides of one instant
+    separately is what opens a gap, which the animation shows as a blank flash,
+    or an overlap, which it shows as two frames drawn at once.
+    ```
+
+    The rules sit behind {data}`REDUCED_MOTION_QUERY`, and the plain
+    `visibility` declarations that hide every frame but the first sit outside
+    it. A CSS animation outranks a normal declaration, so the two never argue:
+    the animation drives wherever it runs, and the static picture is what is
+    left wherever it does not.
+
+    :param unique_id: prefix namespacing this document's classes and keyframes.
+    :param durations: seconds each frame is shown, in order.
+    :return: the stylesheet fragment, indented to sit in a `<style>` block.
+    :raises ValueError: when a frame is given a duration that is not positive.
+    """
+    if any(duration <= 0 for duration in durations):
+        raise ValueError("An animated capture's frames each last a positive time.")
+    total = sum(durations)
+    boundaries = []
+    running = 0.0
+    for duration in durations:
+        running += duration
+        boundaries.append(_css_number(running / total * 100))
+    # Float addition is not associative, so the running total need not land back
+    # on the sum it was accumulated from. The cycle ends at its end regardless.
+    boundaries[-1] = "100"
+
+    rules = []
+    for index, end in enumerate(boundaries):
+        steps = [f"0% {{ visibility: {'visible' if index == 0 else 'hidden'}; }}"]
+        if index:
+            steps.append(f"{boundaries[index - 1]}% {{ visibility: visible; }}")
+        steps.append(f"{end}% {{ visibility: hidden; }}")
+        rules.append(
+            f"    @keyframes {unique_id}-f{index} {{ {' '.join(steps)} }}\n"
+            f"    .{unique_id}-f{index} {{ animation: {unique_id}-f{index} "
+            f"{_css_number(total)}s {FRAME_TIMING_FUNCTION} infinite; }}"
+        )
+    animation = "\n".join(rules)
+    hidden = " ".join(
+        f".{unique_id}-f{index} {{ visibility: hidden; }}"
+        for index in range(1, len(durations))
+    )
+    return f"    {REDUCED_MOTION_QUERY} {{\n{animation}\n    }}\n    {hidden}"
+
+
 def render_svg(
-    text: str,
+    text: str = "",
     *,
     columns: int,
     title: str = "",
     unique_id: str | None = None,
+    frames: Sequence[str] | None = None,
+    interval: float | Sequence[float] | None = None,
     palette: TerminalPalette = CAPTURE_PALETTES[CaptureBackground.DARK],
     font_stack: str = CAPTURE_FONT_STACK,
     border: str = NO_PAINT,
@@ -1216,11 +1301,32 @@ def render_svg(
     proportional font. Starting each run on its own column asks neither.
     ```
 
-    :param text: captured output, ANSI escape sequences included.
+    Passing `frames` draws an animation instead of a still. The window, its
+    caption and its clip path are drawn once and every frame is stacked inside
+    them, so the frames differ in nothing but their text, and one stylesheet
+    covers the lot: a color two frames share is one rule, and a frame cannot
+    name a class the document never defines. Frames are hidden by
+    {func}`frame_animation_css` in turn, leaving the first one visible wherever
+    the animation does not run.
+
+    ```{note}
+    Everything a frame carries is namespaced by `unique_id`, keyframes
+    included, so two animations inlined into one HTML page keep their own
+    timing. Sharing a selector between them is what makes the shorter one run
+    on the longer one's clock and blank out for the frames it does not have.
+    ```
+
+    :param text: captured output, ANSI escape sequences included. The whole
+        picture when `frames` is left out, and unused when it is given.
     :param columns: width of the terminal, in characters.
     :param title: caption drawn in the window's title bar. Empty draws none.
     :param unique_id: prefix namespacing this document's CSS classes and element
         IDs, see {func}`render`. Derived from the content when not given.
+    :param frames: the animation's frames, each captured text, in order. A
+        single frame draws the same still `text` would.
+    :param interval: seconds each frame is shown. One number times every frame
+        alike, which is what a spinner asks for; a sequence gives each frame its
+        own, which is what a recording asks for. Required alongside `frames`.
     :param palette: terminal colors the capture's ANSI codes resolve against.
     :param font_stack: fonts the text is set in, best first.
     :param border: paint for the window's frame. {data}`NO_PAINT` draws none.
@@ -1245,49 +1351,79 @@ def render_svg(
     :param watermark: credit line drawn in the image's bottom-right corner.
     :param watermark_color: color that line is drawn in, alpha included.
     :return: the SVG source.
+    :raises ValueError: when `frames` is given without an `interval`, when the
+        two disagree on how many frames there are, or when no frame is given.
     """
-    rows = grid(text.rstrip("\n"), columns)
+    animated = frames is not None
+    pictures = tuple(frames) if frames is not None else (text,)
+    if not pictures:
+        raise ValueError("An animated capture draws at least one frame.")
+    durations: tuple[float, ...] = ()
+    if animated:
+        if interval is None:
+            raise ValueError("An animated capture states how long a frame lasts.")
+        if isinstance(interval, int | float):
+            durations = (float(interval),) * len(pictures)
+        else:
+            durations = tuple(float(each) for each in interval)
+            if len(durations) != len(pictures):
+                raise ValueError(
+                    f"{len(pictures)} frames carry {len(durations)} durations."
+                )
     if unique_id is None:
-        unique_id = f"terminal-{zlib.adler32((text + title).encode()):d}"
+        seed = "".join(pictures) + title
+        unique_id = f"terminal-{zlib.adler32(seed.encode()):d}"
     unique_id = _NON_IDENTIFIER_RE.sub("-", unique_id)
     if buttons_color is None:
         buttons_color = palette.foreground
 
+    # One dictionary across every frame, so a color two frames share is written
+    # as a single rule and no frame can name a class the stylesheet omits.
     classes: dict[str, int] = {}
-    cells: list[str] = []
-    glyphs: list[str] = []
-    for row, runs in enumerate(rows):
-        baseline = row * LINE_HEIGHT + CELL_HEIGHT
-        for run_style, run, column in runs:
-            # The paint spans the whole run, padding included: a styled column
-            # keeps its background across the spaces trailing it.
-            paint = run_paint(run_style, palette)
-            if paint is not None:
-                cells.append(
-                    f'<rect fill="{paint}" x="{_svg_number(column * CELL_WIDTH)}" '
-                    f'y="{_svg_number(row * LINE_HEIGHT + CELL_TOP_INSET)}" '
-                    f'width="{_svg_number(cell_width(run) * CELL_WIDTH)}" '
-                    f'height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}" '
-                    'shape-rendering="crispEdges"/>'
-                )
-            # The glyphs do not, see this function's note.
-            if not run.strip(PADDING):
-                continue
-            rule = classes.setdefault(style_rules(run_style, palette), len(classes) + 1)
-            for column_text, start in column_segments(run, column):
-                for drawn, at in tile_runs(column_text, start):
-                    glyphs.append(
-                        f'<text class="{unique_id}-r{rule}" '
-                        f"{glyph_offsets(drawn, at)} "
-                        f'y="{_svg_number(baseline)}">'
-                        f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
+    painted: list[tuple[str, str]] = []
+    # Frames are stacked in one window, so the tallest is what has to fit.
+    row_count = 0
+    for picture in pictures:
+        rows = grid(picture.rstrip("\n"), columns)
+        row_count = max(row_count, len(rows))
+        cells: list[str] = []
+        glyphs: list[str] = []
+        for row, runs in enumerate(rows):
+            baseline = row * LINE_HEIGHT + CELL_HEIGHT
+            for run_style, run, column in runs:
+                # The paint spans the whole run, padding included: a styled
+                # column keeps its background across the spaces trailing it.
+                paint = run_paint(run_style, palette)
+                if paint is not None:
+                    cells.append(
+                        f'<rect fill="{paint}" '
+                        f'x="{_svg_number(column * CELL_WIDTH)}" '
+                        f'y="{_svg_number(row * LINE_HEIGHT + CELL_TOP_INSET)}" '
+                        f'width="{_svg_number(cell_width(run) * CELL_WIDTH)}" '
+                        f'height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}" '
+                        'shape-rendering="crispEdges"/>'
                     )
+                # The glyphs do not, see this function's note.
+                if not run.strip(PADDING):
+                    continue
+                rule = classes.setdefault(
+                    style_rules(run_style, palette), len(classes) + 1
+                )
+                for column_text, start in column_segments(run, column):
+                    for drawn, at in tile_runs(column_text, start):
+                        glyphs.append(
+                            f'<text class="{unique_id}-r{rule}" '
+                            f"{glyph_offsets(drawn, at)} "
+                            f'y="{_svg_number(baseline)}">'
+                            f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
+                        )
+        painted.append(("".join(cells), "".join(glyphs)))
 
     # A collapsed title bar is negative padding applied to the top alone, which
     # is why both travel together through every measurement below.
     dropped = TITLEBAR_HEIGHT if collapse_titlebar else 0
     text_width = columns * CELL_WIDTH
-    text_height = len(rows) * LINE_HEIGHT
+    text_height = row_count * LINE_HEIGHT
     window_width = ceil(text_width + 2 * (WINDOW_PADDING + padding))
     window_height = (
         text_height + TITLEBAR_HEIGHT + WINDOW_PADDING - dropped + 2 * padding
@@ -1401,29 +1537,40 @@ def render_svg(
                 f"{_xml_escape(title)}</text>"
             )
 
+    # The stylesheet says all of this too, and says it once. It is repeated here
+    # as presentation attributes because a renderer is free to ignore a `<style>`
+    # block, and several do: the text then falls back to a proportional face at a
+    # default size in default black, which is a terminal capture with neither its
+    # grid nor its colors. A presentation attribute loses to any stylesheet rule,
+    # so this changes nothing for a renderer that reads both.
+    #
+    # The face is named as the bare generic keyword rather than as the stack,
+    # deliberately: a renderer poor enough to skip the stylesheet is one to hand
+    # the single most parseable value CSS has, instead of a comma-separated list
+    # of quoted family names it may take for one exotic family and fail to
+    # resolve. The stack still reaches everything that reads the stylesheet,
+    # which is what picks the nice face. This only decides what the rest fall
+    # back to, and to a picture of a terminal any monospace is worth more than
+    # the right one.
+    matrix = (
+        f'<g class="{unique_id}-matrix" font-family="monospace" '
+        f'font-size="{_svg_number(CELL_HEIGHT)}" fill="{palette.foreground}">'
+    )
+    if animated:
+        # Each frame carries its own matrix, so the attribute fallback above
+        # reaches the frames a renderer shows after the first one too.
+        stack = "".join(
+            f'<g class="{unique_id}-f{index}">{cells}{matrix}{glyphs}</g></g>'
+            for index, (cells, glyphs) in enumerate(painted)
+        )
+    else:
+        stack = f"{painted[0][0]}{matrix}{painted[0][1]}</g>"
+    # The clip and the offset are the window's, not a frame's, so they wrap the
+    # whole stack rather than being repeated inside it.
     body.append(
         f'<g clip-path="url(#{unique_id}-clip)">'
         f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})">'
-        f"{''.join(cells)}"
-        # The stylesheet says all of this too, and says it once. It is repeated
-        # here as presentation attributes because a renderer is free to ignore a
-        # `<style>` block, and several do: the text then falls back to a
-        # proportional face at a default size in default black, which is a
-        # terminal capture with neither its grid nor its colors. A presentation
-        # attribute loses to any stylesheet rule, so this changes nothing for a
-        # renderer that reads both.
-        #
-        # The face is named as the bare generic keyword rather than as the
-        # stack, deliberately: a renderer poor enough to skip the stylesheet is
-        # one to hand the single most parseable value CSS has, instead of a
-        # comma-separated list of quoted family names it may take for one exotic
-        # family and fail to resolve. The stack still reaches everything that
-        # reads the stylesheet, which is what picks the nice face. This only
-        # decides what the rest fall back to, and to a picture of a terminal any
-        # monospace is worth more than the right one.
-        f'<g class="{unique_id}-matrix" font-family="monospace" '
-        f'font-size="{_svg_number(CELL_HEIGHT)}" fill="{palette.foreground}">'
-        f"{''.join(glyphs)}</g>"
+        f"{stack}"
         "</g></g>"
     )
     body.append(
@@ -1439,6 +1586,8 @@ def render_svg(
     styles = "\n".join(
         f"    .{unique_id}-r{rule} {{ {css} }}" for css, rule in classes.items()
     )
+    if animated:
+        styles += f"\n{frame_animation_css(unique_id, durations)}"
     return (
         # A standalone SVG carries no HTTP header to state its encoding, and a
         # reader that assumes the platform's instead renders every multi-byte
@@ -1587,12 +1736,14 @@ def render_html(
 
 
 def render(
-    text: str,
+    text: str = "",
     *,
     format: CaptureFormat = CaptureFormat.SVG,
     columns: TColumns = DEFAULT_COLUMNS,
     title: str = "",
     unique_id: str | None = None,
+    frames: Sequence[str] | None = None,
+    interval: float | Sequence[float] | None = None,
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
@@ -1621,6 +1772,9 @@ def render(
         keeps a regenerated capture diffing line by line, instead of renaming
         every class as soon as a single character of output changes. Characters
         a CSS class name cannot carry are folded to a dash.
+    :param frames: SVG only. The animation's frames, see {func}`render_svg`.
+    :param interval: SVG only. How long each of them is shown, see
+        {func}`render_svg`.
     :param full: HTML only. See {func}`render_html`.
     :param background: chrome to draw on, see {class}`CaptureBackground`.
     :param border: color of the window's frame. `None` takes the one the chrome
@@ -1641,7 +1795,7 @@ def render(
     :param watermark_color: color that line is drawn in. `None` takes
         {data}`WATERMARK_INK`, which reads on a page of either color.
     :return: the rendered document.
-    :raises ImportError: rendering SVG without the `screenshot` extra installed.
+    :raises ValueError: asking an HTML capture to animate.
     """
     if border is None:
         border = CAPTURE_BORDERS[background]
@@ -1675,6 +1829,10 @@ def render(
             (preset.buttons.circles, preset.buttons.glyphs, title),
         )
     if format is CaptureFormat.HTML:
+        if frames is not None:
+            # An HTML capture is a `<pre>` of selectable text, which has no
+            # frame to hide: only the SVG draws a picture that can hold several.
+            raise ValueError(f"{CaptureFormat.HTML} captures do not animate.")
         return render_html(
             text,
             title=title,
@@ -1685,9 +1843,16 @@ def render(
         )
     return render_svg(
         text,
-        columns=fit_columns(text) if columns == AUTO_COLUMNS else columns,
+        # Frames are stacked in one window, so the widest is what has to fit.
+        columns=(
+            max(fit_columns(picture) for picture in frames or (text,))
+            if columns == AUTO_COLUMNS
+            else columns
+        ),
         title=title,
         unique_id=unique_id,
+        frames=frames,
+        interval=interval,
         palette=resolve_palette(preset, background),
         **frame,
     )

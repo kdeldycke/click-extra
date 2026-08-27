@@ -18,6 +18,7 @@
 - Add a `--fragment` option to `click-extra screenshot`, emitting an HTML capture as a bare inline-styled block instead of a standalone document.
 - Add a `--wrap` option to `click-extra screenshot`, routing the target through the `wrap` subcommand so a foreign Click CLI is captured with its colors.
 - Add a `click_extra.screenshot` module rendering a capture on a character grid, needing no optional dependency for either format.
+- Render an animated SVG capture from a sequence of frames, with the new `frames` and `interval` arguments of `render_svg`.
 - Give each SVG column its own offset and size it in terminal cells, so a capture renders correctly outside a browser and never squeezes wide glyphs.
 - Declare `UTF-8` in every SVG capture, which a reader assuming the platform's encoding would otherwise render as mojibake.
 - Cast an SVG capture's shadow from a rectangle of its own, so a renderer refusing the filter no longer drops the window's background and frame with it.

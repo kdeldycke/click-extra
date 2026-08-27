@@ -439,6 +439,37 @@ No buttons, no rounded corners, no title bar: for a capture that has to read as 
 A preset's palette is the scheme its terminal *ships with*, not the one your reader has configured theirs to. It also decides how the captured CLI's own colors land: a screen rendered for a dark theme on a light preset washes out exactly as [the chrome section](#light-and-dark-chrome) describes, since the two halves have to agree either way.
 ```
 
+### Animated captures
+
+An SVG capture can hold more than one frame. Pass `frames` a sequence of captured texts and `interval` how long each is shown: the window, its caption and its clip path are drawn once, and every frame is stacked inside them.
+
+```python
+from pathlib import Path
+
+from click_extra.screenshot import render_svg
+from click_extra.spinner_presets import SPINNERS
+from click_extra.styling import Style
+
+preset = SPINNERS["moon"]
+lemon = Style(fg="#f1fa8c")
+Path("brewing.svg").write_text(
+    render_svg(
+        columns=34,
+        title="brewing",
+        unique_id="brewing",
+        frames=[lemon(f"{frame}  brewing tea…") for frame in preset.frames],
+        interval=preset.interval,
+    ),
+    encoding="utf-8",
+)
+```
+
+One number for `interval` times every frame alike, which is what a spinner asks for. A sequence gives each frame its own, which is what a recording asks for.
+
+Because the frames differ in nothing but their text, one stylesheet covers the lot: a color two frames share is written as a single rule, and no frame can name a class the document leaves undefined. Everything is namespaced by `unique_id`, keyframes included, so two animations inlined into one page keep their own timing instead of the shorter one running on the longer one's clock.
+
+The first frame stays visible and the rest stay hidden wherever the animation does not run. That covers a renderer reading no CSS animation, and a reader whose system asks for reduced motion, which the capture honors with a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard. An animated capture is therefore always a still as well, and never a blank rectangle.
+
 ### Stating a default once
 
 `screenshot` is itself a Click Extra CLI, so every option above is also a configuration key. A project drawing all of its captures the same way says so once, in the `pyproject.toml` [click-extra finds by walking up from the working directory](config.md#pyproject-toml):
