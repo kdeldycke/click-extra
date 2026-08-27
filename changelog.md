@@ -138,6 +138,9 @@
 - Fix the source line a Sphinx warning reports when raised inside a block a `click:*` or `python:*` directive generates: it now points at the directive's body in both reST and MyST.
 - Document `CliRunner`, the Pytest fixtures and helpers, and the parameter tree behind `--params`, replacing four placeholder sections.
 - Escape quotes in an OSC 8 hyperlink's URL when `AnsiHtmlFormatter` renders it, so a quote in the URL can no longer break out of the `href` attribute.
+- Add `click_extra.testing.isolated_filesystem()`, keeping the helper Click deprecates in `8.5.0` and removes in `9.0`, so the `runner` fixture and `click:run` blocks stop warning.
+- Re-export `custom_version_option`, the `--version` option Click `8.5.0` added for output produced by a callback.
+- Keep `get_binary_stream` and `get_text_stream` reachable, which a star import stopped binding when Click `8.5.0` moved them behind a deprecation shim.
 
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 

@@ -68,6 +68,17 @@ try:
 except ImportError:  # Click < 8.4.0.
     _HAS_CLICK_8_4_EXPORTS = False
 
+# custom_version_option (PR pallets/click#3581) is a Click 8.5.0 addition, absent
+# on the earlier releases click-extra still supports. Import it only when present
+# so click-extra mirrors Click's own public surface; the matching __all__ entry is
+# trimmed below when it is missing.
+try:
+    from click import custom_version_option
+
+    _HAS_CLICK_8_5_EXPORTS = True
+except ImportError:  # Click < 8.5.0.
+    _HAS_CLICK_8_5_EXPORTS = False
+
 # Overrides click helpers with cloup's.
 from cloup import *  # type: ignore[no-redef, assignment]
 
@@ -430,6 +441,7 @@ __all__ = [
     "convert_file",
     "convert_rst_files_in_directory",
     "convert_source",
+    "custom_version_option",
     "detect_source_package",
     "dir_path",
     "echo",
@@ -561,6 +573,12 @@ if not _HAS_CLICK_8_4_EXPORTS:
     __all__.remove("get_pager_file")
 del _HAS_CLICK_8_4_EXPORTS
 
+# custom_version_option is only re-exported on Click >= 8.5.0 (see the guarded
+# import above). Same trimming, for the same reason.
+if not _HAS_CLICK_8_5_EXPORTS:
+    __all__.remove("custom_version_option")
+del _HAS_CLICK_8_5_EXPORTS
+
 # Scrub namespace artifacts that are not part of the public API: `annotations`
 # is this module's own `from __future__ import annotations` binding (deleting
 # it does not affect postponed evaluation, which is settled at compile time).
@@ -627,14 +645,36 @@ materializes them all, at the cost of loading the test tooling.
 """
 
 
+_DEPRECATED_CLICK_EXPORTS = frozenset({"get_binary_stream", "get_text_stream"})
+"""Click symbols a star import no longer binds, forwarded on access instead.
+
+Click `8.5.0` renamed these to private names and re-exposed them through its own
+module `__getattr__`, to deprecate them for removal in Click `9.0`. A star
+import never consults that hook, so `from click import *` stopped binding them
+and click-extra stopped re-exporting them. Forwarding each access keeps
+click-extra a drop-in for as long as Click serves them, and warns exactly when
+Click does: the value is never cached, so every access reaches Click's shim.
+"""
+
+
 def __getattr__(name: str) -> Any:
     """Resolve lazy top-level symbols via PEP 562.
 
     Test-tooling names registered in {data}`_LAZY_TEST_TOOLING` are imported
     from their hosting module on first access, then cached in the module
-    namespace so later accesses bypass this hook. Fires only for names not
-    defined in this module, so live exports stay zero-overhead.
+    namespace so later accesses bypass this hook. Names in
+    {data}`_DEPRECATED_CLICK_EXPORTS` are forwarded to Click on every access,
+    uncached. Fires only for names not defined in this module, so live exports
+    stay zero-overhead.
     """
+    if name in _DEPRECATED_CLICK_EXPORTS:
+        # Imported here rather than at module level: the star imports above bind
+        # no `click` name, and _scrub_foreign_modules() would drop one anyway.
+        import click
+
+        # Never cached, so each access reaches Click's own deprecation shim.
+        return getattr(click, name)
+
     lazy_module = _LAZY_TEST_TOOLING.get(name)
     if lazy_module:
         from importlib import import_module
@@ -648,5 +688,5 @@ def __getattr__(name: str) -> Any:
 
 
 def __dir__() -> list[str]:
-    """Expose the lazy test-tooling names to `dir()` before their first access."""
-    return sorted(set(globals()) | set(_LAZY_TEST_TOOLING))
+    """Expose every name `__getattr__` serves to `dir()` before its first access."""
+    return sorted(set(globals()) | set(_LAZY_TEST_TOOLING) | _DEPRECATED_CLICK_EXPORTS)

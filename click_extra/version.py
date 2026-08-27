@@ -628,10 +628,20 @@ def colors_reach_output() -> bool:
     Resolves Click Extra's color tri-state, deferring to the output stream's TTY
     status on its `auto` default, exactly as `click.echo` does when it decides
     whether to strip the codes itself.
+
+    ```{note}
+    The stream probed is {data}`sys.stdout`, not Click's own resolution of it:
+    `click.echo` reaches stdout through a private cached wrapper, whose public
+    alias Click deprecated in `8.5.0` for removal in `9.0`. That wrapper exists
+    to fix the output encoding and delegates `isatty()` to the stream beneath
+    it, so both answer alike. Checked against Click `8.5.0` on a pipe, a
+    {class}`io.StringIO`, a stream faking `isatty()`, a real terminal, and
+    inside `CliRunner.invoke`.
+    ```
     """
     color = invocation_color()
     if color is None:
-        return is_a_tty(click.get_text_stream("stdout"))
+        return is_a_tty(sys.stdout)
     return color
 
 

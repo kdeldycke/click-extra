@@ -19,9 +19,12 @@ from __future__ import annotations
 
 import inspect
 import logging
+import os
 import re
+import shutil
 import subprocess
-from contextlib import nullcontext
+import tempfile
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from functools import cached_property, partial
 from itertools import zip_longest
@@ -49,7 +52,7 @@ from .styling import Style
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
     from contextlib import AbstractContextManager
     from typing import IO, Any, Literal
 
@@ -221,6 +224,41 @@ class Result(click.testing.Result):
         return f"<{type(self).__name__} {exc_str}>"
 
 
+@contextmanager
+def isolated_filesystem(
+    temp_dir: str | os.PathLike[str] | None = None,
+) -> Iterator[str]:
+    """Create a temporary directory and change the working directory to it.
+
+    Reimplements {meth}`click.testing.CliRunner.isolated_filesystem`, which Click
+    deprecated in `8.5.0` and removes in `9.0`. Click points at
+    {class}`tempfile.TemporaryDirectory` and pytest's `tmp_path` fixture, and
+    neither replaces it: what isolates a CLI here is the *working directory*,
+    which a command reads through relative paths and configuration-file globs.
+    The `runner` pytest fixture and the `click:run` Sphinx directive both call
+    this on every test and every documented example, so the deprecated version
+    buries a suite run under thousands of warnings, then stops working.
+
+    ```{warning}
+    The isolation is process-global, because it calls {func}`os.chdir`.
+    Parallelize with processes, never with threads.
+    ```
+
+    :param temp_dir: create the temporary directory inside this one. When given,
+        the directory is left in place on exit.
+    :return: path of the directory the working directory was changed to.
+    """
+    previous_cwd = os.getcwd()
+    target = tempfile.mkdtemp(dir=temp_dir)
+    os.chdir(target)
+    try:
+        yield target
+    finally:
+        os.chdir(previous_cwd)
+        if temp_dir is None:
+            shutil.rmtree(target, ignore_errors=True)
+
+
 class CliRunner(click.testing.CliRunner):
     """Augment {class}`click.testing.CliRunner` with extra features and bug fixes."""
 
@@ -356,6 +394,20 @@ class CliRunner(click.testing.CliRunner):
             print(extra_result.formatted_exception)
 
         return extra_result
+
+    @contextmanager
+    def isolated_filesystem(
+        self, temp_dir: str | os.PathLike[str] | None = None
+    ) -> Iterator[str]:
+        """Same as {func}`isolated_filesystem`, minus Click's deprecation warning.
+
+        Overrides {meth}`click.testing.CliRunner.isolated_filesystem` so a runner
+        keeps the helper once Click `9.0` removes it.
+        """
+        # Resolves to the module-level function above: a class attribute never
+        # shadows a global inside a method body.
+        with isolated_filesystem(temp_dir) as target:
+            yield target
 
 
 def unescape_regex(text: str) -> str:

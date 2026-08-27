@@ -259,6 +259,10 @@ nitpick_ignore = [
     ("py:exc", "ConfigError"),
     # click ParameterSource enum members are absent from click's inventory.
     ("py:attr", "click.ParameterSource.DEFAULT_MAP"),
+    # click 8.5.0 renamed get_binary_stream to a private name, which leaves the
+    # cross-reference in the deprecated get_text_stream docstring, rendered here
+    # through the drop-in re-export, with nothing to point at.
+    ("py:func", "get_binary_stream"),
     # click-extra's own classes that live in a submodule but are re-exported at the
     # package root. They are dropped from the root ``automodule:: click_extra`` (see
     # docs/click_extra.md) to avoid ambiguous cross-references, so their bare name

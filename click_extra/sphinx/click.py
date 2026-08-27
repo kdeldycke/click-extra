@@ -65,6 +65,7 @@ from ..screenshot import (
     render,
 )
 from ..screenshot_presets import PRESETS, TerminalPreset
+from ..testing import isolated_filesystem
 from ..theme import NOCOLOR_THEME
 from ._base import (
     StatelessDomain,
@@ -478,7 +479,9 @@ class ClickRunner(CliRunner):
                 # per-invocation.
                 _show_prompt=directive.show_prompt,
             ),
-            "isolated_filesystem": self.isolated_filesystem,
+            # The module-level helper, not the runner's inherited method:
+            # Click deprecated its own in 8.5.0 and removes it in 9.0.
+            "isolated_filesystem": isolated_filesystem,
         }
 
         # Check for local variable conflicts.

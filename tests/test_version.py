@@ -18,12 +18,14 @@
 from __future__ import annotations
 
 import inspect
+import io
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import warnings
 from functools import partial
 from textwrap import dedent
 
@@ -61,6 +63,7 @@ from click_extra.pytest import (
 from click_extra.version import (
     VersionScreen,
     archival_field,
+    colors_reach_output,
     default_facts,
     find_archival_file,
     read_archival,
@@ -1435,3 +1438,38 @@ def test_version_message_follows_the_theme(invoke, theme, expected):
         result = invoke(cli, "--color", "--theme", theme, "--version", color=True)
     assert result.exit_code == 0
     assert result.stdout.splitlines() == [expected]
+
+
+@pytest.mark.parametrize(
+    ("color", "stdout_is_a_tty", "expected"),
+    (
+        # An explicit decision wins, whatever the stream reports.
+        (True, False, True),
+        (True, True, True),
+        (False, False, False),
+        (False, True, False),
+        # `auto` has nothing to go on but the stream.
+        (None, True, True),
+        (None, False, False),
+    ),
+)
+def test_colors_reach_output(monkeypatch, color, stdout_is_a_tty, expected):
+    """`auto` reads `sys.stdout`, an explicit tri-state never looks at it.
+
+    The stream half is the part worth pinning: `click.echo` reaches stdout
+    through a wrapper whose public alias Click deprecated in `8.5.0`, and this
+    resolution has to keep answering what `echo` answers without it.
+    """
+
+    class Stream(io.StringIO):
+        def isatty(self) -> bool:
+            return bool(stdout_is_a_tty)
+
+    monkeypatch.setattr("click_extra.version.invocation_color", lambda: color)
+    monkeypatch.setattr(sys, "stdout", Stream())
+    # Raising on a deprecation is the half a value assertion cannot cover: the
+    # `auto` branch used to read the stream through `click.get_text_stream()`,
+    # which answers the same and disappears in Click 9.0.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        assert colors_reach_output() is expected
