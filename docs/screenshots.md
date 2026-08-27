@@ -451,6 +451,10 @@ Each preset carries the four things that make a terminal recognizable: its windo
 
 A preset also paints the strip its buttons and caption sit in, a shade off the terminal's own background, because that strip belongs to the desktop rather than to the terminal. Which is what makes the fourth preset the odd one out: `plain` mimics no desktop, wears no buttons, and drops the strip entirely unless a `--title` gives it something to hold.
 
+Each tab below shows its preset twice: bare, so the desktop it mimics is the only thing on show, and then wearing everything else this page offers. The second picture deliberately states no `--radius`, so each terminal keeps its own corners: Windows stays square under the same gradient that rounds the other three.
+
+Transparency is the option that lands least alike across them, because each preset brings its own background for the gradient to show through. At 75% it barely lifts Apple Terminal's black, and lifts GNOME's lighter `#2e3436` visibly. All four still clear [WCAG AA](https://www.w3.org/TR/WCAG21/#contrast-minimum) for their text, from 14.4:1 down to 6.4:1, so what changes is the character of the window rather than whether it can be read.
+
 ``````{tab-set}
 `````{tab-item} macos
 :sync: preset-macos
@@ -465,6 +469,23 @@ assert result.exit_code == 0
 ![The pantry screen drawn as an Apple Terminal window](assets/preset-macos-screen.svg)
 
 Round buttons on the left, Apple's `Pro` and `Basic` palettes, SF Mono, and a `$` prompt.
+
+```{click:run}
+:screenshot: preset-macos-full-screen
+:screenshot-preset: macos
+:screenshot-columns: auto
+:screenshot-title: 🍎 pantry --help
+:screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-emphasize-lines: 9,15-16
+:screenshot-line-numbers:
+:screenshot-opacity: 0.75
+:screenshot-padding: 24
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+
+![An Apple Terminal window on a gradient, captioned, numbered and part-highlighted](assets/preset-macos-full-screen.svg)
 `````
 
 `````{tab-item} windows
@@ -480,6 +501,23 @@ assert result.exit_code == 0
 ![The pantry screen drawn as a Windows Terminal window](assets/preset-windows-screen.svg)
 
 Minimize, maximize and close on the right, square corners, the `Campbell` and `One Half Light` schemes, Cascadia Code, and a `PS C:\>` prompt.
+
+```{click:run}
+:screenshot: preset-windows-full-screen
+:screenshot-preset: windows
+:screenshot-columns: auto
+:screenshot-title: 🍎 pantry --help
+:screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-emphasize-lines: 9,15-16
+:screenshot-line-numbers:
+:screenshot-opacity: 0.75
+:screenshot-padding: 24
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+
+![A Windows Terminal window on a gradient, captioned, numbered and part-highlighted](assets/preset-windows-full-screen.svg)
 `````
 
 `````{tab-item} linux
@@ -495,6 +533,23 @@ assert result.exit_code == 0
 ![The pantry screen drawn as a GNOME Terminal window](assets/preset-linux-screen.svg)
 
 A single close button, the Tango palette GNOME Terminal ships, Ubuntu Mono, and a `$` prompt.
+
+```{click:run}
+:screenshot: preset-linux-full-screen
+:screenshot-preset: linux
+:screenshot-columns: auto
+:screenshot-title: 🍎 pantry --help
+:screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-emphasize-lines: 9,15-16
+:screenshot-line-numbers:
+:screenshot-opacity: 0.75
+:screenshot-padding: 24
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+
+![A GNOME Terminal window on a gradient, captioned, numbered and part-highlighted](assets/preset-linux-full-screen.svg)
 `````
 
 `````{tab-item} plain
@@ -510,6 +565,23 @@ assert result.exit_code == 0
 ![The pantry screen drawn as a plain block of output](assets/preset-plain-screen.svg)
 
 No buttons, no rounded corners, no title bar: for a capture that has to read as a block of output rather than as a window, on a slide or in a paper.
+
+```{click:run}
+:screenshot: preset-plain-full-screen
+:screenshot-preset: plain
+:screenshot-columns: auto
+:screenshot-title: 🍎 pantry --help
+:screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
+:screenshot-emphasize-lines: 9,15-16
+:screenshot-line-numbers:
+:screenshot-opacity: 0.75
+:screenshot-padding: 24
+:hide-results:
+result = invoke(pantry, args=["--theme", "dark", "--help"])
+assert result.exit_code == 0
+```
+
+![A plain block of output on a gradient, captioned, numbered and part-highlighted](assets/preset-plain-full-screen.svg)
 `````
 ``````
 
