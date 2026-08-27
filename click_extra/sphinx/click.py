@@ -62,6 +62,7 @@ from ..screenshot import (
     MIN_COLUMNS,
     OPAQUE,
     CaptureBackground,
+    animation_metadata,
     number_lines,
     render,
 )
@@ -970,6 +971,35 @@ class ClickDirective(SphinxDirective):
             frame["preset"] = PRESETS[default_preset]
         return frame
 
+    @staticmethod
+    def recording_moved(path: Path, drawn: str) -> bool:
+        """Say whether a freshly drawn animation differs from the committed one.
+
+        Compared on the `@recording` line the two state about themselves rather
+        than byte for byte, because a recording is timed by the wall clock and
+        never draws quite the same bytes twice. That fingerprint covers the
+        frames a cycle holds and the beat it holds them on, so it survives the
+        jitter, and a frame a busy machine dropped along with it. See
+        {func}`~click_extra.screenshot.animation_digest`.
+
+        Leaving an unchanged asset alone is the point: a build that rewrote it
+        every time would dirty the working tree on a machine that was merely
+        busier, which reads as a change nobody made.
+
+        :param path: where the committed capture lives.
+        :param drawn: what this build just rendered.
+        :return: `True` when the capture has to be written.
+        """
+        if not path.exists():
+            return True
+        drawn_digest = animation_metadata(drawn).get("digest")
+        if not drawn_digest:
+            # A still states no identity, so there is nothing to compare and
+            # the deterministic renderer is answer enough.
+            return True
+        committed = animation_metadata(path.read_text(encoding="utf-8"))
+        return committed.get("digest") != drawn_digest
+
     def write_screenshot(self, results: Iterable[str]) -> None:
         """Write the captured output as an SVG beside the documentation.
 
@@ -1005,17 +1035,17 @@ class ClickDirective(SphinxDirective):
         animation = self.screenshot_animation
         if animation is not None:
             frames, interval = animation
-            path.write_text(
-                render(
-                    columns=self.screenshot_columns,
-                    unique_id=self.screenshot,
-                    background=self.screenshot_background,
-                    frames=frames,
-                    interval=interval,
-                    **self.screenshot_frame,
-                ),
-                encoding="utf-8",
+            drawn = render(
+                columns=self.screenshot_columns,
+                unique_id=self.screenshot,
+                background=self.screenshot_background,
+                frames=frames,
+                interval=interval,
+                **self.screenshot_frame,
             )
+            if not self.recording_moved(path, drawn):
+                return
+            path.write_text(drawn, encoding="utf-8")
             return
 
         lines = list(results)

@@ -23,6 +23,8 @@
 - Add `:screenshot-animate:` and `:screenshot-interval:` options to `click:run`, capturing a spinner or an explicit sequence of frames as an animated SVG.
 - Add a `click_extra.recording` module rebuilding a terminal's screen from the stream a command writes at it.
 - Record a running animation into frames, in-process with `ScreenRecorder` on any platform, or from a foreign command with `record_command` on Unix.
+- Round a recording's frame durations onto a grid with `quantize()`, so two runs of one command time their frames the same.
+- Stamp an animated capture with a `@recording` line, so a rebuild leaves an unchanged animation alone instead of rewriting its wall-clock timings.
 - Give each SVG column its own offset and size it in terminal cells, so a capture renders correctly outside a browser and never squeezes wide glyphs.
 - Declare `UTF-8` in every SVG capture, which a reader assuming the platform's encoding would otherwise render as mojibake.
 - Cast an SVG capture's shadow from a rectangle of its own, so a renderer refusing the filter no longer drops the window's background and frame with it.

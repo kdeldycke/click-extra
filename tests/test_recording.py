@@ -25,7 +25,14 @@ import pytest
 from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style
-from click_extra.recording import ScreenRecorder, TerminalScreen, record_command
+from click_extra.recording import (
+    Frame,
+    ScreenRecorder,
+    TerminalScreen,
+    quantize,
+    record_command,
+)
+from click_extra.screenshot import animation_digest, render_svg
 
 CLEAR_LINE = "\x1b[K"
 HIDE_CURSOR = "\x1b[?25l"
@@ -263,3 +270,76 @@ def test_record_command_recovers_a_foreign_animation():
 
     assert [frame.text for frame in frames] == ["[]", "[#]", "[##]", "[###]"]
     assert all(frame.duration > 0 for frame in frames)
+
+
+@pytest.mark.parametrize(
+    ("recorded", "expected"),
+    (
+        pytest.param(0.0794, 0.08, id="under"),
+        pytest.param(0.0812, 0.08, id="over"),
+        pytest.param(0.0801, 0.08, id="barely-over"),
+        pytest.param(0.08, 0.08, id="exact"),
+        pytest.param(0.0001, 0.01, id="a-drawn-frame-keeps-a-whole-step"),
+    ),
+)
+def test_quantize_lands_jitter_on_one_grid(recorded, expected):
+    """Two runs of one unchanged command time their frames the same."""
+    (frame,) = quantize((Frame("fig", recorded),))
+    assert frame.duration == expected
+
+
+def test_quantize_keeps_the_frames_it_times():
+    """Rounding a duration never rewrites the screen it belongs to."""
+    frames = (Frame("apricot", 0.079), Frame("fig", 0.082))
+    assert [frame.text for frame in quantize(frames)] == ["apricot", "fig"]
+
+
+def test_quantize_rejects_a_grid_going_nowhere():
+    with pytest.raises(ValueError, match="positive"):
+        quantize((Frame("fig", 0.08),), quantum=0)
+
+
+def test_quantized_recordings_of_one_command_render_the_same_bytes():
+    """The point of the exercise: a rerun rewrites the asset byte for byte.
+
+    Two recordings of one unchanged command, timed a few milliseconds apart the
+    way two runs on a differently loaded machine are.
+    """
+    texts = ["[", "[#", "[##"]
+    quiet = quantize(
+        tuple(Frame(text, beat) for text, beat in zip(texts, (0.0794, 0.0801, 0.0812)))
+    )
+    loaded = quantize(
+        tuple(Frame(text, beat) for text, beat in zip(texts, (0.0823, 0.0779, 0.0795)))
+    )
+
+    def draw(frames):
+        return render_svg(
+            columns=20,
+            unique_id="bar",
+            frames=[frame.text for frame in frames],
+            interval=[frame.duration for frame in frames],
+        )
+
+    assert draw(quiet) == draw(loaded)
+
+
+def test_a_dropped_frame_does_not_move_the_recording():
+    """A frame the scheduler lost leaves the animation's identity alone.
+
+    Quantizing cannot recover it, so the fingerprint is written not to care: it
+    covers the frames a cycle holds and the beat, not how many were caught.
+    """
+    cycle = ["[", "[#", "[##", "[###"]
+    beats = (0.08,) * len(cycle)
+    quiet = animation_digest(cycle * 2, beats * 2)
+    # One frame missing from the first turn, the second turn complete.
+    loaded = animation_digest(cycle[:-1] + cycle, beats * 2)
+    assert quiet == loaded
+
+
+def test_a_changed_command_moves_the_recording():
+    """What the fingerprint is for: real drift is still reported."""
+    cycle = ["[", "[#", "[##"]
+    beats = (0.08,) * len(cycle)
+    assert animation_digest(cycle, beats) != animation_digest(["(", "(#", "(##"], beats)

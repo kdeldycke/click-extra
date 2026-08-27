@@ -1532,6 +1532,56 @@ def test_click_run_screenshot_animate_is_deterministic(sphinx_app_myst):
     assert asset.read_text(encoding="utf-8") == first
 
 
+def test_click_run_screenshot_animate_leaves_an_unchanged_asset_alone(sphinx_app_myst):
+    """A rebuild does not rewrite an animation whose identity has not moved.
+
+    A recording is timed by the wall clock, so its bytes shift a little between
+    two runs on a differently loaded machine. Rewriting on every build would
+    dirty the working tree for a change nobody made, so the build compares the
+    `@recording` line instead and keeps what is committed.
+    """
+    content = dedent(ANIMATED_SOURCE) + dedent("""
+        ```{click:run}
+        :screenshot: kept-screen
+        :screenshot-animate: steeping
+        result = invoke(greet)
+        ```
+    """)
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "kept-screen.svg"
+
+    sphinx_app_myst.build_document(content)
+    # Stand in for the committed bytes a previous, differently timed run left.
+    marked = asset.read_text(encoding="utf-8").replace(
+        "</svg>", "<!-- committed by an earlier run --></svg>"
+    )
+    asset.write_text(marked, encoding="utf-8")
+
+    sphinx_app_myst.build_document(content)
+    assert asset.read_text(encoding="utf-8") == marked
+
+
+def test_click_run_screenshot_animate_rewrites_a_moved_asset(sphinx_app_myst):
+    """An animation that genuinely changed is written out again."""
+    content = dedent(ANIMATED_SOURCE) + dedent("""
+        ```{click:run}
+        :screenshot: moved-screen
+        :screenshot-animate: steeping
+        result = invoke(greet)
+        ```
+    """)
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "moved-screen.svg"
+
+    sphinx_app_myst.build_document(content)
+    stale = re.sub(
+        r"digest=\w+", "digest=0000000000000000", asset.read_text(encoding="utf-8")
+    )
+    asset.write_text(stale, encoding="utf-8")
+
+    sphinx_app_myst.build_document(content)
+    assert asset.read_text(encoding="utf-8") != stale
+    assert "digest=0000000000000000" not in asset.read_text(encoding="utf-8")
+
+
 def test_click_run_screenshot_background(sphinx_app_myst):
     """``:screenshot-background:`` draws the capture on the chrome it names."""
     sphinx_app_myst.build_document(

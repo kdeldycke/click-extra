@@ -67,7 +67,7 @@ if is_unix():
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
     from .execution import TArg, TNestedArgs
 
@@ -85,6 +85,14 @@ A recorder reads whatever the terminal hands it, on boundaries that answer to
 the pipe rather than to the stream: a sequence routinely straddles two reads.
 Recognizing the half that arrived first is what keeps its bracket and digits off
 the screen, where they would otherwise read as text a command never printed.
+"""
+
+DEFAULT_QUANTUM = 0.01
+"""Grid a recording's frame durations are rounded onto, in seconds.
+
+Ten milliseconds is coarser than the jitter two runs of one unchanged command
+differ by, and finer than any frame worth picturing: the fastest bundled spinner
+holds one for eighty. See {func}`quantize`.
 """
 
 DEFAULT_ROWS = 24
@@ -408,3 +416,37 @@ def record_command(
         process.wait()
 
     return recorder.frames(end=clock())
+
+
+def quantize(
+    frames: Sequence[Frame],
+    quantum: float = DEFAULT_QUANTUM,
+) -> tuple[Frame, ...]:
+    """Round each frame's duration onto a grid, so a rerun times it the same.
+
+    A recording is timed by the wall clock, so two runs of one unchanged command
+    differ by a few milliseconds a frame. Rounding onto a grid coarser than that
+    jitter lands both on the same numbers, which is what an asset rewritten on
+    every build needs to stay byte-identical.
+
+    ```{caution}
+    This settles jitter and nothing else. A frame the scheduler dropped leaves a
+    shorter recording of the same frames, which no rounding recovers. That case
+    is answered a layer up, by
+    {func}`~click_extra.screenshot.animation_digest`, which fingerprints the
+    frames a cycle holds rather than how many of them were caught.
+    ```
+
+    :param frames: what was recorded.
+    :param quantum: seconds per grid step.
+    :return: the same frames, timed on the grid.
+    :raises ValueError: when the grid step is not positive.
+    """
+    if quantum <= 0:
+        raise ValueError(f"{quantum} is not a grid step, which is positive.")
+    return tuple(
+        # A frame shorter than half a step still keeps a whole one: it was
+        # drawn, so rounding it away would picture less than what ran.
+        Frame(frame.text, round(max(round(frame.duration / quantum), 1) * quantum, 9))
+        for frame in frames
+    )
