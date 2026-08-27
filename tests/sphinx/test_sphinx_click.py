@@ -1739,7 +1739,9 @@ def test_click_run_screenshot_emphasize_lines_bands_a_still(sphinx_app_myst):
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "banded-screen.svg"
     svg = asset.read_text(encoding="utf-8")
-    bands = re.findall(r'<rect fill="(#[0-9a-f]+)" x="0" y="([\d.]+)"', svg)
+    group = re.search(r'<g clip-path="url\(#[\w-]+-window\)">(.*?)</g>', svg)
+    assert group, "the bands are clipped to the window"
+    bands = re.findall(r'<rect fill="(#[0-9a-f]+)"[^>]*\by="([\d.]+)"', group.group(1))
     assert len(bands) == 3, "one band per emphasized line"
     # All three share the one blended shade, and none sits on the first line.
     assert len({fill for fill, _ in bands}) == 1
@@ -1767,9 +1769,10 @@ def test_click_run_screenshot_emphasize_lines_bands_an_animation(sphinx_app_myst
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "banded-animation-screen.svg"
     svg = asset.read_text(encoding="utf-8")
-    assert len(re.findall(r'<rect fill="#[0-9a-f]+" x="0" y="[\d.]+"', svg)) == 1
+    group = re.search(r'<g clip-path="url\(#[\w-]+-window\)">(.*?)</g>', svg)
+    assert group and group.group(1).count("<rect") == 1
     # Outside every frame group, so no frame can take the band with it.
-    assert svg.index('x="0" y="') < svg.index('<g class="banded-animation-screen-f0"')
+    assert svg.index("-window)") < svg.index('<g class="banded-animation-screen-f0"')
 
 
 def test_click_run_screenshot_emphasize_lines_rejects_a_line_that_is_not_there(

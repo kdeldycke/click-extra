@@ -428,19 +428,43 @@ def test_animated_capture_keeps_a_row_that_moves_in_every_frame():
     assert svg.count("pear") == 4
 
 
-BAND_RE = re.compile(r'<rect fill="(#[0-9a-f]+)" x="0" y="([\d.]+)"')
-"""A band drawn behind an emphasized line, which is the only full-width rect."""
+BAND_GROUP_RE = re.compile(r'<g clip-path="url\(#[\w-]+-window\)">(.*?)</g>')
+"""The group holding every band, clipped to the window rather than to the text."""
+
+
+def bands_of(svg: str) -> list[tuple[str, float]]:
+    """The paint and baseline of each band an emphasized capture draws."""
+    group = BAND_GROUP_RE.search(svg)
+    if not group:
+        return []
+    return [
+        (fill, float(offset))
+        for fill, offset in re.findall(
+            r'<rect fill="(#[0-9a-f]+)"[^>]*\by="([\d.]+)"', group.group(1)
+        )
+    ]
 
 
 def test_emphasized_lines_are_banded_where_they_sit():
-    """A band lands on the row it names, counted from one."""
+    """A band lands on the row it names, counted from one, and spans the window.
+
+    Edge to edge rather than stopping where the padding does: the row is what
+    is emphasized, not the column of text sitting in it.
+    """
     text = "\n".join(f"crate {index}" for index in range(1, 6))
-    bands = BAND_RE.findall(render_svg(text, columns=20, emphasize=(1, 3)))
+    bands = bands_of(render_svg(text, columns=20, emphasize=(1, 3)))
 
     assert len(bands) == 2
-    offsets = sorted(float(offset) for _, offset in bands)
+    offsets = sorted(offset for _, offset in bands)
     # Two rows apart, so two line heights apart on the canvas.
     assert offsets[1] - offsets[0] == pytest.approx(2 * LINE_HEIGHT)
+
+    svg = render_svg(text, columns=20, emphasize=(1,), margin=40, padding=12)
+    window = re.search(r'<rect fill="#[0-9a-f]+" stroke="[^"]*"[^>]*x="([\d.]+)"'
+                       r'[^>]*width="([\d.]+)"', svg)
+    band = re.search(r'-window\)">.*?<rect[^>]*x="([\d.]+)"[^>]*width="([\d.]+)"', svg)
+    assert window and band
+    assert band.groups() == window.groups(), "a band is as wide as the window"
 
 
 def test_emphasis_is_mixed_from_the_chrome_it_is_drawn_on():
@@ -454,7 +478,7 @@ def test_emphasis_is_mixed_from_the_chrome_it_is_drawn_on():
             emphasize=(1,),
             palette=CAPTURE_PALETTES[background],
         )
-        (fill, _), = BAND_RE.findall(svg)
+        ((fill, _),) = bands_of(svg)
         shades[background] = fill
 
     assert shades[CaptureBackground.DARK] != shades[CaptureBackground.LIGHT]
@@ -483,8 +507,9 @@ def test_emphasis_is_drawn_once_behind_an_animation():
         emphasize=(1,),
     )
 
-    assert len(BAND_RE.findall(svg)) == 1
-    assert svg.index('x="0" y="') < svg.index('<g class="banded-f0"')
+    assert len(bands_of(svg)) == 1
+    # Ahead of every frame, and outside the clip that holds the text.
+    assert svg.index("-window)") < svg.index('<g class="banded-f0"')
 
 
 def test_two_animations_share_no_selector():

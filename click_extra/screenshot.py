@@ -1754,21 +1754,39 @@ def render_svg(
         stack = f"{still_cells}{matrix}{still_glyphs}</g>"
     # Behind the text and behind every frame, because an emphasized line marks a
     # row of the screen rather than anything a particular frame drew there.
-    banded = "".join(
-        f'<rect fill="{blend(palette.background, palette.foreground, EMPHASIS_RATIO)}"'
-        f' x="0" y="{_svg_number((line - 1) * LINE_HEIGHT + CELL_TOP_INSET)}"'
-        f' width="{_svg_number(text_width)}"'
-        f' height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}"'
-        ' shape-rendering="crispEdges"/>'
-        for line in sorted(set(emphasize))
-    )
+    #
+    # Drawn in the window's coordinates rather than the text's, so a band runs
+    # from one edge to the other instead of stopping where the padding does: the
+    # row is emphasized, not the column of text sitting in it. That puts it
+    # outside the clip holding the text, so it takes the window's own rounded
+    # clip instead, or a band on the last row would square off the corners it
+    # runs into.
+    if emphasize:
+        defs.append(
+            f'<clipPath id="{unique_id}-window">'
+            f'<rect x="{_svg_number(margin + WINDOW_INSET)}" '
+            f'y="{_svg_number(margin + WINDOW_INSET)}" '
+            f'width="{_svg_number(window_width)}" '
+            f'height="{_svg_number(window_height)}" rx="{radius}"/></clipPath>'
+        )
+        bands = "".join(
+            f'<rect fill="'
+            f'{blend(palette.background, palette.foreground, EMPHASIS_RATIO)}"'
+            f' x="{_svg_number(margin + WINDOW_INSET)}"'
+            f' y="{_svg_number(origin_y + (line - 1) * LINE_HEIGHT + CELL_TOP_INSET)}"'
+            f' width="{_svg_number(window_width)}"'
+            f' height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}"'
+            ' shape-rendering="crispEdges"/>'
+            for line in sorted(set(emphasize))
+        )
+        body.append(f'<g clip-path="url(#{unique_id}-window)">{bands}</g>')
 
     # The clip and the offset are the window's, not a frame's, so they wrap the
     # whole stack rather than being repeated inside it.
     body.append(
         f'<g clip-path="url(#{unique_id}-clip)">'
         f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})">'
-        f"{banded}{stack}"
+        f"{stack}"
         "</g></g>"
     )
     body.append(

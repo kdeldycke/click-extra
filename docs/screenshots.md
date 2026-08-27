@@ -294,7 +294,7 @@ It also means the gutter spends columns the command already used: a screen wrapp
 $ click-extra screenshot --output marked.svg --emphasize-lines 2,4-5 -- my-cli --help
 ```
 
-The band is mixed from the chrome it is drawn on rather than stated outright, so one setting answers for both: a shade lighter than a dark terminal is a shade darker than a light one, and each reads as the same emphasis. It spans the full width of the grid, gutter included, and sits behind the text and behind any background a run of output painted for itself.
+The band is mixed from the chrome it is drawn on rather than stated outright, so one setting answers for both: a shade lighter than a dark terminal is a shade darker than a light one, and each reads as the same emphasis. It runs from one edge of the window to the other, rather than stopping where the [padding](#the-window-itself) does, because what is emphasized is the row and not the column of text sitting in it. It sits behind the text and behind any background a run of output painted for itself, and follows the window's own [rounding](#the-window-itself) so a band on the last line cannot square off the corners it runs into.
 
 ```{click:run}
 :screenshot: emphasized-screen
