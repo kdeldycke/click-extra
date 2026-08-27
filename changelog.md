@@ -24,7 +24,8 @@
 - Add a `click_extra.recording` module rebuilding a terminal's screen from the stream a command writes at it.
 - Record a running animation into frames, in-process with `ScreenRecorder` on any platform, or from a foreign command with `record_command` on Unix.
 - Round a recording's frame durations onto a grid with `quantize()`, so two runs of one command time their frames the same.
-- Stamp an animated capture with a `@recording` line, so a rebuild leaves an unchanged animation alone instead of rewriting its wall-clock timings.
+- Stamp an animated capture with a `@recording` line naming the frames it holds, the period it holds them over, and a digest of what it pictures.
+- Pause an animated capture on its last frame before it starts over, with `hold` on `render_svg` and `:screenshot-hold:` on a documentation block.
 - Draw a row that never moves once in an animated capture instead of once per frame, shrinking a recording of a mostly-still screen.
 - Add a `:screenshot-record:` option to `click:run`, committing a recorded animation once instead of rewriting it on every build.
 - Hide an animated capture's frames with an attribute rather than a stylesheet rule, so a renderer ignoring `<style>` stops stacking every frame at once.

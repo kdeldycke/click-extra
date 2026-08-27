@@ -1330,6 +1330,7 @@ def render_svg(
     unique_id: str | None = None,
     frames: Sequence[str] | None = None,
     interval: float | Sequence[float] | None = None,
+    hold: float = 0.0,
     palette: TerminalPalette = CAPTURE_PALETTES[CaptureBackground.DARK],
     font_stack: str = CAPTURE_FONT_STACK,
     border: str = NO_PAINT,
@@ -1394,6 +1395,11 @@ def render_svg(
     :param interval: seconds each frame is shown. One number times every frame
         alike, which is what a spinner asks for; a sequence gives each frame its
         own, which is what a recording asks for. Required alongside `frames`.
+    :param hold: extra seconds the last frame stays up before the animation
+        starts over. An animation that ends somewhere (a trail filled in, a bar
+        run out, an outcome landed) is worth reading, and a loop that restarts
+        the instant it arrives never lets anyone. A spinner turning in place
+        ends nowhere, so it wants none of this and defaults to none.
     :param palette: terminal colors the capture's ANSI codes resolve against.
     :param font_stack: fonts the text is set in, best first.
     :param border: paint for the window's frame. {data}`NO_PAINT` draws none.
@@ -1437,6 +1443,10 @@ def render_svg(
                 raise ValueError(
                     f"{len(pictures)} frames carry {len(durations)} durations."
                 )
+        if hold:
+            # Spent on the last frame rather than on a pause of its own, so the
+            # cycle keeps one window per frame and nothing has to draw a blank.
+            durations = (*durations[:-1], durations[-1] + hold)
     if unique_id is None:
         seed = "".join(pictures) + title
         unique_id = f"terminal-{zlib.adler32(seed.encode()):d}"
@@ -1850,6 +1860,7 @@ def render(
     unique_id: str | None = None,
     frames: Sequence[str] | None = None,
     interval: float | Sequence[float] | None = None,
+    hold: float = 0.0,
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
@@ -1880,6 +1891,8 @@ def render(
         a CSS class name cannot carry are folded to a dash.
     :param frames: SVG only. The animation's frames, see {func}`render_svg`.
     :param interval: SVG only. How long each of them is shown, see
+        {func}`render_svg`.
+    :param hold: SVG only. Extra seconds the last frame stays up, see
         {func}`render_svg`.
     :param full: HTML only. See {func}`render_html`.
     :param background: chrome to draw on, see {class}`CaptureBackground`.
@@ -1959,6 +1972,7 @@ def render(
         unique_id=unique_id,
         frames=frames,
         interval=interval,
+        hold=hold,
         palette=resolve_palette(preset, background),
         **frame,
     )

@@ -118,6 +118,15 @@ Relative to the documentation source root. Overridden by the
 `click_extra_screenshot_dir` `conf.py` value.
 """
 
+DEFAULT_RECORDING_HOLD = 2.0
+"""Seconds a recorded animation holds its last frame before starting over.
+
+A recording ends somewhere, and the end is usually its point: the trail filled
+in, the bar run out, the outcome landed. Looping straight back gives a reader no
+time to read any of it. A declared animation cycles in place and ends nowhere,
+so it holds for nothing unless a page asks.
+"""
+
 SCREENSHOT_MARKER_START = "<!-- screenshot -->"
 """Opening marker of a `click:run` `:mirror:` region.
 
@@ -954,6 +963,14 @@ class ClickDirective(SphinxDirective):
             return None
         return self.resolve_animation(expression, ":screenshot-animate:")
 
+    def screenshot_hold(self, fallback: float) -> float:
+        """Seconds the last frame stays up, set by `:screenshot-hold:`.
+
+        :param fallback: what to hold for when the block states nothing.
+        :return: the pause, in seconds.
+        """
+        return self.options.get("screenshot-hold", fallback)  # type: ignore[no-any-return]
+
     @cached_property
     def screenshot_frame(self) -> dict[str, Any]:
         """Window the capture is drawn in, set by the `:screenshot-*:` options.
@@ -1014,35 +1031,6 @@ class ClickDirective(SphinxDirective):
             frame["preset"] = PRESETS[default_preset]
         return frame
 
-    @staticmethod
-    def recording_moved(path: Path, drawn: str) -> bool:
-        """Say whether a freshly drawn animation differs from the committed one.
-
-        Compared on the `@recording` line the two state about themselves rather
-        than byte for byte, because a recording is timed by the wall clock and
-        never draws quite the same bytes twice. That fingerprint covers the
-        frames a cycle holds and the beat it holds them on, so it survives the
-        jitter, and a frame a busy machine dropped along with it. See
-        {func}`~click_extra.screenshot.animation_digest`.
-
-        Leaving an unchanged asset alone is the point: a build that rewrote it
-        every time would dirty the working tree on a machine that was merely
-        busier, which reads as a change nobody made.
-
-        :param path: where the committed capture lives.
-        :param drawn: what this build just rendered.
-        :return: `True` when the capture has to be written.
-        """
-        if not path.exists():
-            return True
-        drawn_digest = animation_metadata(drawn).get("digest")
-        if not drawn_digest:
-            # A still states no identity, so there is nothing to compare and
-            # the deterministic renderer is answer enough.
-            return True
-        committed = animation_metadata(path.read_text(encoding="utf-8"))
-        return committed.get("digest") != drawn_digest
-
     def write_screenshot(self, results: Iterable[str]) -> None:
         """Write the captured output as an SVG beside the documentation.
 
@@ -1097,6 +1085,7 @@ class ClickDirective(SphinxDirective):
                     background=self.screenshot_background,
                     frames=frames,
                     interval=interval,
+                    hold=self.screenshot_hold(DEFAULT_RECORDING_HOLD),
                     **self.screenshot_frame,
                 ),
                 encoding="utf-8",
@@ -1112,10 +1101,9 @@ class ClickDirective(SphinxDirective):
                 background=self.screenshot_background,
                 frames=frames,
                 interval=interval,
+                hold=self.screenshot_hold(0.0),
                 **self.screenshot_frame,
             )
-            if not self.recording_moved(path, drawn):
-                return
             path.write_text(drawn, encoding="utf-8")
             return
 
@@ -1217,6 +1205,14 @@ def _screenshot_opacity(argument: str) -> float:
     return opacity
 
 
+def _screenshot_hold(argument: str) -> float:
+    """Read the `:screenshot-hold:` option into seconds, zero included."""
+    hold = float(argument)
+    if hold < 0:
+        raise ValueError(f"{argument} is not a pause, which is never negative.")
+    return hold
+
+
 def _screenshot_interval(argument: str) -> float:
     """Read the `:screenshot-interval:` option into seconds per frame."""
     interval = float(argument)
@@ -1263,6 +1259,7 @@ class RunDirective(ClickDirective):
         "screenshot-border": directives.unchanged_required,
         "screenshot-border-width": directives.nonnegative_int,
         "screenshot-columns": _screenshot_columns,
+        "screenshot-hold": _screenshot_hold,
         "screenshot-line-numbers": directives.flag,
         "screenshot-margin": directives.nonnegative_int,
         "screenshot-opacity": _screenshot_opacity,

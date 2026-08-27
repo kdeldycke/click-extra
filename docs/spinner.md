@@ -149,7 +149,7 @@ def pick(stream=None):
     """Fill three baskets, tracing each one as it lands."""
     with Spinner("Picking apples", stream=stream) as spinner:
         for basket in range(3):
-            sleep(0.6)
+            sleep(1.5)
             spinner.echo(f"Filled basket {basket}")
 ```
 
@@ -181,7 +181,7 @@ cities = ["Cairo", "Lima", "Oslo", "Paris", "Tokyo"]
 
 
 def fetch(city):
-    sleep(0.3)  # The blocking call: a download, a query, a subprocess.
+    sleep(1.2)  # The blocking call: a download, a query, a subprocess.
     return city
 
 
@@ -271,7 +271,7 @@ def fetch_feeds(stream=None):
         enabled=True, stream=stream,
     ) as trail:
         def pull(feed):
-            sleep(0.4)
+            sleep(1.5)
             trail.mark(feed != "cheese", f"{feed} fetched" if feed != "cheese"
                        else "cheese went off")
         with ThreadPoolExecutor(max_workers=4) as pool:
@@ -390,7 +390,7 @@ def roast_with_bar(stream=None):
         progress_bar=True, enabled=True, stream=stream,
     ) as trail:
         for vegetable in vegetables:
-            sleep(0.5)
+            sleep(1.4)
             roasted = vegetable != "leeks"
             trail.mark(
                 roasted,
@@ -450,7 +450,7 @@ Stopping the spinner (or leaving its context) erases it. To leave a result on sc
 def bake(stream=None):
     """Bake a loaf, leaving the outcome on screen."""
     with Spinner("Baking bread", stream=stream) as spinner:
-        sleep(0.8)
+        sleep(2.5)
         spinner.ok()
 ```
 
@@ -491,7 +491,7 @@ Set `timer=True` to append the running wall-clock time to the spinner, and to an
 def simmer(stream=None):
     """Simmer stock, with the clock running beside the label."""
     with Spinner("Simmering stock", timer=True, stream=stream) as spinner:
-        sleep(1.5)
+        sleep(4)
         spinner.ok()
 ```
 

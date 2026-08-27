@@ -1532,27 +1532,86 @@ def test_click_run_screenshot_animate_is_deterministic(sphinx_app_myst):
     assert asset.read_text(encoding="utf-8") == first
 
 
-def test_click_run_screenshot_animate_leaves_an_unchanged_asset_alone(sphinx_app_myst):
-    """A rebuild does not rewrite an animation whose identity has not moved.
+def test_click_run_screenshot_animate_rewrites_a_declared_asset(sphinx_app_myst):
+    """A declared animation is regenerated on every build, like any capture.
 
-    A recording is timed by the wall clock, so its bytes shift a little between
-    two runs on a differently loaded machine. Rewriting on every build would
-    dirty the working tree for a change nobody made, so the build compares the
-    `@recording` line instead and keeps what is committed.
+    It composes the same lines every time, so rewriting costs nothing and is
+    what keeps the asset from drifting away from the code. Gating the write on
+    what the animation *is* would freeze out every change to how it is *drawn*.
     """
     content = dedent(ANIMATED_SOURCE) + dedent("""
         ```{click:run}
-        :screenshot: kept-screen
+        :screenshot: declared-screen
         :screenshot-animate: steeping
         result = invoke(greet)
         ```
     """)
-    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "kept-screen.svg"
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "declared-screen.svg"
 
     sphinx_app_myst.build_document(content)
-    # Stand in for the committed bytes a previous, differently timed run left.
+    first = asset.read_text(encoding="utf-8")
+    asset.write_text(first + "<!-- stale -->", encoding="utf-8")
+
+    sphinx_app_myst.build_document(content)
+    assert asset.read_text(encoding="utf-8") == first, "the asset was not rewritten"
+
+
+def test_click_run_screenshot_animate_carries_a_presentation_change(sphinx_app_myst):
+    """Restating how an animation is drawn reaches the committed asset.
+
+    The frames are untouched by a margin, so nothing about what the animation
+    *is* moves. The picture still has to change.
+    """
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "restyled-screen.svg"
+
+    def build(margin):
+        sphinx_app_myst.build_document(
+            dedent(ANIMATED_SOURCE)
+            + dedent(f"""
+                ```{{click:run}}
+                :screenshot: restyled-screen
+                :screenshot-animate: steeping
+                :screenshot-margin: {margin}
+                result = invoke(greet)
+                ```
+            """)
+        )
+        return asset.read_text(encoding="utf-8")
+
+    assert build(8) != build(48)
+
+
+RECORDED_SOURCE = """
+    ```{click:source}
+    :hide-source:
+    from click_extra.recording import Frame
+
+    kettle = [Frame("filling", 0.2), Frame("boiled", 0.2)]
+    ```
+"""
+"""A stand-in recording: frames carrying their own durations, as one does."""
+
+
+def test_click_run_screenshot_record_writes_once(sphinx_app_myst):
+    """A recorded animation is written the first time and then left alone.
+
+    Which spinner glyph pairs with which screen is settled by the scheduler, so
+    a recording cannot be reproduced and rewriting it would dirty the working
+    tree for nothing anyone did.
+    """
+    content = dedent(RECORDED_SOURCE) + dedent("""
+        ```{click:run}
+        :screenshot: kettle-screen
+        :screenshot-record: kettle
+        :hide-results:
+        assert kettle
+        ```
+    """)
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "kettle-screen.svg"
+
+    sphinx_app_myst.build_document(content)
     marked = asset.read_text(encoding="utf-8").replace(
-        "</svg>", "<!-- committed by an earlier run --></svg>"
+        "</svg>", "<!-- as it was recorded --></svg>"
     )
     asset.write_text(marked, encoding="utf-8")
 
@@ -1560,26 +1619,48 @@ def test_click_run_screenshot_animate_leaves_an_unchanged_asset_alone(sphinx_app
     assert asset.read_text(encoding="utf-8") == marked
 
 
-def test_click_run_screenshot_animate_rewrites_a_moved_asset(sphinx_app_myst):
-    """An animation that genuinely changed is written out again."""
-    content = dedent(ANIMATED_SOURCE) + dedent("""
-        ```{click:run}
-        :screenshot: moved-screen
-        :screenshot-animate: steeping
-        result = invoke(greet)
-        ```
-    """)
-    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "moved-screen.svg"
+def test_click_run_screenshot_record_holds_its_last_frame(sphinx_app_myst):
+    """A recording pauses on its final screen before starting over.
 
-    sphinx_app_myst.build_document(content)
-    stale = re.sub(
-        r"digest=\w+", "digest=0000000000000000", asset.read_text(encoding="utf-8")
+    An animation that ends somewhere is worth reading, and a loop restarting the
+    instant it arrives never lets anyone.
+    """
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "held-screen.svg"
+    sphinx_app_myst.build_document(
+        dedent(RECORDED_SOURCE)
+        + dedent("""
+            ```{click:run}
+            :screenshot: held-screen
+            :screenshot-record: kettle
+            :hide-results:
+            assert kettle
+            ```
+        """)
     )
-    asset.write_text(stale, encoding="utf-8")
 
-    sphinx_app_myst.build_document(content)
-    assert asset.read_text(encoding="utf-8") != stale
-    assert "digest=0000000000000000" not in asset.read_text(encoding="utf-8")
+    # Two frames of 0.2s, the last one holding for the default two seconds.
+    svg = asset.read_text(encoding="utf-8")
+    assert "period=2.4s" in svg
+    assert "2.4s step-end" in svg
+
+
+def test_click_run_screenshot_hold_overrides_the_pause(sphinx_app_myst):
+    """`:screenshot-hold:` states the pause a page would rather have."""
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "brief-screen.svg"
+    sphinx_app_myst.build_document(
+        dedent(RECORDED_SOURCE)
+        + dedent("""
+            ```{click:run}
+            :screenshot: brief-screen
+            :screenshot-record: kettle
+            :screenshot-hold: 0
+            :hide-results:
+            assert kettle
+            ```
+        """)
+    )
+
+    assert "period=0.4s" in asset.read_text(encoding="utf-8")
 
 
 def test_click_run_screenshot_background(sphinx_app_myst):
