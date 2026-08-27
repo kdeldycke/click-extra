@@ -58,6 +58,7 @@ from click_extra.cli import demo
 
 ```{click:run}
 :screenshot: wrap-carapace-screen
+:screenshot-columns: auto
 import logging
 
 # A documentation build leaves the ambient root logger at INFO, which this page
