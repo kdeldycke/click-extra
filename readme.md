@@ -169,7 +169,7 @@ And every CLI gets these on top:
 
 Check these projects to get real-life examples of `click-extra` usage.
 
-### CLIs built on it
+CLIs:
 
 - ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/meta-package-manager?label=%E2%AD%90&style=flat-square) [Meta Package Manager](https://github.com/kdeldycke/meta-package-manager) - A unifying CLI for multiple package managers.
 - ![GitHub stars](https://img.shields.io/github/stars/kdeldycke/mail-deduplicate?label=%E2%AD%90&style=flat-square) [Mail Deduplicate](https://github.com/kdeldycke/mail-deduplicate) - A CLI to deduplicate similar emails.
@@ -178,9 +178,7 @@ Check these projects to get real-life examples of `click-extra` usage.
 - ![GitHub stars](https://img.shields.io/github/stars/SkwalExe/octo-logo?label=%E2%AD%90&style=flat-square) [octo-logo](https://github.com/SkwalExe/octo-logo) - Simple logos for complex projects.
 - ![GitHub stars](https://img.shields.io/github/stars/Project-Muteki/besta-tools?label=%E2%AD%90&style=flat-square) [besta-tools](https://github.com/Project-Muteki/besta-tools) - Tools for Besta devices and Besta RTOS proprietary formats.
 
-### Documentation rendered with it
-
-These pull `click-extra[sphinx]` or `click-extra[mkdocs]` for GitHub alerts, ANSI-colored code blocks and live CLI examples, and build their own command line on something else:
+Documentation (depends on `click-extra[sphinx]` or `click-extra[mkdocs]`):
 
 - ![GitHub stars](https://img.shields.io/github/stars/ankitects/anki?label=%E2%AD%90&style=flat-square) [Anki](https://github.com/ankitects/anki) - A smart spaced repetition flashcard program.
 - ![GitHub stars](https://img.shields.io/github/stars/jazzband/pip-tools?label=%E2%AD%90&style=flat-square) [pip-tools](https://github.com/jazzband/pip-tools) - A set of tools to keep your pinned Python dependencies fresh.
