@@ -1283,11 +1283,12 @@ def frame_animation_css(unique_id: str, durations: Sequence[float]) -> str:
     or an overlap, which it shows as two frames drawn at once.
     ```
 
-    The rules sit behind {data}`REDUCED_MOTION_QUERY`, and the plain
-    `visibility` declarations that hide every frame but the first sit outside
-    it. A CSS animation outranks a normal declaration, so the two never argue:
-    the animation drives wherever it runs, and the static picture is what is
-    left wherever it does not.
+    Every rule sits behind {data}`REDUCED_MOTION_QUERY`, and nothing else here
+    hides anything: the frames a still is not made of carry `visibility="hidden"`
+    as a presentation attribute instead. A CSS animation outranks a presentation
+    attribute, so the two never argue, and putting the hiding outside CSS
+    altogether is what keeps a renderer reading no stylesheet from drawing every
+    frame on top of the last.
 
     :param unique_id: prefix namespacing this document's classes and keyframes.
     :param durations: seconds each frame is shown, in order.
@@ -1318,11 +1319,7 @@ def frame_animation_css(unique_id: str, durations: Sequence[float]) -> str:
             f"{_css_number(total)}s {FRAME_TIMING_FUNCTION} infinite; }}"
         )
     animation = "\n".join(rules)
-    hidden = " ".join(
-        f".{unique_id}-f{index} {{ visibility: hidden; }}"
-        for index in range(1, len(durations))
-    )
-    return f"    {REDUCED_MOTION_QUERY} {{\n{animation}\n    }}\n    {hidden}"
+    return f"    {REDUCED_MOTION_QUERY} {{\n{animation}\n    }}"
 
 
 def render_svg(
@@ -1645,12 +1642,20 @@ def render_svg(
         moving = [row for row in range(row_count) if row not in set(still)]
         # Each frame carries its own matrix, so the attribute fallback above
         # reaches the frames a renderer shows after the first one too.
+        # The frame a renderer showing no animation is left with. The last one,
+        # because an animation that accumulates (a trail filling up, a bar
+        # advancing, an outcome landing) says most once it has finished. A
+        # spinner cycling in place reads the same whichever frame is picked.
+        poster = len(padded) - 1
         stack = _row_group(padded[0], still, matrix)
-        stack += "".join(
-            f'<g class="{unique_id}-f{index}">'
-            f"{_row_group(frame_rows, moving, matrix)}</g>"
-            for index, frame_rows in enumerate(padded)
-        )
+        for index, frame_rows in enumerate(padded):
+            # Stated as an attribute, not a rule: a renderer free to ignore the
+            # stylesheet would otherwise stack every frame on top of the poster.
+            hidden = "" if index == poster else ' visibility="hidden"'
+            stack += (
+                f'<g class="{unique_id}-f{index}"{hidden}>'
+                f"{_row_group(frame_rows, moving, matrix)}</g>"
+            )
     else:
         still_cells = "".join(row_cells for row_cells, _ in painted[0])
         still_glyphs = "".join(row_glyphs for _, row_glyphs in painted[0])

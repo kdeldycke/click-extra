@@ -411,7 +411,7 @@ def test_animated_capture_draws_a_row_that_never_moves_once():
     assert len(re.findall(r'class="pantry-f\d+"', svg)) == 5
     # The rows that never move are drawn once, ahead of the first frame.
     assert svg.count("shelf") == 4
-    head = svg[: svg.index('<g class="pantry-f0">')]
+    head = svg[: svg.index('<g class="pantry-f0"')]
     assert head.count("shelf") == 4
     # Each frame carries the one row that does move, and nothing else.
     assert svg.count("crate") == 5
@@ -422,7 +422,7 @@ def test_animated_capture_keeps_a_row_that_moves_in_every_frame():
     frames = [f"pear {index}" for index in range(4)]
     svg = render_svg(columns=20, unique_id="one", frames=frames, interval=0.1)
 
-    head = svg[: svg.index('<g class="one-f0">')]
+    head = svg[: svg.index('<g class="one-f0"')]
     assert "pear" not in head, "a moving row was drawn outside the frames"
     assert svg.count("pear") == 4
 
@@ -441,26 +441,36 @@ def test_two_animations_share_no_selector():
         assert not shared, f"{first} and {second} share {sorted(shared)}"
 
 
-def test_frame_animation_css_keeps_the_still_outside_the_guard():
-    """The animation is guarded, the still picture it falls back to is not.
+def test_frame_animation_css_only_ever_animates():
+    """Every rule the timing emits sits behind the reduced-motion guard.
 
-    Everything driving frames sits behind `prefers-reduced-motion`, so a reader
-    asking their system for less motion keeps the first frame and loses only the
-    motion. A renderer reading no CSS animation lands on the same picture.
+    Nothing here hides a frame: that is the frames' own `visibility` attribute,
+    which is what a renderer reading no stylesheet still honors. A reader asking
+    their system for less motion therefore lands on the same still as one whose
+    viewer speaks no CSS animation at all.
     """
-    guard, _, still = frame_animation_css("teapot", (0.1, 0.1, 0.1)).partition(
-        "\n    }\n"
-    )
-    assert guard.lstrip().startswith(REDUCED_MOTION_QUERY)
-    assert "@keyframes" in guard
-    assert "animation:" in guard
+    css = frame_animation_css("teapot", (0.1, 0.1, 0.1))
+    assert css.lstrip().startswith(REDUCED_MOTION_QUERY)
+    assert "@keyframes" in css
+    assert "animation:" in css
+    # No rule outlives the guard, which closes on the stylesheet's last brace.
+    assert css.rstrip().endswith("}")
+    assert "visibility: hidden; }" not in css.split(REDUCED_MOTION_QUERY, 1)[0]
 
-    assert "@keyframes" not in still
-    assert "animation:" not in still
-    # The first frame is what is left visible; every other one is hidden.
-    assert ".teapot-f0" not in still
-    assert ".teapot-f1 { visibility: hidden; }" in still
-    assert ".teapot-f2 { visibility: hidden; }" in still
+
+@pytest.mark.parametrize("name", ("bouncingBar", "dots", "moon"))
+def test_animated_capture_hides_its_frames_outside_the_stylesheet(name):
+    """Every frame but the poster is hidden by an attribute, not by a rule.
+
+    A renderer free to ignore `<style>` would otherwise draw all of them at
+    once, stacked on top of each other. The poster is the last frame, which on
+    an animation that accumulates is the one that says the most.
+    """
+    svg = animated_capture(name)
+    frames = re.findall(r'<g class="spin-[\w-]+-f(\d+)"( visibility="hidden")?>', svg)
+    assert frames
+    shown = [index for index, hidden in frames if not hidden]
+    assert shown == [str(len(frames) - 1)], "exactly the last frame is the poster"
 
 
 @pytest.mark.parametrize("name", ("bouncingBar", "dots", "moon"))

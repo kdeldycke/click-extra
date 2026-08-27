@@ -470,7 +470,9 @@ Because the frames differ in nothing but their text, one stylesheet covers the l
 
 A row drawn the same in every frame is drawn once, outside them, and only the rows that actually move are copied per frame. A spinner moves its one line, so nothing is shared and the picture is the same either way. A recording of a screen where one line advances under twenty that do not is where this tells: those twenty are written once instead of once per frame, which on a ten-frame recording is around 80% of the file.
 
-The first frame stays visible and the rest stay hidden wherever the animation does not run. That covers a renderer reading no CSS animation, and a reader whose system asks for reduced motion, which the capture honors with a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard. An animated capture is therefore always a still as well, and never a blank rectangle.
+One frame stays visible wherever the animation does not run, and the rest carry `visibility="hidden"` as a presentation attribute rather than as a rule. That covers three readers at once: a viewer that speaks no CSS animation, one that ignores the stylesheet altogether and would otherwise draw every frame stacked on the last, and a reader whose system asks for reduced motion, which the capture honors by keeping every animation rule behind a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard.
+
+The frame left visible is the **last** one. An animation that accumulates says most once it has finished: a trail filled up, a bar advanced, an outcome landed. A spinner cycling in place reads the same whichever frame is picked, so nothing is lost there. An animated capture is therefore always a still as well, and never a blank rectangle.
 
 ### Recording an animation
 
