@@ -493,23 +493,53 @@ def test_emphasis_rejects_a_line_the_capture_does_not_have():
         render_svg("crate 1\ncrate 2", columns=20, emphasize=(7,))
 
 
-def test_emphasis_is_drawn_once_behind_an_animation():
-    """A band marks a row of the screen, not anything a frame put there.
+FRAME_BAND_RE = re.compile(
+    r'<g class="([\w-]+)-f(\d+)"[^>]*clip-path="url\(#[\w-]+-window\)">(.*?)</g>'
+)
+"""A band group riding one frame of an animation."""
 
-    Drawn once, ahead of every frame group, so no frame can carry it away and
-    the emphasis holds still while the animation moves under it.
+
+def banded_frames(svg: str) -> set[int]:
+    """Which frames of an animated capture draw a band."""
+    return {
+        int(index)
+        for _, index, drawn in FRAME_BAND_RE.findall(svg)
+        if "<rect" in drawn
+    }
+
+
+def test_emphasis_arrives_with_the_row_it_marks():
+    """A band shows in the frame that first draws its row, and not before.
+
+    Waiting in empty space for the animation to reach it reads as a stray
+    rectangle. Arriving with the row is also the moment a gutter would first
+    number that row, so the two land together.
     """
+    frames = (
+        "one pear",
+        "one pear\ntwo pears",
+        "one pear\ntwo pears\nthree pears",
+    )
+    svg = render_svg(
+        columns=20, unique_id="grow", frames=frames, interval=0.1, emphasize=(3,)
+    )
+
+    assert banded_frames(svg) == {2}, "only a frame holding a third row is banded"
+
+
+def test_emphasis_leaves_a_closing_blank_alone():
+    """The empty beat closing a cycle draws no band, having drawn no row."""
     svg = render_svg(
         columns=20,
-        unique_id="banded",
-        frames=("one pear", "two pears", "three pears"),
+        unique_id="beat",
+        frames=("one pear", "two pears"),
         interval=0.1,
+        blank=0.5,
         emphasize=(1,),
     )
 
-    assert len(bands_of(svg)) == 1
-    # Ahead of every frame, and outside the clip that holds the text.
-    assert svg.index("-window)") < svg.index('<g class="banded-f0"')
+    # Two frames of content are banded; the blank third is not.
+    assert banded_frames(svg) == {0, 1}
 
 
 def test_two_animations_share_no_selector():

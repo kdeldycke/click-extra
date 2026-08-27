@@ -87,7 +87,7 @@ from .theme import BUILTIN_THEMES
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Iterable, Iterator, Sequence
     from pathlib import Path
     from typing import Any, Literal, TypeAlias
 
@@ -1453,10 +1453,11 @@ def render_svg(
         in real seconds and are not scaled: they are how long a reader is given,
         not part of what is being replayed.
     :param emphasize: lines to draw a band behind, counted from `1` the way
-        `:emphasize-lines:` counts them. The band is a property of the row
-        rather than of any one frame, so an animation carries it at the same
-        place throughout, and a line that is empty in one frame still marks
-        where the emphasis sits.
+        `:emphasize-lines:` counts them. A band runs the full width of the
+        window rather than of the text, the row being what is emphasized. In an
+        animation it appears with the frame that first draws the row it marks,
+        which is also when a gutter would first number that row, and it is gone
+        again wherever the row is.
     :param palette: terminal colors the capture's ANSI codes resolve against.
     :param font_stack: fonts the text is set in, best first.
     :param border: paint for the window's frame. {data}`NO_PAINT` draws none.
@@ -1528,6 +1529,10 @@ def render_svg(
     # as a single rule and no frame can name a class the stylesheet omits.
     classes: dict[str, int] = {}
     painted: list[list[tuple[str, str]]] = []
+    # How many rows each frame drew, which is what says whether an
+    # emphasized line exists yet in it. A frame holding only blanks (the one
+    # a `blank` closes the cycle with) drew none.
+    filled: list[int] = []
     # Frames are stacked in one window, so the tallest is what has to fit.
     row_count = 0
     for picture in pictures:
@@ -1567,6 +1572,7 @@ def render_svg(
                         )
             rendered_rows.append(("".join(cells), "".join(glyphs)))
         painted.append(rendered_rows)
+        filled.append(len(rows) if picture.strip() else 0)
 
     # A collapsed title bar is negative padding applied to the top alone, which
     # is why both travel together through every measurement below.
@@ -1762,24 +1768,55 @@ def render_svg(
     # clip instead, or a band on the last row would square off the corners it
     # runs into.
     if emphasize:
+        # A stroke straddles the path it outlines, so half the window's frame is
+        # drawn inside the window. A band running the frame's full width would
+        # paint over that half and eat the border on the rows it marks. Both the
+        # band and the clip rounding it therefore stop on the frame's inner
+        # edge, which is where the window actually begins.
+        inner = border_width / 2 if border != NO_PAINT else 0
+        band_x = margin + WINDOW_INSET + inner
+        band_width = window_width - 2 * inner
         defs.append(
             f'<clipPath id="{unique_id}-window">'
-            f'<rect x="{_svg_number(margin + WINDOW_INSET)}" '
-            f'y="{_svg_number(margin + WINDOW_INSET)}" '
-            f'width="{_svg_number(window_width)}" '
-            f'height="{_svg_number(window_height)}" rx="{radius}"/></clipPath>'
+            f'<rect x="{_svg_number(band_x)}" '
+            f'y="{_svg_number(margin + WINDOW_INSET + inner)}" '
+            f'width="{_svg_number(band_width)}" '
+            f'height="{_svg_number(window_height - 2 * inner)}" '
+            f'rx="{_svg_number(max(radius - inner, 0))}"/></clipPath>'
         )
-        bands = "".join(
-            f'<rect fill="'
-            f'{blend(palette.background, palette.foreground, EMPHASIS_RATIO)}"'
-            f' x="{_svg_number(margin + WINDOW_INSET)}"'
-            f' y="{_svg_number(origin_y + (line - 1) * LINE_HEIGHT + CELL_TOP_INSET)}"'
-            f' width="{_svg_number(window_width)}"'
-            f' height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}"'
-            ' shape-rendering="crispEdges"/>'
-            for line in sorted(set(emphasize))
-        )
-        body.append(f'<g clip-path="url(#{unique_id}-window)">{bands}</g>')
+
+        def bands(lines: Iterable[int]) -> str:
+            """Draw a band across the window on each of the lines given."""
+            return "".join(
+                f'<rect fill="'
+                f'{blend(palette.background, palette.foreground, EMPHASIS_RATIO)}"'
+                f' x="{_svg_number(band_x)}"'
+                f' y="'
+                f'{_svg_number(origin_y + (line - 1) * LINE_HEIGHT + CELL_TOP_INSET)}"'
+                f' width="{_svg_number(band_width)}"'
+                f' height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}"'
+                ' shape-rendering="crispEdges"/>'
+                for line in lines
+            )
+
+        wanted = sorted(set(emphasize))
+        if animated:
+            # One band group per frame, wearing that frame's own class so the
+            # animation shows and hides the two together. A band therefore
+            # arrives with the row it marks rather than waiting in empty space
+            # for the animation to reach it, which is also when a gutter would
+            # first number that row.
+            for index, rows_drawn in enumerate(filled):
+                marked = [line for line in wanted if line <= rows_drawn]
+                if not marked:
+                    continue
+                hidden = "" if index == poster else HIDDEN_FRAME_ATTRIBUTES
+                body.append(
+                    f'<g class="{unique_id}-f{index}"{hidden}'
+                    f' clip-path="url(#{unique_id}-window)">{bands(marked)}</g>'
+                )
+        else:
+            body.append(f'<g clip-path="url(#{unique_id}-window)">{bands(wanted)}</g>')
 
     # The clip and the offset are the window's, not a frame's, so they wrap the
     # whole stack rather than being repeated inside it.

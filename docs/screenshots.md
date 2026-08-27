@@ -313,7 +313,7 @@ Lines are counted on the *canvas*, blanks included, which is what a gutter would
 
 Ranges on the command line are closed, so state both ends: a capture's height is only known once the command has run and its output has been trimmed, which is too late for `4-` to mean anything. Inside a documentation block that height *is* known, so [`:screenshot-emphasize-lines:`](sphinx.md#committed-captures) takes the open-ended form too.
 
-An [animated capture](#animated-captures) bands the same way. The emphasis marks a row of the screen rather than anything one frame drew there, so it is drawn once behind every frame and holds still while the animation moves under it.
+An [animated capture](#animated-captures) bands the same way, one frame at a time. A band appears with the frame that first draws the row it marks, which is the same moment a gutter would first number that row, and it is gone again wherever the row is: the empty beat closing a cycle carries none. Banding a row before the animation has reached it would read as a stray rectangle waiting in blank space.
 
 #### The credit line
 
@@ -437,7 +437,7 @@ assert callable(restock)
 
 ![A spinner restocking a pantry, numbered and see-through on a gradient backdrop, its third line picked out](assets/styled-window-animated-screen.svg)
 
-The gutter counts each frame's own rows, so it grows as the trail does, while the band on the third line does not move: emphasis marks a row of the screen, and the trail grows into it and past it. The window is drawn once and every frame is stacked inside it, which is why a gradient this size costs the animation nothing over the still.
+The gutter counts each frame's own rows, so it grows as the trail does, and the band on the third line arrives on the same frame its number does. The window is drawn once and every frame is stacked inside it, which is why a gradient this size costs the animation nothing over the still.
 
 ### Terminal presets
 

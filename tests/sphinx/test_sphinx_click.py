@@ -1769,10 +1769,19 @@ def test_click_run_screenshot_emphasize_lines_bands_an_animation(sphinx_app_myst
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "banded-animation-screen.svg"
     svg = asset.read_text(encoding="utf-8")
-    group = re.search(r'<g clip-path="url\(#[\w-]+-window\)">(.*?)</g>', svg)
-    assert group and group.group(1).count("<rect") == 1
-    # Outside every frame group, so no frame can take the band with it.
-    assert svg.index("-window)") < svg.index('<g class="banded-animation-screen-f0"')
+    banded = {
+        int(index)
+        for index, drawn in re.findall(
+            r'<g class="banded-animation-screen-f(\d+)"[^>]*'
+            r'clip-path="url\(#[\w-]+-window\)">(.*?)</g>',
+            svg,
+            re.DOTALL,
+        )
+        if "<rect" in drawn
+    }
+    # Both recorded frames draw the first row; the blank closing the cycle does
+    # not, so it carries no band either.
+    assert banded == {0, 1}
 
 
 def test_click_run_screenshot_emphasize_lines_rejects_a_line_that_is_not_there(
