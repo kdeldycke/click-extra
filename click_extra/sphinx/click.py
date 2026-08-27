@@ -56,6 +56,7 @@ from sphinx.util import logging
 from ..blocks import OPTION_LINE_RE, fence_spans, marker_res, update_blocks
 from ..color import forced_color
 from ..execution import format_cli_prompt
+from ..recording import DEFAULT_QUANTUM, Frame, quantize
 from ..screenshot import (
     AUTO_COLUMNS,
     DEFAULT_COLUMNS,
@@ -845,8 +846,11 @@ class ClickDirective(SphinxDirective):
         """
         return self.options.get("screenshot-columns", DEFAULT_COLUMNS)  # type: ignore[no-any-return]
 
-    @cached_property
-    def screenshot_animation(self) -> tuple[tuple[str, ...], float] | None:
+    def resolve_animation(
+        self,
+        expression: str,
+        option: str,
+    ) -> tuple[tuple[str, ...], float | tuple[float, ...]]:
         """Frames the capture animates, set by `:screenshot-animate:`.
 
         The option is a Python expression, evaluated in the same per-document
@@ -856,10 +860,16 @@ class ClickDirective(SphinxDirective):
         - a {class}`~click_extra.spinner.Spinner`, whose
           {meth}`~click_extra.spinner.Spinner.frame_lines` and `interval` are
           taken as they stand, which is the whole declaration for a spinner;
+        - a sequence of {class}`~click_extra.recording.Frame`, as a recording
+          hands back, each carrying the screen it held and for how long. Those
+          durations are wall-clock, so they are rounded onto a grid before they
+          reach the picture, see `:screenshot-quantum:`;
         - any other sequence of strings, one captured text per frame, whose
           `:screenshot-interval:` says how long each is shown.
 
-        `:screenshot-interval:` overrides a spinner's own when both are stated.
+        `:screenshot-interval:` overrides a spinner's own when both are stated,
+        and times a recording flatly when it would rather not keep the pace it
+        was recorded at.
 
         ```{caution}
         An animated block pictures its *frames*, not its results. The block
@@ -867,10 +877,12 @@ class ClickDirective(SphinxDirective):
         block's do, but they are not what the image shows.
         ```
 
-        Deriving the frames from a declared subject rather than from a timing
-        is what keeps the committed asset deterministic: the same expression
-        composes the same lines on every build, so an unchanged subject rewrites
-        byte-identical bytes and leaves the working tree clean.
+        A declared subject keeps the committed asset deterministic outright: the
+        same expression composes the same lines on every build. A recording
+        cannot, its frames being timed by the wall clock, so it leans on the
+        quantum above and on the `@recording` line
+        {meth}`~RunDirective.recording_moved` compares, which together leave an
+        unchanged animation's committed bytes alone.
 
         :return: the frames and how long each is shown, or `None` when the block
             draws a still.
@@ -878,38 +890,69 @@ class ClickDirective(SphinxDirective):
         :raises TypeError: when it yields neither a spinner nor strings.
         :raises ValueError: when a bare sequence of frames states no interval.
         """
-        expression = self.options.get("screenshot-animate")
-        if expression is None:
-            return None
         interval = self.options.get("screenshot-interval")
         try:
             subject = eval(expression, self.runner.namespace)
         except Exception as exc:
             raise RuntimeError(
-                f"click:run: :screenshot-animate: failed to evaluate "
-                f"{expression!r}: {exc}",
+                f"click:run: {option}: failed to evaluate {expression!r}: {exc}",
             ) from exc
 
         if isinstance(subject, Spinner):
             return (subject.frame_lines(), interval or subject.interval)
         if isinstance(subject, str) or not isinstance(subject, Sequence):
             raise TypeError(
-                f"click:run: :screenshot-animate: {expression!r} yielded neither "
+                f"click:run: {option}: {expression!r} yielded neither "
                 f"a Spinner nor a sequence of frames (got "
                 f"{type(subject).__name__}).",
             )
-        frames = tuple(subject)
-        if not all(isinstance(frame, str) for frame in frames):
+        recorded = tuple(subject)
+        if not recorded:
+            raise ValueError(
+                f"click:run: {option}: {expression!r} yielded no frame to draw.",
+            )
+        if all(isinstance(frame, Frame) for frame in recorded):
+            # Rounded here rather than left to the page, so forgetting to do it
+            # cannot be what dirties the working tree on the next build.
+            timed = quantize(
+                recorded,
+                self.options.get("screenshot-quantum", DEFAULT_QUANTUM),
+            )
+            texts = tuple(frame.text for frame in timed)
+            if interval is not None:
+                return (texts, interval)
+            return (texts, tuple(frame.duration for frame in timed))
+        if not all(isinstance(frame, str) for frame in recorded):
             raise TypeError(
-                f"click:run: :screenshot-animate: {expression!r} yielded a "
-                "sequence holding something other than a frame's text.",
+                f"click:run: {option}: {expression!r} yielded a "
+                "sequence holding neither a frame's text nor a recorded Frame.",
             )
         if interval is None:
             raise ValueError(
-                "click:run: :screenshot-animate: needs a :screenshot-interval: "
-                "when it does not name a spinner carrying one.",
+                f"click:run: {option}: needs a :screenshot-interval: "
+                "when it does not name a spinner or a recording carrying one.",
             )
-        return (frames, interval)
+        return (recorded, interval)
+
+    @cached_property
+    def screenshot_animation(
+        self,
+    ) -> tuple[tuple[str, ...], float | tuple[float, ...]] | None:
+        """Frames a *declared* animation draws, set by `:screenshot-animate:`.
+
+        Declared frames are composed rather than timed, so they come out the
+        same on every build and the asset is regenerated like any other, which
+        is what keeps it from drifting away from the code. See
+        {meth}`resolve_animation` for what the expression may yield, and
+        `:screenshot-record:` for the case that cannot be regenerated.
+
+        :return: the frames and how long each is shown, or `None` when the block
+            draws a still.
+        """
+        expression = self.options.get("screenshot-animate")
+        if expression is None:
+            return None
+        return self.resolve_animation(expression, ":screenshot-animate:")
 
     @cached_property
     def screenshot_frame(self) -> dict[str, Any]:
@@ -1031,6 +1074,34 @@ class ClickDirective(SphinxDirective):
             / f"{self.screenshot}.svg"
         )
         path.parent.mkdir(parents=True, exist_ok=True)
+
+        recording = self.options.get("screenshot-record")
+        if recording is not None:
+            if path.exists() and animation_metadata(path.read_text(encoding="utf-8")):
+                # Kept as it was recorded. A recording of an animation cannot be
+                # reproduced: which spinner glyph pairs with which screen is
+                # decided by the scheduler, so the same command records a
+                # different set of frames every other run. Rewriting on each
+                # build would dirty the working tree for nothing anyone did, so
+                # the first recording is the one that stands.
+                #
+                # The expression is not even evaluated here, which is what keeps
+                # the command it records off every later build's clock. To take
+                # a fresh recording, delete the file and build again.
+                return
+            frames, interval = self.resolve_animation(recording, ":screenshot-record:")
+            path.write_text(
+                render(
+                    columns=self.screenshot_columns,
+                    unique_id=self.screenshot,
+                    background=self.screenshot_background,
+                    frames=frames,
+                    interval=interval,
+                    **self.screenshot_frame,
+                ),
+                encoding="utf-8",
+            )
+            return
 
         animation = self.screenshot_animation
         if animation is not None:
@@ -1197,7 +1268,9 @@ class RunDirective(ClickDirective):
         "screenshot-opacity": _screenshot_opacity,
         "screenshot-padding": directives.nonnegative_int,
         "screenshot-preset": _screenshot_preset,
+        "screenshot-quantum": _screenshot_interval,
         "screenshot-radius": directives.nonnegative_int,
+        "screenshot-record": directives.unchanged_required,
         "screenshot-shadow": directives.unchanged_required,
         "screenshot-title": directives.unchanged_required,
         "screenshot-watermark": directives.unchanged_required,
