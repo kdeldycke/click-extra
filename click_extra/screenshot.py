@@ -452,11 +452,18 @@ HIDDEN_FRAME_ATTRIBUTES = ' visibility="hidden" opacity="0"'
 """How an animated capture hides the frames its still is not made of.
 
 Presentation attributes rather than a stylesheet rule, so a renderer reading no
-CSS still shows one picture instead of every frame at once. Both properties are
-stated because renderers have been seen honoring one and not the other, and
-either alone is enough to hide a frame. A CSS animation outranks a presentation
-attribute, so {func}`frame_animation_css` restores both together and the two
-mechanisms never disagree.
+CSS still shows one picture instead of every frame at once. A CSS animation
+outranks a presentation attribute, so {func}`frame_animation_css` restores both
+together and the two mechanisms never disagree.
+
+```{caution}
+Both properties are load-bearing and neither is redundant. `visibility` alone
+was tried first and is enough for a browser, for `librsvg` and for Quick Look's
+thumbnailer, but a git client's SVG diff view ignored it and drew all sixty-one
+frames on top of each other. Adding `opacity` fixed that renderer, which
+therefore honors the second and not the first. Dropping either one takes a
+class of reader with it.
+```
 """
 
 ANIMATION_METADATA_RE = re.compile(r"<!-- @recording (?P<fields>[^>]*?) -->")
