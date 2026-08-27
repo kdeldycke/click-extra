@@ -398,6 +398,35 @@ def test_animation_windows_tile_the_cycle(name):
         assert closes == opens, f"{name}: {closes}% to {opens}% is a gap or an overlap"
 
 
+def test_animated_capture_draws_a_row_that_never_moves_once():
+    """A row identical in every frame is drawn outside them, not once per frame.
+
+    On a recording where one line moves under a screen of lines that do not,
+    this is the difference between one copy of that screen and one per frame.
+    """
+    still = "\n".join(f"shelf {index} holds pears" for index in range(4))
+    frames = [f"{still}\ncrate {index}" for index in range(5)]
+    svg = render_svg(columns=40, unique_id="pantry", frames=frames, interval=0.1)
+
+    assert len(re.findall(r'class="pantry-f\d+"', svg)) == 5
+    # The rows that never move are drawn once, ahead of the first frame.
+    assert svg.count("shelf") == 4
+    head = svg[: svg.index('<g class="pantry-f0">')]
+    assert head.count("shelf") == 4
+    # Each frame carries the one row that does move, and nothing else.
+    assert svg.count("crate") == 5
+
+
+def test_animated_capture_keeps_a_row_that_moves_in_every_frame():
+    """Nothing is shared when every row differs, which is the spinner's case."""
+    frames = [f"pear {index}" for index in range(4)]
+    svg = render_svg(columns=20, unique_id="one", frames=frames, interval=0.1)
+
+    head = svg[: svg.index('<g class="one-f0">')]
+    assert "pear" not in head, "a moving row was drawn outside the frames"
+    assert svg.count("pear") == 4
+
+
 def test_two_animations_share_no_selector():
     """Two animated captures inlined in one page keep their own timing.
 

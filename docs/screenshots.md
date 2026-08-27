@@ -468,6 +468,8 @@ One number for `interval` times every frame alike, which is what a spinner asks 
 
 Because the frames differ in nothing but their text, one stylesheet covers the lot: a color two frames share is written as a single rule, and no frame can name a class the document leaves undefined. Everything is namespaced by `unique_id`, keyframes included, so two animations inlined into one page keep their own timing instead of the shorter one running on the longer one's clock.
 
+A row drawn the same in every frame is drawn once, outside them, and only the rows that actually move are copied per frame. A spinner moves its one line, so nothing is shared and the picture is the same either way. A recording of a screen where one line advances under twenty that do not is where this tells: those twenty are written once instead of once per frame, which on a ten-frame recording is around 80% of the file.
+
 The first frame stays visible and the rest stay hidden wherever the animation does not run. That covers a renderer reading no CSS animation, and a reader whose system asks for reduced motion, which the capture honors with a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard. An animated capture is therefore always a still as well, and never a blank rectangle.
 
 ### Recording an animation

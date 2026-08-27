@@ -1209,6 +1209,24 @@ def _css_number(value: float) -> str:
     return f"{value:g}"
 
 
+def _row_group(
+    rows: Sequence[tuple[str, str]],
+    wanted: Sequence[int],
+    matrix: str,
+) -> str:
+    """Draw the named rows: their backgrounds first, then their glyphs.
+
+    The glyphs share one matrix group, which is what carries the font and color
+    a renderer ignoring the stylesheet falls back to. Rows carrying nothing draw
+    nothing rather than an empty group.
+    """
+    cells = "".join(rows[row][0] for row in wanted)
+    glyphs = "".join(rows[row][1] for row in wanted)
+    if not cells and not glyphs:
+        return ""
+    return f"{cells}{matrix}{glyphs}</g>"
+
+
 def animation_digest(frames: Sequence[str], durations: Sequence[float]) -> str:
     """Fingerprint what an animation *is*, rather than how it happened to run.
 
@@ -1432,16 +1450,17 @@ def render_svg(
     # One dictionary across every frame, so a color two frames share is written
     # as a single rule and no frame can name a class the stylesheet omits.
     classes: dict[str, int] = {}
-    painted: list[tuple[str, str]] = []
+    painted: list[list[tuple[str, str]]] = []
     # Frames are stacked in one window, so the tallest is what has to fit.
     row_count = 0
     for picture in pictures:
         rows = grid(picture.rstrip("\n"), columns)
         row_count = max(row_count, len(rows))
-        cells: list[str] = []
-        glyphs: list[str] = []
+        rendered_rows: list[tuple[str, str]] = []
         for row, runs in enumerate(rows):
             baseline = row * LINE_HEIGHT + CELL_HEIGHT
+            cells: list[str] = []
+            glyphs: list[str] = []
             for run_style, run, column in runs:
                 # The paint spans the whole run, padding included: a styled
                 # column keeps its background across the spaces trailing it.
@@ -1469,7 +1488,8 @@ def render_svg(
                             f'y="{_svg_number(baseline)}">'
                             f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
                         )
-        painted.append(("".join(cells), "".join(glyphs)))
+            rendered_rows.append(("".join(cells), "".join(glyphs)))
+        painted.append(rendered_rows)
 
     # A collapsed title bar is negative padding applied to the top alone, which
     # is why both travel together through every measurement below.
@@ -1609,14 +1629,32 @@ def render_svg(
         f'font-size="{_svg_number(CELL_HEIGHT)}" fill="{palette.foreground}">'
     )
     if animated:
+        # Padded so a row index means the same thing in every frame.
+        padded = [
+            frame_rows + [("", "")] * (row_count - len(frame_rows))
+            for frame_rows in painted
+        ]
+        # A row drawn the same in every frame is drawn once, outside them. On a
+        # recording where one line moves under twenty that do not, that is the
+        # difference between one copy of those twenty and one copy per frame.
+        still = [
+            row
+            for row in range(row_count)
+            if len({frame_rows[row] for frame_rows in padded}) == 1
+        ]
+        moving = [row for row in range(row_count) if row not in set(still)]
         # Each frame carries its own matrix, so the attribute fallback above
         # reaches the frames a renderer shows after the first one too.
-        stack = "".join(
-            f'<g class="{unique_id}-f{index}">{cells}{matrix}{glyphs}</g></g>'
-            for index, (cells, glyphs) in enumerate(painted)
+        stack = _row_group(padded[0], still, matrix)
+        stack += "".join(
+            f'<g class="{unique_id}-f{index}">'
+            f"{_row_group(frame_rows, moving, matrix)}</g>"
+            for index, frame_rows in enumerate(padded)
         )
     else:
-        stack = f"{painted[0][0]}{matrix}{painted[0][1]}</g>"
+        still_cells = "".join(row_cells for row_cells, _ in painted[0])
+        still_glyphs = "".join(row_glyphs for _, row_glyphs in painted[0])
+        stack = f"{still_cells}{matrix}{still_glyphs}</g>"
     # The clip and the offset are the window's, not a frame's, so they wrap the
     # whole stack rather than being repeated inside it.
     body.append(
