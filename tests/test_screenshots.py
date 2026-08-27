@@ -35,12 +35,13 @@ import re
 import shutil
 import sys
 from html import unescape
+from itertools import combinations, pairwise
 from pathlib import Path
 from typing import NamedTuple
 
 import pytest
 
-from click_extra import unstyle
+from click_extra import SPINNERS, Spinner, Style, unstyle
 from click_extra.cli import screenshot_cmd
 from click_extra.execution import PROMPT
 from click_extra.screenshot import (
@@ -61,6 +62,7 @@ from click_extra.screenshot import (
     NO_PAINT,
     OPAQUE,
     PADDING,
+    REDUCED_MOTION_QUERY,
     TITLEBAR_HEIGHT,
     WATERMARK_INK,
     WATERMARK_INSET,
@@ -73,6 +75,7 @@ from click_extra.screenshot import (
     column_segments,
     fit_columns,
     format_from_path,
+    frame_animation_css,
     gradient_svg,
     grid,
     number_lines,
@@ -306,6 +309,163 @@ def test_no_capture_references_a_missing_clip():
         referenced = set(re.findall(r'clip-path="url\(#([^)]+)\)"', svg))
         assert not referenced - defined, (
             f"{committed.filename}: dangling {sorted(referenced - defined)}"
+        )
+
+
+ANIMATION_PRESETS = tuple(sorted(SPINNERS))
+"""Every bundled spinner: the population an animated capture is checked over."""
+
+
+def animated_capture(name: str) -> str:
+    """Draw one bundled spinner as an animated capture."""
+    preset = SPINNERS[name]
+    spinner = Spinner("Steeping", spinner=preset, style=Style(fg="green"))
+    return render_svg(
+        columns=40,
+        title=name,
+        unique_id=f"spin-{name}",
+        frames=spinner.frame_lines(),
+        interval=preset.interval,
+    )
+
+
+def stylesheet_of(svg: str) -> str:
+    """The `<style>` block of a rendered capture."""
+    found = re.search(r"<style>(.*?)</style>", svg, re.DOTALL)
+    assert found, "a capture always carries a stylesheet"
+    return found.group(1)
+
+
+def claimed_names(svg: str) -> set[str]:
+    """Every name a capture's stylesheet claims in the scope of a whole page.
+
+    Class selectors and keyframe names both: inlined into one HTML document,
+    the stylesheets of two captures are global and share that scope.
+    """
+    stylesheet = stylesheet_of(svg)
+    return set(re.findall(r"\.([\w-]+)\s*\{", stylesheet)) | set(
+        re.findall(r"@keyframes ([\w-]+)", stylesheet)
+    )
+
+
+@pytest.mark.parametrize("name", ANIMATION_PRESETS)
+def test_animated_capture_defines_every_class_it_uses(name):
+    """No frame names a class its capture's stylesheet leaves undefined.
+
+    An undefined class does not blank its frame: the text falls back to the
+    presentation attributes and draws in a default face in the window's own ink.
+    The animation then appears to reset its styling once a cycle, only the
+    frames carrying a rule looking right.
+    """
+    svg = animated_capture(name)
+    undefined = set(re.findall(r'class="([\w-]+)"', svg)) - claimed_names(svg)
+    assert not undefined, f"{name}: undefined {sorted(undefined)}"
+
+
+@pytest.mark.parametrize("name", ANIMATION_PRESETS)
+def test_animated_capture_draws_its_chrome_once(name):
+    """The window, its caption and its clip path are drawn once, not per frame."""
+    svg = animated_capture(name)
+    assert svg.count("<clipPath") == 1
+    assert svg.count('-title"') == 1
+
+
+@pytest.mark.parametrize("name", ANIMATION_PRESETS)
+def test_animation_windows_tile_the_cycle(name):
+    """Each frame's window abuts the next, covering the cycle exactly once.
+
+    A gap leaves the picture blank for part of every turn; an overlap draws two
+    frames on top of each other.
+    """
+    windows = []
+    for keyframes in re.findall(
+        r"@keyframes [\w-]+ \{ (.*?) \}\n", animated_capture(name)
+    ):
+        steps = [
+            (float(at), state)
+            for at, state in re.findall(
+                r"([\d.]+)% \{ visibility: (\w+); \}", keyframes
+            )
+        ]
+        opens = next(at for at, state in steps if state == "visible")
+        closes = next(at for at, state in steps if state == "hidden" and at > opens)
+        windows.append((opens, closes))
+
+    windows.sort()
+    assert windows[0][0] == 0.0, f"{name}: the cycle opens on no frame"
+    assert windows[-1][1] == 100.0, f"{name}: the cycle ends on no frame"
+    for (_, closes), (opens, _) in pairwise(windows):
+        assert closes == opens, f"{name}: {closes}% to {opens}% is a gap or an overlap"
+
+
+def test_two_animations_share_no_selector():
+    """Two animated captures inlined in one page keep their own timing.
+
+    Both stylesheets are global there. A selector they share hands the shorter
+    animation the longer one's clock, and the frames it does not have go blank
+    for that part of every cycle.
+    """
+    names = ("dots", "moon", "bouncingBar")
+    claimed = {name: claimed_names(animated_capture(name)) for name in names}
+    for first, second in combinations(names, 2):
+        shared = claimed[first] & claimed[second]
+        assert not shared, f"{first} and {second} share {sorted(shared)}"
+
+
+def test_frame_animation_css_keeps_the_still_outside_the_guard():
+    """The animation is guarded, the still picture it falls back to is not.
+
+    Everything driving frames sits behind `prefers-reduced-motion`, so a reader
+    asking their system for less motion keeps the first frame and loses only the
+    motion. A renderer reading no CSS animation lands on the same picture.
+    """
+    guard, _, still = frame_animation_css("teapot", (0.1, 0.1, 0.1)).partition(
+        "\n    }\n"
+    )
+    assert guard.lstrip().startswith(REDUCED_MOTION_QUERY)
+    assert "@keyframes" in guard
+    assert "animation:" in guard
+
+    assert "@keyframes" not in still
+    assert "animation:" not in still
+    # The first frame is what is left visible; every other one is hidden.
+    assert ".teapot-f0" not in still
+    assert ".teapot-f1 { visibility: hidden; }" in still
+    assert ".teapot-f2 { visibility: hidden; }" in still
+
+
+@pytest.mark.parametrize("name", ("bouncingBar", "dots", "moon"))
+def test_animated_capture_renders_the_same_bytes_twice(name):
+    """An unchanged animation rewrites byte-identical bytes.
+
+    What lets a committed asset be regenerated on every build without dirtying
+    the working tree.
+    """
+    assert animated_capture(name) == animated_capture(name)
+
+
+def test_animated_capture_needs_an_interval():
+    with pytest.raises(ValueError, match="how long a frame lasts"):
+        render_svg(columns=20, frames=("one pear", "two pears"))
+
+
+def test_animated_capture_counts_its_durations():
+    with pytest.raises(ValueError, match="2 frames carry 1 durations"):
+        render_svg(columns=20, frames=("one pear", "two pears"), interval=(0.1,))
+
+
+def test_animated_capture_rejects_a_frame_lasting_no_time():
+    with pytest.raises(ValueError, match="positive time"):
+        render_svg(columns=20, frames=("one pear", "two pears"), interval=(0.1, 0))
+
+
+def test_html_capture_does_not_animate():
+    """An HTML capture is selectable text, which has no frame to hide."""
+    with pytest.raises(ValueError, match="do not animate"):
+        render(
+            format=CaptureFormat.HTML,
+            frames=("one pear", "two pears"),
+            interval=0.1,
         )
 
 
