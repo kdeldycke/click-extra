@@ -457,12 +457,13 @@ outranks a presentation attribute, so {func}`frame_animation_css` restores both
 together and the two mechanisms never disagree.
 
 ```{caution}
-Both properties are load-bearing and neither is redundant. `visibility` alone
-was tried first and is enough for a browser, for `librsvg` and for Quick Look's
-thumbnailer, but a git client's SVG diff view ignored it and drew all sixty-one
-frames on top of each other. Adding `opacity` fixed that renderer, which
-therefore honors the second and not the first. Dropping either one takes a
-class of reader with it.
+Neither property is redundant, and the split was found the hard way. `visibility`
+alone was tried first and satisfies a browser, `librsvg` and macOS Quick Look's
+*thumbnailer*. Two other readers ignored it and drew every frame on top of the
+last: a git client's SVG diff view, and macOS Finder's *preview pane*, which is
+a different code path from the thumbnailer that was already working. Adding
+`opacity` fixed both, so each property covers a reader the other misses and
+dropping either takes a class of reader with it.
 ```
 """
 
