@@ -22,9 +22,10 @@ import io
 import time
 
 import pytest
+from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style
-from click_extra.recording import TerminalScreen
+from click_extra.recording import ScreenRecorder, TerminalScreen, record_command
 
 CLEAR_LINE = "\x1b[K"
 HIDE_CURSOR = "\x1b[?25l"
@@ -149,3 +150,116 @@ def test_screen_recovers_every_frame_a_spinner_draws(monkeypatch):
         f"recovered a line the spinner never draws: "
         f"{sorted(recovered - set(spinner.frame_lines()))}"
     )
+
+
+class StepClock:
+    """A clock advancing a fixed step per reading, so a test can time frames."""
+
+    def __init__(self, step: float = 1.0) -> None:
+        self.step = step
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        reading = self.now
+        self.now += self.step
+        return reading
+
+
+def test_recorder_claims_to_be_a_terminal():
+    """A spinner animates for a recorder without being told to.
+
+    The whole question a spinner asks before drawing is whether its stream is a
+    terminal. Answering it is what makes the in-process path need no
+    pseudo-terminal, and therefore work on every platform.
+    """
+    assert ScreenRecorder().isatty()
+
+
+def test_recorder_frames_carry_what_the_screen_held():
+    """Each frame lasts until the next screen replaced it."""
+    clock = StepClock(1.0)
+    recorder = ScreenRecorder(clock=clock)
+    recorder.write("apricot")
+    recorder.write(f"\r{CLEAR_LINE}fig")
+    recorder.write(f"\r{CLEAR_LINE}plum")
+
+    frames = recorder.frames(end=10.0)
+    assert [frame.text for frame in frames] == ["apricot", "fig", "plum"]
+    # Written at 0, 1 and 2 on the step clock; the last runs out the record.
+    assert [frame.duration for frame in frames] == [1.0, 1.0, 8.0]
+
+
+def test_recorder_drops_a_write_that_changed_nothing():
+    """A write leaving the screen as it was is not a frame of its own."""
+    recorder = ScreenRecorder(clock=StepClock(1.0))
+    recorder.write("fig")
+    recorder.write(f"\r{CLEAR_LINE}fig")
+    recorder.write(HIDE_CURSOR)
+
+    assert [frame.text for frame in recorder.frames(end=9.0)] == ["fig"]
+
+
+def test_recorder_drops_a_screen_holding_only_blanks():
+    """An erasure, and the newline ending it, picture nothing."""
+    recorder = ScreenRecorder(clock=StepClock(1.0))
+    recorder.write("fig")
+    recorder.write(f"\r{CLEAR_LINE}")
+    recorder.write("\n")
+
+    assert [frame.text for frame in recorder.frames(end=9.0)] == ["fig"]
+
+
+def test_recorder_records_a_spinner_without_a_terminal(monkeypatch):
+    """A spinner handed a recorder animates into it, on any platform.
+
+    No pseudo-terminal is involved, which is what a documentation build on
+    Windows depends on.
+    """
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    recorder = ScreenRecorder()
+    spinner = Spinner(
+        "Steeping",
+        spinner=SPINNERS["moon"],
+        style=Style(fg="green"),
+        stream=recorder,
+        interval=0.02,
+    )
+    spinner.start()
+    time.sleep(0.4)
+    spinner.stop()
+
+    assert spinner.shown, "the recorder did not read as a terminal"
+    frames = recorder.frames()
+    assert frames
+    drawn = {frame.text for frame in frames}
+    assert drawn <= set(spinner.frame_lines())
+    assert all(frame.duration > 0 for frame in frames)
+
+
+BAR_SCRIPT = """\
+import sys, time
+for filled in range(4):
+    sys.stderr.write('\\r[' + '#' * filled + ']\\x1b[K')
+    sys.stderr.flush()
+    time.sleep(0.05)
+"""
+"""A progress bar drawn to `stderr`, redrawn in place, as a real one is."""
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_record_command_recovers_a_foreign_animation():
+    """A command this process does not host still animates, under a terminal.
+
+    The case a pipe cannot reach: the program asks whether it is talking to a
+    terminal, and only a pseudo-terminal makes it draw. Its frames go to
+    `stderr`, where a spinner and a progress bar both write.
+    """
+    frames = record_command(
+        ("python", "-c", BAR_SCRIPT),
+        columns=40,
+        duration=5.0,
+    )
+
+    assert [frame.text for frame in frames] == ["[]", "[#]", "[##]", "[###]"]
+    assert all(frame.duration > 0 for frame in frames)

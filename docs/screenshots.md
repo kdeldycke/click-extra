@@ -470,6 +470,48 @@ Because the frames differ in nothing but their text, one stylesheet covers the l
 
 The first frame stays visible and the rest stay hidden wherever the animation does not run. That covers a renderer reading no CSS animation, and a reader whose system asks for reduced motion, which the capture honors with a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard. An animated capture is therefore always a still as well, and never a blank rectangle.
 
+### Recording an animation
+
+The frames above were declared. They can also be *recorded*, from a command that draws them.
+
+This is the one thing a pipe cannot capture. A spinner asks whether its stream is a terminal and stays silent when it is not, so a command run the ordinary way prints its result and none of the frames leading to it. Forcing color through the environment does not help, because that answers a different question.
+
+For a spinner this process hosts, hand it a `ScreenRecorder`. It answers that question in the affirmative without being a terminal, so no pseudo-terminal is involved and it works on every platform:
+
+```python
+from click_extra import SPINNERS, Spinner
+from click_extra.recording import ScreenRecorder
+
+recorder = ScreenRecorder()
+with Spinner("Brewing tea", spinner=SPINNERS["moon"], stream=recorder):
+    steep()
+frames = recorder.frames()
+```
+
+For a command this process does not host, `record_command` runs it under a pseudo-terminal and reads both its output and its errors, the spinner drawing on the latter:
+
+```python
+from click_extra.recording import record_command
+
+frames = record_command(("kettle", "boil", "--slowly"), columns=60, duration=5.0)
+```
+
+That path is Unix only: a pseudo-terminal is `termios` and `pty`, neither of which Windows ships, and reaching ConPTY would mean a dependency. The in-process recorder above covers Windows.
+
+Each `Frame` carries the screen it held and how long it held it, so `render_svg` takes them directly:
+
+```python
+render_svg(
+    columns=60,
+    frames=[frame.text for frame in frames],
+    interval=[frame.duration for frame in frames],
+)
+```
+
+```{caution}
+A recording is timed by the wall clock, so the same command records slightly different durations every run. That is fine for a one-off image, and a problem for a committed one that is rewritten on every build.
+```
+
 ### Stating a default once
 
 `screenshot` is itself a Click Extra CLI, so every option above is also a configuration key. A project drawing all of its captures the same way says so once, in the `pyproject.toml` [click-extra finds by walking up from the working directory](config.md#pyproject-toml):
