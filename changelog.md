@@ -168,6 +168,7 @@
 - Keep `get_binary_stream` and `get_text_stream` reachable, which a star import stopped binding when Click `8.5.0` moved them behind a deprecation shim.
 - Fix 92 documentation blocks whose `:emphasize-lines:` stopped highlighting anything when the option was split onto the source block, by routing them to `:emphasize-result-lines:`.
 - Fix terminal captures rendering their rows with the leading of a code block, which sliced block-drawing art such as the `--version` screen's logo.
+- Fix `--version` rendering no version at all in a `click:run` documentation block, which resolved the CLI against the directive's own runner instead of the documented command.
 
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 

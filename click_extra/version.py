@@ -65,6 +65,56 @@ RESET = "\x1b[0m"
 MUTED = Style(fg="bright_black")
 """The recessive style the version screen gives its tagline and its fact labels."""
 
+CLI_ECOSYSTEM_PACKAGES = frozenset({"functools", "click_extra", "cloup", "click"})
+"""Top-level packages that never implement the *user's* CLI.
+
+`functools` shows up as the intermediate frames a `@cached_property` adds; the
+other three are the Click ecosystem itself. A frame belonging to one of them is
+plumbing between the `--version` callback and the CLI that declared it, so
+{meth}`VersionOption.cli_frame` walks past it, and
+{meth}`VersionOption.command_module` treats landing on one as a failed walk.
+"""
+
+
+def distribution_of(package_name: str | None) -> str | None:
+    """Resolve an import package name to the installed distribution providing it.
+
+    An import (top-level module) name may differ from the distribution name
+    (`PIL` vs `Pillow`, `jwt` vs `PyJWT`). A name already matching an installed
+    distribution is returned as-is; otherwise it is resolved through
+    {func}`importlib.metadata.packages_distributions`. Ambiguous mappings (one
+    import name to several distributions) return `None`: pass `package_name`
+    explicitly to disambiguate.
+
+    Returns `None` when nothing installed provides the name, which is what makes
+    it usable as a test of whether a module belongs to a real distribution.
+    """
+    if not package_name:
+        logger.debug("No package name provided.")
+        return None
+
+    # `package_name` already matches an installed distribution.
+    try:
+        metadata.distribution(package_name)
+    except metadata.PackageNotFoundError:
+        pass
+    else:
+        return package_name
+
+    # The given name didn't match an installed distribution. Try resolving it as
+    # an import (top-level module) name.
+    distributions = metadata.packages_distributions().get(package_name, [])
+    if len(distributions) == 1:
+        return distributions[0]
+    if len(distributions) > 1:
+        logger.debug(
+            f"{package_name!r} maps to multiple installed distributions "
+            f"({', '.join(distributions)}); pass 'package_name' to disambiguate."
+        )
+        return None
+    logger.debug(f"{package_name!r} package not found or not installed.")
+    return None
+
 
 def theme_slot(slot: str) -> IStyle:
     """A style reading its palette slot off the active theme, on every call.
@@ -870,12 +920,7 @@ class VersionOption(ExtraOption):
 
             # Skip the intermediate frames added by the `@cached_property` decorator
             # and the Click ecosystem.
-            if frame_name and frame_name.split(".", 1)[0] in (
-                "functools",
-                "click_extra",
-                "cloup",
-                "click",
-            ):
+            if frame_name and frame_name.split(".", 1)[0] in CLI_ECOSYSTEM_PACKAGES:
                 continue
 
             # We found a frame that is not part of the Click ecosystem, and is not an
@@ -899,6 +944,33 @@ class VersionOption(ExtraOption):
             f"{outermost.f_globals.get('__name__')}:{outermost.f_code.co_name}"
         )
         return outermost
+
+    @staticmethod
+    def command_module(ctx: click.Context) -> ModuleType | None:
+        """Returns the module implementing the root command's callback.
+
+        The stack walk in {meth}`cli_frame` can only find the CLI when the CLI's
+        own module is on the stack. That holds for a normal invocation, and for a
+        `CliRunner` driven from the test module that declares the command, but not
+        when a runner invokes a command it merely *imported*: the walk then finds
+        no user frame at all and stops on the runner's own `invoke()`, inside the
+        Click ecosystem.
+
+        The Sphinx `click:run` directive is exactly that shape, so a documented
+        `--version` used to render the version of whichever ecosystem package
+        owned the runner (`None`, once `click_extra.sphinx` resolved to no
+        installed distribution) in place of the CLI's own.
+
+        A command's callback names its defining module directly and needs no
+        stack, so it settles the case the walk cannot see. Returns `None` when the
+        command has no callback (a bare {class}`click.Group`) or its module is not
+        imported, leaving the walk's own answer in place.
+        """
+        callback = ctx.find_root().command.callback
+        module_name = getattr(callback, "__module__", None)
+        if not module_name:
+            return None
+        return sys.modules.get(module_name)
 
     @cached_property
     def module(self) -> ModuleType:
@@ -928,6 +1000,26 @@ class VersionOption(ExtraOption):
                     actual_module = self._resolve_module_from_frame(frame)
                     if actual_module:
                         return actual_module
+
+        # The walk ended on ecosystem plumbing that no installed distribution
+        # provides, so it never found the CLI at all: it ran out of user frames
+        # and stopped on the runner that invoked an imported command. Defer to
+        # that command's own callback module, which needs no stack.
+        #
+        # Both halves of the test matter. A runner living in a real distribution
+        # (`click.testing`, `click_extra.testing`) still answers as it always
+        # has, which is what a CLI declared in the module driving the runner
+        # relies on. Only a runner under a subpackage that resolves to nothing
+        # (`click_extra.sphinx`, which the `click:run` directive invokes through)
+        # reaches the fallback.
+        if module.__name__.split(".", 1)[0] in CLI_ECOSYSTEM_PACKAGES and (
+            distribution_of(module.__package__) is None
+        ):
+            ctx = click.get_current_context(silent=True)
+            if ctx is not None:
+                from_command = self.command_module(ctx)
+                if from_command is not None:
+                    return from_command
 
         return module
 
@@ -1051,32 +1143,7 @@ class VersionOption(ExtraOption):
         mappings (one import name to several distributions) return
         `None`: pass `package_name` explicitly to disambiguate.
         """
-        if not self.package_name:
-            logger.debug("No package name provided.")
-            return None
-
-        # `package_name` already matches an installed distribution.
-        try:
-            metadata.distribution(self.package_name)
-        except metadata.PackageNotFoundError:
-            pass
-        else:
-            return self.package_name
-
-        # The given name didn't match an installed distribution. Try
-        # resolving it as an import (top-level module) name.
-        distributions = metadata.packages_distributions().get(self.package_name, [])
-        if len(distributions) == 1:
-            return distributions[0]
-        if len(distributions) > 1:
-            logger.debug(
-                f"{self.package_name!r} maps to multiple installed "
-                f"distributions ({', '.join(distributions)}); pass "
-                "'package_name' to disambiguate."
-            )
-            return None
-        logger.debug(f"{self.package_name!r} package not found or not installed.")
-        return None
+        return distribution_of(self.package_name)
 
     @cached_property
     def package_version(self) -> str | None:
