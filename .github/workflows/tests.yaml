@@ -228,10 +228,20 @@ jobs:
       Click ${{ matrix.click-version }} /
       Cloup ${{ matrix.cloup-version }}
     runs-on: ${{ matrix.os }}
-    # One cap for every cell, so it has to clear the slowest runner: `repomatic
-    # job-timings` puts macOS at a ~23 min median and a ~44 min worst case,
-    # against ~1 min on ubuntu-26.04-arm and ~3 min on windows-2025.
-    timeout-minutes: 60
+    # One cap for every cell, so it has to clear the slowest runner, and macOS
+    # on Python 3.14 is far and away that: measured on the same run, it needs
+    # ~69 min against ~2.6 min for macOS on 3.10, ~1.2 min on ubuntu-26.04-arm
+    # and ~2.9 min on windows-2025. The gap is the runner's alone. It is not a
+    # hung test (the cell reaches 87% of the suite before the cap kills it),
+    # not the interpreter build (CI's Homebrew 3.14 runs the whole suite in
+    # ~96s on a developer Mac) and not the coverage backend (`sysmon`, which
+    # 3.14 selects, beats `ctrace` 68s to 95s). The cell passed in 43 min as
+    # recently as 2026-07-27, so this cycle's new tests pushed it past the old
+    # 60 min cap rather than breaking it.
+    # Raised to let the cell finish: a completed run prints the `--durations`
+    # table that names what is actually slow there, which no killed run ever
+    # has. Lower it again once that lands a fix.
+    timeout-minutes: 120
     # We keep going when a job flagged as not stable fails.
     continue-on-error: ${{ matrix.state == 'unstable' }}
     steps:

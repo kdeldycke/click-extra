@@ -24,6 +24,7 @@ that both survive the terminal.
 from __future__ import annotations
 
 import colorsys
+import importlib.metadata
 import re
 from pathlib import Path
 
@@ -245,6 +246,33 @@ def test_neighbouring_faces_survive_a_256_color_terminal():
     assert not merged, f"pairs that collide once downsampled: {merged}"
 
 
+def _is_released(distribution: str) -> bool:
+    """Is *distribution* an installed release rather than a branch build?
+
+    A dependency installed from a Git branch reports a PEP 440 development
+    release (`.devN`) or carries a local version identifier (`+<hash>`), either
+    of which is longer than the release string it stands in for.
+    """
+    version = importlib.metadata.version(distribution)
+    return ".dev" not in version and "+" not in version
+
+
+SCREEN_DEPENDENCIES_ARE_RELEASES = all(map(_is_released, ("click", "cloup")))
+"""Whether the dependencies the version screen names are installed releases.
+
+The screen's `Built on` row prints the installed Click and Cloup versions, so a
+branch build widens it past the docs URL that is otherwise the longest row. The
+width below is a design constraint on the configuration this project *ships*,
+and the screen already falls back to the plain message when it does not fit, so
+asserting it against a dev string measures upstream's version scheme rather than
+this package.
+"""
+
+
+@pytest.mark.skipif(
+    not SCREEN_DEPENDENCIES_ARE_RELEASES,
+    reason="A branch-built Click or Cloup widens the screen's `Built on` row.",
+)
 def test_screen_fits_an_eighty_column_terminal():
     """The mark is sized so the screen it decorates can actually be drawn.
 
