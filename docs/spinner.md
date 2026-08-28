@@ -140,7 +140,7 @@ result = invoke(demo, args=["--color", "spinner", "--all", "--table"])
 assert result.exit_code == 0
 assert "moon" in result.output
 assert "bouncing-bar" in result.output
-assert "dots8-bit" in result.output
+assert "dots-8bit" in result.output
 assert "Interval" in result.output
 assert "Tour" in result.output
 ```

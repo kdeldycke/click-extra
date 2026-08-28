@@ -709,13 +709,13 @@ def test_catalog_is_complete():
     # Every preset has at least one frame and a positive interval.
     assert all(p.frames and p.interval > 0 for p in SPINNERS.values())
     # A few well-known names are present.
-    for name in ("dots", "line", "moon", "clock", "bouncing-bar", "dots8-bit"):
+    for name in ("dots", "line", "moon", "clock", "bouncing-bar", "dots-8bit"):
         assert name in SPINNERS
     # dots / line reuse the module's existing frame constants.
     assert SPINNERS["dots"].frames == SPINNER_FRAMES
     assert SPINNERS["line"].frames == ASCII_SPINNER_FRAMES
     # The 256-frame 8-bit animation round-tripped through its packed form.
-    assert len(SPINNERS["dots8-bit"].frames) == 256
+    assert len(SPINNERS["dots-8bit"].frames) == 256
 
 
 def test_spinner_preset_supplies_frames_and_interval():
@@ -790,7 +790,7 @@ def test_demo_spinner_all_lists_full_catalog(invoke):
     result = invoke(demo, "spinner", "--all", "--table")
     assert result.exit_code == 0
     assert _catalog_row_count(result.output) == len(SPINNERS)  # Every preset.
-    assert "dots8-bit" in result.output  # Present in --all, absent from default.
+    assert "dots-8bit" in result.output  # Present in --all, absent from default.
 
 
 def test_demo_spinner_select_filters_by_name(invoke):
@@ -799,7 +799,7 @@ def test_demo_spinner_select_filters_by_name(invoke):
     assert _catalog_row_count(result.output) == 3  # Exactly the three named.
     for name in ("mindblown", "pong", "shark"):
         assert name in result.output
-    assert "dots8-bit" not in result.output
+    assert "dots-8bit" not in result.output
 
 
 def test_demo_spinner_select_rejects_unknown(invoke):
@@ -872,8 +872,8 @@ def test_tour_duration_bounds_dwell():
     # pong: three cycles (7.2s) exceed the cap but one cycle (2.4s) fits → clamp.
     assert _tour_duration(SPINNERS["pong"]) == _TOUR_CAP
 
-    # dots8-bit: even one cycle exceeds the cap → exactly one full cycle.
-    big = SPINNERS["dots8-bit"]
+    # dots-8bit: even one cycle exceeds the cap → exactly one full cycle.
+    big = SPINNERS["dots-8bit"]
     one_big_cycle = len(big.frames) * big.interval
     assert one_big_cycle > _TOUR_CAP
     assert _tour_duration(big) == one_big_cycle
