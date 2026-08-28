@@ -21,20 +21,17 @@
 - Add a `click-extra screenshot` subcommand capturing any CLI's colored output as an SVG image, an HTML document or raw escape sequences.
 - Add a `click_extra.screenshot` module rendering a capture on a character grid, needing no optional dependency for either format.
 - Draw a capture as a macOS, Windows, GNOME or plain terminal with `--preset`, each catalogued in the new `click_extra.screenshot_presets` module.
-- Restate the window a capture is drawn in with `--background`, `--border`, `--border-width`, `--radius`, `--shadow`, `--margin`, `--padding`, `--opacity` and `--title`.
-- Paint a capture's `--backdrop` with a plain color or a CSS `linear-gradient()` or `radial-gradient()`, translated into the paint server an SVG draws it with.
+- Restate the window a capture is drawn in with `--background`, `--border`, `--border-width`, `--radius`, `--shadow`, `--margin`, `--padding`, `--opacity`, `--title` and a `--backdrop` accepting a plain color or a CSS gradient.
 - Number and band a capture's lines with `--line-numbers` and `--emphasize-lines`, and credit it with `--watermark` and `--watermark-color`.
 - Lay a capture out at the longest line it holds with an `auto` width, or emit it as a bare inline-styled HTML block with `--fragment`.
 - Add a `--wrap` option to `click-extra screenshot`, routing the target through the `wrap` subcommand so a foreign Click CLI is captured with its colors.
 - Tell a captured command its chrome through `CLITHEME` and `COLORFGBG`, so a CLI passing `--theme auto` renders for the window it lands in.
 - Add a `click-extra snippet` subcommand and a `click_extra.snippet` module coloring a source file with Pygments and drawing it in a screenshot's window, painted by `--syntax-style`.
-- Capture a `click:run` block's output, or a `click:source` or `python:source` block's own code, as an image beside the documentation with a `:screenshot:` option.
-- Restate every `screenshot` option on the documentation side as `:screenshot-*:`, with `click_extra_screenshot_dir`, `click_extra_screenshot_preset`, `click_extra_screenshot_syntax_style` and `click_extra_screenshot_watermark` Sphinx settings.
+- Capture a `click:run` block's output, or a `click:source` or `python:source` block's own code, beside the documentation with `:screenshot:`, every command option restated as `:screenshot-*:` and defaulted by `click_extra_screenshot_*` settings.
 - Add a `:mirror:` option to the `click:run` directive, keeping a Markdown link to that capture in the source, refreshed by `refresh-directives`.
 - Add a `click_extra.recording` module rebuilding a terminal's screen from the stream a command writes at it, in-process with `ScreenRecorder` or from a Unix command with `record_command`.
-- Render an animated SVG capture from a sequence of frames, tuned by `hold`, `blank`, `speed` and `quantize()`, and stamped with a `@recording` credit line.
+- Render an animated SVG capture from a sequence of frames, tuned by `hold`, `blank`, `speed` and `quantize()`, and fed by the new `Spinner.frame_lines()`.
 - Animate a documented capture with `:screenshot-animate:`, `:screenshot-interval:` and `:screenshot-record:`, the last committing a recording once instead of rewriting it on every build.
-- Add `Spinner.frame_lines()`, returning every line the animation draws, to picture a spinner without running it.
 - Harden every SVG capture and brand asset against renderers ignoring `<style>` or resolving clips, filters and glyph widths differently, so an image draws the same outside a browser.
 - Add a `--help-format FORMAT` option on every command, rendering it as `json`, `json-full`, `man`, `markdown`, `markdown-full` or `carapace`.
 - Add a `--help-format` mode to `click-extra wrap`, rendering any foreign Click CLI in those same formats without running it.
@@ -45,8 +42,7 @@
 - Add a `sqlite` configuration file format, reading a `config` table of dotted keys and JSON-encoded values from `*.sqlite` and `*.sqlite3` databases with the built-in `sqlite3` module. Closes [#124](https://github.com/kdeldycke/click-extra/issues/124).
 - Add a `plist` configuration file format, reading `*.plist` property lists in both their XML and binary variant through the built-in `plistlib` module, and dumping them with `--export-config`. Closes [#123](https://github.com/kdeldycke/click-extra/issues/123).
 - Add an `argfile` configuration file format, reading `*.conf` files as a plain-text list of command-line options, one per line, in the style of `mpv` and `yt-dlp`. Closes [#340](https://github.com/kdeldycke/click-extra/issues/340).
-- Add a `cascade` argument to `@config_option`, layering every discovered configuration file into the defaults, most-local first, instead of stopping at the first parseable one. Closes [#581](https://github.com/kdeldycke/click-extra/issues/581).
-- Add a `CONF_SOURCES` context key listing every configuration file loaded, in precedence order, beside the existing `CONF_SOURCE` and `CONF_FULL`.
+- Add a `cascade` argument to `@config_option`, layering every discovered configuration file into the defaults, most-local first, and listing them in a new `CONF_SOURCES` context key. Closes [#581](https://github.com/kdeldycke/click-extra/issues/581).
 - Guess the format of a configuration downloaded over HTTP from the `Content-Type` the server advertises, resolved by the new `format_from_mime()` and per-format `mime_types`.
 - Add opt-in `help` and `config_file` columns to `--params`, naming a parameter's help text and the configuration layer its value came from, backed by a new `optional` field on `ColumnSpec`.
 - Add `sort_subcommands` and `subcommand_priorities` to `@group`, plus a `sort_subcommands` context setting inherited by every subgroup, ordering subcommands by registration or priority. Closes [#544](https://github.com/kdeldycke/click-extra/issues/544).
@@ -54,19 +50,16 @@
 - Add `LazySubcommand`, declaring a lazy subcommand's Cloup `section` and `fallback_to_default_section` beside its import path.
 - Add `@multicall_group`, BusyBox-style `argv[0]` dispatch: invoked under a subcommand's name, the group runs as that subcommand, exposed as `INVOCATION_NAME`. Closes [#1619](https://github.com/kdeldycke/click-extra/issues/1619).
 - Add the `{build_time}`, `{build_os}`, `{build_target}` and `{build_target_arch}` version template variables, baked by `click-extra prebake all` from `SOURCE_DATE_EPOCH`.
-- Add a `VersionScreen` drawing `--version` as a logo with facts beside it, mounted via `@version_option(screen=…)`, plus a `click_extra.logo` module rendering the brand mark.
-- Add `VersionOption.field_style()`, resolving the style painting a given template field.
-- Add a machine-wide `CLICK_EXTRA_THEME` environment variable naming the help-screen palette of every Click Extra CLI at once.
+- Add a `VersionScreen` drawing `--version` as a logo with facts beside it, mounted via `@version_option(screen=…)`, plus a `click_extra.logo` module and `VersionOption.field_style()`.
+- Add a machine-wide `CLICK_EXTRA_THEME` environment variable naming the help-screen palette of every Click Extra CLI at once, with `auto` now advertised in the help screen and in shell completion.
 - Add `parse_envvar_flag()` to `click_extra.envvar`, the one permissive boolean reading shared by the color, `--accessible` and `--telemetry` environment flags.
 - Add `theme` and `prompt` parameters to `format_cli_prompt()`, and a `theme` parameter to `highlight_bin_name()`, so a caller picks the palette and sigil it draws.
-- Add a `--debug` flag to every Click Extra CLI, shorthand for `--verbosity DEBUG`, which outranks `--verbosity`, `-v` and `-q`.
+- Add a `--debug` flag to every Click Extra CLI, shorthand for `--verbosity DEBUG`, which outranks `--verbosity`, `-v` and `-q`, and dump `{env_info}` as indented JSON in those logs.
 - Set or remove a `test-suite` case's environment with `env` and `unset_env`, and run it elsewhere with `--work-directory` or the new `cwd` argument of `run_cli()`.
 - Add `:show-prompt:` and `:hide-prompt:` options to the `click:run` Sphinx directive, drawing or dropping the invocation above the output it produced.
-- Advertise the `auto` value of `--theme` in the help screen's choice list and in shell completion, instead of accepting it silently.
 - Count CPUs for `--jobs` with `os.process_cpu_count()` on Python 3.13+, honoring a container's cgroup quota and affinity, and use both CPUs of a two-CPU host.
 - Align a table carrying an emoji-presentation sequence (`⁉️`) the way the running terminal advances and paints it, rather than assuming one column.
 - Split a test case's `cli_parameters` string with the Windows tokenizer on Windows, so `--city "San Francisco"` stays one argument instead of three.
-- Dump `{env_info}` as indented JSON in `DEBUG` logs, instead of the single thousand-character line a bug report had to carry.
 - Render a `click:run` block's environment variables as assignments on the invocation (`$ WEATHER_UNITS=fahrenheit weather Paris`) instead of a separate `$ export` line.
 - Deduplicate the Sphinx `todolist` page, which `sphinx.ext.todo` fills with one entry per rendering of a `{todo}` directive instead of one per directive.
 - Track Click `8.5.0`: keep `click_extra.testing.isolated_filesystem()` alive, re-export `custom_version_option`, and keep `get_binary_stream` and `get_text_stream` bound by a star import.
@@ -79,8 +72,7 @@
 - Fix the configuration parse-error message leaving a dangling `or` when the `--config` option accepts a single format.
 - Fix `--color=always` leaving a wrapped CLI uncolored when its commands come from plain `@click.command()` decorators.
 - Fix `--color` and `--no-color` callbacks publishing the process-wide color state from resilient introspection contexts, pinning a `NO_COLOR` environment onto every CLI lacking its own color option.
-- Fix `wrap` leaking click-extra's own launch mode into a wrapped CLI's usage line, so it reads `flask run` whatever the invocation.
-- Fix `wrap --help-format` naming a rendering after the target's script path instead of the name it runs under, which produced a Carapace spec binding to nothing.
+- Fix `wrap` naming a target after click-extra's own launch mode in its usage line, and after the script path in a rendering, which produced a Carapace spec binding to nothing.
 - Fix `env_copy()` rejecting a `None` value instead of removing that variable, as its `Mapping[str, str | None]` type and `click.testing.CliRunner` both promise.
 - Fix `HelpFormatter` instances sharing one class-level keyword collection as their default.
 - Fix `click_extra.sphinx` refusing to import when `myst-parser` is not installed, which broke reST-only documentation builds.
@@ -90,8 +82,7 @@
 - Escape quotes in an OSC 8 hyperlink's URL when `AnsiHtmlFormatter` renders it, so a quote in the URL can no longer break out of the `href` attribute.
 - Trim the trailing space upstream pads its emoji spinner frames with, so a label sits one space from the glyph and a capture centers it.
 - Reword the `--accessible` help so cross-reference highlighting stops painting its `plain` as a `--table-format` choice.
-- Illustrate the readme and the documentation with live captures: every terminal preset, both chromes, `--theme auto`, the animated spinner inventory and Flask through the wrapper.
-- Supersede the hand-drawn readme and tutorial screenshots, which still advertised the long-gone `--show-params` and `-C, --config` options.
+- Illustrate the readme and the documentation with live captures, superseding hand-drawn screenshots that still advertised the long-gone `--show-params` and `-C, --config` options.
 - Ship a subset of JuliaMono with the documentation, so box-drawing and Braille glyphs stop breaking the alignment of captured terminal tables.
 - Document `CliRunner`, the Pytest fixtures and helpers, and the parameter tree behind `--params`, replacing four placeholder sections.
 - Give the machine-readable renderings a page of their own, move the `examples=` guide beside the other command-authoring options, and trim the mechanics no reader acts on.

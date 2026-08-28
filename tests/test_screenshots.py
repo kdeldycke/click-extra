@@ -30,6 +30,7 @@ documented alongside the image in `docs/screenshots.md`.
 
 from __future__ import annotations
 
+import importlib.metadata
 import os
 import re
 import shutil
@@ -851,10 +852,26 @@ def test_capture_output_keeps_stderr_out_unless_asked():
     ]
 
 
+CAPTURE_CLICK_VERSION = (8, 5)
+"""Click release whose help layout the committed captures picture.
+
+Click ``8.5.0`` gave positional arguments a section of their own, reshaping
+every help screen it renders. A capture is a picture of one Click's output, so
+the matrix cells pinning an older Click inside the supported range compare it
+against a screen that never carried that section. The `Click released` cells
+still check every committed capture, which is where the check belongs.
+"""
+
+
 @pytest.mark.parametrize(
     "committed",
     COMMITTED_CAPTURES,
     ids=tuple(committed.filename for committed in COMMITTED_CAPTURES),
+)
+@pytest.mark.skipif(
+    tuple(int(p) for p in importlib.metadata.version("click").split(".")[:2])
+    < CAPTURE_CLICK_VERSION,
+    reason="Committed captures picture the Click 8.5 help layout.",
 )
 def test_committed_capture_matches_cli(committed):
     """Every committed capture still pictures what its command prints today.

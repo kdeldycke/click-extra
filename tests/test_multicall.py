@@ -416,8 +416,14 @@ def test_deepcopy_survives_the_python_310_enum_gap(monkeypatch):
 
     kitchen = make_kitchen()
     version_option = next(p for p in kitchen.params if isinstance(p, VersionOption))
-    # The sentinel really is in `__dict__`: without it this test guards nothing.
-    assert any(value is UNSET for value in vars(version_option).values())
+    # Click stores a parameter's unset default as a `Sentinel` member from 8.5
+    # on; the older releases still inside the supported range leave `__dict__`
+    # free of one. Seed a member there when Click did not, so the copy below has
+    # an enum to survive whatever Click is installed: without one in `__dict__`
+    # this test guards nothing.
+    if not any(isinstance(value, Enum) for value in vars(version_option).values()):
+        version_option.__dict__["_unset_default_probe"] = UNSET
+    assert any(isinstance(value, Enum) for value in vars(version_option).values())
 
     # A bare copy reaches `VersionOption.__deepcopy__` with an empty memo, so it
     # has to seed one for itself.

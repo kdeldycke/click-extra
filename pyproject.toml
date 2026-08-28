@@ -716,11 +716,11 @@ nuitka.nofollow-imports = [ "tkinter" ]
 #   - {8.4.1, 8.4.2} click × released cloup: ubuntu-26.04-arm × Python 3.10
 #     (the floor corner), covering the declared >=8.4.1 range. 2 jobs.
 #     ("Python" prefixes the version on purpose: a comment whose text is
-#     indented and then opens on a `N.N` literal reads as a Markdown
-#     ordered-list marker and panics pyproject-fmt, which then formats nothing
-#     at all. The indentation that counts sits after the `#`, so a bullet
-#     continuation line like this one is exactly the shape at risk. Still
-#     unfixed as of the version repomatic ships.)
+#     indented and then opens on a `N.N` literal panics pyproject-fmt, which
+#     then formats nothing at all. Unfixed through 2.28.0, the version
+#     repomatic ships. The indentation that counts sits after the `#`, so a
+#     continuation line under a bullet is exactly the shape at risk, as this
+#     one is. See claude.md for the whole rule.)
 #   - {stable, main} click × released cloup: ubuntu-26.04-arm × {3.14, 3.14t}.
 #     4 jobs, unstable.
 #   - {released, stable, main} click × master cloup: ubuntu-26.04-arm ×
