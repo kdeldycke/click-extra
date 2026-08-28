@@ -6,7 +6,7 @@ Click Extra bundles a few pre-configured options that control how a CLI runs: ho
 
 Click Extra can measure the execution time of a CLI via a dedicated `--time`/`--no-time` option.
 
-Here how to use the standalone decorator:
+Here is how to use the standalone decorator:
 
 ```{click:source}
 :emphasize-lines: 6
