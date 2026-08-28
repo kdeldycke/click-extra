@@ -80,6 +80,16 @@ Behavioral notes for personality mode:
 - The invocation name a command was started under is also exposed on its own,
   for custom dispatch logic: see {data}`click_extra.context.INVOCATION_NAME`.
 ```
+
+```{todo}
+Drop `click_extra._utils.memoize_enums()` and both its call sites, here and in
+{meth}`click_extra.version.VersionOption.__deepcopy__`, once this package's
+Click floor reaches the release carrying
+[pallets/click#3805](https://github.com/pallets/click/pull/3805). That pull
+request gives `Sentinel` its own `__copy__`, `__deepcopy__` and `__reduce_ex__`,
+so a member survives a copy unaided and the memo seeding buys nothing. It is
+slated for Click `8.5.1`, against a floor of `8.4.1` here.
+```
 """
 
 from __future__ import annotations
