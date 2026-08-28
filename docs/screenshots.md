@@ -1,10 +1,44 @@
 # {octicon}`device-camera` CLI screenshots
 
-click-extra produces colored terminal output, and inside this Sphinx documentation the [`click:run`](sphinx.md) directive executes each CLI and renders its real output at build time, so these pages need no screenshots. A README on GitHub or PyPI, a slide, a social post or a page of your own cannot run code, and those surfaces need a capture instead. click-extra ships the command that produces one, as an image or as HTML:
+```{python:render}
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
-![A help screen captioned, numbered, part-highlighted and left see-through on a gradient backdrop](assets/styled-window-screen.svg)
+# The picture opening this page, shot from the command printed beneath it. Two
+# throwaway files give `git` something to compare, and running it in their own
+# directory is what keeps the paths it prints short enough to read.
+BEFORE = "apples: 3\nbananas: 6\ncherries: 12\nplums: 4\n"
+AFTER = "apples: 5\nbananas: 6\ncherries: 12\nfigs: 2\n"
+target = Path(__srcdir__) / "assets" / "git-diff-screen.svg"
+with TemporaryDirectory() as basket:
+    Path(basket, "basket.txt").write_text(BEFORE, encoding="utf-8")
+    Path(basket, "basket.new.txt").write_text(AFTER, encoding="utf-8")
+    subprocess.run(
+        (
+            sys.executable, "-m", "click_extra", "screenshot",
+            "--output", str(target), "--preset", "macos",
+            "--", "git", "diff", "--color=always", "--no-index",
+            "basket.txt", "basket.new.txt",
+        ),
+        cwd=basket,
+        check=True,
+        capture_output=True,
+    )
+```
 
-Every part of that window answers to an option: the [terminal it is drawn as](#terminal-presets), the [chrome under its colors](#light-and-dark-chrome), the backdrop, the caption, the line numbers, the lines picked out, the transparency, the border, the shadow, the corner radius and the room around it. The [block that produced it](#all-of-it-at-once) sits further down this page, and rewrites the image on every build.
+![A macOS terminal window showing git diff comparing two fruit baskets, its removed lines red and its added lines green](assets/git-diff-screen.svg)
+
+```shell-session
+$ uvx click-extra screenshot --output git-diff.svg --preset macos -- git diff --color=always --no-index basket.txt basket.new.txt
+```
+
+That is the whole thing. `git` is written in C, knows nothing about Python, Click or this project, and drops its colors the moment its output is a pipe rather than a terminal: `click-extra screenshot` runs it, hands it a terminal to believe in, and draws what it printed. Point it at whatever your shell can run.
+
+Inside this Sphinx documentation the [`click:run`](sphinx.md) directive executes each CLI and renders its real output at build time, so these pages need no screenshots of their own. A README on GitHub or PyPI, a slide, a social post or a page you host cannot run code, and those surfaces need a capture instead.
+
+The window above wears one option, `--preset macos`. [Every other part of it](#the-window-itself) answers to one too: the [chrome under its colors](#light-and-dark-chrome), the backdrop, the caption, the line numbers, the lines picked out, the transparency, the border, the shadow, the corner radius and the room around it. [All of them at once](#all-of-it-at-once) sits further down this page.
 
 ## The `screenshot` command
 
@@ -628,11 +662,11 @@ A recorded animation also **pauses on its last frame** and then **closes on an e
 
 Three knobs state all of it, on `render_svg` and on a documentation block alike:
 
-| `render_svg` | Directive             | What it sets                                                     |
-| :----------- | :-------------------- | :--------------------------------------------------------------- |
-| `hold`       | `:screenshot-hold:`   | Extra seconds on the last frame.                                 |
-| `blank`      | `:screenshot-blank:`  | Seconds of empty screen closing the cycle.                       |
-| `speed`      | `:screenshot-speed:`  | How much faster to play than recorded: `2` halves every frame.   |
+| `render_svg` | Directive            | What it sets                                                   |
+| :----------- | :------------------- | :------------------------------------------------------------- |
+| `hold`       | `:screenshot-hold:`  | Extra seconds on the last frame.                               |
+| `blank`      | `:screenshot-blank:` | Seconds of empty screen closing the cycle.                     |
+| `speed`      | `:screenshot-speed:` | How much faster to play than recorded: `2` halves every frame. |
 
 `speed` scales the replay only. The two pauses are stated in real seconds and are left alone, being how long a reader is given rather than part of what is replayed. A declared spinner cycles in place and ends nowhere, so it holds and blanks for nothing unless a page asks.
 
