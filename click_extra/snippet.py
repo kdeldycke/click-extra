@@ -114,7 +114,7 @@ FALLBACK_LEXER = "text"
 """Lexer a snippet is colored with when nothing identifies its language.
 
 Emits one unstyled token per line, so an unrecognized file is drawn as the plain
-text it could not be proven to be, rather than mis-colored as a guess.
+text it could not be proven to be, rather than miscolored as a guess.
 """
 
 
@@ -137,7 +137,7 @@ def resolve_lexer(
     Three sources answer, in falling order of how much they know: the language
     stated outright, the file name it was read from, and the code itself. A
     stated language that names no lexer is an error rather than a fallback,
-    since silently drawing `pyhton` as plain text hides the typo in a picture
+    since silently drawing `pythn` as plain text hides the typo in a picture
     nobody re-reads.
 
     :param code: the source, used to break a tie between lexers sharing an

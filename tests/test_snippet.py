@@ -198,7 +198,7 @@ def test_unknown_language_is_an_error():
     A typo swallowed here would surface as an uncolored picture nobody re-reads.
     """
     with pytest.raises(ValueError, match="not a language Pygments knows"):
-        resolve_lexer(SAMPLE, language="pyhton")
+        resolve_lexer(SAMPLE, language="pythn")
 
 
 def test_unknown_style_is_an_error():
@@ -333,7 +333,7 @@ def test_snippet_command_reports_an_unknown_language(invoke, tmp_path):
     source.write_text(SAMPLE, encoding="utf-8")
     result = invoke(
         snippet_cmd,
-        ["--output", str(tmp_path / "ripen.svg"), "--language", "pyhton", str(source)],
+        ["--output", str(tmp_path / "ripen.svg"), "--language", "pythn", str(source)],
     )
     assert result.exit_code != 0
     assert "not a language Pygments knows" in result.output
