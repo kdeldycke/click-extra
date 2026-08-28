@@ -384,9 +384,7 @@ def test_animation_windows_tile_the_cycle(name):
     ):
         steps = [
             (float(at), state)
-            for at, state in re.findall(
-                r"([\d.]+)% \{ visibility: (\w+);", keyframes
-            )
+            for at, state in re.findall(r"([\d.]+)% \{ visibility: (\w+);", keyframes)
         ]
         opens = next(at for at, state in steps if state == "visible")
         closes = next(at for at, state in steps if state == "hidden" and at > opens)
@@ -460,8 +458,11 @@ def test_emphasized_lines_are_banded_where_they_sit():
     assert offsets[1] - offsets[0] == pytest.approx(2 * LINE_HEIGHT)
 
     svg = render_svg(text, columns=20, emphasize=(1,), margin=40, padding=12)
-    window = re.search(r'<rect fill="#[0-9a-f]+" stroke="[^"]*"[^>]*x="([\d.]+)"'
-                       r'[^>]*width="([\d.]+)"', svg)
+    window = re.search(
+        r'<rect fill="#[0-9a-f]+" stroke="[^"]*"[^>]*x="([\d.]+)"'
+        r'[^>]*width="([\d.]+)"',
+        svg,
+    )
     band = re.search(r'-window\)">.*?<rect[^>]*x="([\d.]+)"[^>]*width="([\d.]+)"', svg)
     assert window and band
     assert band.groups() == window.groups(), "a band is as wide as the window"
@@ -502,9 +503,7 @@ FRAME_BAND_RE = re.compile(
 def banded_frames(svg: str) -> set[int]:
     """Which frames of an animated capture draw a band."""
     return {
-        int(index)
-        for _, index, drawn in FRAME_BAND_RE.findall(svg)
-        if "<rect" in drawn
+        int(index) for _, index, drawn in FRAME_BAND_RE.findall(svg) if "<rect" in drawn
     }
 
 
