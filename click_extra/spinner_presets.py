@@ -25,6 +25,19 @@ only play frames forwards. {class}`~click_extra.spinner.Spinner` takes a
 `reverse` argument, so the same animation is `SPINNERS["clock"]` with
 `reverse=True` and a duplicate would only be a second name for it.
 ```
+
+```{note}
+The emoji frames are one cell narrower than upstream writes them. Upstream pads
+each with a trailing space, so a terminal drawing the emoji one cell wide still
+leaves a gap before whatever follows. Here that space is one cell too many:
+{class}`~click_extra.spinner.Spinner` already writes one before its label, and
+the pair reads as a double gap. A capture laid out on the frames alone also
+reserves a column nothing is ever drawn in, which leaves the glyph off center.
+
+Every frame of a preset is the same width, so a label never moves as the
+animation turns. `weather` is the one upstream entry that was ragged, mixing
+two- and three-cell frames.
+```
 """
 
 from __future__ import annotations
@@ -210,7 +223,7 @@ SPINNERS: Final = {
     "toggle12": SpinnerPreset(tuple("☗☖"), 0.12),
     "toggle13": SpinnerPreset(tuple("=*-"), 0.08),
     "arrow": SpinnerPreset(tuple("←↖↑↗→↘↓↙"), 0.1),
-    "arrow2": SpinnerPreset(("⬆️ ", "↗️ ", "➡️ ", "↘️ ", "⬇️ ", "↙️ ", "⬅️ ", "↖️ "), 0.08),
+    "arrow2": SpinnerPreset(("⬆️", "↗️", "➡️", "↘️", "⬇️", "↙️", "⬅️", "↖️"), 0.08),
     "arrow3": SpinnerPreset(
         ("▹▹▹▹▹", "▸▹▹▹▹", "▹▸▹▹▹", "▹▹▸▹▹", "▹▹▹▸▹", "▹▹▹▹▸"), 0.12
     ),
@@ -250,27 +263,27 @@ SPINNERS: Final = {
         ),
         0.08,
     ),
-    "smiley": SpinnerPreset(("😄 ", "😝 "), 0.2),
-    "monkey": SpinnerPreset(("🙈 ", "🙈 ", "🙉 ", "🙊 "), 0.3),
-    "hearts": SpinnerPreset(("💛 ", "💙 ", "💜 ", "💚 ", "💗 "), 0.1),
+    "smiley": SpinnerPreset(("😄", "😝"), 0.2),
+    "monkey": SpinnerPreset(("🙈", "🙈", "🙉", "🙊"), 0.3),
+    "hearts": SpinnerPreset(("💛", "💙", "💜", "💚", "💗"), 0.1),
     "clock": SpinnerPreset(
         (
-            "🕛 ",
-            "🕐 ",
-            "🕑 ",
-            "🕒 ",
-            "🕓 ",
-            "🕔 ",
-            "🕕 ",
-            "🕖 ",
-            "🕗 ",
-            "🕘 ",
-            "🕙 ",
-            "🕚 ",
+            "🕛",
+            "🕐",
+            "🕑",
+            "🕒",
+            "🕓",
+            "🕔",
+            "🕕",
+            "🕖",
+            "🕗",
+            "🕘",
+            "🕙",
+            "🕚",
         ),
         0.1,
     ),
-    "earth": SpinnerPreset(("🌍 ", "🌎 ", "🌏 "), 0.18),
+    "earth": SpinnerPreset(("🌍", "🌎", "🌏"), 0.18),
     "material": SpinnerPreset(
         (
             "█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁",
@@ -368,10 +381,8 @@ SPINNERS: Final = {
         ),
         0.017,
     ),
-    "moon": SpinnerPreset(
-        ("🌑 ", "🌒 ", "🌓 ", "🌔 ", "🌕 ", "🌖 ", "🌗 ", "🌘 "), 0.08
-    ),
-    "runner": SpinnerPreset(("🚶 ", "🏃 "), 0.14),
+    "moon": SpinnerPreset(("🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"), 0.08),
+    "runner": SpinnerPreset(("🚶", "🏃"), 0.14),
     "pong": SpinnerPreset(
         (
             "▐⠂       ▌",
@@ -441,13 +452,13 @@ SPINNERS: Final = {
     "dqpb": SpinnerPreset(tuple("dqpb"), 0.1),
     "weather": SpinnerPreset(
         (
-            "☀️ ",
-            "☀️ ",
-            "☀️ ",
+            "☀️",
+            "☀️",
+            "☀️",
             "🌤 ",
-            "⛅️ ",
+            "⛅️",
             "🌥 ",
-            "☁️ ",
+            "☁️",
             "🌧 ",
             "🌨 ",
             "🌧 ",
@@ -458,12 +469,12 @@ SPINNERS: Final = {
             "🌨 ",
             "🌧 ",
             "🌨 ",
-            "☁️ ",
+            "☁️",
             "🌥 ",
-            "⛅️ ",
+            "⛅️",
             "🌤 ",
-            "☀️ ",
-            "☀️ ",
+            "☀️",
+            "☀️",
         ),
         0.1,
     ),
@@ -493,60 +504,60 @@ SPINNERS: Final = {
         ("ρββββββ", "βρβββββ", "ββρββββ", "βββρβββ", "ββββρββ", "βββββρβ", "ββββββρ"),
         0.08,
     ),
-    "finger-dance": SpinnerPreset(("🤘 ", "🤟 ", "🖖 ", "✋ ", "🤚 ", "👆 "), 0.16),
+    "finger-dance": SpinnerPreset(("🤘", "🤟", "🖖", "✋", "🤚", "👆"), 0.16),
     "fist-bump": SpinnerPreset(
         (
-            "🤜\u3000\u3000\u3000\u3000🤛 ",
-            "🤜\u3000\u3000\u3000\u3000🤛 ",
-            "🤜\u3000\u3000\u3000\u3000🤛 ",
-            "\u3000🤜\u3000\u3000🤛\u3000 ",
-            "\u3000\u3000🤜🤛\u3000\u3000 ",
-            "\u3000🤜✨🤛\u3000\u3000 ",
-            "🤜\u3000✨\u3000🤛\u3000 ",
+            "🤜\u3000\u3000\u3000\u3000🤛",
+            "🤜\u3000\u3000\u3000\u3000🤛",
+            "🤜\u3000\u3000\u3000\u3000🤛",
+            "\u3000🤜\u3000\u3000🤛\u3000",
+            "\u3000\u3000🤜🤛\u3000\u3000",
+            "\u3000🤜✨🤛\u3000\u3000",
+            "🤜\u3000✨\u3000🤛\u3000",
         ),
         0.08,
     ),
     "soccer-header": SpinnerPreset(
         (
-            " 🧑⚽️       🧑 ",
-            "🧑  ⚽️      🧑 ",
-            "🧑   ⚽️     🧑 ",
-            "🧑    ⚽️    🧑 ",
-            "🧑     ⚽️   🧑 ",
-            "🧑      ⚽️  🧑 ",
-            "🧑       ⚽️🧑  ",
-            "🧑      ⚽️  🧑 ",
-            "🧑     ⚽️   🧑 ",
-            "🧑    ⚽️    🧑 ",
-            "🧑   ⚽️     🧑 ",
-            "🧑  ⚽️      🧑 ",
+            " 🧑⚽️       🧑",
+            "🧑  ⚽️      🧑",
+            "🧑   ⚽️     🧑",
+            "🧑    ⚽️    🧑",
+            "🧑     ⚽️   🧑",
+            "🧑      ⚽️  🧑",
+            "🧑       ⚽️🧑 ",
+            "🧑      ⚽️  🧑",
+            "🧑     ⚽️   🧑",
+            "🧑    ⚽️    🧑",
+            "🧑   ⚽️     🧑",
+            "🧑  ⚽️      🧑",
         ),
         0.08,
     ),
     "mindblown": SpinnerPreset(
         (
-            "😐 ",
-            "😐 ",
-            "😮 ",
-            "😮 ",
-            "😦 ",
-            "😦 ",
-            "😧 ",
-            "😧 ",
-            "🤯 ",
-            "💥 ",
-            "✨ ",
-            "\u3000 ",
-            "\u3000 ",
-            "\u3000 ",
+            "😐",
+            "😐",
+            "😮",
+            "😮",
+            "😦",
+            "😦",
+            "😧",
+            "😧",
+            "🤯",
+            "💥",
+            "✨",
+            "\u3000",
+            "\u3000",
+            "\u3000",
         ),
         0.16,
     ),
-    "speaker": SpinnerPreset(("🔈 ", "🔉 ", "🔊 ", "🔉 "), 0.16),
-    "orange-pulse": SpinnerPreset(("🔸 ", "🔶 ", "🟠 ", "🟠 ", "🔶 "), 0.1),
-    "blue-pulse": SpinnerPreset(("🔹 ", "🔷 ", "🔵 ", "🔵 ", "🔷 "), 0.1),
+    "speaker": SpinnerPreset(("🔈", "🔉", "🔊", "🔉"), 0.16),
+    "orange-pulse": SpinnerPreset(("🔸", "🔶", "🟠", "🟠", "🔶"), 0.1),
+    "blue-pulse": SpinnerPreset(("🔹", "🔷", "🔵", "🔵", "🔷"), 0.1),
     "orange-blue-pulse": SpinnerPreset(
-        ("🔸 ", "🔶 ", "🟠 ", "🟠 ", "🔶 ", "🔹 ", "🔷 ", "🔵 ", "🔵 ", "🔷 "), 0.1
+        ("🔸", "🔶", "🟠", "🟠", "🔶", "🔹", "🔷", "🔵", "🔵", "🔷"), 0.1
     ),
     "aesthetic": SpinnerPreset(
         (

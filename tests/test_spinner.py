@@ -41,6 +41,7 @@ from click_extra import (
 )
 from click_extra.cli import demo
 from click_extra.context import PROGRESS, START_TIME
+from click_extra.screenshot import cell_width
 from click_extra.spinner import (
     _TOUR_CAP,
     _TOUR_CYCLES,
@@ -716,6 +717,30 @@ def test_catalog_is_complete():
     assert SPINNERS["line"].frames == ASCII_SPINNER_FRAMES
     # The 256-frame 8-bit animation round-tripped through its packed form.
     assert len(SPINNERS["dots-8bit"].frames) == 256
+
+
+@pytest.mark.parametrize("name", sorted(SPINNERS))
+def test_catalog_frames_share_one_width(name):
+    """Every frame of a preset occupies the same number of terminal cells.
+
+    A ragged preset moves its label a cell in and out as the animation turns,
+    and a capture laid out on the frames reserves a column for the widest one.
+    """
+    widths = {cell_width(frame) for frame in SPINNERS[name].frames}
+    assert len(widths) == 1, f"{name} mixes frame widths {sorted(widths)}"
+
+
+@pytest.mark.parametrize("name", sorted(SPINNERS))
+def test_catalog_frames_carry_no_upstream_padding(name):
+    """No preset pads every one of its frames with a trailing space.
+
+    Upstream writes its emoji frames that way. Kept, the space lands next to the
+    one the spinner writes before its label and reads as a double gap.
+    """
+    frames = SPINNERS[name].frames
+    assert not all(frame.endswith(" ") for frame in frames), (
+        f"{name} pads every frame: {frames[0]!r}"
+    )
 
 
 def test_spinner_preset_supplies_frames_and_interval():
