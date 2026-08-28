@@ -1963,6 +1963,7 @@ def render_html(
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
+    palette: TerminalPalette | None = None,
     border: str = NO_PAINT,
     border_width: int = DEFAULT_BORDER_WIDTH,
     radius: int = DEFAULT_RADIUS,
@@ -2005,6 +2006,10 @@ def render_html(
     :param full: wrap the `<pre>` in a standalone document. `False` returns the
         `<pre>` alone, to paste into a page that has its own.
     :param background: chrome to draw on, see {class}`CaptureBackground`.
+    :param palette: colors the text resolves against. `None` takes the ones the
+        preset and chrome name, which is what a terminal capture wants. Stated
+        by a capture whose colors come from somewhere else, as a
+        {mod}`~click_extra.snippet` one takes them from a syntax style.
     :param border: color of the block's frame, see {func}`render_svg`.
     :param border_width: thickness of that frame, in pixels.
     :param radius: how round the block's corners are, in pixels.
@@ -2025,7 +2030,8 @@ def render_html(
     :param watermark_url: where the package name points. Empty links nothing.
     :return: the rendered markup.
     """
-    palette = resolve_palette(preset, background)
+    if palette is None:
+        palette = resolve_palette(preset, background)
     chrome, ink = palette.background, palette.foreground
     if opacity != OPAQUE:
         # CSS carries no background-opacity, and the `opacity` property would
@@ -2101,6 +2107,7 @@ def render(
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
+    palette: TerminalPalette | None = None,
     border: str | None = None,
     border_width: int = DEFAULT_BORDER_WIDTH,
     radius: int | None = None,
@@ -2139,6 +2146,10 @@ def render(
         {func}`render_svg`.
     :param full: HTML only. See {func}`render_html`.
     :param background: chrome to draw on, see {class}`CaptureBackground`.
+    :param palette: colors the text resolves against. `None` takes the ones the
+        preset and chrome name, which is what a terminal capture wants. The
+        window's decorations keep answering to the chrome either way: a stated
+        palette repaints the terminal's body, not the desktop's frame around it.
     :param border: color of the window's frame. `None` takes the one the chrome
         can show, see {data}`CAPTURE_BORDERS`; {data}`NO_PAINT` draws none.
     :param border_width: thickness of that frame, in pixels.
@@ -2179,12 +2190,17 @@ def render(
         "watermark": watermark,
         "watermark_color": watermark_color,
     }
+    # What the chrome would paint on its own, kept apart from the `palette` the
+    # text is drawn with: the two differ for a capture whose colors come from
+    # elsewhere, and the decorations below stay the chrome's in that case.
+    chrome = resolve_palette(preset, background)
+    if palette is None:
+        palette = chrome
     if preset is not None:
-        palette = preset_palette(preset, background)
         frame["buttons"] = preset.buttons
-        frame["buttons_color"] = palette.foreground
+        frame["buttons_color"] = chrome.foreground
         frame["font_stack"] = preset.font_stack
-        frame["titlebar"] = palette.titlebar
+        frame["titlebar"] = chrome.titlebar
         # A window wearing neither decoration nor caption has nothing to seat in
         # its title bar, so it closes over the first line of output instead.
         frame["collapse_titlebar"] = not any(
@@ -2201,6 +2217,7 @@ def render(
             full=full,
             background=background,
             preset=preset,
+            palette=palette,
             **frame,
         )
     return render_svg(
@@ -2219,7 +2236,7 @@ def render(
         blank=blank,
         speed=speed,
         emphasize=emphasize,
-        palette=resolve_palette(preset, background),
+        palette=palette,
         **frame,
     )
 
