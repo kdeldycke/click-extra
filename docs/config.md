@@ -1784,7 +1784,7 @@ These flags are defined in [`wcmatch.fnmatch`](https://facelessuser.github.io/wc
 | Flag                                                               | Description                                        |
 | :----------------------------------------------------------------- | :------------------------------------------------- |
 | [`NEGATE`](https://facelessuser.github.io/wcmatch/fnmatch/#negate) | Adds support of `!` negation to define exclusions. |
-| [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split)   | Allow multiple patterns separated by `\|`.        |
+| [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split)   | Allow multiple patterns separated by `\|`.         |
 
 ```{important}
 The `SPLIT` flag is always forced, as the multi-pattern design relies on it.
