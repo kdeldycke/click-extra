@@ -17,6 +17,14 @@
 
 Ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners),
 with frame intervals converted from milliseconds to seconds.
+
+```{note}
+One upstream entry is deliberately absent. `timeTravel` is `clock` running
+backwards, which upstream has to ship as a second preset because its renderers
+only play frames forwards. {class}`~click_extra.spinner.Spinner` takes a
+`reverse` argument, so the same animation is `SPINNERS["clock"]` with
+`reverse=True` and a duplicate would only be a second name for it.
+```
 """
 
 from __future__ import annotations
@@ -537,23 +545,6 @@ SPINNERS: Final = {
     "bluePulse": SpinnerPreset(("🔹 ", "🔷 ", "🔵 ", "🔵 ", "🔷 "), 0.1),
     "orangeBluePulse": SpinnerPreset(
         ("🔸 ", "🔶 ", "🟠 ", "🟠 ", "🔶 ", "🔹 ", "🔷 ", "🔵 ", "🔵 ", "🔷 "), 0.1
-    ),
-    "timeTravel": SpinnerPreset(
-        (
-            "🕛 ",
-            "🕚 ",
-            "🕙 ",
-            "🕘 ",
-            "🕗 ",
-            "🕖 ",
-            "🕕 ",
-            "🕔 ",
-            "🕓 ",
-            "🕒 ",
-            "🕑 ",
-            "🕐 ",
-        ),
-        0.1,
     ),
     "aesthetic": SpinnerPreset(
         (

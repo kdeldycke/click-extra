@@ -43,6 +43,41 @@ with Spinner("Chilling lemonade", reverse=True):
     sleep(5)
 ```
 
+A clock is the clearest thing to run backwards, since a reader already knows which way its hands are supposed to go:
+
+```{click:source}
+:hide-source:
+from click_extra import SPINNERS, Spinner
+
+winding = Spinner("Winding forward", spinner=SPINNERS["clock"])
+unwinding = Spinner("Winding back", spinner=SPINNERS["clock"], reverse=True)
+```
+
+```{click:run}
+:screenshot: clock-forward-screen
+:screenshot-animate: winding
+:screenshot-columns: auto
+:screenshot-margin: 12
+:hide-results:
+assert winding.frames == unwinding.frames  # The one catalog entry...
+assert unwinding.reverse and not winding.reverse  # ...played both ways.
+```
+
+![A clock spinner running forwards](assets/clock-forward-screen.svg)
+
+```{click:run}
+:screenshot: clock-reverse-screen
+:screenshot-animate: unwinding
+:screenshot-columns: auto
+:screenshot-margin: 12
+:hide-results:
+assert unwinding.reverse
+```
+
+![The same clock spinner running backwards](assets/clock-reverse-screen.svg)
+
+This is why the catalog carries no `timeTravel`. [cli-spinners](https://github.com/sindresorhus/cli-spinners) ships one, because its renderers only play frames forwards and a backwards clock has to be a second preset to exist at all. Here it is `SPINNERS["clock"]` with `reverse=True`, and a duplicate entry would only be a second name for the same animation.
+
 The animation source is just a sequence of strings. `click_extra.spinner` ships the default Braille `SPINNER_FRAMES` and a plain `ASCII_SPINNER_FRAMES` for terminals without Unicode glyphs; pass your own to `frames` for anything else.
 
 ### Picturing a spinner
@@ -108,6 +143,50 @@ assert "bouncingBar" in result.output
 assert "dots8Bit" in result.output
 assert "Interval" in result.output
 assert "Tour" in result.output
+```
+
+Every one of them, animating:
+
+```{python:render}
+from pathlib import Path
+
+from click_extra.screenshot import CaptureFormat, cell_width, render
+from click_extra.screenshot_presets import PRESETS
+from click_extra.spinner import Spinner
+from click_extra.spinner_presets import SPINNERS
+
+assets = Path(__srcdir__) / "assets"
+cells = []
+for name, preset in SPINNERS.items():
+    lines = Spinner(spinner=preset).frame_lines(color=False)
+    # Drawn as a bare block rather than a window: ninety title bars would be
+    # ninety times more chrome than animation. The width is stated rather than
+    # left to `auto`, which carries a twenty-column floor and would give a
+    # one-glyph spinner a bar of empty terminal to sit in.
+    (assets / f"spinner-{name}.svg").write_text(
+        render(
+            format=CaptureFormat.SVG,
+            columns=max(cell_width(line) for line in lines),
+            unique_id=f"spinner-{name}",
+            frames=lines,
+            interval=preset.interval,
+            preset=PRESETS["plain"],
+            watermark="",
+            margin=0,
+            padding=2,
+        ),
+        encoding="utf-8",
+    )
+    cells.append(f"`{name}` | ![{name} spinner](assets/spinner-{name}.svg)")
+
+# Three pairs to a row, so ninety entries read as a gallery and not a scroll.
+WIDE = 3
+print("| " + " | ".join(["Name | Animation"] * WIDE) + " |")
+print("|" + " :--- | :--- |" * WIDE)
+for index in range(0, len(cells), WIDE):
+    row = cells[index : index + WIDE]
+    row += ["&nbsp; | &nbsp;"] * (WIDE - len(row))
+    print("| " + " | ".join(row) + " |")
 ```
 
 ## Bell on completion

@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Breaking:** Remove the `timeTravel` spinner preset, which is `SPINNERS["clock"]` with `reverse=True`.
 - **Breaking:** `--man` now typesets the manual and pages it, the way `man` does, instead of printing roff to stdout; the source moved to `--help-format man`.
 - **Breaking:** Remove `click-extra wrap --carapace` in favor of `wrap --help-format carapace`, one option carrying every rendering.
 - **Breaking:** Rename the `click_extra.man_page` module to `click_extra.command_doc`, after the model it is built around rather than one of the four formats it renders.
@@ -32,6 +33,8 @@
 - Number an animated capture's lines when `:screenshot-line-numbers:` asks, which previously only reached a still.
 - Add `--emphasize-lines` to `click-extra screenshot` and `:screenshot-emphasize-lines:` to `click:run`, banding the captured lines they name.
 - Show every terminal preset wearing the full window treatment, gradient, caption, gutter and emphasis included.
+- Animate the whole spinner inventory in the documentation, one capture per preset beside the reference table.
+- Demonstrate `reverse=True` with a clock running both ways in the spinner tutorial.
 - Fall back to an animated capture's last frame rather than its first, which is the one an accumulating animation says the most with.
 - Illustrate the spinner page's concurrency, progress-bar and outcome sections with recorded animations.
 - Ship a subset of JuliaMono with the documentation, so box-drawing and Braille glyphs stop breaking the alignment of captured terminal tables.

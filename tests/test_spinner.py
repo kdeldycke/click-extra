@@ -704,7 +704,7 @@ def test_elapsed_time_freezes_after_stop():
 
 def test_catalog_is_complete():
     """The cli-spinners / ora catalog is present and well-formed."""
-    assert len(SPINNERS) == 90
+    assert len(SPINNERS) == 89
     assert all(isinstance(p, SpinnerPreset) for p in SPINNERS.values())
     # Every preset has at least one frame and a positive interval.
     assert all(p.frames and p.interval > 0 for p in SPINNERS.values())
@@ -789,7 +789,7 @@ def test_demo_spinner_tour_column_shows_three_cycle_time(invoke):
 def test_demo_spinner_all_lists_full_catalog(invoke):
     result = invoke(demo, "spinner", "--all", "--table")
     assert result.exit_code == 0
-    assert _catalog_row_count(result.output) == len(SPINNERS)  # All 90 rows.
+    assert _catalog_row_count(result.output) == len(SPINNERS)  # Every preset.
     assert "dots8Bit" in result.output  # Present in --all, absent from default.
 
 
@@ -1373,3 +1373,25 @@ def test_catalog_gridless_glyphs_are_covered_by_the_docs_font(invoke):
         "the documentation ships no font for "
         f"{', '.join(f'U+{codepoint:04X}' for codepoint in uncovered)}"
     )
+
+
+SPINNER_ASSETS = Path(__file__).parent.parent / "docs" / "assets"
+"""Directory the inventory gallery writes one animation per preset into."""
+
+
+@pytest.mark.once
+def test_every_spinner_has_a_committed_animation():
+    """The inventory gallery covers the catalog exactly, one asset per preset.
+
+    The gallery is generated from `SPINNERS` at build time, so a new preset
+    grows an asset on the next build and this only fails on a *committed*
+    tree that has fallen behind. The stray half matters more: a renamed or
+    dropped preset leaves its old animation behind, where nothing references
+    it and nothing would notice.
+    """
+    committed = {
+        path.name.removeprefix("spinner-").removesuffix(".svg")
+        for path in SPINNER_ASSETS.glob("spinner-*.svg")
+    }
+    assert not sorted(set(SPINNERS) - committed), "presets with no animation"
+    assert not sorted(committed - set(SPINNERS)), "animations with no preset"
