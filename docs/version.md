@@ -26,7 +26,7 @@ def cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+:emphasize-result-lines: 5
 result = invoke(cli, args=["--help"])
 assert "--version" in result.output
 ```
@@ -278,7 +278,7 @@ When the version string contains `.dev` (as in [PEP 440 development releases](ht
 This lets you identify exactly which commit a development build was produced from:
 
 ```{click:source}
-:emphasize-lines: 5
+:emphasize-lines: 4
 import click
 import click_extra
 
@@ -310,7 +310,7 @@ If the version string already contains a `+` (a [PEP 440 local version identifie
 This is useful for CI pipelines or [Nuitka](https://nuitka.net) binaries where `git` is not available at runtime but the build step can inject the commit hash into `__version__` before compilation:
 
 ```{click:source}
-:emphasize-lines: 5
+:emphasize-lines: 4
 import click
 import click_extra
 
@@ -591,7 +591,7 @@ assert re.fullmatch((
 {class}`~click_extra.version.VersionScreen` owns the layout and nothing else. The mark arrives already rendered — a string, or the lines of one — so it can be ASCII line art, half-blocks, or whatever your renderer produces:
 
 ```{click:source}
-:emphasize-lines: 12
+:emphasize-lines: 13
 from functools import partial
 
 from click_extra import group
@@ -689,7 +689,7 @@ def version_in_logs():
 Which is great to see how each variable is populated and styled:
 
 ```{click:run}
-:emphasize-lines: 15
+:emphasize-result-lines: 15
 import re
 result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
 assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.output

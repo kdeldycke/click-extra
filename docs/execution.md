@@ -22,13 +22,13 @@ def timer():
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+:emphasize-result-lines: 5
 result = invoke(timer, args=["--help"])
 assert "--time / --no-time" in result.stdout
 ```
 
 ```{click:run}
-:emphasize-lines: 3
+:emphasize-result-lines: 3
 import re
 
 result = invoke(timer, ["--time"])

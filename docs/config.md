@@ -61,7 +61,7 @@ The code above is saved into a file named `my_cli.py`.
 It produces the following help screen:
 
 ```{click:run}
-:emphasize-lines: 7-10
+:emphasize-result-lines: 7-10
 result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
@@ -1562,7 +1562,7 @@ def cli():
 See how the default to `--config` option has been changed to `~/.cli/`:
 
 ```{click:run}
-:emphasize-lines: 6
+:emphasize-result-lines: 6
 from boltons.iterutils import flatten, unique
 from click_extra import ConfigFormat
 result = invoke(cli, args=["--help"])
@@ -1599,7 +1599,7 @@ def cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 7
+:emphasize-result-lines: 7
 result = invoke(cli, args=["--help"])
 assert "~/my_special_folder/*.toml]" in result.stdout
 ```
@@ -1700,7 +1700,7 @@ def cli(int_param):
 Notice how the default search pattern has been restricted to only `*.json` and `*.toml` files, and also that the order is reflected in the help:
 
 ```{click:run}
-:emphasize-lines: 8
+:emphasize-result-lines: 8
 result = invoke(cli, args=["--help"])
 assert "{*.json,*.toml}]" in result.stdout
 ```
@@ -1721,7 +1721,7 @@ def cli(int_param):
 ```
 
 ```{click:run}
-:emphasize-lines: 8
+:emphasize-result-lines: 8
 result = invoke(cli, args=["--help"])
 assert "*.xml]" in result.stdout
 ```
@@ -1751,7 +1751,7 @@ def cli(int_param):
 Again, this is reflected in the help:
 
 ```{click:run}
-:emphasize-lines: 8
+:emphasize-result-lines: 8
 result = invoke(cli, args=["--help"])
 assert "{*.toml,my_app.conf,settings*.js,*.json}]" in result.stdout
 ```
@@ -1782,7 +1782,7 @@ def cli(int_param):
 Notice how all formats are merged into the same pattern:
 
 ```{click:run}
-:emphasize-lines: 8
+:emphasize-result-lines: 8
 result = invoke(cli, args=["--help"])
 assert "{*.toml,config*.js,*.js}" in result.stdout
 ```
@@ -1861,7 +1861,7 @@ def cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 6
+:emphasize-result-lines: 6
 result = invoke(cli, args=["--help"])
 assert "[default: ~/.commandrc]" in " ".join(result.stdout.split())
 ```

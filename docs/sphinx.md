@@ -712,7 +712,7 @@ def yo_cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 2
+:emphasize-result-lines: 2
 result = invoke(yo_cli, args=["--help"])
 
 assert result.exit_code == 0, "CLI execution failed"
@@ -754,7 +754,7 @@ invoke(sql_output, args=["--name", "Joe"])
 And renders to:
 
 ```{click:run} sql
-:emphasize-lines: 2
+:emphasize-result-lines: 2
 invoke(sql_output, args=["--name", "Joe"])
 ```
 

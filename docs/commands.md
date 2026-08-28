@@ -174,7 +174,7 @@ def cli():
 And now you get:
 
 ```{click:run}
-:emphasize-lines: 5-9
+:emphasize-result-lines: 5-9
 from textwrap import dedent
 result = invoke(cli, args=["--help"])
 assert result.stdout.startswith(dedent(
@@ -371,7 +371,7 @@ def cli():
 Which results in `[default: INFO]` being featured in the help message:
 
 ```{click:run}
-:emphasize-lines: 34
+:emphasize-result-lines: 34
 result = invoke(cli, args=["--help"])
 assert (
     "                          \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n"

@@ -16,7 +16,7 @@ def my_cli():
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 result = invoke(my_cli, args=["--verbosity", "DEBUG"])
 assert "Set <Logger click_extra (DEBUG)> to DEBUG." in result.stderr, "missing DEBUG message"
 assert "Set <RootLogger root (DEBUG)> to DEBUG." in result.stderr, "missing DEBUG message"
@@ -25,7 +25,7 @@ assert "Set <RootLogger root (DEBUG)> to DEBUG." in result.stderr, "missing DEBU
 Each logger's level prints as a debug message. They are set to `DEBUG` at the start of the command and reset back to their default `WARNING` at the end. The `--verbosity` flag also surfaces in `--help`:
 
 ```{click:run}
-:emphasize-lines: 35-36
+:emphasize-result-lines: 35-36
 result = invoke(my_cli, args=["--help"])
 assert "--verbosity" in result.stdout, "missing --verbosity option"
 ```
@@ -69,7 +69,7 @@ def vanilla_command():
 ```
 
 ```{click:run}
-:emphasize-lines: 5
+:emphasize-result-lines: 5
 result = invoke(vanilla_command, args=["--help"])
 assert "--verbosity LEVEL  Either CRITICAL, ERROR, WARNING, INFO, DEBUG." in result.stdout, "missing --verbosity option"
 ```

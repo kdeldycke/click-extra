@@ -155,7 +155,7 @@ def hello(count, name):
 Which now renders to:
 
 ```{click:run}
-:emphasize-lines: 9-12
+:emphasize-result-lines: 9-12
 result = invoke(hello, args=["--help"])
 assert "--config CONFIG_PATH" in result.output
 ```
@@ -178,7 +178,7 @@ def hello(count, name):
 ```
 
 ```{click:run}
-:emphasize-lines: 9-10
+:emphasize-result-lines: 9-10
 result = invoke(hello, args=["--help"])
 assert "--hello-conf CONF_FILE  Loads CLI config." in result.output
 ```
@@ -214,7 +214,7 @@ def hello(count, name, foo, bar, hello_conf):
 See how the configuration option is grouped with others:
 
 ```{click:run}
-:emphasize-lines: 6-10
+:emphasize-result-lines: 6-10
 from textwrap import dedent
 result = invoke(hello, args=["--help"])
 assert dedent(

@@ -31,7 +31,7 @@ As you can see above, the selected format feeds the ready-to-use `print_table()`
 The default help message for this option list all available table formats:
 
 ```{click:run}
-:emphasize-lines: 5-6
+:emphasize-result-lines: 5-6
 result = invoke(table_command, args=["--help"])
 assert "--table-format" in result.stdout
 ```
@@ -222,252 +222,252 @@ The first command renders the whole style matrix as a colored HTML page you can 
 ````
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "aligned"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "asciidoc"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "colon-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "csv"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "csv-excel"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "csv-excel-tab"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "csv-unix"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "double-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "double-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "fancy-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "fancy-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "github"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "heavy-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "heavy-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "hjson"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "html"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "jira"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "json"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "json5"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "jsonc"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "latex"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "latex-booktabs"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "latex-longtable"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "latex-raw"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "mediawiki"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "mixed-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "mixed-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "moinmoin"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "orgtbl"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "pipe"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "plain"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "presto"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "pretty"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "psql"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "rounded-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "rounded-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "rst"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "simple"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "simple-grid"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "simple-outline"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "textile"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "toml"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "tsv"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "unsafehtml"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "vertical"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "xml"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "yaml"])
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 invoke(table_command, args=["--table-format", "youtrack"])
 ```
 
@@ -601,7 +601,7 @@ def vanilla_command(ctx):
 ```
 
 ```{click:run}
-:emphasize-lines: 2
+:emphasize-result-lines: 2
 result = invoke(vanilla_command, args=["--table-format", "fancy-outline"])
 assert "Table format: fancy-outline" in result.stdout
 ```

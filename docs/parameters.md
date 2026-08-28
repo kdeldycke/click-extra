@@ -21,7 +21,7 @@ def cli(int_param1, int_param2):
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 result = invoke(cli, args=["--int-param1", "3", "--params"])
 assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m          │ \x1b[32m\x1b[2m\x1b[3m10\x1b[0m " in result.stdout
 assert "│ \x1b[33m\x1b[2mCLI_INT_PARAM2\x1b[0m          │ \x1b[32m\x1b[2m\x1b[3m555\x1b[0m " in result.stdout
@@ -61,7 +61,7 @@ def cli_with_columns(int_param1, int_param2):
 ```
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 result = invoke(cli_with_columns, args=["--no-color", "--columns", "id,is_flag,default,value", "--params"])
 assert "ID" in result.stdout
 assert "Is flag" in result.stdout
@@ -107,7 +107,7 @@ Values come out as native types here (`10`, not `"10"`), and the `Help` column m
 The default table produced by `--params` can be a bit overwhelming, so you can change its rendering with the [`--table-format` option](table.md#table-formats):
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 result = invoke(cli, args=["--table-format", "vertical", "--params"])
 assert "***************************[ 1. row ]***************************\n" in result.stdout
 assert "\x1b[1mEnv. vars.\x1b[0m          | \x1b[33m\x1b[2mCLI_INT_PARAM1\x1b[0m\n" in result.stdout
@@ -123,7 +123,7 @@ Because both options are eager, the order in which they are passed matters. `--t
 By default, the table produced by `--params` is colorized to highlight important bits. If you do not like colors, you can disable them with the [`--no-color` option](colorize.md#color-no-color-flag):
 
 ```{click:run}
-:emphasize-lines: 1
+:emphasize-result-lines: 1
 result = invoke(cli, args=["--no-color", "--params"])
 assert "│ CLI_INT_PARAM1          │ 10 " in result.stdout
 assert "│ CLI_INT_PARAM2          │ 555 " in result.stdout
