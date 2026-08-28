@@ -286,7 +286,12 @@ A configuration boolean diverges from [git's `color.ui`](https://git-scm.com/doc
 
 ## `--accessible` flag
 
-A screen reader consumes a terminal as a linear stream of characters. Several defaults that please sighted users work against that stream: ANSI color codes carry no meaning once flattened to text; tables drawn with Unicode box-drawing characters (`│`, `╭`, `─`, …) turn their borders and whitespace-based column alignment into noise; animated progress spinners and bars repeat frames a reader cannot watch advance; and interactive takeovers like a pager or a screen-clear trap or wipe the stream the reader is following.
+A screen reader consumes a terminal as a linear stream of characters. Several defaults that please sighted users work against that stream:
+
+- ANSI color codes carry no meaning once flattened to text.
+- Tables drawn with Unicode box-drawing characters (`│`, `╭`, `─`, …) turn their borders and whitespace-based column alignment into noise.
+- Animated progress spinners and bars repeat frames a reader cannot watch advance.
+- Interactive takeovers like a pager or a screen-clear trap or wipe the stream the reader is following.
 
 The `--accessible` flag folds these concerns into a single switch. Enabling it is equivalent to passing `--no-color --no-progress --table-format plain`, and additionally streams `click_extra.echo_via_pager` output straight to stdout instead of spawning a pager and turns `click_extra.clear` into a no-op: ANSI codes are stripped, progress indicators are silenced, tables render without borders, [command trees](tree.md#accessibility) swap their box-drawing rail for pure ASCII, and no interactive view takes over the screen. The `ACCESSIBLE` environment variable enables the same mode, so a user can opt in once for every Click Extra command they run.
 

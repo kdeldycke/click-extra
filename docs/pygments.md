@@ -73,7 +73,7 @@ After Click Extra installation, `ansi-color` will be available to Pygments:
 
 ### Formatter usage
 
-To test it, let's generate a `cowsay.ans` file that is full of ANSI colors:
+To test it, generate a `cowsay.ans` file full of ANSI colors:
 
 ```{code-block} ansi-shell-session
 $ fortune | cowsay | lolcat --force > ./cowsay.ans
@@ -89,7 +89,7 @@ $ cat ./cowsay.ans
 [38;5;214m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;208m [39m[38;5;209m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m|[39m[38;5;203m|[39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;203m [39m[38;5;198m|[39m[38;5;198m|[39m[38;5;198m[39m
 ```
 
-We can run our formatter on that file. The demo below uses a 4-line lolcat-style input rather than the full cowsay output to keep the rendered HTML readable, but the same call works against the file:
+Run the formatter on that file. The demo below uses a 4-line lolcat-style input rather than the full cowsay output to keep the rendered HTML readable, but the same call works against the file:
 
 ```{python:run}
 :show-source:
@@ -268,9 +268,9 @@ print(
 
 ### Lexers usage
 
-Let's test one of these lexers. We are familiar with Python so we'll focus on the `pycon` Python console lexer.
+The example below tests the `pycon` Python console lexer.
 
-First, we will generate some random art in an interactive Python shell:
+First, generate some random art in an interactive Python shell:
 
 ```{code-block} pycon
 >>> import itertools
@@ -316,13 +316,13 @@ We can check how the `ansi-color` lexer transforms a raw string into ANSI tokens
 ((Token.Ansi.Magenta, '║'), (Token.Text, ''), (Token.Ansi.Cyan, '▌'), (Token.Text, ''), (Token.Ansi.Red, '█'), (Token.Text, ''), (Token.Ansi.Green, '║'), (Token.Text, ''), (Token.Ansi.Yellow, ' '), (Token.Text, ''), (Token.Ansi.Blue, 'A'), (Token.Text, ''), (Token.Ansi.Magenta, 'N'), (Token.Text, ''), (Token.Ansi.Cyan, 'S'), (Token.Text, ''), (Token.Ansi.Red, 'I'), (Token.Text, ''), (Token.Ansi.Green, ' '), (Token.Text, ''), (Token.Ansi.Yellow, 'A'), (Token.Text, ''), (Token.Ansi.Blue, 'r'), (Token.Text, ''), (Token.Ansi.Magenta, 't'), (Token.Text, ''), (Token.Ansi.Cyan, ' '), (Token.Text, ''), (Token.Ansi.Red, '▌'), (Token.Text, ''), (Token.Ansi.Green, '│'), (Token.Text, ''), (Token.Ansi.Yellow, '║'), (Token.Text, ''), (Token.Ansi.Blue, '▌'), (Token.Text, '\n'))
 ```
 
-See how the raw string is split into Pygments tokens, including the `Token.Ansi` tokens. These tokens are then ready to be rendered by [our own `ansi-html` formatter](#ansi-html-formatter).
+The raw string splits into Pygments tokens, including `Token.Ansi` tokens, ready to be rendered by the [`ansi-html` formatter](#ansi-html-formatter).
 
 ## `pygmentize` command line
 
 Because they're properly registered to Pygments, all these new components can be invoked with the [`pygmentize` CLI](https://pygments.org/docs/cmdline/).
 
-For example, here is how we can render the `cowsay.ans` file from the [example above](#formatter-usage) into a standalone HTML file:
+For example, render the `cowsay.ans` file from the [example above](#formatter-usage) into a standalone HTML file:
 
 ```{code-block} ansi-shell-session
 $ pygmentize -f ansi-html -O full -o cowsay.html ./cowsay.ans
