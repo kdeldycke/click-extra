@@ -106,6 +106,9 @@ from .version import (
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any
+
     from .screenshot import TColumns
 
 logger = logging.getLogger(__name__)
@@ -493,115 +496,211 @@ def _parse_emphasis(
     return tuple(sorted(lines))
 
 
+def capture_options(
+    *,
+    columns_help: str,
+    default_columns: TColumns = DEFAULT_COLUMNS,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Attach every option the two capture commands share.
+
+    `screenshot` pictures what a command printed and `snippet` pictures what a
+    file says, but both hand their text to the same renderer, so everything from
+    the window's frame to its credit line is one vocabulary. Declaring it once
+    is what stops the two drifting into near-synonyms, which is the failure a
+    reader hits rather than a maintainer: they learn `--backdrop` on one command
+    and expect it on the other.
+
+    Only the width differs, both in what it defaults to and in what it governs:
+    a command wraps its own output to it, where a file was never wrapped at all.
+
+    ```{note}
+    The options are applied in reverse, so the tuple below reads in the order
+    `--help` prints. A command's own options are declared under this decorator
+    and land after the shared ones, which is what keeps the common vocabulary
+    together at the top of every capture command's help screen.
+    ```
+
+    :param columns_help: what the width means for this command.
+    :param default_columns: the width it takes when nothing states one.
+    :return: the decorator attaching all of them.
+    """
+    shared = (
+        option(
+            "--output",
+            required=True,
+            type=file_path(writable=True, resolve_path=True),
+            help="Path of the file to write. Its extension picks the format: "
+            ".svg for an image, .html for selectable text.",
+        ),
+        option(
+            "--columns",
+            metavar="INTEGER|auto",
+            default=str(default_columns),
+            show_default=True,
+            callback=_parse_columns,
+            help=columns_help,
+        ),
+        option(
+            "--background",
+            type=EnumChoice(CaptureBackground),
+            default=CaptureBackground.DARK,
+            show_default=True,
+            help="Terminal chrome the capture is drawn on, and the palette its "
+            "colors resolve against. Match it to the theme the captured CLI "
+            "renders with: a light-background theme washes out on the dark "
+            "default.",
+        ),
+        option(
+            "--preset",
+            type=Choice(sorted(PRESETS), case_sensitive=False),
+            default=None,
+            help="Terminal to draw the capture as: its window decorations, "
+            "palette, font and prompt sigil. Anything stated alongside wins "
+            "over it. Left out, the capture keeps the renderer's own neutral "
+            "window.",
+        ),
+        option(
+            "--border",
+            default=None,
+            help="Color of the frame drawn around the terminal window, as CSS "
+            "names it. Pass none to draw no frame. Defaults to the one the "
+            "chrome can show.",
+        ),
+        option(
+            "--border-width",
+            type=IntRange(min=0),
+            default=DEFAULT_BORDER_WIDTH,
+            show_default=True,
+            help="Thickness of that frame, in pixels.",
+        ),
+        option(
+            "--radius",
+            type=IntRange(min=0),
+            default=None,
+            help="How round the window's corners are, in pixels. Zero squares "
+            f"them. Defaults to {DEFAULT_RADIUS}, or to the rounding --preset "
+            "terminal draws.",
+        ),
+        option(
+            "--backdrop",
+            default=NO_PAINT,
+            show_default=True,
+            help="Color filling the image behind the window, margin included, "
+            "as CSS names it. Left transparent by default, so the page shows "
+            "through.",
+        ),
+        option(
+            "--shadow",
+            default=None,
+            help="Color of the drop shadow lifting the window off the page, as "
+            "CSS names it. Pass none to draw no shadow. Defaults to the one the "
+            "chrome calls for.",
+        ),
+        option(
+            "--margin",
+            type=IntRange(min=0),
+            default=DEFAULT_MARGIN,
+            show_default=True,
+            help="Transparent pixels left around the window, on all four sides. "
+            "The room the drop shadow falls into, so a capture drawing one "
+            "wants some.",
+        ),
+        option(
+            "--padding",
+            type=IntRange(min=0),
+            default=DEFAULT_PADDING,
+            show_default=True,
+            help="Pixels added inside the window, around the drawn text, on top "
+            "of the few the renderer adds on its own.",
+        ),
+        option(
+            "--opacity",
+            type=FloatRange(min=0, max=1),
+            default=OPAQUE,
+            show_default=True,
+            help="How solid the window's body is. Under 1 it turns see-through, "
+            "the way a terminal set to transparency does: whatever the capture "
+            "sits on shows through it, while its text, frame and title bar keep "
+            "their own paint.",
+        ),
+        option(
+            "--watermark",
+            default=DEFAULT_WATERMARK,
+            show_default=True,
+            help="Credit line drawn in the image's bottom-right corner, in the "
+            "margin around the window. Pass an empty string to draw none, or "
+            "your own text to credit your project instead.",
+        ),
+        option(
+            "--watermark-color",
+            default=None,
+            help="Color that credit line is drawn in, as CSS names it, alpha "
+            "included. Defaults to a neutral gray: the line sits in the "
+            "transparent margin, so it answers to the page embedding the image "
+            "rather than to the chrome.",
+        ),
+        option(
+            "--head",
+            type=IntRange(min=1),
+            default=None,
+            help="Keep only the first N lines.",
+        ),
+        option(
+            "--tail",
+            type=IntRange(min=1),
+            default=None,
+            help="Keep only the last N lines.",
+        ),
+        option(
+            "--truncation",
+            default=DEFAULT_TRUNCATION,
+            show_default=True,
+            help="Line standing in for what --head or --tail cut away.",
+        ),
+        option(
+            "--line-numbers",
+            is_flag=True,
+            help="Number the drawn lines in a gutter, the way Pygments does "
+            "inline. Line 1 is the first line the picture shows.",
+        ),
+        option(
+            "--emphasize-lines",
+            "emphasize",
+            metavar="LINES",
+            default=None,
+            callback=_parse_emphasis,
+            help="Draw a band behind the lines named, as 2,4-5. Counted from 1 "
+            "as the picture draws them. Ranges are closed: state both ends.",
+        ),
+        option(
+            "--title",
+            default="",
+            help="Caption drawn in an SVG's window chrome, or an HTML "
+            "document's title.",
+        ),
+        option(
+            "--fragment",
+            is_flag=True,
+            help="For HTML, emit the bare block instead of a standalone "
+            "document, to paste into a page that has its own.",
+        ),
+    )
+
+    def decorate(func: Callable[..., Any]) -> Callable[..., Any]:
+        for add_option in reversed(shared):
+            func = add_option(func)
+        return func
+
+    return decorate
+
+
 @command(name="screenshot")
 @argument("command_line", nargs=-1, required=True, type=click.UNPROCESSED)
-@option(
-    "--output",
-    required=True,
-    type=file_path(writable=True, resolve_path=True),
-    help="Path of the file to write. Its extension picks the format: "
-    ".svg for an image, .html for selectable text.",
-)
-@option(
-    "--columns",
-    metavar="INTEGER|auto",
-    default=str(DEFAULT_COLUMNS),
-    show_default=True,
-    callback=_parse_columns,
-    help="Terminal width, in characters, the command wraps its output to and "
-    "the image is laid out at. Pass auto to pin neither: the command finds its "
-    "own width, and the image is laid out at the longest line it printed, so "
-    "nothing folds inside the picture.",
-)
-@option(
-    "--background",
-    type=EnumChoice(CaptureBackground),
-    default=CaptureBackground.DARK,
-    show_default=True,
-    help="Terminal chrome the capture is drawn on, and the palette its colors "
-    "resolve against. Match it to the theme the captured CLI renders with: a "
-    "light-background theme washes out on the dark default.",
-)
-@option(
-    "--preset",
-    type=Choice(sorted(PRESETS), case_sensitive=False),
-    default=None,
-    help="Terminal to draw the capture as: its window decorations, palette, "
-    "font and prompt sigil. Anything stated alongside wins over it. Left out, "
-    "the capture keeps the renderer's own neutral window.",
-)
-@option(
-    "--border",
-    default=None,
-    help="Color of the frame drawn around the terminal window, as CSS names it. "
-    "Pass none to draw no frame. Defaults to the one the chrome can show.",
-)
-@option(
-    "--border-width",
-    type=IntRange(min=0),
-    default=DEFAULT_BORDER_WIDTH,
-    show_default=True,
-    help="Thickness of that frame, in pixels.",
-)
-@option(
-    "--radius",
-    type=IntRange(min=0),
-    default=None,
-    help="How round the window's corners are, in pixels. Zero squares them. "
-    f"Defaults to {DEFAULT_RADIUS}, or to the rounding --preset terminal draws.",
-)
-@option(
-    "--backdrop",
-    default=NO_PAINT,
-    show_default=True,
-    help="Color filling the image behind the window, margin included, as CSS "
-    "names it. Left transparent by default, so the page shows through.",
-)
-@option(
-    "--shadow",
-    default=None,
-    help="Color of the drop shadow lifting the window off the page, as CSS names "
-    "it. Pass none to draw no shadow. Defaults to the one the chrome calls for.",
-)
-@option(
-    "--margin",
-    type=IntRange(min=0),
-    default=DEFAULT_MARGIN,
-    show_default=True,
-    help="Transparent pixels left around the window, on all four sides. The room "
-    "the drop shadow falls into, so a capture drawing one wants some.",
-)
-@option(
-    "--padding",
-    type=IntRange(min=0),
-    default=DEFAULT_PADDING,
-    show_default=True,
-    help="Pixels added inside the window, around the captured text, on top of "
-    "the few the renderer adds on its own.",
-)
-@option(
-    "--opacity",
-    type=FloatRange(min=0, max=1),
-    default=OPAQUE,
-    show_default=True,
-    help="How solid the window's body is. Under 1 it turns see-through, the way "
-    "a terminal set to transparency does: whatever the capture sits on shows "
-    "through it, while its text, frame and title bar keep their own paint.",
-)
-@option(
-    "--watermark",
-    default=DEFAULT_WATERMARK,
-    show_default=True,
-    help="Credit line drawn in the image's bottom-right corner, in the margin "
-    "around the window. Pass an empty string to draw none, or your own text to "
-    "credit your project instead.",
-)
-@option(
-    "--watermark-color",
-    default=None,
-    help="Color that credit line is drawn in, as CSS names it, alpha included. "
-    "Defaults to a neutral gray: the line sits in the transparent margin, so it "
-    "answers to the page embedding the image rather than to the chrome.",
+@capture_options(
+    columns_help="Terminal width, in characters, the command wraps its output "
+    "to and the image is laid out at. Pass auto to pin neither: the command "
+    "finds its own width, and the image is laid out at the longest line it "
+    "printed, so nothing folds inside the picture.",
 )
 @option(
     "--prompt",
@@ -611,56 +710,11 @@ def _parse_emphasis(
     "to the command line itself.",
 )
 @option(
-    "--head",
-    type=IntRange(min=1),
-    default=None,
-    help="Keep only the first N lines of output.",
-)
-@option(
-    "--tail",
-    type=IntRange(min=1),
-    default=None,
-    help="Keep only the last N lines of output.",
-)
-@option(
-    "--truncation",
-    default=DEFAULT_TRUNCATION,
-    show_default=True,
-    help="Line standing in for what --head or --tail cut away.",
-)
-@option(
     "--merge-stderr",
     is_flag=True,
     help="Fold the command's stderr into the capture, for a CLI printing its "
     "help there. Off by default, which is what keeps a wrapper's build chatter "
     "out of the image.",
-)
-@option(
-    "--line-numbers",
-    is_flag=True,
-    help="Number the captured lines in a gutter, the way Pygments does inline. "
-    "The prompt counts as line 1, being the invocation everything under it came "
-    "from.",
-)
-@option(
-    "--emphasize-lines",
-    "emphasize",
-    metavar="LINES",
-    default=None,
-    callback=_parse_emphasis,
-    help="Draw a band behind the lines named, as 2,4-5. Counted from 1, where "
-    "line 1 is the prompt. Ranges are closed: state both ends.",
-)
-@option(
-    "--title",
-    default="",
-    help="Caption drawn in an SVG's window chrome, or an HTML document's title.",
-)
-@option(
-    "--fragment",
-    is_flag=True,
-    help="For HTML, emit the bare block instead of a standalone document, "
-    "to paste into a page that has its own.",
 )
 @option(
     "--wrap",
@@ -799,6 +853,145 @@ def screenshot_cmd(
 
 
 demo.add_command(screenshot_cmd)
+
+
+@command(name="snippet")
+@argument(
+    "source",
+    type=file_path(exists=True, readable=True, allow_dash=True),
+)
+@capture_options(
+    default_columns=AUTO_COLUMNS,
+    columns_help="Width, in characters, the image is laid out at. Defaults to "
+    "the longest line the source holds, so nothing folds: a file was never "
+    "wrapped to a terminal's width, and code that soft-wrapped in the picture "
+    "would lose the indentation a reader is there to read.",
+)
+@option(
+    "--language",
+    default=None,
+    help="Language the source is highlighted as, as Pygments names it. Guessed "
+    "from the file name, then from the content, when left out. See "
+    "https://pygments.org/languages/ for the ones it knows.",
+)
+@option(
+    "--syntax-style",
+    "syntax_style",
+    metavar="STYLE",
+    default=None,
+    help="Pygments style the source is colored with, which also paints the "
+    "window: a style states the background its colors were designed against. "
+    "Defaults to monokai on the dark chrome and to Pygments' own default on "
+    "the light one.",
+)
+def snippet_cmd(
+    source: Path,
+    output: Path,
+    columns: TColumns,
+    background: CaptureBackground,
+    preset: str | None,
+    border: str | None,
+    border_width: int,
+    radius: int | None,
+    backdrop: str,
+    shadow: str | None,
+    margin: int,
+    padding: int,
+    opacity: float,
+    watermark: str,
+    watermark_color: str | None,
+    head: int | None,
+    tail: int | None,
+    truncation: str,
+    line_numbers: bool,
+    emphasize: tuple[int, ...],
+    title: str,
+    fragment: bool,
+    language: str | None,
+    syntax_style: str | None,
+) -> None:
+    """Highlight a source file and write it as an image or HTML.
+
+    Colors SOURCE with Pygments, then draws it in the same window a captured
+    command is drawn in. Pass - to read the source from stdin, which needs
+    --language: there is no file name left to guess from.
+
+      click-extra snippet --output ripen.svg ripen.py
+
+    The window is painted the background the syntax style was designed against,
+    so a snippet looks like that theme does in an editor rather than like the
+    same theme dropped on a foreign surface.
+
+    Both formats are the screenshot command's:
+
+      .svg  a picture, for a surface that strips inline HTML.
+
+      .html selectable, searchable, copy-pasteable text.
+
+    Highlighting needs the pygments extra.
+    """
+    try:
+        from .snippet import render_snippet
+    except ImportError as error:
+        raise ClickException(
+            missing_extra_message("pygments", subject="Drawing a code snippet"),
+        ) from error
+
+    try:
+        capture_format = format_from_path(output)
+    except ValueError as error:
+        raise ClickException(str(error)) from error
+
+    if fragment and capture_format is not CaptureFormat.HTML:
+        raise ClickException("--fragment only applies to an HTML capture.")
+
+    reading_stdin = str(source) == "-"
+    if reading_stdin:
+        code = sys.stdin.read()
+    else:
+        code = source.read_text(encoding="utf-8")
+
+    try:
+        document = render_snippet(
+            code,
+            format=capture_format,
+            language=language,
+            # Left unstated for stdin, which carries no name to read a language
+            # off: a guess from the content is all that is left, and naming the
+            # dash would have the lexer lookup fail on an extension of "-".
+            filename=None if reading_stdin else source.name,
+            style=syntax_style,
+            columns=columns,
+            head=head,
+            tail=tail,
+            truncation=truncation,
+            line_numbers=line_numbers,
+            emphasize=emphasize,
+            title=title,
+            unique_id=output.stem,
+            full=not fragment,
+            background=background,
+            preset=None if preset is None else PRESETS[preset.lower()],
+            border=border,
+            border_width=border_width,
+            radius=radius,
+            backdrop=backdrop,
+            shadow=shadow,
+            margin=margin,
+            padding=padding,
+            opacity=opacity,
+            watermark=watermark,
+            watermark_color=watermark_color,
+        )
+    except ValueError as error:
+        raise ClickException(str(error)) from error
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(document, encoding="utf-8")
+    echo(f"Wrote {output}")
+
+
+demo.add_command(snippet_cmd)
 
 
 _ALL_STYLES = (

@@ -30,7 +30,14 @@ import pytest
 from pygments.styles import get_style_by_name
 from pygments.token import Token
 
-from click_extra.screenshot import CAPTURE_PALETTES, CaptureBackground, CaptureFormat
+from click_extra.cli import capture_options, screenshot_cmd, snippet_cmd
+from click_extra.screenshot import (
+    AUTO_COLUMNS,
+    CAPTURE_PALETTES,
+    DEFAULT_COLUMNS,
+    CaptureBackground,
+    CaptureFormat,
+)
 from click_extra.screenshot_presets import PRESETS
 from click_extra.snippet import (
     DEFAULT_SYNTAX_STYLES,
@@ -222,3 +229,92 @@ def test_snippet_renders_html():
     """The HTML format carries the style's colors too."""
     document = render_snippet(SAMPLE, language="python", format=CaptureFormat.HTML)
     assert get_style_by_name("monokai").background_color in document
+
+
+def shared_option_names() -> tuple[str, ...]:
+    """Every option name {func}`~click_extra.cli.capture_options` attaches."""
+
+    def probe() -> None:
+        pass
+
+    decorated = capture_options(columns_help="")(probe)
+    return tuple(param.name for param in decorated.__click_params__)
+
+
+def test_capture_commands_share_one_vocabulary():
+    """Both capture commands spell every shared option the same way.
+
+    The drift this guards against is silent and lands on the reader rather than
+    the maintainer: an option learned on one command that means something else,
+    or nothing at all, on the other.
+
+    `--columns` is the deliberate exception. Its whole purpose is to differ:
+    a command wraps its own output to it, where a file was never wrapped.
+    """
+    shot = {param.name: param for param in screenshot_cmd.params}
+    snippet = {param.name: param for param in snippet_cmd.params}
+    for name in shared_option_names():
+        assert name in shot, f"screenshot lost the shared --{name}"
+        assert name in snippet, f"snippet lost the shared --{name}"
+        if name == "columns":
+            continue
+        assert shot[name].help == snippet[name].help
+        assert shot[name].default == snippet[name].default
+        assert shot[name].opts == snippet[name].opts
+        assert type(shot[name].type) is type(snippet[name].type)
+
+
+def test_columns_defaults_differ_by_command():
+    """A snippet sizes itself to its longest line; a capture pins a width."""
+    shot = next(param for param in screenshot_cmd.params if param.name == "columns")
+    snippet = next(param for param in snippet_cmd.params if param.name == "columns")
+    assert shot.default == str(DEFAULT_COLUMNS)
+    assert snippet.default == AUTO_COLUMNS
+
+
+def test_snippet_command_writes_a_capture(invoke, tmp_path):
+    """The command colors a file and writes the picture where it was told."""
+    source = tmp_path / "ripen.py"
+    source.write_text(SAMPLE, encoding="utf-8")
+    output = tmp_path / "ripen.svg"
+    result = invoke(snippet_cmd, ["--output", str(output), str(source)])
+    assert result.exit_code == 0
+    assert svg_to_lines(output.read_text(encoding="utf-8")) == SAMPLE.rstrip(
+        "\n"
+    ).split("\n")
+
+
+def test_snippet_command_reads_stdin(invoke, tmp_path):
+    """A dash reads the source from stdin, where no file name identifies it."""
+    output = tmp_path / "ripen.svg"
+    result = invoke(
+        snippet_cmd,
+        ["--output", str(output), "--language", "python", "-"],
+        input=SAMPLE,
+    )
+    assert result.exit_code == 0
+    assert output.exists()
+
+
+def test_snippet_command_rejects_a_fragment_image(invoke, tmp_path):
+    """`--fragment` is an HTML notion: an SVG has no page to be pasted into."""
+    source = tmp_path / "ripen.py"
+    source.write_text(SAMPLE, encoding="utf-8")
+    result = invoke(
+        snippet_cmd,
+        ["--output", str(tmp_path / "ripen.svg"), "--fragment", str(source)],
+    )
+    assert result.exit_code != 0
+    assert "--fragment only applies" in result.output
+
+
+def test_snippet_command_reports_an_unknown_language(invoke, tmp_path):
+    """A misspelled language is a clean CLI error, not a traceback."""
+    source = tmp_path / "ripen.py"
+    source.write_text(SAMPLE, encoding="utf-8")
+    result = invoke(
+        snippet_cmd,
+        ["--output", str(tmp_path / "ripen.svg"), "--language", "pyhton", str(source)],
+    )
+    assert result.exit_code != 0
+    assert "not a language Pygments knows" in result.output
