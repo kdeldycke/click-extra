@@ -40,7 +40,9 @@ import re
 import shutil
 import subprocess
 import sys
+import sysconfig
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from email.utils import getaddresses
 from functools import cached_property
 from gettext import gettext as _
@@ -298,6 +300,73 @@ is computed live*, shared by two consumers:
 
 Keeping it here means adding a new git field is a one-line edit in this module,
 with no matching change needed in the CLI.
+"""
+
+
+SOURCE_DATE_EPOCH = "SOURCE_DATE_EPOCH"
+"""Environment variable a reproducible build sets to pin every timestamp it writes.
+
+See the [reproducible-builds.org specification](https://reproducible-builds.org/docs/source-date-epoch/).
+"""
+
+
+def resolve_build_time() -> str:
+    """The moment the distribution is built, as an RFC 3339 UTC timestamp.
+
+    Reads `SOURCE_DATE_EPOCH` when the build sets it, so two runs of a
+    reproducible build stamp the same instant. Falls back to the current time.
+    """
+    epoch = os.environ.get(SOURCE_DATE_EPOCH)
+    if epoch:
+        moment = datetime.fromtimestamp(int(epoch), tz=timezone.utc)
+    else:
+        moment = datetime.now(tz=timezone.utc)
+    return moment.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def resolve_build_os() -> str:
+    """The operating system the build runs on."""
+    return current_platform().name
+
+
+def resolve_build_target() -> str:
+    """The platform a distribution built here installs on.
+
+    This is the wheel platform tag (`macosx-15.0-arm64`, `linux-x86_64`,
+    `win-amd64`), which is Python's answer to the target triple shadow-rs bakes
+    into a Rust binary. It states an ABI floor the two fields beside it cannot:
+    `macosx-15.0-arm64` says the binary needs macOS 15, where
+    {func}`~click_extra.version.resolve_build_os` only says it was built on macOS.
+    """
+    return sysconfig.get_platform()
+
+
+def resolve_build_target_arch() -> str:
+    """The CPU architecture the build runs on."""
+    return current_architecture().name
+
+
+BUILD_RESOLVERS: dict[str, Callable[[], str]] = {
+    "build_time": resolve_build_time,
+    "build_os": resolve_build_os,
+    "build_target": resolve_build_target,
+    "build_target_arch": resolve_build_target_arch,
+}
+"""Canonical resolver for every pre-bakeable `build_*` field.
+
+These describe the machine and moment a distribution was *built*, which
+{data}`GIT_RESOLVERS` and `{env_info}` both leave unanswered: git states what
+source went in, `{env_info}` states where the binary is running now, and neither
+one identifies the host that produced it. That gap is what a cross-built binary
+turns into a support question, and what shadow-rs answers for Rust with its
+`BUILD_TIME`, `BUILD_OS` and `BUILD_TARGET` constants.
+
+A build fact has no live fallback, unlike a git one: nothing at runtime can
+recover the host a binary was compiled on, so `click-extra prebake all` is the
+only thing that ever writes these. A field left unbaked stays empty, and its
+{class}`VersionOption` accessor answers `None`.
+
+Adding a field here is a one-line edit, with no matching change in the CLI.
 """
 
 
@@ -738,6 +807,10 @@ class VersionOption(ExtraOption):
         "git_tag_sha",
         "git_distance",
         "git_dirty",
+        "build_time",
+        "build_os",
+        "build_target",
+        "build_target_arch",
         "prog_name",
         "env_info",
     )
@@ -759,6 +832,10 @@ class VersionOption(ExtraOption):
         "git_tag_sha": Style(fg="yellow"),
         "git_distance": theme_slot("success"),
         "git_dirty": Style(fg="red"),
+        "build_time": Style(fg="bright_black"),
+        "build_os": Style(fg="bright_black"),
+        "build_target": Style(fg="bright_black"),
+        "build_target_arch": Style(fg="bright_black"),
         "prog_name": theme_slot("invoked_command"),
         "env_info": Style(fg="bright_black"),
     }
@@ -1432,6 +1509,55 @@ class VersionOption(ExtraOption):
         if not self.git_repo_path:
             return None
         return resolve_git_dirty(self.git_repo_path)
+
+    def _resolve_build_field(self, field_id: str) -> str | None:
+        """Resolve a `build_*` field, which only a pre-bake can answer.
+
+        A git field falls back to a live `git` call and then to
+        `.git_archival.json`; a build field has neither, because no runtime
+        can recover the host that produced the binary it is running. So this
+        reads the pre-baked `__<field_id>__` dunder and stops there, answering
+        `None` when `click-extra prebake all` never wrote one.
+
+        Only valid for the fields in {data}`BUILD_RESOLVERS`.
+        """
+        return self._get_prebaked(field_id)
+
+    @cached_property
+    def build_time(self) -> str | None:
+        """When the distribution was built, as an RFC 3339 UTC timestamp.
+
+        Reads the pre-baked `__build_time__` dunder. See
+        {func}`~click_extra.version.resolve_build_time`.
+        """
+        return self._resolve_build_field("build_time")
+
+    @cached_property
+    def build_os(self) -> str | None:
+        """The operating system the build ran on.
+
+        Reads the pre-baked `__build_os__` dunder. See
+        {func}`~click_extra.version.resolve_build_os`.
+        """
+        return self._resolve_build_field("build_os")
+
+    @cached_property
+    def build_target(self) -> str | None:
+        """The platform a distribution built here installs on.
+
+        Reads the pre-baked `__build_target__` dunder. See
+        {func}`~click_extra.version.resolve_build_target`.
+        """
+        return self._resolve_build_field("build_target")
+
+    @cached_property
+    def build_target_arch(self) -> str | None:
+        """The CPU architecture the build ran on.
+
+        Reads the pre-baked `__build_target_arch__` dunder. See
+        {func}`~click_extra.version.resolve_build_target_arch`.
+        """
+        return self._resolve_build_field("build_target_arch")
 
     @property
     def prog_name(self) -> str | None:

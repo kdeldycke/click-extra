@@ -100,6 +100,7 @@ from .test_suite import (
 from .theme import BUILTIN_THEMES
 from .types import EnumChoice
 from .version import (
+    BUILD_RESOLVERS,
     GIT_FIELDS,
     GIT_RESOLVERS,
     run_git,
@@ -1511,10 +1512,11 @@ def field(name: str, module: Path | None, value: str) -> None:
 @prebake.command(name="all")
 @_module_option
 def all_fields(module: Path | None) -> None:
-    """Pre-bake `__version__` and all git fields in one pass.
+    """Pre-bake `__version__`, all git fields and all build fields in one pass.
 
     Scans each target file for empty `__<field>__` dunder placeholders,
-    resolves their values from the current Git state, and injects them.
+    resolves their values from the current Git state and build host, and
+    injects them.
 
     Also appends the Git short hash to `.dev` versions in
     `__version__` (same as `prebake version`).
@@ -1522,6 +1524,10 @@ def all_fields(module: Path | None) -> None:
     \b
     Supported git fields:
         git_branch, git_long_hash, git_short_hash, git_date, git_tag
+
+    \b
+    Supported build fields:
+        build_time, build_os, build_target, build_target_arch
 
     \b
     Additional computed fields (`__git_tag_sha__`, `__git_distance__`,
@@ -1561,6 +1567,24 @@ def all_fields(module: Path | None) -> None:
                 echo(f"Skipped {init_path}: {dunder_name} (no git value)")
                 continue
             baked = prebake_dunder(init_path, dunder_name, value)
+            if baked:
+                echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
+                changed = True
+                # Re-read source after each write so AST offsets stay valid.
+                source = init_path.read_text(encoding="utf-8")
+
+        # Pre-bake each build field the same way. Their resolvers describe the
+        # host running this command, so they take no working directory and
+        # always answer.
+        for field_name, build_resolver in BUILD_RESOLVERS.items():
+            dunder_name = f"__{field_name}__"
+            node = _find_dunder_str(source, dunder_name)
+            if node is None:
+                continue
+            if node.value:
+                echo(f"Skipped {init_path}: {dunder_name} already set")
+                continue
+            baked = prebake_dunder(init_path, dunder_name, build_resolver())
             if baked:
                 echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
                 changed = True

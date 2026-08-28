@@ -24,20 +24,11 @@ place with {mod}`ast`.
 
 This mirrors [shadow-rs](https://github.com/baoyachi/shadow-rs), which
 injects build-time constants (`BRANCH`, `SHORT_COMMIT`, `COMMIT_HASH`,
-`COMMIT_DATE`, `TAG`, ...) into Rust binaries at compile time.
-
-```{todo}
-Add the following build-time template fields, mirroring the constants
-shadow-rs injects:
-
-- ``{build_time}``: when the distribution was built (shadow-rs exposes it
-  as `BUILD_TIME`, with RFC 2822 and RFC 3339 variants `BUILD_TIME_2822`
-  / `BUILD_TIME_3339`).
-- ``{build_os}`` / ``{build_target}`` / ``{build_target_arch}``: the OS,
-  target triple and architecture the build ran on. These describe the
-  *build* host, unlike ``{env_info}`` which reports the *runtime* Python,
-  OS and architecture, so both are worth keeping for cross-built binaries.
-```
+`COMMIT_DATE`, `TAG`, ...) into Rust binaries at compile time. Its
+`BUILD_TIME`, `BUILD_OS` and `BUILD_TARGET` constants have counterparts here
+too, in {data}`click_extra.version.BUILD_RESOLVERS`: those describe the host
+that produced the binary, which neither the git fields nor `{env_info}` can
+answer once it is running somewhere else.
 """
 
 from __future__ import annotations

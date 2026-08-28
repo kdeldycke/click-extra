@@ -61,12 +61,15 @@ from click_extra.pytest import (
     default_debug_colored_version_details,
 )
 from click_extra.version import (
+    BUILD_RESOLVERS,
+    SOURCE_DATE_EPOCH,
     VersionScreen,
     archival_field,
     colors_reach_output,
     default_facts,
     find_archival_file,
     read_archival,
+    resolve_build_time,
     resolve_git_dirty,
     resolve_git_distance,
 )
@@ -273,6 +276,30 @@ def test_custom_message_style(invoke, cmd_decorator):
     assert result.exit_code == 0
 
 
+@pytest.mark.once
+@pytest.mark.parametrize("field_id", sorted(BUILD_RESOLVERS))
+def test_build_resolver_answers_and_is_a_template_field(field_id):
+    """Every build resolver answers on the host running it, and has a field.
+
+    A build fact is unlike a git one on both counts: nothing can fail to
+    resolve, since the host is right here, and nothing can fall back later, so
+    a resolver whose field is missing from the template would bake a value no
+    message could ever print.
+    """
+    value = BUILD_RESOLVERS[field_id]()
+    assert value
+    assert value.strip() == value
+    assert field_id in VersionOption.template_fields
+    assert hasattr(VersionOption, field_id)
+
+
+@pytest.mark.once
+def test_build_time_honors_source_date_epoch(monkeypatch):
+    """A reproducible build pins the stamp instead of reading the clock."""
+    monkeypatch.setenv(SOURCE_DATE_EPOCH, "1234567890")
+    assert resolve_build_time() == "2009-02-13T23:31:30Z"
+
+
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     @cmd_decorator
@@ -307,6 +334,10 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             r"git_tag_sha = None\n"
             r"git_distance = (?:\d+|None)\n"
             r"git_dirty = (?:dirty|clean|None)\n"
+            r"build_time = None\n"
+            r"build_os = None\n"
+            r"build_target = None\n"
+            r"build_target_arch = None\n"
             r"prog_name = version-metadata\n"
             r"env_info = {'.+'}\n"
         ),

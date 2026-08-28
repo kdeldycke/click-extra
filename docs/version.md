@@ -66,29 +66,33 @@ Click Extra uses [modern format string syntax](https://docs.python.org/3/library
 
 You can customize the message template with the following variables:
 
-| Variable                                                                         | Description                                                                                                                                                                            |
-| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| {py:attr}`{module} <click_extra.version.VersionOption.module>`                   | The [module object](https://docs.python.org/3/glossary.html#term-module) in which the command is implemented.                                                                          |
-| {py:attr}`{module_name} <click_extra.version.VersionOption.module_name>`         | The [`__name__` of the module](https://docs.python.org/3/reference/datamodel.html#module.__name__) in which the command is implemented.                                                |
-| {py:attr}`{module_file} <click_extra.version.VersionOption.module_file>`         | The [full path of the file](https://docs.python.org/3/reference/datamodel.html#module.__file__) in which the command is implemented.                                                   |
-| {py:attr}`{module_version} <click_extra.version.VersionOption.module_version>`   | The string found in the local `__version__` variable of the module.                                                                                                                    |
-| {py:attr}`{package_name} <click_extra.version.VersionOption.package_name>`       | The [name of the package](https://docs.python.org/3/reference/datamodel.html#module.__package__) in which the CLI is distributed.                                                      |
-| {py:attr}`{package_version} <click_extra.version.VersionOption.package_version>` | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distributed. |
-| {py:attr}`{author} <click_extra.version.VersionOption.author>`                   | The package author(s) from the [core metadata](https://packaging.python.org/en/latest/specifications/core-metadata/), or `None` if not declared.                                       |
-| {py:attr}`{license} <click_extra.version.VersionOption.license>`                 | The package license from the [core metadata](https://packaging.python.org/en/latest/specifications/core-metadata/): SPDX `License-Expression`, classifier, or free-form `License`.     |
-| {py:attr}`{exec_name} <click_extra.version.VersionOption.exec_name>`             | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                 |
-| {py:attr}`{version} <click_extra.version.VersionOption.version>`                 | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order. For [`.dev` versions](#development-versions), automatically appends the Git commit hash. |
-| {py:attr}`{git_repo_path} <click_extra.version.VersionOption.git_repo_path>`     | The full path to the Git repository root directory, or `None` if not in a Git repository.                                                                                              |
-| {py:attr}`{git_branch} <click_extra.version.VersionOption.git_branch>`           | The current Git branch name, or `None` if not in a Git repository or Git is not available.                                                                                             |
-| {py:attr}`{git_long_hash} <click_extra.version.VersionOption.git_long_hash>`     | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                          |
-| {py:attr}`{git_short_hash} <click_extra.version.VersionOption.git_short_hash>`   | The short Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                         |
-| {py:attr}`{git_date} <click_extra.version.VersionOption.git_date>`               | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
-| {py:attr}`{git_tag} <click_extra.version.VersionOption.git_tag>`                 | The Git tag pointing at `HEAD`, or `None` if `HEAD` is not at a tagged commit.                                                                                                         |
-| {py:attr}`{git_tag_sha} <click_extra.version.VersionOption.git_tag_sha>`         | The full commit SHA that the current tag points at, or `None` if `HEAD` is not at a tagged commit.                                                                                     |
-| {py:attr}`{git_distance} <click_extra.version.VersionOption.git_distance>`       | The number of commits since the most recent tag, or `None` if no tag is reachable or Git is not available.                                                                             |
-| {py:attr}`{git_dirty} <click_extra.version.VersionOption.git_dirty>`             | The work-tree state: `dirty` for uncommitted changes, `clean` otherwise, or `None` if not in a Git repository or Git is not available.                                                 |
-| {py:attr}`{prog_name} <click_extra.version.VersionOption.prog_name>`             | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#version-fields).                        |
-| {py:attr}`{env_info} <click_extra.version.VersionOption.env_info>`               | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
+| Variable                                                                             | Description                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| {py:attr}`{module} <click_extra.version.VersionOption.module>`                       | The [module object](https://docs.python.org/3/glossary.html#term-module) in which the command is implemented.                                                                          |
+| {py:attr}`{module_name} <click_extra.version.VersionOption.module_name>`             | The [`__name__` of the module](https://docs.python.org/3/reference/datamodel.html#module.__name__) in which the command is implemented.                                                |
+| {py:attr}`{module_file} <click_extra.version.VersionOption.module_file>`             | The [full path of the file](https://docs.python.org/3/reference/datamodel.html#module.__file__) in which the command is implemented.                                                   |
+| {py:attr}`{module_version} <click_extra.version.VersionOption.module_version>`       | The string found in the local `__version__` variable of the module.                                                                                                                    |
+| {py:attr}`{package_name} <click_extra.version.VersionOption.package_name>`           | The [name of the package](https://docs.python.org/3/reference/datamodel.html#module.__package__) in which the CLI is distributed.                                                      |
+| {py:attr}`{package_version} <click_extra.version.VersionOption.package_version>`     | The [version from the package metadata](https://docs.python.org/3/library/importlib.metadata.html?highlight=metadata%20version#distribution-versions) in which the CLI is distributed. |
+| {py:attr}`{author} <click_extra.version.VersionOption.author>`                       | The package author(s) from the [core metadata](https://packaging.python.org/en/latest/specifications/core-metadata/), or `None` if not declared.                                       |
+| {py:attr}`{license} <click_extra.version.VersionOption.license>`                     | The package license from the [core metadata](https://packaging.python.org/en/latest/specifications/core-metadata/): SPDX `License-Expression`, classifier, or free-form `License`.     |
+| {py:attr}`{exec_name} <click_extra.version.VersionOption.exec_name>`                 | User-friendly name of the executed CLI. Returns `{module_name}`, `{package_name}` or script's filename, in this order.                                                                 |
+| {py:attr}`{version} <click_extra.version.VersionOption.version>`                     | Version of the CLI. Returns `{module_version}`, `{package_version}` or `None`, in this order. For [`.dev` versions](#development-versions), automatically appends the Git commit hash. |
+| {py:attr}`{git_repo_path} <click_extra.version.VersionOption.git_repo_path>`         | The full path to the Git repository root directory, or `None` if not in a Git repository.                                                                                              |
+| {py:attr}`{git_branch} <click_extra.version.VersionOption.git_branch>`               | The current Git branch name, or `None` if not in a Git repository or Git is not available.                                                                                             |
+| {py:attr}`{git_long_hash} <click_extra.version.VersionOption.git_long_hash>`         | The full Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                          |
+| {py:attr}`{git_short_hash} <click_extra.version.VersionOption.git_short_hash>`       | The short Git commit hash of the current `HEAD`, or `None` if not in a Git repository or Git is not available.                                                                         |
+| {py:attr}`{git_date} <click_extra.version.VersionOption.git_date>`                   | The commit date of the current `HEAD` in ISO format (`YYYY-MM-DD HH:MM:SS +ZZZZ`), or `None` if not in a Git repository or Git is not available.                                       |
+| {py:attr}`{git_tag} <click_extra.version.VersionOption.git_tag>`                     | The Git tag pointing at `HEAD`, or `None` if `HEAD` is not at a tagged commit.                                                                                                         |
+| {py:attr}`{git_tag_sha} <click_extra.version.VersionOption.git_tag_sha>`             | The full commit SHA that the current tag points at, or `None` if `HEAD` is not at a tagged commit.                                                                                     |
+| {py:attr}`{git_distance} <click_extra.version.VersionOption.git_distance>`           | The number of commits since the most recent tag, or `None` if no tag is reachable or Git is not available.                                                                             |
+| {py:attr}`{git_dirty} <click_extra.version.VersionOption.git_dirty>`                 | The work-tree state: `dirty` for uncommitted changes, `clean` otherwise, or `None` if not in a Git repository or Git is not available.                                                 |
+| {py:attr}`{build_time} <click_extra.version.VersionOption.build_time>`               | When the distribution was built, as an RFC 3339 UTC timestamp, or `None` if never pre-baked.                                                                                           |
+| {py:attr}`{build_os} <click_extra.version.VersionOption.build_os>`                   | The operating system the build ran on, or `None` if never pre-baked.                                                                                                                   |
+| {py:attr}`{build_target} <click_extra.version.VersionOption.build_target>`           | The platform a distribution built there installs on (`macosx-15.0-arm64`, `linux-x86_64`, `win-amd64`), or `None` if never pre-baked.                                                  |
+| {py:attr}`{build_target_arch} <click_extra.version.VersionOption.build_target_arch>` | The CPU architecture the build ran on, or `None` if never pre-baked.                                                                                                                   |
+| {py:attr}`{prog_name} <click_extra.version.VersionOption.prog_name>`                 | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#version-fields).                        |
+| {py:attr}`{env_info} <click_extra.version.VersionOption.env_info>`                   | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
 
 ```{note}
 The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (like standalone Nuitka binaries or Docker containers without Git).
@@ -385,6 +389,27 @@ prebake_dunder(Path("mypackage/__init__.py"), "__git_short_hash__", "abc1234")
 
 {func}`discover_package_init_files() <click_extra.prebake.discover_package_init_files>` can auto-discover `__init__.py` paths from `[project.scripts]` in `pyproject.toml`, so you don't need to hardcode paths in your build scripts.
 
+### Pre-baking build metadata
+
+The `build_*` template fields answer a question the `git_*` ones cannot: which machine produced this binary, and when. A cross-built executable carries no trace of its build host, and `{env_info}` reports the machine *running* it, so the two describe different things and a bug report often needs both.
+
+They are pre-baked exactly like the git fields, through the same empty-string dunders:
+
+| Dunder variable         | Template field        | Value baked at build time                                 |
+| ----------------------- | --------------------- | --------------------------------------------------------- |
+| `__build_time__`        | `{build_time}`        | The build instant, as an RFC 3339 UTC timestamp           |
+| `__build_os__`          | `{build_os}`          | The operating system the build ran on                     |
+| `__build_target__`      | `{build_target}`      | The wheel platform tag (`macosx-15.0-arm64`, `win-amd64`) |
+| `__build_target_arch__` | `{build_target_arch}` | The CPU architecture the build ran on                     |
+
+The column is titled differently from the git table on purpose: a git field falls back to a `git` subprocess when its dunder is empty, and a build field has no fallback at all. Nothing at runtime can recover the host that compiled a binary, so an unbaked `build_*` field stays `None` forever.
+
+`{build_target}` is the one that states an ABI floor rather than a description. `macosx-15.0-arm64` says the binary needs macOS 15, where `{build_os}` only says it was built on macOS.
+
+```{tip}
+`__build_time__` reads [`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/docs/source-date-epoch/) when the build sets it, so two runs of a reproducible build stamp the same instant instead of drifting apart.
+```
+
 ### CLI usage
 
 The `click-extra prebake` command exposes these utilities from the command line, without writing Python:
@@ -451,25 +476,29 @@ The `message_style` parameter sets the style of the message literals (the text a
 
 Fields not listed in `styles` keep the defaults below, taken from {py:attr}`VersionOption.default_styles <click_extra.version.VersionOption.default_styles>`. Fields absent from this table have no style of their own and fall back to `message_style`:
 
-| Field             | Default style                                      |
-| ----------------- | -------------------------------------------------- |
-| `exec_name`       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `git_branch`      | `Style(fg="cyan")`{l=python}                       |
-| `git_date`        | `Style(fg="bright_black")`{l=python}               |
-| `git_distance`    | `Style(fg="green")`{l=python}                      |
-| `git_dirty`       | `Style(fg="red")`{l=python}                        |
-| `git_long_hash`   | `Style(fg="yellow")`{l=python}                     |
-| `git_repo_path`   | `Style(fg="bright_black")`{l=python}               |
-| `git_short_hash`  | `Style(fg="yellow")`{l=python}                     |
-| `git_tag`         | `Style(fg="cyan")`{l=python}                       |
-| `git_tag_sha`     | `Style(fg="yellow")`{l=python}                     |
-| `module_name`     | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `module_version`  | `Style(fg="green")`{l=python}                      |
-| `package_name`    | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `package_version` | `Style(fg="green")`{l=python}                      |
-| `prog_name`       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `version`         | `Style(fg="green")`{l=python}                      |
-| `env_info`        | `Style(fg="bright_black")`{l=python}               |
+| Field               | Default style                                      |
+| ------------------- | -------------------------------------------------- |
+| `build_os`          | `Style(fg="bright_black")`{l=python}               |
+| `build_target`      | `Style(fg="bright_black")`{l=python}               |
+| `build_target_arch` | `Style(fg="bright_black")`{l=python}               |
+| `build_time`        | `Style(fg="bright_black")`{l=python}               |
+| `exec_name`         | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `git_branch`        | `Style(fg="cyan")`{l=python}                       |
+| `git_date`          | `Style(fg="bright_black")`{l=python}               |
+| `git_distance`      | `Style(fg="green")`{l=python}                      |
+| `git_dirty`         | `Style(fg="red")`{l=python}                        |
+| `git_long_hash`     | `Style(fg="yellow")`{l=python}                     |
+| `git_repo_path`     | `Style(fg="bright_black")`{l=python}               |
+| `git_short_hash`    | `Style(fg="yellow")`{l=python}                     |
+| `git_tag`           | `Style(fg="cyan")`{l=python}                       |
+| `git_tag_sha`       | `Style(fg="yellow")`{l=python}                     |
+| `module_name`       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `module_version`    | `Style(fg="green")`{l=python}                      |
+| `package_name`      | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `package_version`   | `Style(fg="green")`{l=python}                      |
+| `prog_name`         | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
+| `version`           | `Style(fg="green")`{l=python}                      |
+| `env_info`          | `Style(fg="bright_black")`{l=python}               |
 
 The remaining fields (`module`, `module_file`, `author`, `license`) have no default style and fall back to `message_style`.
 
