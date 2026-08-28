@@ -413,6 +413,27 @@ a page forbidding third-party requests, and in a viewer that speaks no CSS
 
 Family names are single-quoted on purpose: this lands in a double-quoted
 `style` attribute, which a double quote here would terminate early.
+
+```{todo}
+Decide whether to embed a subsetted font, which is the only thing that would
+hold a capture's columns for a reader who has neither of the first two families.
+A stock macOS falls through to Menlo, which carries no Braille and none of the
+Mathematical Operators the spinner catalog draws, so those resolve to the
+proportional Apple Symbols: measured in a browser, 26 of the 89 tiles under
+`docs/assets/spinner-*.svg` draw 11% to 80% wider than the column they are laid
+out on, and the window's clip cuts the overflow. JuliaMono carries all 50
+non-emoji code points that catalog uses, every one on the cell grid, so a subset
+of it would close the gap. Emoji stay beyond reach of any monospaced font.
+
+Fitting each run to its columns instead (`lengthAdjust="spacingAndGlyphs"`) was
+measured and rejected: across the 1407 runs in the committed captures it
+distorts 425 of them by more than 6%, some past 100%, because it stretches a
+narrow glyph as readily as it squeezes a wide one.
+
+Note that {data}`~click_extra.screenshot.WATERMARK_URL` documents the other half
+of this: a capture embedded with `<img>` never sees the page's own `@font-face`
+either, so a stylesheet cannot fix this from the outside.
+```
 """
 
 CELL_HEIGHT = 20.0
