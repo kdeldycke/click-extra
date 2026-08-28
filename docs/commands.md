@@ -326,9 +326,9 @@ assert options.index("--sugar") < options.index("--help")
 
 Positional arguments are never reordered: their sequence is part of the command's grammar, not a matter of presentation.
 
-### Option's defaults
+### Option defaults
 
-Because Click Extra inherits from Click, you can [override the defaults the same way Click allows you to](https://click.palletsprojects.com/en/stable/commands/#context-defaults). Here is a reminder on how to do it.
+Click Extra inherits from Click, so [the same override mechanisms apply](https://click.palletsprojects.com/en/stable/commands/#context-defaults).
 
 For example, the `--verbosity` option defaults to the {py:data}`WARNING level <click_extra.logging.DEFAULT_LEVEL>`. Now we'd like to change this default to `INFO`.
 
@@ -893,11 +893,11 @@ Click Extra is capable of composing with existing Click CLI in various situation
 
 ### Wrap other commands
 
-Click allows you to build up a hierarchy of command and subcommands. Click Extra inherits this behavior, which means we are free to assemble multiple third-party subcommands into a top-level one.
+Click builds hierarchies of commands and subcommands, and Click Extra inherits this. Third-party subcommands can be assembled into a top-level command.
 
-For this example, let's imagine you are working for an operation team that is relying daily on a couple of CLIs. Like [`dbt`](https://github.com/dbt-labs/dbt-core) to manage your data workflows, and [`aws-sam-cli`](https://github.com/aws/aws-sam-cli) to deploy them in the cloud.
+Take an operation team relying daily on a couple of CLIs: [`dbt`](https://github.com/dbt-labs/dbt-core) to manage data workflows, and [`aws-sam-cli`](https://github.com/aws/aws-sam-cli) to deploy them in the cloud.
 
-For some practical reasons, you'd like to wrap all these commands into a big one. This is how to do it.
+To wrap all these commands into a single one:
 
 ````{note}
 Here is how I initialized this example on my machine:
@@ -1199,9 +1199,9 @@ Now that all commands are under the same umbrella, there is no limit to your ima
 ```{caution}
 This might looks janky, but this franken-CLI might be a great way to solve practical problems in your situation.
 
-You can augment them with your custom glue code. Or maybe mashing them up will simplify the re-distribution of these CLIs on your production machines. Or control their common dependencies. Or freeze their versions. Or hard-code some parameters. Or apply monkey-patches. Or chain these commands to create new kind of automation...
+The composition can carry custom glue code, simplify redistributing these CLIs on production machines, control their common dependencies, freeze their versions, hard-code parameters, apply monkey-patches, or chain commands into new automation.
 
-There is a miriad of possibilities. If you have some other examples in the same vein, please share them in an issue or even directly via a PR. I'd love to complement this documentation with creative use-cases.
+If you have other examples in the same vein, share them in an issue or a PR: I'd love to complement this documentation with creative use cases.
 ```
 
 ## `click_extra.commands` API

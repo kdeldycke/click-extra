@@ -117,7 +117,7 @@ After defining the CLI source code in the `click:source` directive above, you ca
 
 The `click:run` directive expects a Python code block that uses the `invoke` function. This function is specifically designed to run Click-based CLIs and handle their execution and output.
 
-Here is how we invoke our example with a `--help` option:
+Here is how to invoke the example with a `--help` option:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
@@ -206,9 +206,9 @@ assert "Joe" in result.output
 ```
 
 ```{hint}
-`click:source` and `click:run` directives works well with standard vanilla `click`-based CLIs.
+The `click:source` and `click:run` directives work well with standard vanilla `click`-based CLIs.
 
-In the example above, we choose to import our CLI primitives from the `click-extra` module instead, to demonstrate the coloring of terminal session outputs, as `click-extra` provides [fancy coloring of help screens](colorize.md) by default.
+The example above imports its CLI primitives from the `click-extra` module instead, to demonstrate the coloring of terminal session outputs: `click-extra` provides [fancy coloring of help screens](colorize.md) by default.
 ```
 
 ```{tip}
@@ -309,7 +309,7 @@ By default:
 - `click:source` displays the source code of the CLI. Because its content is not executed, no results are displayed. This is equivalent to having both `:show-source:` and `:hide-results:` options.
 - `click:run` displays the results of the CLI invocation, but does not display the source code. This is equivalent to having both `:hide-source:` and `:show-results:` options.
 
-But you can override this behavior by explicitly setting the options. Let's say [you only want to display the result](https://github.com/kdeldycke/click-extra/issues/719) of the CLI invocation, without showing the source code defining that CLI. Then you can add `:hide-source:` to the `click:source` directive:
+Explicit options override this behavior. To [display only the result](https://github.com/kdeldycke/click-extra/issues/719) of the CLI invocation, without the source code defining that CLI, add `:hide-source:` to the `click:source` directive:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
@@ -571,7 +571,7 @@ invoke(demo, args=["--help"])
 `````
 ``````
 
-And the execution of that CLI renders just fine:
+The execution of that CLI renders as well:
 
 ```{click:run}
 from click_extra.cli import demo
@@ -599,9 +599,9 @@ Set it to `"sys"` to use Click's legacy in-memory capture, which exposes no file
 
 ### Inline tests
 
-The `click:run` directive can also be used to embed tests in your documentation.
+The `click:run` directive also embeds tests in your documentation.
 
-You can write tests in your documentation, and they will be executed at build time. This allows you to catch regressions early, and ensure that your documentation is always up-to-date with the latest version of your CLI, in the spirit of [`doctest`](https://docs.python.org/3/library/doctest.html) and [Docs as Tests](https://www.docsastests.com/docs-as-tests/concept/2024/01/09/intro-docs-as-tests.html).
+Tests written there run at build time. They catch regressions early and keep the documentation up to date with the CLI, in the spirit of [`doctest`](https://docs.python.org/3/library/doctest.html) and [Docs as Tests](https://www.docsastests.com/docs-as-tests/concept/2024/01/09/intro-docs-as-tests.html).
 
 For example, here is a simple CLI:
 
@@ -633,7 +633,7 @@ def yo_cli():
 `````
 ``````
 
-Let's put the code above in a `click:source` directive. And then put the following Python code into a `click:run` block:
+Put the code above in a `click:source` directive, and the following Python code in a `click:run` block:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
@@ -665,9 +665,9 @@ assert "Usage: yo-cli [OPTIONS]" in result.stdout, "Usage line not found in help
 `````
 ``````
 
-See how we collect here the `result` of the `invoke` command, and separately inspect the `exit_code`, `stderr` and `stdout` of with `assert` statements.
+The block collects the `result` of the `invoke` call, then inspects its `exit_code`, `stderr` and `stdout` with `assert` statements.
 
-If for any reason our CLI changes and its help screen is no longer what we expect, the test will fail and the documentation build will break with a message similar to:
+If the CLI changes and its help screen is no longer what the test expects, the build breaks with a message similar to:
 
 ```{code-block} text
 :emphasize-lines: 22
@@ -727,9 +727,9 @@ By default, code blocks produced by the directives are automatically highlighted
 - `click:source`: [`python`](https://pygments.org/docs/lexers/#pygments.lexers.python.PythonLexer)
 - `click:run`: [`ansi-shell-session`](pygments.md#lexer-variants)
 
-If for any reason you want to override these defaults, you can pass the language as an optional parameter to the directive.
+To override these defaults, pass the language as an optional parameter to the directive.
 
-Let's say you have a CLI that is only printing SQL queries in its output:
+Take a CLI that only prints SQL queries:
 
 ```{click:source}
 :emphasize-lines: 6
@@ -1299,7 +1299,7 @@ A live instance of the directive ships at the bottom of the [man-page reference]
 
 Click Extra's Sphinx extension automatically converts [GitHub-flavored Markdown alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) into [MyST admonitions](https://myst-parser.readthedocs.io/en/latest/syntax/admonitions.html).
 
-This allows you to write documentation that renders correctly both on GitHub and in your Sphinx-generated documentation.
+The same source then renders correctly both on GitHub and in the Sphinx-generated documentation.
 
 ```{deprecated} 7.16.0
 `myst-parser` `5.1.0` ships a native [`alert` syntax extension](https://myst-parser.readthedocs.io/en/latest/syntax/optional.html) covering the same five alert types. On that release and above, Click Extra's converter steps aside: add `"alert"` to `myst_enable_extensions` and the rest of this section no longer applies, `colon_fence` included.
@@ -1566,9 +1566,9 @@ click_extra_dedupe_todos = False
 
 ## ANSI shell sessions
 
-Sphinx extensions from Click Extra automaticcaly integrates the [new ANSI-capable lexers for Pygments](pygments.md#ansi-language-lexers).
+The Click Extra Sphinx extension integrates the [ANSI-capable lexers for Pygments](pygments.md#ansi-language-lexers).
 
-This allows you to render colored shell sessions in code blocks by referring to the `ansi-` prefixed lexers:
+They render colored shell sessions in code blocks, under the `ansi-` prefixed lexers:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown

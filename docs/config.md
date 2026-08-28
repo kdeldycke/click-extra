@@ -1,8 +1,6 @@
 # {octicon}`sliders` Configuration files
 
-The structure of the configuration file is automatically [derived from the
-parameters](parameters.md#parameter-structure) of the CLI and their types. There is no need to manually produce a configuration
-data structure to mirror the CLI.
+The structure of the configuration file is [derived from the CLI's parameters](parameters.md#parameter-structure) and their types. You never write a data structure to mirror the CLI.
 
 ```{tip}
 After loading, the resolved file path, the full parsed document, and (when a `config_schema` is set) the typed app section are exposed on `ctx.meta` as `CONF_SOURCE`, `CONF_FULL`, and `TOOL_CONFIG`. With [`cascade=True`](#cascading-configuration-files), `CONF_SOURCES` additionally lists every file that was loaded. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
@@ -56,9 +54,7 @@ def subcommand(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-The code above is saved into a file named `my_cli.py`.
-
-It produces the following help screen:
+The code above is saved in a file named `my_cli.py`. It produces the following help screen:
 
 ```{click:run}
 :emphasize-result-lines: 7-10
@@ -66,7 +62,7 @@ result = invoke(my_cli, args=["--help"])
 assert "--config CONFIG_PATH" in result.stdout
 ```
 
-See in the result above, there is an explicit mention of the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+The help screen names the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
 
 A bare call returns:
 
@@ -81,9 +77,7 @@ assert result.stdout == dedent("""\
 )
 ```
 
-With a simple TOML file in the application folder, we will change the CLI's default output.
-
-Here is what `~/.config/my-cli/config.toml` contains:
+A TOML file in the application folder changes the CLI's defaults. Here is what `~/.config/my-cli/config.toml` contains:
 
 ```{code-block} toml
 :caption: `~/.config/my-cli/config.toml`
@@ -104,16 +98,14 @@ int_param = 3
 random_stuff = "will be ignored"
 ```
 
-In the file above, pay attention to:
+In the file above, note:
 
-- the [default configuration base path](#default-folder), which is OS-dependant (the `~/.config/my-cli/` path here is for Linux) ;
-- the app's folder (`/my-cli/`) which is built from the script's
-  name (`my_cli.py`);
-- the top-level config section (`[my-cli]`), based on the CLI's
-  group ID (`def my_cli()`);
-- all the extra comments, sections and values that will be silently ignored.
+- The [default configuration base path](#default-folder), which is OS-dependent (the `~/.config/my-cli/` path here is for Linux).
+- The app's folder (`/my-cli/`), built from the script's name (`my_cli.py`).
+- The top-level config section (`[my-cli]`), based on the CLI's group ID (`def my_cli()`).
+- The extra comments, sections and values, all silently ignored.
 
-Now we can verify the configuration file is properly read and change the defaults:
+The configuration file is read and changes the defaults:
 
 ```{code-block} shell-session
 $ my-cli subcommand
@@ -277,7 +269,7 @@ All three keys above are ignored. Use `--verbosity WARNING` or higher to see the
 
 ## Precedence
 
-The configuration loader fetch values according the following precedence:
+The loader fetches values in the following precedence order:
 
 ```mermaid
 :align: center
@@ -289,11 +281,11 @@ flowchart TD
     F -->|unset| D["Defaults"]
 ```
 
-The parameter will take the first value set in that chain.
+Each parameter takes the first value set in that chain.
 
 Configuration file values are loaded into Click's `default_map`, so they are reported as {attr}`~click.ParameterSource.DEFAULT_MAP` and sit below environment variables in the hierarchy.
 
-See how inline parameters takes priority on defaults from the previous example:
+Inline parameters take priority over the file's defaults:
 
 ```{code-block} shell-session
 :emphasize-lines: 1, 4
@@ -305,9 +297,9 @@ int_parameter is 555
 
 ## Get configuration values
 
-After gathering all the configuration from the different sources, and assembling them together following the precedence rules above, the configuration values are merged back into the Context's `default_map`. But only the values that are matching the CLI's parameters are kept and passed as defaults. All others are silently ignored.
+The resolved values are merged into the context's `default_map`. Only values matching a CLI parameter are kept and passed as defaults. All others are silently ignored.
 
-You can still access the full configuration by looking into the context's `meta` attribute:
+The full configuration stays accessible in the context's `meta` attribute:
 
 ```{code-block} python
 :emphasize-lines: 9-12
@@ -374,9 +366,7 @@ Pass `strict=True` to reject keys that match no field. A non-dataclass callable 
 
 ## Strictness
 
-As you can see [in the first example above](#standalone-option), all unrecognized content is ignored.
-
-If for any reason you do not want to allow any garbage in configuration files provided by the user, you can use the `strict` argument.
+As [the first example above](#standalone-option) shows, all unrecognized content is ignored. To reject it instead, use the `strict` argument.
 
 Given this `cli.toml` file:
 
@@ -388,7 +378,7 @@ int_param = 3
 random_param = "forbidden"
 ```
 
-The use of `strict=True` parameter in the CLI below:
+With `strict=True` on the CLI below:
 
 ```{code-block} python
 :emphasize-lines: 7
@@ -403,7 +393,7 @@ def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-Will stop the CLI execution on the unrecognized `random_param` value, before the command runs:
+the CLI stops on the unrecognized `random_param` value before the command runs:
 
 ```{code-block} shell-session
 :emphasize-lines: 3
@@ -802,11 +792,11 @@ App-supplied `ConfigValidator`s on the same `extension_path` run alongside the b
 
 ## Excluding parameters
 
-The {py:attr}`excluded_params <click_extra.config.option.ConfigOption.excluded_params>` argument allows you to block some of your CLI options to be loaded from configuration. By setting this argument, you will prevent your CLI users to set these parameters in their configuration file.
+The {py:attr}`excluded_params <click_extra.config.option.ConfigOption.excluded_params>` argument blocks listed CLI options from being loaded from configuration.
 
 It defaults to the value of {py:data}`~click_extra.config.option.DEFAULT_EXCLUDED_PARAMS`, plus the CLI's `--help` option, resolved at runtime.
 
-You can set your own list of option to ignore with the `excluded_params` argument:
+Set your own blocklist with the `excluded_params` argument:
 
 ```{code-block} python
 :emphasize-lines: 7
@@ -822,9 +812,9 @@ def my_cli(int_param):
 ```
 
 ```{hint}
-You need to provide the fully-qualified ID of the option you're looking to block. I.e. the dot-separated ID that is prefixed by the CLI name. That way you can specify an option to ignore at any level, including subcommands.
+Provide the fully-qualified ID of the option to block: the dot-separated ID prefixed by the CLI name. This reaches options at any level, including subcommands.
 
-If you have difficulties identifying your options and their IDs, run your CLI with the [`--params` option](parameters.md#params-option) for introspection.
+To discover options and their IDs, run your CLI with the [`--params` option](parameters.md#params-option).
 ```
 
 On the default `@command` and `@group` decorators, the `excluded_params` keyword extends the blocklist without replacing the whole default parameter list. Unlike the option-level argument above, it is additive: the built-in exclusions (`--config`, `--version`, `--help`, ...) are preserved and your IDs are unioned into them.
@@ -864,7 +854,7 @@ In the example above, only `flag_a` will be loaded from configuration. `flag_b` 
 ```
 
 ```{hint}
-Like `excluded_params`, you need to provide the fully-qualified ID of the option. Run your CLI with the [`--params` option](parameters.md#params-option) to discover parameter IDs.
+Like `excluded_params`, this takes fully-qualified option IDs. Run your CLI with the [`--params` option](parameters.md#params-option) to discover them.
 ```
 
 ### Schema-only configuration
@@ -1413,7 +1403,7 @@ An argfile can only address the options of the CLI's top-level command: the form
 
 ### `pyproject.toml`
 
-The `PYPROJECT_TOML` format reads `[tool.<cli-name>]`{l=toml} sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This is useful for any CLI tool that wants to store its configuration alongside project metadata: not just Python projects. Tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md), which are not Python projects, all use this convention, to play nice with other communities and increase adoption.
+The `PYPROJECT_TOML` format reads `[tool.<cli-name>]`{l=toml} sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This stores the CLI's configuration alongside project metadata. Non-Python tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md) use the same convention.
 
 ```{tip}
 `pyproject.toml` is becoming the standard place to centralize tool configuration for Python projects. Instead of scattering dedicated config files at the root of your repository (`ruff.toml`, `typos.toml`, `mypy.ini`, …), you can consolidate them all under `[tool.*]`{l=toml} sections in a single `pyproject.toml`. This keeps the repository root clean, makes it easy to review and coordinate tool configurations in one place, and reduces the number of files contributors need to discover.
@@ -1509,11 +1499,11 @@ Other tools are following suit:
 
 The configuration file is searched with a wildcard-based glob pattern.
 
-There is multiple stages to locate and parse the configuration file:
+Locating and parsing it happens in three stages:
 
-1. Locate all files matching the search pattern
-2. Match each file against the supported formats, in order, until one is successfully parsed
-3. Use the first successfully parsed file as the configuration source, or layer every one of them with [`cascade=True`](#cascading-configuration-files)
+1. Locate all files matching the search pattern.
+2. Match each file against the supported formats, in order, until one parses.
+3. Use the first successfully parsed file, or layer every one of them with [`cascade=True`](#cascading-configuration-files).
 
 By default, the pattern is `<app_dir>/{*.toml,*.json,*.ini}`, where:
 
@@ -1525,16 +1515,14 @@ Depending on the formats you enabled in your installation of Click Extra, the de
 ```
 
 ```{tip}
-The search process can be hard to follow. To help you see clearly, you can enable debug logging for the `click_extra` logger to see which files are located, matched, parsed, skipped, and finally used.
-
-Or better, just pass the [`--verbosity DEBUG` option](logging.md#colored-verbosity) to your CLI if it is powered by Click Extra.
+If the search process is hard to follow, enable debug logging for the `click_extra` logger to see which files are located, matched, parsed, skipped, and finally used. A Click Extra CLI takes the [`--verbosity DEBUG` option](logging.md#colored-verbosity) directly.
 ```
 
 ### Default folder
 
 The configuration file is searched in the default application path, as defined by [`click.get_app_dir()`](https://click.palletsprojects.com/en/stable/api/#click.get_app_dir).
 
-To mirror the latter, the `@config_option` decorator accept a `roaming` and `force_posix` argument to alter the default path:
+To mirror it, the `@config_option` decorator accepts a `roaming` and a `force_posix` argument that alter the default path:
 
 | Platform          | `roaming` | `force_posix` | Folder                                    |
 | :---------------- | :-------- | :------------ | :---------------------------------------- |
@@ -1545,7 +1533,7 @@ To mirror the latter, the `@config_option` decorator accept a `roaming` and `for
 | Windows (default) | `True`    | -             | `C:\Users\<user>\AppData\Roaming\Foo Bar` |
 | Windows           | `False`   | -             | `C:\Users\<user>\AppData\Local\Foo Bar`   |
 
-Let's change the default in the following example:
+Change the default in the following example:
 
 ```{click:source}
 :emphasize-lines: 6
@@ -1559,7 +1547,7 @@ def cli():
     pass
 ```
 
-See how the default to `--config` option has been changed to `~/.cli/`:
+The `--config` default is now `~/.cli/`:
 
 ```{click:run}
 :emphasize-result-lines: 6
@@ -1571,20 +1559,18 @@ assert f"~/.cli/{{{fp}}}]" in result.stdout.replace("\n                        "
 ```
 
 ```{seealso}
-The default application folder concept has a long and complicated history in the Unix world.
+The default application folder concept has a long history in the Unix world.
 
-The oldest reference I can track is from the [*Where Configurations Live*](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html) chapter from [*The Art of Unix Programming*](https://a.co/d/aC36Ft0).
+The oldest reference I can track is the [*Where Configurations Live*](http://www.catb.org/~esr/writings/taoup/html/ch10s02.html) chapter of [*The Art of Unix Programming*](https://a.co/d/aC36Ft0).
 
-The [*XDG base directory specification*](https://specifications.freedesktop.org/basedir/latest/) is the latest iteration of this tradition on Linux. This long-due guidelines brings [lots of benefits](https://xdgbasedirectoryspecification.com) to the platform. This is what Click Extra is [implementing by default](#default-folder).
+The [*XDG base directory specification*](https://specifications.freedesktop.org/basedir/latest/) is the latest iteration of this tradition on Linux. It brings [lots of benefits](https://xdgbasedirectoryspecification.com) to the platform, and Click Extra [implements it by default](#default-folder).
 
-But there is still a lot of cases for which the XDG doesn't cut it, like on other platforms (macOS, Windows, …) or for legacy applications. That's why Click Extra allows you to customize the way configuration is searched and located.
+XDG does not cover other platforms (macOS, Windows, …) or legacy applications. That is why Click Extra lets you customize where configuration is searched.
 ```
 
 ### Custom pattern
 
-You can also provide a custom path to the configuration file via the `--config` option added to your CLI by the `@config_option` decorator.
-
-To change the default search pattern, pass a customized value to the `default` argument of the decorator:
+To change the default search pattern, pass a custom value to the `default` argument of the decorator:
 
 ```{click:source}
 :emphasize-lines: 6
@@ -1604,7 +1590,7 @@ result = invoke(cli, args=["--help"])
 assert "~/my_special_folder/*.toml]" in result.stdout
 ```
 
-The rules for the pattern are described in the next section.
+The next section describes the pattern rules.
 
 ### Search pattern specifications
 
@@ -1616,7 +1602,7 @@ Patterns provided to `@config_option`'s `default` argument:
 - Have their default case-sensitivity aligned with the local platform:
   - Windows is insensitive to case,
   - Unix and macOS are case-sensitive.
-- Are setup with the following default flags:
+- Are set up with the following default flags:
   | Flag                                                                  | Description                                                        |
   | :-------------------------------------------------------------------- | :----------------------------------------------------------------- |
   | [`GLOBSTAR`](https://facelessuser.github.io/wcmatch/glob/#globstar)   | Recursive directory search via `**` glob notation.                 |
@@ -1653,36 +1639,32 @@ from wcmatch.glob import (
 )
 ```
 
-But because of the way flags works, you have to re-specify all flags you want to keep, including the default ones.
+Flags form a bitmask: re-specify every flag you want to keep, including the defaults.
 
 ```{seealso}
-This is the same pinciple as [file pattern flags](#file-pattern-flags).
+This is the same principle as [file pattern flags](#file-pattern-flags).
 ```
 
 ### Multi-format matching
 
-The default behavior consist in searching for all files matching the default `{*.toml,*.json,*.ini}` pattern. Or more, depending on the [extra dependencies](install.md#extra-dependencies) installed with Click Extra.
+By default, the search covers all files matching the `{*.toml,*.json,*.ini}` pattern, or more depending on the [extra dependencies](install.md#extra-dependencies) installed.
 
-As soon as files are located, they are matched against each supported format, in order, until one is successfully parsed.
+Each located file is matched against each supported format, in order, until one parses. The first successfully parsed file feeds the CLI's default values.
 
-The first successfully parsed file is used to feed the CLI's default values.
+The search only considers matches that:
 
-The search will only consider matches that:
-
-- exists,
+- exist,
 - are a file,
 - are not empty,
-- matches file format patterns,
-- can be parsed successfully, and
+- match a file format pattern,
+- parse successfully, and
 - produce a non-empty data structure.
 
-All others are skipped. And the search continues with the next matching file.
-
-To influence which formats are supported, see the next section.
+All others are skipped, and the search continues with the next file. The next section covers how to change which formats are supported.
 
 ### Format selection
 
-If you want to limit the formats supported by your CLI, you can use the `file_format_patterns` argument to specify which formats are allowed:
+To limit the formats your CLI supports, use the `file_format_patterns` argument:
 
 ```{click:source}
 :emphasize-lines: 7
@@ -1758,7 +1740,7 @@ assert "{*.toml,my_app.conf,settings*.js,*.json}]" in result.stdout
 
 ### Parsing priority
 
-The syntax of `file_format_patterns` argument allows you to specify either a list of formats, a single format, or a mapping of formats to patterns. And we can even have multiple formats share the same pattern:
+The `file_format_patterns` argument takes a list of formats, a single format, or a mapping of formats to patterns. Multiple formats can share the same pattern:
 
 ```{click:source}
 :emphasize-lines: 8-12
@@ -1779,7 +1761,7 @@ def cli(int_param):
     echo(f"int_parameter is {int_param!r}")
 ```
 
-Notice how all formats are merged into the same pattern:
+All formats are merged into the same pattern:
 
 ```{click:run}
 :emphasize-result-lines: 8
@@ -1787,13 +1769,11 @@ result = invoke(cli, args=["--help"])
 assert "{*.toml,config*.js,*.js}" in result.stdout
 ```
 
-What will happen in this case is that the search will try to parse matching files first as `JSON5`, then as `JSON`. The first format that successfully parses the file will be used.
+The search tries to parse matching files first as `JSON5`, then as `JSON`. The first format that parses the file wins.
 
-So a file named `config123.js` containing valid `JSON5` syntax will be parsed as such, even if it also contains valid `JSON` syntax and match the `*.js` pattern. But if for any reason the `JSON5` parsing fails, the search will try to parse it as `JSON` next, which is the second-best match.
+A file named `config123.js` containing valid `JSON5` syntax is parsed as such, even though it also matches the `*.js` pattern as valid `JSON`. If the `JSON5` parsing fails, the search tries `JSON` next.
 
-On the other hand, a file named `settings.js` will only be tried as `JSON`, since it doesn't match the `JSON5` pattern.
-
-This illustrates the flexibility of this approach, but how the order of formats matter.
+A file named `settings.js` is only tried as `JSON`, since it does not match the `JSON5` pattern. The order of formats matters.
 
 ### File pattern flags
 
@@ -1804,13 +1784,13 @@ These flags are defined in [`wcmatch.fnmatch`](https://facelessuser.github.io/wc
 | Flag                                                               | Description                                        |
 | :----------------------------------------------------------------- | :------------------------------------------------- |
 | [`NEGATE`](https://facelessuser.github.io/wcmatch/fnmatch/#negate) | Adds support of `!` negation to define exclusions. |
-| [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split)   | Allow multiple patterns separated by \`            |
+| [`SPLIT`](https://facelessuser.github.io/wcmatch/fnmatch/#split)   | Allow multiple patterns separated by `\|`.        |
 
 ```{important}
-The `SPLIT` flag is always forced, as our multi-pattern design relies on it.
+The `SPLIT` flag is always forced, as the multi-pattern design relies on it.
 ```
 
-If for example, you want to make the matching case-insensitive, you do that by adding the `IGNORECASE` flag:
+To make the matching case-insensitive, add the `IGNORECASE` flag:
 
 ```python
 from wcmatch.fnmatch import NEGATE, SPLIT, IGNORECASE
@@ -1818,17 +1798,15 @@ from wcmatch.fnmatch import NEGATE, SPLIT, IGNORECASE
 @config_option(file_pattern_flags=NEGATE | SPLIT | IGNORECASE)
 ```
 
-But because of the way flags works, you have to re-specify all flags you want to keep, including the default ones.
+Flags form a bitmask: re-specify every flag you want to keep, including the defaults.
 
 ```{seealso}
-This is the same pinciple as [search pattern specifications](#search-pattern-specifications).
+This is the same principle as [search pattern specifications](#search-pattern-specifications).
 ```
 
 ### Excluding files
 
-[Negation is active by default](#file-pattern-flags), which is useful when you want to exclude some files from being considered during the search.
-
-To ignore, for example, all your template files residing alongside real configuration files. Then, to exclude all files starting with `template_` in their name, you can do:
+[Negation is active by default](#file-pattern-flags), which excludes files from the search. To skip every template file starting with `template_`:
 
 ```{code-block} python
 :emphasize-lines: 3
@@ -1841,9 +1819,7 @@ To ignore, for example, all your template files residing alongside real configur
 
 ### Extension-less files
 
-This demonstrate the popular case on Unix-like systems, where the configuration file is an extension-less dotfile in the home directory.
-
-Here is how to set up `@config_option` for a pre-defined `.commandrc` file in YAML:
+On Unix-like systems the configuration file is often an extension-less dotfile in the home directory. Here is how to set up `@config_option` for a pre-defined `.commandrc` file in YAML:
 
 ```{click:source}
 :emphasize-lines: 7-8
@@ -1975,7 +1951,7 @@ $ my-cli --params --columns id,value,source,config_file
 
 ### Remote URL
 
-Remote URL can be passed directly to the `--config` option:
+A remote URL can be passed directly to the `--config` option:
 
 ```{code-block} shell-session
 :emphasize-lines: 1
@@ -2011,14 +1987,14 @@ Each format is served as the media types below:
 The two sources are layered rather than exclusive, so a server advertising a generic `text/plain`, an `application/octet-stream`, or a plain wrong type costs nothing: the formats derived from the URL path are still tried behind it. A media type never widens the format set either, as it is resolved against the formats the option accepts.
 
 ```{warning}
-Glob patterns are not supported for URLs. Unless you want to let your users download the whole internet…
+Glob patterns are not supported for URLs.
 ```
 
 ## Typed configuration schema
 
-By default, `ConfigOption` only feeds configuration values that match CLI options into the context's `default_map`. Any other keys in the configuration file are silently ignored. This works well when the configuration file mirrors the CLI structure, but some applications need access to *additional* configuration that doesn't correspond to any CLI option.
+By default, `ConfigOption` only feeds configuration values that match CLI options into the context's `default_map`. All other keys are silently ignored. This works when the configuration file mirrors the CLI, but some applications need *additional* configuration that matches no CLI option.
 
-The `config_schema` parameter solves this by extracting the app's configuration section, normalizing its keys, and producing a typed object available to all commands via `ctx.meta["click_extra.tool_config"]`.
+The `config_schema` parameter extracts the app's configuration section, normalizes its keys, and produces a typed object available to all commands via `ctx.meta["click_extra.tool_config"]`.
 
 ```{tip}
 [repomatic](https://kdeldycke.github.io/repomatic/) is a production CLI that uses all of the features below: a [48-field Config dataclass](https://kdeldycke.github.io/repomatic/configuration.html) with nested sub-dataclasses, opaque dict fields for GitHub Actions matrices, `config_path` metadata for kebab-case TOML keys, and a schema-only section (`included_params=()`) so unknown keys warn. It can serve as a reference for building complex typed configuration.
@@ -2127,7 +2103,7 @@ If no `config_schema` was set, `get_tool_config()` returns `None`. When a `confi
 
 ### Format-agnostic
 
-The `config_schema` feature works with all configuration formats supported by `ConfigOption`: TOML, YAML, JSON, JSON5, JSONC, Hjson, INI, XML, plist, SQLite and Argfile. The parsed configuration is normalized into a Python dict before the schema is applied, so the same schema works regardless of the source format.
+The `config_schema` feature works with every format `ConfigOption` supports. The parsed configuration is normalized into a Python dict before the schema is applied, so the same schema works regardless of the source format.
 
 For example, the same `AppConfig` dataclass works with YAML:
 

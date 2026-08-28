@@ -6,7 +6,7 @@ Click Extra provides a way to render tables in the terminal.
 The selected `--table-format` value and the `--sort-by` priority list are published on `ctx.meta` as `TABLE_FORMAT` and `SORT_BY`. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
 ```
 
-Here how to use the standalone table rendering option decorator:
+Here is how to use the standalone table rendering option decorator:
 
 ```{click:source}
 :emphasize-lines: 5,14
@@ -26,7 +26,7 @@ def table_command(ctx):
     ctx.print_table(data, headers)
 ```
 
-As you can see above, the selected format feeds the ready-to-use `print_table()` method carried by the context object. The context's `meta` is shared along the command chain, so a `--table-format` declared on a group reaches `ctx.print_table` in every subcommand. On a plain `click` or `cloup` command (whose context lacks the click-extra methods), the option injects an equivalent bound `print_table` attribute instead.
+The selected format feeds the ready-to-use `print_table()` method carried by the context object. The context's `meta` is shared along the command chain, so a `--table-format` declared on a group reaches `ctx.print_table` in every subcommand. On a plain `click` or `cloup` command (whose context lacks the click-extra methods), the option injects an equivalent bound `print_table` attribute instead.
 
 The default help message for this option list all available table formats:
 
