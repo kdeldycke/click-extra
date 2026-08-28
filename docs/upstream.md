@@ -145,6 +145,23 @@ Also carried by every image Rich exports, and dropped here:
 - A run's inter-column padding is written inside its `<text>` element, so a column only lands correctly where the renderer both honors `textLength` and resolves the font: `librsvg`, and through it `rsvg-convert` and ImageMagick, does neither ([`rich#2153`](https://github.com/Textualize/rich/issues/2153), [`rich#3034`](https://github.com/Textualize/rich/issues/3034)). `render_svg` starts each run on its own column.
 - Every line ends with a `<text>` element containing only a newline, drawing nothing. Removing those, the per-line clip paths and the webfont rules together took this documentation's 21 committed captures from 451 KB to 247 KB.
 
+### Source code as SVG
+
+click-extra's [`snippet` command](snippets.md) highlights source code with Pygments, then draws it with the [same renderer the captures above use](screenshots.md) rather than with Pygments' own `SvgFormatter`. That formatter has called itself "still experimental" in its own docstring since version 0.9, released in 2007, and its last functional change was [`pygments@3097984`](https://github.com/pygments/pygments/commit/3097984) in December 2019; every commit to the module since is a copyright bump, a lint fix or a `pyupgrade` pass. Three gaps make its output unusable on the surfaces a snippet is meant for, and none of the three is reported upstream:
+
+- It never reads `style.background_color`, so it paints no background at all, and a dark style draws near-white text on whatever surface the viewer supplies. The same defect *is* reported against a sibling formatter and acknowledged as a bug: [`pygments#1208` - RTF formatter does not set background color from style](https://github.com/pygments/pygments/issues/1208), open since 2019. Of the formatters Pygments ships, only `html` and `img` read the value at all.
+- Its root element carries no `viewBox`, no `width` and no `height`, so the image states no size for a page to embed it at.
+- It emits no `textLength` and opens every line at `x="0"`, so nothing pins the character grid and the alignment holds only where the renderer resolves the exact font. This is the same failure `render_svg` was written around for terminal captures.
+
+Two further gaps the command answers for its own output:
+
+- [`pygments#894` - Add line highlighting to latex formatter](https://github.com/pygments/pygments/issues/894), open since 2019: `hl_lines` reaches the `html`, `img` and `rtf` formatters and no others. `snippet` bands emphasized lines in the picture, and in terminal output as the row's own background.
+- [`pygments#1430` - Terminal256 - support "reverse background" lightbg/darkbg](https://github.com/pygments/pygments/issues/1430), open since 2020: a terminal formatter cannot be told whether it draws on a light or a dark terminal, so colors picked for one are wrong on the other. `snippet` takes `--background` and resolves the syntax style and the window palette together against it.
+
+### Screenshots in a project's own documentation
+
+- [`click#3081` - Add Screenshot workflow](https://github.com/pallets/click/issues/3081): open since 2025, asking for a way to picture an annotated help screen in Click's own documentation. Four requirements settled in the thread: it runs locally for doc generation, it runs in CI, it adds only pip-installable dependencies (no ImageMagick, no external service), and the image is not blurry. The [`screenshot` command](screenshots.md) and the [`:screenshot:` directive option](sphinx.md) meet all four, drawing vector SVG from a live invocation at build time. The labelled boxes the report also asks for are not covered: click-extra bands whole rows and draws no callouts. Click settled for hand-annotating one screenshot in [`click#3472`](https://github.com/pallets/click/pull/3472), merged in 2026, and the general request stays open.
+
 ### Themes and palettes
 
 click-extra ships [seven built-in themes](theme.md#built-in-themes) (`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized-dark`, plus a monochrome `manpage`) and covers every surface an end user reaches for: the [`--theme` flag](theme.md#the-theme-option), a [machine-wide `CLICK_EXTRA_THEME` variable](theme.md#environment-variables) next to the per-CLI `<CLI>_THEME`, and — alone in the Click ecosystem — [new themes and overrides declared in the CLI's own `--config` file](theme.md#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`). Click itself has no theme system (formatter-level customization is still WIP upstream), and the competing rich help layers stop at Python and environment variables:
