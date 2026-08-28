@@ -415,7 +415,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "boltons", specifier = ">=20" },
-    { name = "click", specifier = ">=8.3.1" },
+    { name = "click", specifier = ">=8.4.1" },
     { name = "click-extra", extras = ["carapace", "hjson", "json5", "jsonc", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"], marker = "extra == 'all'" },
     { name = "cloup", specifier = ">=3.0.7" },
     { name = "deepmerge", specifier = ">=1.0.1" },

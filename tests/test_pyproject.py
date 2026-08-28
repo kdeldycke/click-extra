@@ -41,16 +41,14 @@ else:
 PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
 """Path to the project's ``pyproject.toml``, relative to this test file."""
 
-UNRUNNABLE_RELEASES = frozenset({"8.4.0"})
+UNRUNNABLE_RELEASES: frozenset[str] = frozenset()
 """Authorized Click releases the matrix deliberately leaves untested.
 
-``8.4.0`` ships a ``CliRunner`` that closes stdout on any command reaching
-``echo_via_pager``, then raises ``ValueError: I/O operation on closed file``
-from its own ``flush()``. It reproduces against plain Click with no click-extra
-involved, and is gone again in ``8.4.1``, so nothing downstream can work around
-it and a cell on that release would only ever report the upstream bug. The
-release stays authorized by the ``click`` specifier, and the pinned ``8.3.3``
-and ``8.4.1`` rows bracket it.
+An entry belongs here only when the suite physically cannot run on that release
+and no downstream code can work around the cause, so a matrix cell would report
+an upstream bug and nothing else. It is empty today: ``8.4.0`` was the last
+entry, and raising the floor to ``8.4.1`` took the release out of the authorized
+set altogether.
 
 Keep this as small as it can be: every entry is a hole in the release-by-release
 coverage the tests below exist to guarantee.

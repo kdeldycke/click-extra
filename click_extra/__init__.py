@@ -57,17 +57,6 @@ from click import *  # type: ignore[assignment]
 from click._utils import UNSET
 from click.core import ParameterSource
 
-# NoSuchCommand (PR pallets/click#3228) and get_pager_file (PR pallets/click#1572)
-# are Click 8.4.0 additions, absent on the Click 8.3.x releases click-extra still
-# supports. Import them only when present so click-extra mirrors Click's own public
-# surface; the matching __all__ entries are trimmed below when they are missing.
-try:
-    from click import NoSuchCommand, get_pager_file
-
-    _HAS_CLICK_8_4_EXPORTS = True
-except ImportError:  # Click < 8.4.0.
-    _HAS_CLICK_8_4_EXPORTS = False
-
 # custom_version_option (PR pallets/click#3581) is a Click 8.5.0 addition, absent
 # on the earlier releases click-extra still supports. Import it only when present
 # so click-extra mirrors Click's own public surface; the matching __all__ entry is
@@ -569,16 +558,9 @@ Sorting is enforced by `ruff` via
 ```
 """
 
-# NoSuchCommand and get_pager_file are only re-exported on Click >= 8.4.0 (see the
-# guarded import above). Drop them from the public API on older Click so `__all__`
-# matches the names actually bound in this module.
-if not _HAS_CLICK_8_4_EXPORTS:
-    __all__.remove("NoSuchCommand")
-    __all__.remove("get_pager_file")
-del _HAS_CLICK_8_4_EXPORTS
-
 # custom_version_option is only re-exported on Click >= 8.5.0 (see the guarded
-# import above). Same trimming, for the same reason.
+# import above). Drop it from the public API on older Click so `__all__` matches
+# the names actually bound in this module.
 if not _HAS_CLICK_8_5_EXPORTS:
     __all__.remove("custom_version_option")
 del _HAS_CLICK_8_5_EXPORTS

@@ -1938,7 +1938,6 @@ class NoConfigOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        type=UNPROCESSED,
         help=_(
             "Ignore all configuration files and only use command line parameters and "
             "environment variables.",
@@ -1952,10 +1951,8 @@ class NoConfigOption(ExtraOption):
         """`flag_value=NO_CONFIG` is the `Sentinel` enum member that
         signals "skip configuration loading" to {class}`ConfigOption`. Click
         `8.4.0` (PR [pallets/click#3363](https://github.com/pallets/click/pull/3363)) auto-detects
-        `type=UNPROCESSED` for non-basic `flag_value` types, but click-extra
-        still supports Click `8.3.x` where that auto-detection is absent, so the
-        `type=UNPROCESSED` override is kept explicit to let the sentinel pass
-        through `Option` unchanged on every supported Click.
+        `type=UNPROCESSED` for non-basic `flag_value` types, so the sentinel
+        passes through `Option` unchanged without an explicit `type` override.
 
         ```{seealso}
         An alternative implementation of this class would be to create a custom
@@ -1970,7 +1967,6 @@ class NoConfigOption(ExtraOption):
 
         super().__init__(
             param_decls=param_decls,
-            type=type,
             help=help,
             is_flag=is_flag,
             flag_value=flag_value,

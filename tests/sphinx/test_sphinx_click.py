@@ -35,7 +35,6 @@ from click_extra.screenshot import (
 )
 from click_extra.snippet import DEFAULT_SYNTAX_STYLES
 from click_extra.sphinx.click import (
-    _CLIRUNNER_HAS_CAPTURE,
     SCREENSHOT_MARKER_END,
     SCREENSHOT_MARKER_START,
     ClickRunner,
@@ -1151,10 +1150,6 @@ def test_clickrunner_forces_color(monkeypatch):
     assert os.environ["NO_COLOR"] == "1"
 
 
-@pytest.mark.skipif(
-    not _CLIRUNNER_HAS_CAPTURE,
-    reason="Click < 8.4 has no capture mode for ClickRunner to select.",
-)
 @pytest.mark.parametrize(
     ("capture", "renders"),
     (

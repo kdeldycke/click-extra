@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Breaking:** Raise the Click floor from `8.3.1` to `8.4.1`, dropping the compatibility shims the `8.3.x` releases needed.
 - **Breaking:** Rename every camel-cased spinner preset to kebab case, so `boxBounce` is now `box-bounce`.
 - **Breaking:** Rename the `solarized_dark` theme to `solarized-dark`.
 - **Breaking:** Remove the `timeTravel` spinner preset, which is `SPINNERS["clock"]` with `reverse=True`.

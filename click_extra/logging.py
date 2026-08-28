@@ -540,9 +540,7 @@ class _VerbosityOption(ExtraOption):
                     value, _ = option.consume_value(ctx, opts)
                     context.set(ctx, key, value)
 
-        return super().handle_parse_result(  # type: ignore[no-any-return]
-            ctx, opts, args
-        )
+        return super().handle_parse_result(ctx, opts, args)
 
     def get_base_level(self, ctx: click.Context) -> LogLevel:
         """Returns the base level the `-v`/`-q` counter is anchored at.

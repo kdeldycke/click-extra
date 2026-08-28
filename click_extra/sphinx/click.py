@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import ast
 import contextlib
-import inspect
 import re
 import shlex
 import subprocess
@@ -248,14 +247,6 @@ def _myst_content_offset_inflation(directive: SphinxDirective) -> int:
     return 0
 
 
-_CLIRUNNER_HAS_CAPTURE = "capture" in inspect.signature(CliRunner.__init__).parameters
-"""Whether Click's {class}`~click.testing.CliRunner` accepts the `capture` keyword.
-
-Added in Click 8.4 to select the stream-capture strategy (`"sys"` or `"fd"`).
-Absent in earlier releases, where the runner's capture behavior is fixed.
-"""
-
-
 class TerminatedEchoingStdin(EchoingStdin):
     """Like `click.testing.EchoingStdin` but adds a visible
     `^D` in place of the EOT character (`\x04`).
@@ -360,17 +351,12 @@ class ClickRunner(CliRunner):
         # the build. It is the default (the click_extra_run_capture conf.py value
         # selects it), safe at doc-build time unlike under the pytest stream
         # duplication that got it reverted as a Click default (pallets/click#3391).
-        # Click < 8.4 lacks the parameter and needs none (8.3.3+ exposed a fileno by
-        # default; < 8.3.3 never did), so omitting it is correct.
         # Windows does not support fd-backed streams (no Unix file descriptors), so
         # fall back to "sys" when the caller has not pinned a mode explicitly.
-        if _CLIRUNNER_HAS_CAPTURE:
-            default_capture: Literal["sys", "fd"] = (
-                "sys" if sys.platform == "win32" else "fd"
-            )
-            super().__init__(echo_stdin=True, capture=capture or default_capture)
-        else:
-            super().__init__(echo_stdin=True)
+        default_capture: Literal["sys", "fd"] = (
+            "sys" if sys.platform == "win32" else "fd"
+        )
+        super().__init__(echo_stdin=True, capture=capture or default_capture)
         self.namespace = {"click": click, "__file__": "dummy.py"}
 
     @contextlib.contextmanager

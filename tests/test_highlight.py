@@ -19,7 +19,6 @@ from __future__ import annotations
 import os
 import re
 from enum import Enum, IntEnum, auto
-from importlib.metadata import version as pkg_version
 from textwrap import dedent
 
 import click
@@ -27,7 +26,6 @@ import cloup
 import pytest
 from boltons.strutils import strip_ansi
 from click.testing import CliRunner
-from packaging.version import Version
 
 from click_extra import (
     Color,
@@ -59,9 +57,8 @@ theme = get_default_theme()
 from click_extra.types import ChoiceSource, EnumChoice
 
 # Click 8.4.0 (PR pallets/click#3423) inserts a space between an option's help text
-# and the "(DEPRECATED)" label it injects. The Click 8.3.x releases click-extra also
-# supports append the label without a separating space.
-DEPRECATED_LABEL_SEP = " " if Version(pkg_version("click")) >= Version("8.4.0") else ""
+# and the "(DEPRECATED)" label it injects.
+DEPRECATED_LABEL_SEP = " "
 
 
 @pytest.mark.once
