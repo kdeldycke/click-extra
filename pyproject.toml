@@ -512,9 +512,9 @@ testpaths = [ "tests" ]
 xfail_strict = true
 
 [tool.coverage]
+run.source = [ "click_extra" ]
 # https://coverage.readthedocs.io/en/latest/config.html
 run.branch = true
-run.source = [ "click_extra" ]
 # Coverage ratchet replacing the Codecov gate dropped in repomatic 7.8.0. Only
 # the matrix `tests` job measures coverage (the `--cov` flags live in that
 # workflow step, not in `[tool.pytest] addopts`), so this floor is the one it
