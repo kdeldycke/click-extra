@@ -135,3 +135,23 @@ body {
   --font-stack--monospace: "JuliaMono Symbols", "SFMono-Regular", Menlo, Consolas,
     Monaco, "Liberation Mono", "Lucida Console", monospace;
 }
+
+/* Hold a terminal capture's rows in line inside a <pre>.
+ *
+ * Furo sets `line-height: 1.5` on a code block. That is right for reading code
+ * and wrong for a capture, which is a character grid: a half block is drawn to
+ * fill its own cell exactly, so any leading between two rows shows as a stripe
+ * of page through the art. The `--version` screen's mark comes out sliced.
+ *
+ * JuliaMono spans its blocks from its descender to its ascender, -0.225 em to
+ * +0.95 em, so 1.175 em of line advance tiles them with no seam and none to
+ * spare. Box-drawing characters are unaffected either way, being drawn 1.7 em
+ * tall: they overlap their neighbours at any line height a reader would want,
+ * and the overlap is invisible.
+ *
+ * Scoped to the `ansi-*` lexers, which are the blocks click-extra renders from
+ * live CLI output. Hand-written shell examples keep Furo's leading.
+ */
+article[role="main"] div[class*="highlight-ansi-"] pre {
+  line-height: 1.175;
+}
