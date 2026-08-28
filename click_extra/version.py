@@ -55,6 +55,7 @@ from boltons.strutils import strip_ansi
 from click import echo, get_current_context
 from extra_platforms import current_architecture, current_platform
 
+from ._utils import memoize_enums
 from .color import invocation_color, is_a_tty
 from .context import ACCESSIBLE, _LazyMetaDict, get
 from .parameters import ExtraOption
@@ -73,9 +74,23 @@ CLI_ECOSYSTEM_PACKAGES = frozenset({"functools", "click_extra", "cloup", "click"
 `functools` shows up as the intermediate frames a `@cached_property` adds; the
 other three are the Click ecosystem itself. A frame belonging to one of them is
 plumbing between the `--version` callback and the CLI that declared it, so
-{meth}`VersionOption.cli_frame` walks past it, and
-{meth}`VersionOption.command_module` treats landing on one as a failed walk.
+{meth}`VersionOption.cli_frame` walks past it, and both
+{attr}`VersionOption.module` and {attr}`VersionOption.module_version` read
+landing on one as a failed walk. A module {func}`is_main_module` recognizes is
+the exception: it is an entry point, whichever package it sits under.
 """
+
+
+def is_main_module(module_name: str) -> bool:
+    """Is *module_name* a `__main__` entry point, of a package or of a script?
+
+    An entry point is where the interpreter started: `python -m package`, a
+    console script, or a compiled binary. It is never plumbing a stack walk
+    lands on after running out of user frames, so it is exempt from
+    {data}`CLI_ECOSYSTEM_PACKAGES` even when it sits under one of those
+    packages, as `click_extra.__main__` does in Click Extra's own binary.
+    """
+    return module_name == "__main__" or module_name.endswith(".__main__")
 
 
 def distribution_of(package_name: str | None) -> str | None:
@@ -942,10 +957,16 @@ class VersionOption(ExtraOption):
         reconstruct, and a copy is a new option anyway, free to resolve its
         fields against its own invocations. Only the configuration state
         (message template, styles, screen, field overrides) is carried over.
+
+        Click's `UNSET` sentinel rides in `__dict__` as the option's unset
+        default, so the memo is seeded with the enum members before the copy:
+        see {func}`~click_extra._utils.memoize_enums` for why Python 3.10
+        cannot copy one on its own.
         """
         cls = type(self)
         clone = cls.__new__(cls)
         memo[id(self)] = clone
+        memoize_enums(self, memo)
         for key, value in self.__dict__.items():
             if isinstance(getattr(cls, key, None), cached_property):
                 continue
@@ -1089,8 +1110,18 @@ class VersionOption(ExtraOption):
         # relies on. Only a runner under a subpackage that resolves to nothing
         # (`click_extra.sphinx`, which the `click:run` directive invokes through)
         # reaches the fallback.
-        if module.__name__.split(".", 1)[0] in CLI_ECOSYSTEM_PACKAGES and (
-            distribution_of(module.__package__) is None
+        #
+        # An entry point is excluded outright, because the distribution test
+        # cannot see it: a Nuitka binary ships no metadata at all, so
+        # `distribution_of()` answers `None` for the CLI's own package too.
+        # Click Extra's own binary starts in `click_extra.__main__`, and trading
+        # that for the callback's module costs it the {func}`is_main_module`
+        # exemption `module_version` needs to read the pre-baked `__version__`
+        # off the parent package.
+        if (
+            not is_main_module(module.__name__)
+            and module.__name__.split(".", 1)[0] in CLI_ECOSYSTEM_PACKAGES
+            and distribution_of(module.__package__) is None
         ):
             ctx = click.get_current_context(silent=True)
             if ctx is not None:
@@ -1178,16 +1209,12 @@ class VersionOption(ExtraOption):
         # the user's module, producing false-positive lookups. `__main__`
         # modules are always entry points (never CliRunner artifacts), so
         # they are exempt from the exclusion.
-        is_main_entry = self.module_name == "__main__" or self.module_name.endswith(
-            ".__main__"
-        )
         if (
             version is None
             and self.package_name
             and (
-                is_main_entry
-                or self.module_name.split(".")[0]
-                not in ("click", "click_extra", "cloup")
+                is_main_module(self.module_name)
+                or self.module_name.split(".", 1)[0] not in CLI_ECOSYSTEM_PACKAGES
             )
         ):
             parent = sys.modules.get(self.package_name)

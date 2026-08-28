@@ -25,6 +25,7 @@ cycle.
 from __future__ import annotations
 
 from contextlib import contextmanager
+from enum import Enum
 from importlib import metadata
 
 TYPE_CHECKING = False
@@ -46,6 +47,34 @@ def generator_tag() -> str:
         return f"Click Extra {metadata.version('click-extra')}"
     except metadata.PackageNotFoundError:
         return "Click Extra"
+
+
+def memoize_enums(obj: object, memo: dict[int, Any]) -> None:
+    """Seed a `copy.deepcopy` *memo* with the enum members `obj`'s attributes hold.
+
+    Python 3.10's `Enum` implements no `__deepcopy__`, so `copy.deepcopy`
+    rebuilds a member by calling its class with a deep copy of the member's
+    *value*. Click and Click Extra both follow
+    [PEP 661](https://peps.python.org/pep-0661/) and back their sentinels with
+    bare `object()` values, which copy into a different object no lookup can
+    resolve, raising `ValueError: <object object> is not a valid Sentinel`.
+    Since Click 8.3 one of those sentinels sits on every parameter as its unset
+    default, so copying any parameter at all crashes there.
+
+    A memo entry mapping a member's `id()` to the member itself makes
+    `copy.deepcopy` hand it back untouched, which is what Python 3.11 and later
+    do natively. Every member of a class found on `obj` is seeded, not just the
+    one held, so a sibling sentinel nested deeper in the same copy is covered
+    too.
+
+    ```{caution}
+    Seeding is required on every entry point into a copy: a `__deepcopy__`
+    reached with an empty memo has to do it for itself.
+    ```
+    """
+    for value in vars(obj).values():
+        if isinstance(value, Enum):
+            memo.update({id(member): member for member in type(value)})
 
 
 def missing_extra_message(

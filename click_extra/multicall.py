@@ -89,11 +89,11 @@ import logging
 import os
 import sys
 from collections.abc import Sequence
-from enum import Enum
 from typing import cast
 
 import click
 
+from ._utils import memoize_enums
 from .commands import ColorizedCommand, Command, Group, HelpCommand
 from .context import Context
 
@@ -419,23 +419,12 @@ class MulticallGroup(Group):
 def _deepcopy_params(params: list[click.Parameter]) -> list[click.Parameter]:
     """Deep-copy *params*, handing back the enum sentinels they carry untouched.
 
-    Python 3.10's `Enum` implements no `__deepcopy__`, so `copy.deepcopy` rebuilds
-    a member by calling its class with a deep copy of the member's *value*. Click
-    and Click Extra both follow
-    [PEP 661](https://peps.python.org/pep-0661/) and back their sentinels with
-    bare `object()` values, which copy into a different object no lookup can
-    resolve, raising `ValueError: <object object> is not a valid Sentinel`. Since
-    Click 8.3 one of those sentinels sits on every parameter as its unset default,
-    so copying any parameter at all crashes there.
-
-    Pre-seeding the memo with each sentinel makes `copy.deepcopy` return them as
-    they are, which is what Python 3.11 and later do natively.
+    See {func}`~click_extra._utils.memoize_enums` for why a parameter cannot be
+    deep-copied as it is on Python 3.10.
     """
     memo: dict[int, Any] = {}
     for param in params:
-        for value in vars(param).values():
-            if isinstance(value, Enum):
-                memo.update({id(member): member for member in type(value)})
+        memoize_enums(param, memo)
     return copy.deepcopy(params, memo)
 
 

@@ -25,6 +25,7 @@ import re
 import shutil
 import subprocess
 import sys
+import types
 import warnings
 from functools import partial
 from textwrap import dedent
@@ -68,6 +69,7 @@ from click_extra.version import (
     colors_reach_output,
     default_facts,
     find_archival_file,
+    is_main_module,
     read_archival,
     resolve_build_time,
     resolve_git_dirty,
@@ -382,8 +384,6 @@ def test_module_version_parent_package_fallback(monkeypatch):
     Simulates the Nuitka use-case: a CLI whose module is ``myapp.__main__``
     (no ``__version__``), with the parent package ``myapp`` providing it.
     """
-    import types
-
     # Create a fake parent package with __version__.
     fake_parent = types.ModuleType("myapp")
     fake_parent.__version__ = "1.2.3"  # type: ignore[attr-defined]
@@ -405,6 +405,62 @@ def test_module_version_parent_package_fallback(monkeypatch):
     )
 
     assert opt.module_version == "1.2.3"
+
+
+@pytest.mark.parametrize(
+    ("module_name", "expected"),
+    (
+        ("__main__", True),
+        ("myapp.__main__", True),
+        ("click_extra.__main__", True),
+        ("myapp", False),
+        ("myapp.__main__.nested", False),
+        ("myapp.main", False),
+        ("", False),
+    ),
+)
+def test_is_main_module(module_name, expected):
+    assert is_main_module(module_name) is expected
+
+
+def test_main_entry_point_survives_absent_distribution_metadata(monkeypatch):
+    """A compiled binary reads its version off the package it started in.
+
+    A Nuitka standalone binary ships no distribution metadata, so
+    ``distribution_of()`` answers ``None`` for the CLI's own package just as it
+    does for ecosystem plumbing, and the walk lands on ``click_extra.__main__``.
+    That entry point must survive: traded for the root command's callback
+    module, it loses the ``__main__`` exemption and ``--version`` renders
+    nothing at all.
+    """
+    fake_main = types.ModuleType("click_extra.__main__")
+    fake_main.__package__ = "click_extra"
+
+    @click.command
+    def forecast():
+        """A CLI whose callback sits outside the binary's entry point."""
+
+    # Nothing at all resolves to an installed distribution.
+    monkeypatch.setattr("click_extra.version.distribution_of", lambda name: None)
+
+    # Stand in for the frame ``cli_frame()`` falls back to, and map it (and only
+    # it) to the entry point module.
+    frame = object()
+    real_getmodule = inspect.getmodule
+    monkeypatch.setattr(VersionOption, "cli_frame", staticmethod(lambda: frame))
+    monkeypatch.setattr(
+        inspect,
+        "getmodule",
+        lambda obj, *args: fake_main if obj is frame else real_getmodule(obj, *args),
+    )
+    monkeypatch.setitem(sys.modules, "click_extra.__main__", fake_main)
+
+    option = VersionOption(["--version"])
+    with click.Context(forecast):
+        assert option.module is fake_main
+        # The pre-baked ``__version__`` of the parent package, which is the only
+        # place a metadata-less binary can read a version from.
+        assert option.module_version == __version__
 
 
 def test_package_version_resolves_import_name_to_distribution(monkeypatch):
@@ -988,8 +1044,6 @@ def test_discover_deduplicates(tmp_path, monkeypatch):
 
 def test_prebaked_git_branch():
     """A pre-baked ``__git_branch__`` dunder is used over subprocess."""
-    import types
-
     mod = types.ModuleType("fake_cli")
     mod.__git_branch__ = "release/1.0"  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
@@ -1003,8 +1057,6 @@ def test_prebaked_git_branch():
 
 def test_prebaked_git_long_hash():
     """A pre-baked ``__git_long_hash__`` dunder is used over subprocess."""
-    import types
-
     mod = types.ModuleType("fake_cli")
     mod.__git_long_hash__ = "abc123def456" * 3  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
@@ -1017,8 +1069,6 @@ def test_prebaked_git_long_hash():
 
 def test_prebaked_git_tag_sha():
     """A pre-baked ``__git_tag_sha__`` dunder is resolved."""
-    import types
-
     sha = "072c7bbbcdd607011c6ca4fb9d5098532aee2dea"
     mod = types.ModuleType("fake_cli")
     mod.__git_tag_sha__ = sha  # type: ignore[attr-defined]
@@ -1032,8 +1082,6 @@ def test_prebaked_git_tag_sha():
 
 def test_prebaked_empty_dunder_ignored():
     """An empty dunder is not treated as a pre-baked value."""
-    import types
-
     mod = types.ModuleType("fake_cli")
     mod.__git_branch__ = ""  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
@@ -1048,8 +1096,6 @@ def test_prebaked_empty_dunder_ignored():
 
 def test_prebaked_non_string_ignored():
     """A non-string dunder is not treated as a pre-baked value."""
-    import types
-
     mod = types.ModuleType("fake_cli")
     mod.__git_branch__ = 42  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
@@ -1062,8 +1108,6 @@ def test_prebaked_non_string_ignored():
 
 def test_prebaked_git_distance():
     """A pre-baked ``__git_distance__`` dunder is used over subprocess."""
-    import types
-
     mod = types.ModuleType("fake_cli")
     mod.__git_distance__ = "42"  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
@@ -1076,8 +1120,6 @@ def test_prebaked_git_distance():
 
 def test_prebaked_git_dirty():
     """A pre-baked ``__git_dirty__`` dunder is used over subprocess."""
-    import types
-
     mod = types.ModuleType("fake_cli")
     mod.__git_dirty__ = "dirty"  # type: ignore[attr-defined]
     mod.__file__ = "/fake/path.py"
@@ -1203,8 +1245,6 @@ def test_find_archival_file_absent(tmp_path):
 
 def test_archival_resolves_git_fields(tmp_path):
     """Git fields resolve from .git_archival.json when there is no live git."""
-    import types
-
     (tmp_path / ".git_archival.json").write_text(
         json.dumps(SUBSTITUTED_ARCHIVAL), encoding="utf-8"
     )

@@ -404,7 +404,7 @@ output-prefer-rule-codes = true
 # suppresses either, since the checker never sees the whole word. Any acronym
 # carrying a lowercase suffix needs its own entry here.
 default.extend-identifiers = { Github = "GitHub", IOS = "iOS", Javascript = "JavaScript", MacOS = "macOS", PATCHed = "PATCHed", PNGs = "PNGs", PyPi = "PyPI", Typescript = "TypeScript" }
-# False positives: "astroid" is a Python AST library (not "asteroid"); "oject" appears when "pyproject.toml" is split across line breaks in CLI help output; "sur" is macOS 11 Big Sur and Homebrew's big_sur bottle tag (not "sure").
+# False positives: "astroid" is the AST-parsing library sphinx-autodoc2 depends on (not "asteroid"); "oject" appears when "pyproject.toml" is split across line breaks in CLI help output; "sur" is macOS 11 Big Sur and Homebrew's big_sur bottle tag (not "sure").
 default.extend-words = { astroid = "astroid", oject = "oject", sur = "sur" }
 # Skip content between <!-- typos:off --> and <!-- typos:on --> markers.
 default.extend-ignore-re = [
@@ -460,13 +460,6 @@ default.extend-ignore-identifiers-re = [
   # 112 │ ...all keyword arguments match a known field, so typos like `optoin=...` raise immediately.
   #     ╰╴                                                             ━━━━━━
   "optoin",
-  # astroid is the AST-parsing library sphinx-autodoc2 depends on, not a typo.
-  # error: `astroid` should be `asteroid`
-  #     ╭▸ ./docs/myst-docstrings.md:201:389
-  #     │
-  # 201 │ ...vember 2023; incompatible with Sphinx 8+, docutils 0.21+, and astroid 4+).
-  #     ╰╴                                                                ━━━━━━━
-  "astroid",
 ]
 # Skip the content of SVG files. A terminal capture renders each run of
 # same-styled characters as one <text> element, so a word cut at a run boundary
@@ -521,7 +514,7 @@ run.branch = true
 # workflow step, not in `[tool.pytest] addopts`), so this floor is the one it
 # has to clear, and a local `uv run pytest` stays coverage-free and ungated.
 #
-# Provisional: a single local run measures 75.81%, but the matrix spans 25
+# Provisional: a single local run measures 77.65%, but the matrix spans 22
 # cells whose platform-conditional (`is_unix()`/`is_windows()`) and
 # Click-version-conditional branches each cover a different slice, and their
 # real spread is unmeasured. Hence ~6 points of margin rather than the ~1.5
@@ -722,9 +715,12 @@ nuitka.nofollow-imports = [ "tkinter" ]
 #     below. 10 jobs.
 #   - {8.4.1, 8.4.2} click × released cloup: ubuntu-26.04-arm × Python 3.10
 #     (the floor corner), covering the declared >=8.4.1 range. 2 jobs.
-#     ("Python" prefixes the version on purpose: an indented comment opening on
-#     a `N.N` literal reads as a Markdown ordered-list marker and panics
-#     pyproject-fmt 2.27.0, which then formats nothing at all.)
+#     ("Python" prefixes the version on purpose: a comment whose text is
+#     indented and then opens on a `N.N` literal reads as a Markdown
+#     ordered-list marker and panics pyproject-fmt, which then formats nothing
+#     at all. The indentation that counts sits after the `#`, so a bullet
+#     continuation line like this one is exactly the shape at risk. Still
+#     unfixed as of the version repomatic ships.)
 #   - {stable, main} click × released cloup: ubuntu-26.04-arm × {3.14, 3.14t}.
 #     4 jobs, unstable.
 #   - {released, stable, main} click × master cloup: ubuntu-26.04-arm ×
@@ -732,8 +728,8 @@ nuitka.nofollow-imports = [ "tkinter" ]
 # The Click dev branches are probes, not gates: they move under us, and a help
 # screen they reshape cannot be pictured by a committed capture shot against
 # the released Click the project ships with. Click 8.5.0 shipped exactly that,
-# giving positional arguments a section of their own. Left gating, every such upstream change reddens the whole
-# workflow until someone chases it.
+# giving positional arguments a section of their own. Left gating, every such
+# upstream change reddens the whole workflow until someone chases it.
 # The last three slices (12 jobs) are the `full-include` rows below.
 # Runner selection favors measured speed over architecture: on Linux the ARM
 # runner beat its x86 twin by ~2x back when the axis carried ubuntu-24.04-arm

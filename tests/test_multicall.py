@@ -25,6 +25,7 @@ from enum import Enum
 import pytest
 
 from click_extra import (
+    UNSET,
     argument,
     command,
     context,
@@ -398,3 +399,28 @@ def test_version_option_deepcopy_drops_cache():
     assert "package_version" not in clone.__dict__
     # Configuration state survives the copy.
     assert clone.message == version_option.message
+
+
+def test_deepcopy_survives_the_python_310_enum_gap(monkeypatch):
+    """Both copy entry points hold on an interpreter with no `Enum` copy hooks.
+
+    Python 3.11 gave `Enum` a `__deepcopy__` handing the member back, which
+    hides the whole problem: on 3.10 `copy.deepcopy` rebuilds a member from a
+    deep copy of its *value* instead, and the bare `object()` behind Click's
+    `UNSET` never survives that. Stripping the two hooks pins the guard on
+    every interpreter rather than only on the floor, where CI alone would
+    catch it.
+    """
+    monkeypatch.delattr(Enum, "__deepcopy__", raising=False)
+    monkeypatch.delattr(Enum, "__copy__", raising=False)
+
+    kitchen = make_kitchen()
+    version_option = next(p for p in kitchen.params if isinstance(p, VersionOption))
+    # The sentinel really is in `__dict__`: without it this test guards nothing.
+    assert any(value is UNSET for value in vars(version_option).values())
+
+    # A bare copy reaches `VersionOption.__deepcopy__` with an empty memo, so it
+    # has to seed one for itself.
+    assert copy.deepcopy(version_option) is not version_option
+    # The multicall path seeds the memo before the copy starts.
+    assert len(_deepcopy_params(kitchen.params)) == len(kitchen.params)

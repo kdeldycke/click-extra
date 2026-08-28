@@ -47,7 +47,7 @@ click-extra first, Click second, Cloup third, then remaining frameworks sorted b
 
 ### `pyproject-fmt` panics on a version-opening indented comment
 
-A comment line indented two spaces or more whose text starts with `N.N` (like `3.10`) reads as a Markdown ordered-list marker to `pyproject-fmt` `2.27.0`, which panics and formats the whole file not at all. Prefix the version with a word (`Python 3.10`). The crash surfaces as `PanicException: begin <= end`, and before repomatic's `rewrite_exit_code` check it was indistinguishable from a successful reformat: the autofix job stayed green for two months while formatting nothing.
+A comment whose text is indented two spaces or more and then opens on `N.N` (like `3.10`) reads as a Markdown ordered-list marker to `pyproject-fmt`, which panics and formats the whole file not at all. The bug is unfixed through `2.28.0`, the version repomatic ships. Prefix the version with a word (`Python 3.10`). The indentation that counts sits after the `#`, not before it. So a two-space-indented floor comment in `[project] dependencies` stays safe, while a continuation line indented under a `-` bullet in a comment block does not. A bare `3.` is safe too: the trigger needs a digit on each side of the dot. The crash surfaces as `PanicException: begin <= end`, and before repomatic's `rewrite_exit_code` check it was indistinguishable from a successful reformat: the autofix job stayed green for two months while formatting nothing.
 
 ### Synced rules this repository has not caught up with
 
@@ -65,10 +65,10 @@ Two managed sections above describe a state that does not hold here yet. Read th
 $ uv run pytest
 
 # Run a single test file.
-$ uv run pytest tests/test_colorize.py
+$ uv run pytest tests/test_color.py
 
 # Run a specific test.
-$ uv run pytest tests/test_colorize.py::test_function_name
+$ uv run pytest tests/test_color.py::test_function_name
 ```
 
 ### Building documentation

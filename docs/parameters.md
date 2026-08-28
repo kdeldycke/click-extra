@@ -120,7 +120,7 @@ Because both options are eager, the order in which they are passed matters. `--t
 
 ### Color highlighting
 
-By default, the table produced by `--params` is colorized to highlight important bits. If you do not like colors, you can disable them with the [`--no-color` option](colorize.md#color-no-color-flag):
+By default, the table produced by `--params` is colorized to highlight important bits. If you do not like colors, you can disable them with the [`--no-color` option](colorize.md#color-flag):
 
 ```{click:run}
 :emphasize-result-lines: 1

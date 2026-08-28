@@ -522,6 +522,29 @@ def deliver_capture(document: str, output: Path) -> None:
     echo(f"Wrote {output}")
 
 
+def resolve_capture_format(output: Path, fragment: bool) -> CaptureFormat:
+    """Read the capture format off `--output`, and settle `--fragment` on it.
+
+    Both capture commands carry the pair of options, so both carry the same
+    rejection: `--fragment` asks for the bare block of a standalone document,
+    and only HTML has one.
+
+    :param output: where the capture goes; its extension names the format.
+    :param fragment: whether the caller asked for the bare block.
+    :raises ClickException: on an extension no format claims, or on `--fragment`
+        against anything but HTML.
+    """
+    try:
+        capture_format = format_from_path(output)
+    except ValueError as error:
+        raise ClickException(str(error)) from error
+
+    if fragment and capture_format is not CaptureFormat.HTML:
+        raise ClickException("--fragment only applies to an HTML capture.")
+
+    return capture_format
+
+
 def capture_options(
     *,
     columns_help: str,
@@ -811,13 +834,7 @@ def screenshot_cmd(
 
     Neither format needs an optional dependency.
     """
-    try:
-        capture_format = format_from_path(output)
-    except ValueError as error:
-        raise ClickException(str(error)) from error
-
-    if fragment and capture_format is not CaptureFormat.HTML:
-        raise ClickException("--fragment only applies to an HTML capture.")
+    capture_format = resolve_capture_format(output, fragment)
 
     if wrap:
         # Reached through the installed console script, never through
@@ -963,13 +980,7 @@ def snippet_cmd(
             missing_extra_message("pygments", subject="Drawing a code snippet"),
         ) from error
 
-    try:
-        capture_format = format_from_path(output)
-    except ValueError as error:
-        raise ClickException(str(error)) from error
-
-    if fragment and capture_format is not CaptureFormat.HTML:
-        raise ClickException("--fragment only applies to an HTML capture.")
+    capture_format = resolve_capture_format(output, fragment)
 
     reading_stdin = str(source) == "-"
     if reading_stdin:

@@ -182,7 +182,7 @@ $ click-extra test-suite --command weather --work-directory ./tests/fixtures
 
 It moves the *command*, never the runner. Suite files are read before any case starts, and the target is resolved to an absolute path first, so neither a relative `--suite-file` nor a `--command` naming something on the `PATH` is looked up relative to it.
 
-Reach for `unset_env` whenever a case would otherwise answer to whatever the shell running the suite happens to export. It is not interchangeable with assigning an empty string: a variable set to `""` is still *set*, and a flag read by bare presence (the [`NO_COLOR` and `FORCE_COLOR`](colorize.md#environment-variables) family) counts that as activation. Removing it is the only way to ask what the command does without it:
+Reach for `unset_env` whenever a case would otherwise answer to whatever the shell running the suite happens to export. It is not interchangeable with assigning an empty string: a variable set to `""` is still *set*, and a flag read by bare presence (the [`NO_COLOR` and `FORCE_COLOR`](colorize.md#color-flag) family) counts that as activation. Removing it is the only way to ask what the command does without it:
 
 ```{code-block} toml
 # Whatever the developer running this exports, the command is asked the same

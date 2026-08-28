@@ -18,14 +18,50 @@
 from __future__ import annotations
 
 import re
+from enum import Enum
 
 import pytest
 
-from click_extra._utils import generator_tag, missing_extra_message, patch_attr
+from click_extra._utils import (
+    generator_tag,
+    memoize_enums,
+    missing_extra_message,
+    patch_attr,
+)
 
 
 def test_generator_tag():
     assert re.fullmatch(r"Click Extra \d+\.\d+\.\d+(\.\w+)?", generator_tag())
+
+
+def test_memoize_enums_seeds_every_member_of_a_held_class():
+    """A held member seeds its siblings too, not only itself."""
+
+    class Ripeness(Enum):
+        GREEN = "green"
+        RIPE = "ripe"
+
+    class Basket:
+        def __init__(self):
+            self.apple = Ripeness.GREEN
+            self.crate = "wooden"
+
+    memo: dict[int, object] = {}
+    memoize_enums(Basket(), memo)
+    assert memo == {
+        id(Ripeness.GREEN): Ripeness.GREEN,
+        id(Ripeness.RIPE): Ripeness.RIPE,
+    }
+
+
+def test_memoize_enums_leaves_an_enum_free_object_alone():
+    class Basket:
+        def __init__(self):
+            self.crate = "wooden"
+
+    memo: dict[int, object] = {}
+    memoize_enums(Basket(), memo)
+    assert memo == {}
 
 
 def test_missing_extra_message():

@@ -682,7 +682,7 @@ assert result.stdout.index("seat") < result.stdout.index("pour")
 
 ### Every rendering agrees
 
-The order settles the help screen and every other rendering of the command tree: [`--tree`](tree.md), [`--help-format`](man-page.md#machine-readable-formats) in all its flavors, the [Carapace completion spec](carapace.md) and shell completion all read the same listing.
+The order settles the help screen and every other rendering of the command tree: [`--tree`](tree.md), [`--help-format`](machine-readable.md#the-help-format-option) in all its flavors, the [Carapace completion spec](carapace.md) and shell completion all read the same listing.
 
 ```{click:run}
 result = invoke(pipeline, args=["--tree"])
