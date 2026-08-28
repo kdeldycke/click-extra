@@ -41,19 +41,6 @@ else:
 PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
 """Path to the project's ``pyproject.toml``, relative to this test file."""
 
-UNRUNNABLE_RELEASES: frozenset[str] = frozenset()
-"""Authorized Click releases the matrix deliberately leaves untested.
-
-An entry belongs here only when the suite physically cannot run on that release
-and no downstream code can work around the cause, so a matrix cell would report
-an upstream bug and nothing else. It is empty today: ``8.4.0`` was the last
-entry, and raising the floor to ``8.4.1`` took the release out of the authorized
-set altogether.
-
-Keep this as small as it can be: every entry is a hole in the release-by-release
-coverage the tests below exist to guarantee.
-"""
-
 SENTINELS = ("released", "stable", "main")
 """Moving-reference values of the ``click-version`` axis: the lockfile-resolved
 release, and Click's ``stable`` and ``main`` development branches. Everything
@@ -155,10 +142,10 @@ def test_click_matrix_matches_authorized_releases():
     - a **stale** pin means a pinned version is no longer an authorized release
       (the floor was raised past it, or the release was yanked).
 
-    Either way, the matrix needs an edit, and this is the signal. The one
-    documented escape is {data}`UNRUNNABLE_RELEASES`, whose entries are exempt
-    from the missing-pin half so a release the suite physically cannot run on
-    stays absent on purpose rather than by neglect.
+    Either way, the matrix needs an edit, and this is the signal. There is no
+    exemption list: a release the suite cannot run on gets its own answer at the
+    moment it appears, whether that is a floor bump past it or a hole opened
+    here on purpose.
     """
     specifier, variations, pinned = load_click_matrix()
 
@@ -174,7 +161,7 @@ def test_click_matrix_matches_authorized_releases():
     # The newest authorized release is exercised through the `released` sentinel;
     # every earlier release must be pinned explicitly.
     covered = {str(authorized[-1])} if "released" in variations else set()
-    required = authorized_strings - covered - UNRUNNABLE_RELEASES
+    required = authorized_strings - covered
 
     missing = required - pinned
     stale = pinned - authorized_strings
