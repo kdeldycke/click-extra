@@ -1593,7 +1593,7 @@ def test_argfile_unknown_option_ignored_when_not_strict(invoke, create_config):
         pytest.param("key = value\n", id="foreign-ini-style"),
     ],
 )
-def test_argfile_unparseable_conf(invoke, create_config, conf_text):
+def test_argfile_unparsable_conf(invoke, create_config, conf_text):
     """An argfile that produces no option is skipped like any other format."""
 
     @command
@@ -2910,7 +2910,7 @@ def test_read_and_parse_all_conf_orders_local_first(tmp_path):
     deep.write_text("[test-cli]\nk = 2", encoding="utf-8")
     middle = tmp_path / "a" / "config.toml"
     middle.write_text("[test-cli]\nk = 1", encoding="utf-8")
-    # Unparseable content: found, but not yielded.
+    # Unparsable content: found, but not yielded.
     (tmp_path / "config.toml").write_text("not toml {{{", encoding="utf-8")
 
     @click.command
