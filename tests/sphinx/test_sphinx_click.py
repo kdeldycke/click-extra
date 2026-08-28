@@ -1456,7 +1456,9 @@ def test_click_run_screenshot_animate_defines_every_class_it_uses(sphinx_app_mys
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "styled-steeping-screen.svg"
     svg = asset.read_text(encoding="utf-8")
-    stylesheet = re.search(r"<style>(.*?)</style>", svg, re.DOTALL).group(1)
+    block = re.search(r"<style>(.*?)</style>", svg, re.DOTALL)
+    assert block
+    stylesheet = block.group(1)
     used = set(re.findall(r'class="([\w-]+)"', svg))
     defined = set(re.findall(r"\.([\w-]+)\s*\{", stylesheet))
     assert not used - defined, f"undefined: {sorted(used - defined)}"

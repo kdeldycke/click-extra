@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import io
 import time
+from typing import cast
 
 import pytest
 from extra_platforms.pytest import skip_windows
@@ -33,6 +34,10 @@ from click_extra.recording import (
     record_command,
 )
 from click_extra.screenshot import animation_digest, render_svg
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import IO
 
 CLEAR_LINE = "\x1b[K"
 HIDE_CURSOR = "\x1b[?25l"
@@ -229,7 +234,9 @@ def test_recorder_records_a_spinner_without_a_terminal(monkeypatch):
         "Steeping",
         spinner=SPINNERS["moon"],
         style=Style(fg="green"),
-        stream=recorder,
+        # A recorder stands in for a terminal, but `io.TextIOBase` does not
+        # satisfy the nominal `IO[str]` the signature asks for.
+        stream=cast("IO[str]", recorder),
         interval=0.02,
     )
     spinner.start()
