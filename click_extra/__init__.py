@@ -154,6 +154,7 @@ from .decorators import (  # type: ignore[no-redef]
     columns_option,
     command,
     config_option,
+    debug_option,
     export_config_option,
     group,
     help_format_option,
@@ -201,6 +202,7 @@ from .highlight import (
 )
 from .humanize import format_duration, format_size
 from .logging import (
+    DebugOption,
     Formatter,
     LogLevel,
     QuietOption,
@@ -350,6 +352,7 @@ __all__ = [
     "ConstraintMixin",
     "Context",
     "DateTime",
+    "DebugOption",
     "Duration",
     "EnumChoice",
     "ExportConfigOption",
@@ -442,6 +445,7 @@ __all__ = [
     "convert_rst_files_in_directory",
     "convert_source",
     "custom_version_option",
+    "debug_option",
     "detect_source_package",
     "dir_path",
     "echo",

@@ -46,6 +46,8 @@ The reconciled log level chosen between `--verbosity` and `--verbose`/`-v` is pu
 ```{important}
 Besides `--verbosity`, there are the [`-v`/`--verbose`](#click_extra.logging.VerboseOption) and [`-q`/`--quiet`](#click_extra.logging.QuietOption) options. They both work relative to `--verbosity`: `-v` raises the level in steps and `-q` lowers it, simply by repeating them.
 
+A fourth, [`--debug`](#click_extra.logging.DebugOption), is shorthand for `--verbosity DEBUG`.
+
 In the rest of this documentation, we will mainly focus on the canonical `--verbosity` option to keep things simple (logging is already complicated enough...).
 ```
 
@@ -170,6 +172,45 @@ assert "Sky is clear." not in result.stderr
 
 ```{note}
 `-q` stops at `CRITICAL`, the quietest level: it never suppresses `CRITICAL` messages themselves. It also only lowers the *logging* verbosity, and does not silence regular `echo` output.
+```
+
+### Shorthand `--debug`
+
+`--debug` is `--verbosity DEBUG` under the name people reach for. It is the one level worth a flag of its own: the quiet end of the scale is already served by `-q`, repeatably, and nobody types `--critical` to be told less.
+
+```{click:source}
+import logging
+import click
+from click_extra import debug_option, verbosity_option
+
+@click.command
+@verbosity_option
+@debug_option
+def kettle():
+    logging.debug("Element drawing 2.4 kW.")
+    logging.warning("Descaling due.")
+```
+
+```{click:run}
+result = invoke(kettle)
+assert "Descaling due." in result.output
+assert "Element" not in result.output
+```
+
+```{click:run}
+result = invoke(kettle, args=["--debug"])
+assert "Element drawing 2.4 kW." in result.output
+```
+
+Unlike `-v` and `-q`, it does not join their arithmetic. It asks for the loudest level there is, so no combination of the other three can ask for more, and it wins outright whichever order the options are given in:
+
+```{click:run}
+for args in (
+    ["--verbosity", "CRITICAL", "--debug"],
+    ["--debug", "--verbosity", "CRITICAL"],
+):
+    result = invoke(kettle, args=args)
+    assert "Element drawing 2.4 kW." in result.output, args
 ```
 
 ### Default logger

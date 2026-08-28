@@ -42,7 +42,7 @@ from .config import (
     ValidateConfigOption,
 )
 from .execution import JobsOption, TimerOption, ZeroExitOption
-from .logging import QuietOption, VerboseOption, VerbosityOption
+from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
 from .multicall import MulticallGroup
 from .parameters import Argument, Option, ShowParamsOption
 from .table import ColumnsOption, SortByOption, TableFormatOption
@@ -353,6 +353,7 @@ help_format_option = decorator_factory(dec=option, cls=HelpFormatOption)
 man_option = decorator_factory(dec=option, cls=ManOption)
 no_color_option = decorator_factory(dec=option, cls=NoColorOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
+debug_option = decorator_factory(dec=option, cls=DebugOption)
 quiet_option = decorator_factory(dec=option, cls=QuietOption)
 show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)
 table_format_option = decorator_factory(dec=option, cls=TableFormatOption)

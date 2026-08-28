@@ -52,7 +52,7 @@ from .context import Context
 from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import TimerOption
 from .highlight import HelpKeywords, _HelpColorsMixin, highlight
-from .logging import QuietOption, VerboseOption, VerbosityOption
+from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption
 from .spinner import ProgressOption
 from .table import TableFormatOption
@@ -188,6 +188,7 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
         VerbosityOption(),
         VerboseOption(),
         QuietOption(),
+        DebugOption(),
         TreeOption(),
         ManOption(),
         HelpFormatOption(),

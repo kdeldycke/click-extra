@@ -148,7 +148,9 @@ SPINNERS: Final = {
         ),
         0.08,
     ),
-    "dots-circle": SpinnerPreset(("⢎ ", "⠎⠁", "⠊⠑", "⠈⠱", " ⡱", "⢀⡰", "⢄⡠", "⢆⡀"), 0.08),
+    "dots-circle": SpinnerPreset(
+        ("⢎ ", "⠎⠁", "⠊⠑", "⠈⠱", " ⡱", "⢀⡰", "⢄⡠", "⢆⡀"), 0.08
+    ),
     "sand": SpinnerPreset(tuple("⠁⠂⠄⡀⡈⡐⡠⣀⣁⣂⣄⣌⣔⣤⣥⣦⣮⣶⣷⣿⡿⠿⢟⠟⡛⠛⠫⢋⠋⠍⡉⠉⠑⠡⢁"), 0.08),
     "line": SpinnerPreset(ASCII_SPINNER_FRAMES, 0.13),
     "line2": SpinnerPreset(tuple("⠂-–—–-"), 0.1),

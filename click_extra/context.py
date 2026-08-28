@@ -432,6 +432,15 @@ alongside {data}`VERBOSITY_LEVEL` so downstream code can tell whether the
 final level came from `--verbosity` or from `-v`/`-q` repetitions.
 """
 
+DEBUG: Final[str] = "click_extra.debug"
+"""Whether `--debug` was passed.
+
+Written by the `set_level` callback of {class}`click_extra.logging.DebugOption`.
+Read by `_VerbosityOption.resolve_level`, which answers it before anything else:
+`--debug` names the loudest level there is, so nothing another option asks for
+can outrank it.
+"""
+
 VERBOSE: Final[str] = "click_extra.verbose"
 """Raw repetition count of `--verbose`/`-v`.
 

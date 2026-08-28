@@ -425,6 +425,8 @@ class _VerbosityOption(ExtraOption):
       repetition.
     - `--quiet`/`-q` lowers the verbosity, one {class}`LogLevel` step per
       repetition.
+    - `--debug` is `--verbosity DEBUG` under the name people reach for, and
+      outranks all three.
 
     `-v` and `-q` form a single signed counter around the base level:
     `net = (number of -v) - (number of -q)`. The counter is clamped to the
@@ -563,6 +565,7 @@ class _VerbosityOption(ExtraOption):
         {data}`~click_extra.context.VERBOSE` and
         {data}`~click_extra.context.QUIET`) and folds them with this rule:
 
+        - `--debug` wins outright, naming the loudest level there is;
         - `net = verbose - quiet`;
         - `net == 0`: the `--verbosity` value wins (its default when the user did
           not pass it);
@@ -576,6 +579,13 @@ class _VerbosityOption(ExtraOption):
         up from the default and the loudest request wins), while letting `-q` mirror
         it downwards.
         """
+        # `--debug` asks for the loudest level there is, so no counter and no
+        # `--verbosity` can outrank it. Answered here rather than by writing
+        # VERBOSITY, which would make the winner depend on which option Click
+        # happened to process last.
+        if context.get(ctx, context.DEBUG, False):
+            return LogLevel.DEBUG
+
         base = self.get_base_level(ctx)
         verbosity: LogLevel = context.get(ctx, context.VERBOSITY, base)
         net: int = context.get(ctx, context.VERBOSE, 0) - context.get(
@@ -707,6 +717,56 @@ class VerbosityOption(_VerbosityOption):
             default=default,
             metavar=metavar,
             type=type,
+            help=help,
+            **kwargs,
+        )
+
+
+class DebugOption(_VerbosityOption):
+    """`--debug` flag, a shorthand for `--verbosity DEBUG`.
+
+    The one level people actually reach for by name, so it earns a flag of its
+    own. The quiet end of the scale needs no such thing: `-q` already walks
+    down it, repeatably, and nobody types `--critical` to be told less.
+
+    ```{note}
+    It outranks `--verbosity`, `-v` and `-q` alike rather than joining their
+    arithmetic, because it asks for the loudest level there is and no
+    combination of the other three can ask for more. See
+    {meth}`_VerbosityOption.resolve_level`.
+    ```
+    """
+
+    def set_level(
+        self, ctx: click.Context, param: click.Parameter, value: bool
+    ) -> None:
+        """Record that `--debug` was passed, then reconcile.
+
+        The flag is saved in `ctx.meta[click_extra.context.DEBUG]`, so
+        downstream code can tell a level that came from `--debug` from the same
+        level spelled `--verbosity DEBUG`.
+        """
+        if value:
+            context.set(ctx, context.DEBUG, True)
+        self.apply_verbosity(ctx)
+
+    def __init__(
+        self,
+        param_decls: Sequence[str] | None = None,
+        default_logger: Logger | str = logging.root.name,
+        is_flag=True,
+        default=False,
+        help=_("Shorthand for --verbosity {level}.").format(level=LogLevel.DEBUG),
+        **kwargs,
+    ) -> None:
+        if not param_decls:
+            param_decls = ("--debug",)
+
+        super().__init__(
+            param_decls=param_decls,
+            default_logger=default_logger,
+            is_flag=is_flag,
+            default=default,
             help=help,
             **kwargs,
         )

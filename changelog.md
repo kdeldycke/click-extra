@@ -37,6 +37,7 @@
 - Show every terminal preset wearing the full window treatment, gradient, caption, gutter and emphasis included.
 - Animate the whole spinner inventory in the documentation, one capture per preset beside the reference table.
 - Demonstrate `reverse=True` with a clock running both ways in the spinner tutorial.
+- Add a `--debug` flag to every Click Extra CLI, shorthand for `--verbosity DEBUG`, which outranks `--verbosity`, `-v` and `-q`.
 - Fall back to an animated capture's last frame rather than its first, which is the one an accumulating animation says the most with.
 - Illustrate the spinner page's concurrency, progress-bar and outcome sections with recorded animations.
 - Ship a subset of JuliaMono with the documentation, so box-drawing and Braille glyphs stop breaking the alignment of captured terminal tables.
