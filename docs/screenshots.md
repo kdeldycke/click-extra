@@ -108,6 +108,10 @@ An SVG capture needs no web font and no HTTP request to render, and it looks the
 HTML has two limitations SVG does not. An [OSC 8 hyperlink](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) loses its URL and keeps its visible text. The eight base ANSI colors render as their CSS names, so the browser's palette decides their shade, not the terminal's. Neither shows up on a help screen, which is why the format is worth having anyway.
 ```
 
+```{seealso}
+To picture source code instead of a command's output, see [code snippets](snippets.md). Both are drawn in the same window, and the whole styling vocabulary below applies to either.
+```
+
 ### Any command, any CLI
 
 `screenshot` runs anything the shell runs, Click CLI or not. `git --help` and `docker ps` capture as readily as your own tool. The file holds exactly what the command prints, so a Click CLI not built on Click Extra lands in it uncolored.

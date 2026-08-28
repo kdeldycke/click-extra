@@ -32,6 +32,7 @@ sphinx
 myst-docstrings
 mkdocs
 screenshots
+snippets
 envvar
 decorators
 testing

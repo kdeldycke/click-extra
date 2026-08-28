@@ -9,6 +9,10 @@ This package ships a set of Pygments components that make terminal-style content
 
 These are plain Pygments entry points: once [installed](#install), they are usable from [`pygmentize`](#pygmentize-command-line), `pygments.highlight()`, and any tool that consumes Pygments (Sphinx, MkDocs, Hexo, mdBook, Jekyll, GitHub-flavored Markdown renderers that use Pygments, …).
 
+```{seealso}
+Pygments also runs the other way here: [code snippets](snippets.md) highlight a source file into ANSI and draw it as an image, for a surface that cannot highlight code itself.
+```
+
 ## Install
 
 The Pygments components ship as an optional extra to keep the base install lean:

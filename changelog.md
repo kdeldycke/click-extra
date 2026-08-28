@@ -17,6 +17,10 @@
 - **Breaking:** `LazyGroup.lazy_subcommands` holds `LazySubcommand` instances instead of import-path strings; the constructor still accepts either.
 - **Deprecated:** Rename the `color_envvars` and `nocolor_theme` constants to `COLOR_ENVVARS` and `NOCOLOR_THEME`, following the uppercase convention; the old names resolve until `10.0.0`.
 - **Deprecated:** Move the generic `patch_attr()`, `generator_tag()` and `missing_extra_message()` helpers from `click_extra.parameters` to the new `click_extra._utils` module; the old homes resolve until `10.0.0`.
+- Add a `click-extra snippet` subcommand rendering a highlighted source file as an SVG image or an HTML document, in the same window a screenshot is drawn in.
+- Add a `click_extra.snippet` module coloring source code with Pygments, whose `--syntax-style` also paints the window the background that style was designed for.
+- Draw a picture of a `click:source` or `python:source` block's own code with `:screenshot:`, where `:emphasize-lines:` bands the same lines on the page and in the image.
+- Add a `click_extra_screenshot_syntax_style` Sphinx setting, coloring every source capture a project draws.
 - Add a `click-extra screenshot` subcommand capturing any CLI's colored output and rendering it as an SVG image or an HTML document, picked from the `--output` extension.
 - Add a `--fragment` option to `click-extra screenshot`, emitting an HTML capture as a bare inline-styled block instead of a standalone document.
 - Add a `--wrap` option to `click-extra screenshot`, routing the target through the `wrap` subcommand so a foreign Click CLI is captured with its colors.

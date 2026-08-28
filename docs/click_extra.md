@@ -234,6 +234,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.snippet module
+
+```{eval-rst}
+.. automodule:: click_extra.snippet
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.spinner module
 
 ```{eval-rst}

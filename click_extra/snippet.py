@@ -105,9 +105,9 @@ TAB_WIDTH = 4
 A terminal expands tabs as it prints, so captured output never carries one and
 the renderer never had to answer for it. A file does carry them, and a tab has
 no width on a character grid: {func}`~click_extra.screenshot.cell_width` reads
-{func}`wcwidth.wcswidth`, which answers `-1` for a control character and takes
-the whole line's measurement down with it. Expanding up front is what keeps the
-grid arithmetic true.
+`wcwidth.wcswidth`, which answers `-1` for a control character and takes the
+whole line's measurement down with it. Expanding up front is what keeps the grid
+arithmetic true.
 """
 
 FALLBACK_LEXER = "text"
