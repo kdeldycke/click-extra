@@ -660,13 +660,16 @@ exclude = [
 ]
 
 [tool.repomatic]
+# Versions burned rather than published: each one is documented in the
+# changelog with a "not available on PyPI" warning, per the skip-and-move-
+# forward release policy. Declaring them keeps `lint-changelog` quiet.
+abandoned-versions = [ "1.0.0", "3.3.2", "7.17.0", "7.17.1" ]
 dependency-graph.all-extras = true
 dependency-graph.all-groups = false
 # Skip the aggregate `all` extra: its closure is the union of every other
 # extra, so left in the graph it greedily claims all optional packages into a
 # single `--extra all` box and the per-extra subgraphs render empty.
 dependency-graph.no-extras = [ "all" ]
-exclude = [ "workflows/debug.yaml" ]
 # Render the Click command tree as roff `.1` files and attach a
 # `click-extra-manpages.tar.gz` asset to every GitHub release. The script
 # target mirrors `click_extra_manpages` in `docs/conf.py`, so the release
