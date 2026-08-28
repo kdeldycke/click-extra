@@ -205,6 +205,7 @@ class PythonSourceDirective(PythonDirective):
     show_source_by_default = True
     show_results_by_default = False
     runner_method = "execute_source"
+    screenshots_source = True
 
 
 class PythonRunDirective(PythonDirective):

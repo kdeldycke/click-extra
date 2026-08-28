@@ -25,8 +25,10 @@ them on. What the renderer then does with that text is covered by
 from __future__ import annotations
 
 import re
+from functools import partial
 
 import pytest
+from click import Command, Option
 from pygments.styles import get_style_by_name
 from pygments.token import Token
 
@@ -162,13 +164,15 @@ def test_snippet_renders_the_same_bytes_twice():
     Which is what lets a documentation build rewrite a committed asset and leave
     the working tree clean.
     """
-    shot = {
-        "language": "python",
-        "unique_id": "ripen",
-        "title": "ripen.py",
-        "emphasize": (2,),
-    }
-    assert render_snippet(SAMPLE, **shot) == render_snippet(SAMPLE, **shot)
+    shot = partial(
+        render_snippet,
+        SAMPLE,
+        language="python",
+        unique_id="ripen",
+        title="ripen.py",
+        emphasize=(2,),
+    )
+    assert shot() == shot()
 
 
 @pytest.mark.parametrize(
@@ -232,13 +236,28 @@ def test_snippet_renders_html():
 
 
 def shared_option_names() -> tuple[str, ...]:
-    """Every option name {func}`~click_extra.cli.capture_options` attaches."""
+    """Every option name {func}`~click_extra.cli.capture_options` attaches.
+
+    Read off a bare function the decorator is applied to, rather than restated
+    here: a list written out by hand is one more place for the two commands to
+    drift apart, which is the thing this is here to catch.
+    """
 
     def probe() -> None:
         pass
 
     decorated = capture_options(columns_help="")(probe)
-    return tuple(param.name for param in decorated.__click_params__)
+    params: list[Option] = decorated.__click_params__  # type: ignore[attr-defined]
+    return tuple(str(param.name) for param in params)
+
+
+def options_of(cmd: Command) -> dict[str, Option]:
+    """The command's options, keyed by the name they bind to."""
+    return {
+        str(param.name): param
+        for param in cmd.params
+        if isinstance(param, Option) and param.name
+    }
 
 
 def test_capture_commands_share_one_vocabulary():
@@ -251,8 +270,8 @@ def test_capture_commands_share_one_vocabulary():
     `--columns` is the deliberate exception. Its whole purpose is to differ:
     a command wraps its own output to it, where a file was never wrapped.
     """
-    shot = {param.name: param for param in screenshot_cmd.params}
-    snippet = {param.name: param for param in snippet_cmd.params}
+    shot = options_of(screenshot_cmd)
+    snippet = options_of(snippet_cmd)
     for name in shared_option_names():
         assert name in shot, f"screenshot lost the shared --{name}"
         assert name in snippet, f"snippet lost the shared --{name}"

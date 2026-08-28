@@ -117,6 +117,17 @@ its captures to look like the same desktop states it once here instead of on
 every block.
 """
 
+SCREENSHOT_SYNTAX_STYLE_CONFIG = "click_extra_screenshot_syntax_style"
+"""Name of the `conf.py` value coloring every capture drawn from source code.
+
+One of the [Pygments styles](https://pygments.org/styles/), applied to each
+source block whose `:screenshot:` does not name a
+`:screenshot-syntax-style:` of its own. Empty by default, which takes the style
+each chrome is drawn for, see
+{data}`~click_extra.snippet.DEFAULT_SYNTAX_STYLES`. Unused by a block picturing
+what a command printed, whose colors that command already chose.
+"""
+
 SCREENSHOT_WATERMARK_CONFIG = "click_extra_screenshot_watermark"
 """Name of the `conf.py` value crediting every capture a `click:run` writes.
 
@@ -244,6 +255,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value(SCREENSHOT_DIR_CONFIG, "assets", "env", types=[str])
     # Terminal every capture is drawn as, unless a block says otherwise.
     app.add_config_value(SCREENSHOT_PRESET_CONFIG, "", "env", types=[str])
+    # Pygments style every source capture is colored with (see snippet.py).
+    app.add_config_value(SCREENSHOT_SYNTAX_STYLE_CONFIG, "", "env", types=[str])
     # Credit line every capture carries, off unless a project asks for one.
     app.add_config_value(SCREENSHOT_WATERMARK_CONFIG, "", "env", types=[str])
     app.connect("config-inited", _register_exec_directives)

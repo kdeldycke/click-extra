@@ -68,6 +68,7 @@ from ..screenshot import (
     render,
 )
 from ..screenshot_presets import PRESETS, TerminalPreset
+from ..snippet import highlight_code, resolve_style, style_palette
 from ..spinner import Spinner
 from ..testing import isolated_filesystem
 from ..theme import NOCOLOR_THEME
@@ -87,6 +88,7 @@ if TYPE_CHECKING:
     from sphinx.util.typing import OptionSpec
 
     from ..screenshot import TColumns
+    from ..screenshot_presets import TerminalPalette
 
 
 logger = logging.getLogger(__name__)
@@ -167,11 +169,19 @@ names a program whose words all belong to it, `click-extra wrap` being the one
 these pages document.
 """
 
-_CLICK_RUN_FENCE_OPEN = re.compile(r"^[ \t]*`{3,}\{click:run\}[ \t]*\S*[ \t]*$")
-"""Match a MyST `click:run` backtick-fence opening line.
+_CAPTURE_FENCE_OPEN = re.compile(
+    r"^[ \t]*`{3,}\{(?:click:(?:run|source)|python:(?:run|source))\}[ \t]*\S*[ \t]*$"
+)
+"""Match the opening line of a MyST fence whose `:mirror:` shows a capture.
 
 `:mirror:` writes Markdown back into a Markdown host, so it is scoped to the
-MyST fence form: an rST `click:run` directive has no Markdown region to hold.
+MyST fence form: an rST directive has no Markdown region to hold.
+
+`python:render` is deliberately absent, being the one directive whose
+`:mirror:` already means something else: it mirrors the *markup* the block
+generated, and {func}`~click_extra.sphinx.python.update_mirror_blocks` owns
+that region. Two refreshers writing one region would each undo the other on
+alternate runs.
 """
 
 
@@ -555,6 +565,61 @@ def _resolve_run_capture(
     return configured
 
 
+def _screenshot_columns(argument: str) -> TColumns:
+    """Read the `:screenshot-columns:` option into a width, or into `auto`.
+
+    The block's own text is wrapped by Click at its fixed width whatever this
+    says: what it decides is the width the *image* is laid out at, which is what
+    a line the CLI does not wrap on its own needs to stay on one line.
+    """
+    if argument.strip().lower() == AUTO_COLUMNS:
+        return AUTO_COLUMNS
+    width = int(directives.positive_int(argument))
+    if width < MIN_COLUMNS:
+        raise ValueError(f"{width} is narrower than the {MIN_COLUMNS}-column floor.")
+    return width
+
+
+def _screenshot_opacity(argument: str) -> float:
+    """Read the `:screenshot-opacity:` option into how solid the window is."""
+    opacity = float(argument)
+    if not 0.0 <= opacity <= OPAQUE:
+        raise ValueError(f"{argument} is not an opacity, between 0 and {OPAQUE}.")
+    return opacity
+
+
+def _screenshot_hold(argument: str) -> float:
+    """Read the `:screenshot-hold:` option into seconds, zero included."""
+    hold = float(argument)
+    if hold < 0:
+        raise ValueError(f"{argument} is not a pause, which is never negative.")
+    return hold
+
+
+def _screenshot_interval(argument: str) -> float:
+    """Read the `:screenshot-interval:` option into seconds per frame."""
+    interval = float(argument)
+    if interval <= 0:
+        raise ValueError(f"{argument} is not a frame duration, which is positive.")
+    return interval
+
+
+def _screenshot_preset(argument: str) -> TerminalPreset:
+    """Read the `:screenshot-preset:` option into the terminal it names."""
+    return PRESETS[directives.choice(argument, tuple(sorted(PRESETS)))]
+
+
+def _screenshot_background(argument: str) -> CaptureBackground:
+    """Read the `:screenshot-background:` option into its enum member.
+
+    Rejecting an unknown chrome here, at the option level, is what turns a typo
+    into a build error naming the choices, instead of a capture silently drawn
+    on the default.
+    """
+    choices = tuple(member.value for member in CaptureBackground)
+    return CaptureBackground(directives.choice(argument, choices))
+
+
 class ClickDirective(SphinxDirective):
     """Base class of every `click:*` directive.
 
@@ -580,6 +645,32 @@ class ClickDirective(SphinxDirective):
         "show-prompt": directives.flag,
         "hide-prompt": directives.flag,
         "emphasize-result-lines": CodeBlock.option_spec["emphasize-lines"],
+        "screenshot": directives.unchanged_required,
+        "screenshot-animate": directives.unchanged_required,
+        "screenshot-backdrop": directives.unchanged_required,
+        "screenshot-background": _screenshot_background,
+        "screenshot-interval": _screenshot_interval,
+        "screenshot-border": directives.unchanged_required,
+        "screenshot-blank": _screenshot_hold,
+        "screenshot-border-width": directives.nonnegative_int,
+        "screenshot-columns": _screenshot_columns,
+        "screenshot-emphasize-lines": directives.unchanged_required,
+        "screenshot-hold": _screenshot_hold,
+        "screenshot-line-numbers": directives.flag,
+        "screenshot-margin": directives.nonnegative_int,
+        "screenshot-opacity": _screenshot_opacity,
+        "screenshot-padding": directives.nonnegative_int,
+        "screenshot-preset": _screenshot_preset,
+        "screenshot-quantum": _screenshot_interval,
+        "screenshot-radius": directives.nonnegative_int,
+        "screenshot-record": directives.unchanged_required,
+        "screenshot-shadow": directives.unchanged_required,
+        "screenshot-speed": _screenshot_interval,
+        "screenshot-syntax-style": directives.unchanged_required,
+        "screenshot-title": directives.unchanged_required,
+        "screenshot-watermark": directives.unchanged_required,
+        "screenshot-watermark-color": directives.unchanged_required,
+        "mirror": directives.flag,
     }
     """Options supported by this directive.
 
@@ -590,6 +681,23 @@ class ClickDirective(SphinxDirective):
     The standard `emphasize-lines` option applies to the source block only. Use
     `emphasize-result-lines` to highlight specific lines in the captured output
     block, with the same syntax (like `:emphasize-result-lines: 1,3-5`).
+
+    Every directive carries the `:screenshot:` family, because every one of them
+    shows something worth committing as an image. What lands in that image is
+    whatever the block itself draws: a run's captured output, and a source
+    block's own code, highlighted by {mod}`click_extra.snippet`.
+
+    `:screenshot:` and `:mirror:` are deliberately independent. `:screenshot:
+    <name>` only *writes* `<name>.svg` under the `click_extra_screenshot_dir`,
+    leaving the page's code block alone: inside Sphinx that block beats an
+    image, being selectable, searchable and theme-aware. `:mirror:` is what puts
+    the image on the page, by keeping a Markdown link to it in the source `.md`
+    between the same marker pair the `python:render` `:mirror:` flag uses, so
+    the capture shows on GitHub and PyPI as well.
+
+    So `:screenshot:` alone maintains an asset some other surface embeds, and
+    the two together also show it here. Both are refreshed offline by
+    `click-extra refresh-directives`.
     """
 
     default_language: str
@@ -597,6 +705,15 @@ class ClickDirective(SphinxDirective):
 
     [All Pygments' languages short names](https://pygments.org/languages/) are
     recognized.
+    """
+
+    screenshots_source: bool = False
+    """Whether a `:screenshot:` on this directive pictures the block's own code.
+
+    `False` for a directive that runs something: what is worth committing there
+    is the output, and the code producing it is on the page already. `True` for
+    one that only declares code, which has no output to picture and whose
+    subject is the code itself. See {meth}`screenshot_lines`.
     """
 
     show_source_by_default: bool = True
@@ -972,6 +1089,24 @@ class ClickDirective(SphinxDirective):
             return None
         return self.resolve_animation(expression, ":screenshot-animate:")
 
+    @property
+    def emphasis_spec(self) -> str | None:
+        """The lines the capture bands, as the block spells them.
+
+        Only `:screenshot-emphasize-lines:` on a directive whose image is its
+        *output*: the block's three emphasis options then mark three different
+        contents, and folding any two together would band the wrong one.
+
+        A block picturing its own code has one content, so `:emphasize-lines:`
+        marks the same lines in the page's code block and in the image, and
+        saying it twice would be the surprise. `:screenshot-emphasize-lines:`
+        still overrides it where the two should differ.
+        """
+        spec = self.options.get("screenshot-emphasize-lines")
+        if spec or not self.screenshots_source:
+            return spec  # type: ignore[no-any-return]
+        return self.options.get("emphasize-lines")  # type: ignore[no-any-return]
+
     def screenshot_emphasis(self, total: int) -> tuple[int, ...]:
         """Lines the capture bands, set by `:screenshot-emphasize-lines:`.
 
@@ -984,7 +1119,7 @@ class ClickDirective(SphinxDirective):
         :return: the lines to band, counted from one.
         :raises ValueError: when the specification names no readable line.
         """
-        spec = self.options.get("screenshot-emphasize-lines")
+        spec = self.emphasis_spec
         if not spec:
             return ()
         try:
@@ -1017,6 +1152,80 @@ class ClickDirective(SphinxDirective):
         :return: the pause, in seconds.
         """
         return self.options.get("screenshot-hold", fallback)  # type: ignore[no-any-return]
+
+    @cached_property
+    def screenshot_syntax_style(self) -> str:
+        """Pygments style a source capture is colored with.
+
+        Set by `:screenshot-syntax-style:`, falling back to the
+        `click_extra_screenshot_syntax_style` `conf.py` value, then to the one
+        the chrome is drawn for. Unused by a directive picturing its output,
+        whose colors the command it ran already chose.
+
+        :return: the style's name.
+        :raises ValueError: when the name is not a style Pygments knows.
+        """
+        return resolve_style(
+            self.options.get("screenshot-syntax-style")
+            or self.env.config.click_extra_screenshot_syntax_style
+            or None,
+            self.screenshot_background,
+        )
+
+    @cached_property
+    def screenshot_palette(self) -> TerminalPalette | None:
+        """Colors the capture resolves against, beyond what the chrome names.
+
+        `None` for a capture of a terminal, which is every run: its colors are
+        the terminal's own, and the chrome already answers for them. A capture
+        of *code* takes them from its syntax style instead, background included,
+        so the picture looks like that style does in an editor.
+        """
+        if not self.screenshots_source:
+            return None
+        return style_palette(
+            self.screenshot_syntax_style,
+            self.screenshot_background,
+            preset=self.screenshot_frame.get("preset"),
+        )
+
+    def screenshot_lines(self, results: Iterable[str]) -> list[str]:
+        """The lines the still capture draws, before its gutter is added.
+
+        The captured output, with one substitution: a block is run by a
+        documentation build rather than by the terminal it pictures, so it
+        prompts with this platform's sigil where the drawn terminal has its own.
+
+        A block picturing its own code draws that instead, colored by
+        {func}`~click_extra.snippet.highlight_code` into the same ANSI a command
+        would have printed. It has no prompt to substitute, and `results` is
+        whatever its runner returned, which for a source block is nothing.
+
+        :param results: what the block's runner returned.
+        :return: the lines to draw.
+        :raises ValueError: when the block names a language or style Pygments
+            does not know.
+        """
+        if self.screenshots_source:
+            return highlight_code(
+                "\n".join(self.content),
+                language=self.language,
+                style=self.screenshot_syntax_style,
+            ).split("\n")
+
+        lines = list(results)
+        preset = self.screenshot_frame.get("preset")
+        if (
+            self.show_prompt
+            and preset is not None
+            and lines
+            and lines[0].startswith(f"{PROMPT_SIGIL} ")
+        ):
+            # Gated on `show_prompt` so a `:hide-prompt:` block whose first
+            # *output* line happens to open with "$ " is not mistaken for an
+            # invocation.
+            lines[0] = f"{preset.prompt} {lines[0].removeprefix(f'{PROMPT_SIGIL} ')}"
+        return lines
 
     @cached_property
     def screenshot_frame(self) -> dict[str, Any]:
@@ -1164,23 +1373,9 @@ class ClickDirective(SphinxDirective):
             path.write_text(drawn, encoding="utf-8")
             return
 
-        lines = list(results)
-        preset = self.screenshot_frame.get("preset")
-        if (
-            self.show_prompt
-            and preset is not None
-            and lines
-            and lines[0].startswith(f"{PROMPT_SIGIL} ")
-        ):
-            # A block prompts with this platform's sigil, being run by a
-            # documentation build rather than by the terminal it pictures. The
-            # capture answers to the terminal it is drawn as instead. Gated on
-            # `show_prompt` so a `:hide-prompt:` block whose first *output* line
-            # happens to open with "$ " is not mistaken for an invocation.
-            lines[0] = f"{preset.prompt} {lines[0].removeprefix(f'{PROMPT_SIGIL} ')}"
+        lines = self.screenshot_lines(results)
         if "screenshot-line-numbers" in self.options and lines:
-            # Numbered whole, so line 1 is the prompt: the invocation everything
-            # under it came from.
+            # Numbered whole, so line 1 is the first line the picture shows.
             lines = number_lines("\n".join(lines)).splitlines()
         path.write_text(
             render(
@@ -1189,6 +1384,7 @@ class ClickDirective(SphinxDirective):
                 columns=self.screenshot_columns,
                 unique_id=self.screenshot,
                 background=self.screenshot_background,
+                palette=self.screenshot_palette,
                 **self.screenshot_frame,
             ),
             encoding="utf-8",
@@ -1238,61 +1434,7 @@ class SourceDirective(ClickDirective):
     show_source_by_default = True
     show_results_by_default = False
     runner_method = "execute_source"
-
-
-def _screenshot_columns(argument: str) -> TColumns:
-    """Read the `:screenshot-columns:` option into a width, or into `auto`.
-
-    The block's own text is wrapped by Click at its fixed width whatever this
-    says: what it decides is the width the *image* is laid out at, which is what
-    a line the CLI does not wrap on its own needs to stay on one line.
-    """
-    if argument.strip().lower() == AUTO_COLUMNS:
-        return AUTO_COLUMNS
-    width = int(directives.positive_int(argument))
-    if width < MIN_COLUMNS:
-        raise ValueError(f"{width} is narrower than the {MIN_COLUMNS}-column floor.")
-    return width
-
-
-def _screenshot_opacity(argument: str) -> float:
-    """Read the `:screenshot-opacity:` option into how solid the window is."""
-    opacity = float(argument)
-    if not 0.0 <= opacity <= OPAQUE:
-        raise ValueError(f"{argument} is not an opacity, between 0 and {OPAQUE}.")
-    return opacity
-
-
-def _screenshot_hold(argument: str) -> float:
-    """Read the `:screenshot-hold:` option into seconds, zero included."""
-    hold = float(argument)
-    if hold < 0:
-        raise ValueError(f"{argument} is not a pause, which is never negative.")
-    return hold
-
-
-def _screenshot_interval(argument: str) -> float:
-    """Read the `:screenshot-interval:` option into seconds per frame."""
-    interval = float(argument)
-    if interval <= 0:
-        raise ValueError(f"{argument} is not a frame duration, which is positive.")
-    return interval
-
-
-def _screenshot_preset(argument: str) -> TerminalPreset:
-    """Read the `:screenshot-preset:` option into the terminal it names."""
-    return PRESETS[directives.choice(argument, tuple(sorted(PRESETS)))]
-
-
-def _screenshot_background(argument: str) -> CaptureBackground:
-    """Read the `:screenshot-background:` option into its enum member.
-
-    Rejecting an unknown chrome here, at the option level, is what turns a typo
-    into a build error naming the choices, instead of a capture silently drawn
-    on the default.
-    """
-    choices = tuple(member.value for member in CaptureBackground)
-    return CaptureBackground(directives.choice(argument, choices))
+    screenshots_source = True
 
 
 class RunDirective(ClickDirective):
@@ -1307,48 +1449,6 @@ class RunDirective(ClickDirective):
     show_source_by_default = False
     show_results_by_default = True
     runner_method = "run_cli"
-
-    option_spec: ClassVar[OptionSpec] = ClickDirective.option_spec | {
-        "screenshot": directives.unchanged_required,
-        "screenshot-animate": directives.unchanged_required,
-        "screenshot-backdrop": directives.unchanged_required,
-        "screenshot-background": _screenshot_background,
-        "screenshot-interval": _screenshot_interval,
-        "screenshot-border": directives.unchanged_required,
-        "screenshot-blank": _screenshot_hold,
-        "screenshot-border-width": directives.nonnegative_int,
-        "screenshot-columns": _screenshot_columns,
-        "screenshot-emphasize-lines": directives.unchanged_required,
-        "screenshot-hold": _screenshot_hold,
-        "screenshot-line-numbers": directives.flag,
-        "screenshot-margin": directives.nonnegative_int,
-        "screenshot-opacity": _screenshot_opacity,
-        "screenshot-padding": directives.nonnegative_int,
-        "screenshot-preset": _screenshot_preset,
-        "screenshot-quantum": _screenshot_interval,
-        "screenshot-radius": directives.nonnegative_int,
-        "screenshot-record": directives.unchanged_required,
-        "screenshot-shadow": directives.unchanged_required,
-        "screenshot-speed": _screenshot_interval,
-        "screenshot-title": directives.unchanged_required,
-        "screenshot-watermark": directives.unchanged_required,
-        "screenshot-watermark-color": directives.unchanged_required,
-        "mirror": directives.flag,
-    }
-    """Adds the two options turning a run into a committed image.
-
-    The pair is deliberately independent. `:screenshot: <name>` only *writes*
-    `<name>.svg` under the `click_extra_screenshot_dir`, leaving the page's
-    results code block alone: inside Sphinx that block beats an image, being
-    selectable, searchable and theme-aware. `:mirror:` is what puts the image on
-    the page, by keeping a Markdown link to it in the source `.md` between the
-    same marker pair the `python:render` `:mirror:` flag uses, so the capture shows
-    on GitHub and PyPI as well.
-
-    So `:screenshot:` alone maintains an asset some other surface embeds, and
-    the two together also show it here. Both are refreshed offline by
-    `click-extra refresh-directives`.
-    """
 
 
 ClickDirective.runner_factory = ClickRunner
@@ -1391,14 +1491,14 @@ def _rewrite_screenshot_regions(
     text: str,
     directory: str = DEFAULT_SCREENSHOT_DIR,
 ) -> str:
-    """Return `text` with every `click:run` `:mirror:` region refreshed.
+    """Return `text` with every capture block's `:mirror:` region refreshed.
 
     Walks the document fence by fence via {func}`click_extra.blocks.fence_spans`,
-    so a `click:run` example nested inside a longer `code-block` fence is copied
-    verbatim, never treated as a live block. Only a top-level `click:run` fence
-    carrying both `:screenshot:` and `:mirror:` gets a region, inserted directly
-    below it on first sight. Idempotent: an unchanged block round-trips to the
-    same text.
+    so an example nested inside a longer `code-block` fence is copied verbatim,
+    never treated as a live block. Only a top-level fence
+    ({data}`_CAPTURE_FENCE_OPEN`) carrying both `:screenshot:` and `:mirror:`
+    gets a region, inserted directly below it on first sight. Idempotent: an
+    unchanged block round-trips to the same text.
 
     The image itself is written by the directive at build time. This only
     maintains the Markdown pointing at it.
@@ -1420,7 +1520,7 @@ def _rewrite_screenshot_regions(
             break
 
         options: dict[str, str] = {}
-        if _CLICK_RUN_FENCE_OPEN.match(lines[index]):
+        if _CAPTURE_FENCE_OPEN.match(lines[index]):
             options = _split_run_options(lines[index + 1 : span.close])
         # Emit the whole fence unit (source and close line) verbatim.
         out.extend(lines[index : span.close + 1])
@@ -1453,7 +1553,7 @@ def update_screenshot_blocks(
     check: bool = False,
     directory: str = DEFAULT_SCREENSHOT_DIR,
 ) -> list[Path]:
-    """Refresh every `click:run` `:mirror:` region in the given sources.
+    """Refresh every capture block's `:mirror:` region in the given sources.
 
     See {func}`click_extra.blocks.update_blocks` for the walk, write, and
     `check`-mode contract. Unlike the `python:render` `:mirror:` refresher, this

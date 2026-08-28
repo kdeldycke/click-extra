@@ -26,8 +26,14 @@ from textwrap import dedent
 import click
 import pytest
 from docutils import nodes
+from pygments.styles import get_style_by_name
 
-from click_extra.screenshot import CAPTURE_BACKGROUND, LIGHT_CAPTURE_BACKGROUND
+from click_extra.screenshot import (
+    CAPTURE_BACKGROUND,
+    LIGHT_CAPTURE_BACKGROUND,
+    CaptureBackground,
+)
+from click_extra.snippet import DEFAULT_SYNTAX_STYLES
 from click_extra.sphinx.click import (
     _CLIRUNNER_HAS_CAPTURE,
     SCREENSHOT_MARKER_END,
@@ -2132,5 +2138,151 @@ def test_click_run_mirror_skips_a_nested_example():
         result = invoke(greet)
         ```
         ````
+    """)
+    assert _rewrite_screenshot_regions(source) == source
+
+
+def test_click_source_screenshot_pictures_its_own_code(sphinx_app_myst):
+    """A source block's ``:screenshot:`` draws the code it declares.
+
+    A directive that runs something has output worth committing; one that only
+    declares code has none, so its subject is the code itself.
+    """
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            :screenshot: ripen-source
+            from click_extra import command, echo
+
+            @command
+            def ripen():
+                echo("The papaya is ready.")
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "ripen-source.svg"
+    assert asset.exists(), "the source capture was not written"
+    svg = asset.read_text(encoding="utf-8")
+    assert "ripen-source-r1" in svg
+    assert "papaya" in svg
+    # Painted the background its syntax style was designed against, rather than
+    # the terminal chrome a captured command is drawn on.
+    assert (
+        get_style_by_name(
+            DEFAULT_SYNTAX_STYLES[CaptureBackground.DARK]
+        ).background_color
+        in svg
+    )
+
+
+def test_click_source_screenshot_takes_a_syntax_style(sphinx_app_myst):
+    """``:screenshot-syntax-style:`` repaints the window along with the code."""
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            :screenshot: dracula-source
+            :screenshot-syntax-style: dracula
+            from click_extra import command
+
+            @command
+            def ripen():
+                pass
+            ```
+        """)
+    )
+
+    svg = (
+        Path(sphinx_app_myst.app.srcdir) / "assets" / "dracula-source.svg"
+    ).read_text(
+        encoding="utf-8",
+    )
+    assert get_style_by_name("dracula").background_color in svg
+
+
+def test_click_source_screenshot_bands_its_emphasized_lines(sphinx_app_myst):
+    """``:emphasize-lines:`` marks the same lines on the page and in the image.
+
+    A source block has one content, so saying it twice would be the surprise.
+    """
+    body = dedent("""
+        from click_extra import command
+
+        @command
+        def ripen():
+            pass
+        ```
+    """)
+    assets = Path(sphinx_app_myst.app.srcdir) / "assets"
+
+    sphinx_app_myst.build_document(
+        "```{click:source}\n:screenshot: plain-source\n" + body,
+    )
+    sphinx_app_myst.build_document(
+        "```{click:source}\n:screenshot: banded-source\n:emphasize-lines: 2\n" + body,
+    )
+
+    plain = (assets / "plain-source.svg").read_text(encoding="utf-8")
+    banded = (assets / "banded-source.svg").read_text(encoding="utf-8")
+    # The band is drawn in a clipped group of its own, which the unmarked
+    # capture of the same code does not carry at all.
+    assert '<g clip-path="url(#plain-source-window)">' not in plain
+    assert '<g clip-path="url(#banded-source-window)">' in banded
+
+
+def test_click_source_screenshot_is_deterministic(sphinx_app_myst):
+    """Two builds of one source block write the same bytes.
+
+    Nothing here runs a command or reads a clock, so a committed asset stays
+    put and leaves the working tree clean.
+    """
+    document = dedent("""
+        ```{click:source}
+        :screenshot: stable-source
+        from click_extra import command
+
+        @command
+        def ripen():
+            pass
+        ```
+    """)
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "stable-source.svg"
+    sphinx_app_myst.build_document(document)
+    first = asset.read_text(encoding="utf-8")
+    sphinx_app_myst.build_document(document)
+    assert asset.read_text(encoding="utf-8") == first
+
+
+def test_click_source_mirror_shows_the_snippet():
+    """A source block mirrors its capture the way a run block does.
+
+    Same marker pair, same derivation from the ``:screenshot:`` name: what
+    changed is only which directives are allowed to ask.
+    """
+    source = dedent("""
+        ```{click:source}
+        :screenshot: ripen-source
+        :mirror:
+        from click_extra import command
+        ```
+    """)
+    once = _rewrite_screenshot_regions(source)
+    assert "![ripen-source](assets/ripen-source.svg)" in once
+    assert SCREENSHOT_MARKER_END in once
+    assert _rewrite_screenshot_regions(once) == once
+
+
+def test_python_render_mirror_is_left_to_its_own_refresher():
+    """``python:render`` keeps the one ``:mirror:`` that means something else.
+
+    It mirrors the markup the block generated, and a second refresher writing
+    that region would undo the first on every alternate run.
+    """
+    source = dedent("""
+        ```{python:render}
+        :screenshot: rendered-screen
+        :mirror:
+        print("The papaya is ready.")
+        ```
     """)
     assert _rewrite_screenshot_regions(source) == source
