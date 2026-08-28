@@ -91,7 +91,7 @@ jobs:
         # failure while running no test at all. `uvx` reads no project config, so
         # the bypass has to ride on the command line. See claude.md.
         run: >
-          uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==7.13.0' metadata
+          uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==7.14.0' metadata
           --format github-json --output "$GITHUB_OUTPUT"
           test_matrix test_matrix_pr
 
