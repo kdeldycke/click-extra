@@ -194,3 +194,13 @@ Never paste CLI output into a plain ```` ```shell-session ```` or ```` ```text `
 ### Example data in a directive
 
 § Example data governs the CLI a `click:source` block defines and everything a `click:run` block prints, the same as any other example: a domain-neutral subject, and never click-extra itself, its concepts or its metadata.
+
+### Documentation prose style
+
+Docs pages read as tutorials:
+
+- **One concept per section.** Each section introduces one new concept and consumes only concepts from earlier sections. Group long pages into arcs under `##` headers.
+- **Section names answer the reader's question.** Name them after the task or choice ("SVG or HTML", "Any command, any CLI"), not after clever phrasing ("Two formats, two surfaces").
+- **Usage before rationale.** Lead with the command and what it does. Cut or compress implementation rationale and renderer-compatibility war stories into a single `{tip}`.
+- **Viewer-behavior claims state the surface.** Say where a claim holds ("GitHub and PyPI render SVG as an image: its text is not selectable or searchable there"), never as a property of the format itself. A reader can select SVG text in a browser or Quick Look.
+- **Renaming a heading repoints its inbound links.** Grep the docs tree and `readme.md` for `{file}.md#` before renaming any heading in `docs/*.md`, then rebuild and confirm the page adds no new warning.
