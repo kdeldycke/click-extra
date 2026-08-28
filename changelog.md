@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.0.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.0.0` (2026-08-28)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
 
 - **Breaking:** Raise the Click floor from `8.3.1` to `8.4.1`, dropping the compatibility shims the `8.3.x` releases needed.
