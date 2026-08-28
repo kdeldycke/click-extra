@@ -203,7 +203,7 @@ assert "release/42" in result.output
 
 The `--version` option works with standalone scripts.
 
-Let's put this code in a file named `greet.py`:
+Put this code in a file named `greet.py`:
 
 ```{click:source}
 :caption: `greet.py`

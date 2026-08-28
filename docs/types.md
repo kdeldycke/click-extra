@@ -63,9 +63,9 @@ assert "calendar units (months, years) are rejected" in result.stderr
 
 But this is not always what we want, especially when the `Enum`'s names are not user-friendly: they may contain underscores, uppercase letters, etc. This custom `EnumChoice` type solve this issue by allowing you to select which part of the `Enum` members to use as choice strings.
 
-### Limits of `Click.Choice`
+### Limits of `click.Choice`
 
-Let's start with a simple example to demonstrate the limitations of `click.Choice`. Starting with this `Format` definition:
+A simple example demonstrates the limitations of `click.Choice`. Starting with this `Format` definition:
 
 ```{code-block} python
 from enum import Enum
@@ -180,7 +180,7 @@ To change this behavior, we need `EnumChoice`.
 
 ### Usage
 
-Let's use `click_extra.EnumChoice` instead of `click.Choice`, and then override the `__str__` method of our `Enum`:
+Use `click_extra.EnumChoice` instead of `click.Choice`, and override the `__str__` method of the `Enum`:
 
 ```{click:source}
 :emphasize-lines: 4,12-13,19

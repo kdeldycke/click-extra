@@ -48,7 +48,7 @@ Besides `--verbosity`, there are the [`-v`/`--verbose`](#click_extra.logging.Ver
 
 A fourth, [`--debug`](#click_extra.logging.DebugOption), is shorthand for `--verbosity DEBUG`.
 
-In the rest of this documentation, we will mainly focus on the canonical `--verbosity` option to keep things simple (logging is already complicated enough...).
+The rest of this documentation focuses on the canonical `--verbosity` option, to keep things simple.
 ```
 
 ### Standalone option
@@ -217,7 +217,7 @@ for args in (
 
 The `--verbosity` option is by default attached to the [global `root` logger](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1997).
 
-This allows you to use module-level helpers like [`logging.debug`](https://docs.python.org/3/library/logging.html?highlight=logging#logging.Logger.debug). That way you don't have to worry about setting up your own logger. And logging messages can be easily produced with minimal code:
+Module-level helpers like [`logging.debug`](https://docs.python.org/3/library/logging.html?highlight=logging#logging.Logger.debug) then work directly, with no logger setup and minimal code:
 
 ```{click:source}
 :emphasize-lines: 1, 9-13
@@ -363,7 +363,7 @@ To prevent this behavior, you can associate the `--verbosity` option with your o
 
 The preferred way to customize log messages is to create your own logger and attach it to the `--verbosity` option.
 
-This can be done with {py:func}`~click_extra.logging.new_logger`. Here is how we can for example change the format of the log messages:
+{py:func}`~click_extra.logging.new_logger` does that. Here is how to change the format of the log messages:
 
 ```{click:source}
 :emphasize-lines: 5-8, 11, 18
@@ -472,7 +472,7 @@ But {py:func}`~click_extra.logging.new_logger` always creates new loggers by set
 
 This is the reason why, in the example above, the `root` and `app_logger` loggers are independent.
 
-Let's experiment with that property and set the `propagate` attribute to `True`:
+To see that property at work, set the `propagate` attribute to `True`:
 
 ```{click:source}
 :emphasize-lines: 7
