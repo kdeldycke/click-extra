@@ -329,6 +329,10 @@ window's own corner instead of beside it.
 """
 
 
+PACKAGE_NAME = "click-extra"
+"""Name this package is distributed and credited under."""
+
+
 def _package_release() -> str:
     """The release this build of the package belongs to.
 
@@ -342,13 +346,13 @@ def _package_release() -> str:
     :return: the release, or an empty string when the package is not installed.
     """
     try:
-        release = metadata.version("click-extra")
+        release = metadata.version(PACKAGE_NAME)
     except metadata.PackageNotFoundError:
         return ""
     return release.split(".dev")[0].split("+")[0]
 
 
-DEFAULT_WATERMARK = f"generated with click-extra {_package_release()}".rstrip()
+DEFAULT_WATERMARK = f"generated with {PACKAGE_NAME} {_package_release()}".rstrip()
 """Credit line every capture carries unless another one, or none, is asked for.
 
 A capture travels: it lands on a slide, in a README, on a social card, far from
@@ -360,6 +364,22 @@ from one shot today.
 This is a default, not a fixture. `--watermark ""` draws none, and any other
 text replaces it: a project crediting itself rather than its tooling is the
 expected case, not an exception.
+```
+"""
+
+WATERMARK_URL = f"https://kdeldycke.github.io/{PACKAGE_NAME}/screenshots.html"
+"""Page the credit line points at, for a reader holding only the image.
+
+A capture travels away from whatever explained it, so the mark carries the way
+back. Only {data}`PACKAGE_NAME` is linked, and only where the line still names
+it: a project crediting itself instead has no click-extra left to point at, and
+gets no link rather than one pointing somewhere it did not ask for.
+
+```{note}
+The link answers where the file is interactive: opened on its own, inlined into
+a page, or embedded through `<object>`. An `<img>` draws an SVG as a picture and
+no click reaches inside one, which is how this documentation embeds its own
+captures.
 ```
 """
 
@@ -1047,6 +1067,21 @@ def titlebar_strip(
     )
 
 
+def credit_segments(text: str) -> tuple[str, str, str] | None:
+    """Split a credit line around the package name it credits.
+
+    The one part of the line worth pointing anywhere is the name, so both
+    formats link that and leave the rest as prose. Splitting is what keeps a
+    custom credit out of it: a line not naming the package has nothing to link.
+
+    :param text: the credit line.
+    :return: what precedes the name, the name, and what follows it, or `None`
+        when the line does not name the package.
+    """
+    before, name, after = text.partition(PACKAGE_NAME)
+    return (before, name, after) if name else None
+
+
 def watermark_svg(
     text: str,
     *,
@@ -1054,6 +1089,7 @@ def watermark_svg(
     height: float,
     paint: str,
     font_stack: str = CAPTURE_FONT_STACK,
+    url: str = WATERMARK_URL,
 ) -> str:
     """Draw the credit line in the image's bottom-right corner.
 
@@ -1064,20 +1100,35 @@ def watermark_svg(
     Carries a `watermark` class, so a reader taking a capture apart can tell the
     one run the renderer never captured from the ones it did.
 
+    The package name is wrapped in a link, see {data}`WATERMARK_URL`. Written as
+    a plain `href` rather than the `xlink:href` of SVG 1.1, which every current
+    browser reads and which needs no second namespace on the root element.
+
     :param text: the credit to draw. Empty draws nothing.
     :param width: width of the whole image, in pixels.
     :param height: its height, in pixels.
     :param paint: color to draw the text in, alpha included.
     :param font_stack: fonts it is set in, the capture's own.
+    :param url: where the package name points. Empty links nothing.
     :return: the SVG markup, empty when there is nothing to draw.
     """
     if not text:
         return ""
+    body = _xml_escape(text)
+    segments = credit_segments(text) if url else None
+    if segments:
+        before, name, after = segments
+        body = (
+            f"{_xml_escape(before)}"
+            f'<a href="{escape(url)}" class="watermark-link">'
+            f'<tspan text-decoration="underline">{_xml_escape(name)}</tspan>'
+            f"</a>{_xml_escape(after)}"
+        )
     return (
         f'<text class="watermark" x="{_svg_number(width - WATERMARK_INSET)}" '
         f'y="{_svg_number(height - WATERMARK_INSET)}" text-anchor="end" '
         f'fill="{paint}" font-family="{font_stack}" '
-        f'font-size="{WATERMARK_SIZE}">{_xml_escape(text)}</text>'
+        f'font-size="{WATERMARK_SIZE}">{body}</text>'
     )
 
 
@@ -1906,6 +1957,7 @@ def render_html(
     opacity: float = OPAQUE,
     watermark: str = "",
     watermark_color: str = WATERMARK_INK,
+    watermark_url: str = WATERMARK_URL,
 ) -> str:
     """Render captured terminal text to HTML.
 
@@ -1949,6 +2001,7 @@ def render_html(
     :param watermark: credit line drawn under the block, against its right edge,
         where an SVG draws it in the margin. Empty draws none.
     :param watermark_color: color that line is drawn in, alpha included.
+    :param watermark_url: where the package name points. Empty links nothing.
     :return: the rendered markup.
     """
     palette = resolve_palette(preset, background)
@@ -1976,10 +2029,22 @@ def render_html(
         f'overflow-x: auto">{ansi_to_html(escape(text, quote=False))}</pre>'
     )
     if watermark:
+        credit = escape(watermark, quote=False)
+        segments = credit_segments(watermark) if watermark_url else None
+        if segments:
+            before, name, after = segments
+            # The anchor inherits the credit's own gray rather than taking the
+            # page's link color, which would make the mark the loudest thing in
+            # a capture whose point is the terminal above it.
+            credit = (
+                f"{escape(before, quote=False)}"
+                f'<a href="{escape(watermark_url)}" style="color: inherit">'
+                f"{escape(name, quote=False)}</a>{escape(after, quote=False)}"
+            )
         body += (
             f'\n<div style="margin: 0 {margin}px {margin}px; text-align: right; '
             f"color: {watermark_color}; font-family: {font_stack}; "
-            f'font-size: {WATERMARK_SIZE}px">{escape(watermark, quote=False)}</div>'
+            f'font-size: {WATERMARK_SIZE}px">{credit}</div>'
         )
     page = "" if backdrop == NO_PAINT else f"background: {backdrop}; "
     if not full:

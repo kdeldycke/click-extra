@@ -34,6 +34,7 @@
 - Hide an animated capture's frames with `visibility` and `opacity` attributes rather than a stylesheet rule, so a renderer ignoring `<style>` stops stacking every frame at once.
 - Number an animated capture's lines when `:screenshot-line-numbers:` asks, which previously only reached a still.
 - Add `--emphasize-lines` to `click-extra screenshot` and `:screenshot-emphasize-lines:` to `click:run`, banding the captured lines they name.
+- Link the `click-extra` name in a capture's credit line to the documentation, in both SVG and HTML.
 - Show every terminal preset wearing the full window treatment, gradient, caption, gutter and emphasis included.
 - Animate the whole spinner inventory in the documentation, one capture per preset beside the reference table.
 - Demonstrate `reverse=True` with a clock running both ways in the spinner tutorial.

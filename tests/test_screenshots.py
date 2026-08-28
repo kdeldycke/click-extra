@@ -67,6 +67,7 @@ from click_extra.screenshot import (
     TITLEBAR_HEIGHT,
     WATERMARK_INK,
     WATERMARK_INSET,
+    WATERMARK_URL,
     CaptureBackground,
     CaptureFormat,
     blend,
@@ -1245,7 +1246,9 @@ def test_render_thins_the_window_out(format, expected):
 def test_render_credits_what_drew_it(format):
     """Every capture carries the mark, in the space around the terminal."""
     marked = render("kiwi", format=format, unique_id="fruit")
-    assert DEFAULT_WATERMARK in marked
+    # The name is wrapped in a link, so the line reads whole only once the
+    # markup between its parts is taken back out.
+    assert DEFAULT_WATERMARK in re.sub(r"<[^>]+>", "", marked)
     assert WATERMARK_INK in marked
     # A capture that travels says which release drew it.
     assert re.search(r"click-extra \d+\.\d+", DEFAULT_WATERMARK)
@@ -1256,6 +1259,26 @@ def test_render_credits_what_drew_it(format):
     assert "pantry 1.4.2" in render(
         "kiwi", format=format, unique_id="fruit", watermark="pantry 1.4.2"
     )
+
+
+@pytest.mark.parametrize("format", CaptureFormat)
+def test_watermark_links_the_package_name(format):
+    """The credit points a reader holding only the image back at the docs."""
+    marked = render("kiwi", format=format, unique_id="fruit")
+    assert f'href="{WATERMARK_URL}"' in marked
+    # Only the name is linked: the words around it stay outside the anchor.
+    linked = re.search(r"<a\b[^>]*>(.*?)</a>", marked, re.DOTALL)
+    assert linked
+    assert re.sub(r"<[^>]+>", "", linked[1]) == "click-extra"
+
+
+@pytest.mark.parametrize("format", CaptureFormat)
+def test_watermark_leaves_a_borrowed_credit_unlinked(format):
+    """A project crediting itself has no click-extra to point anywhere."""
+    marked = render("kiwi", format=format, unique_id="fruit", watermark="pantry 1.4.2")
+    assert "pantry 1.4.2" in marked
+    assert WATERMARK_URL not in marked
+    assert "<a " not in marked
 
 
 def test_watermark_is_not_terminal_text():
