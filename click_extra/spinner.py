@@ -1580,7 +1580,7 @@ def _spinner_preview(preset: SpinnerPreset) -> str:
     selectors (`U+FE0F`) are dropped: `wcwidth` sizes the promoted emoji at
     two cells while many terminals render the bare symbol in one, and that
     disagreement misaligns the table. Wide animations (`shark`, `pong`,
-    `dots8Bit`, …) stop at the budget with a `… (+N)` tail.
+    `dots8-bit`, …) stop at the budget with a `… (+N)` tail.
     """
     shown: list[str] = []
     width = 0
@@ -1605,7 +1605,7 @@ _DEFAULT_SHOWCASE = (
     "moon",
     "clock",
     "earth",
-    "bouncingBar",
+    "bouncing-bar",
     "arc",
     "pong",
     "shark",

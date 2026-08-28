@@ -1007,7 +1007,7 @@ Options:
                                Disabled for non-interactive output (pipes, dumb
                                terminals, CI) and by --accessible.  [default:
                                progress]
-  --theme [auto|dark|dracula|light|manpage|monokai|nord|solarized_dark]
+  --theme [auto|dark|dracula|light|manpage|monokai|nord|solarized-dark]
                                Color theme used for help screens.  [default:
                                dark]
   --params                     Show all CLI parameters, their provenance,

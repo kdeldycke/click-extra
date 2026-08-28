@@ -168,7 +168,7 @@ success = { fg = "#a3be8c" }
 subheading = { fg = "#88c0d0" }                        # nord8
 
 
-[solarized_dark]
+[solarized-dark]
 # Solarized Dark by Ethan Schoonover. Warm-toned dark theme with selective
 # accent contrast.
 # Palette: https://ethanschoonover.com/solarized/

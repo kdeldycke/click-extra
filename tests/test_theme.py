@@ -166,7 +166,7 @@ _THEME_BACKGROUNDS: dict[str, str] = {
     "manpage": "#000000",
     "monokai": "#272822",
     "nord": "#2e3440",
-    "solarized_dark": "#002b36",
+    "solarized-dark": "#002b36",
 }
 
 # Branded themes are 24-bit RGB and ship with deliberate palettes, so we
@@ -176,7 +176,7 @@ _BRANDED_THEMES: tuple[str, ...] = (
     "dracula",
     "monokai",
     "nord",
-    "solarized_dark",
+    "solarized-dark",
 )
 
 # Slots that carry primary readable text. These should clear WCAG AA Large
@@ -638,7 +638,7 @@ def test_config_theme_appears_in_help_metavar(invoke, create_config):
     assert result.exit_code == 0, result.stderr
     # The bracket-style metavar must include "midnight" in alphabetical order.
     assert (
-        "[auto|dark|dracula|light|manpage|midnight|monokai|nord|solarized_dark]"
+        "[auto|dark|dracula|light|manpage|midnight|monokai|nord|solarized-dark]"
         in result.stdout
     )
 
@@ -758,7 +758,7 @@ def test_theme_auto_advertised_in_help_metavar(invoke):
     result = invoke(greet, "--help", color=False)
     assert result.exit_code == 0
     assert (
-        "[auto|dark|dracula|light|manpage|monokai|nord|solarized_dark]" in result.stdout
+        "[auto|dark|dracula|light|manpage|monokai|nord|solarized-dark]" in result.stdout
     )
 
 
@@ -797,7 +797,7 @@ def test_resolve_auto_theme_forwards_query_flag(monkeypatch):
         ("nord", "nord"),
         # Matched against the registry case-insensitively, like the flag.
         ("NORD", "nord"),
-        ("Solarized_Dark", "solarized_dark"),
+        ("Solarized-Dark", "solarized-dark"),
     ),
 )
 def test_theme_envvar_picks_palette(invoke, monkeypatch, env_value, expected_name):

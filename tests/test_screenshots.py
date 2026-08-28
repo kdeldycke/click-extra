@@ -549,7 +549,7 @@ def test_two_animations_share_no_selector():
     animation the longer one's clock, and the frames it does not have go blank
     for that part of every cycle.
     """
-    names = ("dots", "moon", "bouncingBar")
+    names = ("dots", "moon", "bouncing-bar")
     claimed = {name: claimed_names(animated_capture(name)) for name in names}
     for first, second in combinations(names, 2):
         shared = claimed[first] & claimed[second]
@@ -573,7 +573,7 @@ def test_frame_animation_css_only_ever_animates():
     assert "visibility: hidden;" not in css.split(REDUCED_MOTION_QUERY, 1)[0]
 
 
-@pytest.mark.parametrize("name", ("bouncingBar", "dots", "moon"))
+@pytest.mark.parametrize("name", ("bouncing-bar", "dots", "moon"))
 def test_animated_capture_hides_its_frames_outside_the_stylesheet(name):
     """Every frame but the poster is hidden by an attribute, not by a rule.
 
@@ -594,7 +594,7 @@ def test_animated_capture_hides_its_frames_outside_the_stylesheet(name):
         assert 'opacity="0"' in attrs, index
 
 
-@pytest.mark.parametrize("name", ("bouncingBar", "dots", "moon"))
+@pytest.mark.parametrize("name", ("bouncing-bar", "dots", "moon"))
 def test_animated_capture_renders_the_same_bytes_twice(name):
     """An unchanged animation rewrites byte-identical bytes.
 

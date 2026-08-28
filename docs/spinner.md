@@ -127,7 +127,7 @@ with Spinner("Brewing tea", spinner=SPINNERS["moon"]):
     sleep(5)
 ```
 
-The preset sets both the frames and the interval; an explicit `frames=` or `interval=` still overrides it. Because the spinner redraws the whole line instead of backspacing, the multi-character animations (`bouncingBar`, `pong`, `shark`, …) render correctly here, unlike in the upstream renderers that had to drop them.
+The preset sets both the frames and the interval; an explicit `frames=` or `interval=` still overrides it. Because the spinner redraws the whole line instead of backspacing, the multi-character animations (`bouncing-bar`, `pong`, `shark`, …) render correctly here, unlike in the upstream renderers that had to drop them.
 
 ### Full inventory
 
@@ -139,8 +139,8 @@ from click_extra.cli import demo
 result = invoke(demo, args=["--color", "spinner", "--all", "--table"])
 assert result.exit_code == 0
 assert "moon" in result.output
-assert "bouncingBar" in result.output
-assert "dots8Bit" in result.output
+assert "bouncing-bar" in result.output
+assert "dots8-bit" in result.output
 assert "Interval" in result.output
 assert "Tour" in result.output
 ```

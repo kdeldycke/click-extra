@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Breaking:** Rename every camel-cased spinner preset to kebab case, so `boxBounce` is now `box-bounce`.
+- **Breaking:** Rename the `solarized_dark` theme to `solarized-dark`.
 - **Breaking:** Remove the `timeTravel` spinner preset, which is `SPINNERS["clock"]` with `reverse=True`.
 - **Breaking:** `--man` now typesets the manual and pages it, the way `man` does, instead of printing roff to stdout; the source moved to `--help-format man`.
 - **Breaking:** Remove `click-extra wrap --carapace` in favor of `wrap --help-format carapace`, one option carrying every rendering.

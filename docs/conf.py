@@ -159,7 +159,7 @@ myst_heading_anchors = 6
 # MyST resolves match the ids actually rendered in the page. The default
 # GitHub-style slugifier keeps leading digits, "--" prefixes, dots and
 # underscores that docutils strips or collapses (e.g. "`--params` option"
-# → "params-option", "solarized_dark" → "solarized-dark"), which otherwise
+# → "params-option", "solarized-dark" → "solarized-dark"), which otherwise
 # leaves every cross-reference to such a heading unresolved. The dotted-path
 # string form (not the function object) keeps the config value picklable, so
 # Sphinx can cache it between builds.

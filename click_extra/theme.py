@@ -22,7 +22,7 @@ the {data}`NOCOLOR_THEME` constant, the process-wide fallback accessed via
 {class}`ThemeOption` that exposes `--theme` on every Click Extra command.
 
 The built-in themes (`dark`, `dracula`, `light`, `manpage`,
-`monokai`, `nord`, `solarized_dark`) live in the package data file
+`monokai`, `nord`, `solarized-dark`) live in the package data file
 `click_extra/themes.toml` and are loaded at module import time via
 {meth}`HelpTheme.from_dict`. `manpage` is a colorless theme that
 shadows man-pages(7) typography (bold literals, italic replaceable); the
@@ -922,7 +922,7 @@ theme is a one-file edit in that TOML file: declare a new `[<name>]`
 table with one inline-table per styled slot.
 
 Index by name to access any palette, like `BUILTIN_THEMES["dark"]` or
-`BUILTIN_THEMES["solarized_dark"]`.
+`BUILTIN_THEMES["solarized-dark"]`.
 
 Empty when the `themes.toml` data file is absent (some packaging and
 distribution setups drop it); see `_load_builtin_themes` for the
