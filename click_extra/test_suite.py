@@ -33,23 +33,16 @@ a target, parallelized per the resolved `--jobs` count (see
 
 This is the black-box, subprocess-level complement to
 {class}`click_extra.testing.CliRunner`, which drives a CLI in-process.
-
-```{todo}
-Tokenize a Windows command line with quoting/escaping support, like `shlex`
-does on POSIX. The `str.split()` fallback `_split_args` uses there only splits
-on whitespace, so a quoted argument such as `--name "two words"` is wrongly
-broken into three tokens. Use
-[w32lex](https://github.com/maxpat78/w32lex), the Windows counterpart to
-`shlex`.
-```
 """
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import os
 import re
 import shlex
+import sys
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
@@ -116,12 +109,45 @@ class SkippedTest(Exception):
 
 
 def _split_args(cli: str) -> list[str]:
-    """Split a command-line string into a list of arguments."""
-    if is_windows():
-        return cli.split()
+    """Split a command-line string into a list of arguments.
+
+    Both platforms honor quotes and escapes, so `--name "two words"` arrives as
+    a single argument everywhere. POSIX goes through `shlex`; Windows through
+    `CommandLineToArgvW`, the `shell32` function that gives every Windows
+    program its `argv`.
+
+    Windows parses the *first* argument by rules of its own: it ends at the
+    first space, takes no backslash escape, and an empty command line makes the
+    function answer with the running executable's own path instead of nothing. A
+    sentinel program name absorbs all three, and its token is dropped, so every
+    argument the caller wrote takes the uniform rules `shlex` applies on POSIX.
+
+    :param cli: the command line to tokenize, with no program name in front.
+    :return: one string per argument.
+    :raises OSError: if `CommandLineToArgvW` fails.
+    """
+    # Positive `sys.platform` guard rather than `is_windows()`: a type checker
+    # narrows on the former, and reports `ctypes.windll` as missing otherwise.
+    if sys.platform == "win32":
+        shell32 = ctypes.windll.shell32
+        shell32.CommandLineToArgvW.restype = ctypes.POINTER(ctypes.c_wchar_p)
+        shell32.CommandLineToArgvW.argtypes = (
+            ctypes.c_wchar_p,
+            ctypes.POINTER(ctypes.c_int),
+        )
+        argc = ctypes.c_int(0)
+        argv = shell32.CommandLineToArgvW(f"sentinel {cli}", ctypes.byref(argc))
+        if not argv:
+            raise ctypes.WinError()
+        try:
+            # Skip the sentinel at index 0.
+            return [argv[index] for index in range(1, argc.value)]
+        finally:
+            # The buffer is caller-owned, and LocalFree is what the API asks for.
+            ctypes.windll.kernel32.LocalFree(argv)
+
     # For Unix platforms, we have the dedicated shlex module.
-    else:
-        return shlex.split(cli)
+    return shlex.split(cli)
 
 
 @dataclass(order=True)

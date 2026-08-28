@@ -147,7 +147,7 @@ The directives map one-to-one onto {class}`~click_extra.test_suite.CLITestCase` 
 
 | Directive                                                             | Meaning                                                                                                                                                |
 | :-------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cli_parameters`                                                      | Arguments appended to the command (a string is split, a list is used as-is).                                                                           |
+| `cli_parameters`                                                      | Arguments appended to the command (a string is split on whitespace, with quoted runs kept whole; a list is used as-is).                                |
 | `env`                                                                 | Environment variables set on the command, over the inherited environment. Values are strings, so a number or a boolean is quoted.                      |
 | `unset_env`                                                           | Environment variables removed from the inherited environment (a name, or a list of them).                                                              |
 | `exit_code`                                                           | The expected process exit code.                                                                                                                        |

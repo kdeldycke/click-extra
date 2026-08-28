@@ -46,6 +46,7 @@ from click_extra import (
     run_test_suite,
 )
 from click_extra.cli import demo
+from click_extra.test_suite import _split_args
 
 # A case that passes: the interpreter exits 0 on --version.
 PASS_CASE = CLITestCase(cli_parameters="--version", exit_code=0)
@@ -171,6 +172,44 @@ def test_cases_from_data_rejects_unknown_directive():
     """An unknown directive in a mapping is rejected."""
     with pytest.raises(ValueError, match="invalid directives"):
         list(cases_from_data([{"not_a_real_directive": 1}]))
+
+
+# --- argument splitting -------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("cli", "expected"),
+    (
+        # Nothing to split.
+        ("", []),
+        ("   ", []),
+        # Plain whitespace separation, with runs collapsed.
+        ("--count 3", ["--count", "3"]),
+        ("  --count   3  ", ["--count", "3"]),
+        # A quoted value holds its spaces together.
+        ('--city "San Francisco"', ["--city", "San Francisco"]),
+        (
+            '--city "San Francisco" --unit celsius',
+            ["--city", "San Francisco", "--unit", "celsius"],
+        ),
+        # Quotes glued to a token are stripped, and the token stays whole.
+        ('--fruit="Granny Smith"', ["--fruit=Granny Smith"]),
+    ),
+)
+def test_split_args_honors_quotes(cli, expected):
+    """Quoting survives tokenization identically on POSIX and Windows.
+
+    `shlex` and `CommandLineToArgvW` are two different parsers, so the cases
+    above are the subset of syntax on which they must agree. Windows used to
+    reach a bare `str.split()` here, which broke every quoted case into pieces.
+
+    Two corners stay out on purpose, because the parsers answer differently and
+    each answer is right for its platform: a backslash escapes the next
+    character for `shlex` but stands for itself on Windows (which is what keeps
+    `C:\\Users` intact), and a doubled quote inside a quoted run closes and
+    reopens it for `shlex` while Windows folds it into one literal quote.
+    """
+    assert _split_args(cli) == expected
 
 
 # --- CLITestCase normalization -----------------------------------------------
