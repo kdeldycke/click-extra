@@ -165,6 +165,8 @@
 - Add `click_extra.testing.isolated_filesystem()`, keeping the helper Click deprecates in `8.5.0` and removes in `9.0`, so the `runner` fixture and `click:run` blocks stop warning.
 - Re-export `custom_version_option`, the `--version` option Click `8.5.0` added for output produced by a callback.
 - Keep `get_binary_stream` and `get_text_stream` reachable, which a star import stopped binding when Click `8.5.0` moved them behind a deprecation shim.
+- Fix 92 documentation blocks whose `:emphasize-lines:` stopped highlighting anything when the option was split onto the source block, by routing them to `:emphasize-result-lines:`.
+- Fix terminal captures rendering their rows with the leading of a code block, which sliced block-drawing art such as the `--version` screen's logo.
 
 ## [`8.9.1` (2026-08-15)](https://github.com/kdeldycke/click-extra/compare/v8.9.0...v8.9.1)
 
