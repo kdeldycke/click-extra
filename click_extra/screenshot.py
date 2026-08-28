@@ -105,6 +105,15 @@ class CaptureFormat(Enum):
     The value doubles as the file extension {func}`format_from_path` matches on.
     """
 
+    ANSI = "ansi"
+    """The escape sequences themselves, for a terminal to paint.
+
+    The one target that needs no rendering, a terminal reading the same stream
+    the capture is carried in. So it is the whole picture minus the window:
+    there is no frame, no chrome and no margin to draw, and every option
+    describing one is ignored, see {func}`render`.
+    """
+
     HTML = "html"
     """Selectable, searchable text in a self-contained `<pre>`.
 
@@ -200,6 +209,14 @@ chrome in the dark default's near-white `invoked_command` style, invisible.
 missing entry: the mapping is read through {meth}`dict.get`, and
 {data}`~click_extra.theme.BUILTIN_THEMES` is empty when a trimmed install drops
 `themes.toml`.
+"""
+
+STDOUT_PATH = "-"
+"""Destination naming the terminal rather than a file.
+
+The convention every command-line tool reading or writing a stream already
+follows, and the one destination that states no extension, so it is what
+{func}`format_from_path` reads as {attr}`CaptureFormat.ANSI`.
 """
 
 NO_PAINT = "none"
@@ -609,6 +626,13 @@ PADDING = " \N{NO-BREAK SPACE}"
 
 {func}`render_svg` emits every space as a non-breaking one, so the padding
 survives an XML round-trip and no renderer collapses a run of them.
+"""
+
+_SGR_RE = re.compile(r"\x1b\[[0-9;]*m")
+"""One SGR escape sequence, the kind that changes how the text after it looks.
+
+Matched so {func}`emphasize_ansi` can restate a band after each one: a full
+reset closes the band along with the ink it was closing.
 """
 
 _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
@@ -1956,6 +1980,49 @@ def render_svg(
     )
 
 
+def emphasize_ansi(
+    text: str,
+    lines: Sequence[int],
+    paint: str,
+) -> str:
+    """Band the named lines of ANSI text, the way a terminal can.
+
+    The picture's band is a rectangle drawn behind a row. A terminal has no
+    behind, so the band is the row's own background color, set for the whole
+    row and padded out to the longest line so the marked rows still square up
+    into a block rather than ending ragged.
+
+    ```{caution}
+    The band is restated after every escape sequence in the row, not just at
+    its start. Pygments closes a colored run with a full reset (`\\x1b[39;00m`),
+    which clears the background along with the ink: set once, a band would stop
+    at the row's first keyword. Restating the same color costs nothing to look
+    at, since the second declaration paints what the first already did.
+    ```
+
+    :param text: the text to band, ANSI escape sequences included.
+    :param lines: rows to band, counted from `1`. Empty bands nothing.
+    :param paint: the band's color, as `#rrggbb`.
+    :return: the text, banded.
+    """
+    if not lines:
+        return text
+    wanted = set(lines)
+    rows = text.split("\n")
+    width = max((cell_width(unstyle(row)) for row in rows), default=0)
+    red, green, blue = _hex_to_rgb(paint)
+    band = f"\x1b[48;2;{red};{green};{blue}m"
+    painted = []
+    for number, row in enumerate(rows, 1):
+        if number not in wanted:
+            painted.append(row)
+            continue
+        filled = row + " " * max(0, width - cell_width(unstyle(row)))
+        restated = _SGR_RE.sub(lambda match: f"{match.group(0)}{band}", filled)
+        painted.append(f"{band}{restated}\x1b[49m")
+    return "\n".join(painted)
+
+
 def render_html(
     text: str,
     *,
@@ -2122,10 +2189,14 @@ def render(
     """Render captured terminal text to the document `format` names.
 
     :param text: captured output, ANSI escape sequences included.
-    :param format: which document to produce.
+    :param format: which document to produce. {attr}`CaptureFormat.ANSI` draws
+        no window, so it ignores everything describing one: the frame, the
+        chrome, the caption, the margin, the credit line and the animation. What
+        it keeps is `emphasize`, which marks rows rather than surrounding them,
+        and whatever the caller already did to the text itself.
     :param columns: terminal width, in characters, an SVG is laid out at, or
         {data}`AUTO_COLUMNS` for the width its own longest line asks for. HTML
-        reflows, so it ignores this.
+        reflows and ANSI is the text itself, so both ignore this.
     :param title: caption drawn in an SVG's window chrome, or an HTML document's
         `<title>`.
     :param unique_id: SVG only. Prefix namespacing the source's CSS classes and
@@ -2205,6 +2276,18 @@ def render(
         # its title bar, so it closes over the first line of output instead.
         frame["collapse_titlebar"] = not any(
             (preset.buttons.circles, preset.buttons.glyphs, title),
+        )
+    if format is CaptureFormat.ANSI:
+        if frames is not None:
+            raise ValueError(f"{CaptureFormat.ANSI} captures do not animate.")
+        # The text already is the document, so there is nothing to render: what
+        # a terminal reads is the stream a capture was carried in all along.
+        # Only the emphasis survives, being the one mark that lives in the rows
+        # rather than around them.
+        return emphasize_ansi(
+            text,
+            emphasize,
+            blend(palette.background, palette.foreground, EMPHASIS_RATIO),
         )
     if format is CaptureFormat.HTML:
         if frames is not None:
@@ -2365,10 +2448,16 @@ def capture(
 def format_from_path(path: Path) -> CaptureFormat:
     """Pick the capture format a file name asks for.
 
+    {data}`STDOUT_PATH` names the terminal, whose format is the escape sequences
+    themselves. It is answered here rather than at the call site so the one
+    question "what does this destination want?" has one answer.
+
     :param path: where the capture is to be written.
     :return: the {class}`CaptureFormat` its extension names.
     :raises ValueError: when the extension names no format.
     """
+    if path.name == STDOUT_PATH:
+        return CaptureFormat.ANSI
     suffix = path.suffix.lower().lstrip(".")
     # `.htm` is the same document under the older extension.
     if suffix == "htm":

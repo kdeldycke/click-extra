@@ -108,6 +108,16 @@ An SVG capture needs no web font and no HTTP request to render, and it looks the
 HTML has two limitations SVG does not. An [OSC 8 hyperlink](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) loses its URL and keeps its visible text. The eight base ANSI colors render as their CSS names, so the browser's palette decides their shade, not the terminal's. Neither shows up on a help screen, which is why the format is worth having anyway.
 ```
 
+### Straight to the terminal
+
+`--output -` draws no window and prints the captured escape sequences, so you can see what a capture holds before committing it to a file. `--output shot.ansi` writes the same thing out.
+
+```shell-session
+$ click-extra screenshot --output - -- my-cli --help
+```
+
+The escapes are dropped when the destination turns out to be a pipe, unless `--color=always` keeps them. Nothing describing a window applies here, so the frame, the chrome and the credit line are all ignored.
+
 ```{seealso}
 To picture source code instead of a command's output, see [code snippets](snippets.md). Both are drawn in the same window, and the whole styling vocabulary below applies to either.
 ```

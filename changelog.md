@@ -18,6 +18,7 @@
 - **Deprecated:** Rename the `color_envvars` and `nocolor_theme` constants to `COLOR_ENVVARS` and `NOCOLOR_THEME`, following the uppercase convention; the old names resolve until `10.0.0`.
 - **Deprecated:** Move the generic `patch_attr()`, `generator_tag()` and `missing_extra_message()` helpers from `click_extra.parameters` to the new `click_extra._utils` module; the old homes resolve until `10.0.0`.
 - Add a `click-extra snippet` subcommand rendering a highlighted source file as an SVG image or an HTML document, in the same window a screenshot is drawn in.
+- Print a capture to the terminal with `--output -`, or write its escape sequences with `--output file.ansi`. Both commands drop the colors when the destination is a pipe, unless `--color=always` keeps them.
 - Add a `click_extra.snippet` module coloring source code with Pygments, whose `--syntax-style` also paints the window the background that style was designed for.
 - Draw a picture of a `click:source` or `python:source` block's own code with `:screenshot:`, where `:emphasize-lines:` bands the same lines on the page and in the image.
 - Add a `click_extra_screenshot_syntax_style` Sphinx setting, coloring every source capture a project draws.

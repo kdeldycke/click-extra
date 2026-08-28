@@ -28,7 +28,7 @@ import re
 from functools import partial
 
 import pytest
-from click import Command, Option
+from click import Command, Option, unstyle
 from pygments.styles import get_style_by_name
 from pygments.token import Token
 
@@ -337,3 +337,53 @@ def test_snippet_command_reports_an_unknown_language(invoke, tmp_path):
     )
     assert result.exit_code != 0
     assert "not a language Pygments knows" in result.output
+
+
+def test_snippet_prints_ansi_to_stdout(invoke, tmp_path):
+    """A dash target prints the escape sequences a terminal paints.
+
+    The one target that needs no rendering: what a terminal reads is the stream
+    the capture was carried in all along.
+    """
+    source = tmp_path / "ripen.py"
+    source.write_text(SAMPLE, encoding="utf-8")
+    result = invoke(snippet_cmd, ["--output", "-", "--color=always", str(source)])
+    assert result.exit_code == 0
+    assert "\x1b[38;2;" in result.stdout
+    assert unstyle(result.stdout).rstrip("\n") == SAMPLE.rstrip("\n")
+    # No window was drawn, so none of the markup a picture carries is present.
+    assert "<svg" not in result.stdout
+    assert "<pre" not in result.stdout
+
+
+def test_snippet_stdout_strips_color_when_piped(invoke, tmp_path):
+    """Piped, the escapes go and the code stays.
+
+    The reason this routes through `echo` rather than a bare write: a redirect
+    that captured raw escape sequences would produce a file nobody can read.
+    """
+    source = tmp_path / "ripen.py"
+    source.write_text(SAMPLE, encoding="utf-8")
+    result = invoke(snippet_cmd, ["--output", "-", str(source)], color=False)
+    assert result.exit_code == 0
+    assert "\x1b[" not in result.stdout
+    assert result.stdout.rstrip("\n") == SAMPLE.rstrip("\n")
+
+
+def test_snippet_stdout_closes_on_one_newline(invoke, tmp_path):
+    """Exactly one, so the next prompt does not land on the last row."""
+    source = tmp_path / "ripen.py"
+    source.write_text(SAMPLE, encoding="utf-8")
+    result = invoke(snippet_cmd, ["--output", "-", str(source)], color=False)
+    assert result.stdout.endswith("\n")
+    assert not result.stdout.endswith("\n\n")
+
+
+def test_snippet_writes_an_ansi_file(invoke, tmp_path):
+    """The `.ansi` extension names the same format, written out."""
+    source = tmp_path / "ripen.py"
+    source.write_text(SAMPLE, encoding="utf-8")
+    output = tmp_path / "ripen.ansi"
+    result = invoke(snippet_cmd, ["--output", str(output), str(source)])
+    assert result.exit_code == 0
+    assert "\x1b[38;2;" in output.read_text(encoding="utf-8")

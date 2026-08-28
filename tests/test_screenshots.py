@@ -64,6 +64,7 @@ from click_extra.screenshot import (
     OPAQUE,
     PADDING,
     REDUCED_MOTION_QUERY,
+    STDOUT_PATH,
     TITLEBAR_HEIGHT,
     WATERMARK_INK,
     WATERMARK_INSET,
@@ -898,6 +899,9 @@ def test_committed_capture_matches_cli(committed):
         ("shot.html", CaptureFormat.HTML),
         # The older extension names the same document.
         ("shot.htm", CaptureFormat.HTML),
+        ("shot.ansi", CaptureFormat.ANSI),
+        # The one destination stating no extension: the terminal itself.
+        (STDOUT_PATH, CaptureFormat.ANSI),
     ),
 )
 def test_format_from_path(filename, expected):
@@ -908,7 +912,7 @@ def test_format_from_path(filename, expected):
 @pytest.mark.parametrize("filename", ("shot.png", "shot", "shot.svg.bak"))
 def test_format_from_path_rejects_an_unknown_extension(filename):
     """An extension naming no format says which ones do."""
-    with pytest.raises(ValueError, match=r"\.html, \.svg"):
+    with pytest.raises(ValueError, match=r"\.ansi, \.html, \.svg"):
         format_from_path(Path(filename))
 
 
@@ -1242,7 +1246,19 @@ def test_render_thins_the_window_out(format, expected):
     )
 
 
-@pytest.mark.parametrize("format", tuple(CaptureFormat))
+DRAWN_FORMATS = tuple(
+    format for format in CaptureFormat if format is not CaptureFormat.ANSI
+)
+"""The formats that draw a document around the captured text.
+
+{attr}`~click_extra.screenshot.CaptureFormat.ANSI` is the one that does not: it
+hands a terminal the stream it was already carrying, so there is no margin to
+credit in and nothing a window option could describe. Everything below asking
+about a window therefore asks it of these two.
+"""
+
+
+@pytest.mark.parametrize("format", DRAWN_FORMATS)
 def test_render_credits_what_drew_it(format):
     """Every capture carries the mark, in the space around the terminal."""
     marked = render("kiwi", format=format, unique_id="fruit")
@@ -1261,7 +1277,7 @@ def test_render_credits_what_drew_it(format):
     )
 
 
-@pytest.mark.parametrize("format", CaptureFormat)
+@pytest.mark.parametrize("format", DRAWN_FORMATS)
 def test_watermark_links_the_package_name(format):
     """The credit points a reader holding only the image back at the docs."""
     marked = render("kiwi", format=format, unique_id="fruit")
@@ -1272,7 +1288,7 @@ def test_watermark_links_the_package_name(format):
     assert re.sub(r"<[^>]+>", "", linked[1]) == "click-extra"
 
 
-@pytest.mark.parametrize("format", CaptureFormat)
+@pytest.mark.parametrize("format", DRAWN_FORMATS)
 def test_watermark_leaves_a_borrowed_credit_unlinked(format):
     """A project crediting itself has no click-extra to point anywhere."""
     marked = render("kiwi", format=format, unique_id="fruit", watermark="pantry 1.4.2")
@@ -1518,3 +1534,54 @@ def test_screenshot_wrap_matches_the_composition(invoke, tmp_path):
         text.splitlines()[0]
         == f"{PROMPT}click-extra wrap -- click_extra.cli:demo_themes --help"
     )
+
+
+def test_ansi_capture_is_the_text_it_was_given():
+    """The one format that renders nothing: a terminal reads the stream itself."""
+    text = "\x1b[32mmango\x1b[0m\nripe\n"
+    assert render(text, format=CaptureFormat.ANSI) == text
+
+
+def test_ansi_capture_draws_no_window():
+    """None of the window options reach a format that has no window."""
+    drawn = render(
+        "mango\n",
+        format=CaptureFormat.ANSI,
+        title="basket",
+        watermark="credit me",
+        preset=PRESETS["macos"],
+        backdrop="#ff0000",
+        margin=48,
+    )
+    assert drawn == "mango\n"
+
+
+def test_ansi_capture_bands_an_emphasized_row():
+    """A terminal has no behind, so the band is the row's own background."""
+    banded = render("mango\nripe\nplum\n", format=CaptureFormat.ANSI, emphasize=[2])
+    rows = banded.split("\n")
+    assert "\x1b[48;2;" not in rows[0]
+    assert rows[1].startswith("\x1b[48;2;")
+    assert rows[1].endswith("\x1b[49m")
+    # Padded out to the longest row, so the marked rows square up into a block.
+    assert unstyle(rows[1]) == "ripe "
+    assert unstyle(banded) == "mango\nripe \nplum\n"
+
+
+def test_ansi_band_survives_a_reset_inside_the_row():
+    """Restated after every escape, or the band stops at the first keyword.
+
+    Pygments closes a colored run with a full reset, which clears the background
+    along with the ink it was closing.
+    """
+    row = "\x1b[38;2;1;2;3mdef\x1b[39;00m ripen"
+    banded = render(row + "\n", format=CaptureFormat.ANSI, emphasize=[1])
+    opening, _, after_reset = banded.partition("\x1b[39;00m")
+    assert opening.startswith("\x1b[48;2;")
+    assert after_reset.startswith("\x1b[48;2;"), "the band died at the reset"
+
+
+def test_ansi_capture_does_not_animate():
+    """There is no frame to hide in a stream a terminal paints as it arrives."""
+    with pytest.raises(ValueError, match="do not animate"):
+        render("mango", format=CaptureFormat.ANSI, frames=("a", "b"), interval=1)

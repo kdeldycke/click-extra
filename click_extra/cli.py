@@ -45,7 +45,7 @@ from extra_platforms import ALL_IDS
 from . import context
 from ._utils import missing_extra_message
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
-from .color import is_a_tty
+from .color import invocation_color, is_a_tty
 from .commands import ColorizedCommand, default_params
 from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
 from .context import pass_context
@@ -73,6 +73,7 @@ from .screenshot import (
     MIN_COLUMNS,
     NO_PAINT,
     OPAQUE,
+    STDOUT_PATH,
     CaptureBackground,
     CaptureFormat,
     capture,
@@ -496,6 +497,30 @@ def _parse_emphasis(
     return tuple(sorted(lines))
 
 
+def deliver_capture(document: str, output: Path) -> None:
+    """Write a rendered capture where `--output` points.
+
+    {data}`~click_extra.screenshot.STDOUT_PATH` prints it instead, through
+    {func}`click.echo` rather than a bare write: that is what strips the escape
+    sequences when the terminal turns out to be a pipe, and what lets `--color`,
+    `--no-color`, `--accessible` and `NO_COLOR` reach a capture, since
+    {func}`~click_extra.color.invocation_color` carries the tri-state all four
+    of them resolve to.
+
+    :param document: the rendered capture.
+    :param output: where it goes.
+    """
+    if output.name == STDOUT_PATH:
+        # Exactly one closing newline, whether or not the capture brought its
+        # own: a picture is a file and may end however it likes, but a terminal
+        # left mid-line puts the next prompt on top of the last row.
+        echo(document, nl=not document.endswith("\n"), color=invocation_color())
+        return
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(document, encoding="utf-8")
+    echo(f"Wrote {output}")
+
+
 def capture_options(
     *,
     columns_help: str,
@@ -528,9 +553,11 @@ def capture_options(
         option(
             "--output",
             required=True,
-            type=file_path(writable=True, resolve_path=True),
+            type=file_path(writable=True, resolve_path=True, allow_dash=True),
             help="Path of the file to write. Its extension picks the format: "
-            ".svg for an image, .html for selectable text.",
+            ".svg for an image, .html for selectable text, .ansi for the escape "
+            "sequences themselves. Pass - to print those to the terminal, "
+            "which draws no window.",
         ),
         option(
             "--columns",
@@ -847,9 +874,7 @@ def screenshot_cmd(
     if returncode:
         logger.warning(f"{command_line[0]} exited with code {returncode}.")
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(document, encoding="utf-8")
-    echo(f"Wrote {output}")
+    deliver_capture(document, output)
 
 
 demo.add_command(screenshot_cmd)
@@ -986,9 +1011,7 @@ def snippet_cmd(
     except ValueError as error:
         raise ClickException(str(error)) from error
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(document, encoding="utf-8")
-    echo(f"Wrote {output}")
+    deliver_capture(document, output)
 
 
 demo.add_command(snippet_cmd)

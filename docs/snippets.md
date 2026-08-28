@@ -56,18 +56,45 @@ Highlighting needs the `pygments` extra:
 $ uv pip install click-extra[pygments]
 ```
 
-## SVG or HTML
+## Where the code goes
 
-The extension of `--output` picks the format, exactly as it does for a screenshot:
+The `--output` destination picks the format, exactly as it does for a screenshot:
 
-| Format  | Text is           | Goes where                                                    |
-| :------ | :---------------- | :------------------------------------------------------------ |
-| `.svg`  | a picture         | a surface that strips inline HTML: a README on GitHub or PyPI |
-| `.html` | selectable markup | a page you own, where the code stays copy-pasteable           |
+| Destination | Text is           | Goes where                                                    |
+| :---------- | :---------------- | :------------------------------------------------------------ |
+| `-`         | escape sequences  | your terminal, right now                                      |
+| `.svg`      | a picture         | a surface that strips inline HTML: a README on GitHub or PyPI |
+| `.html`     | selectable markup | a page you own, where the code stays copy-pasteable           |
+| `.ansi`     | escape sequences  | a file to `cat` later                                         |
 
 ```{tip}
-On a page you control, neither one is usually the right answer. A fenced code block is highlighted by the site's own theme, stays searchable, and follows the reader's light or dark setting. Reach for a snippet where the surface cannot do that: a README, a slide, a social card.
+On a page you control, none of these is usually the right answer. A fenced code block is highlighted by the site's own theme, stays searchable, and follows the reader's light or dark setting. Reach for a snippet where the surface cannot do that: a README, a slide, a social card.
 ```
+
+## Print it to the terminal
+
+`--output -` skips the window and prints the escape sequences a terminal paints:
+
+```shell-session
+$ click-extra snippet --output - ripen.py
+```
+
+That is `cat` with colors, and it is the one destination that needs no rendering: the escape sequences highlighting already produced *are* what a terminal reads.
+
+What it adds over `pygmentize -f terminal16m` is the line treatment and this project's color rules. `--head`, `--tail`, `--line-numbers` and `--emphasize-lines` all work, the band becoming the row's own background instead of a rectangle drawn behind it:
+
+```shell-session
+$ click-extra snippet --output - --line-numbers --emphasize-lines 4-6 ripen.py
+```
+
+The output also answers to `--color`, `--no-color`, `--accessible` and `NO_COLOR` like every other command here. That matters most when you redirect it: piped or written to a file, the escapes are dropped and you get plain code, where a highlighter writing straight to stdout leaves you a file full of control characters.
+
+```shell-session
+$ click-extra snippet --output - ripen.py > plain.txt
+$ click-extra snippet --output - --color=always ripen.py > colored.txt
+```
+
+Nothing describing a window reaches this format, so `--preset`, `--border`, `--margin`, `--title` and the credit line are ignored: there is no window for them to describe.
 
 ## The window is the style's
 
