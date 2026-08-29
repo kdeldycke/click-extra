@@ -38,6 +38,7 @@ import os
 import platform
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import sysconfig
@@ -55,7 +56,7 @@ from boltons.strutils import strip_ansi
 from click import echo, get_current_context
 from extra_platforms import current_architecture, current_platform
 
-from ._utils import memoize_enums
+from ._utils import memoize_enums, patch_attr
 from .color import invocation_color, is_a_tty
 from .context import ACCESSIBLE, _LazyMetaDict, get
 from .parameters import ExtraOption
@@ -571,6 +572,15 @@ def env_summary() -> str:
     draw a screen at all: `@version_option(fields={"env_info": env_summary()})`.
     """
     return f"Python {platform.python_version()}, {platform_label()}"
+
+
+def _scrubbed_host(*args: Any) -> str:
+    """Stand in for a host name lookup, returning what `scrub` would write.
+
+    Takes the arguments `socket.getfqdn()` accepts, so it can answer for both
+    it and `socket.gethostname()`. See {attr}`VersionOption.env_info`.
+    """
+    return "-"
 
 
 def dependency_versions() -> str:
@@ -1632,7 +1642,20 @@ class VersionOption(ExtraOption):
         # path. Do not hoist this back to module scope.
         from boltons.ecoutils import get_profile
 
-        return get_profile(scrub=True)
+        # `get_profile()` resolves the host's name and fully-qualified name,
+        # then overwrites both with "-" because `scrub` is set. The second of
+        # those is a reverse DNS lookup, so a host whose resolver does not
+        # answer pays that timeout in full for a value already thrown away:
+        # ~35 s per call on a GitHub macOS runner, which is what made a
+        # `--verbosity DEBUG` run there take over an hour. Answering both from
+        # a stub returns the very string `scrub` would have written. `ecoutils`
+        # reaches them through its own `import socket`, so patching the module
+        # here patches the object it reads.
+        with (
+            patch_attr(socket, "gethostname", _scrubbed_host),
+            patch_attr(socket, "getfqdn", _scrubbed_host),
+        ):
+            return get_profile(scrub=True)
 
     def field_style(self, field_id: str | None = None) -> IStyle:
         """Style painting the *field_id* segment of a rendered message.

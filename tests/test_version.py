@@ -350,6 +350,51 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     assert result.exit_code == 0
 
 
+def test_env_info_resolves_no_hostname(monkeypatch):
+    """The environment profile is built without resolving the host's name.
+
+    `boltons.ecoutils.get_profile()` calls `socket.gethostname()` and
+    `socket.getfqdn()`, then overwrites both with `-` because `scrub` is set.
+    The second is a reverse DNS lookup, so a host whose resolver does not
+    answer pays that timeout for a value already discarded: it cost ~35 s per
+    call on a GitHub macOS runner, which is what made `--verbosity DEBUG` runs
+    there take over an hour.
+
+    Asserting on the calls rather than on a duration keeps the guard away from
+    a timing threshold, which a loaded runner would flake on.
+    """
+    import socket
+
+    calls: list[str] = []
+
+    def record_fqdn(*args: object) -> str:
+        calls.append("getfqdn")
+        return "resolved.example.com"
+
+    def record_hostname() -> str:
+        calls.append("gethostname")
+        return "resolved"
+
+    # `ecoutils` reaches both through its own `import socket`, so patching the
+    # module patches the object it reads.
+    monkeypatch.setattr(socket, "getfqdn", record_fqdn)
+    monkeypatch.setattr(socket, "gethostname", record_hostname)
+
+    @command
+    @version_option()
+    def forecast():
+        """Report the weather."""
+
+    option = next(p for p in forecast.params if isinstance(p, VersionOption))
+    profile = option.env_info
+
+    assert calls == []
+    # The scrubbed placeholders are what `get_profile()` would have written
+    # over the resolved names anyway, so nothing is lost by not asking.
+    assert profile["hostname"] == "-"
+    assert profile["hostfqdn"] == "-"
+
+
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 def test_context_meta_laziness(invoke, cmd_decorator):
     """Accessing a single field from ``ctx.meta`` must not evaluate unrelated fields.
