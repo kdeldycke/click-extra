@@ -40,6 +40,7 @@ below would stay the default, so the common case keeps costing no dependency.
 
 from __future__ import annotations
 
+import codecs
 import io
 import os
 import re
@@ -377,6 +378,12 @@ def record_command(
     environment["LINES"] = str(rows)
 
     recorder = ScreenRecorder(clock=clock)
+    # Decoded incrementally rather than chunk by chunk: a pseudo-terminal
+    # hands the stream back in kernel-buffer-sized reads, so a multi-byte
+    # glyph regularly straddles two of them, and a per-chunk decode would
+    # mangle each straddling glyph into U+FFFD. The incremental decoder holds
+    # the partial byte sequence until its tail arrives.
+    decoder = codecs.getincrementaldecoder("UTF-8")(errors="replace")
     parent, child = pty.openpty()
     _pin_window_size(child, rows, columns)
     started = clock()
@@ -408,8 +415,11 @@ def record_command(
                 break
             if not written:
                 break
-            recorder.write(written.decode("UTF-8", errors="replace"))
+            recorder.write(decoder.decode(written))
     finally:
+        tail = decoder.decode(b"", final=True)
+        if tail:
+            recorder.write(tail)
         os.close(parent)
         if process.poll() is None:
             process.terminate()

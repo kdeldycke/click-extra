@@ -279,6 +279,39 @@ def test_record_command_recovers_a_foreign_animation():
     assert all(frame.duration > 0 for frame in frames)
 
 
+SPLIT_GLYPH_SCRIPT = """
+import sys, time
+raw = sys.stdout.buffer
+glyph = "\u2570".encode("UTF-8")
+raw.write(glyph[:1])
+raw.flush()
+time.sleep(0.2)
+raw.write(glyph[1:] + b" ripe")
+raw.flush()
+"""
+"""A box-drawing corner flushed one byte at a time, as a busy pty read splits it."""
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_record_command_reassembles_a_glyph_split_across_reads():
+    """A multi-byte glyph straddling two pty reads decodes whole.
+
+    A pseudo-terminal hands the stream back in kernel-buffer-sized chunks, so
+    a heavy redraw regularly splits a box-drawing glyph or an emoji across two
+    reads. Decoding each chunk on its own mangles both halves into `U+FFFD`;
+    the recorder must hold the partial sequence until its tail arrives.
+    """
+    frames = record_command(
+        ("python", "-c", SPLIT_GLYPH_SCRIPT),
+        columns=40,
+        duration=5.0,
+    )
+
+    assert frames, "the command drew nothing"
+    assert frames[-1].text == "\u2570 ripe"
+    assert all("\ufffd" not in frame.text for frame in frames)
+
+
 @pytest.mark.parametrize(
     ("recorded", "expected"),
     (

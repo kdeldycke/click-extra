@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
+
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
 - Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
 
