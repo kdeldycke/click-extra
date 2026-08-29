@@ -41,10 +41,12 @@ from pathlib import Path
 from typing import NamedTuple
 
 import pytest
+from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style, unstyle
 from click_extra.cli import screenshot_cmd
 from click_extra.execution import PROMPT
+from click_extra.recording import TerminalScreen
 from click_extra.screenshot import (
     _COLUMN_GAP_RE,
     AUTO_COLUMNS,
@@ -59,7 +61,9 @@ from click_extra.screenshot import (
     CAPTURE_PALETTES,
     CAPTURE_SHADOWS,
     CAPTURE_TERMINAL_HINTS,
+    CELL_BLEED,
     CELL_WIDTH,
+    CURSOR_THICKNESS,
     DEFAULT_COLUMNS,
     DEFAULT_WATERMARK,
     LIGHT_CAPTURE_BACKGROUND,
@@ -79,10 +83,12 @@ from click_extra.screenshot import (
     CaptureFormat,
     auto_hold,
     blend,
+    blink_css,
     capture,
     capture_output,
     cell_width,
     column_segments,
+    cursor_cell,
     fit_columns,
     format_from_path,
     frame_animation_css,
@@ -95,7 +101,7 @@ from click_extra.screenshot import (
     trim_lines,
     window_buttons,
 )
-from click_extra.screenshot_presets import PRESETS
+from click_extra.screenshot_presets import PRESETS, Cursor, CursorShape
 
 _TEXT_ELEMENT_RE = re.compile(r"<text(?P<attrs>[^>]*)>(?P<content>[^<]*)</text>")
 """One run of same-styled characters in a rendered capture.
@@ -625,6 +631,205 @@ def test_animated_capture_counts_its_durations():
 def test_animated_capture_rejects_a_frame_lasting_no_time():
     with pytest.raises(ValueError, match="positive time"):
         render_svg(columns=20, frames=("one pear", "two pears"), interval=(0.1, 0))
+
+
+@pytest.mark.parametrize(
+    ("picture", "expected"),
+    (
+        pytest.param("apricot", (0, 7), id="after-the-last-glyph"),
+        pytest.param("apricot\n", (1, 0), id="a-newline-starts-the-next-row"),
+        pytest.param("apricot\nbiscuit", (1, 7), id="on-the-last-row"),
+        pytest.param("\x1b[36mapricot\x1b[0m", (0, 7), id="escapes-occupy-no-cell"),
+        pytest.param("\u6771\u4eac", (0, 4), id="a-wide-glyph-covers-two-cells"),
+        pytest.param("a" * 20, (1, 0), id="past-the-last-column-it-wraps"),
+        pytest.param("", None, id="an-empty-screen-shows-none"),
+        pytest.param("   \n  ", None, id="a-blank-screen-shows-none"),
+    ),
+)
+def test_cursor_cell_reads_the_screen_it_is_given(picture, expected):
+    """A frame's text already says where the terminal left its cursor."""
+    assert cursor_cell(picture, 20) == expected
+
+
+def test_cursor_cell_matches_the_screen_that_wrote_it():
+    """The derived column is the one the screen itself counted, not an estimate.
+
+    Locks the claim {func}`~click_extra.screenshot.cursor_cell` rests on: a
+    recorded frame carries its cursor position implicitly, so nothing has to
+    travel beside the text to say where the cursor was.
+    """
+    screen = TerminalScreen()
+    for written in (
+        "\x1b[36m\u280b Picking apples\x1b[0m",
+        "\r\x1b[K",
+        "Filled basket 0\r\n",
+        "\x1b[36m\u2819 Picking apples\x1b[0m",
+    ):
+        screen.feed(written)
+        standing = cursor_cell(screen.display, DEFAULT_COLUMNS)
+        column = 0 if standing is None else standing[1]
+        assert column == screen._column, f"after {written!r}"
+
+
+def cursor_rect(svg: str) -> tuple[float, float, float, float]:
+    """The cursor a capture drew, as its x, y, width and height.
+
+    Found by its `crispEdges` rendering, which the text of these tests carries
+    on nothing else: they draw unstyled words, so no run brings a background
+    rectangle of its own. The count is asserted rather than assumed, so a test
+    picture that grows a styled run fails here instead of measuring the wrong
+    rectangle.
+    """
+    drawn = re.findall(
+        r'<rect[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"'
+        r' shape-rendering="crispEdges"/>',
+        svg,
+    )
+    assert len(drawn) == 1, f"expected one cursor, found {len(drawn)}"
+    return tuple(float(number) for number in drawn[0])  # type: ignore[return-value]
+
+
+def test_a_capture_draws_no_cursor_unless_asked():
+    """The default is no cursor, which is what every committed asset shows."""
+    svg = render_svg("apricot", columns=20, unique_id="basket")
+    assert "basket-blink" not in svg
+    assert 'shape-rendering="crispEdges"' not in svg
+
+
+@pytest.mark.parametrize(
+    ("shape", "width", "height"),
+    (
+        pytest.param(
+            CursorShape.BLOCK, CELL_WIDTH, LINE_HEIGHT + CELL_BLEED, id="block"
+        ),
+        pytest.param(
+            CursorShape.BAR, CURSOR_THICKNESS, LINE_HEIGHT + CELL_BLEED, id="bar"
+        ),
+        pytest.param(
+            CursorShape.UNDERLINE, CELL_WIDTH, CURSOR_THICKNESS, id="underline"
+        ),
+    ),
+)
+def test_cursor_is_drawn_in_the_shape_it_names(shape, width, height):
+    """Each shape covers the part of its cell that shape is."""
+    left, _top, drawn_width, drawn_height = cursor_rect(
+        render_svg(
+            "apricot", columns=20, unique_id="basket", cursor=Cursor(shape, blink=0)
+        )
+    )
+    # A capture writes its coordinates to a tenth of a pixel, see `_svg_number`.
+    assert left == pytest.approx(7 * CELL_WIDTH, abs=0.05)
+    assert drawn_width == pytest.approx(width, abs=0.05)
+    assert drawn_height == pytest.approx(height, abs=0.05)
+
+
+@pytest.mark.parametrize("name", sorted(PRESETS))
+def test_a_shapeless_cursor_takes_the_terminal_its_preset_names(name):
+    """`--preset windows` draws Windows Terminal's bar without stating it."""
+    _left, _top, drawn_width, _height = cursor_rect(
+        render(
+            text="apricot",
+            columns=20,
+            unique_id="basket",
+            preset=PRESETS[name],
+            cursor=Cursor(blink=0),
+        )
+    )
+    expected = (
+        CURSOR_THICKNESS if PRESETS[name].cursor is CursorShape.BAR else CELL_WIDTH
+    )
+    assert drawn_width == pytest.approx(expected, abs=0.05)
+
+
+def test_a_cursor_under_the_output_grows_the_window_by_that_line():
+    """Output closing on a newline leaves the cursor on the row underneath."""
+
+    def height(svg: str) -> float:
+        found = re.search(r'viewBox="0 0 [\d.]+ ([\d.]+)"', svg)
+        assert found, svg
+        return float(found.group(1))
+
+    settled = render_svg("apricot", columns=20, unique_id="basket", cursor=Cursor())
+    wrapped = render_svg("apricot\n", columns=20, unique_id="basket", cursor=Cursor())
+    assert height(wrapped) - height(settled) == pytest.approx(LINE_HEIGHT)
+
+
+def test_a_cursor_does_not_move_what_emphasize_may_mark():
+    """A band picks out a line of output, and a cursor draws no line."""
+    for cursor in (None, Cursor()):
+        with pytest.raises(ValueError, match="1 lines long"):
+            render_svg(
+                "apricot\n",
+                columns=20,
+                unique_id="basket",
+                emphasize=(2,),
+                cursor=cursor,
+            )
+
+
+def test_an_animated_cursor_blinks_on_one_clock():
+    """One rule and one keyframe set, however many frames carry a cursor.
+
+    A terminal has one cursor. Namespacing the blink per frame would instead
+    let each copy light on its own beat, which reads as several cursors.
+    """
+    svg = render_svg(
+        columns=20,
+        unique_id="basket",
+        frames=("one", "two", "three"),
+        interval=0.2,
+        cursor=Cursor(),
+    )
+    assert svg.count("@keyframes basket-blink") == 1
+    assert svg.count(".basket-blink { animation:") == 1
+    assert svg.count('<rect class="basket-blink"') == 3
+
+
+def test_the_blank_closing_a_cycle_shows_no_cursor():
+    """An empty terminal has nothing to put a cursor on."""
+    svg = render_svg(
+        columns=20,
+        unique_id="basket",
+        frames=("one", "two"),
+        interval=0.2,
+        blank=0.5,
+        cursor=Cursor(),
+    )
+    assert svg.count('<rect class="basket-blink"') == 2
+
+
+def test_a_steady_cursor_names_no_class():
+    """A class the stylesheet never defines is what breaks a renderer."""
+    svg = render_svg("apricot", columns=20, unique_id="basket", cursor=Cursor(blink=0))
+    assert "basket-blink" not in svg
+
+
+def test_a_blinking_cursor_sits_behind_the_reduced_motion_guard():
+    """Blinking is motion, and a reader may have asked for less of it."""
+    svg = render_svg("apricot", columns=20, unique_id="basket", cursor=Cursor())
+    assert svg.index(REDUCED_MOTION_QUERY) < svg.index("@keyframes basket-blink")
+
+
+def test_a_blink_never_touches_visibility():
+    """Opacity multiplies into a hidden frame's group; visibility would override it.
+
+    A frame is hidden by `visibility` *and* `opacity` together, and `visibility`
+    is inherited: a cursor restoring it would show through every frame at once,
+    which is the whole reason the blink dims opacity alone.
+    """
+    assert "visibility" not in blink_css("basket", 1.0)
+
+
+def test_blink_css_rejects_a_blink_going_nowhere():
+    """A cursor blinking in no time is a cursor that never lights."""
+    with pytest.raises(ValueError, match="positive time"):
+        blink_css("basket", 0)
+
+
+def test_a_capture_rejects_a_cursor_blinking_backwards():
+    """Seconds run forwards, here as everywhere else."""
+    with pytest.raises(ValueError, match="not a blink"):
+        render_svg("apricot", columns=20, cursor=Cursor(blink=-1))
 
 
 @pytest.mark.parametrize(
@@ -1545,6 +1750,96 @@ def test_screenshot_rejects_an_unusable_width(invoke, tmp_path, value, message):
     )
     assert result.exit_code != 0
     assert message in result.output
+
+
+@pytest.mark.parametrize(
+    ("arguments", "message"),
+    (
+        pytest.param(
+            ["--rows", "30"], "--rows requires --record", id="rows-needs-record"
+        ),
+        pytest.param(
+            ["--hold", "5"], "--hold requires --record", id="hold-needs-record"
+        ),
+        pytest.param(
+            ["--blank", "1"], "--blank requires --record", id="blank-needs-record"
+        ),
+        pytest.param(
+            ["--speed", "2"], "--speed requires --record", id="speed-needs-record"
+        ),
+    ),
+)
+def test_screenshot_pacing_needs_record(invoke, tmp_path, arguments, message):
+    """The pacing knobs describe a recording, so a still refuses them."""
+    result = invoke(
+        screenshot_cmd,
+        [*arguments, "--output", str(tmp_path / "shot.svg"), "--", "echo"],
+    )
+    assert result.exit_code != 0
+    assert message in result.output
+
+
+@pytest.mark.parametrize(
+    ("arguments", "output_name", "message"),
+    (
+        pytest.param([], "shot.html", "point --output at an .svg file", id="svg-only"),
+        pytest.param(
+            ["--columns", "auto"],
+            "shot.svg",
+            "give --columns a number",
+            id="width-pinned-up-front",
+        ),
+        pytest.param(
+            ["--merge-stderr"],
+            "shot.svg",
+            "a pseudo-terminal has one",
+            id="streams-already-folded",
+        ),
+        pytest.param(
+            ["--head", "3"],
+            "shot.svg",
+            "keeps whole screens",
+            id="no-trimming",
+        ),
+    ),
+)
+def test_screenshot_record_rejects_still_only_arrangements(
+    invoke, tmp_path, arguments, output_name, message
+):
+    """A recording is an animated SVG of whole screens at a pinned width."""
+    result = invoke(
+        screenshot_cmd,
+        ["--record", *arguments, "--output", str(tmp_path / output_name), "--", "echo"],
+    )
+    assert result.exit_code != 0
+    assert message in result.output
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_screenshot_record_writes_an_animation(invoke, tmp_path):
+    """`--record` lands an animated SVG named after its output stem."""
+    target = tmp_path / "pantry-trail.svg"
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--record",
+            "--output",
+            str(target),
+            "--prompt",
+            "basket ripen",
+            "--hold",
+            "auto",
+            "--",
+            sys.executable,
+            "-c",
+            "import sys; sys.stderr.write('\\r[##]\\x1b[K'); print('ripe')",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    svg = target.read_text(encoding="UTF-8")
+    assert "pantry-trail-f0" in svg
+    assert "basket" in svg
+    assert "ripe" in svg
 
 
 def test_screenshot_wrap_needs_the_console_script(invoke, monkeypatch, tmp_path):

@@ -5,11 +5,14 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add `--record` to `click-extra screenshot`, running the command under a pseudo-terminal and writing an animated SVG of every screen it draws, paced by `--rows`, `--hold`, `--blank` and `--speed`, and backed by the new `record_and_render()`.
+- Draw the invocation above a recording as a shell prompt, the way a still capture draws its own; `--prompt` overrides or hides it.
+- Draw a terminal cursor on a capture with `render_svg(cursor=…)`, blinking or steady, shaped as the `--preset` terminal draws it.
+- Open a recorded animation by typing its command line out, with `record_and_render(typing=…)` and the new `type_line()`.
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
 - Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.
 - Fix recorded screens dropping every line the command ended with `\r\n`, the form a pseudo-terminal substitutes for each newline.
-
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
 - Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
 

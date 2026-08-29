@@ -55,7 +55,13 @@ from sphinx.util import logging, parselinenos
 from ..blocks import OPTION_LINE_RE, fence_spans, marker_res, update_blocks
 from ..color import forced_color
 from ..execution import format_cli_prompt
-from ..recording import DEFAULT_QUANTUM, Frame, quantize
+from ..recording import (
+    DEFAULT_QUANTUM,
+    DEFAULT_RECORDING_BLANK,
+    DEFAULT_RECORDING_HOLD,
+    Frame,
+    quantize,
+)
 from ..screenshot import (
     AUTO_COLUMNS,
     AUTO_HOLD,
@@ -118,26 +124,6 @@ DEFAULT_SCREENSHOT_DIR = "assets"
 
 Relative to the documentation source root. Overridden by the
 `click_extra_screenshot_dir` `conf.py` value.
-"""
-
-DEFAULT_RECORDING_HOLD: THold = AUTO_HOLD
-"""How long a recorded animation holds its last frame before starting over.
-
-A recording ends somewhere, and the end is usually its point: the trail filled
-in, the bar run out, the outcome landed. Looping straight back gives a reader no
-time to read any of it, and how much time reading takes depends on how much the
-ending shows, so the default scales with it: see
-{func}`click_extra.screenshot.auto_hold`. A declared animation cycles in place
-and ends nowhere, so it holds for nothing unless a page asks.
-"""
-
-DEFAULT_RECORDING_BLANK = 0.6
-"""Seconds of empty screen closing a recorded animation's cycle.
-
-Long enough to read as a deliberate beat, short enough not to look broken. It is
-what tells a reader the loop has come round rather than the command having done
-something strange. A declared animation cycles in place with no end to mark, so
-it blanks for nothing unless a page asks.
 """
 
 SCREENSHOT_MARKER_START = "<!-- screenshot -->"

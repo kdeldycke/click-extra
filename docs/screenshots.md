@@ -691,17 +691,62 @@ One frame stays visible wherever the animation does not run, so a capture is nev
 
 A recorded animation also **pauses on its last frame** and then **closes on an empty beat**, 2.6 seconds by default. A loop restarting the instant it arrives gives a reader no time to read the end. The empty beat says plainly where the loop comes round.
 
-Three knobs state all of it, on `render_svg` and on a documentation block alike:
+Three knobs state all of it, on `render_svg`, on the `--record` command line and on a documentation block alike:
 
-| `render_svg` | Directive            | What it sets                                                   |
-| :----------- | :------------------- | :------------------------------------------------------------- |
-| `hold`       | `:screenshot-hold:`  | Extra seconds on the last frame, or `auto`.                    |
-| `blank`      | `:screenshot-blank:` | Seconds of empty screen closing the cycle.                     |
-| `speed`      | `:screenshot-speed:` | How much faster to play than recorded: `2` halves every frame. |
+| `render_svg` | CLI       | Directive            | What it sets                                                   |
+| :----------- | :-------- | :------------------- | :------------------------------------------------------------- |
+| `hold`       | `--hold`  | `:screenshot-hold:`  | Extra seconds on the last frame, or `auto`.                    |
+| `blank`      | `--blank` | `:screenshot-blank:` | Seconds of empty screen closing the cycle.                     |
+| `speed`      | `--speed` | `:screenshot-speed:` | How much faster to play than recorded: `2` halves every frame. |
 
 `speed` scales the replay only. The two pauses are stated in real seconds and stay untouched. A declared spinner cycles in place and ends nowhere, so it holds and blanks for nothing unless a page asks.
 
-`hold` also takes `auto`, which scales the pause to the final frame itself: a quarter second per populated line, clamped between 2 and 30 seconds. A fixed number serves an ending the author has seen; `auto` serves one that changes with every retake, like a recorded command whose closing report grows with what there is to report. A `:screenshot-record:` block therefore defaults to it, and a stated number overrides it.
+`hold` also takes `auto`, which scales the pause to the final frame itself: a quarter second per populated line, clamped between 2 and 30 seconds. A fixed number serves an ending the author has seen; `auto` serves one that changes with every retake, like a recorded command whose closing report grows with what there is to report. A `:screenshot-record:` block and a `--record` capture therefore default to it, and a stated number overrides it.
+
+### A blinking cursor
+
+A capture draws no cursor unless it is asked for one. Pass a `Cursor` and it draws one:
+
+```python
+from click_extra.screenshot import render_svg
+from click_extra.screenshot_presets import Cursor, CursorShape
+
+render_svg("$ pantry restock --crates 4", columns=44, cursor=Cursor())
+```
+
+Where the cursor stands is never stated: it is read off each frame's own text. A screen ends with whatever was written to it last, so the cursor sits after that. Output closing on a newline puts it on the row underneath, and the window grows a line to hold it, the way a terminal's does.
+
+Three fields say what it looks like:
+
+| Field   | What it sets                                                    |
+| :------ | :-------------------------------------------------------------- |
+| `shape` | `BLOCK`, `BAR` or `UNDERLINE`. `None` takes the preset's own.   |
+| `blink` | Seconds one blink takes. `0` draws a steady cursor.             |
+| `color` | Paint it is drawn with. `None` takes the terminal's foreground. |
+
+A preset names the shape its terminal draws, so `--preset windows` gets Windows Terminal's bar and the rest get a block. `Cursor(CursorShape.BAR)` overrides that.
+
+The blink runs on a clock of its own rather than on the animation's. The two drift against each other across a loop, which is what a terminal showing a cursor over a running command looks like.
+
+```{caution}
+Blinking is motion. The rule sits behind the same [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard as every other animation here, so a reader who asked their system for less of it gets a cursor that is lit and still.
+```
+
+A still capture takes a cursor too, and leaves it after the last thing the command printed, which is where the shell finds it.
+
+## Recording from the command line
+
+`--record` turns the `screenshot` command into a recorder: the command runs under a pseudo-terminal, so a spinner or a progress bar draws the frames it would draw for you, and every screen it leaves behind lands in one animated SVG.
+
+```shell-session
+$ click-extra screenshot --record --output trail.svg -- my-cli sync --dry-run
+```
+
+The invocation is drawn above every frame, exactly as a still capture draws its own prompt, and `--prompt` overrides or hides it the same way. `--rows` states the terminal's height, `--timeout` stops a recording that would run on, and the pacing knobs above apply as given. Two of a still capture's arrangements do not carry over: the width must be a number, since the pseudo-terminal exists before the command draws its first line, and `--head`/`--tail` stay out, a recording being made of whole screens.
+
+```{caution}
+Unix only, for the reasons {func}`~click_extra.recording.record_command` states. The same pipeline is scriptable through {func}`~click_extra.recording.record_and_render`.
+```
 
 The frame left visible is the **last** one, because an animation that accumulates says most once it has finished. An animated capture is therefore always a still as well.
 
@@ -745,6 +790,39 @@ render_svg(
 
 ```{caution}
 A recording is timed by the wall clock, so the same command records slightly different durations every run. That is fine for a one-off image, and a problem for a committed one that is rewritten on every build: see [keeping a recording committable](#keeping-a-recording-committable).
+```
+
+### Type the command first
+
+A recording holds what a command drew and never the invocation that drew it, so an animation opens on output arriving from nowhere. `typing` types the command line out first, one character per frame:
+
+```python
+from click_extra.recording import record_and_render
+from click_extra.screenshot_presets import Cursor
+
+svg, returncode = record_and_render(
+    ("pantry", "restock", "--crates", "4"),
+    columns=44,
+    typing=0.05,
+    submit=0.45,
+    cursor=Cursor(),
+)
+```
+
+`typing` is how long a character takes to appear, and `submit` is the beat the finished line waits before the output starts, which is the pause before the return key. Leave `typing` out and the prompt stands there from the first frame, which is what a recording shows without it.
+
+The typed screens are ordinary frames. Everything the picture does for a frame therefore reaches them: a gutter numbers them, and the cursor walks along the line with no caret of its own to state.
+
+For an animation assembled by hand, `type_line` makes those frames from a prompt line and nothing else:
+
+```python
+from click_extra.recording import type_line
+
+opening = type_line("$ pantry restock --crates 4", typing=0.05)
+```
+
+```{tip}
+A typed opening costs one frame per character. Those frames differ by a single character each, so they compress to almost nothing over the wire: the raw file roughly doubles while the gzipped one grows about a kilobyte.
 ```
 
 ### Keeping a recording committable

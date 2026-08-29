@@ -45,6 +45,7 @@ import io
 import os
 import re
 import select
+import shlex
 import subprocess
 import time
 from typing import NamedTuple
@@ -53,12 +54,22 @@ from extra_platforms import is_unix
 from wcwidth import wcswidth
 
 from .color import forced_color
-from .execution import args_cleanup
+from .execution import args_cleanup, format_cli_prompt
 from .screenshot import (
+    AUTO_HOLD,
     CAPTURE_HIDDEN_TERMINAL_VARS,
     CAPTURE_TERMINAL_HINTS,
+    DEFAULT_BORDER_WIDTH,
     DEFAULT_COLUMNS,
+    DEFAULT_MARGIN,
+    DEFAULT_PADDING,
+    DEFAULT_WATERMARK,
+    NO_PAINT,
+    OPAQUE,
+    PROMPT_THEMES,
     CaptureBackground,
+    number_lines,
+    render,
 )
 
 # A pseudo-terminal is what makes a CLI checking `isatty` animate for a
@@ -76,6 +87,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from .execution import TArg, TNestedArgs
+    from .screenshot import THold
+    from .screenshot_presets import Cursor, TerminalPreset
 
 CSI_RE = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
 """One control sequence, from the escape that opens it to the letter ending it.
@@ -101,12 +114,46 @@ differ by, and finer than any frame worth picturing: the fastest bundled spinner
 holds one for eighty. See {func}`quantize`.
 """
 
+DEFAULT_RECORDING_HOLD: THold = AUTO_HOLD
+"""How long a recorded animation holds its last frame before starting over.
+
+A recording ends somewhere, and the end is usually its point: the trail filled
+in, the bar run out, the outcome landed. Looping straight back gives a reader no
+time to read any of it, and how much time reading takes depends on how much the
+ending shows, so the default scales with it: see
+{func}`~click_extra.screenshot.auto_hold`. A declared animation cycles in place
+and ends nowhere, so it holds for nothing unless a page asks.
+"""
+
+DEFAULT_RECORDING_BLANK = 0.6
+"""Seconds of empty screen closing a recorded animation's cycle.
+
+Long enough to read as the loop turning over, short enough not to read as the
+image going blank.
+"""
+
 DEFAULT_ROWS = 24
 """Height of the terminal a recording runs its command in, in characters.
 
 A width is what a CLI wraps to and therefore what a capture pictures, so it is
 stated per recording. A height only has to be tall enough that nothing scrolls
 away before the screen is read, which this is.
+"""
+
+DEFAULT_SUBMIT = 0.4
+"""Seconds a finished command line waits before its output starts, by default.
+
+The beat between the last character and the return key. Long enough that the
+two read as separate acts, short enough that the animation does not appear to
+have stalled. See {func}`type_line`.
+"""
+
+DEFAULT_TYPING = 0.05
+"""Seconds one character of a typed command line takes to appear, by default.
+
+A brisk but readable rate: a reader follows what is being typed rather than
+watching a line materialize. Slower than any real typist, which is the point,
+since the line is there to be read and not to be raced. See {func}`type_line`.
 """
 
 READ_POLL = 0.02
@@ -399,6 +446,31 @@ def record_command(
     :return: the frames the terminal held, in order.
     :raises NotImplementedError: on a platform with no pseudo-terminal.
     """
+    return _record_process(
+        args,
+        columns=columns,
+        rows=rows,
+        background=background,
+        duration=duration,
+        clock=clock,
+    )[0]
+
+
+def _record_process(
+    args: TArg | TNestedArgs,
+    *,
+    columns: int = DEFAULT_COLUMNS,
+    rows: int = DEFAULT_ROWS,
+    background: CaptureBackground = CaptureBackground.DARK,
+    duration: float | None = None,
+    clock: Callable[[], float] = time.monotonic,
+) -> tuple[tuple[Frame, ...], int]:
+    """{func}`record_command`, reporting the command's exit code beside the frames.
+
+    The private form {func}`record_and_render` builds on: a caller writing a
+    file wants to relay how the command it pictured ended, while the public
+    frame recorder keeps its single-value return.
+    """
     if not is_unix():
         raise NotImplementedError(
             "Recording a command needs a pseudo-terminal, which this platform "
@@ -460,9 +532,9 @@ def record_command(
         os.close(parent)
         if process.poll() is None:
             process.terminate()
-        process.wait()
+        returncode = process.wait()
 
-    return recorder.frames(end=clock())
+    return recorder.frames(end=clock()), returncode
 
 
 def quantize(
@@ -496,4 +568,240 @@ def quantize(
         # drawn, so rounding it away would picture less than what ran.
         Frame(frame.text, round(max(round(frame.duration / quantum), 1) * quantum, 9))
         for frame in frames
+    )
+
+
+def ansi_prefix(text: str, count: int) -> str:
+    """The first `count` printable characters of `text`, its styling kept.
+
+    Slicing a styled line by index cuts an escape sequence in half, and the
+    remains land on the screen as the digits and brackets they are made of.
+    Counting the printable characters alone and keeping every escape passed on
+    the way is what avoids that, and it is also correct rather than merely safe:
+    an escape is drawn nowhere, so the ones before a character are exactly the
+    styling in force at it.
+
+    :param text: the line to cut, ANSI escape sequences included.
+    :param count: how many printable characters to keep. Counted as characters
+        rather than as cells, a keystroke producing one of either.
+    :return: the prefix, closed by a reset so the styling it opened ends with
+        it.
+    """
+    kept: list[str] = []
+    printed = 0
+    index = 0
+    while index < len(text) and printed < count:
+        sequence = CSI_RE.match(text, index)
+        if sequence:
+            kept.append(sequence.group())
+            index = sequence.end()
+            continue
+        kept.append(text[index])
+        printed += 1
+        index += 1
+    return "".join(kept) + "\x1b[0m"
+
+
+def type_line(
+    line: str,
+    *,
+    typing: float = DEFAULT_TYPING,
+    submit: float = DEFAULT_SUBMIT,
+) -> tuple[Frame, ...]:
+    """Frames of a command line appearing one keystroke at a time.
+
+    The opening act a terminal recording is usually missing. A command records
+    what it drew and never the invocation that drew it, so an animation starts
+    on output arriving from nowhere. Typing the line first says where it came
+    from, and reads as a session rather than as a clip.
+
+    ```{note}
+    Ordinary frames, carrying no mechanism of their own: they prepend to a
+    recording's and travel through
+    {func}`~click_extra.screenshot.render_svg` like any others. Everything the
+    picture does for a frame therefore reaches these too, the gutter numbering
+    them and the cursor following the text along, see
+    {func}`~click_extra.screenshot.cursor_cell`.
+    ```
+
+    The last frame holds the finished line for `submit`, which is the beat
+    before the return key. A recording's own frames follow it.
+
+    :param line: the command line to type, already styled as a prompt draws it,
+        see {func}`~click_extra.execution.format_cli_prompt`.
+    :param typing: seconds each character takes to appear.
+    :param submit: seconds the finished line waits before whatever follows.
+    :return: one frame per character, in the order they are typed. Empty for an
+        empty line, there being nothing to type.
+    :raises ValueError: when either duration is not positive.
+    """
+    if typing <= 0:
+        raise ValueError(f"{typing} is not a typing speed, which is positive.")
+    if submit <= 0:
+        raise ValueError(f"{submit} is not a pause, which is positive.")
+    length = len(CSI_RE.sub("", line))
+    if not length:
+        return ()
+    return tuple(
+        Frame(
+            ansi_prefix(line, typed),
+            # The finished line waits out the beat before the return key, and
+            # every character before it lasts one keystroke.
+            submit if typed == length else typing,
+        )
+        for typed in range(1, length + 1)
+    )
+
+
+def record_and_render(
+    args: TArg | TNestedArgs,
+    *,
+    columns: int = DEFAULT_COLUMNS,
+    rows: int = DEFAULT_ROWS,
+    background: CaptureBackground = CaptureBackground.DARK,
+    prompt: str | None = None,
+    duration: float | None = None,
+    quantum: float = DEFAULT_QUANTUM,
+    hold: THold = DEFAULT_RECORDING_HOLD,
+    blank: float = DEFAULT_RECORDING_BLANK,
+    speed: float = 1.0,
+    typing: float = 0.0,
+    submit: float = DEFAULT_SUBMIT,
+    line_numbers: bool = False,
+    emphasize: Sequence[int] = (),
+    cursor: Cursor | None = None,
+    title: str = "",
+    unique_id: str | None = None,
+    preset: TerminalPreset | None = None,
+    border: str | None = None,
+    border_width: int = DEFAULT_BORDER_WIDTH,
+    radius: int | None = None,
+    backdrop: str = NO_PAINT,
+    shadow: str | None = None,
+    margin: int = DEFAULT_MARGIN,
+    padding: int = DEFAULT_PADDING,
+    opacity: float = OPAQUE,
+    watermark: str = DEFAULT_WATERMARK,
+    watermark_color: str | None = None,
+) -> tuple[str, int]:
+    """Record a command under a pseudo-terminal and render it as an animated SVG.
+
+    Chains {func}`record_command`, {func}`quantize` and
+    {func}`~click_extra.screenshot.render`, the way
+    {func}`~click_extra.screenshot.capture_and_render` chains the still
+    pipeline. The invocation is drawn above every frame as a shell prompt,
+    styled by the active theme through
+    {func}`~click_extra.execution.format_cli_prompt`, so the recording shows
+    what to type to reproduce it.
+
+    :param args: the command line to record.
+    :param columns: width of the terminal it runs in, in characters. A
+        recording pins its width up front, so there is no `auto` here: the
+        pseudo-terminal must exist before the command draws its first line.
+    :param rows: height of that terminal, in characters.
+    :param background: chrome the recording is headed for, stated to the
+        command the way a terminal would.
+    :param prompt: command line to *display*, when it differs from the one
+        run. An empty string draws no prompt at all.
+    :param duration: seconds to record before stopping the command. `None`
+        records until it exits on its own.
+    :param quantum: grid the frame durations are rounded onto, see
+        {func}`quantize`.
+    :param hold: extra seconds the last frame stays up, or
+        {data}`~click_extra.screenshot.AUTO_HOLD` (the default here) to scale
+        them to that frame's line count.
+    :param blank: seconds of empty screen closing the cycle.
+    :param speed: how much faster to play than recorded. The typed opening is
+        replayed at the same rate as everything else, being part of what the
+        animation shows rather than a pause laid over it.
+    :param typing: seconds each character of the prompt takes to appear,
+        opening the animation by typing the command out. Zero draws the prompt
+        whole from the first frame, which is what a recording carrying no
+        opening shows. See {func}`type_line`.
+    :param submit: seconds the finished command line waits before its output
+        starts. Unused when nothing is typed.
+    :param line_numbers: draw each line's number in a gutter, the prompt
+        counting as the first of them.
+    :param emphasize: lines to draw a band behind, see
+        {func}`~click_extra.screenshot.render_svg`.
+    :param cursor: the terminal cursor to draw, see
+        {class}`~click_extra.screenshot_presets.Cursor`. It follows the text
+        from screen to screen on its own, so a typed opening gets its caret
+        from this and nothing else.
+    :param title: see {func}`~click_extra.screenshot.render`.
+    :param unique_id: see {func}`~click_extra.screenshot.render`.
+    :param preset: see {func}`~click_extra.screenshot.render`.
+    :param border: see {func}`~click_extra.screenshot.render`.
+    :param border_width: see {func}`~click_extra.screenshot.render`.
+    :param radius: see {func}`~click_extra.screenshot.render`.
+    :param backdrop: see {func}`~click_extra.screenshot.render`.
+    :param shadow: see {func}`~click_extra.screenshot.render`.
+    :param margin: see {func}`~click_extra.screenshot.render`.
+    :param padding: see {func}`~click_extra.screenshot.render`.
+    :param opacity: see {func}`~click_extra.screenshot.render`.
+    :param watermark: see {func}`~click_extra.screenshot.render`.
+    :param watermark_color: see {func}`~click_extra.screenshot.render`.
+    :return: the rendered SVG document, and the command's exit code.
+    :raises NotImplementedError: on a platform with no pseudo-terminal.
+    :raises ValueError: when the command drew nothing to record, or when a
+        stated `typing` or `submit` is not positive.
+    """
+    frames, returncode = _record_process(
+        args,
+        columns=columns,
+        rows=rows,
+        background=background,
+        duration=duration,
+    )
+    timed = quantize(frames, quantum)
+    if not timed:
+        raise ValueError("Recorded nothing: the command drew no screen.")
+
+    texts = tuple(frame.text for frame in timed)
+    displayed = args_cleanup(args) if prompt is None else tuple(shlex.split(prompt))
+    if displayed:
+        with forced_color():
+            prompt_line = format_cli_prompt(
+                displayed,
+                theme=PROMPT_THEMES[background],
+                prompt=None if preset is None else preset.prompt,
+            )
+        texts = tuple(f"{prompt_line}\n{text}" for text in texts)
+    intervals = tuple(frame.duration for frame in timed)
+    if displayed and typing:
+        # Prepended rather than merged: the opening is the same kind of thing
+        # the recording is, one screen per moment, so it rides the same ladder.
+        opening = type_line(prompt_line, typing=typing, submit=submit)
+        texts = tuple(frame.text for frame in opening) + texts
+        intervals = tuple(frame.duration for frame in opening) + intervals
+    if line_numbers:
+        texts = tuple(number_lines(text) for text in texts)
+
+    return (
+        render(
+            texts[-1],
+            columns=columns,
+            frames=texts,
+            interval=intervals,
+            hold=hold,
+            blank=blank,
+            speed=speed,
+            emphasize=emphasize,
+            cursor=cursor,
+            title=title,
+            unique_id=unique_id,
+            background=background,
+            preset=preset,
+            border=border,
+            border_width=border_width,
+            radius=radius,
+            backdrop=backdrop,
+            shadow=shadow,
+            margin=margin,
+            padding=padding,
+            opacity=opacity,
+            watermark=watermark,
+            watermark_color=watermark_color,
+        ),
+        returncode,
     )

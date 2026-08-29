@@ -61,8 +61,15 @@ from .prebake import (
     prebake_dunder,
     prebake_version,
 )
+from .recording import (
+    DEFAULT_RECORDING_BLANK,
+    DEFAULT_RECORDING_HOLD,
+    DEFAULT_ROWS,
+    record_and_render,
+)
 from .screenshot import (
     AUTO_COLUMNS,
+    AUTO_HOLD,
     DEFAULT_BORDER_WIDTH,
     DEFAULT_COLUMNS,
     DEFAULT_MARGIN,
@@ -745,6 +752,27 @@ def capture_options(
     return decorate
 
 
+def _parse_hold(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: str | None,
+) -> float | str | None:
+    """Read `--hold` into seconds or the `auto` sentinel, keeping unset as-is."""
+    if value is None:
+        return None
+    if value.strip().lower() == AUTO_HOLD:
+        return AUTO_HOLD
+    try:
+        hold = float(value)
+    except ValueError:
+        raise click.UsageError(
+            f"{value!r} is not a hold, which is seconds or 'auto'."
+        ) from None
+    if hold < 0:
+        raise click.UsageError(f"{value} is not a pause, which is never negative.")
+    return hold
+
+
 @command(name="screenshot")
 @argument("command_line", nargs=-1, required=True, type=click.UNPROCESSED)
 @capture_options(
@@ -778,7 +806,44 @@ def capture_options(
     "--timeout",
     type=FloatRange(min=0, min_open=True),
     default=None,
-    help="Seconds before the command is killed. Waits forever by default.",
+    help="Seconds before the command is killed. Waits forever by default. "
+    "With --record, this is also where the recording stops.",
+)
+@option(
+    "--record",
+    is_flag=True,
+    help="Run the command under a pseudo-terminal and write an animated SVG "
+    "of the screens it draws, spinners and progress bars included. Needs an "
+    ".svg --output and a numeric --columns. Unix only.",
+)
+@option(
+    "--rows",
+    type=IntRange(min=1),
+    default=None,
+    help=f"With --record, the height of the terminal the command runs in, in "
+    f"characters.  [default: {DEFAULT_ROWS}]",
+)
+@option(
+    "--hold",
+    default=None,
+    callback=_parse_hold,
+    help="With --record, extra seconds the last frame stays up before the "
+    "animation starts over, or auto to scale them to that frame's line "
+    "count.  [default: auto]",
+)
+@option(
+    "--blank",
+    type=FloatRange(min=0),
+    default=None,
+    help=f"With --record, seconds of empty screen closing the cycle.  "
+    f"[default: {DEFAULT_RECORDING_BLANK}]",
+)
+@option(
+    "--speed",
+    type=FloatRange(min=0, min_open=True),
+    default=None,
+    help="With --record, how much faster to play than recorded: 2 halves "
+    "every frame's time.  [default: 1.0]",
 )
 def screenshot_cmd(
     command_line: tuple[str, ...],
@@ -807,6 +872,11 @@ def screenshot_cmd(
     fragment: bool,
     wrap: bool,
     timeout: float | None,
+    record: bool,
+    rows: int | None,
+    hold: float | str | None,
+    blank: float | None,
+    speed: float | None,
 ) -> None:
     """Capture a command's colored output and write it as an image or HTML.
 
@@ -833,8 +903,41 @@ def screenshot_cmd(
     would otherwise slide the columns out of place.
 
     Neither format needs an optional dependency.
+
+    --record runs the command under a pseudo-terminal instead, and writes an
+    animated SVG of every screen it drew: the frames a spinner or a progress
+    bar asks a terminal for, which a plain capture never sees. The invocation
+    is drawn above every frame, and the loop pauses on the final screen for as
+    long as its line count asks, see --hold.
     """
     capture_format = resolve_capture_format(output, fragment)
+
+    if record:
+        if capture_format is not CaptureFormat.SVG:
+            raise click.UsageError(
+                "--record draws an animated SVG: point --output at an .svg file."
+            )
+        if columns == AUTO_COLUMNS:
+            raise click.UsageError(
+                "--record pins its terminal width up front: give --columns a number."
+            )
+        if merge_stderr:
+            raise click.UsageError(
+                "--record already folds the streams: a pseudo-terminal has one."
+            )
+        if head is not None or tail is not None:
+            raise click.UsageError(
+                "--head and --tail do not apply to --record, which keeps whole screens."
+            )
+    else:
+        for name, given in (
+            ("--rows", rows is not None),
+            ("--hold", hold is not None),
+            ("--blank", blank is not None),
+            ("--speed", speed is not None),
+        ):
+            if given:
+                raise click.UsageError(f"{name} requires --record.")
 
     if wrap:
         # Reached through the installed console script, never through
@@ -856,6 +959,41 @@ def screenshot_cmd(
         if prompt is None:
             prompt = shlex.join(("click-extra", "wrap", "--", *command_line))
         command_line = (executable, "wrap", "--", *command_line)
+
+    if record:
+        try:
+            document, returncode = record_and_render(
+                list(command_line),
+                columns=columns,
+                rows=DEFAULT_ROWS if rows is None else rows,
+                background=background,
+                prompt=prompt,
+                duration=timeout,
+                hold=DEFAULT_RECORDING_HOLD if hold is None else hold,
+                blank=DEFAULT_RECORDING_BLANK if blank is None else blank,
+                speed=1.0 if speed is None else speed,
+                line_numbers=line_numbers,
+                emphasize=emphasize,
+                title=title,
+                unique_id=output.stem,
+                preset=None if preset is None else PRESETS[preset.lower()],
+                border=border,
+                border_width=border_width,
+                radius=radius,
+                backdrop=backdrop,
+                shadow=shadow,
+                margin=margin,
+                padding=padding,
+                opacity=opacity,
+                watermark=watermark,
+                watermark_color=watermark_color,
+            )
+        except (NotImplementedError, ValueError) as error:
+            raise ClickException(str(error)) from error
+        if returncode:
+            logger.warning(f"{command_line[0]} exited with code {returncode}.")
+        deliver_capture(document, output)
+        return
 
     try:
         document, returncode = capture(
