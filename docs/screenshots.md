@@ -739,8 +739,10 @@ A still capture takes a cursor too, and leaves it after the last thing the comma
 `--record` turns the `screenshot` command into a recorder: the command runs under a pseudo-terminal, so a spinner or a progress bar draws the frames it would draw for you, and every screen it leaves behind lands in one animated SVG.
 
 ```shell-session
-$ click-extra screenshot --record --output trail.svg -- my-cli sync --dry-run
+$ click-extra screenshot --record --output recorded-trail-screen.svg -- click-extra trail
 ```
+
+![The trail demo recorded live: outcomes stream above a turning spinner](assets/recorded-trail-screen.svg)
 
 The invocation is drawn above every frame, exactly as a still capture draws its own prompt, and `--prompt` overrides or hides it the same way. `--rows` states the terminal's height, `--timeout` stops a recording that would run on, and the pacing knobs above apply as given. Two of a still capture's arrangements do not carry over: the width must be a number, since the pseudo-terminal exists before the command draws its first line, and `--head`/`--tail` stay out, a recording being made of whole screens.
 
