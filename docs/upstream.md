@@ -219,6 +219,12 @@ click-extra's [`VersionOption`](version.md) adds [template variables](version.md
 - [`click#2331` - `version_option` module name and package name are not equivalent](https://github.com/pallets/click/issues/2331)
 - [`click#1756` - Path and Python version for version message formatting](https://github.com/pallets/click/issues/1756)
 
+### Environment profile
+
+The [`{env_info}` template variable](version.md#environment-information), which `DEBUG` logs also dump, reads its profile from [`boltons.ecoutils`](https://boltons.readthedocs.io/en/latest/ecoutils.html). That profile resolves the user, host and working directory even when asked to scrub them, then replaces all four with `-`. Two of those lookups are not free: `socket.getfqdn()` waits out the resolver on a host with no reverse DNS, and `os.getcwd()` raises once the working directory is gone. click-extra skips both lookups itself until the fix lands upstream:
+
+- [`boltons#461` - Skip the lookups that the `scrub` parameter removes](https://github.com/mahmoud/boltons/pull/461)
+
 ### Environment variables
 
 click-extra [auto-generates environment variables](commands.md) for all options and adds `show_envvar` as a global context setting:
