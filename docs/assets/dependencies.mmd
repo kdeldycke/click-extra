@@ -3,19 +3,19 @@ flowchart LR
 
     subgraph primary-deps [Primary dependencies]
         extra_platforms{{"`extra-platforms`"}}
-        requests{{"`requests`"}}
         cloup{{"`cloup`"}}
-        click_0{{"`click`"}}
         tabulate{{"`tabulate`"}}
         wcmatch{{"`wcmatch`"}}
+        click_0{{"`click`"}}
         tomli{{"`tomli`"}}
         wcwidth{{"`wcwidth`"}}
         boltons{{"`boltons`"}}
         deepmerge{{"`deepmerge`"}}
     end
 
-    colorama(["`colorama`"])
+    requests(["`requests`"])
     mkdocs_get_deps(["`mkdocs-get-deps`"])
+    colorama(["`colorama`"])
     jinja2(["`jinja2`"])
     packaging(["`packaging`"])
     exceptiongroup(["`exceptiongroup`"])
@@ -97,8 +97,7 @@ flowchart LR
         ext_yaml_pyyaml{{"`pyyaml >=6.0.3`"}}
     end
 
-    click_extra ==>|" >=2.34 "| requests
-    click_extra ==>|" >=8.3.1 "| click_0
+    click_extra ==>|" >=8.4.1 "| click_0
     click_extra ==>|" >=3.0.7 "| cloup
     click_extra ==>|" >=2 "| tomli
     click_extra ==>|" >=13.4 "| extra_platforms
@@ -126,9 +125,9 @@ flowchart LR
     sphinx --> sphinxcontrib_qthelp
     sphinx --> sphinxcontrib_serializinghtml
     mkdocs --> pyyaml
+    mkdocs --> mkdocs_get_deps
     mkdocs --> click_0
     mkdocs --> colorama
-    mkdocs --> mkdocs_get_deps
     mkdocs --> jinja2
     mkdocs --> packaging
     mkdocs --> ghp_import
@@ -145,11 +144,6 @@ flowchart LR
     pytest --> exceptiongroup
     pytest --> iniconfig
     pytest --> pluggy
-    requests --> certifi
-    requests --> charset_normalizer
-    requests --> idna
-    requests --> urllib3
-    click_0 --> colorama
     cloup --> click_0
     cloup --> typing_extensions
     pymdown_extensions --> pyyaml
@@ -157,6 +151,10 @@ flowchart LR
     extra_platforms --> pytest
     tabulate --> wcwidth
     wcmatch --> bracex
+    requests --> certifi
+    requests --> charset_normalizer
+    requests --> idna
+    requests --> urllib3
     mkdocs_get_deps --> pyyaml
     mkdocs_get_deps --> mergedeep
     mkdocs_get_deps --> platformdirs
@@ -256,7 +254,6 @@ flowchart LR
     style pymdown_extensions stroke-width:3px
     style pytest stroke-width:3px
     style pyyaml stroke-width:3px
-    style requests stroke-width:3px
     style sphinx stroke-width:3px
     style tabulate stroke-width:3px
     style tomli stroke-width:3px
