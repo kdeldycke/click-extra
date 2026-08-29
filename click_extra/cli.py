@@ -65,10 +65,12 @@ from .recording import (
     DEFAULT_RECORDING_BLANK,
     DEFAULT_RECORDING_HOLD,
     DEFAULT_ROWS,
+    DEFAULT_SUBMIT,
     record_and_render,
 )
 from .screenshot import (
     AUTO_COLUMNS,
+    AUTO_CURSOR,
     AUTO_HOLD,
     DEFAULT_BORDER_WIDTH,
     DEFAULT_COLUMNS,
@@ -86,7 +88,7 @@ from .screenshot import (
     capture,
     format_from_path,
 )
-from .screenshot_presets import PRESETS
+from .screenshot_presets import PRESETS, Cursor, CursorShape
 from .spinner import (
     _DEFAULT_SHOWCASE,
     OperationTrail,
@@ -839,6 +841,41 @@ def _parse_hold(
     f"[default: {DEFAULT_RECORDING_BLANK}]",
 )
 @option(
+    "--cursor",
+    type=click.Choice(
+        (AUTO_CURSOR, *(shape.value for shape in CursorShape)),
+        case_sensitive=False,
+    ),
+    is_flag=False,
+    flag_value=AUTO_CURSOR,
+    default=None,
+    help="Draw a terminal cursor where the command left it. Bare, it takes "
+    "the shape the --preset terminal draws; name one to override that. "
+    "Omitted, no cursor is drawn.",
+)
+@option(
+    "--blink",
+    type=FloatRange(min=0),
+    default=None,
+    help=f"With --cursor, seconds one blink takes. Pass 0 to draw a steady "
+    f"cursor.  [default: {Cursor().blink}]",
+)
+@option(
+    "--typing",
+    type=FloatRange(min=0, min_open=True),
+    default=None,
+    help="With --record, open the animation by typing the command line out, "
+    "this many seconds per character. Omitted, the prompt stands there from "
+    "the first frame.",
+)
+@option(
+    "--submit",
+    type=FloatRange(min=0, min_open=True),
+    default=None,
+    help=f"With --typing, seconds the finished command line waits before its "
+    f"output starts.  [default: {DEFAULT_SUBMIT}]",
+)
+@option(
     "--speed",
     type=FloatRange(min=0, min_open=True),
     default=None,
@@ -876,6 +913,10 @@ def screenshot_cmd(
     rows: int | None,
     hold: float | str | None,
     blank: float | None,
+    cursor: str | None,
+    blink: float | None,
+    typing: float | None,
+    submit: float | None,
     speed: float | None,
 ) -> None:
     """Capture a command's colored output and write it as an image or HTML.
@@ -935,9 +976,23 @@ def screenshot_cmd(
             ("--hold", hold is not None),
             ("--blank", blank is not None),
             ("--speed", speed is not None),
+            ("--typing", typing is not None),
+            ("--submit", submit is not None),
         ):
             if given:
                 raise click.UsageError(f"{name} requires --record.")
+    if blink is not None and cursor is None:
+        raise click.UsageError("--blink requires --cursor.")
+    if submit is not None and typing is None:
+        raise click.UsageError("--submit requires --typing.")
+
+    drawn_cursor = None
+    if cursor is not None:
+        drawn_cursor = Cursor(
+            # The bare flag names no shape, which is what leaves the preset to.
+            shape=None if cursor == AUTO_CURSOR else CursorShape(cursor),
+            blink=Cursor().blink if blink is None else blink,
+        )
 
     if wrap:
         # Reached through the installed console script, never through
@@ -972,6 +1027,9 @@ def screenshot_cmd(
                 hold=DEFAULT_RECORDING_HOLD if hold is None else hold,
                 blank=DEFAULT_RECORDING_BLANK if blank is None else blank,
                 speed=1.0 if speed is None else speed,
+                typing=0.0 if typing is None else typing,
+                submit=DEFAULT_SUBMIT if submit is None else submit,
+                cursor=drawn_cursor,
                 line_numbers=line_numbers,
                 emphasize=emphasize,
                 title=title,
@@ -1008,6 +1066,7 @@ def screenshot_cmd(
             timeout=timeout,
             line_numbers=line_numbers,
             emphasize=emphasize,
+            cursor=drawn_cursor,
             title=title,
             unique_id=output.stem,
             full=not fragment,

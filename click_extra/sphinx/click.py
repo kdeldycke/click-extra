@@ -59,11 +59,14 @@ from ..recording import (
     DEFAULT_QUANTUM,
     DEFAULT_RECORDING_BLANK,
     DEFAULT_RECORDING_HOLD,
+    DEFAULT_SUBMIT,
     Frame,
     quantize,
+    type_line,
 )
 from ..screenshot import (
     AUTO_COLUMNS,
+    AUTO_CURSOR,
     AUTO_HOLD,
     DEFAULT_COLUMNS,
     MIN_COLUMNS,
@@ -71,9 +74,10 @@ from ..screenshot import (
     CaptureBackground,
     animation_metadata,
     number_lines,
+    prompt_line,
     render,
 )
-from ..screenshot_presets import PRESETS, TerminalPreset
+from ..screenshot_presets import PRESETS, Cursor, CursorShape, TerminalPreset
 from ..snippet import highlight_code, resolve_style, style_palette
 from ..spinner import Spinner
 from ..testing import isolated_filesystem
@@ -571,6 +575,26 @@ def _screenshot_pause(argument: str) -> float:
     return pause
 
 
+def _screenshot_cursor(argument: str | None) -> CursorShape | None:
+    """Read the `:screenshot-cursor:` option into a shape, or into the preset's.
+
+    A bare `:screenshot-cursor:` reaches here as `None`, which docutils passes
+    for an option written without a value. That, an empty one, and
+    {data}`~click_extra.screenshot.AUTO_CURSOR` all leave the shape to the
+    terminal preset the block is drawn as.
+    """
+    shape = (argument or "").strip().lower()
+    if not shape or shape == AUTO_CURSOR:
+        return None
+    try:
+        return CursorShape(shape)
+    except ValueError:
+        known = ", ".join(member.value for member in CursorShape)
+        raise ValueError(
+            f"{argument} is not a cursor shape: name one of {known}, or {AUTO_CURSOR}."
+        ) from None
+
+
 def _screenshot_hold(argument: str) -> THold:
     """Read the `:screenshot-hold:` option into seconds, or into `auto`.
 
@@ -639,7 +663,9 @@ class ClickDirective(SphinxDirective):
         "screenshot-border": directives.unchanged_required,
         "screenshot-blank": _screenshot_pause,
         "screenshot-border-width": directives.nonnegative_int,
+        "screenshot-blink": _screenshot_pause,
         "screenshot-columns": _screenshot_columns,
+        "screenshot-cursor": _screenshot_cursor,
         "screenshot-emphasize-lines": directives.unchanged_required,
         "screenshot-hold": _screenshot_hold,
         "screenshot-line-numbers": directives.flag,
@@ -647,13 +673,16 @@ class ClickDirective(SphinxDirective):
         "screenshot-opacity": _screenshot_opacity,
         "screenshot-padding": directives.nonnegative_int,
         "screenshot-preset": _screenshot_preset,
+        "screenshot-prompt": directives.unchanged,
         "screenshot-quantum": _screenshot_interval,
         "screenshot-radius": directives.nonnegative_int,
         "screenshot-record": directives.unchanged_required,
         "screenshot-shadow": directives.unchanged_required,
         "screenshot-speed": _screenshot_interval,
+        "screenshot-submit": _screenshot_interval,
         "screenshot-syntax-style": directives.unchanged_required,
         "screenshot-title": directives.unchanged_required,
+        "screenshot-typing": _screenshot_interval,
         "screenshot-watermark": directives.unchanged_required,
         "screenshot-watermark-color": directives.unchanged_required,
         "mirror": directives.flag,
@@ -1228,7 +1257,9 @@ class ClickDirective(SphinxDirective):
         `:screenshot-watermark:` a credit line for the image's corner, which no
         capture carries here unless asked for.
         `:screenshot-line-numbers:` is a flag, numbering every line the block
-        rendered, its prompt first. See
+        rendered, its prompt first. `:screenshot-cursor:` draws a terminal
+        cursor, in the shape it names or in the preset's own, and
+        `:screenshot-blink:` says how long one blink takes. See
         {func}`~click_extra.screenshot.render_svg`.
 
         A block naming no preset falls back to the one the
@@ -1260,6 +1291,11 @@ class ClickDirective(SphinxDirective):
             "watermark",
             self.env.config.click_extra_screenshot_watermark,
         )
+        if "screenshot-cursor" in self.options:
+            frame["cursor"] = Cursor(
+                shape=self.options["screenshot-cursor"],
+                blink=self.options.get("screenshot-blink", Cursor().blink),
+            )
         # Spelled out rather than imported from the package declaring it, as
         # the screenshot directory next door is: the name is the conf.py API.
         default_preset = self.env.config.click_extra_screenshot_preset
@@ -1272,6 +1308,73 @@ class ClickDirective(SphinxDirective):
                 )
             frame["preset"] = PRESETS[default_preset]
         return frame
+
+    @cached_property
+    def invocation(self) -> str:
+        """The command line the capture draws above itself, styled as a prompt.
+
+        Set by `:screenshot-prompt:`, which states the line a reader would type
+        rather than anything the block ran: a `click:run` block invokes a Python
+        callable, so there is no argv to recover one from. Styled exactly as a
+        still capture styles its own, see
+        {func}`~click_extra.screenshot.prompt_line`.
+
+        ```{note}
+        Animations only. A still block already prints its invocation, so the
+        option would draw it twice; the animated paths are the ones holding
+        what a command *drew* and nothing about the command line that drew it.
+        ```
+
+        :return: the styled line, empty when the block states none.
+        """
+        spec = self.options.get("screenshot-prompt")
+        if not spec:
+            return ""
+        return prompt_line(
+            (),
+            prompt=spec,
+            background=self.screenshot_background,
+            preset=self.screenshot_frame.get("preset"),
+        )
+
+    def opened(
+        self,
+        frames: tuple[str, ...],
+        interval: float | tuple[float, ...],
+    ) -> tuple[tuple[str, ...], float | tuple[float, ...]]:
+        """Draw the invocation over an animation, and type it when asked.
+
+        A block records what a command *drew* and never the command line that
+        drew it, so an animation opens on output arriving from nowhere.
+        `:screenshot-prompt:` puts the line back over every frame, and
+        `:screenshot-typing:` opens on it being typed, one character a frame,
+        see {func}`~click_extra.recording.type_line`.
+
+        :param frames: the animation's frames, in order.
+        :param interval: how long each is shown, one number for all alike.
+        :return: the frames and their timing, both grown by the opening.
+        """
+        line = self.invocation
+        if not line:
+            return (tuple(frames), interval)
+        frames = tuple(f"{line}\n{frame}" for frame in frames)
+        typing = self.options.get("screenshot-typing")
+        if not typing:
+            return (frames, interval)
+        opening = type_line(
+            line,
+            typing=typing,
+            submit=self.options.get("screenshot-submit", DEFAULT_SUBMIT),
+        )
+        # A typed frame lasts a keystroke and the rest last whatever they were
+        # given, so one number covering every frame alike no longer can: it is
+        # spread over the frames it was standing for before the two are joined.
+        if isinstance(interval, int | float):
+            interval = (float(interval),) * len(frames)
+        return (
+            tuple(frame.text for frame in opening) + frames,
+            tuple(frame.duration for frame in opening) + tuple(interval),
+        )
 
     def write_screenshot(self, results: Iterable[str]) -> None:
         """Write the captured output as an SVG beside the documentation.
@@ -1320,6 +1423,7 @@ class ClickDirective(SphinxDirective):
                 # a fresh recording, delete the file and build again.
                 return
             frames, interval = self.resolve_animation(recording, ":screenshot-record:")
+            frames, interval = self.opened(frames, interval)
             path.write_text(
                 render(
                     columns=self.screenshot_columns,
@@ -1341,7 +1445,7 @@ class ClickDirective(SphinxDirective):
 
         animation = self.screenshot_animation
         if animation is not None:
-            frames, interval = animation
+            frames, interval = self.opened(*animation)
             drawn = render(
                 columns=self.screenshot_columns,
                 unique_id=self.screenshot,
