@@ -27,12 +27,6 @@ spinner
 version
 execution
 telemetry
-pygments
-sphinx
-myst-docstrings
-mkdocs
-screenshots
-snippets
 envvar
 decorators
 testing
@@ -40,11 +34,23 @@ test-suite
 pytest
 wrap
 machine-readable
-man-page
 carapace
 tree
 typer
 benchmark
+```
+
+```{toctree}
+:caption: Documentation tooling
+:maxdepth: 2
+:hidden:
+pygments
+sphinx
+myst-docstrings
+mkdocs
+screenshots
+snippets
+man-page
 ```
 
 % XXX Furo doesn't support icons in toctree entries natively.

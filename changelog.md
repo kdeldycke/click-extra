@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
+- Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
 
 ## [`9.0.0` (2026-08-28)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
 

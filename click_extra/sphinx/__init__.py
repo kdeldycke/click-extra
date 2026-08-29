@@ -19,6 +19,16 @@
 The MkDocs counterpart lives in {mod}`click_extra.mkdocs`, which achieves the same
 ANSI color rendering by patching `pymdownx.highlight`'s formatter classes.
 ```
+
+```{todo}
+Split the documentation stack into a standalone `extra-docs` project, should it
+keep growing away from the CLI framework hosting it. It would take this package,
+{mod}`click_extra.pygments`, {mod}`click_extra.mkdocs`, the MyST converters in
+{mod}`click_extra.myst_converter` and {mod}`click_extra.rst_to_myst`, and the
+marker-region primitives repomatic keeps in its own `docs/docs_update.py`. The
+open question is the `click:source` and `click:run` directives: they invoke a
+Click CLI, so either they stay here, or `extra-docs` depends on click-extra.
+```
 """
 
 from __future__ import annotations
