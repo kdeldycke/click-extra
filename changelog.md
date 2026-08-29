@@ -13,7 +13,10 @@
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
 - Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
 
-## [`9.0.0` (2026-08-28)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
+## [`9.0.0` (2026-08-29)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
+
+> [!NOTE]
+> `9.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/9.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v9.0.0).
 
 - **Breaking:** Raise the Click floor from `8.3.1` to `8.4.1`, dropping the compatibility shims the `8.3.x` releases needed.
 - **Breaking:** Rename every camel-cased spinner preset to kebab case, so `boxBounce` is now `box-bounce`.
