@@ -153,6 +153,7 @@ class TerminalScreen:
         self.rows: list[str] = [""]
         self._column = 0
         self._partial = ""
+        self._pending_return = False
 
     @property
     def display(self) -> str:
@@ -184,34 +185,59 @@ class TerminalScreen:
             tail = tail[: opening.start()]
         self._write(tail)
 
+    def _land(self) -> None:
+        """Apply a deferred carriage return, just before something lands.
+
+        A return only *moves* the cursor: whether the row survives depends on
+        what comes next. Text or styling landing on the row redraws it, so the
+        row is cleared here, at landing time; a newline instead leaves for the
+        next row and the one the cursor came back over survives, which is what
+        a real terminal shows for the `\r\n` a pseudo-terminal substitutes
+        for every newline.
+        """
+        if self._pending_return:
+            self.rows[-1] = ""
+            self._pending_return = False
+
     def _control(self, sequence: str) -> None:
         """Act on one control sequence, or drop it when it is out of scope."""
         final = sequence[-1]
         if final == SELECT_GRAPHIC_RENDITION:
-            # Styling travels with the text it wraps: kept, never acted on.
+            # Styling travels with the text it wraps: kept, never acted on. It
+            # lands like text does, so a color opened between a return and its
+            # redraw survives the deferred clear instead of being wiped by it.
+            self._land()
             self.rows[-1] += sequence
         elif final == ERASE_IN_LINE and not self._column:
             # Cleared from the start of the row, which empties the whole of it.
             # Past the start, the row already holds only what was written since
-            # the cursor came back, so there is nothing left to erase.
+            # the cursor came back, so there is nothing left to erase. The
+            # erase is the redraw a pending return was waiting for.
             self.rows[-1] = ""
+            self._pending_return = False
 
     def _write(self, text: str) -> None:
         """Lay printable text on the screen, one row per newline it carries."""
         for line_index, line in enumerate(text.split("\n")):
             if line_index:
+                # A newline settles any return before it without a redraw: the
+                # row it came back over survives, so the `\r\n` a
+                # pseudo-terminal substitutes for every newline keeps the line
+                # a real terminal keeps.
                 self.rows.append("")
                 self._column = 0
+                self._pending_return = False
             for chunk_index, chunk in enumerate(line.split("\r")):
                 if chunk_index:
-                    # The cursor goes back to the start of the row, which this
-                    # screen redraws whole: see the class's caution. Clearing
-                    # here rather than when the next text lands is what keeps a
-                    # color set between the return and the text it wraps.
-                    self.rows[-1] = ""
+                    # The cursor goes back to the start of the row. The redraw
+                    # is deferred to {meth}`_land`, which is what tells an
+                    # animation redrawing its row apart from a line merely
+                    # ending in a return.
                     self._column = 0
+                    self._pending_return = True
                 if not chunk:
                     continue
+                self._land()
                 self.rows[-1] += chunk
                 # A wide glyph covers the two cells it is drawn with. Text
                 # carrying something unmeasurable reads as zero rather than as

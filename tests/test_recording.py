@@ -83,6 +83,12 @@ def snapshots(stream: str) -> list[str]:
         pytest.param(f"{HIDE_CURSOR}fig{SHOW_CURSOR}", "fig", id="cursor-visibility"),
         pytest.param("\x1b[2;5Hfig", "fig", id="an-unfollowed-sequence-is-dropped"),
         pytest.param("one\rtwo\nthree", "two\nthree", id="return-then-newline"),
+        pytest.param("one\r\ntwo", "one\ntwo", id="return-newline-keeps-the-row"),
+        pytest.param(
+            f"spin{CLEAR_LINE}\r{CLEAR_LINE}done\r\n\rnext{CLEAR_LINE}",
+            "done\nnext",
+            id="trail-choreography",
+        ),
     ),
 )
 def test_screen_replays_a_stream(stream, expected):
@@ -95,9 +101,10 @@ def test_screen_replays_a_stream(stream, expected):
 def test_screen_keeps_a_color_set_between_a_return_and_its_text():
     """A color opened after the cursor comes back still wraps what follows.
 
-    An animation writes the return, then its color, then the text. Redrawing the
-    row when the *text* lands rather than when the cursor comes back throws that
-    color away, and the frame draws in the terminal's default ink.
+    An animation writes the return, then its color, then the text. The redraw
+    is deferred until something lands on the row, and the color is the first
+    thing to land: it must trigger the clear and survive it, or the frame
+    draws in the terminal's default ink.
     """
     screen = TerminalScreen()
     screen.feed(f"apricot\r{GREEN}fig{RESET}{CLEAR_LINE}")
