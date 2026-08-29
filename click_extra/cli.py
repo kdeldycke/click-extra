@@ -861,6 +861,13 @@ def _parse_hold(
     f"cursor.  [default: {Cursor().blink}]",
 )
 @option(
+    "--closing-prompt/--no-closing-prompt",
+    default=False,
+    help="Draw the shell's prompt on the row under the output, where it comes "
+    "back once the command exits. Costs no height alongside --cursor, which "
+    "already leaves that row for the cursor to wait on.",
+)
+@option(
     "--typing",
     type=FloatRange(min=0, min_open=True),
     default=None,
@@ -915,6 +922,7 @@ def screenshot_cmd(
     blank: float | None,
     cursor: str | None,
     blink: float | None,
+    closing_prompt: bool,
     typing: float | None,
     submit: float | None,
     speed: float | None,
@@ -1030,6 +1038,7 @@ def screenshot_cmd(
                 typing=0.0 if typing is None else typing,
                 submit=DEFAULT_SUBMIT if submit is None else submit,
                 cursor=drawn_cursor,
+                closing_prompt=closing_prompt,
                 line_numbers=line_numbers,
                 emphasize=emphasize,
                 title=title,
@@ -1067,6 +1076,7 @@ def screenshot_cmd(
             line_numbers=line_numbers,
             emphasize=emphasize,
             cursor=drawn_cursor,
+            closing_prompt=closing_prompt,
             title=title,
             unique_id=output.stem,
             full=not fragment,

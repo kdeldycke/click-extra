@@ -73,6 +73,7 @@ from ..screenshot import (
     OPAQUE,
     CaptureBackground,
     animation_metadata,
+    append_prompt,
     number_lines,
     prompt_line,
     render,
@@ -664,6 +665,7 @@ class ClickDirective(SphinxDirective):
         "screenshot-blank": _screenshot_pause,
         "screenshot-border-width": directives.nonnegative_int,
         "screenshot-blink": _screenshot_pause,
+        "screenshot-closing-prompt": directives.flag,
         "screenshot-columns": _screenshot_columns,
         "screenshot-cursor": _screenshot_cursor,
         "screenshot-emphasize-lines": directives.unchanged_required,
@@ -1337,6 +1339,29 @@ class ClickDirective(SphinxDirective):
             preset=self.screenshot_frame.get("preset"),
         )
 
+    def closed(self, frames: tuple[str, ...]) -> tuple[str, ...]:
+        """Put the shell's prompt under the last frame, when asked.
+
+        `:screenshot-closing-prompt:` draws the sigil on the row a finished
+        command leaves the shell waiting on, see
+        {func}`~click_extra.screenshot.append_prompt`. The last frame alone
+        carries it: the shell has not come back while the command is still
+        drawing.
+
+        :param frames: the animation's frames, in order.
+        :return: the same frames, the last one closed, or unchanged.
+        """
+        if "screenshot-closing-prompt" not in self.options or not frames:
+            return frames
+        return (
+            *frames[:-1],
+            append_prompt(
+                frames[-1],
+                background=self.screenshot_background,
+                preset=self.screenshot_frame.get("preset"),
+            ),
+        )
+
     def opened(
         self,
         frames: tuple[str, ...],
@@ -1423,7 +1448,7 @@ class ClickDirective(SphinxDirective):
                 # a fresh recording, delete the file and build again.
                 return
             frames, interval = self.resolve_animation(recording, ":screenshot-record:")
-            frames, interval = self.opened(frames, interval)
+            frames, interval = self.opened(self.closed(frames), interval)
             path.write_text(
                 render(
                     columns=self.screenshot_columns,
@@ -1445,7 +1470,7 @@ class ClickDirective(SphinxDirective):
 
         animation = self.screenshot_animation
         if animation is not None:
-            frames, interval = self.opened(*animation)
+            frames, interval = self.opened(self.closed(animation[0]), animation[1])
             drawn = render(
                 columns=self.screenshot_columns,
                 unique_id=self.screenshot,
@@ -1464,6 +1489,8 @@ class ClickDirective(SphinxDirective):
             return
 
         lines = self.screenshot_lines(results)
+        if lines:
+            lines = self.closed(("\n".join(lines),))[0].split("\n")
         if "screenshot-line-numbers" in self.options and lines:
             # Numbered whole, so line 1 is the first line the picture shows.
             lines = number_lines("\n".join(lines)).splitlines()
