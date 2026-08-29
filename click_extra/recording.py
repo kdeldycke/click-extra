@@ -66,6 +66,7 @@ from .screenshot import (
     NO_PAINT,
     OPAQUE,
     CaptureBackground,
+    append_prompt,
     number_lines,
     prompt_line,
     render,
@@ -669,6 +670,7 @@ def record_and_render(
     line_numbers: bool = False,
     emphasize: Sequence[int] = (),
     cursor: Cursor | None = None,
+    closing_prompt: bool = False,
     title: str = "",
     unique_id: str | None = None,
     preset: TerminalPreset | None = None,
@@ -727,6 +729,10 @@ def record_and_render(
         {class}`~click_extra.screenshot_presets.Cursor`. It follows the text
         from screen to screen on its own, so a typed opening gets its caret
         from this and nothing else.
+    :param closing_prompt: draw the shell's prompt under the last frame, which
+        is where it comes back once the command exits, see
+        {func}`~click_extra.screenshot.append_prompt`. Only that frame carries
+        it: the shell has not returned while the command is still drawing.
     :param title: see {func}`~click_extra.screenshot.render`.
     :param unique_id: see {func}`~click_extra.screenshot.render`.
     :param preset: see {func}`~click_extra.screenshot.render`.
@@ -760,6 +766,13 @@ def record_and_render(
     invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
     if invocation:
         texts = tuple(f"{invocation}\n{text}" for text in texts)
+    if closing_prompt:
+        # The last frame alone: it is the only screen the command has finished
+        # drawing, and the shell comes back on no other.
+        texts = (
+            *texts[:-1],
+            append_prompt(texts[-1], background=background, preset=preset),
+        )
     intervals = tuple(frame.duration for frame in timed)
     if invocation and typing:
         # Prepended rather than merged: the opening is the same kind of thing

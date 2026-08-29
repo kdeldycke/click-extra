@@ -81,6 +81,7 @@ from click_extra.screenshot import (
     WATERMARK_URL,
     CaptureBackground,
     CaptureFormat,
+    append_prompt,
     auto_columns,
     auto_hold,
     blend,
@@ -991,6 +992,91 @@ def test_auto_columns_leaves_room_for_a_cursor():
     # A picture closing on a newline puts the cursor at column zero instead,
     # which the text's own width already covers.
     assert auto_columns((f"{shelf}\n",), Cursor()) == len(shelf)
+
+
+def test_a_closing_prompt_belongs_to_the_last_frame_alone():
+    """Closing every frame would say the command exited before it had.
+
+    Counted rather than located, the sigil landing on a different row in each
+    frame of an animation that grows. A row drawn the same in every frame is
+    drawn once, so an unclosed animation shows its opening sigil a single time
+    and each closed frame adds one of its own: measured at 1, 2 and 5 here.
+    """
+    opening = f"{Style(fg='bright_black')('$')} basket ripen"
+    frames = tuple(f"{opening}\n{bar}" for bar in ("[", "[#", "[##", "[###\nripe\n"))
+
+    def sigils(pictures):
+        return render_svg(
+            columns=30,
+            unique_id="orchard",
+            frames=pictures,
+            interval=0.1,
+            cursor=Cursor(),
+        ).count(">$</text>")
+
+    assert sigils(frames) == 1
+    assert sigils((*frames[:-1], append_prompt(frames[-1]))) == 2
+    assert sigils(tuple(append_prompt(frame) for frame in frames)) == 5
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        pytest.param("shelved\n", "shelved\n$ ", id="fills-the-row-the-newline-opened"),
+        pytest.param("shelved", "shelved\n$ ", id="opens-a-row-when-mid-line"),
+        pytest.param("", "\n$ ", id="an-empty-screen-still-prompts"),
+    ),
+)
+def test_append_prompt_closes_a_finished_screen(text, expected):
+    """The shell comes back on the row under the output, and on no other."""
+    assert unstyle(append_prompt(text)) == expected
+
+
+def test_append_prompt_takes_the_sigil_its_preset_draws():
+    """A capture of Windows Terminal closes on the shell that terminal runs."""
+    closed = unstyle(append_prompt("shelved", preset=PRESETS["windows"]))
+    assert closed == "shelved\nPS C:\\> "
+
+
+def test_a_closing_prompt_costs_no_height_beside_a_cursor():
+    """The cursor already claimed that row: the prompt only fills it.
+
+    What makes the pair worth having. A cursor alone leaves a row holding
+    nothing, and the sigil turns it into the shell waiting.
+    """
+    output = "shelved 4 crates\n"
+
+    def height(text: str, cursor: Cursor | None) -> float:
+        found = re.search(
+            r'viewBox="0 0 [\d.]+ ([\d.]+)"',
+            render_svg(text, columns=40, unique_id="shelf", cursor=cursor),
+        )
+        assert found
+        return float(found.group(1))
+
+    bare = height(output, None)
+    with_cursor = height(output, Cursor())
+    assert with_cursor - bare == pytest.approx(LINE_HEIGHT)
+    assert height(append_prompt(output), Cursor()) == pytest.approx(with_cursor)
+
+
+def test_screenshot_closes_a_still_with_a_prompt(invoke, tmp_path):
+    """`--closing-prompt` draws the shell coming back under the output."""
+    target = tmp_path / "shelf.svg"
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--closing-prompt",
+            "--output",
+            str(target),
+            "--",
+            sys.executable,
+            "-c",
+            "print('shelved')",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert svg_to_lines(target.read_text(encoding="UTF-8"))[-1].strip() == "$"
 
 
 @pytest.mark.parametrize(

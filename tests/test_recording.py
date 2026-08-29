@@ -39,7 +39,13 @@ from click_extra.recording import (
     record_command,
     type_line,
 )
-from click_extra.screenshot import CELL_WIDTH, animation_digest, render_svg
+from click_extra.screenshot import (
+    CELL_HEIGHT,
+    CELL_WIDTH,
+    LINE_HEIGHT,
+    animation_digest,
+    render_svg,
+)
 from click_extra.screenshot_presets import Cursor
 
 TYPE_CHECKING = False
@@ -574,3 +580,74 @@ def test_a_recording_types_nothing_unless_asked():
         unique_id="orchard",
     )
     assert "orchard-blink" not in svg
+
+
+RIPENED_SCRIPT = """\
+import sys, time
+for filled in range(4):
+    sys.stderr.write('\\r[' + '#' * filled + ']\\x1b[K')
+    sys.stderr.flush()
+    time.sleep(0.05)
+sys.stderr.write('\\r\\x1b[Kripe\\n')
+"""
+"""The same bar, ending on a newline the way a finished command does."""
+
+
+def last_drawn_row(svg: str) -> int:
+    """Index of the lowest row a capture draws a glyph on, counted from zero.
+
+    Matched on the styled runs alone: the caption and the credit line are
+    `<text>` too, and both sit outside the grid this measures.
+    """
+    baselines = [
+        float(y) for y in re.findall(r'<text class="[\w-]+-r\d+"[^>]*y="([\d.]+)"', svg)
+    ]
+    assert baselines, svg
+    return round((max(baselines) - CELL_HEIGHT) / LINE_HEIGHT)
+
+
+def window_height(svg: str) -> float:
+    """How tall the capture is, in pixels."""
+    found = re.search(r'viewBox="0 0 [\d.]+ ([\d.]+)"', svg)
+    assert found, svg
+    return float(found.group(1))
+
+
+def recorded(script: str, **kwargs: object) -> str:
+    """Record one script, however the capture is asked to close."""
+    svg, _returncode = record_and_render(
+        ("python", "-c", script),
+        columns=40,
+        prompt="basket ripen --all",
+        unique_id="orchard",
+        cursor=Cursor(),
+        **kwargs,  # type: ignore[arg-type]
+    )
+    return svg
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_a_closing_prompt_fills_the_row_the_cursor_waited_on():
+    """A command closing on a newline already left the row the shell wants.
+
+    Which is what makes the pair free: the window is the same height either
+    way, and the row holding nothing but a cursor holds a prompt instead.
+    """
+    plain = recorded(RIPENED_SCRIPT)
+    closed = recorded(RIPENED_SCRIPT, closing_prompt=True)
+    assert window_height(closed) == window_height(plain)
+    # Unclosed, that bottom row carries the cursor and no glyph at all.
+    assert last_drawn_row(closed) == last_drawn_row(plain) + 1
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_a_closing_prompt_opens_a_row_under_a_screen_left_mid_line():
+    """A command that never ended its line is given one, as a shell gives it.
+
+    The free case above is the common one and not the only one: a progress bar
+    redrawing in place leaves the cursor mid-line, so the shell coming back
+    costs the row it prints its own newline onto.
+    """
+    plain = recorded(BAR_SCRIPT)
+    closed = recorded(BAR_SCRIPT, closing_prompt=True)
+    assert window_height(closed) - window_height(plain) == pytest.approx(LINE_HEIGHT)

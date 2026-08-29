@@ -938,6 +938,46 @@ def auto_columns(pictures: Sequence[str], cursor: Cursor | None = None) -> int:
     return max(width, *(at[1] + 1 for at in standing if at is not None))
 
 
+def append_prompt(
+    text: str,
+    *,
+    background: CaptureBackground = CaptureBackground.DARK,
+    preset: TerminalPreset | None = None,
+) -> str:
+    """Put the shell's prompt back on the row under a finished command.
+
+    What a terminal actually shows once a command exits: the shell comes back
+    and waits, so the row under the output holds its sigil rather than nothing.
+    Paired with a cursor it costs no height at all, the cursor having already
+    claimed that row, see {func}`cursor_cell`. It also puts the cursor
+    somewhere that reads: after a prompt, instead of alone on an empty line.
+
+    ```{caution}
+    Only for a screen the command has finished drawing. Mid-animation the shell
+    has not come back, and a sigil there says the command exited when it did
+    not. {func}`~click_extra.recording.record_and_render` therefore closes its
+    last frame alone.
+    ```
+
+    :param text: the captured text to close.
+    :param background: chrome the capture is headed for, which picks the theme
+        the sigil is styled with.
+    :param preset: terminal being pictured, which names the sigil its shell
+        draws. `None` keeps this platform's.
+    :return: the same text, closed by a prompt.
+    """
+    with forced_color():
+        sigil = format_cli_prompt(
+            (),
+            theme=PROMPT_THEMES[background],
+            prompt=None if preset is None else preset.prompt,
+        )
+    # A screen closing on a newline already carries the empty row the prompt
+    # belongs on: filling it costs nothing, where appending would leave a blank
+    # row between the output and the shell.
+    return f"{text}{sigil}" if text.endswith("\n") else f"{text}\n{sigil}"
+
+
 def capture_output(
     args: TArg | TNestedArgs,
     *,
@@ -2681,6 +2721,7 @@ def capture(
     line_numbers: bool = False,
     emphasize: Sequence[int] = (),
     cursor: Cursor | None = None,
+    closing_prompt: bool = False,
     title: str = "",
     unique_id: str | None = None,
     full: bool = True,
@@ -2723,6 +2764,9 @@ def capture(
         prompt is line 1 here too, and a gutter does not shift the count.
     :param cursor: see {func}`render`. A still capture leaves its cursor after
         the last thing the command printed, which is where the shell finds it.
+    :param closing_prompt: draw the shell's prompt on the row under the output,
+        which is where it comes back once the command exits, see
+        {func}`append_prompt`.
     :param title: see {func}`render`.
     :param unique_id: see {func}`render`.
     :param full: see {func}`render`.
@@ -2755,8 +2799,10 @@ def capture(
     invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
     if invocation:
         text = f"{invocation}\n{text}"
-    # Numbered after the prompt joins it, so line 1 is the invocation that
-    # produced everything under it.
+    if closing_prompt:
+        text = append_prompt(text, background=background, preset=preset)
+    # Numbered after both prompts join it, so line 1 is the invocation that
+    # produced everything under it and the last is the shell coming back.
     if line_numbers:
         text = number_lines(text)
     return (
