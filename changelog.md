@@ -11,7 +11,8 @@
 - Open a recorded animation by typing its command line out, with `record_and_render(typing=…)` and the new `type_line()`.
 - Add `--cursor` and `--blink` to `click-extra screenshot`, drawing a terminal cursor where the command left it, in the `--preset` terminal's own shape.
 - Add `--typing` and `--submit` to `click-extra screenshot --record`, opening the animation on the command line being typed out.
-- Add `:screenshot-cursor:`, `:screenshot-blink:`, `:screenshot-prompt:`, `:screenshot-typing:` and `:screenshot-submit:` to the `click:run` directive.
+- Add `--closing-prompt` and `:screenshot-closing-prompt:`, drawing the shell's prompt on the row it comes back to once the command exits.
+- Add `:screenshot-cursor:`, `:screenshot-blink:`, `:screenshot-prompt:`, `:screenshot-typing:` `:screenshot-submit:` and `:screenshot-closing-prompt:` to the `click:run` directive.
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
 - Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.

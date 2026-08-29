@@ -761,6 +761,27 @@ assert result.stdout == "Shelved 4 crates.\n"
 
 The cursor sits on the row under the output, because the command's last line ended on a newline. That is where a terminal leaves it, so the window grows a line to hold it.
 
+### The shell coming back
+
+A command exits and the shell prints its prompt again. `--closing-prompt`, and `:screenshot-closing-prompt:` on a documentation block, draw that last row:
+
+```{click:run}
+:screenshot: closing-prompt-screen
+:screenshot-columns: auto
+:screenshot-cursor:
+:screenshot-closing-prompt:
+:screenshot-margin: 16
+:hide-results:
+result = invoke(pantry, args=["--crates", "4"])
+assert result.exit_code == 0
+```
+
+![A capture closing on the shell's prompt, with the cursor waiting on it](assets/closing-prompt-screen.svg)
+
+Alongside a cursor it is free. Output ending on a newline already leaves the row the cursor waits on, and the sigil fills it instead of leaving it blank. A command that never ended its line is given one, exactly as a shell prints its own newline before prompting.
+
+An animation closes its **last frame** and no other. The shell has not come back while the command is still drawing, and a sigil on an earlier frame would say it had.
+
 ## Recording from the command line
 
 `--record` turns the `screenshot` command into a recorder: the command runs under a pseudo-terminal, so a spinner or a progress bar draws the frames it would draw for you, and every screen it leaves behind lands in one animated SVG.
@@ -774,7 +795,7 @@ $ click-extra screenshot --record --output recorded-trail-screen.svg -- click-ex
 `--cursor` and `--typing` turn a recording into a session: the command line types itself at the prompt, a cursor follows it along, and the output arrives underneath.
 
 ```shell-session
-$ click-extra screenshot --record --cursor --typing 0.05 --columns 46 --output typed-trail-screen.svg -- click-extra trail
+$ click-extra screenshot --record --cursor --closing-prompt --typing 0.05 --columns 46 --output typed-trail-screen.svg -- click-extra trail
 ```
 
 ![The trail demo typed at a prompt, a cursor blinking through it](assets/typed-trail-screen.svg)
