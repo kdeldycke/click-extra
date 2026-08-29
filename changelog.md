@@ -6,11 +6,15 @@
 > This version is **not released yet** and is under active development.
 
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
+
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
+
 - Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.
+
 - Fix recorded screens dropping every line the command ended with `\r\n`, the form a pseudo-terminal substitutes for each newline.
 
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
+
 - Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
 
 ## [`9.0.0` (2026-08-29)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
