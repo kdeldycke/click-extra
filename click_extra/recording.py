@@ -45,7 +45,6 @@ import io
 import os
 import re
 import select
-import shlex
 import subprocess
 import time
 from typing import NamedTuple
@@ -54,7 +53,7 @@ from extra_platforms import is_unix
 from wcwidth import wcswidth
 
 from .color import forced_color
-from .execution import args_cleanup, format_cli_prompt
+from .execution import args_cleanup
 from .screenshot import (
     AUTO_HOLD,
     CAPTURE_HIDDEN_TERMINAL_VARS,
@@ -66,9 +65,9 @@ from .screenshot import (
     DEFAULT_WATERMARK,
     NO_PAINT,
     OPAQUE,
-    PROMPT_THEMES,
     CaptureBackground,
     number_lines,
+    prompt_line,
     render,
 )
 
@@ -758,20 +757,14 @@ def record_and_render(
         raise ValueError("Recorded nothing: the command drew no screen.")
 
     texts = tuple(frame.text for frame in timed)
-    displayed = args_cleanup(args) if prompt is None else tuple(shlex.split(prompt))
-    if displayed:
-        with forced_color():
-            prompt_line = format_cli_prompt(
-                displayed,
-                theme=PROMPT_THEMES[background],
-                prompt=None if preset is None else preset.prompt,
-            )
-        texts = tuple(f"{prompt_line}\n{text}" for text in texts)
+    invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
+    if invocation:
+        texts = tuple(f"{invocation}\n{text}" for text in texts)
     intervals = tuple(frame.duration for frame in timed)
-    if displayed and typing:
+    if invocation and typing:
         # Prepended rather than merged: the opening is the same kind of thing
         # the recording is, one screen per moment, so it rides the same ladder.
-        opening = type_line(prompt_line, typing=typing, submit=submit)
+        opening = type_line(invocation, typing=typing, submit=submit)
         texts = tuple(frame.text for frame in opening) + texts
         intervals = tuple(frame.duration for frame in opening) + intervals
     if line_numbers:

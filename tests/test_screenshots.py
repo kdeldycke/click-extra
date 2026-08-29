@@ -81,6 +81,7 @@ from click_extra.screenshot import (
     WATERMARK_URL,
     CaptureBackground,
     CaptureFormat,
+    auto_columns,
     auto_hold,
     blend,
     blink_css,
@@ -830,6 +831,166 @@ def test_a_capture_rejects_a_cursor_blinking_backwards():
     """Seconds run forwards, here as everywhere else."""
     with pytest.raises(ValueError, match="not a blink"):
         render_svg("apricot", columns=20, cursor=Cursor(blink=-1))
+
+
+@pytest.mark.parametrize(
+    ("arguments", "message"),
+    (
+        pytest.param(["--blink", "1"], "--blink requires --cursor.", id="blink"),
+        pytest.param(["--typing", "0.05"], "--typing requires --record.", id="typing"),
+        pytest.param(
+            ["--record", "--columns", "40", "--submit", "0.4"],
+            "--submit requires --typing.",
+            id="submit",
+        ),
+    ),
+)
+def test_screenshot_cursor_options_need_their_partner(
+    invoke, tmp_path, arguments, message
+):
+    """Each knob names the one it decorates, rather than passing unnoticed."""
+    result = invoke(
+        screenshot_cmd,
+        [*arguments, "--output", str(tmp_path / "shot.svg"), "--", "echo"],
+    )
+    assert result.exit_code != 0
+    assert message in result.output
+
+
+def test_screenshot_draws_a_cursor_when_asked(invoke, tmp_path):
+    """`--cursor` puts one on a still capture, blinking on one clock."""
+    target = tmp_path / "shelf.svg"
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--cursor",
+            "--output",
+            str(target),
+            "--",
+            sys.executable,
+            "-c",
+            "print('ok')",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    svg = target.read_text(encoding="UTF-8")
+    assert svg.count("@keyframes shelf-blink") == 1
+    assert svg.count('<rect class="shelf-blink"') == 1
+
+
+def test_screenshot_draws_no_cursor_unless_asked(invoke, tmp_path):
+    """The default is what every capture taken before the option showed."""
+    target = tmp_path / "shelf.svg"
+    result = invoke(
+        screenshot_cmd,
+        ["--output", str(target), "--", sys.executable, "-c", "print('ok')"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "shelf-blink" not in target.read_text(encoding="UTF-8")
+
+
+@pytest.mark.parametrize(
+    ("shape", "width"),
+    (
+        pytest.param("block", CELL_WIDTH, id="block"),
+        pytest.param("bar", CURSOR_THICKNESS, id="bar"),
+        pytest.param("underline", CELL_WIDTH, id="underline"),
+    ),
+)
+def test_screenshot_cursor_takes_the_shape_it_names(invoke, tmp_path, shape, width):
+    """A named shape overrides whatever the terminal preset would have drawn."""
+    target = tmp_path / "shelf.svg"
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--cursor",
+            shape,
+            "--blink",
+            "0",
+            "--preset",
+            "windows",
+            "--output",
+            str(target),
+            "--",
+            sys.executable,
+            "-c",
+            "print('ok')",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert cursor_rect(target.read_text(encoding="UTF-8"))[2] == pytest.approx(
+        width, abs=0.05
+    )
+
+
+def test_screenshot_bare_cursor_takes_the_preset_shape(invoke, tmp_path):
+    """`--cursor` alone draws Windows Terminal's bar under `--preset windows`."""
+    target = tmp_path / "shelf.svg"
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--cursor",
+            "--blink",
+            "0",
+            "--preset",
+            "windows",
+            "--output",
+            str(target),
+            "--",
+            sys.executable,
+            "-c",
+            "print('ok')",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert cursor_rect(target.read_text(encoding="UTF-8"))[2] == pytest.approx(
+        CURSOR_THICKNESS, abs=0.05
+    )
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_screenshot_record_types_its_prompt(invoke, tmp_path):
+    """`--typing` opens the recording on the command line being typed."""
+    counts = {}
+    for name, extra in (("plain", []), ("typed", ["--typing", "0.05"])):
+        target = tmp_path / f"{name}.svg"
+        result = invoke(
+            screenshot_cmd,
+            [
+                "--record",
+                "--columns",
+                "40",
+                *extra,
+                "--prompt",
+                "basket ripen",
+                "--output",
+                str(target),
+                "--",
+                sys.executable,
+                "-c",
+                "print('ripe')",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        found = re.search(r"frames=(\d+)", target.read_text(encoding="UTF-8"))
+        assert found
+        counts[name] = int(found.group(1))
+    assert counts["typed"] - counts["plain"] == len("$ basket ripen")
+
+
+def test_auto_columns_leaves_room_for_a_cursor():
+    """An auto width derives from the text, which always ends on its last cell.
+
+    Without the extra cell the cursor wraps onto a row of its own, which is a
+    row holding nothing but a cursor.
+    """
+    # Longer than MIN_COLUMNS, which floors an auto width on its own.
+    shelf = "apricots, biscuits and coffee"
+    assert auto_columns((shelf,)) == len(shelf)
+    assert auto_columns((shelf,), Cursor()) == len(shelf) + 1
+    # A picture closing on a newline puts the cursor at column zero instead,
+    # which the text's own width already covers.
+    assert auto_columns((f"{shelf}\n",), Cursor()) == len(shelf)
 
 
 @pytest.mark.parametrize(

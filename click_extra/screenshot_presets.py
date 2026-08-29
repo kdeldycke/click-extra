@@ -16,7 +16,7 @@
 """The bundled catalog of terminal presets a capture can be drawn as.
 
 A capture is a picture of a terminal, and terminals do not look alike. A preset
-carries the four things that make one recognizable, so a reader placing the
+carries the five things that make one recognizable, so a reader placing the
 image knows which desktop it came from:
 
 - the **window decorations**, three round buttons on the left for macOS, three
@@ -24,7 +24,9 @@ image knows which desktop it came from:
 - the **palette** its colors resolve against, which is what turns a bright blue
   into Campbell's `#3B78FF` or Tango's `#729FCF`;
 - the **font** the terminal ships with;
-- the **prompt** its shell draws, `$` against `PS C:\\>`.
+- the **prompt** its shell draws, `$` against `PS C:\\>`;
+- the **cursor** it draws, a block everywhere but Windows Terminal, which
+  opens on a bar.
 
 None of it is applied unless asked for: a capture with no preset keeps the
 renderer's own neutral window, which is what every image in this project's
@@ -42,6 +44,7 @@ configured theirs to.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import NamedTuple
 
 TYPE_CHECKING = False
@@ -98,6 +101,64 @@ WINDOWS_BUTTONS: Final = WindowButtons(glyphs="\uff0d\u25a1\u2715")
 
 GNOME_BUTTONS: Final = WindowButtons(glyphs="\u2715")
 """The single close button a GNOME window carries by default."""
+
+
+class CursorShape(Enum):
+    """The shape a terminal draws its cursor as.
+
+    The three every terminal offers, under the names they are configured by.
+    Which one a terminal picks out of the box is part of what makes it
+    recognizable, so a preset states it alongside the buttons and the font.
+    """
+
+    BLOCK = "block"
+    """A filled cell, the shape a terminal draws unless told otherwise."""
+
+    BAR = "bar"
+    """A thin upright line on the cell's leading edge."""
+
+    UNDERLINE = "underline"
+    """A thin line along the cell's bottom edge."""
+
+
+class Cursor(NamedTuple):
+    """The cursor a capture draws, and how it behaves.
+
+    Passed to {func}`~click_extra.screenshot.render_svg` to draw one at all: a
+    capture shows no cursor unless asked, which is what keeps an image taken
+    before this existed byte-identical to the one taken after.
+
+    ```{note}
+    Where the cursor *is* is never stated here. A frame's text already says so,
+    see {func}`~click_extra.screenshot.cursor_cell`, so a caller states what the
+    cursor looks like and the picture answers for the rest.
+    ```
+    """
+
+    shape: CursorShape | None = None
+    """How it is drawn. `None` takes the shape the terminal preset names."""
+
+    blink: float = 1.0
+    """Seconds one blink takes, half of it lit. Zero draws a steady cursor.
+
+    A second is what the desktops settle around, and it is deliberately no
+    factor of any frame interval: the two clocks drift against each other
+    across a loop, which is what a terminal showing a cursor over a running
+    command looks like.
+
+    ```{caution}
+    Blinking is motion, and a reader may have asked their system for less of
+    it. The rule sits behind
+    {data}`~click_extra.screenshot.REDUCED_MOTION_QUERY` like every other
+    animation this package emits, which leaves the cursor lit and still. That
+    guard is also what answers [WCAG 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide),
+    which asks that anything blinking past five seconds can be stopped.
+    ```
+    """
+
+    color: str | None = None
+    """Paint it is drawn with. `None` takes the terminal's foreground."""
+
 
 APPLE_ANSI: Final = (
     "#000000",
@@ -200,6 +261,13 @@ class TerminalPreset(NamedTuple):
     prompt: str
     """Sigil the terminal's usual shell draws before a command."""
 
+    cursor: CursorShape
+    """Shape it draws its cursor as, see {class}`CursorShape`.
+
+    Only consulted by a capture that asked for a cursor: a preset picks the
+    shape, it never turns one on.
+    """
+
     font_stack: str
     """Fonts the capture asks for, the terminal's own first.
 
@@ -221,6 +289,7 @@ PRESETS: Final[dict[str, TerminalPreset]] = {
         buttons=GNOME_BUTTONS,
         radius=6,
         prompt="$",
+        cursor=CursorShape.BLOCK,
         font_stack="'Ubuntu Mono', 'DejaVu Sans Mono', monospace",
         dark=TerminalPalette("#2e3436", "#d3d7cf", TANGO_ANSI, "#303030"),
         light=TerminalPalette("#ffffff", "#2e3436", TANGO_ANSI, "#ebebeb"),
@@ -230,6 +299,7 @@ PRESETS: Final[dict[str, TerminalPreset]] = {
         buttons=MACOS_BUTTONS,
         radius=10,
         prompt="$",
+        cursor=CursorShape.BLOCK,
         font_stack="'SF Mono', Menlo, Monaco, monospace",
         dark=TerminalPalette("#000000", "#f2f2f2", APPLE_ANSI, "#3a3a3a"),
         light=TerminalPalette("#ffffff", "#000000", APPLE_ANSI, "#e9e9e9"),
@@ -239,6 +309,7 @@ PRESETS: Final[dict[str, TerminalPreset]] = {
         buttons=WindowButtons(),
         radius=0,
         prompt="$",
+        cursor=CursorShape.BLOCK,
         font_stack="'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace",
         dark=TerminalPalette("#292929", "#c5c8c6", TANGO_ANSI, "#292929"),
         light=TerminalPalette("#ffffff", "#000000", TANGO_ANSI, "#ffffff"),
@@ -248,6 +319,7 @@ PRESETS: Final[dict[str, TerminalPreset]] = {
         buttons=WINDOWS_BUTTONS,
         radius=0,
         prompt="PS C:\\>",
+        cursor=CursorShape.BAR,
         font_stack="'Cascadia Code', 'Cascadia Mono', Consolas, monospace",
         dark=TerminalPalette("#0c0c0c", "#cccccc", CAMPBELL_ANSI, "#202020"),
         light=TerminalPalette("#fafafa", "#383a42", ONE_HALF_LIGHT_ANSI, "#f3f3f3"),
