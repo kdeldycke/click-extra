@@ -9,6 +9,9 @@
 - Draw the invocation above a recording as a shell prompt, the way a still capture draws its own; `--prompt` overrides or hides it.
 - Draw a terminal cursor on a capture with `render_svg(cursor=…)`, blinking or steady, shaped as the `--preset` terminal draws it.
 - Open a recorded animation by typing its command line out, with `record_and_render(typing=…)` and the new `type_line()`.
+- Add `--cursor` and `--blink` to `click-extra screenshot`, drawing a terminal cursor where the command left it, in the `--preset` terminal's own shape.
+- Add `--typing` and `--submit` to `click-extra screenshot --record`, opening the animation on the command line being typed out.
+- Add `:screenshot-cursor:`, `:screenshot-blink:`, `:screenshot-prompt:`, `:screenshot-typing:` and `:screenshot-submit:` to the `click:run` directive.
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
 - Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.

@@ -732,7 +732,34 @@ The blink runs on a clock of its own rather than on the animation's. The two dri
 Blinking is motion. The rule sits behind the same [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard as every other animation here, so a reader who asked their system for less of it gets a cursor that is lit and still.
 ```
 
-A still capture takes a cursor too, and leaves it after the last thing the command printed, which is where the shell finds it.
+A still capture takes a cursor too, and leaves it after the last thing the command printed, which is where the shell finds it. `:screenshot-cursor:` asks a documentation block for one, and `:screenshot-blink:` says how fast. A block draws its own invocation already, so nothing else is needed:
+
+```{click:source}
+:hide-source:
+from click_extra import command, echo, option
+
+
+@command
+@option("--crates", type=int, default=4, help="How many crates to shelve.")
+def pantry(crates):
+    """Shelve a pantry's incoming crates."""
+    echo(f"Shelved {crates} crates.")
+```
+
+```{click:run}
+:screenshot: cursor-still-screen
+:screenshot-columns: auto
+:screenshot-cursor:
+:screenshot-margin: 16
+:hide-results:
+result = invoke(pantry, args=["--crates", "4"])
+assert result.exit_code == 0
+assert result.stdout == "Shelved 4 crates.\n"
+```
+
+![A still capture with a block cursor waiting under its output](assets/cursor-still-screen.svg)
+
+The cursor sits on the row under the output, because the command's last line ended on a newline. That is where a terminal leaves it, so the window grows a line to hold it.
 
 ## Recording from the command line
 
@@ -743,6 +770,16 @@ $ click-extra screenshot --record --output recorded-trail-screen.svg -- click-ex
 ```
 
 ![The trail demo recorded live: outcomes stream above a turning spinner](assets/recorded-trail-screen.svg)
+
+`--cursor` and `--typing` turn a recording into a session: the command line types itself at the prompt, a cursor follows it along, and the output arrives underneath.
+
+```shell-session
+$ click-extra screenshot --record --cursor --typing 0.05 --columns 46 --output typed-trail-screen.svg -- click-extra trail
+```
+
+![The trail demo typed at a prompt, a cursor blinking through it](assets/typed-trail-screen.svg)
+
+`--cursor` on its own takes the shape the `--preset` terminal draws, and `--cursor bar` or `--cursor underline` overrides it. `--blink 0` leaves the cursor lit and still. Both apply to a still capture as well, where the cursor lands after the last thing the command printed.
 
 The invocation is drawn above every frame, exactly as a still capture draws its own prompt, and `--prompt` overrides or hides it the same way. `--rows` states the terminal's height, `--timeout` stops a recording that would run on, and the pacing knobs above apply as given. Two of a still capture's arrangements do not carry over: the width must be a number, since the pseudo-terminal exists before the command draws its first line, and `--head`/`--tail` stay out, a recording being made of whole screens.
 
@@ -822,6 +859,34 @@ from click_extra.recording import type_line
 
 opening = type_line("$ pantry restock --crates 4", typing=0.05)
 ```
+
+A documentation block asks for the same with three options. `:screenshot-prompt:` states the invocation to draw, `:screenshot-typing:` types it, and `:screenshot-submit:` sets the beat before the output starts:
+
+```{click:source}
+:hide-source:
+from click_extra import SPINNERS, Spinner, Style
+
+restocking = Spinner(
+    "Restocking pantry", spinner=SPINNERS["moon"], style=Style(fg="bright_cyan")
+)
+```
+
+```{click:run}
+:screenshot: typed-spinner-screen
+:screenshot-animate: restocking
+:screenshot-columns: auto
+:screenshot-prompt: pantry --crates 4
+:screenshot-typing: 0.06
+:screenshot-submit: 0.45
+:screenshot-cursor:
+:screenshot-margin: 16
+:hide-results:
+assert restocking.frames == SPINNERS["moon"].frames
+```
+
+![A command line typing itself, then a spinner turning underneath](assets/typed-spinner-screen.svg)
+
+The cursor walks the line as it is typed, then drops to the spinner it started. Nothing states that: the cursor is read off each frame's text, so it follows whatever the frame last drew.
 
 ```{tip}
 A typed opening costs one frame per character. Those frames differ by a single character each, so they compress to almost nothing over the wire: the raw file roughly doubles while the gzipped one grows about a kilobyte.
