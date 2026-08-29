@@ -48,6 +48,10 @@ from click_extra.execution import PROMPT
 from click_extra.screenshot import (
     _COLUMN_GAP_RE,
     AUTO_COLUMNS,
+    AUTO_HOLD,
+    AUTO_HOLD_MAX,
+    AUTO_HOLD_MIN,
+    AUTO_HOLD_SECONDS_PER_LINE,
     CAPTURE_BACKGROUND,
     CAPTURE_BORDERS,
     CAPTURE_FOREGROUND,
@@ -72,6 +76,7 @@ from click_extra.screenshot import (
     WATERMARK_URL,
     CaptureBackground,
     CaptureFormat,
+    auto_hold,
     blend,
     capture,
     capture_output,
@@ -619,6 +624,51 @@ def test_animated_capture_counts_its_durations():
 def test_animated_capture_rejects_a_frame_lasting_no_time():
     with pytest.raises(ValueError, match="positive time"):
         render_svg(columns=20, frames=("one pear", "two pears"), interval=(0.1, 0))
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        pytest.param("ripe", AUTO_HOLD_MIN, id="a-single-line-gets-the-floor"),
+        pytest.param(
+            "\n".join(f"row {index}" for index in range(40)),
+            40 * AUTO_HOLD_SECONDS_PER_LINE,
+            id="a-report-scales-by-its-lines",
+        ),
+        pytest.param("fig\n" * 500, AUTO_HOLD_MAX, id="a-dump-hits-the-ceiling"),
+        pytest.param(
+            "\x1b[32m\u2713\x1b[0m ripe\n\n   \n",
+            AUTO_HOLD_MIN,
+            id="escapes-and-blank-rows-are-not-lines",
+        ),
+    ),
+)
+def test_auto_hold_scales_with_the_final_screen(text, expected):
+    """The pause follows the populated lines of the closing screen."""
+    assert auto_hold(text) == expected
+
+
+def test_animated_capture_resolves_an_auto_hold():
+    """`hold="auto"` renders exactly as the resolved pause would."""
+    frames = ("one pear", "one pear\ntwo pears")
+    auto = render_svg(
+        columns=20, unique_id="pause", frames=frames, interval=0.1, hold=AUTO_HOLD
+    )
+    fixed = render_svg(
+        columns=20,
+        unique_id="pause",
+        frames=frames,
+        interval=0.1,
+        hold=auto_hold(frames[-1]),
+    )
+    assert auto == fixed
+
+
+def test_animated_capture_rejects_an_unknown_hold_word():
+    with pytest.raises(ValueError, match="not a hold"):
+        render_svg(
+            columns=20, frames=("one pear", "two pears"), interval=0.1, hold="forever"
+        )
 
 
 def test_html_capture_does_not_animate():

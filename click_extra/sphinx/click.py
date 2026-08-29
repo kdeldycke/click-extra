@@ -58,6 +58,7 @@ from ..execution import format_cli_prompt
 from ..recording import DEFAULT_QUANTUM, Frame, quantize
 from ..screenshot import (
     AUTO_COLUMNS,
+    AUTO_HOLD,
     DEFAULT_COLUMNS,
     MIN_COLUMNS,
     OPAQUE,
@@ -86,7 +87,7 @@ if TYPE_CHECKING:
 
     from sphinx.util.typing import OptionSpec
 
-    from ..screenshot import TColumns
+    from ..screenshot import TColumns, THold
     from ..screenshot_presets import TerminalPalette
 
 
@@ -119,13 +120,15 @@ Relative to the documentation source root. Overridden by the
 `click_extra_screenshot_dir` `conf.py` value.
 """
 
-DEFAULT_RECORDING_HOLD = 2.0
-"""Seconds a recorded animation holds its last frame before starting over.
+DEFAULT_RECORDING_HOLD: THold = AUTO_HOLD
+"""How long a recorded animation holds its last frame before starting over.
 
 A recording ends somewhere, and the end is usually its point: the trail filled
 in, the bar run out, the outcome landed. Looping straight back gives a reader no
-time to read any of it. A declared animation cycles in place and ends nowhere,
-so it holds for nothing unless a page asks.
+time to read any of it, and how much time reading takes depends on how much the
+ending shows, so the default scales with it: see
+{func}`click_extra.screenshot.auto_hold`. A declared animation cycles in place
+and ends nowhere, so it holds for nothing unless a page asks.
 """
 
 DEFAULT_RECORDING_BLANK = 0.6
@@ -574,12 +577,23 @@ def _screenshot_opacity(argument: str) -> float:
     return opacity
 
 
-def _screenshot_hold(argument: str) -> float:
-    """Read the `:screenshot-hold:` option into seconds, zero included."""
-    hold = float(argument)
-    if hold < 0:
+def _screenshot_pause(argument: str) -> float:
+    """Read a pause option into seconds, zero included."""
+    pause = float(argument)
+    if pause < 0:
         raise ValueError(f"{argument} is not a pause, which is never negative.")
-    return hold
+    return pause
+
+
+def _screenshot_hold(argument: str) -> THold:
+    """Read the `:screenshot-hold:` option into seconds, or into `auto`.
+
+    `auto` scales the pause to the final frame's own line count, see
+    {func}`click_extra.screenshot.auto_hold`.
+    """
+    if argument.strip().lower() == AUTO_HOLD:
+        return AUTO_HOLD
+    return _screenshot_pause(argument)
 
 
 def _screenshot_interval(argument: str) -> float:
@@ -637,7 +651,7 @@ class ClickDirective(SphinxDirective):
         "screenshot-background": _screenshot_background,
         "screenshot-interval": _screenshot_interval,
         "screenshot-border": directives.unchanged_required,
-        "screenshot-blank": _screenshot_hold,
+        "screenshot-blank": _screenshot_pause,
         "screenshot-border-width": directives.nonnegative_int,
         "screenshot-columns": _screenshot_columns,
         "screenshot-emphasize-lines": directives.unchanged_required,
@@ -1131,11 +1145,11 @@ class ClickDirective(SphinxDirective):
             return frames
         return tuple(number_lines(frame) for frame in frames)
 
-    def screenshot_hold(self, fallback: float) -> float:
+    def screenshot_hold(self, fallback: THold) -> THold:
         """Seconds the last frame stays up, set by `:screenshot-hold:`.
 
         :param fallback: what to hold for when the block states nothing.
-        :return: the pause, in seconds.
+        :return: the pause, in seconds, or the `auto` sentinel.
         """
         return self.options.get("screenshot-hold", fallback)  # type: ignore[no-any-return]
 

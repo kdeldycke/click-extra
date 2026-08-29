@@ -62,6 +62,7 @@ from importlib import metadata
 from math import ceil, cos, hypot, pi, sin
 from unicodedata import bidirectional
 
+from boltons.strutils import strip_ansi
 from click import style, unstyle
 from wcwidth import wcswidth
 
@@ -97,6 +98,9 @@ if TYPE_CHECKING:
 
     TColumns: TypeAlias = int | Literal["auto"]
     """Width a capture is taken and rendered at, see {data}`AUTO_COLUMNS`."""
+
+    THold: TypeAlias = float | Literal["auto"]
+    """Pause an animation takes on its last frame, see {data}`AUTO_HOLD`."""
 
 
 class CaptureFormat(Enum):
@@ -578,6 +582,54 @@ A stroke straddles the shape it outlines, so a frame drawn flush with the
 viewBox loses its outer half to the crop. Inset by more than that half and the
 whole line shows.
 """
+
+AUTO_HOLD: Literal["auto"] = "auto"
+"""Hold asking for the pause the final screen's own density decides.
+
+Resolved by {func}`auto_hold`: the busier the closing screen, the longer the
+loop pauses on it before starting over. A fixed number serves an animation
+whose ending the author has seen; this serves one whose ending changes with
+every retake, like a recorded command whose closing report grows with what
+there is to report.
+"""
+
+AUTO_HOLD_SECONDS_PER_LINE = 0.25
+"""Seconds {func}`auto_hold` grants per populated line of the final screen.
+
+A scanning rate rather than a reading one: terminal output is tables and
+listings, which a reader sweeps at a few lines a second rather than reads
+word by word.
+"""
+
+AUTO_HOLD_MIN = 2.0
+"""Shortest pause {func}`auto_hold` answers.
+
+Even a one-line outcome deserves a beat before the loop swallows it.
+"""
+
+AUTO_HOLD_MAX = 30.0
+"""Longest pause {func}`auto_hold` answers.
+
+Past this, a looping animation reads as a still that never moves: whoever
+needs longer than half a minute on one screen wants the still, not the loop.
+"""
+
+
+def auto_hold(text: str) -> float:
+    """Seconds a reader needs on a closing screen, from how much it shows.
+
+    Counts the populated lines of *text* (ANSI escapes stripped, blank rows
+    ignored) and grants {data}`AUTO_HOLD_SECONDS_PER_LINE` for each, clamped
+    between {data}`AUTO_HOLD_MIN` and {data}`AUTO_HOLD_MAX`. Lines rather than
+    words, because terminal output is mostly tables whose box-drawing rows
+    would drown a word count without adding anything to read.
+
+    :param text: the final frame's captured text, ANSI escapes included.
+    :return: the pause, in seconds.
+    """
+    lines = sum(1 for line in strip_ansi(text).splitlines() if line.strip())
+    return min(AUTO_HOLD_MAX, max(AUTO_HOLD_MIN, lines * AUTO_HOLD_SECONDS_PER_LINE))
+
 
 AUTO_COLUMNS: Literal["auto"] = "auto"
 """Width asking for the one the captured text itself decides.
@@ -1467,7 +1519,7 @@ def render_svg(
     unique_id: str | None = None,
     frames: Sequence[str] | None = None,
     interval: float | Sequence[float] | None = None,
-    hold: float = 0.0,
+    hold: THold = 0.0,
     blank: float = 0.0,
     speed: float = 1.0,
     emphasize: Sequence[int] = (),
@@ -1540,6 +1592,8 @@ def render_svg(
         run out, an outcome landed) is worth reading, and a loop that restarts
         the instant it arrives never lets anyone. A spinner turning in place
         ends nowhere, so it wants none of this and defaults to none.
+        {data}`AUTO_HOLD` scales the pause to the final frame's own line
+        count, see {func}`auto_hold`.
     :param blank: seconds of empty screen closing the cycle, after `hold`. A
         loop that jumps from its last frame back to its first reads as one long
         animation doing something odd; an empty beat says plainly that this is
@@ -1602,6 +1656,10 @@ def render_svg(
             raise ValueError(f"{speed} is not a speed, which is positive.")
         if speed != 1:
             durations = tuple(each / speed for each in durations)
+        if hold == AUTO_HOLD:
+            hold = auto_hold(pictures[-1])
+        elif isinstance(hold, str):
+            raise ValueError(f"{hold!r} is not a hold, which is seconds or 'auto'.")
         if hold:
             # Spent on the last frame rather than on a pause of its own, so the
             # frame a still falls back to is the one that was held.
@@ -2167,7 +2225,7 @@ def render(
     unique_id: str | None = None,
     frames: Sequence[str] | None = None,
     interval: float | Sequence[float] | None = None,
-    hold: float = 0.0,
+    hold: THold = 0.0,
     blank: float = 0.0,
     speed: float = 1.0,
     emphasize: Sequence[int] = (),
@@ -2207,7 +2265,8 @@ def render(
     :param frames: SVG only. The animation's frames, see {func}`render_svg`.
     :param interval: SVG only. How long each of them is shown, see
         {func}`render_svg`.
-    :param hold: SVG only. Extra seconds the last frame stays up, see
+    :param hold: SVG only. Extra seconds the last frame stays up, or
+        {data}`AUTO_HOLD` to scale them to that frame's line count, see
         {func}`render_svg`.
     :param blank: SVG only. Seconds of empty screen closing the cycle, see
         {func}`render_svg`.

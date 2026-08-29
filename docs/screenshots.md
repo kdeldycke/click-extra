@@ -695,11 +695,13 @@ Three knobs state all of it, on `render_svg` and on a documentation block alike:
 
 | `render_svg` | Directive            | What it sets                                                   |
 | :----------- | :------------------- | :------------------------------------------------------------- |
-| `hold`       | `:screenshot-hold:`  | Extra seconds on the last frame.                               |
+| `hold`       | `:screenshot-hold:`  | Extra seconds on the last frame, or `auto`.                    |
 | `blank`      | `:screenshot-blank:` | Seconds of empty screen closing the cycle.                     |
 | `speed`      | `:screenshot-speed:` | How much faster to play than recorded: `2` halves every frame. |
 
 `speed` scales the replay only. The two pauses are stated in real seconds and stay untouched. A declared spinner cycles in place and ends nowhere, so it holds and blanks for nothing unless a page asks.
+
+`hold` also takes `auto`, which scales the pause to the final frame itself: a quarter second per populated line, clamped between 2 and 30 seconds. A fixed number serves an ending the author has seen; `auto` serves one that changes with every retake, like a recorded command whose closing report grows with what there is to report. A `:screenshot-record:` block therefore defaults to it, and a stated number overrides it.
 
 The frame left visible is the **last** one, because an animation that accumulates says most once it has finished. An animated capture is therefore always a still as well.
 
