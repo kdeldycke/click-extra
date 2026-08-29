@@ -827,6 +827,26 @@ def fit_columns(text: str) -> int:
     )
 
 
+CAPTURE_HIDDEN_TERMINAL_VARS: tuple[str, ...] = ("TERM_PROGRAM",)
+"""Environment variables naming the terminal a capture is *taken* from.
+
+A capture is drawn for a file, and read in a browser or an image viewer. The
+terminal that happened to run it is therefore not the terminal it is drawn
+for, and anything the command would tailor to that terminal has to be kept
+away from it, or the same capture comes out differently on every machine.
+
+`TERM_PROGRAM` is the one that bites, through
+{data}`~click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`: a table
+carrying an emoji-presentation sequence is padded for the terminal named
+there, so a capture taken under Apple Terminal is wider than the same capture
+taken anywhere else. Committed side by side, the two never stop rewriting each
+other.
+
+Cleared rather than pinned to a value: no name is the honest answer, since a
+capture is drawn for no terminal in particular.
+"""
+
+
 def capture_output(
     args: TArg | TNestedArgs,
     *,
@@ -847,6 +867,10 @@ def capture_output(
     the progress lines and build chatter a wrapper like `uv` writes to `stderr`,
     with no shell redirection to remember.
 
+    The terminal this runs *from* is hidden from the command, see
+    {data}`CAPTURE_HIDDEN_TERMINAL_VARS`, so one machine's capture matches
+    another's.
+
     :param args: the command line, in the nested form
         {func}`~click_extra.execution.run_cli` accepts.
     :param columns: terminal width, in characters, the command wraps its output
@@ -859,6 +883,7 @@ def capture_output(
     :return: the completed process, whose `stdout` holds the captured text.
     """
     extra_env: dict[str, str | None] = dict(CAPTURE_TERMINAL_HINTS[background])
+    extra_env.update(dict.fromkeys(CAPTURE_HIDDEN_TERMINAL_VARS))
     if columns != AUTO_COLUMNS:
         extra_env["COLUMNS"] = str(columns)
     with forced_color():

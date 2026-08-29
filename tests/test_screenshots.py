@@ -55,6 +55,7 @@ from click_extra.screenshot import (
     CAPTURE_BACKGROUND,
     CAPTURE_BORDERS,
     CAPTURE_FOREGROUND,
+    CAPTURE_HIDDEN_TERMINAL_VARS,
     CAPTURE_PALETTES,
     CAPTURE_SHADOWS,
     CAPTURE_TERMINAL_HINTS,
@@ -886,6 +887,26 @@ def test_capture_output_states_the_terminal_it_simulates(background, monkeypatch
     )
     hints = CAPTURE_TERMINAL_HINTS[background]
     assert process.stdout.split() == [hints["CLITHEME"], hints["COLORFGBG"]]
+
+
+@pytest.mark.parametrize("variable", CAPTURE_HIDDEN_TERMINAL_VARS)
+def test_capture_output_hides_the_terminal_it_runs_from(variable, monkeypatch):
+    """The terminal taking the capture never reaches the command captured.
+
+    Left through, a command tailoring its output to that terminal draws one
+    picture on the machine that took the capture and another everywhere else,
+    which no committed asset survives.
+    """
+    monkeypatch.setenv(variable, "Some_Terminal")
+
+    process = capture_output(
+        [
+            sys.executable,
+            "-c",
+            f"import os; print(os.environ.get({variable!r}, '<unset>'))",
+        ],
+    )
+    assert process.stdout.strip() == "<unset>"
 
 
 def test_capture_output_keeps_stderr_out_unless_asked():

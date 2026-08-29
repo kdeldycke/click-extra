@@ -54,7 +54,12 @@ from wcwidth import wcswidth
 
 from .color import forced_color
 from .execution import args_cleanup
-from .screenshot import CAPTURE_TERMINAL_HINTS, DEFAULT_COLUMNS, CaptureBackground
+from .screenshot import (
+    CAPTURE_HIDDEN_TERMINAL_VARS,
+    CAPTURE_TERMINAL_HINTS,
+    DEFAULT_COLUMNS,
+    CaptureBackground,
+)
 
 # A pseudo-terminal is what makes a CLI checking `isatty` animate for a
 # recorder, and `pty` reaches for `termios`, which Windows does not ship. The
@@ -373,6 +378,10 @@ def record_command(
     its `stream` and it animates on any platform.
     ```
 
+    The terminal this runs *from* is hidden from the command, see
+    {data}`~click_extra.screenshot.CAPTURE_HIDDEN_TERMINAL_VARS`, so one
+    machine's recording matches another's.
+
     Both the command's output and its errors are read, the spinner drawing on
     the latter. What comes back is timed by the wall clock and therefore differs
     a little between two runs: quantize the durations before committing them.
@@ -400,6 +409,8 @@ def record_command(
     with forced_color():
         environment = dict(os.environ)
     environment.update(CAPTURE_TERMINAL_HINTS[background])
+    for hidden in CAPTURE_HIDDEN_TERMINAL_VARS:
+        environment.pop(hidden, None)
     environment["COLUMNS"] = str(columns)
     environment["LINES"] = str(rows)
 

@@ -7,6 +7,7 @@
 
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
+- Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.
 - Fix recorded screens dropping every line the command ended with `\r\n`, the form a pseudo-terminal substitutes for each newline.
 
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
