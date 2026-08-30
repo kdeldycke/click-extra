@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shlex
 import signal
 import subprocess
 import sys
@@ -995,9 +996,46 @@ def test_format_cli_prompt_styles_token_families():
     prompt = format_cli_prompt(("mas",))
     assert prompt.endswith(theme.invoked_command("mas"))
 
-    # Windows separators are recognized too.
+    # Windows separators are recognized too, and their backslashes are not
+    # something to quote: the path pastes back as it stands.
     prompt = format_cli_prompt(("C:\\Tools\\mas.exe", "list"))
     assert f"C:\\Tools\\{theme.invoked_command('mas.exe')} list" in prompt
+
+
+@pytest.mark.parametrize(
+    "argv",
+    (
+        pytest.param(("python", "-c", 'print("a b")'), id="script-with-space"),
+        pytest.param(("greet", "--name=John Doe"), id="flag-value-with-space"),
+        pytest.param(("cook", "soup; rm cake"), id="command-separator"),
+        pytest.param(("pick", "*.txt"), id="glob"),
+        pytest.param(("say", "it's ready"), id="apostrophe"),
+        pytest.param(("tally", "$HOME"), id="variable-expansion"),
+        pytest.param(("plain", "banana", "--ripe"), id="nothing-to-quote"),
+    ),
+)
+def test_format_cli_prompt_arguments_survive_a_shell_round_trip(argv):
+    """A drawn command line parses back to the arguments that produced it.
+
+    The line advertises itself as copy-pasteable, so every argument carrying a
+    space or a shell metacharacter has to reach the shell as the single argument
+    it started as, instead of spilling into the line as several.
+    """
+    drawn = strip_ansi(format_cli_prompt(argv))
+    assert shlex.split(drawn.removeprefix(PROMPT)) == list(argv)
+
+
+def test_format_cli_prompt_environment_values_survive_a_shell_round_trip():
+    """An assignment prefixing the command is quoted like an argument.
+
+    A value holding a space ends the assignment early otherwise, and the rest of
+    it reads as the command to run.
+    """
+    drawn = strip_ansi(
+        format_cli_prompt(("forecast",), extra_env={"CITY": "Rio de Janeiro"}),
+    )
+    assert drawn == f"{PROMPT}CITY='Rio de Janeiro' forecast"
+    assert shlex.split(drawn.removeprefix(PROMPT)) == ["CITY=Rio de Janeiro", "forecast"]
 
 
 def test_format_cli_prompt_honors_an_explicit_theme():

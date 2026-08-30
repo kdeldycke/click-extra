@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shlex
 import signal
 import subprocess
 import sys
@@ -821,7 +822,19 @@ def format_cli_prompt(
     - the `-`/`--` flags with `option`; other arguments stay plain.
 
     Useful to print a copy-pasteable command trace in debug logs, dry-runs and
-    test output.
+    test output. Each argument and environment value is quoted for the shell, so
+    one carrying a space or a metacharacter reads back as the single token it
+    was: a `-c` script keeps the quotes that made it one argument, instead of
+    spilling into the line as several. Quote nothing before calling this, or the
+    quotes are themselves quoted. Styling reads the raw argument, since a quoted
+    `--name=John Doe` no longer opens on a dash.
+
+    ```{note}
+    The program is left as it stands. Quoting has to wrap the whole token, which
+    would put the closing quote inside the name {func}`highlight_bin_name` styles,
+    and a Windows path is quoted whole for its separators alone: `C:\\Tools\\mas.exe`
+    needs none of it to paste back.
+    ```
 
     :param cmd_args: the command line to render.
     :param extra_env: environment assignments to prefix it with.
@@ -839,7 +852,8 @@ def format_cli_prompt(
     extra_env_string = ""
     if extra_env:
         extra_env_string = "".join(
-            f"{active_theme.envvar(name)}={active_theme.default(str(value))} "
+            f"{active_theme.envvar(name)}"
+            f"={active_theme.default(shlex.quote(str(value)))} "
             for name, value in extra_env.items()
         )
 
@@ -848,8 +862,9 @@ def format_cli_prompt(
     if cmd_parts:
         styled_parts.append(highlight_bin_name(cmd_parts[0], active_theme))
         for part in cmd_parts[1:]:
+            quoted = shlex.quote(part)
             styled_parts.append(
-                active_theme.option(part) if part.startswith("-") else part,
+                active_theme.option(quoted) if part.startswith("-") else quoted,
             )
 
     sigil, _, spacing = (PROMPT if prompt is None else f"{prompt} ").partition(" ")

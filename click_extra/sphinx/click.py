@@ -35,7 +35,6 @@ from __future__ import annotations
 import ast
 import contextlib
 import re
-import shlex
 import subprocess
 import sys
 import tempfile
@@ -417,13 +416,8 @@ class ClickRunner(CliRunner):
             # prompt itself, and ANSI of our own would fight it.
             output_lines.append(
                 format_cli_prompt(
-                    # Pre-quoted so an argument holding spaces stays one token,
-                    # matching what a reader would have to type. The renderer
-                    # joins on spaces and quotes nothing itself.
-                    (prog_name, *(shlex.quote(arg) for arg in args)),
-                    extra_env={k: shlex.quote(v) for k, v in sorted(env.items())}
-                    if env
-                    else None,
+                    (prog_name, *args),
+                    extra_env=dict(sorted(env.items())) if env else None,
                     theme=NOCOLOR_THEME,
                     prompt=PROMPT_SIGIL,
                 )
