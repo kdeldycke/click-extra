@@ -139,6 +139,10 @@ Open upstream, and fixed here:
 - [`rich#2536` - Can we fix this render glitch in SVG output?](https://github.com/Textualize/rich/issues/2536): box-drawing characters do not meet cleanly, which the maintainer answers would need replacing them with drawn shapes. Open since 2022, and not addressed here either: click-extra's [tables](table.md) and [command tree](tree.md#command-tree) draw the same characters.
 - [`rich#2279` - Misaligned box boundaries in SVG generated from a rich-click help dialogue](https://github.com/Textualize/rich/issues/2279): closed as *not planned* in 2022, the maintainer answering that a font whose glyphs are not all one width is the font's problem and a browser rendering difference is not Rich's to fix. Distinct from `rich#2536` above: that one is glyphs failing to meet at their seams, this one is column drift accumulating across a whole line wherever a renderer resolves font metrics differently, which is why the same file looked right in one browser and broken in another. Starting every run on its own column with a cell-sized `textLength` leaves drift nowhere to accumulate, whatever font a viewer substitutes.
 
+The same defect reaches the tools built on that exporter:
+
+- [`rich-codex#34` - emojis break alignments](https://github.com/ewels/rich-codex/issues/34): an emoji-heavy capture comes out misaligned, the reporter guessing at "two different widths of emojis used during placement and then rendering". The maintainer answered that it would be difficult or impossible to fix and suspected an upstream cause, without naming one. It is `rich#2742` above, reported a year later and still open. [`ewels/rich-codex`](https://github.com/ewels/rich-codex) draws its images with Rich's `Console.save_svg()`, so it inherits the whole list; its own captures are otherwise actively maintained, and it solved the committed-image churn below on its own terms, deriving a stable id from the output path rather than leaving it to the caller.
+
 Committing an exported image to a repository is its own problem, and Rich answers it with a parameter where `render_svg` answers it by construction:
 
 - [`rich#2537`](https://github.com/Textualize/rich/pull/2537), merged in 2022, adds an opt-in `unique_id=`, filed because "As part of Airflow's CI we save SVG images of our command's help output and commit them to git. Without this change a single character change in the help text results in every single class and id in the SVG changing, which makes the diffs unreadable." It is a parameter a caller has to remember and keep unique per image by hand; forget it and the diff is noise again, reuse it and two images collide on one page.
@@ -282,6 +286,15 @@ click-extra ships a [`--tree` flag](tree.md) on every command, the standalone [`
 - [`rich-click#275` - 1.10 roadmap](https://github.com/ewels/rich-click/issues/275): tracks the `--tree` option and `@click.tree_option()` among the planned features.
 
 One design difference: treeclick embeds the tree inside `--help` output through custom `TreeGroup`/`TreeCommand` classes, and the older [`click-command-tree`](https://github.com/whwright/click-command-tree) package registers a `tree` *subcommand* on the user's group, walking the static `commands` mapping. click-extra renders the view behind a dedicated eager flag, like `--man` and `--params`: the plain help screen stays untouched, a flag cannot collide with the user's own subcommand namespace, and the live-context walk includes lazily-registered commands.
+
+### Machine-readable help
+
+click-extra renders any command as `json`, `json-full`, `markdown`, `markdown-full`, `man` or `carapace` through [`--help-format`](machine-readable.md), and [`wrap --help-format`](machine-readable.md) applies the same renderings to a foreign Click CLI without running it. rich-click is designing that surface now, and arrived at nearly the same one:
+
+- [`rich-click#337` - Machine-readable CLI help: v2](https://github.com/ewels/rich-click/pull/337): a draft PR by rich-click's maintainer, open since August 2026, proposing `--help` with an optional format argument taking `markdown`, `markdown-full`, `json`, `json-full` and `carapace`. That is click-extra's list minus `man`, reached independently: the PR describes finding [Carapace](https://github.com/carapace-sh/carapace-spec) through its own research, and adds a command-examples syntax taking a description and a command, which is the shape of click-extra's `examples=[("description", "command")]` argument.
+- [`rich-click#335` - rich-click CLI: `--output json` for machine-readable help](https://github.com/ewels/rich-click/pull/335): the same idea one layer out, putting the JSON rendering on rich-click's own wrapper CLI so any Click CLI reaches it, which is what `wrap --help-format` does. Draft, stacked on a PR since superseded by `#337`.
+
+The two answer different questions, and only one of them is click-extra's. `wrap --help-format` renders a rich-click CLI today (verified against rich-click `1.9.8`), but it is a tool installed *beside* the target, so it serves whoever wants the output now. A flag on rich-click's own commands is what reaches the end users of a CLI already shipped, and no external renderer can supply that.
 
 ### Shell completion
 
