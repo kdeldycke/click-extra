@@ -44,13 +44,13 @@ benchmark
 :caption: Documentation tooling
 :maxdepth: 2
 :hidden:
-pygments
-sphinx
-myst-docstrings
-mkdocs
 screenshots
 snippets
 man-page
+sphinx
+mkdocs
+myst-docstrings
+pygments
 ```
 
 % XXX Furo doesn't support icons in toctree entries natively.
