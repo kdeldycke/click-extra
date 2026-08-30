@@ -5,39 +5,82 @@ hide-toc: true
 ```{include} ../readme.md
 ```
 
+% XXX Furo doesn't support icons in toctree entries natively.
+% CSS workaround in _static/custom.css, see: https://github.com/pradyunsg/furo/discussions/921
+
 ```{toctree}
 :maxdepth: 2
 :hidden:
 install
-binaries
-cli
 tutorial
+```
+
+```{toctree}
+:caption: The click-extra CLI
+:maxdepth: 2
+:hidden:
+cli
+wrap
+binaries
+```
+
+```{toctree}
+:caption: Building a CLI
+:maxdepth: 2
+:hidden:
 commands
-multicall
-parameters
-context
+decorators
 types
+context
+multicall
+```
+
+```{toctree}
+:caption: Configuration
+:maxdepth: 2
+:hidden:
 config
+envvar
+```
+
+```{toctree}
+:caption: Colors and output
+:maxdepth: 2
+:hidden:
 colorize
-styling
 theme
-logging
+styling
 table
 spinner
-version
+```
+
+```{toctree}
+:caption: Runtime behavior
+:maxdepth: 2
+:hidden:
+logging
 execution
+version
 telemetry
-envvar
-decorators
-testing
-test-suite
-pytest
-wrap
+```
+
+```{toctree}
+:caption: Introspection and export
+:maxdepth: 2
+:hidden:
+parameters
 machine-readable
-carapace
 tree
-typer
-benchmark
+carapace
+```
+
+```{toctree}
+:caption: Testing
+:maxdepth: 2
+:hidden:
+testing
+pytest
+test-suite
 ```
 
 ```{toctree}
@@ -53,8 +96,13 @@ myst-docstrings
 pygments
 ```
 
-% XXX Furo doesn't support icons in toctree entries natively.
-% CSS workaround in _static/custom.css, see: https://github.com/pradyunsg/furo/discussions/921
+```{toctree}
+:caption: Comparisons
+:maxdepth: 2
+:hidden:
+typer
+benchmark
+```
 
 ```{toctree}
 :caption: Development

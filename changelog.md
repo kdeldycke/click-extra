@@ -20,6 +20,7 @@
 - Fix recorded screens dropping every line the command ended with `\r\n`, the form a pseudo-terminal substitutes for each newline.
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
 - Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
+- Regroup the remaining documentation pages under eight topical sidebar sections, instead of one flat list of 30 entries.
 
 ## [`9.0.0` (2026-08-29)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
 
