@@ -721,6 +721,8 @@ Three knobs state all of it, on `render_svg`, on the `--record` command line and
 
 `hold` also takes `auto`, which scales the pause to the final frame itself: a quarter second per populated line, clamped between 2 and 30 seconds. A fixed number serves an ending the author has seen; `auto` serves one that changes with every retake, like a recorded command whose closing report grows with what there is to report. A `:screenshot-record:` block and a `--record` capture therefore default to it, and a stated number overrides it.
 
+The frame left visible is the **last** one, because an animation that accumulates says most once it has finished. An animated capture is therefore always a still as well.
+
 ### A blinking cursor
 
 A capture draws no cursor unless it is asked for one. Pass a `Cursor` and it draws one:
@@ -799,34 +801,6 @@ assert result.exit_code == 0
 Alongside a cursor it is free. Output ending on a newline already leaves the row the cursor waits on, and the sigil fills it instead of leaving it blank. A command that never ended its line is given one, exactly as a shell prints its own newline before prompting.
 
 An animation closes its **last frame** and no other. The shell has not come back while the command is still drawing, and a sigil on an earlier frame would say it had.
-
-## Recording from the command line
-
-`--record` turns the `screenshot` command into a recorder: the command runs under a pseudo-terminal, so a spinner or a progress bar draws the frames it would draw for you, and every screen it leaves behind lands in one animated SVG.
-
-```shell-session
-$ click-extra screenshot --record --output recorded-trail-screen.svg -- click-extra trail
-```
-
-![The trail demo recorded live: outcomes stream above a turning spinner](assets/recorded-trail-screen.svg)
-
-`--cursor` and `--typing` turn a recording into a session: the command line types itself at the prompt, a cursor follows it along, and the output arrives underneath.
-
-```shell-session
-$ click-extra screenshot --record --cursor --closing-prompt --typing 0.05 --columns 46 --output typed-trail-screen.svg -- click-extra trail
-```
-
-![The trail demo typed at a prompt, a cursor blinking through it](assets/typed-trail-screen.svg)
-
-`--cursor` on its own takes the shape the `--preset` terminal draws, and `--cursor bar` or `--cursor underline` overrides it. `--blink 0` leaves the cursor lit and still. Both apply to a still capture as well, where the cursor lands after the last thing the command printed.
-
-The invocation is drawn above every frame, exactly as a still capture draws its own prompt, and `--prompt` overrides or hides it the same way. `--rows` states the terminal's height, `--timeout` stops a recording that would run on, and the pacing knobs above apply as given. Two of a still capture's arrangements do not carry over: the width must be a number, since the pseudo-terminal exists before the command draws its first line, and `--head`/`--tail` stay out, a recording being made of whole screens.
-
-```{caution}
-Unix only, for the reasons {func}`~click_extra.recording.record_command` states. The same pipeline is scriptable through {func}`~click_extra.recording.record_and_render`.
-```
-
-The frame left visible is the **last** one, because an animation that accumulates says most once it has finished. An animated capture is therefore always a still as well.
 
 ### Recording an animation
 
@@ -948,6 +922,32 @@ The digest covers the frames a cycle holds and the beat it holds them on, not th
 
 ```{caution}
 Written once means frozen: nothing re-checks a recording against the code it pictures, so it rots the way any hand-made screenshot does. A declared animation has no such problem, being composed rather than timed, and is regenerated on every build like every other capture.
+```
+
+### Recording from the command line
+
+`--record` turns the `screenshot` command into a recorder: the command runs under a pseudo-terminal, so a spinner or a progress bar draws the frames it would draw for you, and every screen it leaves behind lands in one animated SVG.
+
+```shell-session
+$ click-extra screenshot --record --output recorded-trail-screen.svg -- click-extra trail
+```
+
+![The trail demo recorded live: outcomes stream above a turning spinner](assets/recorded-trail-screen.svg)
+
+`--cursor` and `--typing` turn a recording into a session: the command line types itself at the prompt, a cursor follows it along, and the output arrives underneath.
+
+```shell-session
+$ click-extra screenshot --record --cursor --closing-prompt --typing 0.05 --columns 46 --output typed-trail-screen.svg -- click-extra trail
+```
+
+![The trail demo typed at a prompt, a cursor blinking through it](assets/typed-trail-screen.svg)
+
+`--cursor` on its own takes the shape the `--preset` terminal draws, and `--cursor bar` or `--cursor underline` overrides it. `--blink 0` leaves the cursor lit and still. Both apply to a still capture as well, where the cursor lands after the last thing the command printed.
+
+The invocation is drawn above every frame, exactly as a still capture draws its own prompt, and `--prompt` overrides or hides it the same way. `--rows` states the terminal's height, `--timeout` stops a recording that would run on, and the pacing knobs above apply as given. Two of a still capture's arrangements do not carry over: the width must be a number, since the pseudo-terminal exists before the command draws its first line, and `--head`/`--tail` stay out, a recording being made of whole screens.
+
+```{caution}
+Unix only, for the reasons {func}`~click_extra.recording.record_command` states. The same pipeline is scriptable through {func}`~click_extra.recording.record_and_render`.
 ```
 
 ## Publish and maintain

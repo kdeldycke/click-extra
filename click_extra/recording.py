@@ -689,8 +689,7 @@ def record_and_render(
 
     Chains {func}`record_command`, {func}`quantize` and
     {func}`~click_extra.screenshot.render`, the way
-    {func}`~click_extra.screenshot.capture_and_render` chains the still
-    pipeline. The invocation is drawn above every frame as a shell prompt,
+    {func}`~click_extra.screenshot.capture` chains the still pipeline. The invocation is drawn above every frame as a shell prompt,
     styled by the active theme through
     {func}`~click_extra.execution.format_cli_prompt`, so the recording shows
     what to type to reproduce it.
