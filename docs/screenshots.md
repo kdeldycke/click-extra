@@ -160,6 +160,22 @@ $ click-extra screenshot --output params.svg --columns auto -- my-cli --params
 
 Use it when the output holds a line the command does not wrap on its own: a long invocation drawn as the prompt, a wide table, a machine-readable dump. A pinned width folds such a line mid-word. The trade-off: the picture stops being a fixed-width terminal, so captures meant to sit side by side should name a width instead.
 
+### A long invocation
+
+The prompt is a line like any other, so it counts toward the picture's width. A script passed inline is the usual cause: the command line ends up longer than anything it prints. `--columns auto` then lays the image out at the invocation instead of at the output, and a pinned width folds that invocation across several rows.
+
+`--prompt` settles it. It states the line a reader would type, in place of the one that ran:
+
+```shell-session
+$ click-extra screenshot --output market.svg --prompt "python market.py" -- python -c 'print("苹果    apple")'
+```
+
+Only the drawn line changes. The capture still holds what the inline script printed, so the image is laid out at that output alone. This is the same option [a foreign CLI](#any-command-any-cli) uses to hide the wrapper it was reached through.
+
+Each argument is quoted as a shell needs it, so the drawn line pastes back as the command it pictures. An argument holding a space stays one argument, rather than spilling into the line as several.
+
+`--prompt ""` draws no prompt at all. Reach for it when the prose around the capture already carries the command. A documentation block spells that one [`:hide-prompt:`](sphinx.md#hiding-the-prompt).
+
 ### Light and dark chrome
 
 A capture freezes the colors of the run it shows, so the window must match the theme that run rendered for. `--background light` swaps the dark chrome for white, along with the ANSI palette the capture's colors resolve against:
