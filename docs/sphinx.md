@@ -14,6 +14,10 @@ $ pip install click_extra[sphinx]
 To capture a CLI's output as a static image for a README, slide, or any surface that cannot run Sphinx, see [CLI screenshots](screenshots.md).
 ```
 
+```{seealso}
+The same extension runs arbitrary Python at build time, and renders a release compatibility table. Both are documented in [Python directives](python-directives.md).
+```
+
 ## Setup
 
 Once [Click Extra is installed](install.md), you can enable its [extensions](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-extensions) in your Sphinx's `conf.py`:
@@ -27,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter, and [todo-list deduplication](#todo-list-deduplication). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter, [todo-list deduplication](#todo-list-deduplication), and the [man-page hook](man-page.md#from-a-sphinx-build). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -212,7 +216,7 @@ The example above imports its CLI primitives from the `click-extra` module inste
 ```
 
 ```{tip}
-Need to run arbitrary Python that isn't a Click CLI? See [`python:run`](#python-directives) and the rest of the `python:*` family for general-purpose build-time execution and live-content generation.
+Need to run arbitrary Python that isn't a Click CLI? See [`python:run`](python-directives.md#python-directives) and the rest of the `python:*` family for general-purpose build-time execution and live-content generation.
 ```
 
 ```{seealso}
@@ -896,418 +900,9 @@ Attribute docstrings are recovered from the schema's source file. A schema defin
 `click:config` is currently MyST-only: place it in a `.md` document with `myst_parser` enabled. Like `click:tree`, an rST equivalent has not been implemented yet.
 ```
 
-## `python:*` directives
-
-Click Extra also adds five general-purpose Python execution directives, registered under a separate `python` domain (distinct from Sphinx's built-in `py` domain for documenting API objects):
-
-| Directive            | Purpose                                                                                                                                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `python:source`      | Define and show a Python source block, executed silently. Use it to teach readers what a snippet looks like and to seed imports/variables for follow-up blocks.                                                                      |
-| `python:run`         | Execute a Python block and render its captured `stdout` in a code block. Output language defaults to `text`; override with `:language:` for structured output (`json`, `html`, `yaml`, etc.).                                        |
-| `python:render`      | Execute a Python block and parse its captured `stdout` as **live document content** using the host file's parser. Generated tables, headings, admonitions, and cross-references become first-class document nodes, not a code block. |
-| `python:render-myst` | Execute a Python block and parse its captured `stdout` as MyST, regardless of host. Lets a `.rst` document embed MyST-generated content.                                                                                             |
-| `python:render-rst`  | Execute a Python block and parse its captured `stdout` as reST, regardless of host. Lets a `.md` document embed reST-generated content.                                                                                              |
-
-These complement the Click directives: `click:run` is for showing simulated CLI sessions; `python:run` is for showing arbitrary Python output; the `python:render*` family is for **inline content generation**, replacing the regenerator-script + marker-region pattern many projects use to keep auto-tables in sync.
-
-```{hint}
-This project eats its own dog food: the [ANSI lexer table in `pygments.md`](pygments.md#lexer-variants) is rendered live at build time by an inline [`python:render`](#python-directives) block that imports `LEXER_MAP` and prints a Markdown table. Read [the exact source lines on GitHub](https://github.com/kdeldycke/click-extra/blob/0cac18fdaa8770ac03a33a8e8969c2556fde674e/docs/pygments.md?plain=1#L243-L264) for a real-world example of replacing a regenerator script with a one-block inline build-time computation.
-```
-
-### Pick the right `render`
-
-| Directive            | Parser used for captured stdout           | When to use                                    |
-| -------------------- | ----------------------------------------- | ---------------------------------------------- |
-| `python:render`      | Whatever parser owns the host source file | Generated markup matches the host file format. |
-| `python:render-myst` | MyST, regardless of host                  | Embed MyST-generated content in a `.rst` host. |
-| `python:render-rst`  | reST, regardless of host                  | Embed reST-generated content in a `.md` host.  |
-
-`python:render` reuses the host state machine, so cross-references and Sphinx-aware roles resolve naturally. The forced-parser variants (`render-myst`, `render-rst`) parse into a fresh sub-document and graft the resulting nodes back into the page.
-
-### `python:render`: docs as code
-
-```{tip}
-The strongest use case is replacing a `docs/docs_update.py` script that walks an in-process registry, renders Markdown, and rewrites a region of a `.md` file between `<!-- start -->` / `<!-- end -->` markers. With `python:render`, the same code lives inline in the page itself and runs at build time. The rendered HTML is always current because the source-of-truth registry is queried on every build.
-```
-
-Render the live list of Python's built-in modules as a Markdown table, executed by Sphinx at build time:
-
-``````{tab-set}
-`````{tab-item} MyST Markdown
-:sync: myst
-````{code-block} markdown
-```{python:render}
-import sys
-print("| Module | Type |")
-print("|--------|------|")
-for name in sorted(sys.builtin_module_names)[:5]:
-    print(f"| `{name}` | built-in |")
-```
-````
-`````
-
-`````{tab-item} reStructuredText
-:sync: rst
-```{code-block} rst
-.. python:render::
-
-    import sys
-    print("| Module | Type |")
-    print("|--------|------|")
-    for name in sorted(sys.builtin_module_names)[:5]:
-        print(f"| `{name}` | built-in |")
-```
-`````
-``````
-
-Renders as a real HTML `<table>` (output truncated to 5 entries):
-
-```{python:render}
-import sys
-
-print("| Module | Type |")
-print("|--------|------|")
-for name in sorted(sys.builtin_module_names)[:5]:
-    print(f"| `{name}` | built-in |")
-```
-
-### Self-updating source with `:mirror:`
-
-`python:render` accepts a `:mirror:` flag. On top of rendering live, a mirror block keeps a copy of its generated Markdown in the source `.md`, between two HTML-comment markers directly below the fence. The output stays reviewable in the raw file, in diffs, and on GitHub, which renders the mirrored Markdown even though it never executes the block. This revives the `docs_update.py` marker-region pattern with the generator inlined into the page: no separate regenerator script, and no drift.
-
-Add `:mirror:` to a `python:render` fence:
-
-````{code-block} markdown
-```{python:render}
-:mirror:
-from click_extra.table import TableFormat, render_table
-
-print(render_table(
-    [["Lisbon", "12:00"], ["Denver", "05:00"]],
-    headers=["City", "Local time"],
-    table_format=TableFormat.GITHUB,
-))
-```
-````
-
-Running [`click-extra refresh-directives`](#keeping-the-tables-current) on the file inserts the mirrored region below the fence, and refreshes it in place on every later run:
-
-````{code-block} markdown
-```{python:render}
-:mirror:
-...
-```
-
-<!-- mirror -->
-
-| City   | Local time |
-| :----- | :--------- |
-| Lisbon | 12:00      |
-| Denver | 05:00      |
-
-<!-- mirror-end -->
-````
-
-A few properties follow from the mirror being real Markdown:
-
-- The mirrored region is the single rendered copy, so the directive emits nothing of its own in mirror mode: otherwise the table would render twice. Add `:show-source:` to also show the Python block above the region.
-- Sphinx builds regenerate the region in memory before parsing the page, so the rendered HTML is always fresh, even when the committed region is stale. The build never writes to the source file: the committed copy is refreshed by `click-extra refresh-directives`, typically from the same automation that keeps `{matrix}` blocks current.
-- The `<!-- mirror -->` … `<!-- mirror-end -->` pair follows the same marker grammar as the [`<!-- matrix … -->` regions](#matrix-directives), and a mirror example nested inside a longer code fence (like the ones on this page) is never executed or refreshed.
-- The region is reformatted by `mdformat` like any other Markdown, so a mirror block must print `mdformat`-canonical Markdown. `render_table` in `GITHUB` mode already does; a hand-built table may be re-aligned by the formatter and then fight the generator.
-
-`:mirror:` is scoped to `python:render` in a Markdown host, and shares the `click_extra_enable_exec_directives` opt-in with the rest of the executing directives.
-
-(mirror-src)=
-
-### Hiding the generator with `<!-- mirror-src -->`
-
-A `:mirror:` fence renders live and mirrors its output into the source, but the generator fence itself stays visible: on GitHub or PyPI, which show the raw Markdown without running Sphinx, the reader sees the `python:render` code block above the table. When the output is the whole point (a table or diagram in `readme.md`) and the generator is just plumbing, the `<!-- mirror-src -->` comment form moves the generator into an HTML comment, so only its output renders.
-
-The generator Python lives between an opening `<!-- mirror-src` line and a closing `-->`, each on its own line:
-
-```{code-block} markdown
-<!-- mirror-src
-from click_extra.table import TableFormat, render_table
-
-print(render_table(
-    [["Lisbon", "12:00"], ["Denver", "05:00"]],
-    headers=["City", "Local time"],
-    table_format=TableFormat.GITHUB,
-))
--->
-```
-
-Running [`click-extra refresh-directives`](#keeping-the-tables-current) executes the generator and writes its output just below the comment, closed by a `<!-- mirror-src-end -->` marker:
-
-```{code-block} markdown
-<!-- mirror-src
-...
--->
-
-| City   | Local time |
-| :----- | :--------- |
-| Lisbon | 12:00      |
-| Denver | 05:00      |
-
-<!-- mirror-src-end -->
-```
-
-Both markers are HTML comments, so GitHub, PyPI, and any plain Markdown renderer show only the generated table while the generator stays out of sight. Everything else matches the `:mirror:` fence: Sphinx regenerates the region in memory on each build so the rendered HTML is never stale, the committed copy is refreshed offline by `click-extra refresh-directives`, the region is reformatted by `mdformat` (so the generator must print `mdformat`-canonical Markdown), and an example nested inside a longer code fence (like the two above) is copied verbatim, never executed.
-
-Choose between the two forms by what should be on the page: the `:mirror:` fence when the generator belongs there, like a docs example teaching `python:render` itself; the `<!-- mirror-src -->` comment when the page should read as its output alone, like a `readme.md` rendered on PyPI.
-
-### Cross-format rendering
-
-`python:render-myst` and `python:render-rst` let a host file embed content authored in the other markup. This page is MyST, but the following block prints reST and parses it as such:
-
-```{python:render-rst}
-print(".. note::")
-print()
-print("   A persimmon must be very ripe to eat raw.")
-```
-
-In an rST host, `python:render-myst` provides the symmetric path: print MyST and have it parsed as MyST regardless of the surrounding `.rst` file.
-
-### Namespace persistence
-
-Like `click:source` / `click:run`, the Python runner holds a per-document namespace, so consecutive blocks share imports and variables:
-
-```{python:source}
-from textwrap import dedent
-
-GREETING = "hello, sphinx"
-```
-
-```{python:run}
-print(dedent(GREETING).upper())
-```
-
-The `python:source` block ran silently to seed `dedent` and `GREETING`; the subsequent `python:run` referenced both.
-
-### Shared options
-
-`python:run` and the `python:render*` directives accept the same option spec as `click:run`. Defaults match: results shown, source hidden, so an inline `import` line in a `python:run` block runs silently and stays out of the rendered output.
-
-| Option                              | Effect                                                                                    | Default |
-| ----------------------------------- | ----------------------------------------------------------------------------------------- | ------- |
-| `:show-source:` / `:hide-source:`   | Render the directive's source block, or omit it.                                          | hidden  |
-| `:show-results:` / `:hide-results:` | Render the captured output block, or omit it.                                             | shown   |
-| `:mirror:`                          | Keep a refreshable copy of the generated Markdown below the fence (`python:render` only). | off     |
-| `:linenos:`                         | Display line numbers in both blocks.                                                      | off     |
-| `:lineno-start:`                    | Starting line number when `:linenos:` is on. Applies to source.                           | 1       |
-| `:emphasize-lines:`                 | Highlight lines in the source block. Syntax: `1,3-5`.                                     | none    |
-| `:emphasize-result-lines:`          | Highlight lines in the result block. Same syntax as `:emphasize-lines:`.                  | none    |
-| `:language:`                        | Override the Pygments lexer used to render the result block.                              | `text`  |
-| `:caption:`                         | Set a caption on the rendered code block.                                                 | none    |
-| `:name:`                            | Anchor name for cross-referencing.                                                        | none    |
-| `:class:`                           | Extra CSS class on the rendered block.                                                    | none    |
-| `:dedent:`                          | Strip N leading spaces from every line of the source.                                     | 0       |
-| `:force:`                           | Suppress minor highlighting errors.                                                       | off     |
-
-```{seealso}
-Some related projects for build-time Python execution:
-
-- [`sphinx-exec-code`](https://sphinx-exec-code.readthedocs.io/): single `exec_code` directive; supports external `:filename:` and inline `#hide:` / `#skip:` markers; fresh interpreter per block.
-- [`jupyter-sphinx`](https://jupyter-sphinx.readthedocs.io/): runs Python in a real Jupyter kernel; rich outputs (matplotlib, widgets).
-- [`MyST-NB`](https://myst-nb.readthedocs.io/): executes `.ipynb` and code-cell `.md`; `glue` / `eval` roles inject computed values into prose.
-- [`sphinx-jinja`](https://github.com/tardyp/sphinx-jinja): Jinja2 templates with Python context, output parsed as reST/MyST. Closest analogue for the docs-as-code pattern without `exec`.
-```
-
-(matrix-directives)=
-
-## The `matrix` directive
-
-The `matrix` directive renders a package's release compatibility matrix for a given axis. Unlike the `click:*` and `python:*` families, it runs a fixed generator rather than user-supplied Python, so it carries no execution surface and is registered without the `click_extra_enable_exec_directives` opt-in. Two axes are built in:
-
-- `{matrix} python` renders the interpreter matrix (release ranges × Python versions).
-- `{matrix} <distribution>` (like `{matrix} click`) renders a dependency matrix (release ranges × that dependency's versions).
-
-The generated table lives **in the source**, kept current by the offline updater described below, so it shows up in the raw Markdown (and in pull-request diffs) and the HTML build needs no git access (it works on a shallow clone). There are two ways to write it, both refreshed by the same `refresh-directives` command:
-
-- **A directive fence**, ```` ```{matrix} python ```` … ```` ``` ````, rendered by Sphinx. Simplest on a docs-only page, but GitHub shows the fenced block as a code block. An empty fence falls back to generating from the git tags at build time, so a freshly authored block renders before its first refresh.
-- **A comment marker region**, `<!-- matrix python -->` … `<!-- matrix-end -->`, with the raw table between the markers. Being plain Markdown, it renders as a real table on **GitHub** and PyPI as well as in Sphinx. Options go in the start comment as `key=value` pairs and bare flags: `<!-- matrix click show-spec -->`. `install.md`'s tables use this form so they render everywhere.
-
-The examples below use the directive fence; the marker form takes the same axis and options.
-
-### The `python` axis
-
-This project uses it for the [Python compatibility table in `install.md`](install.md#python-compatibility). You write the block with just its axis and options:
-
-````{code-block} markdown
-```{matrix} python
-:package: click-extra
-```
-````
-
-and the updater fills in the table below the options, regenerated from every `vMAJOR.MINOR.PATCH` tag (reading the declared Python support from the `Programming Language :: Python :: X.Y` classifiers in `pyproject.toml`, falling back to `requires-python`, Poetry's `python = "..."`, then `setup.py`'s `python_requires`). Consecutive releases that agree are grouped into one row, and a floor-only declaration is capped at the latest Python released while the range was current:
-
-````{code-block} markdown
-```{matrix} python
-:package: click-extra
-
-| `click-extra`       | Released   | `3.14` | `3.13` | `3.12` | `3.11` | `3.10` | `3.9` | `3.8` | `3.7` |
-| :------------------ | :--------- | :----: | :----: | :----: | :----: | :----: | :---: | :---: | :---: |
-| `6.2.x` → `8.x`     | 2025-11-04 |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `6.0.x` → `6.1.x`   | 2025-10-08 |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `5.0.x` → `6.0.x`   | 2025-05-13 |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `4.11.x` → `4.15.x` | 2024-10-08 |   –    |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `4.9.x` → `4.10.x`  | 2024-07-25 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
-| `4.0.x` → `4.8.x`   | 2023-05-08 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
-| `0.0.x` → `3.10.x`  | 2021-10-18 |   –    |   –    |   –    |   ✅   |   ✅   |  ✅   |  ✅   |  ✅   |
-```
-````
-
-#### Three states, two sources
-
-A release declares its Python support twice, and the two declarations answer different questions. The classifier list is what the project *claims* to have tested. `requires-python` is what an installer *enforces*: fall outside it and `pip` refuses to install, whatever the classifiers say. The matrix keeps them apart:
-
-| Cell | Meaning                                                                                                 |
-| :--: | :------------------------------------------------------------------------------------------------------ |
-|  ✅  | Declared, via a `Programming Language :: Python :: X.Y` classifier.                                     |
-|  ❌  | Ruled out by `requires-python`: below its floor, on or above its ceiling, or excluded by a `!=` clause. |
-|  –   | Neither. The release never claimed that version, and nothing in its metadata stops you.                 |
-
-The third state is what a two-state table has to lie about. When `4.9.0` shipped in July 2024 it declared `requires-python = ">= 3.9"` with classifiers up to `3.12`, and Python `3.13` did not exist yet. Marking that cell ❌ would assert an incompatibility nobody ever declared, so it renders `–` instead, while `3.8` stays ❌ because the `>= 3.9` floor genuinely rules it out.
-
-The result reads as a staircase: ❌ fills the lower-left as the floor rises over the years, ✅ the middle band, and `–` the upper-right where the future had not happened yet.
-
-### A dependency axis
-
-`{matrix} <distribution>` tracks a runtime dependency instead. For each release range it reads that distribution's requirement specifier (PEP 621, Poetry, or `setup.py`) and marks ✅ / ❌ for each column version with [`packaging`](https://packaging.pypa.io). An extras bracket and an environment marker are both transparent: `tabulate[widechars]>=0.9` and `tomli>=2; python_version<'3.11'` each track the plain `>=` range. The distribution is matched on its [PEP 503](https://peps.python.org/pep-0503/) normalized name, looked up in the runtime dependencies then in those behind an extra. Development dependency groups ([PEP 735](https://peps.python.org/pep-0735/)) are skipped, since no installer resolves them for a consumer. Columns are auto-derived: a minor series stays a single `X.Y` column unless an open (`>=`) floor pins a specific patch, in which case it splits into `X.Y.0` plus that floor; the left edge is the version resolved in `uv.lock`. Add `:show-spec:` for a `Spec` column with each range's raw specifier, in the release's own spelling. Cells here stay two-valued: unlike Python, a dependency has no informational second declaration to disagree with its specifier, so there is nothing an undeclared cell could mean.
-
-[Poetry's own range syntax](https://python-poetry.org/docs/dependency-specification/) is translated to PEP 440 before evaluation, since a project's older tags usually predate its move to PEP 621. Carets follow Poetry's rule of bumping the leftmost non-zero component, so `^1.2.3` caps at `2.0.0` while `^0.2.3` caps at `0.3.0` and `^0.0.3` at `0.0.4`: under a `0.` prefix every release may break, and a caret there covers far less than the major series. Tilde and wildcard ranges (`~1`, `~1.2`, `1.*`, `1.2.*`) translate the same way.
-
-This project uses it for the [Click compatibility table](install.md#click-compatibility):
-
-````{code-block} markdown
-```{matrix} click
-:package: click-extra
-:show-spec:
-
-| `click-extra`       | Released   | Spec      | `8.4.2` | `8.4.1` | `8.4.0` | `8.3.3` | `8.3.1` | `8.3.0` | `8.2` | `8.1` | `8.0` |
-| :------------------ | :--------- | :-------- | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :---: | :---: | :---: |
-| `8.x`               | 2026-06-22 | `>=8.3.1` |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.17.x` → `7.20.x` | 2026-05-25 | `>=8.4.1` |   ✅    |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.15.x` → `7.16.x` | 2026-05-03 | `>=8.3.1` |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.14.1`            | 2026-04-26 | `>=8.1`   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ❌   |
-| `7.14.0`            | 2026-04-24 | `>=8.3.3` |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.0.x` → `7.13.x`  | 2025-11-17 | `>=8.3.1` |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `6.x`               | 2025-09-25 | `>=8.3.0` |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ❌   |  ❌   |  ❌   |
-| `5.x`               | 2025-05-13 | `~=8.2.0` |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |  ✅   |  ❌   |  ❌   |
-| `4.9.x` → `4.15.x`  | 2024-07-25 | `~=8.1.4` |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ✅   |  ❌   |
-| `1.7.x` → `4.8.x`   | 2022-03-31 | `^8.1.1`  |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ❌   |
-| `0.0.x` → `1.6.x`   | 2021-10-18 | `^8.0.2`  |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ✅   |
-```
-````
-
-### Options
-
-| Option            | Effect                                                                           | Default                |
-| ----------------- | -------------------------------------------------------------------------------- | ---------------------- |
-| `:package:`       | Header column label, rendered in backticks.                                      | repository folder name |
-| `:path:`          | Git working tree to walk, absolute or relative to the documented project's root. | project's git root     |
-| `:version-floor:` | Drop release rows below this package version.                                    | none (all tags)        |
-| `:tag-pattern:`   | Regex selecting release tags.                                                    | `^v\d+\.\d+\.\d+$`     |
-| `:column-order:`  | Left-to-right ordering of the version columns: `newest-first` or `oldest-first`. | `newest-first`         |
-| `:row-order:`     | Top-to-bottom ordering of the release rows: `newest-first` or `oldest-first`.    | `newest-first`         |
-| `:python-floor:`  | (`python` axis) Drop Python `X.Y` columns below this version.                    | none (all columns)     |
-| `:show-spec:`     | (dependency axis) Add a `Spec` column with each range's raw specifier.           | off                    |
-
-The `:path:` option makes the directive reusable across repositories: point it at a sibling checkout to render another package's matrix.
-
-### Keeping the tables current
-
-The embedded tables are refreshed offline, formatter-style, by the `refresh-directives` command (which needs the sphinx extra):
-
-```{code-block} shell-session
-$ click-extra refresh-directives docs/
-```
-
-It walks the given Markdown files or directories, regenerates each matrix block's table (both the `{matrix}` directive fences and the `<!-- matrix … -->` marker regions) from that block's axis, options, and the project's git tags, and rewrites the block in place. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching data) is left untouched, so a transient failure never wipes a good table. Examples nested inside longer code fences (like the ones on this page) are documented illustrations and are never refreshed.
-
-The same command also refreshes the `python:render` `:mirror:` regions found in the same files, in both the visible [fence](#self-updating-source-with-mirror) and the invisible [`<!-- mirror-src -->` comment](#mirror-src) forms, by executing each block's Python (`click_extra.sphinx.python.update_mirror_blocks(paths, check=...)` is the importable form). One invocation therefore keeps every self-updating block of a documentation tree current, whatever its kind.
-
-```{note}
-Only the updater (and the empty-block fallback) needs the release tags, since it is the part that shells out to `git`. Run it wherever the full tag history is available. The HTML build renders the embedded table verbatim and needs no git access, so shallow clones and read-only build hosts render the matrix fine.
-```
-
-For content a directive cannot produce on its own, like a shared registry dumped into several files or an external generator's output, the same marker machinery is exposed as three primitives, importable from `click_extra.sphinx`:
-
-- `marker_res(name)` builds the `(open, close)` regexes of a `<!-- name … -->` / `<!-- name-end -->` region, the grammar every self-updating marker shares.
-- `replace_region(text, name, content)` swaps the body between those markers for `content`, keeping the markers so the region round-trips. It returns the text unchanged when either marker is absent, so it is safe to fan out over files that do not all carry the region.
-- `update_blocks(paths, rewrite, check=...)` applies a `rewrite(text, path)` callback to every Markdown file under `paths`, writing back only the ones it changed (or, under `check`, returning the ones it would change). It is the read-rewrite-report loop behind both `update_matrix_blocks` and `update_mirror_blocks`.
-
-`replace_region` is the counterpart to those two refreshers for content that originates outside the document rather than from an inline directive.
-
-## Man pages
-
-The Sphinx extension can render the roff man page tree of any Click CLI alongside the HTML build, so a project's docs site, release pipeline, and downstream packagers all share a single generator. Add one or more entries to `click_extra_manpages` in `conf.py`:
-
-```{code-block} python
-:caption: `conf.py`
-extensions = ["click_extra.sphinx"]
-
-click_extra_manpages = [
-    {
-        "script": "my_pkg.cli:my_cli",   # required
-        "prog_name": "my-cli",            # optional, defaults to the resolved command's name
-        "output_dir": "man",              # optional, defaults to "man"
-        "render_html": True,              # optional, defaults to True
-    },
-]
-```
-
-On every HTML build, the hook resolves each `script` with the same scanner as the [`click-extra wrap --help-format man`](man-page.md#generating-man-pages) CLI and writes one `.1` file per (sub)command into `<outdir>/<output_dir>/`, mirroring what `click-extra wrap --help-format man --output-dir DIR -- SCRIPT` produces from the command line. An empty (or absent) list keeps the hook silent: no man pages, no warnings.
-
-Only HTML-family builders (`html`, `dirhtml`, `singlehtml`) trigger the hook. Other builders (`linkcheck`, `man`, `epub`, `coverage`) skip it: roff in their output trees would be redundant or confusing.
-
-The generator honors `SOURCE_DATE_EPOCH` for reproducible builds and inherits every option-group and Cloup-aware rendering rule documented in the [man-page reference](man-page.md#layout).
-
-### HTML siblings
-
-Browsers download `.1` files rather than render them, so each emitted page is also passed through a roff → HTML renderer when one is available. The result lands next to the source as `<page>.<section>.html` (like `my-cli.1.html`).
-
-The hook tries [`mandoc -Thtml`](https://mandoc.bsd.lv) first, then `groff -Thtml -mandoc`, picking whichever it finds on `PATH`. mandoc is preferred for its semantic anchors: every section and option gets a stable `id`, which makes deep-linking work. If neither renderer is installed, the build still produces the `.1` files and logs a single info-level notice, which `render_html: False` suppresses.
-
-A typical CI container ships one or the other: Debian and Ubuntu have `groff` in `build-essential`, BSDs and recent macOS images ship `mandoc`. To pin the renderer on GitHub Actions, install it explicitly:
-
-```{code-block} yaml
-:caption: `.github/workflows/docs.yaml`
-- name: Install mandoc
-  run: sudo apt-get install --yes mandoc
-```
-
-### Cross-linking from prose
-
-To make the standard `:manpage:` role link to the HTML siblings the hook emits, set Sphinx's [`manpages_url`](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-manpages_url) to the matching path:
-
-```{code-block} python
-:caption: `conf.py`
-manpages_url = "man/{page}.{section}.html"
-```
-
-With that in place, `` :manpage:`my-cli(1)` `` in any docstring or `.md` file resolves to `man/my-cli.1.html` in the rendered docs. The same template covers every subcommand page, since `{page}` matches the full hyphenated name the generator produces (`my-cli`, `my-cli-build`, `my-cli-build-all`).
-
-Leaving `manpages_url` unset is fine. The role still renders as styled text; only the hyperlink target is missing.
-
-### `click-extra-manpages` directive
-
-For a discoverable landing page, drop the `click-extra-manpages` directive anywhere in the docs. It walks `click_extra_manpages` and emits a bullet list with one entry per (sub)command in each declared tree, linked to the HTML sibling produced by the hook:
-
-````{code-block} markdown
-```{click-extra-manpages}
-```
-````
-
-The directive takes no arguments. URLs are computed relative to the enclosing page's actual published location, not its source docname, so the same call resolves correctly on a top-level page, on a page nested under a subdirectory, and under any HTML-family builder: `dirhtml` publishes each page one directory deeper, as `<docname>/index.html` rather than `<docname>.html`, while `singlehtml` folds every document into one page at the build root, so its links need no directory traversal at all. When `click_extra_manpages` is empty, the directive renders nothing.
-
-A live instance of the directive ships at the bottom of the [man-page reference](man-page.md#index): the list there is what this project's own `click_extra_manpages` entry produces at build time.
-
 ## GitHub alerts
 
-Click Extra's Sphinx extension automatically converts [GitHub-flavored Markdown alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) into [MyST admonitions](https://myst-parser.readthedocs.io/en/latest/syntax/admonitions.html).
-
-The same source then renders correctly both on GitHub and in the Sphinx-generated documentation.
+A [GitHub-flavored Markdown alert](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) is a blockquote GitHub renders as a colored callout. Click Extra's Sphinx extension converts each one into a [MyST admonition](https://myst-parser.readthedocs.io/en/latest/syntax/admonitions.html), so the same source renders on GitHub and in the built documentation.
 
 ```{deprecated} 7.16.0
 `myst-parser` `5.1.0` ships a native [`alert` syntax extension](https://myst-parser.readthedocs.io/en/latest/syntax/optional.html) covering the same five alert types. On that release and above, Click Extra's converter steps aside: add `"alert"` to `myst_enable_extensions` and the rest of this section no longer applies, `colon_fence` included.
@@ -1488,70 +1083,6 @@ Which renders as:
 > > [!TIP]
 > > If you encounter issues, try restarting the service.
 
-You can also mix GitHub alerts with MyST directives inside container directives:
-
-`````{code-block} markdown
-````{note}
-> [!TIP]
-> First alert.
-
-```{warning}
-Nested MyST warning.
-```
-
-> [!CAUTION]
-> Second alert after nested directive.
-````
-`````
-
-````{note}
-> [!TIP]
-> First alert.
-
-```{warning}
-Nested MyST warning.
-```
-
-> [!CAUTION]
-> Second alert after nested directive.
-````
-
-For more complex documentation, you can combine multiple nested elements such as blockquotes, numbered lists, nested alerts, and code blocks:
-
-````{code-block} markdown
-> [!IMPORTANT]
-> Before proceeding, ensure you have:
->
-> 1. Backed up your data
-> 2. Reviewed the changelog
->
-> > This is important context that applies to all the steps above.
->
-> > [!CAUTION]
-> > This action cannot be undone.
->
-> ```bash
-> $ make backup
-> ```
-````
-
-Which renders as:
-
-> [!IMPORTANT]
-> Before proceeding, ensure you have:
->
-> 1. Backed up your data
-> 2. Reviewed the changelog
->
-> > This is important context that applies to all the steps above.
->
-> > [!CAUTION]
-> > This action cannot be undone.
->
-> ```bash
-> $ make backup
-> ```
-
 ## Todo-list deduplication
 
 [`sphinx.ext.todo`](https://www.sphinx-doc.org/en/master/usage/extensions/todo.html) collects doctree nodes, not documented objects. A `{todo}` written once in a docstring therefore lands on the `todolist` page once per *rendering* of that docstring, and two conventions common to autodoc projects render one docstring several times:
@@ -1574,9 +1105,7 @@ click_extra_dedupe_todos = False
 
 ## ANSI shell sessions
 
-The Click Extra Sphinx extension integrates the [ANSI-capable lexers for Pygments](pygments.md#ansi-language-lexers).
-
-They render colored shell sessions in code blocks, under the `ansi-` prefixed lexers:
+The extension registers Click Extra's [ANSI-capable lexers](pygments.md#ansi-language-lexers) with Sphinx's highlighter. Name one as the language of a code block, and the escape sequences render as colors instead of raw bytes:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
@@ -1584,26 +1113,14 @@ They render colored shell sessions in code blocks, under the `ansi-` prefixed le
 ````{code-block} markdown
 :emphasize-lines: 1
 ```{code-block} ansi-shell-session
-$ # Print ANSI foreground colors.
-$ for i in {0..255}; do \
->     printf '\e[38;5;%dm%3d ' $i $i \
->     (((i+3) % 18)) || printf '\e[0m\n' \
-> done
-[38;5;0m  0 [38;5;1m  1 [38;5;2m  2 [38;5;3m  3 [38;5;4m  4 [38;5;5m  5 [38;5;6m  6 [38;5;7m  7 [38;5;8m  8 [38;5;9m  9 [38;5;10m 10 [38;5;11m 11 [38;5;12m 12 [38;5;13m 13 [38;5;14m 14 [38;5;15m 15 [0m
-[38;5;16m 16 [38;5;17m 17 [38;5;18m 18 [38;5;19m 19 [38;5;20m 20 [38;5;21m 21 [38;5;22m 22 [38;5;23m 23 [38;5;24m 24 [38;5;25m 25 [38;5;26m 26 [38;5;27m 27 [38;5;28m 28 [38;5;29m 29 [38;5;30m 30 [38;5;31m 31 [38;5;32m 32 [38;5;33m 33 [0m
-[38;5;34m 34 [38;5;35m 35 [38;5;36m 36 [38;5;37m 37 [38;5;38m 38 [38;5;39m 39 [38;5;40m 40 [38;5;41m 41 [38;5;42m 42 [38;5;43m 43 [38;5;44m 44 [38;5;45m 45 [38;5;46m 46 [38;5;47m 47 [38;5;48m 48 [38;5;49m 49 [38;5;50m 50 [38;5;51m 51 [0m
-[38;5;52m 52 [38;5;53m 53 [38;5;54m 54 [38;5;55m 55 [38;5;56m 56 [38;5;57m 57 [38;5;58m 58 [38;5;59m 59 [38;5;60m 60 [38;5;61m 61 [38;5;62m 62 [38;5;63m 63 [38;5;64m 64 [38;5;65m 65 [38;5;66m 66 [38;5;67m 67 [38;5;68m 68 [38;5;69m 69 [0m
-[38;5;70m 70 [38;5;71m 71 [38;5;72m 72 [38;5;73m 73 [38;5;74m 74 [38;5;75m 75 [38;5;76m 76 [38;5;77m 77 [38;5;78m 78 [38;5;79m 79 [38;5;80m 80 [38;5;81m 81 [38;5;82m 82 [38;5;83m 83 [38;5;84m 84 [38;5;85m 85 [38;5;86m 86 [38;5;87m 87 [0m
-[38;5;88m 88 [38;5;89m 89 [38;5;90m 90 [38;5;91m 91 [38;5;92m 92 [38;5;93m 93 [38;5;94m 94 [38;5;95m 95 [38;5;96m 96 [38;5;97m 97 [38;5;98m 98 [38;5;99m 99 [38;5;100m100 [38;5;101m101 [38;5;102m102 [38;5;103m103 [38;5;104m104 [38;5;105m105 [0m
-[38;5;106m106 [38;5;107m107 [38;5;108m108 [38;5;109m109 [38;5;110m110 [38;5;111m111 [38;5;112m112 [38;5;113m113 [38;5;114m114 [38;5;115m115 [38;5;116m116 [38;5;117m117 [38;5;118m118 [38;5;119m119 [38;5;120m120 [38;5;121m121 [38;5;122m122 [38;5;123m123 [0m
-[38;5;124m124 [38;5;125m125 [38;5;126m126 [38;5;127m127 [38;5;128m128 [38;5;129m129 [38;5;130m130 [38;5;131m131 [38;5;132m132 [38;5;133m133 [38;5;134m134 [38;5;135m135 [38;5;136m136 [38;5;137m137 [38;5;138m138 [38;5;139m139 [38;5;140m140 [38;5;141m141 [0m
-[38;5;142m142 [38;5;143m143 [38;5;144m144 [38;5;145m145 [38;5;146m146 [38;5;147m147 [38;5;148m148 [38;5;149m149 [38;5;150m150 [38;5;151m151 [38;5;152m152 [38;5;153m153 [38;5;154m154 [38;5;155m155 [38;5;156m156 [38;5;157m157 [38;5;158m158 [38;5;159m159 [0m
-[38;5;160m160 [38;5;161m161 [38;5;162m162 [38;5;163m163 [38;5;164m164 [38;5;165m165 [38;5;166m166 [38;5;167m167 [38;5;168m168 [38;5;169m169 [38;5;170m170 [38;5;171m171 [38;5;172m172 [38;5;173m173 [38;5;174m174 [38;5;175m175 [38;5;176m176 [38;5;177m177 [0m
-[38;5;178m178 [38;5;179m179 [38;5;180m180 [38;5;181m181 [38;5;182m182 [38;5;183m183 [38;5;184m184 [38;5;185m185 [38;5;186m186 [38;5;187m187 [38;5;188m188 [38;5;189m189 [38;5;190m190 [38;5;191m191 [38;5;192m192 [38;5;193m193 [38;5;194m194 [38;5;195m195 [0m
-[38;5;196m196 [38;5;197m197 [38;5;198m198 [38;5;199m199 [38;5;200m200 [38;5;201m201 [38;5;202m202 [38;5;203m203 [38;5;204m204 [38;5;205m205 [38;5;206m206 [38;5;207m207 [38;5;208m208 [38;5;209m209 [38;5;210m210 [38;5;211m211 [38;5;212m212 [38;5;213m213 [0m
-[38;5;214m214 [38;5;215m215 [38;5;216m216 [38;5;217m217 [38;5;218m218 [38;5;219m219 [38;5;220m220 [38;5;221m221 [38;5;222m222 [38;5;223m223 [38;5;224m224 [38;5;225m225 [38;5;226m226 [38;5;227m227 [38;5;228m228 [38;5;229m229 [38;5;230m230 [38;5;231m231 [0m
-[38;5;232m232 [38;5;233m233 [38;5;234m234 [38;5;235m235 [38;5;236m236 [38;5;237m237 [38;5;238m238 [38;5;239m239 [38;5;240m240 [38;5;241m241 [38;5;242m242 [38;5;243m243 [38;5;244m244 [38;5;245m245 [38;5;246m246 [38;5;247m247 [38;5;248m248 [38;5;249m249 [0m
-[38;5;250m250 [38;5;251m251 [38;5;252m252 [38;5;253m253 [38;5;254m254 [38;5;255m255
+$ my-cli --help
+[1mUsage:[0m [97mmy-cli[0m [36m[2m[OPTIONS][0m [36m[2mCOMMAND[0m [36m[2m[ARGS][0m...
+
+  Manage recipes and shopping lists.
+
+[1mOptions:[0m
+  [36m--name[0m [36m[2mTEXT[0m    Your name.
+  [36m--help[0m          Show this message and exit.
 ```
 ````
 `````
@@ -1614,54 +1131,32 @@ $ for i in {0..255}; do \
 :emphasize-lines: 1
 .. code-block:: ansi-shell-session
 
-    $ # Print ANSI foreground colors.
-    $ for i in {0..255}; do \
-    >     printf '\e[38;5;%dm%3d ' $i $i \
-    >     (((i+3) % 18)) || printf '\e[0m\n' \
-    > done
-    [38;5;0m  0 [38;5;1m  1 [38;5;2m  2 [38;5;3m  3 [38;5;4m  4 [38;5;5m  5 [38;5;6m  6 [38;5;7m  7 [38;5;8m  8 [38;5;9m  9 [38;5;10m 10 [38;5;11m 11 [38;5;12m 12 [38;5;13m 13 [38;5;14m 14 [38;5;15m 15 [0m
-    [38;5;16m 16 [38;5;17m 17 [38;5;18m 18 [38;5;19m 19 [38;5;20m 20 [38;5;21m 21 [38;5;22m 22 [38;5;23m 23 [38;5;24m 24 [38;5;25m 25 [38;5;26m 26 [38;5;27m 27 [38;5;28m 28 [38;5;29m 29 [38;5;30m 30 [38;5;31m 31 [38;5;32m 32 [38;5;33m 33 [0m
-    [38;5;34m 34 [38;5;35m 35 [38;5;36m 36 [38;5;37m 37 [38;5;38m 38 [38;5;39m 39 [38;5;40m 40 [38;5;41m 41 [38;5;42m 42 [38;5;43m 43 [38;5;44m 44 [38;5;45m 45 [38;5;46m 46 [38;5;47m 47 [38;5;48m 48 [38;5;49m 49 [38;5;50m 50 [38;5;51m 51 [0m
-    [38;5;52m 52 [38;5;53m 53 [38;5;54m 54 [38;5;55m 55 [38;5;56m 56 [38;5;57m 57 [38;5;58m 58 [38;5;59m 59 [38;5;60m 60 [38;5;61m 61 [38;5;62m 62 [38;5;63m 63 [38;5;64m 64 [38;5;65m 65 [38;5;66m 66 [38;5;67m 67 [38;5;68m 68 [38;5;69m 69 [0m
-    [38;5;70m 70 [38;5;71m 71 [38;5;72m 72 [38;5;73m 73 [38;5;74m 74 [38;5;75m 75 [38;5;76m 76 [38;5;77m 77 [38;5;78m 78 [38;5;79m 79 [38;5;80m 80 [38;5;81m 81 [38;5;82m 82 [38;5;83m 83 [38;5;84m 84 [38;5;85m 85 [38;5;86m 86 [38;5;87m 87 [0m
-    [38;5;88m 88 [38;5;89m 89 [38;5;90m 90 [38;5;91m 91 [38;5;92m 92 [38;5;93m 93 [38;5;94m 94 [38;5;95m 95 [38;5;96m 96 [38;5;97m 97 [38;5;98m 98 [38;5;99m 99 [38;5;100m100 [38;5;101m101 [38;5;102m102 [38;5;103m103 [38;5;104m104 [38;5;105m105 [0m
-    [38;5;106m106 [38;5;107m107 [38;5;108m108 [38;5;109m109 [38;5;110m110 [38;5;111m111 [38;5;112m112 [38;5;113m113 [38;5;114m114 [38;5;115m115 [38;5;116m116 [38;5;117m117 [38;5;118m118 [38;5;119m119 [38;5;120m120 [38;5;121m121 [38;5;122m122 [38;5;123m123 [0m
-    [38;5;124m124 [38;5;125m125 [38;5;126m126 [38;5;127m127 [38;5;128m128 [38;5;129m129 [38;5;130m130 [38;5;131m131 [38;5;132m132 [38;5;133m133 [38;5;134m134 [38;5;135m135 [38;5;136m136 [38;5;137m137 [38;5;138m138 [38;5;139m139 [38;5;140m140 [38;5;141m141 [0m
-    [38;5;142m142 [38;5;143m143 [38;5;144m144 [38;5;145m145 [38;5;146m146 [38;5;147m147 [38;5;148m148 [38;5;149m149 [38;5;150m150 [38;5;151m151 [38;5;152m152 [38;5;153m153 [38;5;154m154 [38;5;155m155 [38;5;156m156 [38;5;157m157 [38;5;158m158 [38;5;159m159 [0m
-    [38;5;160m160 [38;5;161m161 [38;5;162m162 [38;5;163m163 [38;5;164m164 [38;5;165m165 [38;5;166m166 [38;5;167m167 [38;5;168m168 [38;5;169m169 [38;5;170m170 [38;5;171m171 [38;5;172m172 [38;5;173m173 [38;5;174m174 [38;5;175m175 [38;5;176m176 [38;5;177m177 [0m
-    [38;5;178m178 [38;5;179m179 [38;5;180m180 [38;5;181m181 [38;5;182m182 [38;5;183m183 [38;5;184m184 [38;5;185m185 [38;5;186m186 [38;5;187m187 [38;5;188m188 [38;5;189m189 [38;5;190m190 [38;5;191m191 [38;5;192m192 [38;5;193m193 [38;5;194m194 [38;5;195m195 [0m
-    [38;5;196m196 [38;5;197m197 [38;5;198m198 [38;5;199m199 [38;5;200m200 [38;5;201m201 [38;5;202m202 [38;5;203m203 [38;5;204m204 [38;5;205m205 [38;5;206m206 [38;5;207m207 [38;5;208m208 [38;5;209m209 [38;5;210m210 [38;5;211m211 [38;5;212m212 [38;5;213m213 [0m
-    [38;5;214m214 [38;5;215m215 [38;5;216m216 [38;5;217m217 [38;5;218m218 [38;5;219m219 [38;5;220m220 [38;5;221m221 [38;5;222m222 [38;5;223m223 [38;5;224m224 [38;5;225m225 [38;5;226m226 [38;5;227m227 [38;5;228m228 [38;5;229m229 [38;5;230m230 [38;5;231m231 [0m
-    [38;5;232m232 [38;5;233m233 [38;5;234m234 [38;5;235m235 [38;5;236m236 [38;5;237m237 [38;5;238m238 [38;5;239m239 [38;5;240m240 [38;5;241m241 [38;5;242m242 [38;5;243m243 [38;5;244m244 [38;5;245m245 [38;5;246m246 [38;5;247m247 [38;5;248m248 [38;5;249m249 [0m
-    [38;5;250m250 [38;5;251m251 [38;5;252m252 [38;5;253m253 [38;5;254m254 [38;5;255m255
+    $ my-cli --help
+    [1mUsage:[0m [97mmy-cli[0m [36m[2m[OPTIONS][0m [36m[2mCOMMAND[0m [36m[2m[ARGS][0m...
+
+      Manage recipes and shopping lists.
+
+    [1mOptions:[0m
+      [36m--name[0m [36m[2mTEXT[0m    Your name.
+      [36m--help[0m          Show this message and exit.
 ```
 `````
 ``````
 
-In Sphinx, the snippet above renders to:
+Either form renders in full color:
 
 ```{code-block} ansi-shell-session
-$ # Print ANSI foreground colors.
-$ for i in {0..255}; do \
->     printf '\e[38;5;%dm%3d ' $i $i \
->     (((i+3) % 18)) || printf '\e[0m\n' \
-> done
-[38;5;0m  0 [38;5;1m  1 [38;5;2m  2 [38;5;3m  3 [38;5;4m  4 [38;5;5m  5 [38;5;6m  6 [38;5;7m  7 [38;5;8m  8 [38;5;9m  9 [38;5;10m 10 [38;5;11m 11 [38;5;12m 12 [38;5;13m 13 [38;5;14m 14 [38;5;15m 15 [0m
-[38;5;16m 16 [38;5;17m 17 [38;5;18m 18 [38;5;19m 19 [38;5;20m 20 [38;5;21m 21 [38;5;22m 22 [38;5;23m 23 [38;5;24m 24 [38;5;25m 25 [38;5;26m 26 [38;5;27m 27 [38;5;28m 28 [38;5;29m 29 [38;5;30m 30 [38;5;31m 31 [38;5;32m 32 [38;5;33m 33 [0m
-[38;5;34m 34 [38;5;35m 35 [38;5;36m 36 [38;5;37m 37 [38;5;38m 38 [38;5;39m 39 [38;5;40m 40 [38;5;41m 41 [38;5;42m 42 [38;5;43m 43 [38;5;44m 44 [38;5;45m 45 [38;5;46m 46 [38;5;47m 47 [38;5;48m 48 [38;5;49m 49 [38;5;50m 50 [38;5;51m 51 [0m
-[38;5;52m 52 [38;5;53m 53 [38;5;54m 54 [38;5;55m 55 [38;5;56m 56 [38;5;57m 57 [38;5;58m 58 [38;5;59m 59 [38;5;60m 60 [38;5;61m 61 [38;5;62m 62 [38;5;63m 63 [38;5;64m 64 [38;5;65m 65 [38;5;66m 66 [38;5;67m 67 [38;5;68m 68 [38;5;69m 69 [0m
-[38;5;70m 70 [38;5;71m 71 [38;5;72m 72 [38;5;73m 73 [38;5;74m 74 [38;5;75m 75 [38;5;76m 76 [38;5;77m 77 [38;5;78m 78 [38;5;79m 79 [38;5;80m 80 [38;5;81m 81 [38;5;82m 82 [38;5;83m 83 [38;5;84m 84 [38;5;85m 85 [38;5;86m 86 [38;5;87m 87 [0m
-[38;5;88m 88 [38;5;89m 89 [38;5;90m 90 [38;5;91m 91 [38;5;92m 92 [38;5;93m 93 [38;5;94m 94 [38;5;95m 95 [38;5;96m 96 [38;5;97m 97 [38;5;98m 98 [38;5;99m 99 [38;5;100m100 [38;5;101m101 [38;5;102m102 [38;5;103m103 [38;5;104m104 [38;5;105m105 [0m
-[38;5;106m106 [38;5;107m107 [38;5;108m108 [38;5;109m109 [38;5;110m110 [38;5;111m111 [38;5;112m112 [38;5;113m113 [38;5;114m114 [38;5;115m115 [38;5;116m116 [38;5;117m117 [38;5;118m118 [38;5;119m119 [38;5;120m120 [38;5;121m121 [38;5;122m122 [38;5;123m123 [0m
-[38;5;124m124 [38;5;125m125 [38;5;126m126 [38;5;127m127 [38;5;128m128 [38;5;129m129 [38;5;130m130 [38;5;131m131 [38;5;132m132 [38;5;133m133 [38;5;134m134 [38;5;135m135 [38;5;136m136 [38;5;137m137 [38;5;138m138 [38;5;139m139 [38;5;140m140 [38;5;141m141 [0m
-[38;5;142m142 [38;5;143m143 [38;5;144m144 [38;5;145m145 [38;5;146m146 [38;5;147m147 [38;5;148m148 [38;5;149m149 [38;5;150m150 [38;5;151m151 [38;5;152m152 [38;5;153m153 [38;5;154m154 [38;5;155m155 [38;5;156m156 [38;5;157m157 [38;5;158m158 [38;5;159m159 [0m
-[38;5;160m160 [38;5;161m161 [38;5;162m162 [38;5;163m163 [38;5;164m164 [38;5;165m165 [38;5;166m166 [38;5;167m167 [38;5;168m168 [38;5;169m169 [38;5;170m170 [38;5;171m171 [38;5;172m172 [38;5;173m173 [38;5;174m174 [38;5;175m175 [38;5;176m176 [38;5;177m177 [0m
-[38;5;178m178 [38;5;179m179 [38;5;180m180 [38;5;181m181 [38;5;182m182 [38;5;183m183 [38;5;184m184 [38;5;185m185 [38;5;186m186 [38;5;187m187 [38;5;188m188 [38;5;189m189 [38;5;190m190 [38;5;191m191 [38;5;192m192 [38;5;193m193 [38;5;194m194 [38;5;195m195 [0m
-[38;5;196m196 [38;5;197m197 [38;5;198m198 [38;5;199m199 [38;5;200m200 [38;5;201m201 [38;5;202m202 [38;5;203m203 [38;5;204m204 [38;5;205m205 [38;5;206m206 [38;5;207m207 [38;5;208m208 [38;5;209m209 [38;5;210m210 [38;5;211m211 [38;5;212m212 [38;5;213m213 [0m
-[38;5;214m214 [38;5;215m215 [38;5;216m216 [38;5;217m217 [38;5;218m218 [38;5;219m219 [38;5;220m220 [38;5;221m221 [38;5;222m222 [38;5;223m223 [38;5;224m224 [38;5;225m225 [38;5;226m226 [38;5;227m227 [38;5;228m228 [38;5;229m229 [38;5;230m230 [38;5;231m231 [0m
-[38;5;232m232 [38;5;233m233 [38;5;234m234 [38;5;235m235 [38;5;236m236 [38;5;237m237 [38;5;238m238 [38;5;239m239 [38;5;240m240 [38;5;241m241 [38;5;242m242 [38;5;243m243 [38;5;244m244 [38;5;245m245 [38;5;246m246 [38;5;247m247 [38;5;248m248 [38;5;249m249 [0m
-[38;5;250m250 [38;5;251m251 [38;5;252m252 [38;5;253m253 [38;5;254m254 [38;5;255m255
+$ my-cli --help
+[1mUsage:[0m [97mmy-cli[0m [36m[2m[OPTIONS][0m [36m[2mCOMMAND[0m [36m[2m[ARGS][0m...
+
+  Manage recipes and shopping lists.
+
+[1mOptions:[0m
+  [36m--name[0m [36m[2mTEXT[0m    Your name.
+  [36m--help[0m          Show this message and exit.
 ```
+
+The [lexer variants](pygments.md#lexer-variants) table lists every language these lexers cover, and [lexers usage](pygments.md#lexers-usage) shows what the same block looks like without them.
 
 ## Legacy MyST + reStructuredText syntax
 

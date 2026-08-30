@@ -40,6 +40,10 @@ multicall
 :maxdepth: 2
 :hidden:
 config
+config-discovery
+config-formats
+config-schema
+config-validation
 envvar
 ```
 
@@ -91,6 +95,7 @@ screenshots
 snippets
 man-page
 sphinx
+python-directives
 mkdocs
 myst-docstrings
 pygments

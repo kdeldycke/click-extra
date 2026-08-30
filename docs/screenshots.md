@@ -954,7 +954,7 @@ Unix only, for the reasons {func}`~click_extra.recording.record_command` states.
 
 ### Stating a default once
 
-`screenshot` is itself a Click Extra CLI, so every option above is also a configuration key. To draw every capture the same way, state it once in the `pyproject.toml` [click-extra finds by walking up from the working directory](config.md#pyproject-toml):
+`screenshot` is itself a Click Extra CLI, so every option above is also a configuration key. To draw every capture the same way, state it once in the `pyproject.toml` [click-extra finds by walking up from the working directory](config-formats.md#pyproject-toml):
 
 ```toml
 [tool.click-extra.screenshot]

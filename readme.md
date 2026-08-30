@@ -125,11 +125,11 @@ And every CLI gets these on top:
   - `plist`, in both its XML and binary variants
 - Automatic [`pyproject.toml` integration](https://kdeldycke.github.io/click-extra/config.html#dotted-keys): the CLI reads its `[tool.<cli>]` section from the user's project file, including a CWD-aware walk that skips unrelated `pyproject.toml` files
 - [Inference of the configuration file structure](https://kdeldycke.github.io/click-extra/config.html#standalone-option) from your CLI's options, with optional [dataclass schema typing](https://kdeldycke.github.io/click-extra/config.html#schema-only-configuration) so values arrive parsed and validated
-- Remote loading of [configuration from URLs](https://kdeldycke.github.io/click-extra/config.html#remote-url)
-- Optional [strict validation](https://kdeldycke.github.io/click-extra/config.html#strictness) of configuration with `--validate-config`
-- [Extension hook](https://kdeldycke.github.io/click-extra/config.html#extending-validation) (`ConfigValidator`) for user-defined sub-trees whose keys are *data* rather than CLI flags (per-plugin overrides, matrix axes, user-defined IDs), with rooted `ValidationError` reporting
-- Respect the [default application path](https://kdeldycke.github.io/click-extra/config.html#default-folder) on each platform (XDG spec. on Linux)
-- [Glob search patterns](https://kdeldycke.github.io/click-extra/config.html#search-pattern) for configuration files
+- Remote loading of [configuration from URLs](https://kdeldycke.github.io/click-extra/config-discovery.html#remote-url)
+- Optional [strict validation](https://kdeldycke.github.io/click-extra/config-validation.html#strictness) of configuration with `--validate-config`
+- [Extension hook](https://kdeldycke.github.io/click-extra/config-validation.html#extending-validation) (`ConfigValidator`) for user-defined sub-trees whose keys are *data* rather than CLI flags (per-plugin overrides, matrix axes, user-defined IDs), with rooted `ValidationError` reporting
+- Respect the [default application path](https://kdeldycke.github.io/click-extra/config-discovery.html#default-folder) on each platform (XDG spec. on Linux)
+- [Glob search patterns](https://kdeldycke.github.io/click-extra/config-discovery.html) for configuration files
 - A `--no-config` option to disable configuration file loading
 - Respect of `Prompt` > `CLI` > `Environment` > `Config` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
 
@@ -148,7 +148,7 @@ And every CLI gets these on top:
 - [`click-extra screenshot`](https://kdeldycke.github.io/click-extra/screenshots.html) captures any CLI's colored output as an SVG image or a self-contained HTML block, and the window it is drawn in is yours to set: [terminal preset](https://kdeldycke.github.io/click-extra/screenshots.html#terminal-presets), [light or dark chrome](https://kdeldycke.github.io/click-extra/screenshots.html#light-and-dark-chrome), gradient backdrop, caption, line numbers, transparency, credit line, border, shadow, corner radius and margins. Every capture in this readme is one, rewritten on each documentation build, and a pair of them can be [switched on the reader's own color scheme](https://kdeldycke.github.io/click-extra/screenshots.html#github-integration):
   ![A CLI help screen captioned, numbered and left see-through on a gradient backdrop](https://raw.githubusercontent.com/kdeldycke/click-extra/main/docs/assets/styled-window-screen.svg)
 - [`click:source` and `click:run` Sphinx directives](https://kdeldycke.github.io/click-extra/sphinx.html#click-directives) in MyST Markdown and reStructuredText to document CLI source code and their execution
-- [`python:source`, `python:run`, `python:render`, `python:render-myst`, `python:render-rst`](https://kdeldycke.github.io/click-extra/sphinx.html#python-directives) — the same machinery for arbitrary Python, with a `render*` family that parses the captured output as live document content (replaces the `docs_update.py` + marker-region pattern)
+- [`python:source`, `python:run`, `python:render`, `python:render-myst`, `python:render-rst`](https://kdeldycke.github.io/click-extra/python-directives.html#python-directives) — the same machinery for arbitrary Python, with a `render*` family that parses the captured output as live document content (replaces the `docs_update.py` + marker-region pattern)
 - [Inline testing of CLI examples](https://kdeldycke.github.io/click-extra/sphinx.html#inline-tests) in documentation: every `click:run` block runs at build time and assertions fail the build
 - Render [GitHub alerts](https://kdeldycke.github.io/click-extra/sphinx.html) into MyST admonitions in both Sphinx and MkDocs
 - [ANSI-capable Pygments lexers](https://kdeldycke.github.io/click-extra/pygments.html#ansi-language-lexers) for shell session and console output, with [24-bit true-color rendering](https://kdeldycke.github.io/click-extra/pygments.html#true-color-24-bit) on by default

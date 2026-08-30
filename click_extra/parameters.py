@@ -1408,7 +1408,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
             description=(
                 "The configuration file the effective value was loaded from, "
                 "when `Source` reports `DEFAULT_MAP`. With "
-                "[`cascade=True`](config.md#cascading-configuration-files) "
+                "[`cascade=True`](config-discovery.md#cascading-configuration-files) "
                 "several files are layered and this column names the one that "
                 "won the parameter; with a single loaded file, every "
                 "config-sourced parameter names that file. Empty for every "

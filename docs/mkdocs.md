@@ -60,23 +60,7 @@ $ my-cli --help
   [36m--help[0m          Show this message and exit.
 ```
 
-For Python console sessions:
-
-````{code-block} markdown
-```ansi-pycon
->>> print("\033[1;32mHarvest ready!\033[0m Check your garden.")
-[1;32mHarvest ready![0m Check your garden.
-```
-````
-
-And the Python console example renders as:
-
-```{code-block} ansi-pycon
->>> print("\033[1;32mHarvest ready!\033[0m Check your garden.")
-[1;32mHarvest ready![0m Check your garden.
-```
-
-See the [full list of available ANSI lexer variants](pygments.md#lexer-variants).
+Every other language works the same way: see the [full list of ANSI lexer variants](pygments.md#lexer-variants), and [lexers usage](pygments.md#lexers-usage) for a Python console session.
 
 ## `mkdocs-click` integration
 

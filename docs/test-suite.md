@@ -3,7 +3,7 @@
 A *test suite* is a declarative list of CLI invocations and the results each one should produce. Click Extra runs the suite against any command or binary as separate subprocesses, checking exit codes and output. It is the black-box, subprocess-level complement to [`CliRunner`](testing.md), which drives a CLI in-process: a test suite never imports the target, so it works just as well against a compiled binary, a shell command, or a CLI written in another language.
 
 ```{important}
-A suite file's format is taken from its extension. TOML (`.toml`) and JSON (`.json`) work out of the box; YAML (`.yaml`, `.yml`), JSON5, JSONC, and Hjson each need their parser installed. See [extra dependencies](install.md#extra-dependencies) for the optional installs, and the [`--config` formats](config.md#formats) for the full list of formats and extensions.
+A suite file's format is taken from its extension. TOML (`.toml`) and JSON (`.json`) work out of the box; YAML (`.yaml`, `.yml`), JSON5, JSONC, and Hjson each need their parser installed. See [extra dependencies](install.md#extra-dependencies) for the optional installs, and the [`--config` formats](config-formats.md) for the full list of formats and extensions.
 
 The engine itself (building `CLITestCase` objects and running them) needs none of these: only parsing a serialized suite does.
 ```

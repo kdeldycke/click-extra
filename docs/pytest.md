@@ -163,7 +163,7 @@ The path travels unconverted because `invoke` casts every argument to a string f
 
 ### `isolated_app_dir`
 
-Without `--config`, a Click Extra CLI [searches the host configuration folder](config.md#default-folder): `~/Library/Application Support/<app>` on macOS, `~/.config/<app>` on Unix, `%APPDATA%\<app>` on Windows. Any file sitting there bleeds into every in-process invocation, so a suite passes or fails on the developer's own configuration.
+Without `--config`, a Click Extra CLI [searches the host configuration folder](config-discovery.md#default-folder): `~/Library/Application Support/<app>` on macOS, `~/.config/<app>` on Unix, `%APPDATA%\<app>` on Windows. Any file sitting there bleeds into every in-process invocation, so a suite passes or fails on the developer's own configuration.
 
 {py:func}`~click_extra.pytest.isolated_app_dir` repoints {py:func}`click.get_app_dir` at a per-test temporary directory, whatever application name is asked for, and returns it. Plant a file in it to exercise the default search against a controlled one:
 
