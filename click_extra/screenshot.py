@@ -437,16 +437,20 @@ a page forbidding third-party requests, and in a viewer that speaks no CSS
 Family names are single-quoted on purpose: this lands in a double-quoted
 `style` attribute, which a double quote here would terminate early.
 
-```{todo}
-Decide whether to embed a subsetted font, which is the only thing that would
-hold a capture's columns for a reader who has neither of the first two families.
-A stock macOS falls through to Menlo, which carries no Braille and none of the
-Mathematical Operators the spinner catalog draws, so those resolve to the
-proportional Apple Symbols: measured in a browser, 26 of the 89 tiles under
-`docs/assets/spinner-*.svg` draw 11% to 80% wider than the column they are laid
-out on, and the window's clip cuts the overflow. JuliaMono carries all 50
-non-emoji code points that catalog uses, every one on the cell grid, so a subset
-of it would close the gap. Emoji stay beyond reach of any monospaced font.
+```{note}
+Not embedding is a decision, not an omission: a subsetted font would ship inside
+this package, and redistribute someone else's font under its own license. The
+bytes are small; the license management is not worth a terminal picture. The
+JuliaMono subset under `docs/_static/` does not change this: it sets the
+documentation's own HTML, where a stylesheet reaches the text, and reusing it in
+a capture would be that same redistribution.
+
+The fallback cost is measured. A stock macOS falls through to Menlo, which
+carries no Braille and none of the Mathematical Operators the spinner catalog
+draws, so those resolve to the proportional Apple Symbols: 26 of the 89 tiles
+under `docs/assets/spinner-*.svg` draw 11% to 80% wider than their column, and
+the window's clip cuts the overflow. A reader with either of the first two
+families sees none of it, and emoji stay out of reach of every monospaced font.
 
 Fitting each run to its columns instead (`lengthAdjust="spacingAndGlyphs"`) was
 measured and rejected: across the 1407 runs in the committed captures it
