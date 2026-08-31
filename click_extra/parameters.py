@@ -233,7 +233,7 @@ def option_value_kind(
     - `"optional"`: the value may be omitted. Click models this as
       `is_flag=False` with a `flag_value` set, so a bare `--color` stands for
       the flag value while `--color=never` passes an explicit one.
-    - `"required"`: consumes a value (`--config CONFIG_PATH`).
+    - `"required"`: consumes a value (`--config LOCATION`).
 
     ```{note}
     The discriminator is Click's `is_flag` (plus `count`), not

@@ -54,11 +54,14 @@ The `--config` default is now `~/.cli/`:
 
 ```{click:run}
 :emphasize-result-lines: 6
+import re
 from boltons.iterutils import flatten, unique
 from click_extra import ConfigFormat
 result = invoke(cli, args=["--help"])
 fp = ",".join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))
-assert f"~/.cli/{{{fp}}}]" in result.stdout.replace("\n                        ", "")
+# Cloup wraps the default at a column driven by the widest option label, so
+# drop every whitespace run before looking for the pattern.
+assert f"~/.cli/{{{fp}}}]" in re.sub(r"\s+", "", result.stdout)
 ```
 
 ```{seealso}

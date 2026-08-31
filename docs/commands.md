@@ -182,7 +182,7 @@ assert result.stdout.startswith(dedent(
     \x1b[94m\x1b[4mUsage:\x1b[0m \x1b[97m\x1b[1mcli\x1b[0m \x1b[36m\x1b[2m\x1b[3m[OPTIONS]\x1b[0m
 
     \x1b[94m\x1b[4mOptions:\x1b[0m
-      \x1b[36m\x1b[1m--config\x1b[0m \x1b[36m\x1b[2m\x1b[3mCONFIG_PATH\x1b[0m"""
+      \x1b[36m\x1b[1m--config\x1b[0m \x1b[36m\x1b[2m\x1b[3mLOCATION\x1b[0m"""
 ))
 ```
 
@@ -985,7 +985,7 @@ Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 Options:
   --time / --no-time           Measure and print elapsed execution time.
                                [default: no-time]
-  --config CONFIG_PATH         Location of the configuration file. Supports
+  --config LOCATION            Location of the configuration file. Supports
                                local path with glob patterns or remote URL.
                                [default: ~/Library/Application Support/wrap.py/{
                                *.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjso
@@ -994,7 +994,7 @@ Options:
   --no-config                  Ignore all configuration files and only use
                                command line parameters and environment
                                variables.
-  --validate-config FILE       Validate the configuration file and exit.
+  --validate-config LOCATION   Validate the configuration file and exit.
   --export-config FORMAT       Export the configuration in the selected format
                                to <stdout>, then exit.
   --accessible                 Accessibility mode: disable colors and render

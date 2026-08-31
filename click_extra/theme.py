@@ -401,7 +401,7 @@ REPLACEABLE_STYLES: frozenset[str] = frozenset({
 r"""Names of the {class}`HelpTheme` slots that color *replaceable* tokens:
 placeholders the user substitutes with a real value.
 
-Covers type metavars on options (`INTEGER`, `CONFIG_PATH`) and positional
+Covers type metavars on options (`INTEGER`, `PATH`) and positional
 argument metavars (`SOURCE`, `[FILENAMES]...`).
 
 These map to the *italic* font of the man-pages(7) convention, which sets

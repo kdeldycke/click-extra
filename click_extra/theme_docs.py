@@ -116,8 +116,8 @@ _PALETTE_EXAMPLES: dict[str, str] = {
     "alias_secondary": "  show «(»ls«)»     Show the current state.",
     # HelpTheme-native help-screen slots.
     "option": (
-        "«--config» CONFIG_PATH    Location of the configuration file.\n"
-        "«-v», «--verbose»           Increase verbosity."
+        "«--config» LOCATION    Location of the configuration file.\n"
+        "«-v», «--verbose»        Increase verbosity."
     ),
     "subcommand": (
         "Commands:\n"

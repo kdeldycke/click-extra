@@ -544,7 +544,7 @@ def test_conf_default_path(invoke, simple_config_cli):
     # mid-token (e.g. "~/config-c" then "li1"), so we cannot guess the wrap points
     # with a regex. De-wrap the option's help block by dropping all whitespace,
     # then match the path and glob pattern against it.
-    help_screen = re.sub(r"\s+", "", result.stdout.split("--config CONFIG_PATH")[1])
+    help_screen = re.sub(r"\s+", "", result.stdout.split("--config LOCATION")[1])
 
     # Mirror the CLI's own path display: default_pattern() resolves the app dir
     # before shrinkuser() collapses the home prefix to "~". The resolve() matters
@@ -583,7 +583,7 @@ def test_conf_default_pathlib_type(invoke, create_config):
     # we cannot predict how Cloup will wrap the help screen lines.
     help_screen = "".join(
         line.strip()
-        for line in result.stdout.split("--config CONFIG_PATH")[1].splitlines()
+        for line in result.stdout.split("--config LOCATION")[1].splitlines()
     )
     assert str(shrinkuser(conf_path)) in help_screen
 
@@ -3364,6 +3364,54 @@ def test_validate_config_valid(invoke, create_config):
     assert "is valid" in result.stderr
 
 
+def test_validate_config_accepts_a_glob(invoke, create_config):
+    """--validate-config takes every location `--config` takes, glob included."""
+    conf_text = dedent("""\
+        [validate-cli]
+        dummy_flag = true
+        """)
+    conf_path = create_config("valid.toml", conf_text)
+
+    @click.command
+    @option("--dummy-flag/--no-flag")
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    pattern = str(conf_path.parent / "*.toml")
+    result = invoke(validate_cli, "--validate-config", pattern, color=False)
+    assert result.exit_code == 0
+    assert "is valid" in result.stderr
+
+
+def test_validate_config_accepts_a_url(invoke, httpserver):
+    """A configuration a CLI can load from a URL is one it can also validate."""
+    conf_text = dedent("""\
+        [validate-cli]
+        dummy_flag = true
+        """)
+    httpserver.expect_request("/settings.toml").respond_with_data(
+        conf_text, content_type="application/toml"
+    )
+
+    @click.command
+    @option("--dummy-flag/--no-flag")
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    result = invoke(
+        validate_cli,
+        "--validate-config",
+        httpserver.url_for("/settings.toml"),
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert "is valid" in result.stderr
+
+
 def test_validate_config_invalid_keys(invoke, create_config):
     """--validate-config with unrecognized keys exits 1."""
     conf_text = dedent("""\
@@ -3464,7 +3512,7 @@ def test_validate_config_unparsable(invoke, create_config):
 
 
 def test_validate_config_missing_file(invoke, tmp_path):
-    """--validate-config with a nonexistent file is caught by Click's Path(exists=True)."""
+    """--validate-config reports a nonexistent location from its own callback."""
 
     @click.group
     @option("--dummy-flag/--no-flag")
@@ -3480,6 +3528,7 @@ def test_validate_config_missing_file(invoke, tmp_path):
     missing = str(tmp_path / "nonexistent.toml")
     result = invoke(validate_cli, "--validate-config", missing, color=False)
     assert result.exit_code == 2
+    assert f"Configuration file not found: {missing}" in result.stderr
 
 
 def test_validate_config_requires_config_option(invoke, tmp_path):

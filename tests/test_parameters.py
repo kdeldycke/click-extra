@@ -436,7 +436,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.config",
-            "--config CONFIG_PATH",
+            "--config LOCATION",
             "click_extra.config.option.ConfigOption",
             "click.types.UnprocessedParamType",
             "str",
@@ -844,9 +844,9 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.validate_config",
-            "--validate-config FILE",
+            "--validate-config LOCATION",
             "click_extra.config.option.ValidateConfigOption",
-            "click.types.Path",
+            "click.types.UnprocessedParamType",
             "str",
             "✘",
             "✘",

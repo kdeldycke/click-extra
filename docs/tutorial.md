@@ -157,7 +157,7 @@ Which now renders to:
 ```{click:run}
 :emphasize-result-lines: 9-12
 result = invoke(hello, args=["--help"])
-assert "--config CONFIG_PATH" in result.output
+assert "--config LOCATION" in result.output
 ```
 
 This option behave like any Click option and can be customized easily:
@@ -241,9 +241,9 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@color_option`](colorize.md#color-flag)                                        | `--color [auto\|always\|never]` | ✅      |
 | [`@no_color_option`](colorize.md#color-flag)                                     | `--no-color`                    | ✅      |
 | [`@theme_option`](theme.md)                                                      | `--theme`                       | ✅      |
-| [`@config_option`](config.md#standalone-option)                                  | `--config CONFIG_PATH`          | ✅      |
+| [`@config_option`](config.md#standalone-option)                                  | `--config LOCATION`             | ✅      |
 | [`@no_config_option`](config.md#)                                                | `--no-config`                   | ✅      |
-| [`@validate_config_option`](config-validation.md#validating-configuration-files) | `--validate-config FILE`        | ✅      |
+| [`@validate_config_option`](config-validation.md#validating-configuration-files) | `--validate-config LOCATION`    | ✅      |
 | [`@export_config_option`](config.md#exporting-the-configuration)                 | `--export-config FORMAT`        | ✅      |
 | [`@show_params_option`](parameters.md#params-option)                             | `--params`                      | ✅      |
 | [`@table_format_option`](table.md)                                               | `--table-format FORMAT`         | ✅      |

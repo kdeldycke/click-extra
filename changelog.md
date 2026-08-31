@@ -14,6 +14,8 @@
 - Add `--closing-prompt` and `:screenshot-closing-prompt:`, drawing the shell's prompt on the row it comes back to once the command exits.
 - Add `:screenshot-cursor:`, `:screenshot-blink:`, `:screenshot-prompt:`, `:screenshot-typing:` `:screenshot-submit:` and `:screenshot-closing-prompt:` to the `click:run` directive.
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
+- `--validate-config` now accepts every location `--config` accepts: a folder, a glob pattern, or an `http`/`https` URL, on top of a file path.
+- Render the `--config` and `--validate-config` values as a `LOCATION` metavar, replacing `CONFIG_PATH` and `FILE`.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
 - Fix a drawn prompt dropping the quotes around an argument or environment value holding a space, so a captured command line pastes back as the command it pictures.
 - Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.

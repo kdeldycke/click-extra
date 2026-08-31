@@ -60,7 +60,6 @@ from boltons.urlutils import URL
 from click import (
     UNPROCESSED,
     Choice,
-    Path as ClickPath,
     echo,
     get_app_dir,
     get_current_context,
@@ -207,12 +206,12 @@ def _join_format_labels(formats: Iterable[ConfigFormat]) -> str:
 
 
 class ConfigOption(ExtraOption, ParamStructure):
-    """A pre-configured option adding `--config CONFIG_PATH`."""
+    """A pre-configured option adding `--config LOCATION`."""
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        metavar="CONFIG_PATH",
+        metavar="LOCATION",
         type=UNPROCESSED,
         help=_(
             "Location of the configuration file. Supports local path with glob patterns "
@@ -1983,20 +1982,25 @@ class NoConfigOption(ExtraOption):
 
 
 class ValidateConfigOption(ExtraOption):
-    """A pre-configured option adding `--validate-config CONFIG_PATH`.
+    """A pre-configured option adding `--validate-config LOCATION`.
 
-    Loads the config file at the given path, validates it against the CLI's
+    Loads the config file at the given location, validates it against the CLI's
     parameter structure in strict mode, reports results, and exits.
+
+    ```{note}
+    The value is left `UNPROCESSED` so it accepts everything
+    {class}`ConfigOption` accepts: a file, a folder, a glob pattern, or an
+    `http://` or `https://` URL. Both options hand their value to the same
+    {meth}`ConfigOption.read_and_parse_conf`, so a configuration a CLI can
+    load is a configuration it can also validate.
+    ```
     """
 
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        type: click.ParamType | Any = ClickPath(
-            exists=True,
-            dir_okay=False,
-            resolve_path=True,
-        ),
+        type: click.ParamType | Any = UNPROCESSED,
+        metavar: str = "LOCATION",
         is_eager: bool = True,
         expose_value: bool = False,
         help: str = _("Validate the configuration file and exit."),
@@ -2010,6 +2014,7 @@ class ValidateConfigOption(ExtraOption):
         super().__init__(
             param_decls=param_decls,
             type=type,
+            metavar=metavar,
             is_eager=is_eager,
             expose_value=expose_value,
             help=help,

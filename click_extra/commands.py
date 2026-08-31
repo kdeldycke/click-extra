@@ -125,13 +125,13 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
         `--time` is placed at the top of all other eager options so all other
         options' processing time can be measured.
         ```
-    #. `--config CONFIG_PATH`
+    #. `--config LOCATION`
         ```{hint}
         `--config` is at the top so it can have a direct influence on the default
         behavior and value of the other options.
         ```
     #. `--no-config`
-    #. `--validate-config CONFIG_PATH`
+    #. `--validate-config LOCATION`
     #. `--export-config FORMAT`
     #. `--accessible`
         ```{hint}

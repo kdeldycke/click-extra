@@ -69,7 +69,9 @@ Strict mode rejects every key it doesn't recognize as a CLI flag, which is the r
 
 ## Validating configuration files
 
-The `@validate_config_option` decorator adds a `--validate-config CONFIG_PATH` option that checks whether a configuration file is well-formed and contains only recognized parameters, then exits. This is useful for CI pipelines, editor integrations, or simply verifying a configuration file before deploying it.
+The `@validate_config_option` decorator adds a `--validate-config LOCATION` option that checks whether a configuration file is well-formed and contains only recognized parameters, then exits. This is useful for CI pipelines, editor integrations, or simply verifying a configuration file before deploying it.
+
+`LOCATION` is the same value `--config` takes: a file, a folder, a [glob pattern](config-discovery.md#custom-pattern) or a [remote URL](config-discovery.md#remote-url). Both options hand it to the same reader, so a configuration your CLI can load is one it can also validate.
 
 Reusing the [standalone option example](config.md#standalone-option):
 
