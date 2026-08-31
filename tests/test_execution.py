@@ -1035,7 +1035,10 @@ def test_format_cli_prompt_environment_values_survive_a_shell_round_trip():
         format_cli_prompt(("forecast",), extra_env={"CITY": "Rio de Janeiro"}),
     )
     assert drawn == f"{PROMPT}CITY='Rio de Janeiro' forecast"
-    assert shlex.split(drawn.removeprefix(PROMPT)) == ["CITY=Rio de Janeiro", "forecast"]
+    assert shlex.split(drawn.removeprefix(PROMPT)) == [
+        "CITY=Rio de Janeiro",
+        "forecast",
+    ]
 
 
 def test_format_cli_prompt_honors_an_explicit_theme():
