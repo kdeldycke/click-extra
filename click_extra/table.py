@@ -1408,6 +1408,7 @@ class TableFormatOption(ExtraOption):
         self,
         param_decls: Sequence[str] | None = None,
         type=EnumChoice(TableFormat),
+        metavar="FORMAT",
         default=DEFAULT_FORMAT,
         expose_value=False,
         is_eager=True,
@@ -1422,6 +1423,7 @@ class TableFormatOption(ExtraOption):
         super().__init__(
             param_decls=param_decls,
             type=type,
+            metavar=metavar,
             default=default,
             expose_value=expose_value,
             help=help,

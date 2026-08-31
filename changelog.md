@@ -16,6 +16,8 @@
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
 - `--validate-config` now accepts every location `--config` accepts: a folder, a glob pattern, or an `http`/`https` URL, on top of a file path.
 - Render the `--config` and `--validate-config` values as a `LOCATION` metavar, replacing `CONFIG_PATH` and `FILE`.
+- Render the `--table-format` value as a `FORMAT` metavar, replacing the list of its fifty accepted values on the help screen.
+- Add a `choices` key to each option of the `--help-format json` export, and list the accepted values under an option whose metavar hides them in the `man` and `markdown` renders.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
 - Fix a drawn prompt dropping the quotes around an argument or environment value holding a space, so a captured command line pastes back as the command it pictures.
 - Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.

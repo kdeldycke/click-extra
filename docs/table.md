@@ -28,13 +28,15 @@ def table_command(ctx):
 
 The selected format feeds the ready-to-use `print_table()` method carried by the context object. The context's `meta` is shared along the command chain, so a `--table-format` declared on a group reaches `ctx.print_table` in every subcommand. On a plain `click` or `cloup` command (whose context lacks the click-extra methods), the option injects an equivalent bound `print_table` attribute instead.
 
-The default help message for this option list all available table formats:
+The help screen names the value `FORMAT` rather than spelling out all fifty table formats, which would otherwise take over the screen:
 
 ```{click:run}
-:emphasize-result-lines: 5-6
+:emphasize-result-lines: 5
 result = invoke(table_command, args=["--help"])
-assert "--table-format" in result.stdout
+assert "--table-format FORMAT" in result.stdout
 ```
+
+The formats are all listed in [the catalog below](#table-formats). A wrong one names them too, and so do `--help-format man`, `markdown` and `json`, which have room the help screen does not.
 
 So you can use the `--table-format` option to change the table format:
 

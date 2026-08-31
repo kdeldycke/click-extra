@@ -493,7 +493,125 @@ def test_json_carries_every_section():
     units = next(opt for opt in options if "--units" in opt["names"])
     assert units["help"] == "Temperature scale."
     assert units["metavar"] == "[celsius|fahrenheit]"
+    assert units["choices"] == ["celsius", "fahrenheit"]
     assert units["required"] is False
+
+
+def test_json_carries_choices_a_short_metavar_hides():
+    """A consumer reads the accepted values off `choices`, never off the metavar.
+
+    An option overriding the metavar with a short placeholder leaves nothing to
+    parse in `metavar`, which is the whole reason the key is separate.
+    """
+
+    @command
+    @option(
+        "--units",
+        type=Choice(["celsius", "fahrenheit"]),
+        metavar="SCALE",
+        help="Temperature scale.",
+    )
+    def forecast(units):
+        """Report the forecast."""
+
+    doc = json.loads(render_help(forecast, "json", prog_name="forecast"))
+    options = [opt for group in doc["option_groups"] for opt in group["options"]]
+    units = next(opt for opt in options if "--units" in opt["names"])
+    assert units["metavar"] == "SCALE"
+    assert units["choices"] == ["celsius", "fahrenheit"]
+
+
+def test_json_reports_no_choices_for_an_open_type():
+    """`choices` is `None` for a type that enumerates nothing."""
+
+    @command
+    @option("--city", help="The city to report on.")
+    def forecast(city):
+        """Report the forecast."""
+
+    doc = json.loads(render_help(forecast, "json", prog_name="forecast"))
+    options = [opt for group in doc["option_groups"] for opt in group["options"]]
+    city = next(opt for opt in options if "--city" in opt["names"])
+    assert city["choices"] is None
+
+
+@pytest.mark.parametrize("help_format", ("man", "markdown"))
+def test_a_short_metavar_lists_its_values_in_the_render(help_format):
+    """Shortening the metavar moves the values below the help, never drops them."""
+
+    @command
+    @option(
+        "--units",
+        type=Choice(["celsius", "fahrenheit"]),
+        metavar="SCALE",
+        help="Temperature scale.",
+    )
+    def forecast(units):
+        """Report the forecast."""
+
+    out = render_help(forecast, help_format, prog_name="forecast")
+    assert "celsius" in out
+    assert "fahrenheit" in out
+
+
+@pytest.mark.parametrize("help_format", ("man", "markdown"))
+def test_a_default_choice_metavar_does_not_repeat_its_values(help_format):
+    """A `[a|b]` metavar already shows them, so nothing is appended below it."""
+
+    @command
+    @option(
+        "--units", type=Choice(["celsius", "fahrenheit"]), help="Temperature scale."
+    )
+    def forecast(units):
+        """Report the forecast."""
+
+    out = render_help(forecast, help_format, prog_name="forecast")
+    assert out.count("celsius") == 1
+    assert out.count("fahrenheit") == 1
+
+
+def _rendered_entry(out: str, help_format: str, spelling: str) -> str:
+    """Isolate one option's own block from a man or Markdown render.
+
+    A document-wide substring search is worthless here: `toml` and `json` show
+    up in the `--config` default glob, so every format token appears somewhere
+    whether or not its own option lists it.
+    """
+    if help_format == "man":
+        blocks = out.split(".TP\n")
+        return next(b for b in blocks if spelling in b.split("\n", 1)[0])
+    return next(line for line in out.splitlines() if line.startswith(f"- `{spelling}"))
+
+
+@pytest.mark.parametrize("help_format", ("man", "markdown"))
+def test_every_enumerated_default_option_reaches_the_render(help_format):
+    """No default option hides its accepted values behind a short metavar.
+
+    `--table-format` and `--export-config` both trade the `[a|b|c]` metavar for
+    a one-word placeholder to keep the help screen readable. That is a
+    help-screen decision, and it must not reach the man page or the Markdown
+    render, which are what a reader consults precisely to learn what a value
+    may be.
+    """
+
+    @command
+    def probe():
+        """Say hi."""
+
+    # roff writes a literal hyphen as `\-`, so `colon-grid` reaches the page
+    # spelled `colon\-grid`. Undo just that escape before searching.
+    out = render_help(probe, help_format, prog_name="probe").replace("\\-", "-")
+
+    missing = {}
+    for param in probe.params:
+        choices = getattr(param.type, "choices", None)
+        if not choices:
+            continue
+        entry = _rendered_entry(out, help_format, param.opts[0])
+        gap = [str(choice) for choice in choices if str(choice) not in entry]
+        if gap:
+            missing[param.name] = gap
+    assert not missing
 
 
 def test_json_lists_subcommands_by_name_only():

@@ -356,6 +356,31 @@ class DocOptionItem:
     """Whether the option's value is optional (a bare flag is allowed). Rendered as
     the attached `[=METAVAR]` form instead of a space-separated metavar."""
 
+    choices: tuple[str, ...] = ()
+    """Every value the option accepts, for an option whose type enumerates them.
+
+    Recorded whatever the metavar shows, so a JSON consumer never has to parse
+    `[a|b|c]` back out of it. See {attr}`unlisted_choices` for the rendered
+    subset.
+    """
+
+    @property
+    def unlisted_choices(self) -> tuple[str, ...]:
+        """The choices the metavar does not already spell out.
+
+        A `Choice` renders as `[a|b|c]` by default, putting every value on
+        screen already, and repeating them below the help would say the same
+        thing twice. An option overriding that with a short placeholder
+        (`--table-format FORMAT`) hides them instead, and this is what the man
+        page and the Markdown render add back.
+        """
+        if not self.choices:
+            return ()
+        metavar = self.metavar or ""
+        if all(choice in metavar for choice in self.choices):
+            return ()
+        return self.choices
+
     def to_roff(self) -> list[str]:
         """Render this option as a roff tagged paragraph (`.TP`)."""
         tag = " / ".join(_bold(name) for name in self.names)
@@ -373,6 +398,13 @@ class DocOptionItem:
                 tag += " " + _italic(self.metavar)
         lines = [".TP", tag]
         lines.extend(_emit_help(self.help or ""))
+        if self.unlisted_choices:
+            # Every token goes through the hyphen escape, so a value like
+            # `colon-grid` renders as a copy-pasteable minus sign rather than a
+            # typographic hyphen.
+            values = ", ".join(_roff_escape(c) for c in self.unlisted_choices)
+            lines.append(".br")
+            lines.append(f"[values: {values}]")
         if self.required:
             lines.append(".br")
             lines.append("[required]")
@@ -408,6 +440,9 @@ class DocOptionItem:
         help_text = _markdown_inline(pre)
         if help_text:
             item += f": {help_text}"
+        if self.unlisted_choices:
+            values = ", ".join(f"`{choice}`" for choice in self.unlisted_choices)
+            item += f" Values: {values}."
         lines = [item]
 
         post = inspect.cleandoc(post).strip("\n")
@@ -425,6 +460,7 @@ class DocOptionItem:
             "names": list(self.names),
             "spec": self.spec,
             "metavar": self.metavar,
+            "choices": list(self.choices) or None,
             "help": _clean_help(self.help or "") or None,
             "required": self.required,
             "optional_value": self.optional_value,
@@ -879,12 +915,16 @@ def _option_item(param: Parameter, ctx: Context) -> DocOptionItem:
     attached `[=METAVAR]` form, and a regular option a space-separated metavar.
     """
     kind = option_value_kind(param)
+    # `Choice` and its subclasses expose the accepted values; every other type
+    # leaves the attribute out, which reads as an empty set here.
+    choices = getattr(param.type, "choices", ()) or ()
     return DocOptionItem(
         names=param_spellings(param),
         metavar=None if kind == "flag" else param.make_metavar(ctx=ctx),
         help=resolve_param_help(param, ctx),
         required=param.required,
         optional_value=kind == "optional",
+        choices=tuple(str(choice) for choice in choices),
     )
 
 

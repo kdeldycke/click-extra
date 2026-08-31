@@ -371,7 +371,7 @@ def cli():
 Which results in `[default: INFO]` being featured in the help message:
 
 ```{click:run}
-:emphasize-result-lines: 34
+:emphasize-result-lines: 36
 result = invoke(cli, args=["--help"])
 assert (
     "                          \x1b[2m[\x1b[0m\x1b[2mdefault: \x1b[0m\x1b[32m\x1b[2m\x1b[3mINFO\x1b[0m\x1b[2m]\x1b[0m\n"
@@ -978,7 +978,7 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 53-55
+:emphasize-lines: 52-54
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
@@ -1012,8 +1012,7 @@ Options:
                                dark]
   --params                     Show all CLI parameters, their provenance,
                                defaults and value, then exit.
-  --table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|hjson|html|jira|json|json5|jsonc|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|toml|tsv|unsafehtml|vertical|xml|yaml|youtrack]
-                               Rendering style of tables.  [default: rounded-
+  --table-format FORMAT        Rendering style of tables.  [default: rounded-
                                outline]
   --verbosity LEVEL            Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
                                [default: WARNING]

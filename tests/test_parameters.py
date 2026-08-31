@@ -760,7 +760,7 @@ def test_integrated_show_params_option(invoke, create_config):
         ),
         (
             "show-params-cli.table_format",
-            "--table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|hjson|html|jira|json|json5|jsonc|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|toml|tsv|unsafehtml|vertical|xml|yaml|youtrack]",
+            "--table-format FORMAT",
             "click_extra.table.TableFormatOption",
             "click_extra.types.EnumChoice",
             "str",
@@ -1544,7 +1544,7 @@ def test_standalone_table_rendering(invoke, opt1, opt2, table_format):
         ],
         [
             "show-params.table_format",
-            "--table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|hjson|html|jira|json|json5|jsonc|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|toml|tsv|unsafehtml|vertical|xml|yaml|youtrack]",
+            "--table-format FORMAT",
             "click_extra.table.TableFormatOption",
             "click_extra.types.EnumChoice",
             "str",
@@ -1770,7 +1770,7 @@ def test_standalone_no_color_rendering(invoke, opt1, opt2, opt3, table_format):
         ],
         [
             "show-params.table_format",
-            "--table-format [aligned|asciidoc|colon-grid|csv|csv-excel|csv-excel-tab|csv-unix|double-grid|double-outline|fancy-grid|fancy-outline|github|grid|heavy-grid|heavy-outline|hjson|html|jira|json|json5|jsonc|latex|latex-booktabs|latex-longtable|latex-raw|mediawiki|mixed-grid|mixed-outline|moinmoin|orgtbl|outline|pipe|plain|presto|pretty|psql|rounded-grid|rounded-outline|rst|simple|simple-grid|simple-outline|textile|toml|tsv|unsafehtml|vertical|xml|yaml|youtrack]",
+            "--table-format FORMAT",
             "click_extra.table.TableFormatOption",
             "click_extra.types.EnumChoice",
             "str",

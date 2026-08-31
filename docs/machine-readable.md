@@ -51,8 +51,11 @@ assert doc["arguments"] == [
 options = [opt for group in doc["option_groups"] for opt in group["options"]]
 units = next(opt for opt in options if "--units" in opt["names"])
 assert units["metavar"] == "[celsius|fahrenheit]"
+assert units["choices"] == ["celsius", "fahrenheit"]
 assert units["help"] == "Temperature scale to display."
 ```
+
+An option whose type enumerates its values carries them in `choices`, as a list. Read them from there rather than parsing the `metavar`: an option is free to replace the `[celsius|fahrenheit]` rendering with a short placeholder to keep its help screen readable, and [`--table-format FORMAT`](table.md) does exactly that for its fifty values. `choices` is `null` for every other type.
 
 ### Markdown
 
