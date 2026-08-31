@@ -33,6 +33,7 @@ import pytest
 
 import click_extra
 from click_extra import (
+    ExtraOptionGroup,
     HelpCommand,
     LazyGroup,
     LazySubcommand,
@@ -1673,6 +1674,43 @@ def test_option_order_agrees_across_renderers(invoke):
         if (kept := [flag for flag in order if flag in set(expected)]) != expected
     }
     assert not diverging, f"renderers out of order: {diverging}"
+
+
+def test_every_default_option_lands_in_a_section():
+    """No option `default_params()` returns escapes `DEFAULT_OPTION_GROUPS`.
+
+    An option no section claims stays ungrouped, which draws it in the command's
+    own `Options` block where it reads as one the CLI author declared. Nothing
+    else reports that: the help screen renders, and every cross-renderer check
+    still agrees, because they all read the same wrong layout.
+    """
+    ungrouped = [
+        param.opts
+        for param in default_params()
+        if not isinstance(getattr(param, "group", None), ExtraOptionGroup)
+    ]
+    assert not ungrouped, f"default options claimed by no section: {ungrouped}"
+
+
+def test_default_option_groups_name_no_stale_flag():
+    """Every flag `DEFAULT_OPTION_GROUPS` declares is one `default_params()` returns.
+
+    A renamed or dropped option otherwise leaves a dead entry behind. And a flag
+    landing in two sections is silently taken by the later one, since
+    `_assign_option_groups` writes them in order.
+    """
+    declared = [flag for _, flags in DEFAULT_OPTION_GROUPS for flag in flags]
+    available = {
+        opt
+        for param in default_params()
+        for opt in (*param.opts, *param.secondary_opts)
+    }
+    assert not set(declared) - available, (
+        f"sections name unknown flags: {sorted(set(declared) - available)}"
+    )
+
+    duplicated = sorted({flag for flag in declared if declared.count(flag) > 1})
+    assert not duplicated, f"flags claimed by more than one section: {duplicated}"
 
 
 def test_lazy_group_subcommand_order_is_stable_across_loading(tmp_path, monkeypatch):
