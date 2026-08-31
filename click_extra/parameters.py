@@ -600,10 +600,11 @@ def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
     ```
 
     ```{todo}
-    Submit a PR to Click to separate production of param spec and help
-    record. That way we can always produce the param spec even if the
-    parameter is hidden.
-    See: https://github.com/kdeldycke/click-extra/issues/689
+    Upstream [pallets/click#3821](https://github.com/pallets/click/pull/3821)
+    splits the spec half of `Option.get_help_record()` into its own
+    `get_help_spec()` method, which returns it even for hidden options.
+    Once a Click release ships it, drop the monkey-patching below and call
+    that method directly.
     ```
     """
     if not hasattr(param, "hidden"):
