@@ -99,6 +99,7 @@ from .command_doc import (
 )
 from .commands import (
     Command,
+    ExtraOptionGroup,
     Group,
     HelpCommand,
     LazyGroup,
@@ -346,6 +347,7 @@ __all__ = [
     "EnumChoice",
     "ExportConfigOption",
     "ExtraOption",
+    "ExtraOptionGroup",
     "File",
     "FileError",
     "FloatRange",

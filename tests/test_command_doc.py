@@ -42,7 +42,7 @@ from click_extra.command_doc import (
     render_manpages,
     write_manpages,
 )
-from click_extra.commands import Group
+from click_extra.commands import DEFAULT_OPTION_GROUPS, Group
 from click_extra.testing import CliRunner
 
 
@@ -242,16 +242,39 @@ def test_option_groups_become_subsections():
     # The group's own help renders under its heading.
     assert "Where to read the weather." in roff
     assert "\\fB\\-\\-city\\fR" in roff
-    # Ungrouped options (the --fahrenheit flag plus the injected defaults) land
-    # under the default group, after the explicit one.
+    # Ungrouped options (the --fahrenheit flag plus the help option) land under
+    # the default group, after the explicit one.
     assert '.SS "Other options"' in roff
     assert "\\fB\\-\\-fahrenheit\\fR" in roff
     assert roff.index('.SS "Location"') < roff.index('.SS "Other options"')
 
 
+@pytest.mark.parametrize(
+    ("subject", "own_section"),
+    ((weather, "Options"), (forecast, "Other options")),
+)
+def test_default_option_groups_close_the_options_section(subject, own_section):
+    """The sections of `DEFAULT_OPTION_GROUPS` trail a command's own options.
+
+    They land past the ungrouped remainder, in the order the taxonomy declares,
+    matching what `--help` draws.
+    """
+    roff = render_manpage(subject)
+    headings = re.findall(r'^\.SS "(.+)"$', roff, re.MULTILINE)
+    assert headings[headings.index(own_section) + 1 :] == [
+        title for title, _ in DEFAULT_OPTION_GROUPS
+    ]
+
+
 def test_ungrouped_command_has_no_subsections():
-    """A command with no explicit option group keeps a flat OPTIONS list."""
-    roff = render_manpage(weather)
+    """A command carrying no option group at all keeps a flat OPTIONS list."""
+
+    @command(params=None)
+    @option("--units", help="Temperature scale.")
+    def barometer(units):
+        """Report the pressure."""
+
+    roff = render_manpage(barometer)
     assert ".SH OPTIONS" in roff
     assert ".SS" not in roff
 

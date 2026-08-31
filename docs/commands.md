@@ -202,17 +202,16 @@ def cli():
     pass
 ```
 
-See how the `--version` option gets duplicated at the end:
+See how the `--version` option shows up twice: once in the command's own section, and once more where Click Extra lists its own.
 
 ```{click:run}
-:emphasize-lines: 40,41
-from textwrap import dedent
+:emphasize-result-lines: 4,58
 result = invoke(cli, args=["--help"])
-assert (
+version_line = (
     "  \x1b[36m\x1b[1m--version\x1b[0m                    Show the version and exit.\n"
-    "  \x1b[36m\x1b[1m--version\x1b[0m                    Show the version and exit.\n"
-    "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m                   Show this message and exit.\n"
-) in result.output
+)
+assert result.stdout.count(version_line) == 2
+assert result.stdout.endswith(version_line)
 ```
 
 This is by design: decorators are cumulative, to allow you to add your own options to the preset of `@command` and `@group`.
@@ -314,7 +313,7 @@ def relative(sugar, butter, flour):
     """Bake a cake."""
 ```
 
-Mind the sign, as it runs against the screen: the lowest priority is listed first, so subtracting from `DEFAULT_PRIORITY` raises an option and adding to it lowers one. `--butter` was left out of the mapping and holds the default line between the two. `--help` is appended by Click after the sort, so it stays last whatever the mapping says:
+Mind the sign, as it runs against the screen: the lowest priority is listed first, so subtracting from `DEFAULT_PRIORITY` raises an option and adding to it lowers one. `--butter` was left out of the mapping and holds the default line between the two. `--help` is appended by Click after the sort, so it closes the command's own section whatever the mapping says:
 
 ```{click:run}
 result = invoke(relative, args=["--help"])
@@ -325,6 +324,82 @@ assert options.index("--sugar") < options.index("--help")
 ```
 
 Positional arguments are never reordered: their sequence is part of the command's grammar, not a matter of presentation.
+
+### Option sections
+
+Click Extra sorts its own options into four sections, drawn after the ones a command declares:
+
+| Section                 | Options                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| `Configuration options` | `--config`, `--no-config`, `--validate-config`, `--export-config`                  |
+| `Output options`        | `--accessible`, `--color`, `--no-color`, `--progress`, `--theme`, `--table-format` |
+| `Logging options`       | `--verbosity`, `--verbose`, `--quiet`, `--debug`                                   |
+| `Introspection options` | `--time`, `--params`, `--tree`, `--man`, `--help-format`, `--version`              |
+
+The last one gathers the options that replace the run instead of configuring it: each prints something and exits. `--time` sits there because it reports on the run rather than changing what it does.
+
+A command's own options keep the plain `Options` heading, closed by `-h` / `--help`:
+
+```{click:source}
+from click_extra import command, option
+
+@command
+@option("--city", help="City to report on.")
+def forecast(city):
+    """Report a multi-day forecast."""
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(forecast, args=["--help"])
+assert result.exit_code == 0
+plain = strip_ansi(result.stdout)
+assert plain.startswith(
+    "Usage: forecast [OPTIONS]\n"
+    "\n"
+    "  Report a multi-day forecast.\n"
+    "\n"
+    "Options:\n"
+    "  --city TEXT                  City to report on.\n"
+    "  -h, --help                   Show this message and exit.\n"
+    "\n"
+    "Configuration options:\n"
+)
+assert plain.rstrip().endswith("--version                    Show the version and exit.")
+```
+
+Groups declared with `@option_group` come first, ahead of both. The options left ungrouped gather between them and Click Extra's, under Cloup's `Other options` heading.
+
+To place a group of your own *after* Click Extra's instead, build it with {py:class}`~click_extra.commands.ExtraOptionGroup` and give it a `priority` above the last section:
+
+```{click:source}
+from click_extra import ExtraOptionGroup, command, option
+
+@command
+@option("--city", help="City to report on.")
+@option(
+    "--sensor",
+    group=ExtraOptionGroup("Hardware options", priority=200),
+    help="Identifier of the weather station.",
+)
+def station(city, sensor):
+    """Report from a weather station."""
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(station, args=["--help"])
+assert result.exit_code == 0
+plain = strip_ansi(result.stdout)
+assert plain.index("Introspection options:") < plain.index("Hardware options:")
+assert plain.rstrip().endswith(
+    "--sensor TEXT                Identifier of the weather station."
+)
+```
+
+The man page and every [machine-readable format](machine-readable.md) read the same sections, so a CLI never lists its options one way on `--help` and another way elsewhere.
 
 ### Option defaults
 

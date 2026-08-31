@@ -787,11 +787,12 @@ def iter_params_for_display(
     A Click Extra command keeps two orders apart: `command.params` is the
     processing order, which decides when each callback fires, while the help screen
     reads the presentation order Cloup caches in `arguments`, `option_groups` and
-    `ungrouped_options` (see
-    {meth}`click_extra.commands.Command.param_priority`). Reading `get_params()`
-    therefore renders a man page, a Markdown document or a completion spec whose
-    flags no longer match the `--help` its reader just saw. This is the accessor
-    every such renderer should go through.
+    `ungrouped_options`, sectioned by
+    {meth}`click_extra.commands.Command.split_option_groups` and sorted within a
+    section by {meth}`~click_extra.commands.Command.param_priority`. Reading
+    `get_params()` therefore renders a man page, a Markdown document or a
+    completion spec whose flags no longer match the `--help` its reader just saw.
+    This is the accessor every such renderer should go through.
 
     Falls back to `get_params()` for a command that carries no Cloup option groups,
     where the two orders are the same list. Any parameter attached after
@@ -803,10 +804,17 @@ def iter_params_for_display(
         return
 
     seen: set[int] = set()
+    # A Click Extra command draws its own option groups past the ungrouped
+    # section; a plain Cloup one keeps every group ahead of it.
+    splitter = getattr(command, "split_option_groups", None)
+    own_groups, extra_groups = (
+        (tuple(command.option_groups), ()) if splitter is None else splitter()
+    )
     ordered: list[click.Parameter] = [
         *command.arguments,
-        *(option for group in command.option_groups for option in group.options),
+        *(option for group in own_groups for option in group.options),
         *command.get_ungrouped_options(ctx),
+        *(option for group in extra_groups for option in group.options),
     ]
     for param in ordered:
         if id(param) not in seen:

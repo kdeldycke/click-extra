@@ -32,6 +32,7 @@ from gettext import gettext as _
 import click
 import cloup
 from click.core import iter_params_for_processing
+from cloup.formatting import ensure_is_cloup_formatter
 
 from . import context
 from .accessibility import ACCESSIBLE_ENVVAR, AccessibleOption
@@ -94,6 +95,107 @@ steps running from `1.01` to `31.99`. BASIC numbered lines with plain integers, 
 
 EXTRA_OPTION_SETTINGS: tuple[str, ...] = ("show_choices", "show_envvar")
 """Click Extra context settings forced onto every option when set to non-`None`."""
+
+
+class ExtraOptionGroup(cloup.OptionGroup):
+    """An option group Click Extra draws after the command's own options.
+
+    Cloup lays a help screen out as the explicit option groups first and the
+    ungrouped options last. Click Extra injects a score of its own options into
+    every command, so grouping them under that rule would push the author's own
+    options below click-extra's and retitle them `Other options`.
+    {meth}`~click_extra.commands.Command.split_option_groups` sends a group
+    carrying this marker past the ungrouped section instead.
+
+    ```{note}
+    The marker mirrors {class}`~click_extra.parameters.ExtraOption`, which
+    {class}`~click_extra.commands.Command` reads the same way to push
+    click-extra's own options to the end of `params`.
+    ```
+
+    :param priority: rank of the group among the other trailing groups, lowest
+        first. Defaults to {data}`~click_extra.commands.DEFAULT_PRIORITY`, so a
+        group a CLI author marks this way lands after click-extra's own.
+    """
+
+    def __init__(
+        self,
+        *args: Any,
+        priority: float = DEFAULT_PRIORITY,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.priority = priority
+
+
+DEFAULT_OPTION_GROUPS: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
+    (
+        "Configuration options",
+        ("--config", "--no-config", "--validate-config", "--export-config"),
+    ),
+    (
+        "Output options",
+        (
+            "--accessible",
+            "--color",
+            "--no-color",
+            "--progress",
+            "--theme",
+            "--table-format",
+        ),
+    ),
+    ("Logging options", ("--verbosity", "--verbose", "--quiet", "--debug")),
+    (
+        "Introspection options",
+        ("--time", "--params", "--tree", "--man", "--help-format", "--version"),
+    ),
+)
+"""Sections {func}`default_params` sorts its options into, in rendering order.
+
+Each entry pairs a help-screen heading with the primary flags it collects. The
+sequence is the order the sections are drawn in, which
+{class}`ExtraOptionGroup` carries as a priority so it survives the reshuffling
+`Command` does to `params`.
+
+The last section gathers the options that *replace* the run instead of
+configuring it: each one prints and exits. `--time` is the exception, and sits
+there because it reports on the run rather than changing what it does.
+
+```{caution}
+Membership is declared, not inferred. Deriving it from the callbacks looks
+tempting, since each option of the last section ends the run, but `--config`
+ends it too when a file fails to load, and would be misfiled.
+```
+
+`-h` / `--help` is deliberately absent: Click appends it to every command on its
+own, so it stays ungrouped and closes the author's own section, where a reader
+looks for it first.
+"""
+
+
+def _assign_option_groups(params: Sequence[click.Option]) -> None:
+    """Sort *params* into a fresh set of {data}`DEFAULT_OPTION_GROUPS`.
+
+    ```{caution}
+    The groups are built here, once per call, and never shared between commands.
+    `cloup.OptionGroup.options` is a *setter* replacing the group's whole member
+    list, so a module-level group reused by two commands ends up holding
+    whichever was built last, and the first command then renders its sibling's
+    option instances. The setter also latches `hidden` on, which would then hide
+    every later command's options too.
+    ```
+    """
+    groups = {
+        title: ExtraOptionGroup(title, priority=priority)
+        for priority, (title, _) in enumerate(DEFAULT_OPTION_GROUPS)
+    }
+    for title, flags in DEFAULT_OPTION_GROUPS:
+        wanted = set(flags)
+        for param in params:
+            if wanted.intersection((*param.opts, *param.secondary_opts)):
+                # `cloup.Option.__init__` carries no annotation, so mypy skips
+                # its body and never records the `group` attribute it binds.
+                param.group = groups[title]  # type: ignore[attr-defined]
 
 
 def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
@@ -170,9 +272,14 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
     without touching a single callback. See
     {meth}`~click_extra.commands.Command.param_priority`, added for
     [click_extra#544 issue](https://github.com/kdeldycke/click-extra/issues/544).
+
+    Presentation also sorts these options into the sections
+    {data}`DEFAULT_OPTION_GROUPS` declares, drawn after the command's own
+    options. The two orders are independent: `--time` is processed first and
+    rendered last.
     ```
     """
-    return [
+    params: list[click.Option] = [
         TimerOption(),
         ConfigOption(),
         NoConfigOption(),
@@ -194,6 +301,8 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
         HelpFormatOption(),
         VersionOption(screen=screen),
     ]
+    _assign_option_groups(params)
+    return params
 
 
 class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
@@ -307,9 +416,17 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         Additionally, these [Cloup context settings](https://cloup.readthedocs.io/en/stable/pages/formatting.html#formatting-settings)
         are set:
 
-        - `align_option_groups = False` (*Cloup feature*)
+        - `align_option_groups = True` (*Cloup feature*)
 
           [Aligns option groups in help screen](https://cloup.readthedocs.io/en/stable/pages/option-groups.html#aligned-vs-non-aligned-groups).
+
+          Every command carries the sections of
+          {data}`~click_extra.commands.DEFAULT_OPTION_GROUPS`, so
+          leaving each to compute its own column width would step the help text
+          left and right from one section to the next. Aligned, a command's own
+          options keep the column click-extra's widest option sets, which is what
+          the `default_options_*_help` fixtures of {mod}`click_extra.pytest`
+          match against.
 
         - `show_constraints = True` (*Cloup feature*)
 
@@ -375,7 +492,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             "help_option_names": DEFAULT_HELP_NAMES,
             "show_default": True,
             # Cloup settings:
-            "align_option_groups": False,
+            "align_option_groups": True,
             "show_constraints": True,
             "show_subcommand_aliases": True,
             # Click Extra settings:
@@ -519,6 +636,72 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                 if key is not None and key in self.option_priorities:
                     return self.option_priorities[key]
         return DEFAULT_PRIORITY
+
+    def split_option_groups(
+        self,
+    ) -> tuple[tuple[cloup.OptionGroup, ...], tuple[cloup.OptionGroup, ...]]:
+        """Explicit option groups, split around the ungrouped section.
+
+        Hands back the groups drawn *before* the ungrouped options, then those
+        drawn *after*. Cloup draws the ungrouped section last, with no setting to
+        move it, which would bury a CLI's own options under the ones Click Extra
+        injects. So the rule is kept for the groups a CLI author declares, and
+        every {class}`ExtraOptionGroup` goes past the ungrouped section, ordered
+        by its `priority`.
+
+        ```{important}
+        This is the one place the section order is decided. The help screen
+        ({meth}`format_params`), the man page and every other
+        {data}`~click_extra.command_doc.HELP_FORMATS` backend
+        ({func}`~click_extra.command_doc._build_option_groups`), and the
+        completion specs ({func}`~click_extra.parameters.iter_params_for_display`)
+        all read it, so a CLI never lists its options in one order on `--help`
+        and another on `--help-format man`.
+        ```
+        """
+        own: list[cloup.OptionGroup] = []
+        extra: list[ExtraOptionGroup] = []
+        for group in self.option_groups:
+            if isinstance(group, ExtraOptionGroup):
+                extra.append(group)
+            else:
+                own.append(group)
+        return tuple(own), tuple(sorted(extra, key=lambda group: group.priority))
+
+    def format_params(self, ctx: click.Context, formatter: Any) -> None:
+        """Draw the parameter sections of the help screen.
+
+        Reimplements `cloup.OptionGroupMixin.format_params` to honor the order
+        {meth}`split_option_groups` computes, and to title the ungrouped section
+        against the groups the CLI author declared alone. Cloup picks that title
+        by counting every visible group, click-extra's included, so a command
+        carrying the default options would never show a plain `Options` heading
+        again.
+        """
+        formatter = ensure_is_cloup_formatter(formatter)
+
+        sections = []
+        arguments_section = self.get_arguments_help_section(ctx)
+        if arguments_section:
+            sections.append(arguments_section)
+
+        own_groups, extra_groups = self.split_option_groups()
+        default_group = self.get_default_option_group(
+            ctx,
+            is_the_only_visible_option_group=not any(
+                not group.hidden for group in own_groups
+            ),
+        )
+        sections.extend(
+            self.make_option_group_help_section(group, ctx)
+            for group in (*own_groups, default_group, *extra_groups)
+            if not group.hidden
+        )
+
+        formatter.write_many_sections(
+            sections,
+            aligned=self.must_align_option_groups(ctx),
+        )
 
     def main(  # type: ignore[override]
         self,

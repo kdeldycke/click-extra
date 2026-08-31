@@ -275,9 +275,9 @@ When an argument carries a `help=` string, Click Extra also itemizes operands in
 
 ### `OPTIONS`
 
-The `OPTIONS` section is the formal, per-item description of each option, rendered as the `Options:` block above. Every entry pairs the option's literal name (`--units`) and its replaceable metavar (`[celsius|fahrenheit]`) with the help text and a trailing bracket field carrying the option's environment variable and default. Click Extra injects its own options into the same list (`--config`, `--verbosity`, `--version`, `--help`, …), so a CLI built on it gets a complete, conventional options section without extra work.
+The `OPTIONS` section is the formal, per-item description of each option, rendered as the `Options:` block above. Every entry pairs the option's literal name (`--units`) and its replaceable metavar (`[celsius|fahrenheit]`) with the help text and a trailing bracket field carrying the option's environment variable and default. Click Extra injects its own options into the same section (`--config`, `--verbosity`, `--version`, `--help`, …), so a CLI built on it gets a complete, conventional options section without extra work.
 
-When a CLI sorts its options into groups with `@option_group`, each group becomes a `.SS` subsection of `OPTIONS`; the options left ungrouped, including the ones Click Extra injects, gather under a trailing `Other options` heading. This is the same split the `--help` screen draws:
+Each option group becomes a `.SS` subsection of `OPTIONS`, which is the same split the `--help` screen draws. Click Extra's own options are grouped, so `OPTIONS` always carries the four subsections they are sorted into. A CLI adding groups of its own with `@option_group` gets them first, and the options it leaves ungrouped gather between the two under an `Other options` heading:
 
 ```{click:source}
 from click_extra import command, option, option_group

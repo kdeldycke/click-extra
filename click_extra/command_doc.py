@@ -937,39 +937,56 @@ def _build_option_groups(
 
     Cloup commands expose explicit option groups: each visible one becomes a
     titled {class}`DocOptionGroup` (a roff `.SS`), with the ungrouped
-    remainder gathered under Cloup's default-group title (`Other options`),
-    mirroring the `--help` screen. A command with no explicit
-    `@option_group` collapses to a single untitled group, rendered as a flat
-    list exactly as before.
+    remainder gathered under Cloup's default-group title, mirroring the
+    `--help` screen. The sections are ordered by
+    {meth}`click_extra.commands.Command.split_option_groups`, so the ungrouped
+    remainder sits between the groups a CLI author declared and the ones Click
+    Extra injects. A command with no option group at all collapses to a single
+    untitled group, rendered as a flat list.
 
     Group membership is matched by option identity, not name: Click Extra's
     `--config` / `--no-config` pair shares the `config` destination name,
-    so a name-keyed lookup would drop one of them.
+    so a name-keyed lookup would drop one of them. The ungrouped remainder is
+    read off `option_items` rather than off the default group, whose `--help`
+    Click rebuilds on every call and would never match by identity.
     """
     items_by_id = {id(param): item for param, item in option_items}
 
-    if isinstance(command, OptionGroupMixin) and command.option_groups:
-        explicit: list[DocOptionGroup] = []
-        claimed: set[int] = set()
-        for group in command.option_groups:
-            claimed.update(id(opt) for opt in group.options)
+    def build(groups: Sequence[Any]) -> list[DocOptionGroup]:
+        built: list[DocOptionGroup] = []
+        for group in groups:
             if group.hidden:
                 continue
             members = tuple(
                 items_by_id[id(opt)] for opt in group.options if id(opt) in items_by_id
             )
             if members:
-                explicit.append(
+                built.append(
                     DocOptionGroup(options=members, title=group.title, help=group.help)
                 )
+        return built
+
+    if isinstance(command, OptionGroupMixin) and command.option_groups:
+        splitter = getattr(command, "split_option_groups", None)
+        own_groups, extra_groups = (
+            (tuple(command.option_groups), ()) if splitter is None else splitter()
+        )
+        claimed = {id(opt) for group in command.option_groups for opt in group.options}
         ungrouped = tuple(
             item for param, item in option_items if id(param) not in claimed
         )
-        if explicit:
+
+        before = build(own_groups)
+        after = build(extra_groups)
+        if before or after:
+            middle: list[DocOptionGroup] = []
             if ungrouped:
-                title = command.get_default_option_group(ctx).title
-                explicit.append(DocOptionGroup(options=ungrouped, title=title))
-            return tuple(explicit)
+                title = command.get_default_option_group(
+                    ctx,
+                    is_the_only_visible_option_group=not before,
+                ).title
+                middle.append(DocOptionGroup(options=ungrouped, title=title))
+            return (*before, *middle, *after)
         return (DocOptionGroup(options=ungrouped),) if ungrouped else ()
 
     items = tuple(item for _, item in option_items)

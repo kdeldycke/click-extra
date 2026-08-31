@@ -19,7 +19,9 @@ options, and how they interact with each others."""
 from __future__ import annotations
 
 import inspect
+import json
 import os
+import re
 import sys
 from contextlib import nullcontext
 from subprocess import run
@@ -44,8 +46,16 @@ from click_extra import (
     pass_context,
     version_option,
 )
-from click_extra.commands import DEFAULT_PRIORITY, default_params
-from click_extra.parameters import iter_subcommands, make_resilient_context
+from click_extra.commands import (
+    DEFAULT_OPTION_GROUPS,
+    DEFAULT_PRIORITY,
+    default_params,
+)
+from click_extra.parameters import (
+    iter_params_for_display,
+    iter_subcommands,
+    make_resilient_context,
+)
 from click_extra.pytest import (
     command_decorators,
     default_debug_uncolored_log_end,
@@ -522,24 +532,18 @@ def test_duplicate_option(invoke):
         pass
 
     result = invoke(cli, "--help", color=False)
-    assert result.stdout.endswith(
-        "  --verbosity LEVEL            Either CRITICAL, ERROR, WARNING, INFO, DEBUG.\n"
-        "                               [default: WARNING]\n"
-        "  -v, --verbose                Increase the default WARNING verbosity by one\n"
-        "                               level for each additional repetition of the\n"
-        "                               option.  [default: 0]\n"
-        "  -q, --quiet                  Decrease the default WARNING verbosity by one\n"
-        "                               level for each additional repetition of the\n"
-        "                               option.  [default: 0]\n"
-        "  --debug                      Shorthand for --verbosity DEBUG.\n"
-        "  --tree                       Show the tree of nested subcommands and exit.\n"
-        "  --man                        Read the command's manual page and exit.\n"
-        "  --help-format [carapace|json|json-full|man|markdown|markdown-full]\n"
-        "                               Render the command in the given format and exit.\n"
-        "  --version                    Show the version and exit.\n"
-        "  --version                    Show the version and exit.\n"
+    version_line = "  --version                    Show the version and exit.\n"
+    # The CLI's own --version opens its section, ungrouped alongside --help. The
+    # injected duplicate closes the introspection section at the far end.
+    assert result.stdout.startswith(
+        "Usage: cli [OPTIONS]\n"
+        "\n"
+        "Options:\n"
+        f"{version_line}"
         "  -h, --help                   Show this message and exit.\n"
     )
+    assert result.stdout.endswith(version_line)
+    assert result.stdout.count(version_line) == 2
     assert not result.stderr
     assert result.exit_code == 0
 
@@ -1606,6 +1610,68 @@ def test_subcommand_order_agrees_across_renderers(invoke):
     ]
 
     diverging = {name: order for name, order in renderings.items() if order != expected}
+    assert not diverging, f"renderers out of order: {diverging}"
+
+
+def test_option_order_agrees_across_renderers(invoke):
+    """Every rendering of a command lists options in the same order.
+
+    Cloup draws the ungrouped section last, and Click Extra sends its own groups
+    past it, so a renderer reaching for its own accessor would let a help screen
+    disagree with its man page or its completion spec. They all resolve the
+    section order through ``split_option_groups()`` now.
+
+    Pins the taxonomy too: each rendering is filtered down to the flags
+    ``DEFAULT_OPTION_GROUPS`` declares, so the order they are declared in is the
+    order a reader sees.
+    """
+    yaml = pytest.importorskip("yaml")
+
+    @command
+    @option("--city", help="City to forecast.")
+    def forecast(city):
+        """Show the weather forecast."""
+
+    expected = ["--city", "--help"]
+    for _, flags in DEFAULT_OPTION_GROUPS:
+        expected.extend(flags)
+
+    ctx = make_resilient_context(forecast, forecast.name)
+    renderings = {
+        "iter_params_for_display": [
+            next(opt for opt in param.opts if opt.startswith("--"))
+            for param in iter_params_for_display(forecast, ctx)
+        ],
+        "--help": re.findall(
+            r"^  (?:-\w, )?(--[\w-]+)",
+            invoke(forecast, "--help", color=False).stdout,
+            re.MULTILINE,
+        ),
+        "json": [
+            opt["names"][0]
+            for group in json.loads(
+                invoke(forecast, "--help-format", "json", color=False).stdout
+            )["option_groups"]
+            for opt in group["options"]
+        ],
+    }
+
+    # Carapace splits a CLI's own flags from the inherited ones, and gives each
+    # spelling of a boolean pair its own entry.
+    spec = yaml.safe_load(
+        invoke(forecast, "--help-format", "carapace", color=False).stdout
+    )
+    renderings["carapace"] = [
+        flag.split(", ")[-1].rstrip("=?*")
+        for section in ("flags", "persistentflags")
+        for flag in spec.get(section, {})
+    ]
+
+    diverging = {
+        name: kept
+        for name, order in renderings.items()
+        if (kept := [flag for flag in order if flag in set(expected)]) != expected
+    }
     assert not diverging, f"renderers out of order: {diverging}"
 
 

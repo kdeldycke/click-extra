@@ -15,6 +15,9 @@
 - Add `:screenshot-cursor:`, `:screenshot-blink:`, `:screenshot-prompt:`, `:screenshot-typing:` `:screenshot-submit:` and `:screenshot-closing-prompt:` to the `click:run` directive.
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
 - `--validate-config` now accepts every location `--config` accepts: a folder, a glob pattern, or an `http`/`https` URL, on top of a file path.
+- Group the default options into `Configuration`, `Output`, `Logging` and `Introspection` sections, drawn after a command's own options on the help screen and in every other render.
+- Add `ExtraOptionGroup`, an option group drawn after the ones Click Extra injects, ordered among them by its `priority`.
+- Align the columns of every option group by default, with `align_option_groups` now set to `True`.
 - Render the `--config` and `--validate-config` values as a `LOCATION` metavar, replacing `CONFIG_PATH` and `FILE`.
 - Render the `--table-format` value as a `FORMAT` metavar, replacing the list of its fifty accepted values on the help screen.
 - Add a `choices` key to each option of the `--help-format json` export, and list the accepted values under an option whose metavar hides them in the `man` and `markdown` renders.

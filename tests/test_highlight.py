@@ -2098,7 +2098,7 @@ def test_keyword_collection(invoke, assert_output_regex):
         "  \x1b[36m\x1b[3m[MY_ARG]...\x1b[0m  Argument supports help.\n"
         "\n"
         "\x1b[94m\x1b[4mOptions:\x1b[0m\n"
-        "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m  Show this message and exit.\n"
+        "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m   Show this message and exit.\n"
     )
     assert not result.stderr
     assert result.exit_code == 0
@@ -2115,7 +2115,7 @@ def test_keyword_collection(invoke, assert_output_regex):
         "  \x1b[36m\x1b[3m[MY_ARG]...\x1b[0m  Argument supports help.\n"
         "\n"
         "\x1b[94m\x1b[4mOptions:\x1b[0m\n"
-        "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m  Show this message and exit.\n"
+        "  \x1b[36m\x1b[1m-h\x1b[0m, \x1b[36m\x1b[1m--help\x1b[0m   Show this message and exit.\n"
     )
     assert not result.stderr
     assert result.exit_code == 0

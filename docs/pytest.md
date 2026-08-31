@@ -73,7 +73,7 @@ Every Click Extra command inherits a long list of options and, under `--verbosit
 
 | Pattern                                   | Matches                                                                                                |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `default_options_uncolored_help`          | The default options block closing the help screen.                                                     |
+| `default_options_uncolored_help`          | The `--help` line and the four grouped sections closing the help screen.                               |
 | `default_debug_uncolored_logging`         | The two lines raising the logger levels.                                                               |
 | `default_debug_uncolored_config`          | The configuration-file search trace.                                                                   |
 | `default_debug_uncolored_version_details` | The dump of the version-string template variables.                                                     |
