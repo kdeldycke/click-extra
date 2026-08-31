@@ -148,7 +148,12 @@ def test_cli_reference_anchors(built_docs, anchor):
 @pytest.mark.parametrize(
     ("source_page", "href", "target_page", "anchor"),
     (
-        ("install.html", "config.html#toml", "config.html", "toml"),
+        (
+            "install.html",
+            "config-formats.html#toml",
+            "config-formats.html",
+            "toml",
+        ),
         (
             "install.html",
             "table.html#table-formats",
@@ -157,14 +162,20 @@ def test_cli_reference_anchors(built_docs, anchor):
         ),
         (
             "install.html",
-            "sphinx.html#matrix-directives",
-            "sphinx.html",
+            "python-directives.html#matrix-directives",
+            "python-directives.html",
             "matrix-directives",
         ),
     ),
 )
 def test_cross_page_links_resolve(built_docs, source_page, href, target_page, anchor):
-    """Cross-page links point at anchors that exist on the target page."""
+    """Cross-page links point at anchors that exist on the target page.
+
+    Every case names a page, so splitting one moves the anchor and leaves the
+    case behind. Repoint them in the same commit that splits the page: this
+    module is skipped off Linux, so the break surfaces only in CI, and a local
+    `pytest -m once` reports a clean pass while skipping all of it.
+    """
     source_html = read_html(built_docs, source_page)
     assert f'href="{href}"' in source_html, f"{source_page} does not link to {href}"
     target_html = read_html(built_docs, target_page)
