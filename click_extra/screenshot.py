@@ -2870,7 +2870,7 @@ def _svg_number(value: float) -> str:
     a committed file reads as a bug rather than as the zero it is.
     """
     rounded = round(value, 1)
-    return f"{rounded if rounded else 0.0:.1f}".removesuffix(".0")
+    return f"{rounded or 0.0:.1f}".removesuffix(".0")
 
 
 def _xml_escape(text: str, *, preserve_spaces: bool = False) -> str:
