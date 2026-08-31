@@ -877,9 +877,15 @@ def _resolve_authors(ctx: Context) -> str | None:
     return resolve_author(metadata.metadata(name)) if name else None
 
 
-def _config_default(config_option: ConfigOption, ctx: Context) -> str | None:
-    """The portable, home-relative `--config` search pattern (as shown in help)."""
-    return config_option.get_help_extra(ctx).get("default")
+def _config_default(config_option: ConfigOption, ctx: Context) -> str:
+    """The portable, home-relative `--config` search pattern.
+
+    The help screen collapses an inherited format set down to its folder, which a
+    `FILES` section does not want: it exists to name the files the command reads,
+    and roff has the room to print them. See
+    {meth}`~click_extra.config.option.ConfigOption.collapse_default`.
+    """
+    return config_option.render_default(ctx)
 
 
 def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:

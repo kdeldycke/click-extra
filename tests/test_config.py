@@ -540,10 +540,10 @@ def test_unset_conf_debug_message(invoke, simple_config_cli, assert_output_regex
 def test_conf_default_path(invoke, simple_config_cli):
     result = invoke(simple_config_cli, "--help", color=False)
 
-    # Cloup wraps the long --config default at unpredictable columns, sometimes
-    # mid-token (e.g. "~/config-c" then "li1"), so we cannot guess the wrap points
-    # with a regex. De-wrap the option's help block by dropping all whitespace,
-    # then match the path and glob pattern against it.
+    # Cloup wraps the --config default at unpredictable columns, sometimes mid-token
+    # (e.g. "~/config-c" then "li1"), so we cannot guess the wrap points with a
+    # regex. De-wrap the option's help block by dropping all whitespace, then match
+    # the folder against it.
     help_screen = re.sub(r"\s+", "", result.stdout.split("--config LOCATION")[1])
 
     # Mirror the CLI's own path display: default_pattern() resolves the app dir
@@ -554,11 +554,78 @@ def test_conf_default_path(invoke, simple_config_cli):
     default_path = re.sub(
         r"\s+", "", str(shrinkuser(Path(get_app_dir("config-cli1")).resolve()))
     )
-    assert f"default:{default_path}" in help_screen
+    assert f"default:{default_path}{os.path.sep}]" in help_screen
 
-    # And the glob pattern.
+    # An inherited format set is collapsed away, so the folder is the whole default.
+    # See ConfigOption.collapse_default().
     fp = ",".join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))
-    assert f"{{{fp}}}]" in help_screen
+    assert f"{{{fp}}}" not in help_screen
+
+    assert not result.stderr
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("file_format_patterns", "expected_pattern"),
+    [
+        pytest.param(ConfigFormat.TOML, "*.toml", id="single_format"),
+        pytest.param(
+            {ConfigFormat.TOML: ["*.toml", "my_app.conf"]},
+            "{*.toml,my_app.conf}",
+            id="custom_patterns",
+        ),
+    ],
+)
+def test_conf_chosen_formats_displayed(invoke, file_format_patterns, expected_pattern):
+    """A format set chosen by the developer is displayed in full.
+
+    Only an inherited set collapses to its folder, so the help screen keeps showing
+    the effect of `file_format_patterns`, which is what `docs/config-discovery.md`
+    demonstrates.
+    """
+
+    @click.command
+    @config_option(file_format_patterns=file_format_patterns)
+    def config_cli1():
+        pass
+
+    result = invoke(config_cli1, "--help", color=False)
+
+    help_screen = re.sub(r"\s+", "", result.stdout.split("--config LOCATION")[1])
+    assert f"{expected_pattern}]" in help_screen
+
+    assert not result.stderr
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "shows_patterns"),
+    [
+        pytest.param({"show_file_patterns": True}, True, id="inherited_forced_on"),
+        pytest.param({"show_file_patterns": False}, False, id="inherited_forced_off"),
+        pytest.param(
+            {"file_format_patterns": ConfigFormat.TOML, "show_file_patterns": False},
+            False,
+            id="chosen_forced_off",
+        ),
+    ],
+)
+def test_conf_show_file_patterns(invoke, kwargs, shows_patterns):
+    """`show_file_patterns` overrides the display in both directions."""
+
+    @click.command
+    @config_option(**kwargs)
+    def config_cli1():
+        pass
+
+    result = invoke(config_cli1, "--help", color=False)
+
+    config_opt = search_params(config_cli1.params, ConfigOption)
+    assert isinstance(config_opt, ConfigOption)
+    fp = config_opt.file_pattern
+    suffix = f"{{{fp}}}" if "," in fp else fp
+    help_screen = re.sub(r"\s+", "", result.stdout.split("--config LOCATION")[1])
+    assert (f"{suffix}]" in help_screen) is shows_patterns
 
     assert not result.stderr
     assert result.exit_code == 0

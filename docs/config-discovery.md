@@ -54,15 +54,11 @@ The `--config` default is now `~/.cli/`:
 
 ```{click:run}
 :emphasize-result-lines: 6
-import re
-from boltons.iterutils import flatten, unique
-from click_extra import ConfigFormat
 result = invoke(cli, args=["--help"])
-fp = ",".join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))
-# Cloup wraps the default at a column driven by the widest option label, so
-# drop every whitespace run before looking for the pattern.
-assert f"~/.cli/{{{fp}}}]" in re.sub(r"\s+", "", result.stdout)
+assert "[default: ~/.cli/]" in result.stdout
 ```
+
+The help screen names the folder alone: the formats searched there come from the [extra dependencies](install.md#extra-dependencies) installed, not from a choice your CLI made. A set you [choose](#custom-file-format-patterns) is displayed in full, and [`show_file_patterns`](#show-the-supported-formats) settles it either way.
 
 ```{seealso}
 The default application folder concept has a long history in the Unix world.
@@ -73,6 +69,40 @@ The [*XDG base directory specification*](https://specifications.freedesktop.org/
 
 XDG does not cover other platforms (macOS, Windows, …) or legacy applications. That is why Click Extra lets you customize where configuration is searched.
 ```
+
+### Show the supported formats
+
+A CLI parses the formats its [extra dependencies](install.md#extra-dependencies) provide, and that set is resolved at each invocation. Pass `show_file_patterns=True` to advertise it on the help screen:
+
+```{click:source}
+:emphasize-lines: 6
+from click import command
+
+from click_extra import config_option
+
+@command(context_settings={"show_default": True})
+@config_option(show_file_patterns=True)
+def cli():
+    pass
+```
+
+The default then names every pattern the running install searches for:
+
+```{click:run}
+:emphasize-result-lines: 6-8
+import re
+from boltons.iterutils import flatten, unique
+from click_extra import ConfigFormat
+result = invoke(cli, args=["--help"])
+fp = ",".join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))
+# Cloup wraps the default at a column driven by the widest option label, so
+# drop every whitespace run before looking for the pattern.
+assert f"~/.config/cli/{{{fp}}}]" in re.sub(r"\s+", "", result.stdout)
+```
+
+A CLI installed without the [`yaml` extra](install.md#extra-dependencies) drops `*.yaml` and `*.yml` from that same screen. It reports the formats this install can parse, not the ones the package parses elsewhere.
+
+`show_file_patterns=False` forces the folder-only form, whatever the format set. Whichever you pick, `--params` prints the complete pattern.
 
 ## Custom pattern
 

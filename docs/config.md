@@ -57,12 +57,12 @@ def subcommand(int_param):
 The code above is saved in a file named `my_cli.py`. It produces the following help screen:
 
 ```{click:run}
-:emphasize-result-lines: 7-10
+:emphasize-result-lines: 7-9
 result = invoke(my_cli, args=["--help"])
 assert "--config LOCATION" in result.stdout
 ```
 
-The help screen names the default location of the configuration file (`[default: ~/.config/my-cli/{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyproject.toml}]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI.
+The help screen names the default location of the configuration file (`[default: ~/.config/my-cli/]`). This improves discoverability, and [makes sysadmins happy](https://utcc.utoronto.ca/~cks/space/blog/sysadmin/ReportConfigFileLocations), especially those not familiar with your CLI. The [files searched in that folder](config-discovery.md#default-folder) depend on the formats you enabled.
 
 A bare call returns:
 

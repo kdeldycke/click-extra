@@ -1053,7 +1053,7 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 52-54
+:emphasize-lines: 49-51
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
@@ -1062,10 +1062,7 @@ Options:
                                [default: no-time]
   --config LOCATION            Location of the configuration file. Supports
                                local path with glob patterns or remote URL.
-                               [default: ~/Library/Application Support/wrap.py/{
-                               *.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjso
-                               n,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,p
-                               yproject.toml}]
+                               [default: ~/Library/Application Support/wrap.py/]
   --no-config                  Ignore all configuration files and only use
                                command line parameters and environment
                                variables.

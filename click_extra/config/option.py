@@ -224,6 +224,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         | ConfigFormat
         | None = None,
         file_pattern_flags: int = fnmatch.NEGATE | fnmatch.SPLIT,
+        show_file_patterns: bool | None = None,
         roaming: bool = True,
         force_posix: bool = False,
         search_pattern_flags: int = (
@@ -307,6 +308,18 @@ class ConfigOption(ExtraOption, ParamStructure):
         else:
             self.file_format_patterns = {fmt: fmt.patterns for fmt in ConfigFormat}
 
+        self.auto_file_formats = file_format_patterns is None
+        """Whether the format set was inherited instead of chosen by the developer.
+
+        `True` when no `file_format_patterns` was provided, so the set is whatever the
+        installed [extra dependencies](install.md#extra-dependencies) enable. It ranges
+        from 3 patterns on a bare install to 14 with every extra, which is an artifact
+        of the environment rather than a decision the CLI made.
+
+        Only `collapse_default()` reads it, and only when `show_file_patterns` is
+        left at `None`.
+        """
+
         # Check mapping of file formats to their patterns.
         for fmt, patterns in self.file_format_patterns.items():
             assert fmt in ConfigFormat
@@ -340,6 +353,20 @@ class ConfigOption(ExtraOption, ParamStructure):
         The `SPLIT` flag is always forced, as our multi-pattern design relies on
         it.
         ```
+        """
+
+        self.show_file_patterns = show_file_patterns
+        """Whether the help screen prints the file patterns of the default.
+
+        Follows the tri-state convention of Click Extra's other display settings:
+
+        - `None` prints them when the developer chose the format set, and hides them
+          when it was inherited from the install.
+        - `True` always prints them, which is how a CLI advertises the formats its
+          own dependencies enable.
+        - `False` always hides them.
+
+        See `collapse_default()` for what each state renders.
         """
 
         # Setup the configuration for default folder search.
@@ -736,24 +763,82 @@ class ConfigOption(ExtraOption, ParamStructure):
         ```{caution}
         This only applies when the `GLOBTILDE` flag is set in `search_pattern_flags`.
         ```
+
+        An inherited format set is then reduced to the folder it searches, as
+        described in `collapse_default()`.
         """
         extra = super().get_help_extra(ctx)
+        extra["default"] = self.collapse_default(self.render_default(ctx))
+        return extra
+
+    def render_default(self, ctx: click.Context) -> str:
+        """The default search pattern, as a portable home-relative path.
+
+        Keeps the whole pattern, file patterns included. The help screen collapses
+        an inherited set on top of this with `collapse_default()`, but a consumer
+        with room for the files (the `FILES` section of a man page) calls this
+        method instead.
+        """
         default = self.get_default(ctx)
         if default is NO_CONFIG:
-            extra["default"] = "disabled"
-        elif self.search_pattern_flags & glob.GLOBTILDE:
+            return "disabled"
+        if self.search_pattern_flags & glob.GLOBTILDE:
             # When the default already starts with `~` (user-supplied tilde
             # pattern), use it as-is. Passing through `Path()` would
             # normalize forward slashes to backslashes on Windows.
             default_str = str(default)
-            extra["default"] = (
-                default_str
-                if default_str.startswith("~")
-                else shrinkuser(Path(default))
-            )
-        else:
-            extra["default"] = str(default)
-        return extra
+            if default_str.startswith("~"):
+                return default_str
+            return str(shrinkuser(Path(default)))
+        return str(default)
+
+    def collapse_default(self, default: str) -> str:
+        """Reduce an inherited default pattern to the folder it searches.
+
+        A CLI installed with every extra searches 14 file patterns, so its default
+        renders as a 130-character glob. The help screen has no space for it and no
+        place to break it, so Click splits it mid-word:
+
+        ```{code-block} text
+
+        [default: ~/.config/hello/{*.
+        toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,
+        *.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyp
+        roject.toml}]
+        ```
+
+        Rendering the folder alone answers the question a reader opens `--help` for,
+        on one line, and keeps the answer the same on every install:
+
+        ```{code-block} text
+
+        [default: ~/.config/hello/]
+        ```
+
+        A developer who passed `file_format_patterns` chose that set, so it is
+        displayed in full: the pattern is short enough to read, and the help screen
+        is where the choice shows up. `show_file_patterns` overrides that reading in
+        either direction, and `True` is what a CLI advertising its formats wants: the
+        set is computed from the installed dependencies at each invocation, so the
+        help screen reports what that install can really parse. The complete pattern
+        of any CLI stays available in the output of `--params`.
+
+        The trailing separator marks the value as a folder, since it is a search base
+        and not a location the option accepts back.
+        """
+        show = self.show_file_patterns
+        if show is None:
+            show = not self.auto_file_formats
+        if show:
+            return default
+        fp = self.file_pattern
+        suffix = f"{{{fp}}}" if "," in fp else fp
+        folder, sep, tail = default.rpartition(os.path.sep)
+        # Leave a custom default alone: only the pattern this option built for
+        # itself ends with its own file patterns.
+        if not sep or tail != suffix:
+            return default
+        return folder + sep
 
     @staticmethod
     def _find_vcs_root(start: Path) -> Path | None:

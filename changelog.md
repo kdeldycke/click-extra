@@ -19,6 +19,7 @@
 - Add `ExtraOptionGroup`, an option group drawn after the ones Click Extra injects, ordered among them by its `priority`.
 - Align the columns of every option group by default, with `align_option_groups` now set to `True`.
 - Render the `--config` and `--validate-config` values as a `LOCATION` metavar, replacing `CONFIG_PATH` and `FILE`.
+- Show the `--config` default as the folder it searches, instead of the full glob of every file format the install enables. Pass `show_file_patterns=True` to keep advertising the formats the running install can parse.
 - Render the `--table-format` value as a `FORMAT` metavar, replacing the list of its fifty accepted values on the help screen.
 - Add a `choices` key to each option of the `--help-format json` export, and list the accepted values under an option whose metavar hides them in the `man` and `markdown` renders.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
