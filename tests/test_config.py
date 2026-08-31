@@ -69,7 +69,7 @@ from click_extra.pytest import (
     default_debug_uncolored_version_details,
 )
 
-DOCS_CONFIG_PAGE = Path(__file__).parent.parent / "docs" / "config.md"
+DOCS_CONFIG_PAGE = Path(__file__).parent.parent / "docs" / "config-discovery.md"
 """The documentation page transcribing part of ``ConfigFormat``."""
 
 # The complete set of glob search flags ``ConfigOption`` enforces by default.
@@ -1265,13 +1265,15 @@ def test_docs_media_types_table_matches_formats():
     and that table is the only place a user reads the mapping from.
     """
     page = DOCS_CONFIG_PAGE.read_text(encoding="utf-8")
-    table = page.split("#### Typing a download", 1)[1].split("```{warning}", 1)[0]
+    table = page.split("### Typing a download", 1)[1].split("```{warning}", 1)[0]
 
-    # Each row links its format to the section documenting it, whose anchor is
-    # the member name kebab-cased.
+    # Each row links its format to the section documenting it, on a sibling
+    # page, whose anchor is the member name kebab-cased.
     documented = {}
     for row in table.splitlines():
-        match = re.match(r"\|\s*\[`[^`]+`\]\(#([\w-]+)\)\s*\|([^|]+)\|", row)
+        match = re.match(
+            r"\|\s*\[`[^`]+`\]\((?:[\w-]+\.md)?#([\w-]+)\)\s*\|([^|]+)\|", row
+        )
         if not match:
             continue
         anchor, cell = match.groups()
