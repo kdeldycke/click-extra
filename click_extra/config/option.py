@@ -726,9 +726,12 @@ class ConfigOption(ExtraOption, ParamStructure):
         syntax so that `wcmatch.glob` correctly applies the directory prefix
         to every sub-pattern.
 
-        ```{todo}
-        Use [platformdirs](https://github.com/tox-dev/platformdirs) for more
-        advanced configuration folder detection?
+        ```{note}
+        A CLI wanting another folder layout, like the one
+        [platformdirs](https://github.com/tox-dev/platformdirs) computes,
+        passes its own pattern to `default` instead. That keeps the layout a
+        choice of the CLI rather than a dependency of this package: see
+        [the documentation](config-discovery.md#use-platformdirs-instead).
         ```
         """
         ctx = get_current_context()
@@ -795,16 +798,16 @@ class ConfigOption(ExtraOption, ParamStructure):
     def collapse_default(self, default: str) -> str:
         """Reduce an inherited default pattern to the folder it searches.
 
-        A CLI installed with every extra searches 14 file patterns, so its default
-        renders as a 130-character glob. The help screen has no space for it and no
+        A CLI installed with every extra searches 15 file patterns, so its default
+        renders as a 136-character glob. The help screen has no space for it and no
         place to break it, so Click splits it mid-word:
 
         ```{code-block} text
 
         [default: ~/.config/hello/{*.
-        toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,
-        *.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyp
-        roject.toml}]
+        toml,*.yaml,*.yml,*.json,*.json5,*.jwcc,*.jsonc,
+        *.hjson,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*
+        .conf,pyproject.toml}]
         ```
 
         Rendering the folder alone answers the question a reader opens `--help` for,

@@ -259,6 +259,11 @@ docs = [
   # myst-parser 5.1 ships the native "alert" syntax extension for GitHub-style
   # callouts, used by docs/conf.py's myst_enable_extensions.
   "myst-parser>=5.1",
+  # platformdirs renders the alternative folder layout in config-discovery.md's
+  # {click:run} blocks. It is a docs-only dependency: the package itself never
+  # imports it. 4.0 opened the current major line, whose user_config_dir()
+  # signature that example calls.
+  "platformdirs>=4",
   # Pygments is needed for automodule/autoclasstree of click_extra.pygments.
   "pygments>=2.14",
   # pymdown-extensions is needed by the mkdocs plugin module.

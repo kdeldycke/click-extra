@@ -105,11 +105,6 @@ class ConfigFormat(Enum):
     The order is important for both format members and file patterns. It defines the
     priority order in which formats are tried when multiple candidate files are found.
     ```
-
-    ```{todo}
-    Add support for [JWCC](https://nigeltao.github.io/blog/2021/json-with-commas-comments.html)
-    / [hujson](https://github.com/tailscale/hujson) format?
-    ```
     """
 
     TOML = (("*.toml",), True, "TOML", ("application/toml", "text/x-toml"))
@@ -120,7 +115,16 @@ class ConfigFormat(Enum):
         ("application/yaml", "text/yaml", "application/x-yaml", "text/x-yaml"),
     )
     JSON = (("*.json",), True, "JSON", ("application/json", "text/json"))
-    JSON5 = (("*.json5",), PARSER_SUPPORT["json5"], "JSON5", ("application/json5",))
+    # `*.jwcc` reads through the JSON5 parser: a JWCC document is JSON plus
+    # comments and trailing commas, both of which JSON5 already accepts, so the
+    # format needs no parser of its own. See
+    # https://nigeltao.github.io/blog/2021/json-with-commas-comments.html.
+    JSON5 = (
+        ("*.json5", "*.jwcc"),
+        PARSER_SUPPORT["json5"],
+        "JSON5",
+        ("application/json5",),
+    )
     JSONC = (("*.jsonc",), PARSER_SUPPORT["jsonc"], "JSONC", ("application/jsonc",))
     HJSON = (("*.hjson",), PARSER_SUPPORT["hjson"], "Hjson", ("application/hjson",))
     INI = (("*.ini",), True, "INI", ())

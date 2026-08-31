@@ -15,6 +15,7 @@
 - Add `:screenshot-cursor:`, `:screenshot-blink:`, `:screenshot-prompt:`, `:screenshot-typing:` `:screenshot-submit:` and `:screenshot-closing-prompt:` to the `click:run` directive.
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
 - `--validate-config` now accepts every location `--config` accepts: a folder, a glob pattern, or an `http`/`https` URL, on top of a file path.
+- Read `*.jwcc` configuration files with the `JSON5` parser, which already accepts the comments and trailing commas JWCC adds to JSON.
 - Group the default options into `Configuration`, `Output`, `Logging` and `Introspection` sections, drawn after a command's own options on the help screen and in every other render.
 - Add `ExtraOptionGroup`, an option group drawn after the ones Click Extra injects, ordered among them by its `priority`.
 - Align the columns of every option group by default, with `align_option_groups` now set to `True`.
@@ -35,6 +36,7 @@
 - Fix the dead API documentation links to the capture, theme, Carapace and `--help-format` pages.
 - Fix the documentation cross-references that did not jump to their section when a page is read on GitHub.
 - Repoint the install page at GitHub's current artifact attestations guide.
+- Document how to search a [platformdirs](https://github.com/tox-dev/platformdirs) folder layout, by passing a computed pattern to `--config`'s default.
 
 ## [`9.0.0` (2026-08-29)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
 

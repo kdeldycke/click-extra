@@ -14,7 +14,7 @@ By default, the pattern is `<app_dir>/{*.toml,*.json,*.ini}`, where:
 - `{*.toml,*.json,*.ini}` are the [extensions of formats](config-formats.md) enabled by default, wrapped in brace-expansion syntax
 
 ```{hint}
-Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jsonc,*.hjson,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyproject.toml}`.
+Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jwcc,*.jsonc,*.hjson,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyproject.toml}`.
 ```
 
 ```{tip}
@@ -68,6 +68,41 @@ The oldest reference I can track is the [*Where Configurations Live*](http://www
 The [*XDG base directory specification*](https://specifications.freedesktop.org/basedir/latest/) is the latest iteration of this tradition on Linux. It brings [lots of benefits](https://xdgbasedirectoryspecification.com) to the platform, and Click Extra [implements it by default](#default-folder).
 
 XDG does not cover other platforms (macOS, Windows, …) or legacy applications. That is why Click Extra lets you customize where configuration is searched.
+```
+
+### Use platformdirs instead
+
+Click Extra reads the folder from `click.get_app_dir()`, and Click [declined](https://github.com/pallets/click/issues/2620) to hand that job to [platformdirs](https://github.com/tox-dev/platformdirs). To follow the platformdirs layout, compute the folder in your own CLI and pass the pattern to `default`:
+
+```{click:source}
+:emphasize-lines: 7
+from click import command
+from platformdirs import user_config_dir
+
+from click_extra import config_option
+
+@command(context_settings={"show_default": True})
+@config_option(default=f"{user_config_dir('weather', version='2')}/*.toml")
+def cli():
+    pass
+```
+
+The folder now carries a version segment, which `click.get_app_dir()` cannot express:
+
+```{click:run}
+:emphasize-result-lines: 6-7
+import re
+result = invoke(cli, args=["--help"])
+assert result.exit_code == 0
+# Cloup wraps the default at a column driven by the widest option label, so
+# drop every whitespace run before looking for the pattern.
+assert "weather/2/*.toml]" in re.sub(r"\s+", "", result.stdout)
+```
+
+Click Extra never imports platformdirs: the pattern reaching `default` is a plain string, so any folder convention works the same way.
+
+```{tip}
+`platformdirs.site_config_dir()` returns the system-wide folder, which `click.get_app_dir()` has no equivalent for. Search it next to the user folder by joining both patterns with `|`, as [the pattern rules](#search-pattern-specifications) allow.
 ```
 
 ### Show the supported formats

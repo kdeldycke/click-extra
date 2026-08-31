@@ -50,6 +50,7 @@ from click_extra import (
     echo,
     export_config_option,
     format_from_mime,
+    format_from_path,
     get_app_dir,
     group,
     no_config_option,
@@ -1300,6 +1301,41 @@ def test_format_from_mime_restricted_to_candidates():
     """`formats` narrows the resolution, like `format_from_path` does."""
     assert format_from_mime("application/json") is ConfigFormat.JSON
     assert format_from_mime("application/json", [ConfigFormat.TOML]) is None
+
+
+def test_jwcc_resolves_to_the_json5_parser(tmp_path):
+    """A `*.jwcc` file is read by the `JSON5` parser, which is a superset of it."""
+    assert format_from_path(tmp_path / "settings.jwcc") is ConfigFormat.JSON5
+
+
+def test_jwcc_conf(invoke, simple_config_cli, tmp_path):
+    """A JWCC document loads: JSON plus comments and trailing commas."""
+    pytest.importorskip("json5", reason="JWCC is parsed by the json5 extra")
+
+    conf_file = tmp_path / "configuration.jwcc"
+    conf_file.write_text(
+        dedent(
+            """
+            {
+                // A comment, which plain JSON refuses.
+                "config-cli1": {
+                    "dummy_flag": true,
+                    "my_list": ["pip", "npm", "gem",],
+                    "default": {"int_param": 3,},
+                },
+            }
+            """,
+        ),
+        encoding="utf-8",
+    )
+
+    result = invoke(
+        simple_config_cli, "--config", str(conf_file), "default", color=False
+    )
+    assert result.exit_code == 0
+    assert result.stdout == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+    )
 
 
 def test_mime_types_are_unambiguous():

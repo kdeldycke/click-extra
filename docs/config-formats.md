@@ -7,7 +7,7 @@ Click Extra reads a configuration file in any of the dialects below. Each one li
 | [`TOML`](#toml)                     | `*.toml`                | -                                                                                         | ✅                 |
 | [`YAML`](#yaml)                     | `*.yaml`, `*.yml`       | -                                                                                         | ❌                 |
 | [`JSON`](#json)                     | `*.json`                | -                                                                                         | ✅                 |
-| [`JSON5`](#json5)                   | `*.json5`               | A [superset of JSON made for configuration file](https://json5.org)                       | ❌                 |
+| [`JSON5`](#json5)                   | `*.json5`, `*.jwcc`     | A [superset of JSON made for configuration file](https://json5.org)                       | ❌                 |
 | [`JSONC`](#jsonc)                   | `*.jsonc`               | Like JSON, but with comments and trailing commas                                          | ❌                 |
 | [`HJSON`](#hjson)                   | `*.hjson`               | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
 | [`INI`](#ini)                       | `*.ini`                 | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
@@ -220,6 +220,8 @@ INSERT INTO config VALUES
 ```{important}
 `JSON5` support requires the `json5` extra: [install `click-extra[json5]`](install.md#extra-dependencies).
 ```
+
+The `JSON5` parser also reads [`JWCC`](https://nigeltao.github.io/blog/2021/json-with-commas-comments.html) files, matched on the `*.jwcc` extension. `JWCC` is JSON plus comments and trailing commas, which `JSON5` already accepts, so it needs no parser and no extra of its own. A file written for [`hujson`](https://github.com/tailscale/hujson), the Go implementation of the same format, parses too once you name it `*.jwcc`.
 
 ## JSONC
 
