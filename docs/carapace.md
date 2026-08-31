@@ -37,6 +37,8 @@ assert "celsius" in result.stdout
 assert result.stdout.count("$files") == 1
 ```
 
+<a name="the-wrap-help-format-carapace-mode"></a>
+
 ## The wrap `--help-format carapace` mode
 
 `click-extra wrap --help-format carapace -- SCRIPT` resolves a target, loads its Click command, and prints the whole tree's spec to stdout without running it. SCRIPT is [resolved the same way](wrap.md#script-resolution) as for every other rendering, so nothing needs to be installed up front with uvx:

@@ -2,6 +2,8 @@
 
 Click Extra exposes a small theming system that controls every color used in help screens: options, choices, metavars, arguments, CLI names, defaults, environment variables, log levels, and more. [Seven themes ship by default](#built-in-themes), and downstream projects can register their own.
 
+<a name="the-theme-option"></a>
+
 ## The `--theme` option
 
 Every command and group built with `@click_extra.command` / `@click_extra.group` automatically gets a `--theme` flag, alongside the other [default options](commands.md#default-options).
@@ -22,6 +24,8 @@ assert "--theme" in result.stdout
 ```
 
 The flag is eager, so it is processed before any other option and before help is rendered. The picked theme is stored on the active Click context's `meta` dict under `click_extra.context.THEME` and inherits down to subcommands, so a parent group's `--theme` applies to every child. See the [available keys](context.md#available-keys) table for the full inventory you can read from your own callbacks.
+
+(automatic-background-detection)=
 
 ## Automatic background detection
 

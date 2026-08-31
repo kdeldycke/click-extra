@@ -127,6 +127,8 @@ A few properties follow from the mirror being real Markdown:
 
 `:mirror:` is scoped to `python:render` in a Markdown host, and shares the `click_extra_enable_exec_directives` opt-in with the rest of the executing directives.
 
+<a name="mirror-src"></a>
+
 (mirror-src)=
 
 ### Hiding the generator with `<!-- mirror-src -->`
@@ -222,6 +224,8 @@ Some related projects for build-time Python execution:
 - [`MyST-NB`](https://myst-nb.readthedocs.io/): executes `.ipynb` and code-cell `.md`; `glue` / `eval` roles inject computed values into prose.
 - [`sphinx-jinja`](https://github.com/tardyp/sphinx-jinja): Jinja2 templates with Python context, output parsed as reST/MyST. Closest analogue for the docs-as-code pattern without `exec`.
 ```
+
+<a name="matrix-directives"></a>
 
 (matrix-directives)=
 

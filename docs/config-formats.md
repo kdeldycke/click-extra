@@ -283,6 +283,8 @@ An argfile can only address the options of the CLI's top-level command: the form
 
 `ARGFILE` is read-only: it cannot be produced by [`--export-config`](config.md#exporting-the-configuration).
 
+<a name="pyproject-toml"></a>
+
 ## `pyproject.toml`
 
 The `PYPROJECT_TOML` format reads `[tool.<cli-name>]`{l=toml} sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This stores the CLI's configuration alongside project metadata. Non-Python tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md) use the same convention.

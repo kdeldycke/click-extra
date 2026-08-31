@@ -307,7 +307,7 @@ def program_from_command_line(command_line: str) -> str:
     A block documenting a multi-word program has to hand Click all of it: the
     command reads its own name back out of the context, for its usage line and
     for any output quoting the invocation that produced it, like the provenance
-    header of a [Carapace spec](carapace.md). Handing over the last word alone
+    header of a {doc}`Carapace spec </carapace>`. Handing over the last word alone
     makes an image contradict the prompt drawn right above it.
 
     Only an interpreter prefix is dropped, since it names no program: see

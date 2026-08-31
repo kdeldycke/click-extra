@@ -181,7 +181,7 @@ Binaries of all past releases, with their VirusTotal analyses, are cataloged on 
 
 ## Release verification
 
-Every binary is signed with a [build provenance attestation](https://docs.github.com/en/actions/security-guides/using-artifact-attestations) at release time. After downloading one, verify it with the [`gh` CLI](https://cli.github.com):
+Every binary is signed with a [build provenance attestation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations) at release time. After downloading one, verify it with the [`gh` CLI](https://cli.github.com):
 
 ```shell-session
 $ gh attestation verify click-extra-linux-x64.bin --repo kdeldycke/click-extra --signer-repo kdeldycke/repomatic

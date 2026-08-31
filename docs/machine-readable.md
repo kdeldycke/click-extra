@@ -31,6 +31,8 @@ def weather(city, units):
     echo(f"{city}: 21 degrees {units}.")
 ```
 
+<a name="the-help-format-option"></a>
+
 ## The `--help-format` option
 
 One option carrying a format, rather than a flag per format. A CLI's option list is the most expensive real estate in its help screen, and every reader pays for it whether or not they will ever export anything: a family of `--help-json`, `--help-markdown` and `--help-carapace` flags would widen the label column of every screen, forever. Here a new format costs a registry entry and nothing on screen.

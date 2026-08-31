@@ -372,7 +372,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         :param examples: a sequence of `(description, command)` string pairs
             showing the command in use. They are rendered in an `Examples:`
             section of the help screen, in the man page, and in every
-            [`--help-format`](https://kdeldycke.github.io/click-extra/man-page.html#machine-readable-formats)
+            [`--help-format`](https://kdeldycke.github.io/click-extra/machine-readable.html#the-help-format-option)
             rendering. A malformed pair raises `TypeError` here, at command
             construction, rather than on the first `--help` a user runs.
         :param extra_option_at_end: [reorders all parameters attached to the command](https://kdeldycke.github.io/click-extra/commands.html#option-order), by

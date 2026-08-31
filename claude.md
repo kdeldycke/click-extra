@@ -29,7 +29,7 @@ When bumping the inline pin by hand, carry the exemption with it. `sync-workflow
 
 § Imports tells consumers, docs and tests to import from the root package. Inside `click_extra` the rule inverts: import each symbol from its concrete source module (`from .types import EnumChoice`, `from .styling import Style`, `from click import echo`, `from click._utils import UNSET`), never from the root package (`from . import X`). Root-symbol imports read attributes off the partially-initialized package, which makes `__init__.py`'s import order load-bearing during package initialization. Importing a sibling module as a namespace (`from . import context`) is fine: Python resolves it through `sys.modules` without depending on the root's binding order.
 
-That root `click_extra/__init__.py` is also the deliberate exception to [§ `__init__.py` files](#__init__py-files): it re-exports Click and Cloup symbols to serve as a drop-in replacement, which is the package's core design.
+That root `click_extra/__init__.py` is also the deliberate exception to § `__init__.py` files: it re-exports Click and Cloup symbols to serve as a drop-in replacement, which is the package's core design.
 
 ### What the MyST docstring converter cannot round-trip
 

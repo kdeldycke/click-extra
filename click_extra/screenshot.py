@@ -420,7 +420,7 @@ does not, through the two variables
 [cli-theme](https://wiki.tau.garden/cli-theme) `CLITHEME`, and `COLORFGBG`
 carrying `foreground;background` palette indices.
 
-So a CLI asking for [`--theme auto`](theme.md#automatic-background-detection)
+So a CLI asking for {ref}`--theme auto <automatic-background-detection>`
 renders for the chrome its picture is drawn on, instead of falling back to dark
 inside a light window. A CLI that never asks is unaffected: the variables only
 answer a question it does not put.

@@ -193,7 +193,7 @@ assert "\x1b[31m\x1b[2mrequired\x1b[0m" in result.output
 When choices are `Enum` members, Click Extra colorizes their `name` attribute (not their `value`), matching [Click's own behavior](types.md#limits-of-click-choice). Use [`EnumChoice`](types.md#enumchoice) if you need user-friendly choice strings based on values or custom representations.
 ```
 
-<a name="color-no-color-flag"></a>
+<a name="color-flag"></a>
 
 ## `--color` flag
 
@@ -283,6 +283,8 @@ In a [configuration file](config.md) the same string synonyms apply, and a nativ
 ```{caution}
 A configuration boolean diverges from [git's `color.ui`](https://git-scm.com/docs/git-config), where `true` means `auto`. Click Extra keeps `true` equal to `always` so the `yes` synonym and YAML's coercion of `yes` to `True` agree across file formats.
 ```
+
+<a name="accessible-flag"></a>
 
 ## `--accessible` flag
 

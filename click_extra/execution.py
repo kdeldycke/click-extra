@@ -841,7 +841,7 @@ def format_cli_prompt(
     :param theme: palette to style the line with. Defaults to the theme the
         current invocation runs under, which is what a CLI printing its own
         trace wants. A caller drawing the line onto a surface of its own choosing
-        (a light [capture](screenshots.md), say) passes the one that surface can
+        (a light {doc}`capture </screenshots>`, say) passes the one that surface can
         show.
     :param prompt: sigil to draw before the command, when the shell being
         pictured is not the one running. A capture mimicking a Windows terminal

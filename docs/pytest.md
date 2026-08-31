@@ -189,6 +189,8 @@ def isolate_user_config(isolated_app_dir):
     return isolated_app_dir
 ```
 
+<a name="assert-output-regex"></a>
+
 ### `assert_output_regex`
 
 {py:func}`~click_extra.pytest.assert_output_regex` compares output to a pattern line by line, and reports the first line that disagrees with a {py:func}`difflib.ndiff` diff pointing at the offending characters. It is the assertion form of {py:func}`~click_extra.testing.regex_fullmatch_line_by_line`, and the natural consumer of the [ready-made patterns](#ready-made-patterns):

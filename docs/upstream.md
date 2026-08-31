@@ -136,7 +136,7 @@ Open upstream, and fixed here:
 
 - [`rich#3576` - Underscores on the last captured line are clipped when exporting to SVG](https://github.com/Textualize/rich/issues/3576): the terminal's clip path is computed as `(rows + 1) × line_height - 1`, one pixel shorter than the text it contains, which cuts the descenders off the last line. Reported in 2024 with the fix named in the report; [`rich#3611`](https://github.com/Textualize/rich/pull/3611) and [`rich#3991`](https://github.com/Textualize/rich/pull/3991) both propose it and neither is merged, so `rich` `15.0.0` still ships it. `render_svg` sizes the clip to the text block.
 - [`rich#2742` - SVG font rendering too narrow for Asian language](https://github.com/Textualize/rich/issues/2742): a run's `textLength` is computed from its character count while its column advance uses terminal cells, so the two disagree for every glyph that is not exactly one cell. The error runs both ways. Chinese, Japanese, Hangul, fullwidth Latin and emoji are drawn at half their width and stack on each other; a decomposed `éàü` is drawn at twice its width, and a zero-width-joiner family emoji at two and a half times. Open since 2023. `render_svg` sizes both from {func}`click_extra.screenshot.cell_width`.
-- [`rich#2536` - Can we fix this render glitch in SVG output?](https://github.com/Textualize/rich/issues/2536): box-drawing characters do not meet cleanly, which the maintainer answers would need replacing them with drawn shapes. Open since 2022, and not addressed here either: click-extra's [tables](table.md) and [command tree](tree.md#command-tree) draw the same characters.
+- [`rich#2536` - Can we fix this render glitch in SVG output?](https://github.com/Textualize/rich/issues/2536): box-drawing characters do not meet cleanly, which the maintainer answers would need replacing them with drawn shapes. Open since 2022, and not addressed here either: click-extra's [tables](table.md) and [command tree](tree.md) draw the same characters.
 - [`rich#2279` - Misaligned box boundaries in SVG generated from a rich-click help dialogue](https://github.com/Textualize/rich/issues/2279): closed as *not planned* in 2022, the maintainer answering that a font whose glyphs are not all one width is the font's problem and a browser rendering difference is not Rich's to fix. Distinct from `rich#2536` above: that one is glyphs failing to meet at their seams, this one is column drift accumulating across a whole line wherever a renderer resolves font metrics differently, which is why the same file looked right in one browser and broken in another. Starting every run on its own column with a cell-sized `textLength` leaves drift nowhere to accumulate, whatever font a viewer substitutes.
 
 The same defect reaches the tools built on that exporter:
@@ -317,6 +317,8 @@ click-extra provides [ANSI-capable session lexers](pygments.md#ansi-language-lex
 - [`kitty#5482` - ANSI shell sessions in Sphinx documentation](https://github.com/kovidgoyal/kitty/discussions/5482)
 - [`sphinx-contrib/ansi#9` - ANSI Codes in output](https://github.com/sphinx-contrib/ansi/issues/9)
 - [`MyST-Parser#845` - Add an extension to support GitHub alerts](https://github.com/executablebooks/MyST-Parser/issues/845)
+
+<a name="sphinx-click-source-and-click-run-directives"></a>
 
 ### Sphinx `click:source` and `click:run` directives
 

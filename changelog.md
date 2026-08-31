@@ -31,6 +31,9 @@
 - Split the `Development` sidebar section into `Contributing`, `API reference` and `Project`.
 - Split the configuration documentation into five pages: the main page, plus discovery, formats, schema and validation.
 - Move the `python:*` and `matrix` Sphinx directives to a page of their own, and the Sphinx man-page hook to the man-page page.
+- Fix the dead API documentation links to the capture, theme, Carapace and `--help-format` pages.
+- Fix the documentation cross-references that did not jump to their section when a page is read on GitHub.
+- Repoint the install page at GitHub's current artifact attestations guide.
 
 ## [`9.0.0` (2026-08-29)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
 
