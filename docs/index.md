@@ -110,19 +110,31 @@ benchmark
 ```
 
 ```{toctree}
-:caption: Development
+:caption: Contributing
 :maxdepth: 2
 :hidden:
 contributing
 packaging
-API <click_extra>
+upstream
+code-of-conduct
+```
+
+```{toctree}
+:caption: API reference
+:maxdepth: 2
+:hidden:
+click_extra
 tests
 genindex
 modindex
+```
+
+```{toctree}
+:caption: Project
+:maxdepth: 2
+:hidden:
 changelog
-upstream
 todolist
-code-of-conduct
 license
 GitHub repository <https://github.com/kdeldycke/click-extra>
 Funding <https://github.com/sponsors/kdeldycke>

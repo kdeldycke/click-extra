@@ -28,6 +28,7 @@
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
 - Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
 - Regroup the remaining documentation pages under eight topical sidebar sections, instead of one flat list of 30 entries.
+- Split the `Development` sidebar section into `Contributing`, `API reference` and `Project`.
 - Split the configuration documentation into five pages: the main page, plus discovery, formats, schema and validation.
 - Move the `python:*` and `matrix` Sphinx directives to a page of their own, and the Sphinx man-page hook to the man-page page.
 
