@@ -1,11 +1,12 @@
 repo,metric,date,value,source
-https://github.com/BrianPugh/cyclopts,commit,2026-08-25,2026-08-22,sample
-https://github.com/BrianPugh/cyclopts,release,2026-08-25,2026-08-22,sample
+https://github.com/BrianPugh/cyclopts,commit,2026-09-01,2026-08-29,sample
+https://github.com/BrianPugh/cyclopts,release,2026-09-01,2026-08-26,sample
 https://github.com/BrianPugh/cyclopts,release_source,2026-08-18,release,sample
 https://github.com/BrianPugh/cyclopts,stars,2023-11-03,0,created
 https://github.com/BrianPugh/cyclopts,stars,2026-08-17,1232,sample
 https://github.com/BrianPugh/cyclopts,stars,2026-08-18,1232,sample
 https://github.com/BrianPugh/cyclopts,stars,2026-08-25,1238,sample
+https://github.com/BrianPugh/cyclopts,stars,2026-09-01,1241,sample
 https://github.com/brentyi/tyro,commit,2026-08-25,2026-08-23,sample
 https://github.com/brentyi/tyro,release,2026-08-25,2026-08-23,sample
 https://github.com/brentyi/tyro,release_source,2026-08-17,release,sample
@@ -13,6 +14,7 @@ https://github.com/brentyi/tyro,stars,2021-10-05,0,created
 https://github.com/brentyi/tyro,stars,2026-08-17,1098,sample
 https://github.com/brentyi/tyro,stars,2026-08-18,1098,sample
 https://github.com/brentyi/tyro,stars,2026-08-25,1100,sample
+https://github.com/brentyi/tyro,stars,2026-09-01,1103,sample
 https://github.com/clap-rs/clap,commit,2026-08-25,2026-08-20,sample
 https://github.com/clap-rs/clap,release,2026-08-17,2026-08-12,sample
 https://github.com/clap-rs/clap,release_source,2026-08-17,tag,sample
@@ -73,6 +75,7 @@ https://github.com/clap-rs/clap,stars,2026-08-11,16623,wayback
 https://github.com/clap-rs/clap,stars,2026-08-17,16640,sample
 https://github.com/clap-rs/clap,stars,2026-08-18,16641,sample
 https://github.com/clap-rs/clap,stars,2026-08-25,16660,sample
+https://github.com/clap-rs/clap,stars,2026-09-01,16681,sample
 https://github.com/datafolklabs/cement,commit,2026-08-17,2026-07-13,sample
 https://github.com/datafolklabs/cement,release,2026-08-17,2026-07-13,sample
 https://github.com/datafolklabs/cement,release_source,2026-08-17,release,sample
@@ -102,6 +105,7 @@ https://github.com/datafolklabs/cement,stars,2026-06-01,1344,wayback
 https://github.com/datafolklabs/cement,stars,2026-08-17,1349,sample
 https://github.com/datafolklabs/cement,stars,2026-08-18,1349,sample
 https://github.com/datafolklabs/cement,stars,2026-08-25,1349,sample
+https://github.com/datafolklabs/cement,stars,2026-09-01,1348,sample
 https://github.com/ewels/rich-click,commit,2026-08-17,2026-08-12,sample
 https://github.com/ewels/rich-click,release,2026-08-17,2026-05-28,sample
 https://github.com/ewels/rich-click,release_source,2026-08-17,release,sample
@@ -109,13 +113,15 @@ https://github.com/ewels/rich-click,stars,2022-02-09,0,created
 https://github.com/ewels/rich-click,stars,2026-08-17,817,sample
 https://github.com/ewels/rich-click,stars,2026-08-18,817,sample
 https://github.com/ewels/rich-click,stars,2026-08-25,817,sample
-https://github.com/fastapi/typer,commit,2026-08-17,2026-08-12,sample
-https://github.com/fastapi/typer,release,2026-08-17,2026-08-03,sample
+https://github.com/ewels/rich-click,stars,2026-09-01,817,sample
+https://github.com/fastapi/typer,commit,2026-09-01,2026-08-28,sample
+https://github.com/fastapi/typer,release,2026-09-01,2026-08-28,sample
 https://github.com/fastapi/typer,release_source,2026-08-17,release,sample
 https://github.com/fastapi/typer,stars,2019-12-24,0,created
 https://github.com/fastapi/typer,stars,2026-08-17,19897,sample
 https://github.com/fastapi/typer,stars,2026-08-18,19902,sample
 https://github.com/fastapi/typer,stars,2026-08-25,19919,sample
+https://github.com/fastapi/typer,stars,2026-09-01,19941,sample
 https://github.com/google/python-fire,commit,2026-08-17,2025-08-16,sample
 https://github.com/google/python-fire,release,2026-08-17,2025-08-16,sample
 https://github.com/google/python-fire,release_source,2026-08-17,release,sample
@@ -123,6 +129,7 @@ https://github.com/google/python-fire,stars,2017-02-21,0,created
 https://github.com/google/python-fire,stars,2026-08-17,28208,sample
 https://github.com/google/python-fire,stars,2026-08-18,28206,sample
 https://github.com/google/python-fire,stars,2026-08-25,28204,sample
+https://github.com/google/python-fire,stars,2026-09-01,28209,sample
 https://github.com/janluke/cloup,commit,2026-08-17,2026-07-21,sample
 https://github.com/janluke/cloup,release,2026-08-17,2026-05-26,sample
 https://github.com/janluke/cloup,release_source,2026-08-17,release,sample
@@ -138,8 +145,9 @@ https://github.com/janluke/cloup,stars,2026-01-02,125,wayback
 https://github.com/janluke/cloup,stars,2026-08-17,132,sample
 https://github.com/janluke/cloup,stars,2026-08-18,132,sample
 https://github.com/janluke/cloup,stars,2026-08-25,133,sample
-https://github.com/kdeldycke/click-extra,commit,2026-08-25,2026-08-21,sample
-https://github.com/kdeldycke/click-extra,release,2026-08-17,2026-08-15,sample
+https://github.com/janluke/cloup,stars,2026-09-01,133,sample
+https://github.com/kdeldycke/click-extra,commit,2026-09-01,2026-09-01,sample
+https://github.com/kdeldycke/click-extra,release,2026-09-01,2026-08-29,sample
 https://github.com/kdeldycke/click-extra,release_source,2026-08-17,release,sample
 https://github.com/kdeldycke/click-extra,stars,2021-10-18,0,created
 https://github.com/kdeldycke/click-extra,stars,2021-12-07,1,github
@@ -254,6 +262,8 @@ https://github.com/kdeldycke/click-extra,stars,2026-07-18,120,github
 https://github.com/kdeldycke/click-extra,stars,2026-08-17,120,sample
 https://github.com/kdeldycke/click-extra,stars,2026-08-18,120,sample
 https://github.com/kdeldycke/click-extra,stars,2026-08-25,120,sample
+https://github.com/kdeldycke/click-extra,stars,2026-08-29,121,github
+https://github.com/kdeldycke/click-extra,stars,2026-09-01,122,github
 https://github.com/pacak/bpaf,commit,2026-08-17,2026-07-29,sample
 https://github.com/pacak/bpaf,release,2026-08-17,2026-07-29,sample
 https://github.com/pacak/bpaf,release_source,2026-08-17,tag,sample
@@ -275,9 +285,10 @@ https://github.com/pacak/bpaf,stars,2026-02-08,423,wayback
 https://github.com/pacak/bpaf,stars,2026-08-17,451,sample
 https://github.com/pacak/bpaf,stars,2026-08-18,451,sample
 https://github.com/pacak/bpaf,stars,2026-08-25,455,sample
-https://github.com/pallets/click,commit,2026-08-25,2026-08-25,sample
-https://github.com/pallets/click,release,2026-08-25,2026-08-22,sample
-https://github.com/pallets/click,release_source,2026-08-25,tag,sample
+https://github.com/pacak/bpaf,stars,2026-09-01,459,sample
+https://github.com/pallets/click,commit,2026-09-01,2026-08-27,sample
+https://github.com/pallets/click,release,2026-09-01,2026-08-27,sample
+https://github.com/pallets/click,release_source,2026-09-01,release,sample
 https://github.com/pallets/click,stars,2014-04-24,0,created
 https://github.com/pallets/click,stars,2014-04-25,673,github
 https://github.com/pallets/click,stars,2014-04-26,711,github
@@ -4541,6 +4552,7 @@ https://github.com/pallets/click,stars,2026-08-15,17624,github
 https://github.com/pallets/click,stars,2026-08-17,17626,github
 https://github.com/pallets/click,stars,2026-08-18,17626,sample
 https://github.com/pallets/click,stars,2026-08-25,17633,sample
+https://github.com/pallets/click,stars,2026-09-01,17647,sample
 https://github.com/spf13/cobra,commit,2026-08-17,2026-07-11,sample
 https://github.com/spf13/cobra,release,2026-08-17,2025-12-04,sample
 https://github.com/spf13/cobra,release_source,2026-08-17,release,sample
@@ -4567,3 +4579,4 @@ https://github.com/spf13/cobra,stars,2023-04-06,31366,wayback
 https://github.com/spf13/cobra,stars,2026-08-17,44454,sample
 https://github.com/spf13/cobra,stars,2026-08-18,44459,sample
 https://github.com/spf13/cobra,stars,2026-08-25,44502,sample
+https://github.com/spf13/cobra,stars,2026-09-01,44550,sample
