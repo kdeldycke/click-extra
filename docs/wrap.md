@@ -1,6 +1,42 @@
 # {octicon}`terminal` CLI wrapper
 
-Click Extra's `wrap` subcommand runs any installed Click CLI through Click Extra, without modifying the target's source code. By default it applies help colorization, useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling. With `--params`, `--man` or `--tree`, it instead loads the target and [describes it](#introspecting-external-clis) without running it, and with `--help-format` it renders the target as an artifact for a program or a build step.
+Click Extra's `wrap` subcommand runs any installed Click CLI through Click Extra, without modifying the target's source code. Its main use is introspection: `--params` loads the target and [describes it](#introspecting-external-clis) without running it, so you can inspect any Click CLI, yours or a third party's. It also applies help colorization, useful for previewing how a third-party CLI would look with Click Extra's keyword highlighting and themed styling, and `--help-format` renders the target as an artifact for a program or a build step.
+
+## Introspect any Click CLI
+
+The `--params` flag turns `wrap` into a read-only inspector. It loads any Click CLI without running it, and prints a table of every parameter. Here is Flask's `run` subcommand, its parameters listed with the spec a user types and the default each one falls back to:
+
+```{click:source}
+:hide-source:
+from click_extra.cli import demo
+```
+
+```{click:run}
+:screenshot: wrap-flask-params-screen
+:hide-results:
+result = invoke(demo, args=["wrap", "--params", "--columns", "id,spec,default", "--", "flask", "run"])
+assert result.exit_code == 0
+assert "run.port" in result.output
+```
+
+![Flask's `run` subcommand in a terminal window, its parameters listed by the wrapper](assets/wrap-flask-params-screen.svg)
+
+You can produce this table in your own terminal, without installing Click Extra:
+
+```shell-session
+$ uvx --with flask click-extra wrap --params --columns id,spec,default -- flask run
+```
+
+Each part of the command above:
+
+- `--params` introspects the target instead of running it.
+- `--columns id,spec,default` restricts the table to each parameter's ID, its command-line spec, and its default.
+- `--` separates Click Extra's options from the target CLI and its subcommand path.
+- `--with flask` pulls the target into `uvx`'s ephemeral environment, since the wrapper imports it in-process (see [Dependencies of the wrapped CLI](#dependencies-of-the-wrapped-cli)).
+
+This is the main use case: answering questions about a CLI you did not write. The table shows the default of each parameter, the environment variables that reach it, and the options the help screen hides. All of it comes without reading the target's source or running it. The same inspection serves your own CLI in a bug report or a support thread: paste the one-liner, and the reader sees your parameter surface exactly as Click parsed it.
+
+Every introspection mode follows the same contract. [Introspecting external CLIs](#introspecting-external-clis) below documents the full table, the `value` and `source` columns, and the `--man`, `--tree` and `--help-format` modes.
 
 ## Usage
 
@@ -275,11 +311,10 @@ assert "FLASK_RUN_PORT" in result.output
 
 ### Restricting columns
 
-Pass `--columns` a comma-separated list of column IDs to restrict and reorder the table, SQL `SELECT`-style:
+Pass `--columns` a comma-separated list of column IDs to restrict and reorder the table, SQL `SELECT`-style. The [opening example](#introspect-any-click-cli) selects `id,spec,default`; reordered, the same table runs `spec` first:
 
 ```{click:run}
-:screenshot: wrap-flask-params-screen
-result = invoke(demo, args=["wrap", "--params", "--columns", "id,spec,default", "--", "flask", "run"])
+result = invoke(demo, args=["wrap", "--params", "--columns", "spec,id,default", "--", "flask", "run"])
 assert result.exit_code == 0
 assert "run.port" in result.output
 ```

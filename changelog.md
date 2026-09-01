@@ -37,6 +37,7 @@
 - Fix the documentation cross-references that did not jump to their section when a page is read on GitHub.
 - Repoint the install page at GitHub's current artifact attestations guide.
 - Document how to search a [platformdirs](https://github.com/tox-dev/platformdirs) folder layout, by passing a computed pattern to `--config`'s default.
+- Lead the `wrap` documentation with the `--params` introspection example, its terminal capture and the `uvx` one-liner that produces it.
 
 ## [`9.0.0` (2026-08-29)](https://github.com/kdeldycke/click-extra/compare/v8.9.1...v9.0.0)
 
