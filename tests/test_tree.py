@@ -150,6 +150,16 @@ def test_render_tree_theme_styling():
     ) in tree
 
 
+def test_render_tree_paints_the_deprecation_label():
+    """The marker takes the slot the help screen paints it with.
+
+    A description reaches the tree already carrying Click's label, and it is the
+    only part of a node the name-and-metavar pass does not style.
+    """
+    theme = get_current_theme()
+    assert theme.deprecated("(DEPRECATED)") in render_command_tree(observatory)
+
+
 def test_render_tree_wraps_descriptions():
     """Long descriptions wrap in the aligned column, rail running through."""
     tree = unstyle(render_command_tree(harbor, width=60))

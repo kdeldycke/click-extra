@@ -50,6 +50,7 @@ import cloup
 from wcwidth import wcswidth
 
 from . import context
+from .highlight import DEPRECATED_RE, highlight
 from .parameters import (
     ExtraOption,
     full_short_help,
@@ -200,8 +201,8 @@ def render_command_tree(
     {func}`~click_extra.parameters.full_short_help`, so deprecated commands
     carry Click's own `(DEPRECATED)` label. Everything is styled with the same
     theme slots as help screens (`invoked_command` for the root,
-    `subcommand` and `alias` for children, `metavar` for operands), so
-    the tree follows `--theme` and `--color`. The rail switches from
+    `subcommand` and `alias` for children, `metavar` for operands,
+    `deprecated` for that label), so the tree follows `--theme` and `--color`. The rail switches from
     box-drawing to ASCII when accessibility mode is active on the context
     (see {data}`~click_extra.context.ACCESSIBLE`).
 
@@ -261,6 +262,12 @@ def render_command_tree(
         line = rail + styled
         row_width = max(wcswidth(rail + plain), 0)
         wrapped = textwrap.wrap(help_text, width=desc_width) if help_text else []
+        # Painted after wrapping, so the escapes never count toward the column
+        # width, and a marker the wrap split across two lines keeps its own
+        # halves rather than gaining a stray escape in the middle.
+        wrapped = [
+            highlight(part, [DEPRECATED_RE], theme.deprecated) for part in wrapped
+        ]
         cont_pad = " " * (desc_column - max(wcswidth(cont), 0))
         if wrapped and row_width + COLUMN_GAP > desc_column:
             # Label wider than the description column: keep it on its own

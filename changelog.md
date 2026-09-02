@@ -35,6 +35,7 @@
 - Fix an argument declared with a plain `click.argument(help=...)` drawing a blank `Positional arguments` entry on the help screen, while every other render carried its text.
 - Fix a deprecated command showing Cloup's `(Deprecated)` prefix and dropping the reason string: it now carries Click's own `(DEPRECATED: reason)` marker, on the help screen and in `--tree`, the man page, the JSON export and the completion specs.
 - Fix a `MulticallGroup` and a `VersionOption` failing to copy on Python 3.10 with Click 8.4, which raised `ValueError: <object object> is not a valid Sentinel`.
+- Paint a deprecated command's `(DEPRECATED)` label in `--tree` with the `deprecated` theme slot, as the help screen already does.
 - Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
 - Regroup the remaining documentation pages under eight topical sidebar sections, instead of one flat list of 30 entries.
 - Split the `Development` sidebar section into `Contributing`, `API reference` and `Project`.

@@ -54,7 +54,7 @@ assert "└── " in result.stdout
 assert "diagnose" not in result.stdout
 ```
 
-The rendering mirrors help screens: subcommands are discovered dynamically (so lazily-registered commands are included), listed in the same order, hidden ones are skipped, aliases are parenthesized, operand metavars follow each name like on the usage line (`report CITY`), and deprecated commands carry Click's own `(DEPRECATED)` label. Descriptions are column-aligned and wrap at the terminal width, with the tree rail running through the wrapped lines. Everything is styled with the same [theme slots](theme.md) as help screens (`invoked_command` for the root, `subcommand` and `alias` below, `metavar` for operands), so the tree follows `--theme` and `--color` like every other output.
+The rendering mirrors help screens: subcommands are discovered dynamically (so lazily-registered commands are included), listed in the same order, hidden ones are skipped, aliases are parenthesized, operand metavars follow each name like on the usage line (`report CITY`), and deprecated commands carry Click's own `(DEPRECATED)` label. Descriptions are column-aligned and wrap at the terminal width, with the tree rail running through the wrapped lines. Everything is styled with the same [theme slots](theme.md) as help screens (`invoked_command` for the root, `subcommand` and `alias` below, `metavar` for operands, `deprecated` for that label), so the tree follows `--theme` and `--color` like every other output.
 
 Options are deliberately absent from the tree: their exhaustive inventory is [`--params`](parameters.md#params-option)' job.
 

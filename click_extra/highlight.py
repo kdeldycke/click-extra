@@ -47,6 +47,19 @@ if TYPE_CHECKING:
     from cloup.styling import IStyle
 
 
+DEPRECATED_RE = re.compile(r"\(deprecated(?::\s[^)]+)?\)", re.IGNORECASE)
+"""Matches `(DEPRECATED)` and `(DEPRECATED: reason)` markers, whatever their case.
+
+The canonical spelling comes from Click's shared `_format_deprecated_label`
+helper; the case-insensitive flag also catches the variants a CLI author writes
+by hand in a help string.
+
+Read by the help screen through {attr}`HelpFormatter._deprecated_re` and by
+{func}`~click_extra.tree.render_tree`, so one marker is painted the same
+wherever a command's description is drawn.
+"""
+
+
 @dataclass
 class HelpKeywords:
     """Structured collection of keywords extracted from a Click context for
@@ -413,14 +426,8 @@ class HelpFormatter(cloup.HelpFormatter):
     _envvar_re: ClassVar[re.Pattern] = re.compile(r"(env\s+var:\s+)(.*)", re.DOTALL)
     _default_re: ClassVar[re.Pattern] = re.compile(r"(default:\s+)(.*)", re.DOTALL)
 
-    #: Matches `(DEPRECATED)` and `(DEPRECATED: reason)` markers, regardless
-    #: of casing. The canonical upstream format is produced by Click's shared
-    #: `_format_deprecated_label` helper; the case-insensitive flag also
-    #: catches manually-written variants in custom help strings.
-    _deprecated_re: ClassVar[re.Pattern] = re.compile(
-        r"\(deprecated(?::\s[^)]+)?\)",
-        re.IGNORECASE,
-    )
+    #: The marker pattern the help screen paints, see {data}`DEPRECATED_RE`.
+    _deprecated_re: ClassVar[re.Pattern] = DEPRECATED_RE
 
     def _bracket_or(self, slot_name: str) -> IStyle:
         """Return `theme.<slot_name>` or fall back to `theme.bracket`.
