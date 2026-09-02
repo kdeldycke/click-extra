@@ -53,6 +53,7 @@ from click_extra.commands import (
     default_params,
 )
 from click_extra.parameters import (
+    full_short_help,
     iter_params_for_display,
     iter_subcommands,
     make_resilient_context,
@@ -1703,6 +1704,43 @@ def test_argument_help_agrees_across_renderers(invoke, argument_decorator):
 
     doc = json.loads(invoke(forecast, "--help-format", "json", color=False).stdout)
     assert doc["arguments"] == [{"metavar": "CITY", "help": "City to forecast."}]
+
+
+@pytest.mark.parametrize(
+    ("deprecated", "label"),
+    (
+        pytest.param(True, "(DEPRECATED)", id="bool"),
+        pytest.param(
+            "use `forecast` instead",
+            "(DEPRECATED: use `forecast` instead)",
+            id="reason",
+        ),
+    ),
+)
+def test_deprecated_command_label_matches_click(invoke, deprecated, label):
+    """A deprecated command carries Click's own marker, reason string included.
+
+    Cloup prefixes `(Deprecated) ` to the description, a form Click left behind in
+    8.2.0 and which has nowhere to put the reason a `deprecated` string carries.
+    See https://github.com/janluke/cloup/issues/211.
+
+    The marker is checked on the help screen and on
+    {func}`~click_extra.parameters.full_short_help`, which feeds `--tree`, the man
+    page, the JSON export and the completion specs.
+    """
+
+    @command(params=[], deprecated=deprecated)
+    def legacy():
+        """Show the weather forecast."""
+
+    @click.command(deprecated=deprecated)
+    def reference():
+        """Show the weather forecast."""
+
+    expected = f"Show the weather forecast. {label}"
+    assert expected in invoke(legacy, "--help", color=False).stdout
+    assert expected in invoke(reference, "--help", color=False).stdout
+    assert full_short_help(legacy) == expected
 
 
 def test_every_default_option_lands_in_a_section():

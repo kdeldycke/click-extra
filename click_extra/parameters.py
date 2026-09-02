@@ -30,7 +30,7 @@ import cloup
 from boltons.pathutils import shrinkuser
 from click import ParamType, get_current_context
 from click._utils import UNSET
-from click.core import ParameterSource
+from click.core import ParameterSource, _format_deprecated_label
 from deepmerge import always_merger
 
 from . import context
@@ -156,7 +156,8 @@ def full_short_help(command: click.Command) -> str:
 
     The lookup mirrors Click's order: an explicit `short_help` wins, otherwise the
     first paragraph of `command.help` is joined into one line. A truthy
-    `deprecated` flag prepends `(Deprecated)` so the flag stays visible.
+    `deprecated` flag appends Click's own label, so a listing reads the same
+    marker Click's `get_short_help_str()` produces, reason string included.
     """
     if command.short_help:
         text = command.short_help.strip()
@@ -169,7 +170,8 @@ def full_short_help(command: click.Command) -> str:
     else:
         text = ""
     if command.deprecated:
-        text = f"(Deprecated) {text}".strip()
+        label = _format_deprecated_label(command.deprecated)
+        text = f"{text} {label}".strip()
     return text
 
 

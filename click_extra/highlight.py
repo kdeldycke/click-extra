@@ -25,6 +25,7 @@ resolution.
 
 from __future__ import annotations
 
+import inspect
 import re
 from dataclasses import dataclass, field, fields
 from enum import Enum
@@ -32,6 +33,7 @@ from functools import lru_cache
 
 import click
 import cloup
+from click.core import _format_deprecated_label
 from cloup._util import identity
 
 from . import theme as _theme
@@ -691,6 +693,32 @@ class HelpFormatter(cloup.HelpFormatter):
             help_text = help_text.replace(key, styled)
 
         return help_text
+
+    def write_command_help_text(self, cmd: click.Command) -> None:
+        """Draw the command's description, with Click's deprecation label.
+
+        Reimplements `cloup.HelpFormatter.write_command_help_text`, which prefixes
+        `(Deprecated) ` to the description. Click 8.2.0 moved that marker to a
+        suffix built by `_format_deprecated_label`, and gave `deprecated` a `str`
+        form carrying a reason the prefix has nowhere to put. See
+        https://github.com/janluke/cloup/issues/211.
+
+        Reusing Click's own helper keeps one marker across the whole screen: the
+        options already carry it through `Option.get_help_record`, and
+        {attr}`HelpFormatter._deprecated_re` highlights that spelling.
+        """
+        help_text = cmd.help or ""
+        if help_text:
+            help_text = inspect.cleandoc(help_text).partition("\f")[0]
+
+        if cmd.deprecated:
+            label = _format_deprecated_label(cmd.deprecated)
+            help_text = f"{help_text} {label}" if help_text else label
+
+        if help_text:
+            self.write_paragraph()
+            with self.indentation():
+                self.write_text(help_text, style=self.theme.command_help)
 
     def getvalue(self) -> str:
         """Wrap original `Click.HelpFormatter.getvalue()` to force extra-colorization on

@@ -74,7 +74,7 @@ OBSERVATORY_TREE = (
     "├── station (st)                Manage remote weather stations.\n"
     "│   ├── calibrate               Recalibrate the sensors.\n"
     "│   ├── help [COMMAND_PATH]...  Show help for a command.\n"
-    "│   └── reboot                  (Deprecated) Power-cycle the station.\n"
+    "│   └── reboot                  Power-cycle the station. (DEPRECATED)\n"
     "└── status                      Report the current conditions."
 )
 """Expected unstyled tree of the ``observatory`` fixture CLI.
