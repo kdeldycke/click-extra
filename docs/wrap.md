@@ -19,7 +19,7 @@ assert result.exit_code == 0
 assert "run.port" in result.output
 ```
 
-![Flask's `run` subcommand in a terminal window, its parameters listed by the wrapper](assets/wrap-flask-params-screen.svg)
+![Flask's  subcommand in a terminal window, its parameters listed by the wrapper](assets/wrap-flask-params-screen.svg)
 
 You can produce this table in your own terminal, without installing Click Extra:
 
