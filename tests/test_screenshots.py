@@ -35,7 +35,7 @@ import os
 import re
 import shutil
 import sys
-from html import unescape
+from html import escape, unescape
 from itertools import combinations, pairwise
 from pathlib import Path
 from typing import NamedTuple
@@ -976,7 +976,7 @@ def test_screenshot_record_types_its_prompt(invoke, tmp_path):
         found = re.search(r"frames=(\d+)", target.read_text(encoding="UTF-8"))
         assert found
         counts[name] = int(found.group(1))
-    assert counts["typed"] - counts["plain"] == len("$ basket ripen")
+    assert counts["typed"] - counts["plain"] == len(f"{PROMPT}basket ripen")
 
 
 def test_auto_columns_leaves_room_for_a_cursor():
@@ -1002,8 +1002,11 @@ def test_a_closing_prompt_belongs_to_the_last_frame_alone():
     drawn once, so an unclosed animation shows its opening sigil a single time
     and each closed frame adds one of its own: measured at 1, 2 and 5 here.
     """
-    opening = f"{Style(fg='bright_black')('$')} basket ripen"
+    sigil = PROMPT.strip()
+    opening = f"{Style(fg='bright_black')(sigil)} basket ripen"
     frames = tuple(f"{opening}\n{bar}" for bar in ("[", "[#", "[##", "[###\nripe\n"))
+    # Windows draws `>` there, which the SVG spells as a character reference.
+    drawn = f">{escape(sigil, quote=False)}</text>"
 
     def sigils(pictures):
         return render_svg(
@@ -1012,7 +1015,7 @@ def test_a_closing_prompt_belongs_to_the_last_frame_alone():
             frames=pictures,
             interval=0.1,
             cursor=Cursor(),
-        ).count(">$</text>")
+        ).count(drawn)
 
     assert sigils(frames) == 1
     assert sigils((*frames[:-1], append_prompt(frames[-1]))) == 2
@@ -1022,9 +1025,11 @@ def test_a_closing_prompt_belongs_to_the_last_frame_alone():
 @pytest.mark.parametrize(
     ("text", "expected"),
     (
-        pytest.param("shelved\n", "shelved\n$ ", id="fills-the-row-the-newline-opened"),
-        pytest.param("shelved", "shelved\n$ ", id="opens-a-row-when-mid-line"),
-        pytest.param("", "\n$ ", id="an-empty-screen-still-prompts"),
+        pytest.param(
+            "shelved\n", f"shelved\n{PROMPT}", id="fills-the-row-the-newline-opened"
+        ),
+        pytest.param("shelved", f"shelved\n{PROMPT}", id="opens-a-row-when-mid-line"),
+        pytest.param("", f"\n{PROMPT}", id="an-empty-screen-still-prompts"),
     ),
 )
 def test_append_prompt_closes_a_finished_screen(text, expected):
@@ -1076,7 +1081,9 @@ def test_screenshot_closes_a_still_with_a_prompt(invoke, tmp_path):
         ],
     )
     assert result.exit_code == 0, result.output
-    assert svg_to_lines(target.read_text(encoding="UTF-8"))[-1].strip() == "$"
+    assert (
+        svg_to_lines(target.read_text(encoding="UTF-8"))[-1].strip() == PROMPT.strip()
+    )
 
 
 @pytest.mark.parametrize(
@@ -1118,9 +1125,13 @@ def test_animated_capture_resolves_an_auto_hold():
 
 
 def test_animated_capture_rejects_an_unknown_hold_word():
+    """A word the annotation forbids still has to fail loudly at runtime."""
     with pytest.raises(ValueError, match="not a hold"):
         render_svg(
-            columns=20, frames=("one pear", "two pears"), interval=0.1, hold="forever"
+            columns=20,
+            frames=("one pear", "two pears"),
+            interval=0.1,
+            hold="forever",  # type: ignore[arg-type]
         )
 
 
