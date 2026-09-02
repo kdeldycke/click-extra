@@ -132,15 +132,25 @@ def _flag_key(
     value: bool,
     optarg: bool = False,
     repeatable: bool = False,
+    hidden: bool = False,
 ) -> str:
     """Build a Carapace flag key from option spellings and modifiers.
 
     Reproduces `carapace-spec`'s own `Flag.format()` grammar: the short
     spelling first, then the long spelling joined by `", "`, then `?` for an
-    optional value or `=` for a mandatory one, then a trailing `*` when the
-    flag is repeatable. So a plain switch is `--foo`, a valued option
-    `--foo=`, an optional-value option `--foo?`, a counter `--foo*` and a
-    repeatable valued option `--foo=*`.
+    optional value or `=` for a mandatory one, then `*` when the flag is
+    repeatable and `&` when it is hidden. So a plain switch is `--foo`, a
+    valued option `--foo=`, an optional-value option `--foo?`, a counter
+    `--foo*`, a repeatable valued option `--foo=*` and a hidden one `--foo&`.
+
+    The modifiers are emitted in that order because upstream writes them that
+    way; its parser reads them as a set, so any order round-trips.
+
+    ```{todo}
+    Carapace also spells a mandatory flag `!`, which nothing here emits yet: a
+    Click option carrying `required=True` reaches the spec indistinguishable
+    from an optional one.
+    ```
     """
     short, long = short_long_opts(opts)
     key = short
@@ -153,6 +163,8 @@ def _flag_key(
         key += "="
     if repeatable:
         key += "*"
+    if hidden:
+        key += "&"
     return key
 
 
@@ -299,6 +311,45 @@ class CarapaceCompletion:
 
 
 @dataclass
+class CarapaceDocumentation:
+    """The `documentation` block of a command: prose the spec has no other slot for.
+
+    Carapace keys a flag's own description off `flags`, and leaves an operand
+    with nowhere to carry one: `completion.positional` holds actions, not text.
+    This block is where the upstream schema puts that prose, indexed the same
+    way, so `carapace --style` and the spec's own readers can show what an
+    operand means.
+
+    Only the two members Click can fill are modeled. The schema also carries
+    `command`, `flag`, `dash` and `dashany`: the first two would restate what
+    `description` and `flags` already say, and Click has no `--`-separated
+    argument family to feed the last two.
+    """
+
+    positional: list[str] = field(default_factory=list)
+    """Per-position help text for fixed-arity arguments, in order."""
+
+    positionalany: str = ""
+    """Help text for the trailing variadic argument."""
+
+    def to_dict(self) -> dict:
+        """Serialize to the `carapace-spec` `documentation` mapping.
+
+        Drops empty members and trailing undocumented slots, keeping the
+        surviving ones index-aligned with `completion.positional`.
+        """
+        out: dict = {}
+        positional = list(self.positional)
+        while positional and not positional[-1]:
+            positional.pop()
+        if positional:
+            out["positional"] = positional
+        if self.positionalany:
+            out["positionalany"] = self.positionalany
+        return out
+
+
+@dataclass
 class CarapaceCommand:
     """One node of a Carapace spec: a command and its flags, completions and
     subcommands, mirroring the upstream `Command` schema."""
@@ -327,6 +378,9 @@ class CarapaceCommand:
     completion: CarapaceCompletion = field(default_factory=CarapaceCompletion)
     """Static and dynamic completion actions for this command's parameters."""
 
+    documentation: CarapaceDocumentation = field(default_factory=CarapaceDocumentation)
+    """Prose for the operands, which carry theirs nowhere else in the spec."""
+
     commands: list[CarapaceCommand] = field(default_factory=list)
     """Nested subcommands."""
 
@@ -352,6 +406,9 @@ class CarapaceCommand:
         completion = self.completion.to_dict()
         if completion:
             out["completion"] = completion
+        documentation = self.documentation.to_dict()
+        if documentation:
+            out["documentation"] = documentation
         if self.commands:
             out["commands"] = [sub.to_dict() for sub in self.commands]
         return out
@@ -425,15 +482,27 @@ def _add_option(
     value = kind != "flag"
     optarg = kind == "optional"
     repeatable = is_repeatable(param)
+    hidden = bool(getattr(param, "hidden", False))
 
-    flags[_flag_key(param.opts, value=value, optarg=optarg, repeatable=repeatable)] = (
-        description
-    )
+    flags[
+        _flag_key(
+            param.opts,
+            value=value,
+            optarg=optarg,
+            repeatable=repeatable,
+            hidden=hidden,
+        )
+    ] = description
     # Boolean flags expose their negative spelling as a separate switch.
     if getattr(param, "secondary_opts", None):
-        flags[_flag_key(param.secondary_opts, value=False, repeatable=False)] = (
-            description
-        )
+        flags[
+            _flag_key(
+                param.secondary_opts,
+                value=False,
+                repeatable=False,
+                hidden=hidden,
+            )
+        ] = description
 
     if value:
         short, long = short_long_opts(param.opts)
@@ -474,14 +543,21 @@ def extract_carapace_command(
     )
 
     positional: list[list[str]] = []
+    positional_docs: list[str] = []
     persistent_spellings = set(inherited_opts)
     for param in iter_params_for_display(command, ctx):
         if isinstance(param, click.Argument):
             action = _param_action(param, command_path)
+            # One entry per slot the operand occupies, so the documentation
+            # stays index-aligned with the actions beside it.
+            doc = _clean_description(resolve_param_help(param, ctx))
             if param.nargs == -1:
                 node.completion.positionalany = action
+                node.documentation.positionalany = doc
             else:
-                positional.extend([action] * max(param.nargs, 1))
+                slots = max(param.nargs, 1)
+                positional.extend([action] * slots)
+                positional_docs.extend([doc] * slots)
             continue
 
         if is_root and set(param.opts) <= default_opts:
@@ -496,6 +572,7 @@ def extract_carapace_command(
             _add_option(node, param, ctx, persistent=False, command_path=command_path)
 
     node.completion.positional = positional
+    node.documentation.positional = positional_docs
     node.exclusiveflags = _exclusive_flag_groups(command)
 
     child_inherited = frozenset(persistent_spellings)

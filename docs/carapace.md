@@ -155,6 +155,40 @@ $ FLASK_APP=myapp uvx --from "click-extra[carapace]" --with flask click-extra wr
 
 The `flask --app` option cannot stand in here: the spec is built without running Flask's own argument parsing, so the application must be discoverable from the environment or the working directory.
 
+## Hidden commands and options
+
+A hidden command or option stays in the spec, marked hidden. Everything else Click Extra renders drops it: the help screen, the [man page](man-page.md), the Markdown document and the JSON export all leave it out.
+
+Completion is not documentation, which is what splits the two. A hidden parameter still works when it is typed, so a completer that omits it makes the CLI look smaller than it is, and the person who already knows the flag gets no help finishing it. The marker keeps that reachable without advertising it: Carapace hides the entry from its listings and still completes it.
+
+A command carries `hidden: true`, and a flag takes a trailing `&`:
+
+```{click:source}
+from click_extra import command, option
+
+@command
+@option("--basket", help="Where to put the fruit.")
+@option("--crate", hidden=True, help="Internal crate routing.")
+def pick(basket, crate):
+    """Pick the ripe fruit."""
+```
+
+```{click:run}
+result = invoke(pick, args=["--help-format", "carapace"])
+assert result.exit_code == 0
+assert "--basket=: Where to put the fruit." in result.stdout
+assert "--crate=&: Internal crate routing." in result.stdout
+```
+
+The same `--help` screen names only the visible one:
+
+```{click:run}
+result = invoke(pick, args=["--help"])
+assert result.exit_code == 0
+assert "--basket" in result.stdout
+assert "crate" not in result.stdout
+```
+
 ## Static and dynamic completion
 
 Two strategies cooperate, and the generator picks per parameter:

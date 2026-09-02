@@ -150,6 +150,34 @@ def test_flag_key_grammar(opts, value, optarg, repeatable, expected):
 
 
 @pytest.mark.parametrize(
+    ("opts", "value", "repeatable", "expected"),
+    [
+        (["--foo"], False, False, "--foo&"),
+        (["--foo"], True, False, "--foo=&"),
+        (["--foo"], True, True, "--foo=*&"),
+    ],
+)
+def test_hidden_flag_key_carries_the_modifier(opts, value, repeatable, expected):
+    """A hidden flag is exported marked, never silently.
+
+    Carapace completes what a spec lists, so a hidden option stays reachable
+    like a hidden command does; `&` is what keeps a reader able to tell.
+    """
+    assert _flag_key(opts, value=value, repeatable=repeatable, hidden=True) == expected
+
+
+def test_hidden_option_is_exported_and_marked():
+    @click_extra.command
+    @click_extra.option("--secret", hidden=True, help="Never shown.")
+    def pick(secret):
+        """Pick the ripe fruit."""
+
+    spec = to_carapace_spec(pick, prog_name="pick")
+    assert spec["flags"] == {"--secret=&": "Never shown."}
+    jsonschema.validate(spec, CARAPACE_SCHEMA)
+
+
+@pytest.mark.parametrize(
     ("opts", "expected"),
     [
         (["--table-format"], "table-format"),
@@ -171,6 +199,55 @@ def test_root_description():
 
 def test_count_flag_is_repeatable():
     assert "-v, --verbose*" in FORECAST["flags"]
+
+
+def test_operand_help_reaches_the_documentation_block():
+    """An operand's help has one home in the spec, and it is not `completion`.
+
+    `completion.positional` holds actions, so the prose rides the sibling
+    `documentation` block, indexed the same way.
+    """
+
+    @click_extra.command
+    @click_extra.argument("city", help="City to forecast.")
+    @click_extra.argument("files", nargs=-1, help="Files to read.")
+    def forecast(city, files):
+        """Show the weather forecast."""
+
+    spec = to_carapace_spec(forecast, prog_name="forecast")
+    assert spec["documentation"] == {
+        "positional": ["City to forecast."],
+        "positionalany": "Files to read.",
+    }
+    jsonschema.validate(spec, CARAPACE_SCHEMA)
+
+
+def test_undocumented_operand_leaves_no_documentation_block():
+    """Nothing to say means no block at all, rather than a row of blanks."""
+
+    @click_extra.command
+    @click_extra.argument("city")
+    def forecast(city):
+        """Show the weather forecast."""
+
+    assert "documentation" not in to_carapace_spec(forecast, prog_name="forecast")
+
+
+def test_documentation_stays_aligned_with_its_actions():
+    """A documented operand behind an undocumented one keeps its index.
+
+    The two lists are read positionally, so a dropped blank would shift the
+    prose onto the wrong operand.
+    """
+
+    @click_extra.command
+    @click_extra.argument("crate")
+    @click_extra.argument("city", help="City to forecast.")
+    def forecast(crate, city):
+        """Show the weather forecast."""
+
+    spec = to_carapace_spec(forecast, prog_name="forecast")
+    assert spec["documentation"]["positional"] == ["", "City to forecast."]
 
 
 def test_option_computing_its_help_still_describes_itself():
