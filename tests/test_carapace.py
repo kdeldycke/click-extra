@@ -173,6 +173,23 @@ def test_count_flag_is_repeatable():
     assert "-v, --verbose*" in FORECAST["flags"]
 
 
+def test_option_computing_its_help_still_describes_itself():
+    """An option leaving `help` at `None` still reaches the spec described.
+
+    Click Extra's own `-v` and `-q` build their text from the resolved base
+    verbosity, so reading the attribute hands back nothing and the spec used to
+    ship them blank.
+    """
+
+    @click_extra.command
+    def orchard():
+        """Tend an orchard."""
+
+    flags = to_carapace_spec(orchard, prog_name="orchard")["persistentflags"]
+    assert flags["-v, --verbose*"].startswith("Increase the default")
+    assert flags["-q, --quiet*"].startswith("Decrease the default")
+
+
 def test_multiple_value_flag():
     assert "--include=*" in FORECAST["flags"]
 

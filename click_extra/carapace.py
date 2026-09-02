@@ -72,6 +72,7 @@ from .parameters import (
     make_resilient_context,
     option_value_kind,
     param_spellings,
+    resolve_param_help,
     short_long_opts,
 )
 
@@ -398,6 +399,7 @@ def _exclusive_flag_groups(command: Command) -> list[list[str]]:
 def _add_option(
     node: CarapaceCommand,
     param: Parameter,
+    ctx: Context,
     *,
     persistent: bool,
     command_path: tuple[str, ...],
@@ -410,9 +412,15 @@ def _add_option(
     actions reference `command_path` (the chain of command names down to this
     command) and the option's own spelling, both baked into the callback so Click
     can resolve the right flag's value (see {func}`_dynamic_action`).
+
+    The description goes through
+    {func}`~click_extra.parameters.resolve_param_help`, like every other render
+    of this help text: an option computing its own help leaves `param.help` at
+    `None`, and reading the attribute shipped `-v` and `-q` with an empty
+    description in the spec.
     """
     flags = node.persistentflags if persistent else node.flags
-    description = _clean_description(getattr(param, "help", None))
+    description = _clean_description(resolve_param_help(param, ctx))
     kind = option_value_kind(param)
     value = kind != "flag"
     optarg = kind == "optional"
@@ -479,13 +487,13 @@ def extract_carapace_command(
         if is_root and set(param.opts) <= default_opts:
             # A root default option: publish it once as persistent so every
             # subcommand inherits it, and remember its spellings to skip below.
-            _add_option(node, param, persistent=True, command_path=command_path)
+            _add_option(node, param, ctx, persistent=True, command_path=command_path)
             persistent_spellings.update(param_spellings(param))
         elif set(param.opts) <= inherited_opts:
             # Already offered by an ancestor's persistent flags: do not repeat.
             continue
         else:
-            _add_option(node, param, persistent=False, command_path=command_path)
+            _add_option(node, param, ctx, persistent=False, command_path=command_path)
 
     node.completion.positional = positional
     node.exclusiveflags = _exclusive_flag_groups(command)
