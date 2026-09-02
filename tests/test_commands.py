@@ -18,6 +18,7 @@ options, and how they interact with each others."""
 
 from __future__ import annotations
 
+import importlib.metadata
 import inspect
 import json
 import os
@@ -1649,8 +1650,12 @@ def test_option_order_agrees_across_renderers(invoke):
             invoke(forecast, "--help", color=False).stdout,
             re.MULTILINE,
         ),
+        # Read as the long spelling, like the renderings above: Click 8.4
+        # collects `--help`'s names through a set, so which of `-h` and
+        # `--help` lands first there varies with the interpreter's hash seed.
+        # Click 8.5.0 keeps their declaration order.
         "json": [
-            opt["names"][0]
+            next(name for name in opt["names"] if name.startswith("--"))
             for group in json.loads(
                 invoke(forecast, "--help-format", "json", color=False).stdout
             )["option_groups"]
@@ -1677,10 +1682,30 @@ def test_option_order_agrees_across_renderers(invoke):
     assert not diverging, f"renderers out of order: {diverging}"
 
 
+ARGUMENT_HELP_CLICK_VERSION = (8, 5)
+"""Click release that gave `click.Argument` a `help` parameter of its own.
+
+Below it a plain `click.argument` rejects the keyword outright, so the matrix
+cells pinning an older Click inside the supported range have nothing to render.
+Cloup and Click Extra carry their own `Argument`, which accepted a description
+all along and is checked on every cell.
+"""
+
+
 @pytest.mark.parametrize(
     "argument_decorator",
     (
-        pytest.param(click.argument, id="click"),
+        pytest.param(
+            click.argument,
+            id="click",
+            marks=pytest.mark.skipif(
+                tuple(
+                    int(p) for p in importlib.metadata.version("click").split(".")[:2]
+                )
+                < ARGUMENT_HELP_CLICK_VERSION,
+                reason="`click.Argument` takes a `help` since Click 8.5.",
+            ),
+        ),
         pytest.param(cloup.argument, id="cloup"),
         pytest.param(argument, id="click_extra"),
     ),
