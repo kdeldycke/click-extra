@@ -2127,6 +2127,38 @@ def test_help_column_is_opt_in(invoke):
     assert rows["weather.verbose"].startswith("Increase the default")
 
 
+def test_help_column_paints_the_deprecation_marker(invoke):
+    """The marker takes the slot the help screen paints it with.
+
+    Every other column of the rendered table is themed, and the marker is the
+    one part of this one Click Extra writes rather than the CLI author.
+    """
+    theme = get_current_theme()
+
+    @command
+    @columns_option
+    @option("--city", help="Where to look up.", deprecated=True)
+    def weather(city):
+        echo(city)
+
+    result = invoke(weather, "--columns", "id,help", "--params", color=True)
+    assert result.exit_code == 0
+    assert theme.deprecated("(DEPRECATED)") in result.stdout
+    # A structured render stays clean: escapes there would corrupt the value.
+    structured = invoke(
+        weather,
+        "--table-format",
+        "json",
+        "--columns",
+        "id,help",
+        "--params",
+        color=True,
+    )
+    assert structured.exit_code == 0
+    rows = {row["ID"]: row["Help"] for row in json.loads(structured.stdout)}
+    assert rows["weather.city"] == "Where to look up. (DEPRECATED)"
+
+
 def test_help_column_is_documented():
     """The auto-generated column reference covers the opt-in column too."""
     md = ShowParamsOption.render_doc_table()

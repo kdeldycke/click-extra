@@ -741,10 +741,23 @@ def format_param_row(
             "confirmation_prompt": confirmation_prompt,
         }
 
-    # Lazy import to avoid circular dependency with theme.
+    # Lazy imports to avoid circular dependency with theme, which highlight
+    # reaches in turn.
+    from .highlight import DEPRECATED_RE, highlight
     from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
 
     active_theme = get_current_theme()
+
+    def styled_help(text):
+        """Paint the deprecation marker, leaving the author's own prose alone.
+
+        The marker is the one part of this column Click Extra puts there itself,
+        and the help screen paints it: a table whose every other column is themed
+        would otherwise be the one render that draws it flat.
+        """
+        if text is None:
+            return None
+        return highlight(text, [DEPRECATED_RE], active_theme.deprecated)
 
     def styled_bool(value):
         """Render a boolean attribute as a themed glyph, or `None` if absent."""
@@ -759,7 +772,7 @@ def format_param_row(
     return {
         "id": active_theme.invoked_command(path),
         "spec": active_theme.option(param_spec) if param_spec else param_spec,
-        "help": resolve_param_help(param, ctx),
+        "help": styled_help(resolve_param_help(param, ctx)),
         "class": class_str,
         "param_type": type_str,
         "python_type": active_theme.metavar(python_type_name),
