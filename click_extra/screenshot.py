@@ -1915,7 +1915,10 @@ def render_svg(
             durations = tuple(each / speed for each in durations)
         if hold == AUTO_HOLD:
             hold = auto_hold(pictures[-1])
-        elif isinstance(hold, str):
+        # The annotation admits one word only, so a checker rules this branch
+        # out. It catches the caller that never ran one: a Sphinx directive
+        # option, a CLI argument, anything read from text.
+        elif isinstance(hold, str):  # type: ignore[unreachable]
             raise ValueError(f"{hold!r} is not a hold, which is seconds or 'auto'.")
         if hold:
             # Spent on the last frame rather than on a pause of its own, so the

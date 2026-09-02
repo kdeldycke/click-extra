@@ -120,7 +120,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
 
-    from .screenshot import TColumns
+    from .screenshot import TColumns, THold
 
 logger = logging.getLogger(__name__)
 
@@ -459,7 +459,7 @@ def _parse_columns(
     ctx: click.Context,
     param: click.Parameter,
     value: str,
-) -> int | str:
+) -> TColumns:
     """Read `--columns` into a width, or into the sentinel asking for none.
 
     A width and {data}`~click_extra.screenshot.AUTO_COLUMNS` are the two things
@@ -758,7 +758,7 @@ def _parse_hold(
     ctx: click.Context,
     param: click.Parameter,
     value: str | None,
-) -> float | str | None:
+) -> THold | None:
     """Read `--hold` into seconds or the `auto` sentinel, keeping unset as-is."""
     if value is None:
         return None
@@ -918,7 +918,7 @@ def screenshot_cmd(
     timeout: float | None,
     record: bool,
     rows: int | None,
-    hold: float | str | None,
+    hold: THold | None,
     blank: float | None,
     cursor: str | None,
     blink: float | None,
@@ -1024,6 +1024,10 @@ def screenshot_cmd(
         command_line = (executable, "wrap", "--", *command_line)
 
     if record:
+        # A recording pins its width up front, which the guard above enforced:
+        # a pseudo-terminal is opened before the command writes anything, so
+        # there is no output yet to size the screen against.
+        assert columns != AUTO_COLUMNS
         try:
             document, returncode = record_and_render(
                 list(command_line),
