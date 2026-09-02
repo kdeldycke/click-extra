@@ -11,6 +11,11 @@ from tempfile import TemporaryDirectory
 # The picture opening this page, shot from the command printed beneath it. Two
 # throwaway files give `git` something to compare, and running it in their own
 # directory is what keeps the paths it prints short enough to read.
+#
+# `--no-prefix` is spelled out rather than left to `diff.noprefix`: the capture
+# is committed and compared byte for byte, so a machine configured either way
+# has to shoot the same picture. It is also what a reader typing the printed
+# command gets back, whatever their own git config says.
 BEFORE = "apples: 3\nbananas: 6\ncherries: 12\nplums: 4\n"
 AFTER = "apples: 5\nbananas: 6\ncherries: 12\nfigs: 2\n"
 target = Path(__srcdir__) / "assets" / "git-diff-screen.svg"
@@ -32,6 +37,7 @@ with TemporaryDirectory() as basket:
             "diff",
             "--color=always",
             "--no-index",
+            "--no-prefix",
             "basket.txt",
             "basket.new.txt",
         ),
