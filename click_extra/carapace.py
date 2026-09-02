@@ -132,6 +132,7 @@ def _flag_key(
     value: bool,
     optarg: bool = False,
     repeatable: bool = False,
+    required: bool = False,
     hidden: bool = False,
 ) -> str:
     """Build a Carapace flag key from option spellings and modifiers.
@@ -139,18 +140,13 @@ def _flag_key(
     Reproduces `carapace-spec`'s own `Flag.format()` grammar: the short
     spelling first, then the long spelling joined by `", "`, then `?` for an
     optional value or `=` for a mandatory one, then `*` when the flag is
-    repeatable and `&` when it is hidden. So a plain switch is `--foo`, a
-    valued option `--foo=`, an optional-value option `--foo?`, a counter
-    `--foo*`, a repeatable valued option `--foo=*` and a hidden one `--foo&`.
+    repeatable, `!` when it is required and `&` when it is hidden. So a plain
+    switch is `--foo`, a valued option `--foo=`, an optional-value option
+    `--foo?`, a counter `--foo*`, a repeatable valued option `--foo=*`, a
+    mandatory one `--foo=!` and a hidden one `--foo&`.
 
     The modifiers are emitted in that order because upstream writes them that
     way; its parser reads them as a set, so any order round-trips.
-
-    ```{todo}
-    Carapace also spells a mandatory flag `!`, which nothing here emits yet: a
-    Click option carrying `required=True` reaches the spec indistinguishable
-    from an optional one.
-    ```
     """
     short, long = short_long_opts(opts)
     key = short
@@ -163,6 +159,8 @@ def _flag_key(
         key += "="
     if repeatable:
         key += "*"
+    if required:
+        key += "!"
     if hidden:
         key += "&"
     return key
@@ -475,6 +473,12 @@ def _add_option(
     of this help text: an option computing its own help leaves `param.help` at
     `None`, and reading the attribute shipped `-v` and `-q` with an empty
     description in the spec.
+
+    A required option is marked `!`, and a required *pair* is not: either
+    spelling satisfies Click there, and Carapace marks one flag at a time with
+    no way to say "one of these two". Marking both would demand both, and
+    marking the positive alone would hide that `--no-foo` answers just as well,
+    so the pair is left unmarked rather than described wrongly.
     """
     flags = node.persistentflags if persistent else node.flags
     description = _clean_description(resolve_param_help(param, ctx))
@@ -483,6 +487,8 @@ def _add_option(
     optarg = kind == "optional"
     repeatable = is_repeatable(param)
     hidden = bool(getattr(param, "hidden", False))
+    secondary = getattr(param, "secondary_opts", None)
+    required = bool(getattr(param, "required", False)) and not secondary
 
     flags[
         _flag_key(
@@ -490,11 +496,12 @@ def _add_option(
             value=value,
             optarg=optarg,
             repeatable=repeatable,
+            required=required,
             hidden=hidden,
         )
     ] = description
     # Boolean flags expose their negative spelling as a separate switch.
-    if getattr(param, "secondary_opts", None):
+    if secondary:
         flags[
             _flag_key(
                 param.secondary_opts,

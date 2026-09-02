@@ -225,6 +225,7 @@ $ pip install "click-extra[carapace]"
 
 - Cloup constraints beyond mutual exclusion (`RequireAtLeast`, `RequireExactly`, `If`) have no carapace-spec equivalent and are dropped: only `@option_group(..., constraint=mutually_exclusive)` becomes `exclusiveflags`.
 - The dynamic callback hands the already-typed words to Carapace and lets it filter, so a parameter whose `shell_complete` does its own non-prefix filtering completes more broadly through the spec than it would natively.
+- A required boolean pair (`--ascii/--no-ascii` with `required=True`) reaches the spec unmarked. Carapace marks one flag at a time with `!` and has no way to say "one of these two", and either spelling satisfies Click. Marking both would demand both, and marking the positive alone would hide that the negative answers as well.
 
 ## `click_extra.carapace` API
 

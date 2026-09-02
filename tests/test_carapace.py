@@ -166,6 +166,61 @@ def test_hidden_flag_key_carries_the_modifier(opts, value, repeatable, expected)
     assert _flag_key(opts, value=value, repeatable=repeatable, hidden=True) == expected
 
 
+@pytest.mark.parametrize(
+    ("opts", "value", "repeatable", "expected"),
+    [
+        (["--foo"], False, False, "--foo!"),
+        (["--foo"], True, False, "--foo=!"),
+        (["--foo"], False, True, "--foo*!"),
+    ],
+)
+def test_required_flag_key_carries_the_modifier(opts, value, repeatable, expected):
+    assert (
+        _flag_key(opts, value=value, repeatable=repeatable, required=True) == expected
+    )
+
+
+def test_required_and_hidden_modifiers_keep_upstream_order():
+    """`!` before `&`, the order `carapace-spec` writes them in."""
+    assert (
+        _flag_key(["--foo"], value=True, repeatable=True, required=True, hidden=True)
+        == "--foo=*!&"
+    )
+
+
+def test_required_option_is_marked():
+    @click_extra.command
+    @click_extra.option("--city", required=True, help="City to forecast.")
+    @click_extra.option("--maybe", help="Optional.")
+    def forecast(city, maybe):
+        """Show the weather forecast."""
+
+    spec = to_carapace_spec(forecast, prog_name="forecast")
+    assert spec["flags"] == {
+        "--city=!": "City to forecast.",
+        "--maybe=": "Optional.",
+    }
+    jsonschema.validate(spec, CARAPACE_SCHEMA)
+
+
+def test_required_boolean_pair_is_left_unmarked():
+    """Either spelling satisfies Click, and the spec cannot say "one of these".
+
+    Marking both would demand both; marking the positive alone would hide that
+    the negative answers too.
+    """
+
+    @click_extra.command
+    @click_extra.option("--ascii/--no-ascii", required=True, help="Toggle art.")
+    def forecast(ascii):
+        """Show the weather forecast."""
+
+    assert set(to_carapace_spec(forecast, prog_name="forecast")["flags"]) == {
+        "--ascii",
+        "--no-ascii",
+    }
+
+
 def test_hidden_option_is_exported_and_marked():
     @click_extra.command
     @click_extra.option("--secret", hidden=True, help="Never shown.")

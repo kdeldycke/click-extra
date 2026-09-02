@@ -41,6 +41,7 @@
 - List a subcommand's aliases in the man page, the Markdown document and the JSON export, which named only its primary spelling. Each JSON entry gains an `aliases` array.
 - Carry an argument's help into the completion spec, under the `documentation` block Carapace reserves for operands.
 - Mark a hidden option with Carapace's `&` modifier, so a spec reader can tell it apart from a listed one, as `hidden` already does for a command.
+- Mark a required option with Carapace's `!` modifier, which the spec carried as indistinguishable from an optional one.
 - Paint each value of a choice operand in `--tree` with the `choice` theme slot, the way the help screen paints it.
 - Draw a required `{green|ripe}` choice metavar on the help screen the way the optional `[green|ripe]` form is already drawn.
 - Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
