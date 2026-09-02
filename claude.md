@@ -63,15 +63,17 @@ Two managed sections above describe a state that does not hold here yet. Read th
 ### Testing
 
 ```shell-session
-# Run all tests.
-$ uv run pytest
+# Run all tests, with the dependency set CI uses.
+$ uv run --frozen --all-extras --group test -- pytest
 
 # Run a single test file.
-$ uv run pytest tests/test_color.py
+$ uv run --frozen --all-extras --group test -- pytest tests/test_color.py
 
 # Run a specific test.
-$ uv run pytest tests/test_color.py::test_function_name
+$ uv run --frozen --all-extras --group test -- pytest tests/test_color.py::test_function_name
 ```
+
+Name `--all-extras --group test` every time, even though a bare `uv run pytest` usually works. Any other `uv run` variant in the same tree re-resolves the environment and can drop those packages: one `uv run --group docs` is enough to make the next bare `pytest` report `fixture 'httpserver' not found` and error 36 configuration tests, which reads as a regression rather than a missing dependency group. The same holds for the docs build, which needs `--all-extras` or `docs/config.md` aborts it on a missing TOML extra long before the captures it maintains are reached.
 
 ### Building documentation
 
