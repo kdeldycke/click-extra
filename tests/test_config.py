@@ -16,12 +16,13 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
 import os
 import plistlib
 import re
-import sqlite3
+import subprocess
 import sys
 import unittest.mock
 from pathlib import Path
@@ -60,6 +61,7 @@ from click_extra import (
     validate_config_option,
 )
 from click_extra.config import SQLITE_CONFIG_TABLE
+from click_extra.config.formats import SQLITE_SUPPORT, disabled_format_message
 from click_extra.config.schema import (
     _expand_dotted_keys,
 )
@@ -465,7 +467,14 @@ def make_sqlite_config(
     *,
     create_table: bool = True,
 ) -> Path:
-    """Write a nested mapping into a SQLite configuration database."""
+    """Write a nested mapping into a SQLite configuration database.
+
+    Skips the calling test on a Python whose SQLite bindings are missing, the
+    same interpreter on which `ConfigFormat.SQLITE` reports itself disabled.
+    """
+    sqlite3 = pytest.importorskip(
+        "sqlite3", reason="SQLITE is gated on the standard library's sqlite3"
+    )
     connection = sqlite3.connect(path)
     if create_table:
         connection.execute(
@@ -1912,6 +1921,89 @@ def test_sqlite_conf_unparsable(invoke, simple_config_cli, tmp_path, make_db):
     )
     assert result.exit_code == 2
     assert "critical: Error parsing file as" in result.stderr
+
+
+SPLITTABLE_STDLIB_MODULES = frozenset((
+    "curses",
+    "dbm",
+    "readline",
+    "sqlite3",
+    "tkinter",
+))
+"""Standard library modules a distribution can ship apart from its base Python.
+
+Each wraps a system library, so a packager can leave it out of the interpreter:
+FreeBSD serves `sqlite3` as a separate `pyXXX-sqlite3` package, and Debian
+serves `tkinter` as `python3-tk`. A module-level import of any of them kills
+every CLI built on `click_extra` at import time, on an interpreter that is
+otherwise complete, so each one is probed and imported at its point of use."""
+
+
+def eager_imports(tree: ast.Module) -> set[str]:
+    """Top-level packages a module imports as soon as it is loaded.
+
+    Skips function bodies, which import at call time, and `try` blocks, which
+    guard against a missing module. Those are the two shapes that survive an
+    interpreter without the module.
+    """
+    found: set[str] = set()
+
+    def visit(node: ast.AST) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Try)):
+                continue
+            if isinstance(child, ast.Import):
+                found.update(alias.name.split(".")[0] for alias in child.names)
+            elif isinstance(child, ast.ImportFrom) and not child.level and child.module:
+                found.add(child.module.split(".")[0])
+            visit(child)
+
+    visit(tree)
+    return found
+
+
+def test_no_splittable_stdlib_module_imported_at_load_time():
+    """No module of the package imports a splittable module unconditionally."""
+    package_root = Path(__file__).parent.parent / "click_extra"
+    offenders = {}
+    for module_path in sorted(package_root.rglob("*.py")):
+        tree = ast.parse(module_path.read_text(encoding="utf-8"))
+        culprits = eager_imports(tree) & SPLITTABLE_STDLIB_MODULES
+        if culprits:
+            offenders[str(module_path.relative_to(package_root))] = sorted(culprits)
+    assert not offenders
+
+
+@pytest.mark.once
+def test_sqlite3_not_imported_by_the_package():
+    """Importing the package leaves `sqlite3` out of `sys.modules`.
+
+    Covers the whole import graph, dependencies included, where
+    `test_no_splittable_stdlib_module_imported_at_load_time` only reads the
+    package's own sources.
+    """
+    result = subprocess.run(
+        (
+            sys.executable,
+            "-c",
+            "import sys, click_extra; print('sqlite3' in sys.modules)",
+        ),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+    assert result.stdout.strip() == "False"
+
+
+def test_sqlite_support_gates_the_format():
+    """`SQLITE` is enabled exactly when the standard library ships its bindings."""
+    assert ConfigFormat.SQLITE.enabled is SQLITE_SUPPORT
+
+    message = disabled_format_message(ConfigFormat.SQLITE)
+    # There is no `click-extra[sqlite]` to install: the bindings ship with Python.
+    assert "click-extra[" not in message
+    assert "sqlite3" in message
 
 
 @pytest.mark.parametrize(

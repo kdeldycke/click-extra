@@ -257,6 +257,14 @@ The root element is the CLI's name. A repeated element (like `my_list` above) is
 
 `SQLITE` is enabled by default, and read through Python's built-in [`sqlite3`](https://docs.python.org/3/library/sqlite3.html) module, so no extra dependency is needed. The database holds a single `config` table of `key`/`value` rows: keys are parameter paths, with a dot (`.`) separating each level, and values are JSON-encoded, which carries every type the other formats do. Other tables in the database are ignored, so a configuration table can live alongside an application's own data.
 
+````{note}
+A distribution can still ship a Python without the SQLite bindings: FreeBSD serves them as a `pyXXX-sqlite3` package, apart from the interpreter. `SQLITE` reports itself disabled on such a Python and drops out of the default search patterns, and every other format keeps working. Install the bindings matching your interpreter to enable it:
+
+```{code-block} shell-session
+$ sudo pkg install py314-sqlite3
+```
+````
+
 `SQLITE` is read-only: it cannot be produced by [`--export-config`](config.md#exporting-the-configuration), and a database fetched over `http://` or `https://` is skipped.
 
 ## Argfile

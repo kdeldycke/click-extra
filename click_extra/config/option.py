@@ -45,7 +45,6 @@ import logging
 import os
 import plistlib
 import shlex
-import sqlite3
 from collections import ChainMap
 from collections.abc import Iterable
 from configparser import ConfigParser, ExtendedInterpolation
@@ -1547,7 +1546,19 @@ class ConfigOption(ExtraOption, ParamStructure):
         booleans, numbers, strings, lists and nested objects alike.
 
         Returns a ready-to-use data structure.
+
+        ```{note}
+        {mod}`sqlite3` is imported here and not at the top of the module, like
+        the optional parsers of
+        {func}`~click_extra.config.formats.parse_content`. A distribution can
+        ship a Python without the SQLite bindings, and an unconditional import
+        would then break every CLI at import time.
+        {data}`~click_extra.config.formats.SQLITE_SUPPORT` reports whether they
+        are there, and disables the format if they are not.
+        ```
         """
+        import sqlite3
+
         connection = sqlite3.connect(str(path))
         try:
             rows = connection.execute(

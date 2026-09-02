@@ -452,11 +452,16 @@ default_config_file_pattern = (
     # installed: full match in upstream CI, gracefully shorter match in
     # hermetic builders (Guix, Nixpkgs) that ship neither extra. `*.json5`
     # and `*.jwcc` share one group because the same parser gates them both.
+    # `*.sqlite` and `*.sqlite3` are optional for the same reason, on the
+    # standard library instead of an extra: FreeBSD serves the `sqlite3`
+    # bindings as a `pyXXX-sqlite3` package apart from the interpreter.
     # Same shape as the `git_long_hash = (?:hash|None)` graceful-degradation
     # pattern further down.
     r"\{\*\.toml,\*\.yaml,\*\.yml,\*\.json"
     r"(?:,\*\.json5,\*\.jwcc)?(?:,\*\.jsonc)?"
-    r",\*\.hjson,\*\.ini,\*\.xml,\*\.plist,\*\.sqlite,\*\.sqlite3,\*\.conf,pyproject\.toml\}"
+    r",\*\.hjson,\*\.ini,\*\.xml,\*\.plist"
+    r"(?:,\*\.sqlite,\*\.sqlite3)?"
+    r",\*\.conf,pyproject\.toml\}"
 )
 default_debug_uncolored_config = (
     rf"debug: Load configuration matching .+{default_config_file_pattern}\n"

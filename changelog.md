@@ -26,6 +26,7 @@
 - Match a configuration key against a parameter name whatever its case, so `Foo-Bar` and `FOO_BAR` both reach the `foo_bar` parameter.
 - Add `canonical_param_name()`, folding a spelling to the parameter name Click derives from it.
 - Report an unmatched argfile declaration under the name Click would derive from it, so `--Unknown-Option` is named `unknown_option`.
+- Disable the `SQLITE` configuration format on a Python whose `sqlite3` bindings are missing, like FreeBSD's, instead of breaking every CLI at import time.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
 - Fix a drawn prompt dropping the quotes around an argument or environment value holding a space, so a captured command line pastes back as the command it pictures.
 - Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.

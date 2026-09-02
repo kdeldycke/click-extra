@@ -15,10 +15,10 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Configuration file formats and their stateless content parsers.
 
-Holds the {class}`ConfigFormat` enum, the optional third-party parser probes
-that decide which formats are enabled, and {func}`parse_content`, the stateless
-dispatch used by {class}`~click_extra.config.option.ConfigOption` for every format that
-does not need the CLI parameter structure.
+Holds the {class}`ConfigFormat` enum, the parser probes that decide which formats
+are enabled, and {func}`parse_content`, the stateless dispatch used by
+{class}`~click_extra.config.option.ConfigOption` for every format that does not
+need the CLI parameter structure.
 
 ```{caution}
 This module is imported early in the package's import graph
@@ -85,6 +85,32 @@ for _module_name, _extra, _label in _OPTIONAL_PARSERS:
             f"{_label} support disabled: install click-extra[{_extra}] to enable it."
         )
 
+_NO_SQLITE_MESSAGE = (
+    "SQLite support disabled: this Python provides no sqlite3 module. "
+    "Install the sqlite3 package of your Python distribution to enable it."
+)
+"""Reason and remedy reported for a Python whose SQLite bindings are missing.
+
+Shared by the import-time debug log and {func}`disabled_format_message`, which
+cannot derive it the way it does for the other formats: `SQLITE` is backed by a
+standard library module, so no `click-extra[extra]` install target enables it."""
+
+SQLITE_SUPPORT: bool = importlib.util.find_spec("_sqlite3") is not None
+"""Availability of the standard library's {mod}`sqlite3` module.
+
+Gates {attr}`ConfigFormat.SQLITE` the way `PARSER_SUPPORT` gates the formats
+backed by a third-party parser, because a distribution can ship a Python without
+it: FreeBSD packages the bindings apart from the interpreter, as
+`pyXXX-sqlite3`.
+
+The probe targets `_sqlite3`, the extension module holding the bindings, and not
+`sqlite3`, the pure-Python package importing them. The latter belongs to every
+standard library, so it answers the probe on an interpreter that raises
+`ModuleNotFoundError: No module named '_sqlite3'` as soon as it is imported."""
+
+if not SQLITE_SUPPORT:
+    logger.debug(_NO_SQLITE_MESSAGE)
+
 
 class ConfigFormat(Enum):
     """All configuration formats, associated to their support status.
@@ -94,7 +120,8 @@ class ConfigFormat(Enum):
     flags set on the `ConfigOption` instance.
 
     The second element indicates whether the format is supported or not, depending on
-    the availability of the required third-party packages. This evaluation is performed
+    the availability of the module backing it: a third-party parser for most formats,
+    and the standard library's `sqlite3` for `SQLITE`. This evaluation is performed
     at runtime when this module is imported.
 
     The third element is the human-readable label of the format, and the fourth
@@ -132,7 +159,7 @@ class ConfigFormat(Enum):
     PLIST = (("*.plist",), True, "plist", ("application/x-plist",))
     SQLITE = (
         ("*.sqlite", "*.sqlite3"),
-        True,
+        SQLITE_SUPPORT,
         "SQLite",
         ("application/vnd.sqlite3", "application/x-sqlite3"),
     )
@@ -397,14 +424,19 @@ def format_from_mime(
 
 
 def disabled_format_message(fmt: ConfigFormat) -> str:
-    """Build the "format support disabled, install the extra" message for a format.
+    """Build the "format support disabled" message for a format.
 
     The single source for the {exc}`ImportError` text raised when a format whose
-    optional parser is not installed is requested, shared by {func}`read_file` and
+    parser is unavailable is requested, shared by {func}`read_file` and
     {func}`click_extra.test_suite.parse_test_suite`. A format's
     {attr}`~click_extra.config.formats.ConfigFormat.label`, lower-cased, is its
     `click-extra[<extra>]` install target.
+
+    {attr}`~ConfigFormat.SQLITE` is the exception: it reads through the standard
+    library, so no extra installs it and it gets `_NO_SQLITE_MESSAGE` instead.
     """
+    if fmt is ConfigFormat.SQLITE:
+        return _NO_SQLITE_MESSAGE
     return (
         f"{fmt} support disabled: install click-extra[{fmt.label.lower()}] "
         "to enable it."
@@ -419,7 +451,7 @@ def read_file(path: Path, formats: Iterable[ConfigFormat] | None = None) -> Any:
     content is parsed with {func}`parse_content`.
 
     :raises ValueError: the file name matches none of the candidate `formats`.
-    :raises ImportError: the matched format's optional parser is not installed.
+    :raises ImportError: the matched format's parser is not available.
     """
     fmt = format_from_path(path, formats)
     if fmt is None:
