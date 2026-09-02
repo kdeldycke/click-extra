@@ -318,12 +318,6 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the sync-uv-lock autofix job reverts
 # uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
-# Bypass the window above for Click 8.5.0, published 2026-08-26: without this
-# line uv resolves Click 8.4.2 until 2026-09-02. The cutoff exempts that one
-# release and turns inert once the window catches up, so delete it then. It
-# spells the instant in UTC because uv reads a bare date in the local zone,
-# which would lock a different timestamp on a runner than on a laptop.
-exclude-newer-package = { click = "2026-08-27T00:00:00Z" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 build-backend.source-exclude = [
