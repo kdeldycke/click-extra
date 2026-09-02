@@ -363,6 +363,12 @@ PRs and issues still pending upstream.
 
 - [`#3036` - Add support for `set` and `frozenset` as native Click types](https://github.com/pallets/click/issues/3036)
 
+### [`cloup`](https://github.com/janluke/cloup)
+
+- [`#211` - A deprecated command's help drops the reason and uses Click's pre-8.2 label](https://github.com/janluke/cloup/issues/211)
+- [`#210` - `cloup.Argument` and `click.Argument` diverge now that Click 8.5.0 has argument `help`](https://github.com/janluke/cloup/issues/210)
+- [`#209` - Arguments page describes a Click limitation that 8.5.0 removed](https://github.com/janluke/cloup/issues/209)
+
 ### [`pygments`](https://github.com/pygments/pygments)
 
 - [`#2716` - Add examples to all lexers](https://github.com/pygments/pygments/pull/2716)
