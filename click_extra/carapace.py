@@ -48,14 +48,12 @@ flag-key grammar and macro contract are taken from that project's `flag.go` and
 `core.go`.
 
 ```{todo}
-Ask [carapace-sh/carapace-spec](https://github.com/carapace-sh/carapace-spec)
-for a spec key backed by cobra's `MarkFlagsOneRequired`, then emit it here. It
-closes two gaps at once: a required boolean pair (`--foo` / `--no-foo`) reaches
-the spec unmarked, since `!` marks one flag at a time and either spelling
-satisfies Click; and Cloup's `RequireAtLeast` constraint is dropped for want of
-anywhere to put it. The spec maps `exclusiveflags` onto cobra's
-`MarkFlagsMutuallyExclusive` and offers nothing for the other two flag groups
-cobra ships, so the primitive already exists and only the key is missing.
+Mark a required flag group once
+[carapace-sh/carapace-spec#437](https://github.com/carapace-sh/carapace-spec/issues/437) ships a `Command` key for cobra's
+`MarkFlagsOneRequired`. It closes two gaps at once: a required boolean pair
+(`--foo` / `--no-foo`) reaches the spec unmarked, since `!` marks one flag at a
+time and either spelling satisfies Click; and Cloup's `RequireAtLeast`
+constraint is dropped for want of anywhere to put it.
 ```
 """
 

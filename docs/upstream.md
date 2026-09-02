@@ -359,6 +359,10 @@ click-extra maintains a [local patch](https://github.com/kdeldycke/click-extra/b
 
 PRs and issues still pending upstream.
 
+### [`carapace-sh/carapace-spec`](https://github.com/carapace-sh/carapace-spec)
+
+- [`#437` - Add a Command key for cobra's `MarkFlagsOneRequired`](https://github.com/carapace-sh/carapace-spec/issues/437)
+
 ### [`click`](https://github.com/pallets/click)
 
 - [`#3036` - Add support for `set` and `frozenset` as native Click types](https://github.com/pallets/click/issues/3036)
