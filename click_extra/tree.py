@@ -198,7 +198,7 @@ def render_command_tree(
     Each node carries the command name, its aliases, its operand metavars
     (mirroring the usage line) and a column-aligned description from
     {func}`~click_extra.parameters.full_short_help`, so deprecated commands
-    carry their `(Deprecated)` marker. Everything is styled with the same
+    carry Click's own `(DEPRECATED)` label. Everything is styled with the same
     theme slots as help screens (`invoked_command` for the root,
     `subcommand` and `alias` for children, `metavar` for operands), so
     the tree follows `--theme` and `--color`. The rail switches from
