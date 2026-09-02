@@ -204,6 +204,46 @@ def resolve_param_help(param: click.Parameter, ctx: click.Context) -> str | None
     return text.strip() or None
 
 
+def canonical_param_name(name: str) -> str:
+    """Fold a spelling to the parameter name Click would derive from it.
+
+    Applies Click's own derivation, minus the option prefix its callers strip
+    first: hyphens become underscores and the result is case-folded, so
+    `Foo-Bar` answers `foo_bar`. Use it to resolve an outside spelling (a
+    configuration key, an argfile declaration) against the names a CLI
+    already has.
+
+    ```{caution}
+    The fold is many-to-one, so it identifies a name and never reconstructs a
+    spelling. `--foo-bar`, `--Foo-Bar` and `--FOO-BAR` answer the same name,
+    as do `--foo--bar` and `--foo__bar`, and `--K` (the Kelvin sign, `U+212A`)
+    lands on the same `k` as `--k`. Case folding reaches every script and is
+    not length-preserving: `--ẞ` answers `ß`, whose upper case is the two
+    letters `SS`, and a composed `café` answers a different name than a
+    decomposed one that renders identically.
+    ```
+
+    ```{caution}
+    A folded spelling is a *candidate*, never an answer on its own. Click
+    takes an identifier declaration verbatim, so `@option("--x", "Foo_Bar")`
+    names its parameter `Foo_Bar`, which this function would never produce.
+    Match the fold against the names a CLI declares and keep the CLI's own
+    spelling, rather than storing what this returns.
+    ```
+
+    ```{todo}
+    Upstream [pallets/click#3827](https://github.com/pallets/click/pull/3827)
+    asks whether `Option` should keep the case of an identifier declaration,
+    as it does today, or fold it the way `Argument` already does. Should Click
+    fold both, no parameter can be named `Foo_Bar` any more: drop the caution
+    above, and with it the ambiguity branch of `_merge_into_template` in
+    `click_extra.config.schema`, which exists only to tell two such names
+    apart.
+    ```
+    """
+    return name.replace("-", "_").lower()
+
+
 def param_spellings(param: click.Parameter) -> tuple[str, ...]:
     """All literal spellings of a parameter: primary `opts` then `secondary_opts`.
 

@@ -123,6 +123,12 @@ Configuration keys address CLI parameters by name, in either of two spellings:
 
 Both spellings resolve to the same parameter: `dummy-flag` and `dummy_flag` both set `--dummy-flag`. When the two coexist in a file, the last one in file order wins and a warning names both.
 
+Case does not have to match either. Click folds case when it derives a parameter name from a flag, so `--Dummy-Flag` would also be the `dummy_flag` parameter, and a key spelled `Dummy-Flag` or `DUMMY_FLAG` reaches it too.
+
+```{caution}
+Folding is how the key is *found*, never how the parameter is *named*. Click takes a third positional declaration verbatim, so a parameter declared `@option("--flag", "Dummy_Flag")` really is named `Dummy_Flag`, and its config key keeps that case. A key is matched against the names a CLI declares, so a CLI that declares both `dummy_flag` and `Dummy_Flag` leaves `DUMMY_FLAG` addressing neither: nothing tells the two apart, and the key is skipped with a warning.
+```
+
 ```{note}
 Click also accepts snake_case flags: `--my_option` is legal and derives the same `my_option` parameter ID as `--my-option` would. For such a CLI the canonical config key is still the kebab-cased `my-option`, which loads back to the same parameter.
 ```

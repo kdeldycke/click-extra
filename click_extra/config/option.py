@@ -66,6 +66,7 @@ from click import (
 )
 from click._utils import UNSET
 from click.core import ParameterSource
+from click.parser import _split_opt
 from deepmerge import always_merger
 from extra_platforms import is_windows
 from extra_platforms._utils import _remove_blanks
@@ -76,6 +77,7 @@ from ..parameters import (
     PARAM_PATH_SEP,
     ExtraOption,
     ParamStructure,
+    canonical_param_name,
     replay_raw_args,
     require_sibling_param,
     resolve_flag_value,
@@ -1499,8 +1501,10 @@ class ConfigOption(ExtraOption, ParamStructure):
             if param is None:
                 # Keep the unknown entry under its normalized key so the strict
                 # check rejects it with the standard error message, instead of
-                # failing the whole parse.
-                key = decl.lstrip("-").replace("-", "_")
+                # failing the whole parse. Splitting the prefix and folding are
+                # exactly what Click does to name a parameter from a
+                # declaration, so `--Foo-Bar` is reported as `foo_bar`.
+                key = canonical_param_name(_split_opt(decl)[1])
                 value: Any = True
                 if index < len(tokens) and not tokens[index].startswith("-"):
                     value = tokens[index]

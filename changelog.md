@@ -23,6 +23,9 @@
 - Show the `--config` default as the folder it searches, instead of the full glob of every file format the install enables. Pass `show_file_patterns=True` to keep advertising the formats the running install can parse.
 - Render the `--table-format` value as a `FORMAT` metavar, replacing the list of its fifty accepted values on the help screen.
 - Add a `choices` key to each option of the `--help-format json` export, and list the accepted values under an option whose metavar hides them in the `man` and `markdown` renders.
+- Match a configuration key against a parameter name whatever its case, so `Foo-Bar` and `FOO_BAR` both reach the `foo_bar` parameter.
+- Add `canonical_param_name()`, folding a spelling to the parameter name Click derives from it.
+- Report an unmatched argfile declaration under the name Click would derive from it, so `--Unknown-Option` is named `unknown_option`.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
 - Fix a drawn prompt dropping the quotes around an argument or environment value holding a space, so a captured command line pastes back as the command it pictures.
 - Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.

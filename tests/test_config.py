@@ -1338,6 +1338,89 @@ def test_jwcc_conf(invoke, simple_config_cli, tmp_path):
     )
 
 
+def test_conf_key_reaches_a_case_preserving_param_name(invoke, create_config):
+    """A parameter whose name kept its case is still addressed by that case.
+
+    Click takes an identifier declaration verbatim, so this parameter is named
+    `Explicit_Name`. No fold produces that spelling, so the template has to
+    stay the authority on it.
+    """
+
+    @click.command
+    @config_option
+    @option("--explicit", "Explicit_Name", default="untouched")
+    def case_cli(**kwargs):
+        echo(f"value = {kwargs['Explicit_Name']!r}")
+
+    for spelling in ("Explicit_Name", "Explicit-Name"):
+        conf_path = create_config(
+            "case.toml", f'[case-cli]\n"{spelling}" = "from-conf"\n'
+        )
+        result = invoke(case_cli, "--config", str(conf_path), color=False)
+        assert result.exit_code == 0
+        assert result.stdout == "value = 'from-conf'\n", spelling
+
+
+@pytest.mark.parametrize(
+    "spelling",
+    ("foo_bar", "foo-bar", "Foo-Bar", "FOO_BAR", "foo-BAR"),
+)
+def test_conf_key_case_folds_onto_the_param_name(invoke, create_config, spelling):
+    """Every spelling Click could have derived `foo_bar` from reaches it."""
+
+    @click.command
+    @config_option
+    @option("--Foo-Bar", default="untouched")
+    def fold_cli(foo_bar):
+        echo(f"value = {foo_bar!r}")
+
+    conf_path = create_config("fold.toml", f'[fold-cli]\n"{spelling}" = "from-conf"\n')
+    result = invoke(fold_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert result.stdout == "value = 'from-conf'\n"
+
+
+def test_conf_key_folding_onto_two_params_is_skipped(invoke, create_config, caplog):
+    """A key folding onto two parameter names picks neither, and warns.
+
+    Click allows `foo_bar` and `Foo_Bar` on one command, and nothing in the
+    folded spelling says which was meant.
+    """
+
+    @click.command
+    @config_option
+    @option("--foo-bar", default="untouched")
+    @option("--other", "Foo_Bar", default="untouched")
+    def ambiguous_cli(**kwargs):
+        echo(f"values = {sorted(kwargs.items())!r}")
+
+    conf_path = create_config(
+        "ambiguous.toml", '[ambiguous-cli]\n"FOO_BAR" = "from-conf"\n'
+    )
+    with caplog.at_level(logging.WARNING, logger="click_extra"):
+        result = invoke(ambiguous_cli, "--config", str(conf_path), color=False)
+
+    assert result.exit_code == 0
+    assert "'from-conf'" not in result.stdout
+    assert "matches" in caplog.text
+    assert "no spelling tells them apart" in caplog.text
+
+
+def test_strict_conf_accepts_a_folded_key(invoke, create_config):
+    """Strict mode no longer rejects a spelling the fold resolves."""
+
+    @click.command
+    @config_option(strict=True)
+    @option("--Foo-Bar", default="untouched")
+    def strict_fold_cli(foo_bar):
+        echo(f"value = {foo_bar!r}")
+
+    conf_path = create_config("strict.toml", '[strict-fold-cli]\n"Foo-Bar" = "ok"\n')
+    result = invoke(strict_fold_cli, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0
+    assert result.stdout == "value = 'ok'\n"
+
+
 def test_mime_types_are_unambiguous():
     """No media type is claimed by two formats.
 
@@ -1643,18 +1726,28 @@ def test_argfile_secondary_flag_and_inline_value(invoke, create_config):
 
 
 @pytest.mark.parametrize(
-    ("conf_text", "expect_error"),
+    ("conf_text", "expected_key"),
     [
         pytest.param(
             "--unknown-option some value\n--name ok\n",
-            True,
+            "unknown_option",
             id="unknown-option-rejected",
         ),
-        pytest.param("--name ok\n", False, id="clean-config-accepted"),
+        pytest.param(
+            "--Unknown-Option some value\n--name ok\n",
+            "unknown_option",
+            id="unknown-option-case-folded",
+        ),
+        pytest.param("--name ok\n", None, id="clean-config-accepted"),
     ],
 )
-def test_argfile_strict_conf(invoke, create_config, conf_text, expect_error):
-    """Strict mode rejects unknown options with the standard error."""
+def test_argfile_strict_conf(invoke, create_config, conf_text, expected_key):
+    """Strict mode rejects unknown options with the standard error.
+
+    An unmatched declaration is named the way Click names a parameter it
+    derives from one, case fold included, so `--Unknown-Option` is reported
+    as `unknown_option`.
+    """
 
     @click.command
     @config_option(strict=True)
@@ -1665,12 +1758,12 @@ def test_argfile_strict_conf(invoke, create_config, conf_text, expect_error):
     conf_path = create_config("strict.conf", conf_text)
     result = invoke(argfile_strict_cli, "--config", str(conf_path), color=False)
 
-    if expect_error:
+    if expected_key:
         assert result.exit_code == 1
         assert not result.stdout
         assert (
             "Configuration validation error: "
-            "Unknown configuration key 'unknown_option'." in result.stderr
+            f"Unknown configuration key {expected_key!r}." in result.stderr
         )
     else:
         assert result.exit_code == 0

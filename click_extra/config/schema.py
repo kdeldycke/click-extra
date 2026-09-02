@@ -38,7 +38,7 @@ from click import get_current_context
 from deepmerge import always_merger
 
 from .. import context
-from ..parameters import PARAM_PATH_SEP, ParamStructure
+from ..parameters import PARAM_PATH_SEP, ParamStructure, canonical_param_name
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -309,12 +309,21 @@ def _merge_into_template(
     """Merge *conf* into *template* in place, bounded by the template's structure.
 
     Like a recursive {meth}`dict.update` restricted to the keys already present
-    in *template*. A key absent from the template is retried with hyphens
-    replaced by underscores, so the kebab-case spelling conventional in TOML and
-    YAML files (`hash-body`) reaches the CLI parameter Click names with
-    underscores (`hash_body`). The same tolerance Click applies when deriving
-    parameter names from option declarations (`--hash-body` becomes
-    `hash_body`), extended to configuration files.
+    in *template*. A key absent from the template is retried twice, so every
+    spelling Click could have derived a parameter name from reaches that
+    parameter:
+
+    1. with hyphens replaced by underscores, so the kebab-case conventional in
+       TOML and YAML files (`hash-body`) reaches `hash_body`;
+    2. with {func}`~click_extra.parameters.canonical_param_name`, which also
+       folds case, so `Hash-Body` and `HASH_BODY` reach it too.
+
+    The second retry matches on the folded form but resolves to the template's
+    own key, never to the folded one. A parameter Click named from an
+    identifier declaration keeps its case (`@option("--x", "Foo_Bar")`), and
+    the template stays the authority on how it is spelled. When two template
+    keys fold together, nothing tells them apart and the key is skipped with a
+    warning.
 
     When two spellings of the same key coexist (`hash-body` and
     `hash_body`), the last one wins and a warning names both.
@@ -329,6 +338,14 @@ def _merge_into_template(
     :param _path: internal accumulator tracking the qualified path of the
         level being merged. Callers should not set this.
     """
+    # Index the template by the folded form of each of its keys, so a config
+    # key can be resolved on the name Click would have derived from it. The
+    # index answers with the template's own spelling: a parameter Click named
+    # from an identifier declaration keeps its case, which no fold produces.
+    folded: dict[str, list[str]] = {}
+    for template_key in template:
+        folded.setdefault(canonical_param_name(template_key), []).append(template_key)
+
     spellings: dict[str, str] = {}
     for key, value in conf.items():
         target_key = key
@@ -336,6 +353,15 @@ def _merge_into_template(
             normalized = key.replace("-", "_")
             if normalized in template:
                 target_key = normalized
+            else:
+                candidates = folded.get(canonical_param_name(key), [])
+                if len(candidates) == 1:
+                    target_key = candidates[0]
+                elif candidates:
+                    logger.warning(
+                        f"Configuration key {key!r} matches {candidates!r} once "
+                        "folded, and is skipped: no spelling tells them apart."
+                    )
         if target_key in template:
             if target_key in spellings:
                 logger.warning(
@@ -397,8 +423,7 @@ def normalize_config_keys(
     Recursively replaces hyphens with underscores in all dict keys, using the
     same `str.replace("-", "_")` transform that Click applies internally when
     deriving parameter names from option declarations (`--foo-bar` becomes
-    `foo_bar`). Click does not expose this as a public function, so we
-    replicate the one-liner here.
+    `foo_bar`).
 
     Handles the convention mismatch between configuration formats (TOML, YAML,
     JSON all commonly use kebab-case) and Python identifiers. Works with all
@@ -412,10 +437,13 @@ def normalize_config_keys(
     :param _prefix: Internal parameter for tracking the accumulated key
         path during recursion. Callers should not set this.
 
-    ```{todo}
-    Propose upstream to Click to extract the inline `name.replace("-", "_")`
-    into a private `_normalize_param_name` helper, so downstream projects
-    like Click Extra can reuse it instead of duplicating the transform.
+    ```{note}
+    Duplicating the one-liner is deliberate. Click applies the same
+    substitution in `Option._parse_decls` and `Argument._parse_decls`, but
+    names neither the transform nor a public accessor for it. A private
+    upstream helper would change nothing: importing a private symbol is no
+    more stable than writing the substitution. The expression is short enough
+    that a named indirection costs the reader more than it saves.
     ```
     """
     normalized: dict[str, Any] = {}
@@ -836,12 +864,15 @@ def _strip_opaque_subtrees(
 def _match_dotted_segment(conf: dict[str, Any], part: str) -> str | None:
     """Resolve a dotted-path segment to the key actually used in *conf*.
 
-    Prefers the exact spelling, then retries with the same hyphen tolerance as
-    :py:func:`_merge_into_template`: a path segment declared in snake_case
-    (`dependency_graph`, the Python-identifier form schema fields and
-    validators use) also matches the kebab-case spelling conventional in
-    configuration files (`dependency-graph`). Returns `None` when neither
-    spelling is present.
+    Prefers the exact spelling, then retries with hyphens replaced by
+    underscores: a path segment declared in snake_case (`dependency_graph`,
+    the Python-identifier form schema fields and validators use) also matches
+    the kebab-case spelling conventional in configuration files
+    (`dependency-graph`). Returns `None` when neither spelling is present.
+
+    The tolerance stops there, unlike :py:func:`_merge_into_template`, which
+    also folds case. A path addresses a schema field a developer declared, not
+    a parameter Click named, so there is no derivation to be faithful to.
     """
     if part in conf:
         return part
