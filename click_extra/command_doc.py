@@ -468,6 +468,26 @@ class DocOptionItem:
 
 
 @dataclass
+class DocSubcommand:
+    """One COMMANDS entry: a subcommand as its parent lists it."""
+
+    name: str
+    """The name the subcommand is invoked under."""
+
+    short_help: str
+    """Its one-line description, from
+    {func}`~click_extra.parameters.full_short_help`."""
+
+    aliases: tuple[str, ...] = ()
+    """The other names it answers to, a Cloup feature.
+
+    Drawn in parentheses after the name, the way the help screen and `--tree`
+    draw them: a reader of a generated page learns the short spelling from the
+    same place they learn the command exists.
+    """
+
+
+@dataclass
 class DocOptionGroup:
     """A titled cluster of OPTIONS entries, mirroring a Cloup option group.
 
@@ -551,8 +571,8 @@ class CommandDoc:
     """The OPTIONS entries, partitioned into one or more groups. A command
     without explicit option groups carries a single untitled group."""
 
-    subcommands: tuple[tuple[str, str], ...] = ()
-    """For groups: `(name, short_help)` pairs for the COMMANDS section."""
+    subcommands: tuple[DocSubcommand, ...] = ()
+    """For groups: the COMMANDS section entries, in listing order."""
 
     environment: tuple[tuple[str, str], ...] = ()
     """ENVIRONMENT entries as `(variable_name, help)` pairs."""
@@ -639,10 +659,13 @@ class CommandDoc:
 
         if self.subcommands:
             lines.append(".SH COMMANDS")
-            for sub_name, sub_help in self.subcommands:
+            for sub in self.subcommands:
                 lines.append(".TP")
-                lines.append(_bold(sub_name))
-                lines.extend(_emit_help(sub_help))
+                names = _bold(sub.name)
+                if sub.aliases:
+                    names += " ({})".format(", ".join(map(_bold, sub.aliases)))
+                lines.append(names)
+                lines.extend(_emit_help(sub.short_help))
 
         if self.environment:
             lines.append(".SH ENVIRONMENT")
@@ -736,9 +759,13 @@ class CommandDoc:
 
         if self.subcommands:
             lines.extend(("## Commands", ""))
-            for sub_name, sub_help in self.subcommands:
-                item = f"- `{sub_name}`"
-                rendered = _markdown_inline(sub_help)
+            for sub in self.subcommands:
+                item = f"- `{sub.name}`"
+                if sub.aliases:
+                    item += " ({})".format(
+                        ", ".join(f"`{alias}`" for alias in sub.aliases)
+                    )
+                rendered = _markdown_inline(sub.short_help)
                 lines.append(f"{item}: {rendered}" if rendered else item)
             lines.append("")
 
@@ -809,8 +836,12 @@ class CommandDoc:
             ],
             "option_groups": [group.to_dict() for group in self.option_groups],
             "subcommands": [
-                {"name": name, "short_help": _clean_help(help_text) or None}
-                for name, help_text in self.subcommands
+                {
+                    "name": sub.name,
+                    "aliases": list(sub.aliases),
+                    "short_help": _clean_help(sub.short_help) or None,
+                }
+                for sub in self.subcommands
             ],
             "examples": [
                 {"description": description, "command": command_line}
@@ -1038,8 +1069,13 @@ def extract_command_doc(
             seen_envvars.add(var)
             environment.append((var, resolve_param_help(param, ctx) or ""))
 
-    subcommands: list[tuple[str, str]] = [
-        (name, full_short_help(sub)) for name, sub in iter_subcommands(command, ctx)
+    subcommands: list[DocSubcommand] = [
+        DocSubcommand(
+            name=name,
+            short_help=full_short_help(sub),
+            aliases=tuple(getattr(sub, "aliases", None) or ()),
+        )
+        for name, sub in iter_subcommands(command, ctx)
     ]
 
     return CommandDoc(

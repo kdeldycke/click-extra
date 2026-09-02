@@ -59,6 +59,36 @@ assert units["help"] == "Temperature scale to display."
 
 An option whose type enumerates its values carries them in `choices`, as a list. Read them from there rather than parsing the `metavar`: an option is free to replace the `[celsius|fahrenheit]` rendering with a short placeholder to keep its help screen readable, and [`--table-format FORMAT`](table.md) does exactly that for its fifty values. `choices` is `null` for every other type.
 
+A group also lists what it dispatches to. Each entry names the subcommand, the other spellings it answers to, and its one-line description:
+
+```{click:source}
+from click_extra import group
+
+@group(name="observatory")
+def observatory():
+    """Watch the sky."""
+
+@observatory.command(aliases=["st"])
+def station():
+    """Manage remote weather stations."""
+```
+
+```{click:run}
+import json
+
+result = invoke(observatory, args=["--help-format", "json"])
+assert result.exit_code == 0
+
+doc = json.loads(result.output)
+assert {
+    "name": "station",
+    "aliases": ["st"],
+    "short_help": "Manage remote weather stations.",
+} in doc["subcommands"]
+```
+
+An alias is invocable, so it is reported wherever the command is: `aliases` is an empty list for a subcommand that declares none.
+
 ### Markdown
 
 The same command, in what a language model reads most comfortably:
@@ -76,7 +106,7 @@ assert "- `CITY`: Name of the city to report on." in result.output
 | Format          | What it renders                                                                                       |
 | --------------- | ----------------------------------------------------------------------------------------------------- |
 | `carapace`      | A [Carapace completion spec](carapace.md) (YAML), which doubles as a command-and-flag tree.           |
-| `json`          | This command as a JSON object, its direct subcommands listed by name.                                 |
+| `json`          | This command as a JSON object, its direct subcommands listed by name and aliases.                     |
 | `json-full`     | Every command of the tree, under a `commands` array.                                                  |
 | `man`           | This command as a man page: the roff source [`--man`](man-page.md#reading-a-manual) typesets to read. |
 | `markdown`      | This command as a Markdown document, one section per topic.                                           |

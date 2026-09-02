@@ -38,6 +38,7 @@
 - Paint a deprecated command's `(DEPRECATED)` label in `--tree` with the `deprecated` theme slot, as the help screen already does.
 - Paint a deprecated parameter's `(DEPRECATED)` label in the `--params` help column with the `deprecated` theme slot, as the help screen already does.
 - Fix `--help-format carapace` describing an option that computes its own help, like `-v` and `-q`, with an empty string.
+- List a subcommand's aliases in the man page, the Markdown document and the JSON export, which named only its primary spelling. Each JSON entry gains an `aliases` array.
 - Carry an argument's help into the completion spec, under the `documentation` block Carapace reserves for operands.
 - Mark a hidden option with Carapace's `&` modifier, so a spec reader can tell it apart from a listed one, as `hidden` already does for a command.
 - Paint each value of a choice operand in `--tree` with the `choice` theme slot, the way the help screen paints it.

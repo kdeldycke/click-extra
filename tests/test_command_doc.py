@@ -642,10 +642,39 @@ def test_json_lists_subcommands_by_name_only():
     doc = json.loads(render_help(station, "json", prog_name="station"))
     assert {
         "name": "calibrate",
+        "aliases": [],
         "short_help": "Recalibrate the sensors.",
     } in doc["subcommands"]
     # Named, never expanded: no child carries its own options or children.
-    assert all(set(sub) == {"name", "short_help"} for sub in doc["subcommands"])
+    assert all(
+        set(sub) == {"name", "aliases", "short_help"} for sub in doc["subcommands"]
+    )
+
+
+def test_subcommand_aliases_reach_every_backend():
+    """A generated page names the short spelling the help screen advertises.
+
+    An alias is invocable, so a reader who only ever sees the man page or the
+    JSON export would otherwise never learn it exists.
+    """
+
+    @group
+    def observatory():
+        """Watch the sky."""
+
+    @observatory.command(aliases=["st", "stn"])
+    def station():
+        """Manage remote stations."""
+
+    assert "\\fBstation\\fR (\\fBst\\fR, \\fBstn\\fR)" in render_help(
+        observatory, "man", prog_name="observatory"
+    )
+    assert "- `station` (`st`, `stn`): Manage remote stations." in render_help(
+        observatory, "markdown", prog_name="observatory"
+    )
+    doc = json.loads(render_help(observatory, "json", prog_name="observatory"))
+    entry = next(sub for sub in doc["subcommands"] if sub["name"] == "station")
+    assert entry["aliases"] == ["st", "stn"]
 
 
 def test_json_full_walks_the_whole_tree():
