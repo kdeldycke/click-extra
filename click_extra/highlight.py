@@ -41,7 +41,7 @@ from .theme import HelpTheme, ThemeChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Collection, Iterable
     from typing import ClassVar
 
     from cloup.styling import IStyle
@@ -500,27 +500,10 @@ class HelpFormatter(cloup.HelpFormatter):
     def _style_choice_metavar(self, metavar: str, choices: set[str]) -> str | None:
         """Style individual choices inside a choice metavar string.
 
-        Takes a rendered metavar like `[json|xml|csv]` (Click `Choice`-style)
-        or `[id,spec,value]` (Click Extra `MultiChoice`-style) and returns a
-        styled version where each known choice is wrapped with `theme.choice`.
-        A part that is not a known choice is a type placeholder (like the
-        `INTEGER` in a hybrid `[auto|max|INTEGER]` metavar) and is styled
-        with `theme.metavar` instead. Returns `None` if `metavar` does not
-        look like a choice list.
+        Thin wrapper over {func}`style_choice_metavar`, bound to this
+        formatter's theme.
         """
-        # Strip the surrounding brackets.
-        if not (metavar.startswith("[") and metavar.endswith("]")):
-            return None
-        inner = metavar[1:-1]
-        # Detect the separator from the metavar itself: pipe for pick-one
-        # `click.Choice`, comma for multi-pick `MultiChoice`.
-        sep = "|" if "|" in inner else ","
-        parts = inner.split(sep)
-        styled_parts = [
-            self.theme.choice(part) if part in choices else self.theme.metavar(part)
-            for part in parts
-        ]
-        return "[" + sep.join(styled_parts) + "]"
+        return style_choice_metavar(metavar, choices, self.theme)
 
     @staticmethod
     def _add_placeholder(styled: str, store: dict[str, str]) -> str:
@@ -732,6 +715,42 @@ class HelpFormatter(cloup.HelpFormatter):
         rendering."""
         help_text = super().getvalue()
         return self.highlight_extra_keywords(help_text)
+
+
+def style_choice_metavar(
+    metavar: str,
+    choices: Collection[str],
+    theme: HelpTheme,
+) -> str | None:
+    """Style each part of a metavar that enumerates the values it accepts.
+
+    Takes a rendered metavar like `{json|xml|csv}` (a required `click.Choice`
+    operand), `[json|xml|csv]` (an optional one) or `[id,spec,value]` (Click
+    Extra's multi-pick `MultiChoice`), and paints every known value with
+    `theme.choice`. A part that is not one is a type placeholder, like the
+    `INTEGER` of a hybrid `[auto|max|INTEGER]`, and takes `theme.metavar`.
+
+    Shared by the help screen and by {func}`~click_extra.tree.render_tree`, so
+    one operand reads the same wherever it is drawn.
+
+    :param metavar: the rendered metavar to style.
+    :param choices: the values the parameter accepts.
+    :param theme: the theme whose `choice` and `metavar` slots paint the parts.
+    :return: the styled metavar, or `None` when it enumerates nothing.
+    """
+    wrappers = {"[": "]", "{": "}"}
+    closing = wrappers.get(metavar[:1])
+    if closing is None or not metavar.endswith(closing):
+        return None
+    inner = metavar[1:-1]
+    # Read the separator off the metavar itself: a pipe for a pick-one
+    # `click.Choice`, a comma for a multi-pick `MultiChoice`.
+    sep = "|" if "|" in inner else ","
+    parts = inner.split(sep)
+    styled = [
+        theme.choice(part) if part in choices else theme.metavar(part) for part in parts
+    ]
+    return metavar[:1] + sep.join(styled) + closing
 
 
 def highlight(

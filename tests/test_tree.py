@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import pytest
 
-from click_extra import argument, command, group, unstyle
+from click_extra import Choice, argument, command, group, unstyle
 from click_extra.cli import demo
 from click_extra.testing import CliRunner
 from click_extra.theme import get_current_theme
@@ -148,6 +148,30 @@ def test_render_tree_theme_styling():
     assert (
         theme.alias_secondary("(") + theme.alias("st") + theme.alias_secondary(")")
     ) in tree
+
+
+def test_render_tree_paints_each_choice_of_an_operand():
+    """An operand enumerating its values draws them the way a help screen does.
+
+    Painted one value at a time rather than as a single metavar span, so a
+    reader picks the accepted words out of the punctuation around them.
+    """
+    theme = get_current_theme()
+
+    @group
+    def orchard():
+        """Tend an orchard."""
+
+    @orchard.command()
+    @argument("ripeness", type=Choice(["green", "ripe"]))
+    @argument("crate")
+    def pick(ripeness, crate):
+        """Pick the fruit."""
+
+    tree = render_command_tree(orchard)
+    assert f"{{{theme.choice('green')}|{theme.choice('ripe')}}}" in tree
+    # An operand naming no value stays one metavar, brackets included.
+    assert theme.metavar("CRATE") in tree
 
 
 def test_render_tree_paints_the_deprecation_label():

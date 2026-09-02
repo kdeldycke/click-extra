@@ -50,7 +50,7 @@ import cloup
 from wcwidth import wcswidth
 
 from . import context
-from .highlight import DEPRECATED_RE, highlight
+from .highlight import DEPRECATED_RE, highlight, style_choice_metavar
 from .parameters import (
     ExtraOption,
     full_short_help,
@@ -139,14 +139,24 @@ def _command_labels(
     if aliases:
         plain += f" ({', '.join(aliases)})"
         styled += " " + cloup.Group.format_subcommand_aliases(aliases, theme)
-    operands = " ".join(
-        param.make_metavar(ctx=ctx)
-        for param in command.params
-        if isinstance(param, click.Argument)
-    )
+    # Styled one operand at a time, so an argument enumerating what it accepts
+    # paints each value with the `choice` slot, like the help screen does. A
+    # single span over the whole run would draw them as one metavar.
+    operands: list[str] = []
+    drawn: list[str] = []
+    for param in command.params:
+        if not isinstance(param, click.Argument):
+            continue
+        metavar = param.make_metavar(ctx=ctx)
+        operands.append(metavar)
+        choices = getattr(param.type, "choices", None)
+        drawn.append(
+            (style_choice_metavar(metavar, choices, theme) if choices else None)
+            or theme.metavar(metavar)
+        )
     if operands:
-        plain += f" {operands}"
-        styled += " " + theme.metavar(operands)
+        plain += " " + " ".join(operands)
+        styled += " " + " ".join(drawn)
     return plain, styled
 
 
