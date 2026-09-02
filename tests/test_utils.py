@@ -64,6 +64,29 @@ def test_memoize_enums_leaves_an_enum_free_object_alone():
     assert memo == {}
 
 
+def test_memoize_enums_seeds_a_member_the_object_does_not_hold():
+    """A caller naming a member covers an object carrying none of its own.
+
+    What the sentinel a sibling holds needs: the object being copied is not
+    where it sits.
+    """
+
+    class Ripeness(Enum):
+        GREEN = "green"
+        RIPE = "ripe"
+
+    class Basket:
+        def __init__(self):
+            self.crate = "wooden"
+
+    memo: dict[int, object] = {}
+    memoize_enums(Basket(), memo, Ripeness.GREEN)
+    assert memo == {
+        id(Ripeness.GREEN): Ripeness.GREEN,
+        id(Ripeness.RIPE): Ripeness.RIPE,
+    }
+
+
 def test_missing_extra_message():
     msg = missing_extra_message("mkdocs", subject="This module")
     assert msg == (

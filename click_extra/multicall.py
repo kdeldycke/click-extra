@@ -102,6 +102,7 @@ from collections.abc import Sequence
 from typing import cast
 
 import click
+from click._utils import UNSET
 
 from ._utils import memoize_enums
 from .commands import ColorizedCommand, Command, Group, HelpCommand
@@ -434,7 +435,7 @@ def _deepcopy_params(params: list[click.Parameter]) -> list[click.Parameter]:
     """
     memo: dict[int, Any] = {}
     for param in params:
-        memoize_enums(param, memo)
+        memoize_enums(param, memo, UNSET)
     return copy.deepcopy(params, memo)
 
 

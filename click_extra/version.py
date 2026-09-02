@@ -54,6 +54,7 @@ import click
 from boltons.formatutils import BaseFormatField, tokenize_format_str
 from boltons.strutils import strip_ansi
 from click import echo, get_current_context
+from click._utils import UNSET
 from extra_platforms import current_architecture, current_platform
 
 from ._utils import memoize_enums, patch_attr
@@ -968,15 +969,16 @@ class VersionOption(ExtraOption):
         fields against its own invocations. Only the configuration state
         (message template, styles, screen, field overrides) is carried over.
 
-        Click's `UNSET` sentinel rides in `__dict__` as the option's unset
-        default, so the memo is seeded with the enum members before the copy:
-        see {func}`~click_extra._utils.memoize_enums` for why Python 3.10
-        cannot copy one on its own.
+        The copy reaches Click's `UNSET` sentinel, on this option or on a
+        sibling sharing its option group, so the memo is seeded with that
+        sentinel's members before the copy: see
+        {func}`~click_extra._utils.memoize_enums` for why Python 3.10 cannot
+        copy one on its own.
         """
         cls = type(self)
         clone = cls.__new__(cls)
         memo[id(self)] = clone
-        memoize_enums(self, memo)
+        memoize_enums(self, memo, UNSET)
         for key, value in self.__dict__.items():
             if isinstance(getattr(cls, key, None), cached_property):
                 continue
