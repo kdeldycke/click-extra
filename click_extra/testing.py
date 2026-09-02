@@ -23,6 +23,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
@@ -184,8 +185,27 @@ def _print_cli_run(
     result: click.testing.Result | subprocess.CompletedProcess,
     env: TEnvVars | None = None,
 ) -> None:
-    """Prints the full simulation of CLI execution, including output."""
-    print(render_cli_run(args, result, env))
+    """Prints the full simulation of CLI execution, including output.
+
+    The trace embeds the CLI's captured streams verbatim, and those are whatever
+    bytes a subprocess happened to write rather than text this library produced.
+    Printing them can fail on its own: a `PYTHONIOENCODING` carrying no error
+    handler leaves `sys.stdout` strict, and a byte the codec refuses then raises
+    from the `print` rather than from anything under test.
+
+    So a failed write is retried against a sanitized copy, marking each
+    unprintable character rather than losing the trace. A debugging aid must
+    never be the reason a test fails, and this one is reached from every
+    `CliRunner` invocation.
+    """
+    trace = render_cli_run(args, result, env)
+    try:
+        print(trace)
+    except (UnicodeError, OSError):
+        # OSError covers the platform-level refusal, which macOS reports as
+        # EILSEQ from the write itself instead of raising from the codec.
+        encoding = getattr(sys.stdout, "encoding", None) or "UTF-8"
+        print(trace.encode(encoding, "replace").decode(encoding, "replace"))
 
 
 INVOKE_ARGS = set(inspect.getfullargspec(click.testing.CliRunner.invoke).args)
