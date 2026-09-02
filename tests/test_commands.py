@@ -1676,6 +1676,35 @@ def test_option_order_agrees_across_renderers(invoke):
     assert not diverging, f"renderers out of order: {diverging}"
 
 
+@pytest.mark.parametrize(
+    "argument_decorator",
+    (
+        pytest.param(click.argument, id="click"),
+        pytest.param(cloup.argument, id="cloup"),
+        pytest.param(argument, id="click_extra"),
+    ),
+)
+def test_argument_help_agrees_across_renderers(invoke, argument_decorator):
+    """An argument's help reaches every rendering, whatever its `Argument` class.
+
+    Click 8.5.0 gave `click.Argument` a `help` parameter of its own. Cloup reads a
+    description off a `cloup.Argument` alone, so a plain `click.argument` drew a
+    blank `Positional arguments` entry while the man page and the JSON export
+    carried its text. See https://github.com/janluke/cloup/issues/210.
+    """
+
+    @command
+    @argument_decorator("city", help="City to forecast.")
+    def forecast(city):
+        """Show the weather forecast."""
+
+    help_screen = invoke(forecast, "--help", color=False).stdout
+    assert re.search(r"^  CITY +City to forecast\.$", help_screen, re.MULTILINE)
+
+    doc = json.loads(invoke(forecast, "--help-format", "json", color=False).stdout)
+    assert doc["arguments"] == [{"metavar": "CITY", "help": "City to forecast."}]
+
+
 def test_every_default_option_lands_in_a_section():
     """No option `default_params()` returns escapes `DEFAULT_OPTION_GROUPS`.
 

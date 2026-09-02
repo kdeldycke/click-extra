@@ -54,7 +54,7 @@ from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import TimerOption
 from .highlight import HelpKeywords, _HelpColorsMixin, highlight
 from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
-from .parameters import ExtraOption, ShowParamsOption
+from .parameters import ExtraOption, ShowParamsOption, resolve_param_help
 from .spinner import ProgressOption
 from .table import TableFormatOption
 from .theme import THEME_ENVVAR, ThemeOption, get_current_theme
@@ -667,6 +667,26 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             else:
                 own.append(group)
         return tuple(own), tuple(sorted(extra, key=lambda group: group.priority))
+
+    def get_argument_help_record(
+        self,
+        arg: click.Argument,
+        ctx: click.Context,
+    ) -> tuple[str, str]:
+        """Pair a positional argument's metavar with its help text.
+
+        Reimplements `cloup.OptionGroupMixin.get_argument_help_record`, which reads
+        the text off a `cloup.Argument` and hands back an empty string for any other
+        argument. Click 8.5.0 gave `click.Argument` a `help` parameter of its own, so
+        a plain `click.argument(..., help=...)` earns a `Positional arguments` entry
+        and renders blank under that rule.
+
+        Resolution goes through {func}`~click_extra.parameters.resolve_param_help`,
+        the same helper the man page and every other
+        {data}`~click_extra.command_doc.HELP_FORMATS` backend reads, so an operand
+        carries one description whatever renders it.
+        """
+        return arg.make_metavar(ctx=ctx), resolve_param_help(arg, ctx) or ""
 
     def format_params(self, ctx: click.Context, formatter: Any) -> None:
         """Draw the parameter sections of the help screen.
