@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import gc
 import io
 import logging
 import os
@@ -872,3 +873,51 @@ def test_invocation_color_never_outlives_its_invocation(invoke, args):
 
     assert color_module._invocation_color is None
     assert invocation_color() is None
+
+
+def test_invocation_color_expires_with_a_plain_click_command(invoke):
+    """A plain `click.command` borrowing the color options must not leak either.
+
+    It has no `ExtraCommand.main()` to reset the mirror in a `finally`, so the
+    cleanup rides the context finalizer. Click's `UsageError` holds that context
+    inside a reference cycle, so the collection is forced here rather than waited
+    on: in a running program ordinary allocation churn reaches it on its own.
+    """
+    from click_extra import color as color_module
+
+    def reject(ctx, param, value):
+        if value:
+            raise click.UsageError("unknown fruit")
+        return value
+
+    @click.command
+    @color_option
+    @no_color_option
+    @click.option("--fruit", callback=reject)
+    def plain_basket():
+        echo("ripe")
+
+    invoke(plain_basket, ("--no-color", "--fruit", "pear"))
+    gc.collect()
+
+    assert color_module._invocation_color is None
+    assert invocation_color() is None
+
+
+def test_a_stale_finalizer_does_not_clobber_a_live_invocation():
+    """The finalizer of a dead context must leave a newer invocation's value alone.
+
+    Tying the reset to the context's lifetime introduces this hazard: a context
+    collected *after* the next invocation published would otherwise wipe a value
+    that is still in use. The token comparison is what prevents it.
+    """
+    from click_extra import color as color_module
+
+    color_module._invocation_color = False
+    color_module._invocation_token = current = object()
+
+    color_module._expire_invocation_color(object())
+    assert color_module._invocation_color is False
+
+    color_module._expire_invocation_color(current)
+    assert color_module._invocation_color is None

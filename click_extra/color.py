@@ -28,6 +28,7 @@ import os
 import re
 import select
 import sys
+import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
 from gettext import gettext as _
@@ -497,25 +498,61 @@ context closes.
 """
 
 
+_invocation_token: object | None = None
+"""Identifies the invocation that owns the current {data}`_invocation_color`.
+
+Compared by {func}`_expire_invocation_color` so a context dying *after* a later
+invocation already published cannot wipe that newer value.
+"""
+
+
 def publish_invocation_color(ctx: click.Context) -> None:
     """Mirror `ctx.color` into {data}`_invocation_color` for cross-thread readers.
 
     Called by every color callback after it settled its part of the resolution:
-    whichever fires last leaves the final tri-state in the mirror. The first call
-    queues a context-close callback resetting the mirror, so the value never leaks
-    into a later invocation in the same process.
+    whichever fires last leaves the final tri-state in the mirror.
+
+    The first call ties the mirror to `ctx`'s own lifetime, so the value does not
+    leak into a later invocation in the same process. Two mechanisms cover the
+    two ways an invocation ends:
+
+    - A close callback, for the normal path.
+    - A finalizer, for the abort path: a callback raising during parameter
+      processing leaves the context never entered, and therefore never closed.
+      Click's `UsageError` holds that context, and the traceback holds the
+      error, so the pair sits in a reference cycle and the finalizer runs at the
+      next collection rather than immediately. Ordinary allocation churn reaches
+      it within a few hundred objects, but it is not deterministic.
+
+    {class}`~click_extra.commands.Command` does not depend on that timing: its
+    `main()` resets the mirror in a `finally`, which covers every Click Extra
+    command. The finalizer is what carries a plain `click.command` that merely
+    borrows the color options.
     """
-    global _invocation_color
+    global _invocation_color, _invocation_token
     _invocation_color = ctx.color
     if not ctx.meta.get(_COLOR_PUBLISHED_KEY):
         ctx.meta[_COLOR_PUBLISHED_KEY] = True
+        _invocation_token = token = object()
         ctx.call_on_close(_reset_invocation_color)
+        weakref.finalize(ctx, _expire_invocation_color, token)
+
+
+def _expire_invocation_color(token: object) -> None:
+    """Reset the mirror once the context that published it is collected.
+
+    A no-op when a later invocation has since published, which is what keeps a
+    late finalizer from clobbering a live value.
+    """
+    if _invocation_token is token:
+        _reset_invocation_color()
 
 
 def _reset_invocation_color() -> None:
     """Reset the process-wide color mirror to the auto default."""
-    global _invocation_color
+    global _invocation_color, _invocation_token
     _invocation_color = None
+    _invocation_token = None
 
 
 def invocation_color() -> bool | None:
