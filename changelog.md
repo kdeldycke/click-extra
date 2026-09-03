@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.1.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.1.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.1.0` (2026-09-03)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...v9.1.0)
 
 - Add `--record` to `click-extra screenshot`, running the command under a pseudo-terminal and writing an animated SVG of every screen it draws, paced by `--rows`, `--hold`, `--blank` and `--speed`, and backed by the new `record_and_render()`.
