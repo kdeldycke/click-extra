@@ -766,7 +766,7 @@ def highlight(
     is applied only once to each contiguous range of matching characters.
 
     ```{todo}
-    Support case-foldeing, so we can have the `Straße` string matching the
+    Support case-folding, so we can have the `Straße` string matching the
     `Strasse` content.
 
     This could be tricky as it messes with string length and characters index, which
