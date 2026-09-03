@@ -36,7 +36,7 @@ from cloup.formatting import ensure_is_cloup_formatter
 
 from . import context
 from .accessibility import ACCESSIBLE_ENVVAR, AccessibleOption
-from .color import ColorOption, NoColorOption
+from .color import ColorOption, NoColorOption, _reset_invocation_color
 from .command_doc import HelpFormatOption, ManOption, normalize_examples
 from .config import (
     DEFAULT_SUBCOMMANDS_KEY,
@@ -745,7 +745,16 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         if not prog_name and self.name:
             prog_name = self.name
 
-        return super().main(args=args, prog_name=prog_name, **kwargs)
+        try:
+            return super().main(args=args, prog_name=prog_name, **kwargs)
+        finally:
+            # The color mirror is scoped to one invocation. Its reset is queued
+            # on the context by `publish_invocation_color()`, but a callback
+            # raising during parameter processing aborts before the context is
+            # entered, so that close callback never fires and the mirror stays
+            # pinned for the rest of the process. Reset here so the scope holds
+            # however the invocation ended.
+            _reset_invocation_color()
 
     def make_context(
         self,

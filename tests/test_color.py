@@ -29,6 +29,7 @@ from click_extra import (
     Style,
     color,
     color_option,
+    columns_option,
     command,
     echo,
     group,
@@ -836,6 +837,36 @@ def test_resilient_context_does_not_publish_invocation_color(monkeypatch):
         pass
 
     make_resilient_context(probe, "probe")
+
+    assert color_module._invocation_color is None
+    assert invocation_color() is None
+
+
+@pytest.mark.parametrize(
+    "args",
+    (
+        pytest.param(("--no-color", "--columns", "id,nope", "--params"), id="usage_error"),
+        pytest.param(("--no-color", "--params"), id="success"),
+        pytest.param(("--no-color", "--help"), id="help_exit"),
+    ),
+)
+def test_invocation_color_never_outlives_its_invocation(invoke, args):
+    """However an invocation ends, it must leave the color mirror on auto.
+
+    `publish_invocation_color()` queues its reset as a context-close callback, so
+    an option callback raising during parameter processing aborts before the
+    context is entered and the reset never fires. The mirror then stays pinned to
+    that run's `--no-color` for the rest of the process, stripping ANSI from any
+    later CLI carrying no color option of its own.
+    """
+    from click_extra import color as color_module
+
+    @command
+    @columns_option
+    def fruit_basket():
+        echo("ripe")
+
+    invoke(fruit_basket, args)
 
     assert color_module._invocation_color is None
     assert invocation_color() is None

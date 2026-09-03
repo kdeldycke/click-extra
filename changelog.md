@@ -28,6 +28,7 @@
 - Fix a capture inheriting `TERM_PROGRAM` from the terminal it is taken from, which drew an emoji-bearing table wider on one machine than another.
 - Fix recorded screens dropping every line the command ended with `\r\n`, the form a pseudo-terminal substitutes for each newline.
 - Fix a printed CLI trace raising on a captured character the output encoding refuses, which failed the run instead of the command under test.
+- Fix a failing invocation leaving `--no-color` pinned process-wide, which stripped color from every later command run in the same process.
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
 - Fix an argument declared with a plain `click.argument(help=...)` drawing a blank `Positional arguments` entry on the help screen, while every other render carried its text.
 - Fix a deprecated command showing Cloup's `(Deprecated)` prefix and dropping the reason string: it now carries Click's own `(DEPRECATED: reason)` marker in every render.
