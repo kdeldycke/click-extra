@@ -7,6 +7,9 @@
 
 ## [`9.1.0` (2026-09-03)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...v9.1.0)
 
+> [!NOTE]
+> `9.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/9.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v9.1.0).
+
 - Add `--record` to `click-extra screenshot`, running the command under a pseudo-terminal and writing an animated SVG of every screen it draws, paced by `--rows`, `--hold`, `--blank` and `--speed`, and backed by the new `record_and_render()`.
 - Draw the invocation above a capture as a shell prompt; `--prompt` overrides or hides it, and `--closing-prompt` draws the prompt the shell returns to once the command exits.
 - Draw a terminal cursor on a capture with `--cursor` and `--blink`, or `render_svg(cursor=…)`, blinking or steady, in the `--preset` terminal's own shape.
