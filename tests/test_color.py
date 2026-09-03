@@ -845,7 +845,9 @@ def test_resilient_context_does_not_publish_invocation_color(monkeypatch):
 @pytest.mark.parametrize(
     "args",
     (
-        pytest.param(("--no-color", "--columns", "id,nope", "--params"), id="usage_error"),
+        pytest.param(
+            ("--no-color", "--columns", "id,nope", "--params"), id="usage_error"
+        ),
         pytest.param(("--no-color", "--params"), id="success"),
         pytest.param(("--no-color", "--help"), id="help_exit"),
     ),
