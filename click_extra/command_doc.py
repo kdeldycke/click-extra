@@ -79,6 +79,7 @@ from .parameters import (
     param_spellings,
     resolve_param_help,
     search_params,
+    split_option_groups,
 )
 from .version import resolve_author, resolve_distribution
 
@@ -1004,10 +1005,7 @@ def _build_option_groups(
         return built
 
     if isinstance(command, OptionGroupMixin) and command.option_groups:
-        splitter = getattr(command, "split_option_groups", None)
-        own_groups, extra_groups = (
-            (tuple(command.option_groups), ()) if splitter is None else splitter()
-        )
+        own_groups, extra_groups = split_option_groups(command)
         claimed = {id(opt) for group in command.option_groups for opt in group.options}
         ungrouped = tuple(
             item for param, item in option_items if id(param) not in claimed

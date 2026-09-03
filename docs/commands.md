@@ -1053,13 +1053,14 @@ if __name__ == "__main__":
 And this simple script gets rendered into:
 
 ```{code-block} shell-session
-:emphasize-lines: 49-51
+:emphasize-lines: 58-60
 $ uv run -- python ./wrap.py
 Usage: wrap.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --time / --no-time           Measure and print elapsed execution time.
-                               [default: no-time]
+  -h, --help                   Show this message and exit.
+
+Configuration options:
   --config LOCATION            Location of the configuration file. Supports
                                local path with glob patterns or remote URL.
                                [default: ~/Library/Application Support/wrap.py/]
@@ -1069,6 +1070,8 @@ Options:
   --validate-config LOCATION   Validate the configuration file and exit.
   --export-config FORMAT       Export the configuration in the selected format
                                to <stdout>, then exit.
+
+Output options:
   --accessible                 Accessibility mode: disable colors and render
                                tables in a borderless, screen-reader-friendly
                                format.
@@ -1082,10 +1085,10 @@ Options:
   --theme [auto|dark|dracula|light|manpage|monokai|nord|solarized-dark]
                                Color theme used for help screens.  [default:
                                dark]
-  --params                     Show all CLI parameters, their provenance,
-                               defaults and value, then exit.
   --table-format FORMAT        Rendering style of tables.  [default: rounded-
                                outline]
+
+Logging options:
   --verbosity LEVEL            Either CRITICAL, ERROR, WARNING, INFO, DEBUG.
                                [default: WARNING]
   -v, --verbose                Increase the default WARNING verbosity by one
@@ -1094,12 +1097,18 @@ Options:
   -q, --quiet                  Decrease the default WARNING verbosity by one
                                level for each additional repetition of the
                                option.  [default: 0]
+  --debug                      Shorthand for --verbosity DEBUG.
+
+Introspection options:
+  --time / --no-time           Measure and print elapsed execution time.
+                               [default: no-time]
+  --params                     Show all CLI parameters, their provenance,
+                               defaults and value, then exit.
   --tree                       Show the tree of nested subcommands and exit.
   --man                        Read the command's manual page and exit.
   --help-format [carapace|json|json-full|man|markdown|markdown-full]
                                Render the command in the given format and exit.
   --version                    Show the version and exit.
-  -h, --help                   Show this message and exit.
 
 Commands:
   aws_sam  AWS Serverless Application Model (SAM) CLI

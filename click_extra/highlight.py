@@ -55,7 +55,7 @@ helper; the case-insensitive flag also catches the variants a CLI author writes
 by hand in a help string.
 
 Read by the help screen through {attr}`HelpFormatter._deprecated_re` and by
-{func}`~click_extra.tree.render_tree`, so one marker is painted the same
+{func}`~click_extra.tree.render_command_tree`, so one marker is painted the same
 wherever a command's description is drawn.
 """
 
@@ -730,8 +730,9 @@ def style_choice_metavar(
     `theme.choice`. A part that is not one is a type placeholder, like the
     `INTEGER` of a hybrid `[auto|max|INTEGER]`, and takes `theme.metavar`.
 
-    Shared by the help screen and by {func}`~click_extra.tree.render_tree`, so
-    one operand reads the same wherever it is drawn.
+    Shared by the help screen and by
+    {func}`~click_extra.tree.render_command_tree`, so one operand reads the same
+    wherever it is drawn.
 
     :param metavar: the rendered metavar to style.
     :param choices: the values the parameter accepts.

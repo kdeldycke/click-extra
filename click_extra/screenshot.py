@@ -426,6 +426,25 @@ inside a light window. A CLI that never asks is unaffected: the variables only
 answer a question it does not put.
 """
 
+CAPTURE_HIDDEN_TERMINAL_VARS: tuple[str, ...] = ("TERM_PROGRAM",)
+"""Environment variables naming the terminal a capture is *taken* from.
+
+A capture is drawn for a file, and read in a browser or an image viewer. The
+terminal that happened to run it is therefore not the terminal it is drawn
+for, and anything the command would tailor to that terminal has to be kept
+away from it, or the same capture comes out differently on every machine.
+
+`TERM_PROGRAM` is the one that bites, through
+{data}`~click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`: a table
+carrying an emoji-presentation sequence is padded for the terminal named
+there, so a capture taken under Apple Terminal is wider than the same capture
+taken anywhere else. Committed side by side, the two never stop rewriting each
+other.
+
+Cleared rather than pinned to a value: no name is the honest answer, since a
+capture is drawn for no terminal in particular.
+"""
+
 CAPTURE_FONT_STACK = DEFAULT_PRESET.font_stack
 """Monospaced fonts a capture asks for, best first.
 
@@ -893,26 +912,6 @@ def fit_columns(text: str) -> int:
     return max(
         [MIN_COLUMNS, *(cell_width(unstyle(line)) for line in text.splitlines())],
     )
-
-
-CAPTURE_HIDDEN_TERMINAL_VARS: tuple[str, ...] = ("TERM_PROGRAM",)
-"""Environment variables naming the terminal a capture is *taken* from.
-
-A capture is drawn for a file, and read in a browser or an image viewer. The
-terminal that happened to run it is therefore not the terminal it is drawn
-for, and anything the command would tailor to that terminal has to be kept
-away from it, or the same capture comes out differently on every machine.
-
-`TERM_PROGRAM` is the one that bites, through
-{data}`~click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`: a table
-carrying an emoji-presentation sequence is padded for the terminal named
-there, so a capture taken under Apple Terminal is wider than the same capture
-taken anywhere else. Committed side by side, the two never stop rewriting each
-other.
-
-Cleared rather than pinned to a value: no name is the honest answer, since a
-capture is drawn for no terminal in particular.
-"""
 
 
 def auto_columns(pictures: Sequence[str], cursor: Cursor | None = None) -> int:

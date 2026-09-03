@@ -834,6 +834,30 @@ def iter_subcommands(
         yield name, sub
 
 
+def split_option_groups(
+    command: cloup.OptionGroupMixin,
+) -> tuple[tuple[cloup.OptionGroup, ...], tuple[cloup.OptionGroup, ...]]:
+    """A command's explicit option groups, split around its ungrouped section.
+
+    Hands back the groups drawn *before* the ungrouped options, then those drawn
+    *after*. A Click Extra command decides that split itself, through
+    {meth}`click_extra.commands.Command.split_option_groups`, so its own sections
+    land past the ungrouped ones. A plain Cloup command has no such method and
+    keeps every group ahead of the ungrouped section, which is Cloup's own rule.
+
+    Every renderer reading a command's sections goes through this, so the split is
+    resolved in one place whatever the command class.
+
+    :param command: the command whose groups are read.
+    :return: the groups drawn before the ungrouped section, then those after it.
+    """
+    splitter = getattr(command, "split_option_groups", None)
+    if splitter is None:
+        return tuple(command.option_groups), ()
+    own_groups, extra_groups = splitter()
+    return own_groups, extra_groups
+
+
 def iter_params_for_display(
     command: click.Command,
     ctx: click.Context,
@@ -860,12 +884,7 @@ def iter_params_for_display(
         return
 
     seen: set[int] = set()
-    # A Click Extra command draws its own option groups past the ungrouped
-    # section; a plain Cloup one keeps every group ahead of it.
-    splitter = getattr(command, "split_option_groups", None)
-    own_groups, extra_groups = (
-        (tuple(command.option_groups), ()) if splitter is None else splitter()
-    )
+    own_groups, extra_groups = split_option_groups(command)
     ordered: list[click.Parameter] = [
         *command.arguments,
         *(option for group in own_groups for option in group.options),

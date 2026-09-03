@@ -212,9 +212,9 @@ def render_command_tree(
     carry Click's own `(DEPRECATED)` label. Everything is styled with the same
     theme slots as help screens (`invoked_command` for the root,
     `subcommand` and `alias` for children, `metavar` for operands,
-    `deprecated` for that label), so the tree follows `--theme` and `--color`. The rail switches from
-    box-drawing to ASCII when accessibility mode is active on the context
-    (see {data}`~click_extra.context.ACCESSIBLE`).
+    `deprecated` for that label), so the tree follows `--theme` and `--color`.
+    The rail switches from box-drawing to ASCII when accessibility mode is
+    active on the context (see {data}`~click_extra.context.ACCESSIBLE`).
 
     Descriptions wrap at `width`, resolved like help screens when not given
     (`ctx.make_formatter()`, honoring the `terminal_width` and

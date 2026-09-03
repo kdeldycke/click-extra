@@ -1395,6 +1395,45 @@ class ClickDirective(SphinxDirective):
             tuple(frame.duration for frame in opening) + tuple(interval),
         )
 
+    def render_animation(
+        self,
+        frames: tuple[str, ...],
+        interval: float | tuple[float, ...],
+        *,
+        hold: THold,
+        blank: float,
+    ) -> str:
+        """Draw an animated capture of `frames`, whatever produced them.
+
+        The two animated paths agree on everything but what closes a cycle: a
+        recording ends somewhere and pauses on that ending, while a declared
+        animation turns in place and ends nowhere, so it pauses for nothing
+        unless the block asks. Both fallbacks are overridden by
+        `:screenshot-hold:` and `:screenshot-blank:`.
+
+        :param frames: the animation's frames, in order.
+        :param interval: how long each of them is shown.
+        :param hold: seconds the last frame stays up when the block states none.
+        :param blank: seconds of empty screen closing the cycle when the block
+            states none.
+        :return: the SVG document.
+        """
+        frames, interval = self.opened(self.closed(frames), interval)
+        return render(
+            columns=self.screenshot_columns,
+            unique_id=self.screenshot,
+            background=self.screenshot_background,
+            frames=self.numbered(frames),
+            emphasize=self.screenshot_emphasis(
+                max(frame.count("\n") + 1 for frame in frames)
+            ),
+            interval=interval,
+            hold=self.screenshot_hold(hold),
+            blank=self.options.get("screenshot-blank", blank),
+            speed=self.options.get("screenshot-speed", 1.0),
+            **self.screenshot_frame,
+        )
+
     def write_screenshot(self, results: Iterable[str]) -> None:
         """Write the captured output as an SVG beside the documentation.
 
@@ -1442,21 +1481,12 @@ class ClickDirective(SphinxDirective):
                 # a fresh recording, delete the file and build again.
                 return
             frames, interval = self.resolve_animation(recording, ":screenshot-record:")
-            frames, interval = self.opened(self.closed(frames), interval)
             path.write_text(
-                render(
-                    columns=self.screenshot_columns,
-                    unique_id=self.screenshot,
-                    background=self.screenshot_background,
-                    frames=self.numbered(frames),
-                    emphasize=self.screenshot_emphasis(
-                        max(frame.count("\n") + 1 for frame in frames)
-                    ),
-                    interval=interval,
-                    hold=self.screenshot_hold(DEFAULT_RECORDING_HOLD),
-                    blank=self.options.get("screenshot-blank", DEFAULT_RECORDING_BLANK),
-                    speed=self.options.get("screenshot-speed", 1.0),
-                    **self.screenshot_frame,
+                self.render_animation(
+                    frames,
+                    interval,
+                    hold=DEFAULT_RECORDING_HOLD,
+                    blank=DEFAULT_RECORDING_BLANK,
                 ),
                 encoding="utf-8",
             )
@@ -1464,22 +1494,11 @@ class ClickDirective(SphinxDirective):
 
         animation = self.screenshot_animation
         if animation is not None:
-            frames, interval = self.opened(self.closed(animation[0]), animation[1])
-            drawn = render(
-                columns=self.screenshot_columns,
-                unique_id=self.screenshot,
-                background=self.screenshot_background,
-                frames=self.numbered(frames),
-                emphasize=self.screenshot_emphasis(
-                    max(frame.count("\n") + 1 for frame in frames)
-                ),
-                interval=interval,
-                hold=self.screenshot_hold(0.0),
-                blank=self.options.get("screenshot-blank", 0.0),
-                speed=self.options.get("screenshot-speed", 1.0),
-                **self.screenshot_frame,
+            frames, interval = animation
+            path.write_text(
+                self.render_animation(frames, interval, hold=0.0, blank=0.0),
+                encoding="utf-8",
             )
-            path.write_text(drawn, encoding="utf-8")
             return
 
         lines = self.screenshot_lines(results)

@@ -94,6 +94,8 @@ except ImportError:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from click import Command, Context, Parameter
 
 
@@ -288,6 +290,33 @@ def _param_action(
 # --- spec data model --------------------------------------------------------
 
 
+def _positional_entries(
+    positional: Sequence[object],
+    positionalany: object,
+) -> dict:
+    """Serialize the `positional` and `positionalany` pair a spec block carries.
+
+    The two blocks holding one, `completion` and `documentation`, index their
+    operands the same way and drop an empty member the same way, so they emit
+    the pair through here rather than each writing the rule out.
+
+    :param positional: what each fixed-arity slot carries, in order. A trailing
+        run of empty entries is dropped: a slot carrying nothing says nothing,
+        and the surviving ones keep the indices the other block reads them at.
+    :param positionalany: what the trailing variadic operand carries.
+    :return: the mapping, holding only the members that carry something.
+    """
+    out: dict = {}
+    trimmed = list(positional)
+    while trimmed and not trimmed[-1]:
+        trimmed.pop()
+    if trimmed:
+        out["positional"] = trimmed
+    if positionalany:
+        out["positionalany"] = positionalany
+    return out
+
+
 @dataclass
 class CarapaceCompletion:
     """The `completion` block of a command: per-flag and positional actions."""
@@ -307,13 +336,7 @@ class CarapaceCompletion:
         out: dict = {}
         if self.flag:
             out["flag"] = self.flag
-        positional = list(self.positional)
-        while positional and not positional[-1]:
-            positional.pop()
-        if positional:
-            out["positional"] = positional
-        if self.positionalany:
-            out["positionalany"] = self.positionalany
+        out.update(_positional_entries(self.positional, self.positionalany))
         return out
 
 
@@ -345,15 +368,7 @@ class CarapaceDocumentation:
         Drops empty members and trailing undocumented slots, keeping the
         surviving ones index-aligned with `completion.positional`.
         """
-        out: dict = {}
-        positional = list(self.positional)
-        while positional and not positional[-1]:
-            positional.pop()
-        if positional:
-            out["positional"] = positional
-        if self.positionalany:
-            out["positionalany"] = self.positionalany
-        return out
+        return _positional_entries(self.positional, self.positionalany)
 
 
 @dataclass

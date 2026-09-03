@@ -6,25 +6,21 @@
 > This version is **not released yet** and is under active development.
 
 - Add `--record` to `click-extra screenshot`, running the command under a pseudo-terminal and writing an animated SVG of every screen it draws, paced by `--rows`, `--hold`, `--blank` and `--speed`, and backed by the new `record_and_render()`.
-- Draw the invocation above a recording as a shell prompt, the way a still capture draws its own; `--prompt` overrides or hides it.
-- Draw a terminal cursor on a capture with `render_svg(cursor=…)`, blinking or steady, shaped as the `--preset` terminal draws it.
-- Open a recorded animation by typing its command line out, with `record_and_render(typing=…)` and the new `type_line()`.
-- Add `--cursor` and `--blink` to `click-extra screenshot`, drawing a terminal cursor where the command left it, in the `--preset` terminal's own shape.
-- Add `--typing` and `--submit` to `click-extra screenshot --record`, opening the animation on the command line being typed out.
-- Add `--closing-prompt` and `:screenshot-closing-prompt:`, drawing the shell's prompt on the row it comes back to once the command exits.
-- Add `:screenshot-cursor:`, `:screenshot-blink:`, `:screenshot-prompt:`, `:screenshot-typing:` `:screenshot-submit:` and `:screenshot-closing-prompt:` to the `click:run` directive.
+- Draw the invocation above a capture as a shell prompt; `--prompt` overrides or hides it, and `--closing-prompt` draws the prompt the shell returns to once the command exits.
+- Draw a terminal cursor on a capture with `--cursor` and `--blink`, or `render_svg(cursor=…)`, blinking or steady, in the `--preset` terminal's own shape.
+- Open a recorded animation by typing its command line out, with `--typing`, `--submit` and the new `type_line()`.
+- Add `:screenshot-cursor:`, `:screenshot-blink:`, `:screenshot-prompt:`, `:screenshot-typing:`, `:screenshot-submit:` and `:screenshot-closing-prompt:` to the `click:run` directive.
 - Animated captures now take `hold="auto"` (and `:screenshot-hold: auto`), pausing the loop on the final screen for as long as its line count asks; a `:screenshot-record:` block defaults to it.
 - `--validate-config` now accepts every location `--config` accepts: a folder, a glob pattern, or an `http`/`https` URL, on top of a file path.
 - Read `*.jwcc` configuration files with the `JSON5` parser, which already accepts the comments and trailing commas JWCC adds to JSON.
-- Group the default options into `Configuration`, `Output`, `Logging` and `Introspection` sections, drawn after a command's own options on the help screen and in every other render.
+- Group the default options into `Configuration`, `Output`, `Logging` and `Introspection` sections, drawn after a command's own options in every render.
 - Add `ExtraOptionGroup`, an option group drawn after the ones Click Extra injects, ordered among them by its `priority`.
 - Align the columns of every option group by default, with `align_option_groups` now set to `True`.
 - Render the `--config` and `--validate-config` values as a `LOCATION` metavar, replacing `CONFIG_PATH` and `FILE`.
-- Show the `--config` default as the folder it searches, instead of the full glob of every file format the install enables. Pass `show_file_patterns=True` to keep advertising the formats the running install can parse.
+- Show the `--config` default as the folder it searches, instead of the glob of every format the install enables. Pass `show_file_patterns=True` to keep advertising them.
 - Render the `--table-format` value as a `FORMAT` metavar, replacing the list of its fifty accepted values on the help screen.
 - Add a `choices` key to each option of the `--help-format json` export, and list the accepted values under an option whose metavar hides them in the `man` and `markdown` renders.
-- Match a configuration key against a parameter name whatever its case, so `Foo-Bar` and `FOO_BAR` both reach the `foo_bar` parameter.
-- Add `canonical_param_name()`, folding a spelling to the parameter name Click derives from it.
+- Match a configuration key against a parameter name whatever its case, so `Foo-Bar` and `FOO_BAR` both reach the `foo_bar` parameter. Adds `canonical_param_name()`.
 - Report an unmatched argfile declaration under the name Click would derive from it, so `--Unknown-Option` is named `unknown_option`.
 - Disable the `SQLITE` configuration format on a Python whose `sqlite3` bindings are missing, like FreeBSD's, instead of breaking every CLI at import time.
 - Fix `record_command` mangling a multi-byte glyph split across two pty reads into a replacement character.
@@ -34,22 +30,17 @@
 - Fix a printed CLI trace raising on a captured character the output encoding refuses, which failed the run instead of the command under test.
 - Stop `{env_info}` resolving the host's name, which stalled every `--verbosity DEBUG` run for as long as the machine's reverse DNS took to answer.
 - Fix an argument declared with a plain `click.argument(help=...)` drawing a blank `Positional arguments` entry on the help screen, while every other render carried its text.
-- Fix a deprecated command showing Cloup's `(Deprecated)` prefix and dropping the reason string: it now carries Click's own `(DEPRECATED: reason)` marker, on the help screen and in `--tree`, the man page, the JSON export and the completion specs.
+- Fix a deprecated command showing Cloup's `(Deprecated)` prefix and dropping the reason string: it now carries Click's own `(DEPRECATED: reason)` marker in every render.
 - Fix a `MulticallGroup` and a `VersionOption` failing to copy on Python 3.10 with Click 8.4, which raised `ValueError: <object object> is not a valid Sentinel`.
-- Paint a deprecated command's `(DEPRECATED)` label in `--tree` with the `deprecated` theme slot, as the help screen already does.
-- Paint a deprecated parameter's `(DEPRECATED)` label in the `--params` help column with the `deprecated` theme slot, as the help screen already does.
+- Paint the `(DEPRECATED)` label with the `deprecated` theme slot in `--tree` and the `--params` help column, as the help screen already does.
 - Fix `--help-format carapace` describing an option that computes its own help, like `-v` and `-q`, with an empty string.
 - List a subcommand's aliases in the man page, the Markdown document and the JSON export, which named only its primary spelling. Each JSON entry gains an `aliases` array.
 - Carry an argument's help into the completion spec, under the `documentation` block Carapace reserves for operands.
-- Mark a hidden option with Carapace's `&` modifier, so a spec reader can tell it apart from a listed one, as `hidden` already does for a command.
-- Mark a required option with Carapace's `!` modifier, which the spec carried as indistinguishable from an optional one.
+- Mark a hidden option with Carapace's `&` modifier and a required one with `!`, which the spec carried as indistinguishable from listed and optional ones.
 - Paint each value of a choice operand in `--tree` with the `choice` theme slot, the way the help screen paints it.
 - Draw a required `{green|ripe}` choice metavar on the help screen the way the optional `[green|ripe]` form is already drawn.
-- Regroup the Sphinx, MkDocs, Pygments, screenshot, snippet and man-page documentation under a documentation-tooling section of the sidebar.
-- Regroup the remaining documentation pages under eight topical sidebar sections, instead of one flat list of 30 entries.
-- Split the `Development` sidebar section into `Contributing`, `API reference` and `Project`.
-- Split the configuration documentation into five pages: the main page, plus discovery, formats, schema and validation.
-- Move the `python:*` and `matrix` Sphinx directives to a page of their own, and the Sphinx man-page hook to the man-page page.
+- Reorganize the documentation sidebar into eight topical sections, grouping the documentation tooling together and splitting `Development` into `Contributing`, `API reference` and `Project`.
+- Split the configuration documentation into five pages, and move the `python:*` and `matrix` Sphinx directives to a page of their own.
 - Fix the dead API documentation links to the capture, theme, Carapace and `--help-format` pages.
 - Fix the documentation cross-references that did not jump to their section when a page is read on GitHub.
 - Repoint the install page at GitHub's current artifact attestations guide.

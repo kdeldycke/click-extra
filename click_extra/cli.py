@@ -829,9 +829,9 @@ def _parse_hold(
     "--hold",
     default=None,
     callback=_parse_hold,
-    help="With --record, extra seconds the last frame stays up before the "
-    "animation starts over, or auto to scale them to that frame's line "
-    "count.  [default: auto]",
+    help=f"With --record, extra seconds the last frame stays up before the "
+    f"animation starts over, or {AUTO_HOLD} to scale them to that frame's line "
+    f"count.  [default: {DEFAULT_RECORDING_HOLD}]",
 )
 @option(
     "--blank",
@@ -1061,44 +1061,40 @@ def screenshot_cmd(
             )
         except (NotImplementedError, ValueError) as error:
             raise ClickException(str(error)) from error
-        if returncode:
-            logger.warning(f"{command_line[0]} exited with code {returncode}.")
-        deliver_capture(document, output)
-        return
-
-    try:
-        document, returncode = capture(
-            list(command_line),
-            format=capture_format,
-            columns=columns,
-            prompt=prompt,
-            head=head,
-            tail=tail,
-            truncation=truncation,
-            merge_stderr=merge_stderr,
-            timeout=timeout,
-            line_numbers=line_numbers,
-            emphasize=emphasize,
-            cursor=drawn_cursor,
-            closing_prompt=closing_prompt,
-            title=title,
-            unique_id=output.stem,
-            full=not fragment,
-            background=background,
-            preset=None if preset is None else PRESETS[preset.lower()],
-            border=border,
-            border_width=border_width,
-            radius=radius,
-            backdrop=backdrop,
-            shadow=shadow,
-            margin=margin,
-            padding=padding,
-            opacity=opacity,
-            watermark=watermark,
-            watermark_color=watermark_color,
-        )
-    except ImportError as error:
-        raise ClickException(str(error)) from error
+    else:
+        try:
+            document, returncode = capture(
+                list(command_line),
+                format=capture_format,
+                columns=columns,
+                prompt=prompt,
+                head=head,
+                tail=tail,
+                truncation=truncation,
+                merge_stderr=merge_stderr,
+                timeout=timeout,
+                line_numbers=line_numbers,
+                emphasize=emphasize,
+                cursor=drawn_cursor,
+                closing_prompt=closing_prompt,
+                title=title,
+                unique_id=output.stem,
+                full=not fragment,
+                background=background,
+                preset=None if preset is None else PRESETS[preset.lower()],
+                border=border,
+                border_width=border_width,
+                radius=radius,
+                backdrop=backdrop,
+                shadow=shadow,
+                margin=margin,
+                padding=padding,
+                opacity=opacity,
+                watermark=watermark,
+                watermark_color=watermark_color,
+            )
+        except ImportError as error:
+            raise ClickException(str(error)) from error
 
     if returncode:
         logger.warning(f"{command_line[0]} exited with code {returncode}.")
