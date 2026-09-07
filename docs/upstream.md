@@ -94,9 +94,17 @@ Documentation:
 - [`#4` - Add Trove classifiers](https://github.com/click-contrib/click-log/pull/4)
 - [`#2` - Fix parsing of unicode logs](https://github.com/click-contrib/click-log/pull/2)
 
+### [`boltons`](https://github.com/mahmoud/boltons)
+
+- [`#461` - `ecoutils`: skip the lookups that the `scrub` parameter removes](https://github.com/mahmoud/boltons/pull/461)
+
 ## Upstreamed from click-extra
 
 Issues that click-extra solved with local workarounds first. The fix was later contributed upstream and the workaround removed from click-extra.
+
+### [`boltons`](https://github.com/mahmoud/boltons)
+
+- [`#461`](https://github.com/mahmoud/boltons/pull/461) - `ecoutils.get_profile(scrub=True)` resolved the user, host and working directory before replacing all four values with `-`. The host lookups stall on a machine with no reverse DNS, and `os.getcwd()` raises once the working directory is gone. click-extra patched the two host lookups out; the fix shipped in `boltons` `26.2.0`, whose floor retired that patch.
 
 ### [`click`](https://github.com/pallets/click)
 
@@ -222,12 +230,6 @@ click-extra's [`VersionOption`](version.md) adds [template variables](version.md
 - [`click#2324` - Can't pass `click.version_option()` to `click.MultiCommand(params=)`](https://github.com/pallets/click/issues/2324)
 - [`click#2331` - `version_option` module name and package name are not equivalent](https://github.com/pallets/click/issues/2331)
 - [`click#1756` - Path and Python version for version message formatting](https://github.com/pallets/click/issues/1756)
-
-### Environment profile
-
-The [`{env_info}` template variable](version.md#environment-information), which `DEBUG` logs also dump, reads its profile from [`boltons.ecoutils`](https://boltons.readthedocs.io/en/latest/ecoutils.html). That profile resolves the user, host and working directory even when asked to scrub them, then replaces all four with `-`. Two of those lookups are not free: `socket.getfqdn()` waits out the resolver on a host with no reverse DNS, and `os.getcwd()` raises once the working directory is gone. click-extra skips both lookups itself until the fix lands upstream:
-
-- [`boltons#461` - Skip the lookups that the `scrub` parameter removes](https://github.com/mahmoud/boltons/pull/461)
 
 ### Environment variables
 

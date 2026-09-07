@@ -83,8 +83,11 @@ classifiers = [
 # - aligns minimal Python requirements to ours,
 # - adds new explicit support Python version.
 dependencies = [
-  # boltons 20.0.0 added shrinkuser(); our config.py uses it for path display.
-  "boltons>=20",
+  # boltons 26.2.0 skips the lookups `ecoutils.get_profile(scrub=True)` throws
+  # away: version.py no longer patches them out, so a `--verbosity DEBUG` run
+  # neither waits on a host without reverse DNS nor crashes in a deleted
+  # working directory.
+  "boltons>=26.2",
   # Click 8.4.1 records a parameter's source before process_value (PR
   # pallets/click#3484), the contract every eager callback in parameters.py reads,
   # and normalizes Choice completion (PR pallets/click#3471). Release 8.4.0 added
@@ -318,6 +321,13 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the sync-uv-lock autofix job reverts
 # uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
+# boltons 26.2.0, published 2026-09-07, carries the ecoutils fix the floor in
+# [project] requires. The window above hides it until 2026-09-14, so nothing
+# resolves at all without this line, which admits that one release and keeps
+# gating every later one. Spelled in UTC: a bare date is read in the local
+# timezone and restamps uv.lock differently on every machine.
+# XXX Delete on 2026-09-14, when the window covers 26.2.0 on its own.
+exclude-newer-package = { boltons = "2026-09-08T00:00:00Z" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 build-backend.source-exclude = [

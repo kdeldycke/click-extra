@@ -12,6 +12,9 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1W"
 
+[options.exclude-newer-package]
+boltons = "2026-09-08T00:00:00Z"
+
 [[package]]
 name = "accessible-pygments"
 version = "0.0.5"
@@ -84,11 +87,11 @@ wheels = [
 
 [[package]]
 name = "boltons"
-version = "26.1.0"
+version = "26.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/47/99/12bace94ae2ba961bdc46d49277ff15d38dba074bc3987b0c0b4355a37a7/boltons-26.1.0.tar.gz", hash = "sha256:5764468aba493b15995ed17f46a16789023f123ca2a62d491a9ce825c1cbe26c", size = 227393, upload-time = "2026-07-17T18:38:42.454Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/56/14c4a4931910a81ddeccfbe227925ea738e3c445d3e2af960f0bcbba1616/boltons-26.2.0.tar.gz", hash = "sha256:d39cfd15c1a1c3bd4d705c82252fa9edb8e4f5e8cc039f8e39afac7b1b47e92c", size = 242047, upload-time = "2026-09-07T10:48:17.711Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/ba/cea118a16647cc72633c5236f6f11a09ab76b136b1aaccfa0d7004958428/boltons-26.1.0-py3-none-any.whl", hash = "sha256:1d966b165805b83600b31af9f0db672e3b3313d9de438e22708a94ac5f4c93de", size = 196095, upload-time = "2026-07-17T18:38:41.164Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/ac/1f8e4f4855e382a67392ca3bba329cb93aba1e3039289c52a86bf337f7a2/boltons-26.2.0-py3-none-any.whl", hash = "sha256:41942cbce440211bbcf2487ccdc356964ad674f95a01068b8a0dd7a1d1fed036", size = 199536, upload-time = "2026-09-07T10:48:16.319Z" },
 ]
 
 [[package]]
@@ -412,7 +415,7 @@ typing = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boltons", specifier = ">=20" },
+    { name = "boltons", specifier = ">=26.2" },
     { name = "click", specifier = ">=8.4.1" },
     { name = "click-extra", extras = ["carapace", "hjson", "json5", "jsonc", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"], marker = "extra == 'all'" },
     { name = "cloup", specifier = ">=3.0.7" },

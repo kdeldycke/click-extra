@@ -353,12 +353,12 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
 def test_env_info_resolves_no_hostname(monkeypatch):
     """The environment profile is built without resolving the host's name.
 
-    `boltons.ecoutils.get_profile()` calls `socket.gethostname()` and
-    `socket.getfqdn()`, then overwrites both with `-` because `scrub` is set.
-    The second is a reverse DNS lookup, so a host whose resolver does not
-    answer pays that timeout for a value already discarded: it cost ~35 s per
-    call on a GitHub macOS runner, which is what made `--verbosity DEBUG` runs
-    there take over an hour.
+    `boltons.ecoutils.get_profile(scrub=True)` skips every lookup whose value
+    it then replaces with `-`, since `boltons` `26.2.0`. One of them is a
+    reverse DNS query: a host whose resolver does not answer paid that timeout
+    for a value already discarded. It cost ~35 s per call on a GitHub macOS
+    runner, which is what made `--verbosity DEBUG` runs there take over an
+    hour. This test guards the version floor holding that fix.
 
     Asserting on the calls rather than on a duration keeps the guard away from
     a timing threshold, which a loaded runner would flake on.
