@@ -173,8 +173,21 @@ looks for it first.
 """
 
 
-def _assign_option_groups(params: Sequence[click.Option]) -> None:
+def _assign_option_groups(params: Sequence[click.Parameter]) -> None:
     """Sort *params* into a fresh set of {data}`DEFAULT_OPTION_GROUPS`.
+
+    An option the CLI author put in a group of their own is left where they put
+    it. Any other is re-filed, including one already in a section from an earlier
+    call: a section is one group instance, so filing a late arrival into a group
+    of its own would draw its title twice.
+
+    Called once as {func}`default_params` builds its own options, then again by
+    {func}`~click_extra.decorators.decorator_factory` on whatever a `params` hook
+    returns. That second pass is what gives a section back to an option the hook
+    swapped for a subclass of it, since the replacement is built after the first
+    call and would otherwise be drawn under `Other options`. It reads the hook's
+    output alone, so an option the author declares through a decorator stays
+    ungrouped, next to `--help`.
 
     ```{caution}
     The groups are built here, once per call, and never shared between commands.
@@ -192,9 +205,12 @@ def _assign_option_groups(params: Sequence[click.Option]) -> None:
     for title, flags in DEFAULT_OPTION_GROUPS:
         wanted = set(flags)
         for param in params:
+            # `cloup.Option.__init__` carries no annotation, so mypy skips its
+            # body and never records the `group` attribute it binds.
+            current = getattr(param, "group", None)
+            if current is not None and not isinstance(current, ExtraOptionGroup):
+                continue
             if wanted.intersection((*param.opts, *param.secondary_opts)):
-                # `cloup.Option.__init__` carries no annotation, so mypy skips
-                # its body and never records the `group` attribute it binds.
                 param.group = groups[title]  # type: ignore[attr-defined]
 
 

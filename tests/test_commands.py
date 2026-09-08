@@ -1805,6 +1805,39 @@ def test_default_option_groups_name_no_stale_flag():
     assert not duplicated, f"flags claimed by more than one section: {duplicated}"
 
 
+def test_option_swapped_by_a_params_hook_keeps_its_section():
+    """An option a `params` hook replaces stays in the section of the original.
+
+    `default_params` files the instances it builds, so a replacement built after
+    that call carries none, and cloup draws it in the command's own `Options`
+    block where it reads as one the CLI author declared. Each default option is
+    swapped in turn, sections being declared one flag at a time: an option losing
+    its own would pass unseen while its siblings still hold theirs.
+    """
+    for original in default_params():
+        filed = getattr(original, "group", None)
+        assert isinstance(filed, ExtraOptionGroup)
+
+        def hook(flags=frozenset(original.opts)):
+            params = default_params()
+            for index, param in enumerate(params):
+                if flags.issubset(param.opts):
+                    params[index] = type(param)()
+            return params
+
+        @command(params=hook)
+        def cli():
+            pass
+
+        swapped = next(param for param in cli.params if param.opts == original.opts)
+        assert swapped is not original
+        refiled = getattr(swapped, "group", None)
+        assert isinstance(refiled, ExtraOptionGroup), (
+            f"{swapped.opts} lost its section on the way through the hook"
+        )
+        assert refiled.title == filed.title
+
+
 def test_lazy_group_subcommand_order_is_stable_across_loading(tmp_path, monkeypatch):
     """A lazy subcommand holds its slot before and after it is imported.
 

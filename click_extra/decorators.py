@@ -33,6 +33,7 @@ from .commands import (
     Command,
     Group,
     LazyGroup,
+    _assign_option_groups,
     default_params,
 )
 from .config import (
@@ -204,7 +205,12 @@ def decorator_factory(dec, *new_args, **new_defaults):
         # list of options.
         params_func = new_kwargs.get("params")
         if callable(params_func):
-            new_kwargs["params"] = params_func()
+            hook_params = params_func()
+            # Give a help-screen section back to an option the hook swapped for a
+            # subclass of it, the replacement being built after `default_params`
+            # filed the original. See `_assign_option_groups`.
+            _assign_option_groups(hook_params)
+            new_kwargs["params"] = hook_params
 
         # Return the original decorator with the new defaults.
         result = dec(*args, **new_kwargs)
@@ -226,7 +232,9 @@ def decorator_factory(dec, *new_args, **new_defaults):
             def _with_fresh_params(f):
                 _fresh_kwargs = _new_defaults.copy()
                 _fresh_kwargs.update(_extra_kwargs)
-                _fresh_kwargs["params"] = _params_func()
+                fresh_params = _params_func()
+                _assign_option_groups(fresh_params)
+                _fresh_kwargs["params"] = fresh_params
                 return _dec(*_args, **_fresh_kwargs)(f)
 
             result = _with_fresh_params
