@@ -1633,7 +1633,11 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 f"{ctx.command} does not inherits from Command.",
             )
 
-        render_params_table(ctx)
+        # Hand over this class's own default column set, so a subclass widening
+        # it (to draw an opt-in column on a CLI that exposes no --columns option
+        # to reach it with) is honored. The base class's set is what the core
+        # would have fallen back to anyway.
+        render_params_table(ctx, default_columns=type(self).default_column_ids())
         ctx.exit()
 
 

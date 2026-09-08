@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Stop `{env_info}` crashing when the working directory it reports has been deleted. Requires `boltons` `26.2.0`.
+- Draw the columns a `ShowParamsOption` subclass declares in its `default_columns()`, which `--params` ignored in favor of the base class's. That hook is the only way to reach an opt-in column on a CLI carrying no `--columns` option.
 
 ## [`9.1.0` (2026-09-03)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...v9.1.0)
 
