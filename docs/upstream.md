@@ -371,9 +371,13 @@ PRs and issues still pending upstream.
 
 ### [`cloup`](https://github.com/janluke/cloup)
 
+- [`#225` - `HelpTheme` subclasses cannot use `with_()`, `dark()` or `light()`](https://github.com/janluke/cloup/issues/225)
+- [`#224` - `Style` becomes unhashable and stops comparing equal after its first call](https://github.com/janluke/cloup/issues/224)
+- [`#222` (comment) - `Style.fg`/`bg` are typed `Optional[str]` while `click.style` takes a wider union](https://github.com/janluke/cloup/issues/222#issuecomment-5600354828)
 - [`#211` - A deprecated command's help drops the reason and uses Click's pre-8.2 label](https://github.com/janluke/cloup/issues/211)
 - [`#210` - `cloup.Argument` and `click.Argument` diverge now that Click 8.5.0 has argument `help`](https://github.com/janluke/cloup/issues/210)
 - [`#209` - Arguments page describes a Click limitation that 8.5.0 removed](https://github.com/janluke/cloup/issues/209)
+- [`#204` (comment) - `__all__` exports `_version` and cloup's own `warnings` submodule, whose name shadows the stdlib one on a star import](https://github.com/janluke/cloup/issues/204#issuecomment-5600674392)
 
 ### [`pygments`](https://github.com/pygments/pygments)
 
