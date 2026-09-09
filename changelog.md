@@ -17,6 +17,7 @@
 - Render `click-extra wrap --table-format` as a `FORMAT` metavar, replacing the list of its fifty accepted values.
 - Name what an option takes on every `click-extra` screen with one vocabulary: `SECONDS` for a duration, `COLOR` for a CSS color, `PIXELS` for a pixel count, and `FILE` or `DIRECTORY` for a path.
 - Close a `[default: ...]` field on its own bracket when the default value is itself bracketed, as `[default: [...]]`.
+- List `click-extra gradient` under its whole first sentence. An abbreviation cut it to "Render 24-bit RGB gradients vs."
 - State the `--rows`, `--hold`, `--blank`, `--blink`, `--submit` and `--speed` defaults of `click-extra screenshot` in their own sentence, replacing a second `[default: ...]` field written into the help text.
 - Name every spelling of a deprecated option in the notice Click prints, as `--apt-cyg / --no-apt-cyg`. It reported `'apt_cyg'`, the Python identifier, which is the one spelling no user can type.
 - Warn about a deprecated parameter a configuration file switches on. Click stops one rank short of the configuration, leaving the one place a selection outlives the project it names.

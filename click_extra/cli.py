@@ -1540,7 +1540,7 @@ def demo_8color() -> None:
 
 @demo.command(name="gradient", section=_demo_section)
 def demo_gradient() -> None:
-    """Render 24-bit RGB gradients vs. their 256-color quantized equivalents."""
+    """Render 24-bit RGB gradients beside their 256-color quantized equivalents."""
     echo(_render_gradient())
 
 

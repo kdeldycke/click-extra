@@ -1975,3 +1975,59 @@ def test_option_priorities_never_reorder_positional_arguments():
     priority = cli.param_priority  # type: ignore[attr-defined]
     assert [p.name for p in arguments] == ["first", "second"]
     assert all(priority(p) == DEFAULT_PRIORITY for p in arguments)
+
+
+def _first_sentence(paragraph: str) -> str:
+    """Return what a reader takes as the first sentence of `paragraph`.
+
+    A sentence ends on a period that closes the text, or one followed by a
+    capital. An abbreviation ends on a period too, and is followed by a
+    lowercase word, which is what tells the two apart.
+    """
+    collapsed = " ".join(paragraph.split())
+    match = re.search(r"\.(?:\s+(?=[A-Z])|$)", collapsed)
+    return collapsed[: match.end()].strip() if match else collapsed
+
+
+def _walk_commands(command, ctx, path=()):
+    """Yield every `(path, command)` pair under `command`, itself included."""
+    yield path, command
+    if isinstance(command, click.Group):
+        for name in command.list_commands(ctx):
+            sub = command.get_command(ctx, name)
+            sub_ctx = click.Context(sub, parent=ctx, info_name=name)
+            yield from _walk_commands(sub, sub_ctx, (*path, name))
+
+
+@pytest.mark.once
+def test_command_listing_is_not_cut_by_an_abbreviation():
+    """A subcommand's line in its parent's list holds its whole first sentence.
+
+    Click ends the listing at the first word closing on a period, so an
+    abbreviation mid-sentence (`vs.`, `e.g.`, `etc.`) cuts it into a fragment:
+    `gradient` once read "Render 24-bit RGB gradients vs.", which says nothing.
+
+    The guard is narrower than "the listing reads well": it only catches a cut
+    landing before the first sentence ends, which is the one failure a docstring
+    can cause without anyone noticing.
+    """
+    from click.utils import _make_default_short_help
+
+    from click_extra.cli import demo
+
+    root_ctx = click.Context(demo, info_name="click-extra")
+    offenders = []
+    for path, command in _walk_commands(demo, root_ctx):
+        if not path or not command.help:
+            continue
+        first_paragraph = command.help.split("\n\n")[0]
+        # A high limit isolates the sentence-end rule from the width one.
+        listing = _make_default_short_help(command.help, 10_000)
+        expected = _first_sentence(first_paragraph)
+        if listing != expected:
+            offenders.append((" ".join(path), listing, expected))
+
+    assert not offenders, "\n".join(
+        f"{name}: listed as {listing!r}, sentence is {expected!r}"
+        for name, listing, expected in offenders
+    )
