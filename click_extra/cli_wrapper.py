@@ -59,13 +59,13 @@ from .command_doc import (
 from .commands import ColorizedCommand, ColorizedGroup, Group
 from .context import Context
 from .decorators import columns_option, option
-from .highlight import HelpFormatter, _HelpColorsMixin
+from .highlight import HelpFormatter, HelpKeywords, _HelpColorsMixin
 from .parameters import (
     ShowParamsOption,
     make_resilient_context,
     render_params_table,
 )
-from .table import DEFAULT_FORMAT, TableFormat
+from .table import TableFormat, TableFormatOption
 from .theme import (
     BUILTIN_THEMES,
     NOCOLOR_THEME,
@@ -74,7 +74,6 @@ from .theme import (
     set_default_theme,
 )
 from .tree import render_command_tree
-from .types import EnumChoice
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -996,9 +995,14 @@ def _config_args_for_target(
     "instead of printing it, and echo the written path.",
 )
 @option(
-    "--table-format",
-    type=EnumChoice(TableFormat),
-    default=DEFAULT_FORMAT,
+    # Reuses the canonical option, so its name, type, metavar and default are
+    # declared once. This copy exposes its value and drops the class callback:
+    # `render_foreign_params` resolves the format against the group's pick and
+    # sets it on the target's own context, which the callback would preempt.
+    cls=TableFormatOption,
+    expose_value=True,
+    is_eager=False,
+    callback=None,
     help="With --params, the rendering style of the parameter table. "
     "Falls back to the click-extra group's --table-format when not set here.",
 )
@@ -1089,3 +1093,13 @@ def wrap(
     # help then renders with.
     patch_click(theme=get_current_theme(), color=ctx.color)
     invoke_target(script, module_path, function_name, args)
+
+
+#: Choice values of this command's own options that are also plain English
+#: words its description uses: the parameter table "reports their value and
+#: source". Excluded from the cross-reference pass, which would otherwise paint
+#: them as values wherever the prose says the word. Their own metavars keep
+#: their coloring, see `HelpFormatter.highlight_extra_keywords`.
+wrap.excluded_keywords = HelpKeywords(
+    choices={"default", "help", "source", "value"},
+)
