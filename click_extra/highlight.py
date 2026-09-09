@@ -768,6 +768,24 @@ class HelpFormatter(cloup.HelpFormatter):
             all_options = sorted(
                 kw.long_options | kw.short_options, key=len, reverse=True
             )
+            # Paint a numeric value spelled out beside the option it feeds,
+            # like the `1` of "--jobs 1 for sequential execution". A number is
+            # the one value shape that cannot be read as prose, so the pass
+            # stops there: the word after an option name is a value in
+            # "--jobs max" and an ordinary verb in "--wrap routes it".
+            if all_options:
+                option_alt = "|".join(re.escape(name) for name in all_options)
+                option_value_re = re.compile(
+                    rf"(?<![\w\-])(?:{option_alt})(?:\s+|=)"
+                    r"(?P<value>\d+(?:\.\d+)?)(?![\w\-])"
+                )
+
+                def style_option_value(match: re.Match) -> str:
+                    value = match.group("value")
+                    return match.group()[: -len(value)] + self.theme.choice(value)
+
+                help_text = option_value_re.sub(style_option_value, help_text)
+
             if all_options:
                 help_text = highlight(
                     help_text,
@@ -825,6 +843,27 @@ class HelpFormatter(cloup.HelpFormatter):
             help_text = help_text.replace(key, styled)
 
         return help_text
+
+    def write_usage(self, prog: str, args: str = "", prefix: str | None = None) -> None:
+        """Draw the usage line, naming the command the same way the rest does.
+
+        Reimplements `cloup.HelpFormatter.write_usage`, which paints the whole
+        command path with the `invoked_command` slot. A subcommand's path ends
+        on a name the parent screen lists under `subcommand`, and the same word
+        in two colors across two screens reads as two different things. The
+        leading path keeps `invoked_command`, so a root CLI is unchanged.
+        """
+        prefix = self.theme.heading("Usage:" if prefix is None else prefix) + " "
+        parent, _, subcommand = prog.rpartition(" ")
+        if parent:
+            styled = (
+                self.theme.invoked_command(parent)
+                + " "
+                + self.theme.subcommand(subcommand)
+            )
+        else:
+            styled = self.theme.invoked_command(prog)
+        click.HelpFormatter.write_usage(self, styled, args, prefix)
 
     def write_command_help_text(self, cmd: click.Command) -> None:
         """Draw the command's description, with Click's deprecation label.

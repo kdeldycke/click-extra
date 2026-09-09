@@ -850,14 +850,12 @@ def _parse_hold(
     "--rows",
     type=IntRange(min=1),
     default=None,
-    show_default=str(DEFAULT_ROWS),
-    help="With --record, the height of the terminal the command runs in, in "
-    "characters.",
+    help=f"With --record, the height of the terminal the command runs in, in "
+    f"characters. Defaults to {DEFAULT_ROWS}.",
 )
 @option(
     "--hold",
     default=None,
-    show_default=str(DEFAULT_RECORDING_HOLD),
     # The callback reads seconds or the `auto` keyword, and Click infers TEXT
     # for a type it was never given. Naming both keeps the accepted values on
     # the help screen, the way a `click.Choice` puts them there.
@@ -865,14 +863,14 @@ def _parse_hold(
     callback=_parse_hold,
     help=f"With --record, extra seconds the last frame stays up before the "
     f"animation starts over, or {AUTO_HOLD} to scale them to that frame's line "
-    f"count.",
+    f"count. Defaults to {DEFAULT_RECORDING_HOLD}.",
 )
 @option(
     "--blank",
     type=FloatRange(min=0),
     default=None,
-    show_default=str(DEFAULT_RECORDING_BLANK),
-    help="With --record, seconds of empty screen closing the cycle.",
+    help=f"With --record, seconds of empty screen closing the cycle. Defaults "
+    f"to {DEFAULT_RECORDING_BLANK}.",
 )
 @option(
     "--cursor",
@@ -891,9 +889,8 @@ def _parse_hold(
     "--blink",
     type=FloatRange(min=0),
     default=None,
-    show_default=str(Cursor().blink),
-    help="With --cursor, seconds one blink takes. Pass 0 to draw a steady "
-    "cursor.",
+    help=f"With --cursor, seconds one blink takes. Pass 0 to draw a steady "
+    f"cursor. Defaults to {Cursor().blink}.",
 )
 @option(
     "--closing-prompt/--no-closing-prompt",
@@ -914,17 +911,15 @@ def _parse_hold(
     "--submit",
     type=FloatRange(min=0, min_open=True),
     default=None,
-    show_default=str(DEFAULT_SUBMIT),
-    help="With --typing, seconds the finished command line waits before its "
-    "output starts.",
+    help=f"With --typing, seconds the finished command line waits before its "
+    f"output starts. Defaults to {DEFAULT_SUBMIT}.",
 )
 @option(
     "--speed",
     type=FloatRange(min=0, min_open=True),
     default=None,
-    show_default="1.0",
     help="With --record, how much faster to play than recorded: 2 halves "
-    "every frame's time.",
+    "every frame's time. Defaults to 1.0.",
 )
 def screenshot_cmd(
     command_line: tuple[str, ...],
@@ -970,10 +965,10 @@ def screenshot_cmd(
     writes the captured output where --output points. Its extension picks the
     format:
 
-      .svg  a picture of a terminal window, for a surface that strips
-            inline HTML. A README on GitHub or PyPI has no other option.
+    - .svg: a picture of a terminal window, for a surface that strips inline
+      HTML. A README on GitHub or PyPI has no other option;
 
-      .html selectable, searchable, copy-pasteable text, for a page you own.
+    - .html: selectable, searchable, copy-pasteable text, for a page you own.
 
     Put -- before the command line so its own options are not mistaken for this
     command's:
@@ -1149,6 +1144,11 @@ demo.add_command(screenshot_cmd)
 #: their coloring, see `HelpFormatter.highlight_extra_keywords`.
 screenshot_cmd.excluded_keywords = HelpKeywords(choices={"bar", "never", "plain"})
 
+#: Same collision, from the default options every command inherits: "never
+#: refreshed", "MyST markdown", "a plain line".
+refresh_directives_cmd.excluded_keywords = HelpKeywords(choices={"never"})
+convert_to_myst_cmd.excluded_keywords = HelpKeywords(choices={"markdown"})
+
 
 @command(name="snippet")
 @argument(
@@ -1219,9 +1219,9 @@ def snippet_cmd(
 
     Both formats are the screenshot command's:
 
-      .svg  a picture, for a surface that strips inline HTML.
+    - .svg: a picture, for a surface that strips inline HTML;
 
-      .html selectable, searchable, copy-pasteable text.
+    - .html: selectable, searchable, copy-pasteable text.
 
     Highlighting needs the pygments extra.
     """

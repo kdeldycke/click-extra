@@ -344,7 +344,7 @@ class JobsOption(ExtraOption):
         type=JobCount(),
         help=_(
             "Number of parallel jobs. Accepts an integer, auto (the host's "
-            "logical CPUs minus one) or max (all logical CPUs). 0 runs "
+            "logical CPUs minus one) or max (all logical CPUs). --jobs 0 runs "
             "sequentially."
         ),
         **kwargs,

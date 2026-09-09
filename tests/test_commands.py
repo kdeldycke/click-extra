@@ -433,7 +433,8 @@ def test_subcommand_help(invoke, all_command_cli, cmd_id, param, assert_output_r
     colored_help_header = (
         r"It works!\n"
         r"\x1b\[94m\x1b\[4mUsage:\x1b\[0m "
-        rf"\x1b\[97m\x1b\[1mcommand-cli1 {cmd_id}\x1b\[0m"
+        r"\x1b\[97m\x1b\[1mcommand-cli1\x1b\[0m "
+        rf"\x1b\[36m\x1b\[1m{cmd_id}\x1b\[0m"
         r" \x1b\[36m\x1b\[2m\x1b\[3m\[OPTIONS\]\x1b\[0m\n"
         r"\n"
         r"\x1b\[94m\x1b\[4mOptions:\x1b\[0m\n"

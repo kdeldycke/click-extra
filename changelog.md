@@ -7,6 +7,8 @@
 
 - Highlight a subcommand, and the options it accepts, where a help screen writes an example invocation like `$ my-cli pick --ripe`.
 - Add a `separator` theme slot, painting the `--` end-of-options separator wherever a help screen writes it.
+- Paint the last component of the command path in a usage line with the `subcommand` slot, the one the parent screen lists it under.
+- Paint a numeric value spelled out beside the option it feeds, like the `1` of `--jobs 1`.
 - Style each part of an enumerated metavar a CLI writes itself, like the `INTEGER|auto` of a hybrid type.
 - Close the `click-extra --help` screen with example invocations.
 - Paint an operand named in a command's description, like the `SCRIPT` of an option taking a target and forwarding the rest.
@@ -14,7 +16,7 @@
 - Replace the inline value list of `--columns` and `click-extra test-suite --skip-platform` with a metavar. The `man`, `markdown` and `json` renders list them.
 - Render `click-extra wrap --table-format` as a `FORMAT` metavar, replacing the list of its fifty accepted values.
 - Close a `[default: ...]` field on its own bracket when the default value is itself bracketed, as `[default: [...]]`.
-- Report the `--rows`, `--hold`, `--blank`, `--blink`, `--submit` and `--speed` defaults of `click-extra screenshot` in Click's own field, instead of a second one written into the help text.
+- State the `--rows`, `--hold`, `--blank`, `--blink`, `--submit` and `--speed` defaults of `click-extra screenshot` in their own sentence, replacing a second `[default: ...]` field written into the help text.
 - Name every spelling of a deprecated option in the notice Click prints, as `--apt-cyg / --no-apt-cyg`. It reported `'apt_cyg'`, the Python identifier, which is the one spelling no user can type.
 - Warn about a deprecated parameter a configuration file switches on. Click stops one rank short of the configuration, leaving the one place a selection outlives the project it names.
 - Paint a CLI's own deprecation markers with the `deprecated` theme slot, through a new `deprecated` field on `HelpKeywords`. Click's spelling was the whole pattern, so a project marking a parameter in its own vocabulary got no color for it.
