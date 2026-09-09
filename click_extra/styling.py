@@ -41,6 +41,8 @@ intact and adds:
 - {func}`split_ansi`, {func}`render_ansi` and {func}`wrap_ansi` for tokenizing
   a string mixing text and ANSI escapes into styled runs, re-rendering those
   runs through a markup emitter, and wrapping them to a visible width.
+- {func}`open_ansi` reporting the escapes a string leaves open, so a styled
+  fragment can be spliced into styled text without closing it.
 - The {func}`ansi_to_html`, {func}`ansi_to_jira`, {func}`ansi_to_latex` and
   {func}`ansi_to_textile` converters, translating ANSI styling to markup
   languages with native styling support.
@@ -857,6 +859,39 @@ def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
         buffer.append(tail)
     if buffer:
         yield current, "".join(buffer)
+
+
+def open_ansi(text: str, opened: str = "") -> str:
+    r"""Return the ANSI SGR escapes still in effect at the end of *text*.
+
+    Escapes accumulate in the order they were read. A full `0` reset (its
+    parameter-less `\x1b[m` form included) empties the accumulator, so the
+    result re-opens what *text* left dangling and nothing else. Escapes come
+    back verbatim rather than folded into a {class}`Style`, which keeps a
+    code this module does not model.
+
+    Use it to splice a styled fragment into styled text: the fragment closes
+    with a reset of its own, which would otherwise strip the surrounding
+    styling from everything after it. See
+    {func}`~click_extra.highlight.highlight`.
+
+    :param text: the string to read the escapes from.
+    :param opened: escapes already in effect before *text*, as returned by an
+        earlier call. Feeding a string one chunk at a time then costs one pass
+        over it, where re-reading the whole prefix per chunk costs one per
+        chunk. A chunk must not start or end in the middle of an escape: the
+        two halves match nothing, and the escape is lost.
+    """
+    active: list[str] = [opened] if opened else []
+    for match in _ANSI_SGR_RE.finditer(text):
+        codes = _sgr_params(match.group(1))
+        if 0 in codes:
+            active.clear()
+        # A bare reset opens nothing, so it is dropped rather than accumulated.
+        # One carrying more parameters still sets them: `\x1b[0;31m` reopens red.
+        if set(codes) != {0}:
+            active.append(match.group(0))
+    return "".join(active)
 
 
 def render_ansi(text: str, emitter: Callable[[Style, str], str]) -> str:

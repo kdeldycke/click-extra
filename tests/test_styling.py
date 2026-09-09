@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import importlib.metadata
+import re
 import textwrap
 
 import click
@@ -32,6 +33,7 @@ from click_extra.styling import (
     ansi_to_jira,
     ansi_to_latex,
     ansi_to_textile,
+    open_ansi,
     render_ansi,
     split_ansi,
     supports_truecolor,
@@ -604,7 +606,72 @@ def test_split_ansi_preserves_text():
     assert "".join(run for _, run in split_ansi(text)) == strip_ansi(text)
 
 
-# --- 14. render_ansi() -------------------------------------------------------
+# --- 14. open_ansi() ---------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        pytest.param("", "", id="empty"),
+        pytest.param("no escapes at all", "", id="unstyled"),
+        pytest.param("\x1b[31mred\x1b[0m", "", id="closed-by-reset"),
+        pytest.param("\x1b[31mred\x1b[m", "", id="closed-by-bare-reset"),
+        pytest.param("\x1b[93mopen", "\x1b[93m", id="one-code-left-open"),
+        pytest.param(
+            "\x1b[93m\x1b[1mopen", "\x1b[93m\x1b[1m", id="two-codes-left-open"
+        ),
+        pytest.param(
+            "\x1b[93mout \x1b[36min\x1b[0m back",
+            "",
+            id="reset-clears-the-whole-stack",
+        ),
+        pytest.param(
+            "\x1b[93mout \x1b[36min\x1b[0m\x1b[93m back",
+            "\x1b[93m",
+            id="reopened-after-a-reset",
+        ),
+        pytest.param("\x1b[0;31mred", "\x1b[0;31m", id="reset-carrying-a-color"),
+        pytest.param(
+            "\x1b[93mold\x1b[0;31mnew", "\x1b[0;31m", id="reset-carrying-a-color-clears"
+        ),
+    ),
+)
+def test_open_ansi(text, expected):
+    assert open_ansi(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        pytest.param("", "\x1b[93m", id="empty-chunk-keeps-what-was-open"),
+        pytest.param("plain", "\x1b[93m", id="unstyled-chunk-keeps-what-was-open"),
+        pytest.param(
+            "\x1b[1mbold", "\x1b[93m\x1b[1m", id="chunk-adds-to-what-was-open"
+        ),
+        pytest.param("closed\x1b[0m", "", id="chunk-closes-what-was-open"),
+    ),
+)
+def test_open_ansi_resumes_from_an_opened_state(text, expected):
+    assert open_ansi(text, "\x1b[93m") == expected
+
+
+def test_open_ansi_chunked_matches_one_shot():
+    """Reading a string in two chunks answers like reading it whole.
+
+    Every cut is tried except the ones splitting an escape in half, which no
+    parser can carry across a chunk boundary.
+    """
+    text = "\x1b[93mrain \x1b[36mon\x1b[0m Monday \x1b[1mand\x1b[0m\x1b[93m Tuesday"
+    inside = {
+        index
+        for match in re.finditer(r"\x1b\[[0-9;]*m", text)
+        for index in range(match.start() + 1, match.end())
+    }
+    for cut in set(range(len(text) + 1)) - inside:
+        assert open_ansi(text[cut:], open_ansi(text[:cut])) == open_ansi(text), cut
+
+
+# --- 15. render_ansi() -------------------------------------------------------
 
 
 def test_render_ansi_passthrough_unstyled():
@@ -623,7 +690,7 @@ def test_render_ansi_splits_runs_at_newlines():
     assert result == "<two>\n<lines>"
 
 
-# --- 15. wrap_ansi() ---------------------------------------------------------
+# --- 16. wrap_ansi() ---------------------------------------------------------
 
 WRAP_TEXT = "A very long note about the weather that will certainly need wrapping."
 
@@ -684,7 +751,7 @@ def test_wrap_ansi_edge_cases(text, width, expected):
     assert wrap_ansi(text, width) == expected
 
 
-# --- 16. ANSI-to-markup converters -------------------------------------------
+# --- 17. ANSI-to-markup converters -------------------------------------------
 
 BLUE = "\x1b[34mSummer\x1b[0m"
 BLUE_BOLD = "\x1b[34m\x1b[1mSummer\x1b[0m"

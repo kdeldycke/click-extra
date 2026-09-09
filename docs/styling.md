@@ -203,6 +203,33 @@ for line in lines:
 
 It powers the wrapping of the [`vertical` table format](table.md#column-widths), which has no rendering backend to delegate its line breaking to.
 
+## `open_ansi()`: splice a fragment into styled text
+
+Styling a fragment closes it with a reset, and that reset also closes whatever styling surrounded the fragment. `open_ansi(text)` returns the escapes `text` still leaves in effect, so the surrounding styling can be reopened right after the splice:
+
+```{python:run}
+from click_extra import open_ansi, style
+
+sentence = style("Rain on Monday, sun on Tuesday.", fg="yellow")
+head, _, tail = sentence.partition("Tuesday")
+
+assert open_ansi(head) == "\x1b[33m"
+
+# Reopening the yellow is what keeps the tail from rendering plain.
+patched = head + style("Tuesday", fg="blue") + open_ansi(head) + tail
+print(repr(patched))
+```
+
+A full reset empties the accumulator, so a string that closes its own styling reopens nothing:
+
+```{python:run}
+from click_extra import open_ansi, style
+
+assert open_ansi(style("Rain on Monday.", fg="yellow")) == ""
+```
+
+Help screens are painted in several passes, and each one runs over what the previous ones already styled. `open_ansi()` is what lets an option name quoted in a deprecation message take its own color without stripping the message's color from everything after it.
+
 ## ANSI markup converters
 
 Four ready-made converters translate ANSI styling to markup languages with native styling support. They power the [table styles translation](table.md#colors-and-styles), and are just as useful standalone, to export any styled CLI output:

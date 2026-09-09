@@ -37,6 +37,7 @@ from click.core import _format_deprecated_label
 from cloup._util import identity
 
 from . import theme as _theme
+from .styling import open_ansi
 from .theme import HelpTheme, ThemeChoice
 
 TYPE_CHECKING = False
@@ -839,12 +840,24 @@ def highlight(
             merged.append([start, end])
 
     # Stitch the result back: unmatched gaps verbatim, matched runs styled.
+    # A styled run closes with a reset, which also closes whatever styling the
+    # run was sitting inside. Re-open what `content` left dangling there, else
+    # a keyword matched inside an already-painted region (an option name quoted
+    # in a deprecation message) strips the color off the rest of that region.
     parts: list[str] = []
     cursor = 0
+    opened = ""
     for start, end in merged:
         if start > cursor:
-            parts.append(content[cursor:start])
-        parts.append(styling_func(content[start:end]))
+            gap = content[cursor:start]
+            parts.append(gap)
+            opened = open_ansi(gap, opened)
+        raw = content[start:end]
+        styled = styling_func(raw)
+        parts.append(styled)
+        opened = open_ansi(raw, opened)
+        if opened and styled != raw:
+            parts.append(opened)
         cursor = end
     if cursor < len(content):
         parts.append(content[cursor:])

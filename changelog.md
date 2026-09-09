@@ -8,6 +8,8 @@
 - Stop `{env_info}` crashing when the working directory it reports has been deleted. Requires `boltons` `26.2.0`.
 - Draw the columns a `ShowParamsOption` subclass declares in its `default_columns()`, which `--params` ignored in favor of the base class's. That hook is the only way to reach an opt-in column on a CLI carrying no `--columns` option.
 - Keep the help-screen section of an option a `params` hook swaps for a subclass of it, which used to be drawn under `Other options` instead.
+- Add `open_ansi()`, returning the ANSI escapes a string leaves in effect, to splice a styled fragment into styled text.
+- Keep a deprecation message colored past a keyword quoted inside it: a highlighted option or command name used to strip the color off the rest of the message.
 
 ## [`9.1.0` (2026-09-03)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...v9.1.0)
 

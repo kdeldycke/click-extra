@@ -28,6 +28,7 @@ from boltons.strutils import strip_ansi
 from click.testing import CliRunner
 
 from click_extra import (
+    Choice,
     Color,
     Command,
     Context,
@@ -51,6 +52,7 @@ from click_extra.pytest import (
     command_decorators,
     default_options_colored_help,
 )
+from click_extra.styling import split_ansi
 from click_extra.theme import get_default_theme
 
 theme = get_default_theme()
@@ -781,6 +783,65 @@ def test_option_highlight(opt, expected_outputs):
 
     for expected in expected_outputs:
         assert expected in help
+
+
+@pytest.mark.parametrize(
+    ("category", "keyword"),
+    (
+        pytest.param("cli_names", "basket", id="cli-name"),
+        pytest.param("long_options", "--banana", id="long-option"),
+        pytest.param("short_options", "-b", id="short-option"),
+        pytest.param("choices", "ripe", id="choice"),
+        pytest.param("metavars", "TEXT", id="metavar"),
+        pytest.param("arguments", "[CRATE]", id="argument"),
+    ),
+)
+def test_deprecation_marker_stays_painted_around_a_keyword(category, keyword):
+    """A keyword quoted in a deprecation reason keeps the marker painted.
+
+    Cross-reference passes run over text the deprecation pass already painted,
+    and the style each one applies closes with a reset. Unless the surrounding
+    style is re-opened after it, the marker renders plain from the keyword to
+    its closing parenthesis. One case per keyword category: the passes run in
+    sequence, so a hole one of them punches says nothing about the others.
+    """
+    cli = Command(
+        "basket",
+        params=[
+            ExtraOption(
+                ["--apricot"],
+                help="Pick an apricot.",
+                deprecated=f"prefer {keyword} instead",
+            ),
+            ExtraOption(
+                ["-b", "--banana"],
+                type=Choice(["ripe", "green"]),
+                help="Pick a banana.",
+            ),
+            cloup.Argument(["crate"], required=False),
+        ],
+    )
+    ctx = Context(cli, info_name="basket")
+    assert keyword in getattr(cli.collect_keywords(ctx), category)
+
+    help_text = cli.get_help(ctx)
+    plain = strip_ansi(help_text)
+    start = plain.index("(DEPRECATED:")
+    end = plain.index(")", start) + 1
+
+    # The style each visible character carries, ANSI escapes resolved.
+    styles: list[Style] = []
+    for run_style, run in split_ansi(help_text):
+        styles.extend([run_style] * len(run))
+
+    # Control: the keyword must really be painted by a pass of its own,
+    # otherwise nothing nests and the assertion below holds for free.
+    assert styles[plain.index(keyword, start)] not in (Style(), theme.deprecated)
+
+    unpainted = "".join(
+        plain[index] for index in range(start, end) if styles[index] == Style()
+    )
+    assert not unpainted, f"unpainted in the {category} marker: {unpainted!r}"
 
 
 def test_bracket_field_full_combination_styling():
@@ -2370,6 +2431,28 @@ def test_keyword_collection(invoke, assert_output_regex):
             "start middle end",
             re.compile(r"start|end"),
             "\x1b[32mstart\x1b[0m middle \x1b[32mend\x1b[0m",
+            False,
+        ),
+        # A match sitting inside an already-styled run: the styling function
+        # closes with a reset, so the surrounding style is re-opened after it.
+        (
+            "\x1b[93mripe apricot picked\x1b[0m",
+            re.compile(r"apricot"),
+            "\x1b[93mripe \x1b[32mapricot\x1b[0m\x1b[93m picked\x1b[0m",
+            False,
+        ),
+        # Every attribute the run had open is restored, not just the last one.
+        (
+            "\x1b[93m\x1b[1mripe apricot picked\x1b[0m",
+            re.compile(r"apricot"),
+            "\x1b[93m\x1b[1mripe \x1b[32mapricot\x1b[0m\x1b[93m\x1b[1m picked\x1b[0m",
+            False,
+        ),
+        # Nothing to restore once the run is closed.
+        (
+            "\x1b[93mripe\x1b[0m apricot picked",
+            re.compile(r"apricot"),
+            "\x1b[93mripe\x1b[0m \x1b[32mapricot\x1b[0m picked",
             False,
         ),
     ),
