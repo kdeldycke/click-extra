@@ -444,6 +444,25 @@ class Style(cloup.Style):
     See the module docstring for the full list of additions. The runtime
     contract (calling the instance to apply styling, equality, hashing,
     `with_()`) is otherwise identical to `cloup.Style`.
+
+    ```{todo}
+    Re-scope {meth}`__eq__` and {meth}`__hash__` once cloup ships the fix for
+    [janluke/cloup#224](https://github.com/janluke/cloup/issues/224). Cloup
+    declares its lazy `_style_kwargs` cache without `compare=False`, so a
+    `cloup.Style` stops comparing equal to its twin, and `hash()` raises
+    `TypeError`, from its first call onwards. Both methods stay after that fix,
+    for the cross-class comparison against `cloup.Style` the generated ones
+    refuse: only their cache rationale expires.
+    ```
+
+    ```{todo}
+    Drop the `# type: ignore[assignment]` on the `fg` and `bg` re-declarations
+    below once cloup widens its own annotations. It types both `Optional[str]`,
+    while `click.style` takes `int | tuple[int, int, int] | str | None`, so
+    covering a palette index and an RGB tuple here reads as an incompatible
+    override. Asked upstream at
+    [janluke/cloup#222](https://github.com/janluke/cloup/issues/222#issuecomment-5600354828).
+    ```
     """
 
     fg: str | tuple[int, int, int] | int | None = None  # type: ignore[assignment]

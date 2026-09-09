@@ -580,11 +580,14 @@ def _scrub_foreign_modules() -> None:
 
     click ships no `__all__`, so `from click import *` copies every submodule
     its own `__init__` binds (`click.core`, `click.globals`, `click.termui`,
-    ...), and cloup's `__all__` leaks the stdlib `warnings` module. These
-    bindings are traps: `click_extra.core.Group` would resolve to click's
-    original class instead of click-extra's override, and `globals` even
-    shadows the builtin. The package's genuine submodules, bound by the
-    relative imports above, are kept. A unittest checks none of this
+    ...), and cloup's `__all__` exports its own `warnings` and `_version`
+    submodules, the first of which shadows the stdlib name (reported at
+    [janluke/cloup#204](https://github.com/janluke/cloup/issues/204#issuecomment-5600674392)).
+    These bindings are traps: `click_extra.core.Group` would resolve to
+    click's original class instead of click-extra's override, and `globals`
+    even shadows the builtin. The package's genuine submodules, bound by the
+    relative imports above, are kept. The scrub outlives any fix upstream,
+    since click declares no `__all__` at all. A unittest checks none of this
     regresses.
     """
     import sys
