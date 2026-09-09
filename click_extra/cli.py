@@ -52,6 +52,7 @@ from .context import pass_context
 from .decorators import argument, command, group, jobs_option, option
 from .envvar import merge_envvar_ids
 from .execution import run_jobs
+from .highlight import HelpKeywords
 from .logo import BRAND_SCREEN
 from .myst_converter import convert_directory, detect_source_package
 from .parameters import make_resilient_context
@@ -171,6 +172,29 @@ _demo_section = cloup.Section(
 """Section grouping terminal capability demo subcommands."""
 
 
+#: Sample invocations closing the root help screen. Each `\b` escape is Click's
+#: marker for a paragraph to keep as written, since the help formatter rewraps
+#: an epilog into one block otherwise.
+DEMO_EPILOG = """\b
+Examples:
+\b
+  Run any Click CLI through Click Extra's colored help:
+    $ click-extra wrap -- my-cli --help
+\b
+  Draw that help screen as a picture a README can show:
+    $ click-extra screenshot --output my-cli.svg -- my-cli --help
+\b
+  Report the parameters a CLI accepts, and where each value comes from:
+    $ click-extra wrap --params -- my-cli
+\b
+  Highlight a source file as a themed picture:
+    $ click-extra snippet --output basket.svg basket.py
+\b
+  See how a help screen reads under each built-in theme:
+    $ click-extra themes
+"""
+
+
 @group(
     name="click-extra",
     cls=WrapperGroup,
@@ -181,6 +205,7 @@ _demo_section = cloup.Section(
     version_fields={"prog_name": "Click Extra"},
     config_schema=ClickExtraConfig,
     schema_strict=False,
+    epilog=DEMO_EPILOG,
 )
 def demo():
     """Click Extra CLI."""
@@ -822,23 +847,25 @@ def _parse_hold(
     "--rows",
     type=IntRange(min=1),
     default=None,
-    help=f"With --record, the height of the terminal the command runs in, in "
-    f"characters.  [default: {DEFAULT_ROWS}]",
+    show_default=str(DEFAULT_ROWS),
+    help="With --record, the height of the terminal the command runs in, in "
+    "characters.",
 )
 @option(
     "--hold",
     default=None,
+    show_default=str(DEFAULT_RECORDING_HOLD),
     callback=_parse_hold,
     help=f"With --record, extra seconds the last frame stays up before the "
     f"animation starts over, or {AUTO_HOLD} to scale them to that frame's line "
-    f"count.  [default: {DEFAULT_RECORDING_HOLD}]",
+    f"count.",
 )
 @option(
     "--blank",
     type=FloatRange(min=0),
     default=None,
-    help=f"With --record, seconds of empty screen closing the cycle.  "
-    f"[default: {DEFAULT_RECORDING_BLANK}]",
+    show_default=str(DEFAULT_RECORDING_BLANK),
+    help="With --record, seconds of empty screen closing the cycle.",
 )
 @option(
     "--cursor",
@@ -857,8 +884,9 @@ def _parse_hold(
     "--blink",
     type=FloatRange(min=0),
     default=None,
-    help=f"With --cursor, seconds one blink takes. Pass 0 to draw a steady "
-    f"cursor.  [default: {Cursor().blink}]",
+    show_default=str(Cursor().blink),
+    help="With --cursor, seconds one blink takes. Pass 0 to draw a steady "
+    "cursor.",
 )
 @option(
     "--closing-prompt/--no-closing-prompt",
@@ -879,15 +907,17 @@ def _parse_hold(
     "--submit",
     type=FloatRange(min=0, min_open=True),
     default=None,
-    help=f"With --typing, seconds the finished command line waits before its "
-    f"output starts.  [default: {DEFAULT_SUBMIT}]",
+    show_default=str(DEFAULT_SUBMIT),
+    help="With --typing, seconds the finished command line waits before its "
+    "output starts.",
 )
 @option(
     "--speed",
     type=FloatRange(min=0, min_open=True),
     default=None,
+    show_default="1.0",
     help="With --record, how much faster to play than recorded: 2 halves "
-    "every frame's time.  [default: 1.0]",
+    "every frame's time.",
 )
 def screenshot_cmd(
     command_line: tuple[str, ...],
@@ -933,8 +963,8 @@ def screenshot_cmd(
     writes the captured output where --output points. Its extension picks the
     format:
 
-      .svg  a picture of a terminal window, for a surface that strips inline
-            HTML. A README on GitHub or PyPI has no other option.
+      .svg  a picture of a terminal window, for a surface that strips
+            inline HTML. A README on GitHub or PyPI has no other option.
 
       .html selectable, searchable, copy-pasteable text, for a page you own.
 
@@ -1103,6 +1133,14 @@ def screenshot_cmd(
 
 
 demo.add_command(screenshot_cmd)
+
+
+#: Choice values of this command's own options that are also plain English
+#: words its description uses: "a progress bar", "a plain capture", "never
+#: sees". Excluded from the cross-reference pass, which would otherwise paint
+#: them as values wherever the prose says the word. Their own metavars keep
+#: their coloring, see `HelpFormatter.highlight_extra_keywords`.
+screenshot_cmd.excluded_keywords = HelpKeywords(choices={"bar", "never", "plain"})
 
 
 @command(name="snippet")
