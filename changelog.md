@@ -31,6 +31,8 @@
 - Add `open_ansi()`, returning the ANSI escapes a string leaves in effect, to splice a styled fragment into styled text.
 - Keep a deprecation message colored past a keyword quoted inside it: a highlighted option or command name used to strip the color off the rest of the message.
 - Return a Click Extra theme from `HelpTheme.dark()` and `HelpTheme.light()`, which used to hand back a bare `cloup.HelpTheme` missing every extra slot.
+- Count a double-width character as the two columns it takes when wrapping styled text and laying out the `--version` screen. Requires `wcwidth` `0.8.3`.
+- Keep an OSC 8 hyperlink intact through `wrap_ansi()`, which used to drop its markers and leave the display text alone.
 
 ## [`9.1.0` (2026-09-03)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...v9.1.0)
 

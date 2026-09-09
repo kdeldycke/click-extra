@@ -108,9 +108,10 @@ dependencies = [
   "tomli>=2; python_version<'3.11'",
   # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
   "wcmatch>=10",
-  # wcwidth (already pulled in by tabulate[widechars]) is used directly to size
-  # the spinner-catalog preview by terminal cell width.
-  "wcwidth>=0.2",
+  # wcwidth 0.8.3 fixed wrap() looping forever on an OSC 8 hyperlink followed by
+  # a wide grapheme. styling.wrap_ansi() delegates to wrap(), version's
+  # visible_width() to width(), and table.py sizes cells with wcswidth().
+  "wcwidth>=0.8.3",
 ]
 optional-dependencies.all = [
   # Aggregate extra: pulls in every optional feature at once. Self-references the

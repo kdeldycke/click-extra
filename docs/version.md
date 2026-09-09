@@ -673,10 +673,6 @@ Three conditions gate it, and failing any one falls back to the plain `message` 
 - **The terminal is wide enough** to seat the facts beside the mark without wrapping them.
 - **Accessible mode is off.** A mark read out character by character is noise to a screen reader, so `--accessible` keeps the plain message.
 
-```{caution}
-{func}`~click_extra.version.visible_width` counts characters, not display cells, so a logo drawn with double-width characters (CJK, emoji) measures short and lays out ragged. Anything a terminal renders one cell wide is fine, which covers ASCII, the block and box-drawing ranges, and braille.
-```
-
 ### Click Extra's own screen
 
 {data}`~click_extra.logo.BRAND_SCREEN` is the worked example: the six cubes of `docs/assets/logo-square.svg`, flat-shaded and painted with half blocks, two sub-pixels to a line.

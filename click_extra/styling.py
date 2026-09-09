@@ -52,12 +52,12 @@ from __future__ import annotations
 
 import os
 import re
-import textwrap
 from dataclasses import dataclass, fields, replace
 from functools import lru_cache
 
 import cloup
 from boltons.strutils import strip_ansi
+from wcwidth import wrap as wcwidth_wrap
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -937,78 +937,30 @@ def render_ansi(text: str, emitter: Callable[[Style, str], str]) -> str:
     return "".join(chunks)
 
 
-def _slice_ansi_runs(
-    runs: Sequence[tuple[Style, str]],
-    start: int,
-    end: int,
-) -> str:
-    """Re-style the `[start, end)` visible slice of already-split *runs*.
-
-    Offsets count visible characters, ignoring the escapes that carried the
-    styling. Each run overlapping the slice contributes its own portion, styled
-    on its own, so the returned string opens and closes every sequence it uses.
-    """
-    unstyled = Style()
-    chunks: list[str] = []
-    offset = 0
-    for style, run in runs:
-        run_start = offset
-        offset += len(run)
-        if offset <= start:
-            continue
-        if run_start >= end:
-            break
-        piece = run[max(start - run_start, 0) : min(end, offset) - run_start]
-        if piece:
-            chunks.append(piece if style == unstyled else style(piece))
-    return "".join(chunks)
-
-
 def wrap_ansi(text: str, width: int) -> list[str]:
-    """Wrap *text* to *width* visible columns, preserving its ANSI styling.
+    """Wrap *text* to *width* terminal cells, preserving its ANSI styling.
 
     {func}`textwrap.wrap` counts every byte of an ANSI escape toward the line
     length, so a styled string wraps far earlier than its visible width
-    warrants. Line breaks are computed here on the plain text, then mapped back
-    onto the styled runs of {func}`split_ansi`. Like {func}`render_ansi`, no
-    escape sequence crosses a line boundary: each returned line carries the
-    styling it needs, opened and closed within the line.
+    warrants. {func}`wcwidth.wrap` measures an escape at no cells and every
+    character between escapes at the width a terminal advances by. It reopens
+    on each line the styling still in effect, so no escape sequence crosses a
+    line boundary: each returned line carries the styling it needs, opened and
+    closed within the line.
 
     Returns a list of lines, empty *text* yielding a single empty one.
 
     ```{note}
-    Where the breaks fall is still {func}`textwrap.wrap`'s decision, so
-    long-word breaking and whitespace handling match it exactly. It measures in
-    characters, which means a run of double-width characters occupies more
-    terminal columns than *width*, as it does everywhere else Click wraps text.
+    Breaks land where {func}`textwrap.wrap` puts them on plain ASCII, so
+    long-word breaking and whitespace handling match it exactly. The two
+    measures part on a double-width character, which counts for the two cells
+    it takes, and on an OSC 8 hyperlink, which counts for none.
     ```
     """
-    runs = list(split_ansi(text))
-    plain = "".join(run for _, run in runs)
-    # Tab expansion would change the length of the text and break the offset
-    # mapping below. Disabled, `replace_whitespace` still substitutes a single
-    # space for each whitespace character, which preserves it.
-    lines = textwrap.wrap(plain, width=width, expand_tabs=False)
-    if not lines:
-        return [""]
-    # Nothing styled: the plain lines are already the answer.
-    if len(runs) <= 1 and (not runs or runs[0][0] == Style()):
-        return lines
-
-    # `textwrap` normalized whitespace, so the breaks are located on a copy
-    # normalized the same way, whose offsets still map one-to-one onto `plain`.
-    normalized = "".join(" " if char.isspace() else char for char in plain)
-    spans: list[tuple[int, int]] = []
-    cursor = 0
-    for line in lines:
-        start = normalized.find(line, cursor)
-        if start < 0:
-            # No mapping found: keep the layout and drop the styling, rather
-            # than raising on a string this parser did not anticipate.
-            return lines
-        spans.append((start, start + len(line)))
-        cursor = start + len(line)
-    return [_slice_ansi_runs(runs, start, end) for start, end in spans]
+    # Tab expansion would change the visible width of the text. Disabled,
+    # `replace_whitespace` still substitutes a single space for each whitespace
+    # character, which preserves it.
+    return wcwidth_wrap(text, width, expand_tabs=False) or [""]
 
 
 def _html_emitter(style: Style, text: str) -> str:

@@ -51,10 +51,10 @@ from pathlib import Path
 
 import click
 from boltons.formatutils import BaseFormatField, tokenize_format_str
-from boltons.strutils import strip_ansi
 from click import echo, get_current_context
 from click._utils import UNSET
 from extra_platforms import current_architecture, current_platform
+from wcwidth import width as cell_width
 
 from ._utils import memoize_enums
 from .color import invocation_color, is_a_tty
@@ -609,16 +609,14 @@ def default_facts() -> dict[str, str]:
 
 
 def visible_width(text: str) -> int:
-    """Columns *text* occupies once its escape sequences are discounted.
+    """Cells *text* occupies once its escape sequences are discounted.
 
-    ```{caution}
-    Counts characters, not display cells, so a logo drawn with double-width
-    characters (CJK, emoji) measures short and its screen lays out ragged. Every
-    character a terminal renders one cell wide is fine, which covers ASCII, the
-    block and box-drawing ranges, and braille.
-    ```
+    {func}`wcwidth.width` measures each character at the width a terminal
+    advances the cursor by, so a double-width character (CJK, emoji) counts for
+    two cells, and an ANSI escape or an OSC 8 hyperlink for none. A tab counts
+    up to the next tab stop, eight columns apart.
     """
-    return len(strip_ansi(text))
+    return cell_width(text)
 
 
 @dataclass(frozen=True)
