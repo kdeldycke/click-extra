@@ -365,8 +365,7 @@ class _ParameterMixin:
         if (
             self.deprecated
             and value is not UNSET
-            and ctx.get_parameter_source(self.name)
-            is ParameterSource.DEFAULT_MAP
+            and ctx.get_parameter_source(self.name) is ParameterSource.DEFAULT_MAP
         ):
             message = _(
                 "DeprecationWarning: The {param_type} {name!r} is deprecated."
