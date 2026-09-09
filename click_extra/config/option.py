@@ -2287,6 +2287,15 @@ def _config_dump_value(param: click.Parameter, value: Any) -> Any:
       environment values, ahead of its own type conversion);
     - anything else (a {class}`~pathlib.Path`, a custom object) is stringified.
     """
+    # A repeatable boolean flag collects occurrences of a toggle rather than
+    # values, so none of them means unset, not an empty list of booleans.
+    if (
+        param.multiple
+        and getattr(param, "is_bool_flag", False)
+        and isinstance(value, (list, tuple))
+        and not value
+    ):
+        value = None
     if value is None:
         # An unset multi-value parameter reads naturally as an empty list,
         # which also survives serialization in null-less formats like TOML.

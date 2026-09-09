@@ -566,14 +566,20 @@ class ParamStructure:
         Returns `str` for unrecognised custom types, since command-line
         parameters are strings by default.
 
+        A boolean flag is a `bool` even when it is repeatable: it collects
+        occurrences of a toggle rather than values, and a configuration file
+        spells it as the boolean it is. That is why the check comes before the
+        multi-value one, which would otherwise read it as a list and have an
+        unset one dump as `[]`, a shape no user writes.
+
         See the list of
         [custom types provided by Click](https://click.palletsprojects.com/en/stable/api/#types).
         """
-        if param.multiple or param.nargs != 1:
-            return list
-
         if hasattr(param, "is_bool_flag") and param.is_bool_flag:
             return bool
+
+        if param.multiple or param.nargs != 1:
+            return list
 
         return ParamStructure.map_click_type(param.type)
 
