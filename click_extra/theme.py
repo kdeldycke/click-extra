@@ -218,6 +218,14 @@ class HelpTheme(cloup.HelpTheme):
     appended to options and commands.
     """
 
+    separator: IStyle = identity
+    """Style applied to the `--` end-of-options separator, wherever a help
+    screen writes it on its own: `my-cli wrap -- target-cli --help`.
+
+    It is punctuation rather than a word, and it reads as one of the target
+    CLI's own options until something tells the two apart.
+    """
+
     search: IStyle = identity
     """Style applied to substring matches in {command}`<cli> help --search`
     output, so users can spot where their query matched.
@@ -422,13 +430,14 @@ LITERAL_STYLES: frozenset[str] = frozenset({
     "alias_secondary",
     "option",
     "choice",
+    "separator",
 })
 r"""Names of the {class}`HelpTheme` slots that color *literal* tokens:
 text the user types verbatim on the command line.
 
 Covers the command and subcommand names, their aliases, option flags
-(`--config`, `-v`), and the concrete values of a {class}`click.Choice`
-(`json` in `[json|csv|xml]`).
+(`--config`, `-v`), the concrete values of a {class}`click.Choice`
+(`json` in `[json|csv|xml]`), and the `--` separator.
 
 These map to the **bold** font of the man-pages(7) typographic convention,
 which sets text "typed literally" in bold (`\fB` in roff) "even in the

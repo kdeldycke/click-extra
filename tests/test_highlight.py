@@ -2530,3 +2530,92 @@ def test_standalone_help_option(invoke, cmd_decorator, cmd_type, option_decorato
         )
     assert result.exit_code == 0
     assert not result.stderr
+
+
+def test_invoked_subcommand_is_highlighted_and_prose_is_not():
+    """An example line running the CLI paints the subcommands it names.
+
+    The same word in the prose describing that subcommand stays unpainted:
+    a subcommand often carries the name of what it does, and reading a whole
+    help screen for it colors plain English.
+    """
+    from click_extra.commands import Group
+
+    grp = Group(
+        "basket",
+        help="Sort fruit.\n\n\b\nExamples:\n\b\n  $ basket --lang fr pick --ripe\n",
+    )
+    grp.add_command(Command("pick", help="Pick a fruit."))
+    grp.add_command(Command("peel", help="Peel a fruit before you pick it."))
+
+    help_text = grp.get_help(Context(grp, info_name="basket"))
+
+    assert (
+        "$ "
+        + theme.invoked_command("basket")
+        + " --lang fr "
+        + theme.subcommand("pick")
+    ) in help_text
+    # The prose of another subcommand names `pick` too, and keeps it plain.
+    assert "before you pick it." in help_text
+
+
+def test_subcommand_options_are_highlighted_on_the_group_screen():
+    """A group screen knows the options of the subcommands it lists.
+
+    An example invoking one names options the group itself never declares.
+    """
+    from click_extra.commands import Group
+
+    grp = Group("basket", help="Sort fruit.\n\n\b\n  $ basket pick --ripe\n")
+    grp.add_command(
+        Command("pick", params=[ExtraOption(["--ripe"], is_flag=True)]),
+    )
+
+    help_text = grp.get_help(Context(grp, info_name="basket"))
+
+    assert theme.option("--ripe") in help_text
+
+
+def test_end_of_options_separator_is_styled():
+    """A lone `--` takes the separator slot; an option name keeps its own."""
+    cli = Command("test", help="Run: test wrap -- my-cli --help")
+    help_text = cli.get_help(Context(cli))
+
+    assert theme.separator("--") in help_text
+    assert theme.separator("--help") not in help_text
+
+
+def test_bracket_field_closes_on_a_bracketed_default():
+    """A default value that is itself bracketed closes its own field.
+
+    The content pattern used to stop at the first `]` on screen, which left the
+    field's real closing bracket outside the styled run.
+    """
+    cli = Command(
+        "test",
+        params=[ExtraOption(["--truncation"], default="[...]", show_default=True)],
+    )
+    help_text = cli.get_help(Context(cli))
+
+    assert theme.bracket("[") + theme.bracket("default: ") in help_text
+    assert theme.default("[...]") + theme.bracket("]") in help_text
+
+
+def test_enumerated_metavar_is_styled_part_by_part():
+    """A hand-written metavar that enumerates its parts is painted as one.
+
+    Click renders nothing structured for a hybrid type, so `INTEGER|auto` is
+    a plain string: the value takes the choice slot and the type placeholder
+    beside it the metavar slot.
+    """
+    cli = Command(
+        "test",
+        params=[
+            ExtraOption(["--columns"], metavar="INTEGER|auto"),
+            ExtraOption(["--color"], type=click.Choice(["auto", "never"])),
+        ],
+    )
+    help_text = cli.get_help(Context(cli))
+
+    assert theme.metavar("INTEGER") + "|" + theme.choice("auto") in help_text

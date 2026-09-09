@@ -29,6 +29,7 @@ default = { fg = "green", dim = true, italic = true }
 range_label = { fg = "cyan", dim = true }
 required = { fg = "red", dim = true }
 argument = { fg = "cyan", italic = true }
+separator = { fg = "bright_white", dim = true, bold = true }
 deprecated = { fg = "bright_yellow" }
 search = { fg = "green" }
 success = { fg = "green" }
@@ -57,6 +58,7 @@ default = { fg = "#50fa7b", dim = true, italic = true }
 range_label = { fg = "#bd93f9", dim = true }
 required = { fg = "#ff5555", dim = true }
 argument = { fg = "#bd93f9", italic = true }
+separator = { fg = "#f8f8f2", dim = true, bold = true }
 deprecated = { fg = "#ffb86c" }
 search = { fg = "#f1fa8c" }
 success = { fg = "#50fa7b" }
@@ -87,6 +89,7 @@ default = { fg = "green", dim = true, italic = true }
 range_label = { fg = "blue", dim = true }
 required = { fg = "red", dim = true }
 argument = { fg = "blue", italic = true }
+separator = { fg = "black", dim = true, bold = true }
 deprecated = { fg = "red" }
 search = { fg = "green" }
 success = { fg = "green" }
@@ -108,6 +111,7 @@ subcommand = { bold = true }
 choice = { bold = true }
 metavar = { italic = true }
 argument = { italic = true }
+separator = { bold = true }
 
 
 [monokai]
@@ -133,6 +137,7 @@ default = { fg = "#e6db74", dim = true, italic = true }
 range_label = { fg = "#66d9ef", dim = true }
 required = { fg = "#f92672", dim = true }
 argument = { fg = "#66d9ef", italic = true }
+separator = { fg = "#f8f8f2", dim = true, bold = true }
 deprecated = { fg = "#fd971f" }
 search = { fg = "#e6db74" }
 success = { fg = "#a6e22e" }
@@ -162,6 +167,7 @@ default = { fg = "#a3be8c", dim = true, italic = true }  # nord14
 range_label = { fg = "#81a1c1", dim = true }
 required = { fg = "#bf616a", dim = true }
 argument = { fg = "#81a1c1", italic = true }
+separator = { fg = "#e5e9f0", dim = true, bold = true }
 deprecated = { fg = "#d08770" }
 search = { fg = "#ebcb8b" }               # nord13
 success = { fg = "#a3be8c" }
@@ -191,6 +197,7 @@ default = { fg = "#859900", dim = true, italic = true }
 range_label = { fg = "#268bd2", dim = true }
 required = { fg = "#dc322f", dim = true }
 argument = { fg = "#268bd2", italic = true }
+separator = { fg = "#93a1a1", dim = true, bold = true }
 deprecated = { fg = "#d33682" }
 search = { fg = "#b58900" }
 success = { fg = "#859900" }
