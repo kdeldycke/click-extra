@@ -258,6 +258,16 @@ class HelpTheme(cloup.HelpTheme):
         """Derives a new theme from the current one, with some styles overridden.
 
         Returns the same instance if the provided styles are the same as the current.
+
+        ```{todo}
+        Re-scope this override once cloup ships the fix for
+        [janluke/cloup#225](https://github.com/janluke/cloup/issues/225).
+        Cloup's own `with_()` collects its arguments from a fixed `locals()`,
+        so it rejects every slot this subclass adds. That reason expires with
+        the fix; what stays is returning the same instance when a style is
+        unchanged, and the message naming an unrecognized argument. The same
+        issue also fixes `dark()` and `light()`, shadowed below.
+        ```
         """
         # Check for unrecognized arguments.
         unrecognized_args = set(kwargs).difference(self.__dataclass_fields__)
@@ -277,6 +287,50 @@ class HelpTheme(cloup.HelpTheme):
 
         # No new styles, return the same instance.
         return self
+
+    @classmethod
+    def _from_cloup(cls, base: cloup.HelpTheme) -> HelpTheme:
+        """Re-wrap a `cloup.HelpTheme` as this class.
+
+        Copies the slots cloup declares and leaves the ones this subclass adds
+        at their default, which is what cloup's own constructors will produce
+        once they take `cls`. Each `cloup.Style` is widened to
+        {class}`~click_extra.styling.Style` on the way, the only class
+        {meth}`to_dict` and {meth}`cascade` accept.
+        """
+        slots: dict[str, Any] = {}
+        for field in dataclasses.fields(cloup.HelpTheme):
+            value = getattr(base, field.name)
+            if isinstance(value, cloup.Style) and not isinstance(value, Style):
+                value = Style().cascade(value)
+            slots[field.name] = value
+        return cls(**slots)
+
+    @classmethod
+    def dark(cls) -> HelpTheme:
+        """A theme assuming a dark terminal background color.
+
+        Carries cloup's palette unchanged. For a theme coloring the slots this
+        subclass adds, reach for {data}`BUILTIN_THEMES` instead.
+
+        ```{todo}
+        Delete this method and {meth}`light`, along with {meth}`_from_cloup`,
+        once cloup ships the fix for
+        [janluke/cloup#225](https://github.com/janluke/cloup/issues/225).
+        Cloup declares both as static methods naming `HelpTheme` in their
+        return expression, so the inherited ones hand back a bare
+        `cloup.HelpTheme` carrying none of the slots below.
+        ```
+        """
+        return cls._from_cloup(cloup.HelpTheme.dark())
+
+    @classmethod
+    def light(cls) -> HelpTheme:
+        """A theme assuming a light terminal background color.
+
+        Carries cloup's palette unchanged, like {meth}`dark`.
+        """
+        return cls._from_cloup(cloup.HelpTheme.light())
 
     @staticmethod
     def _encode_slot(field: Any, value: Any) -> Any:

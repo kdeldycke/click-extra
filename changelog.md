@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Paint a CLI's own deprecation markers with the `deprecated` theme slot, through a new `deprecated` field on `HelpKeywords`. Click's spelling was the whole pattern, so a project marking a parameter in its own vocabulary got no color for it.
 - Stop `{env_info}` crashing when the working directory it reports has been deleted. Requires `boltons` `26.2.0`.
 - Draw the columns a `ShowParamsOption` subclass declares in its `default_columns()`, which `--params` ignored in favor of the base class's. That hook is the only way to reach an opt-in column on a CLI carrying no `--columns` option.
 - Keep the help-screen section of an option a `params` hook swaps for a subclass of it, which used to be drawn under `Other options` instead.
@@ -13,6 +14,7 @@
 - Check a `MultiChoice` value given as a list against its choices, as a configuration file provides it. An unknown column ID reached `select_columns` and raised `KeyError` there.
 - Add `open_ansi()`, returning the ANSI escapes a string leaves in effect, to splice a styled fragment into styled text.
 - Keep a deprecation message colored past a keyword quoted inside it: a highlighted option or command name used to strip the color off the rest of the message.
+- Return a Click Extra theme from `HelpTheme.dark()` and `HelpTheme.light()`, which used to hand back a bare `cloup.HelpTheme` missing every extra slot.
 
 ## [`9.1.0` (2026-09-03)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...v9.1.0)
 

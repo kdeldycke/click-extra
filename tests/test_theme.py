@@ -26,6 +26,7 @@ from pathlib import Path
 from textwrap import dedent
 
 import click
+import cloup
 import pytest
 from click.testing import CliRunner
 from cloup._util import identity
@@ -251,6 +252,31 @@ def test_builtin_themes_are_helpextratheme_instances():
         assert isinstance(theme, HelpTheme), (
             f"BUILTIN_THEMES[{name!r}] is {type(theme).__name__}, expected HelpTheme."
         )
+
+
+@pytest.mark.parametrize("palette", ("dark", "light"))
+def test_cloup_constructors_keep_the_subclass(palette):
+    """``dark()`` and ``light()`` are shadowed to return a click-extra theme.
+
+    Cloup declares both as static methods naming its own class, so the
+    inherited ones hand back a bare :class:`cloup.HelpTheme`. Reported at
+    https://github.com/janluke/cloup/issues/225
+    """
+    theme = getattr(HelpTheme, palette)()
+    assert type(theme) is HelpTheme
+
+    # The slots this subclass adds are there, at their default.
+    assert theme.metavar is identity
+
+    # Cloup's palette is carried over, widened to click-extra's Style so the
+    # theme stays serializable.
+    cloup_theme = getattr(cloup.HelpTheme, palette)()
+    for field in dataclasses.fields(cloup.HelpTheme):
+        value = getattr(theme, field.name)
+        assert value == getattr(cloup_theme, field.name)
+        if isinstance(value, cloup.Style):
+            assert isinstance(value, Style)
+    assert theme.to_dict()
 
 
 @pytest.mark.parametrize("theme_name", sorted(BUILTIN_THEMES))
