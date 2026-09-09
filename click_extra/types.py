@@ -106,15 +106,21 @@ class MultiChoice(click.ParamType):
     ) -> tuple[str, ...]:
         """Split `value` on `separator` and validate each token.
 
-        Already-parsed tuples and lists are returned unchanged so defaults
-        declared as tuples flow through untouched. Empty tokens (consecutive
-        separators, trailing separator) are dropped silently.
+        An already-parsed tuple or list keeps its elements verbatim rather than
+        being split again, then goes through the same validation as a raw token:
+        it reaches here from a configuration file as readily as from a default
+        the CLI author declared, and only that check tells a valid selection from
+        a typo. Empty tokens (consecutive separators, trailing separator) are
+        dropped silently.
         """
         if value is None:
             return ()
         if isinstance(value, (tuple, list)):
-            return tuple(value)
-        tokens = tuple(t.strip() for t in str(value).split(self.separator) if t.strip())
+            tokens = tuple(value)
+        else:
+            tokens = tuple(
+                t.strip() for t in str(value).split(self.separator) if t.strip()
+            )
 
         if not self.choices:
             return tokens

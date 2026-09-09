@@ -1107,6 +1107,20 @@ def test_multi_choice_validates_against_choices() -> None:
         t.convert("a,d,e", None, None)
 
 
+def test_multi_choice_validates_an_already_parsed_sequence() -> None:
+    """A list is checked like a raw token, not waved through as pre-parsed.
+
+    A configuration file hands the option a list where the command line hands it
+    one string, so skipping the check on a sequence lets an unknown value travel
+    to whatever consumes the selection.
+    """
+    t = MultiChoice(choices=("a", "b", "c"))
+    assert t.convert(["a", "b"], None, None) == ("a", "b")
+    assert t.convert(("a",), None, None) == ("a",)
+    with pytest.raises(BadParameter, match=r"Unknown value\(s\): 'd'"):
+        t.convert(["a", "d"], None, None)
+
+
 def test_multi_choice_case_insensitive_normalizes() -> None:
     """``case_sensitive=False`` matches case-insensitively and returns the canonical case."""
     t = MultiChoice(choices=("Alpha", "Beta"), case_sensitive=False)

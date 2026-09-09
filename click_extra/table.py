@@ -1626,8 +1626,10 @@ def select_columns(
 
     Returns `columns` unchanged when `selected_ids` is falsy (no projection).
     Otherwise yields the matching {class}`ColumnSpec` in the order `selected_ids`
-    specifies, SQL-`SELECT`-style. Raises `KeyError` for unknown IDs so the
-    caller can convert it into a {class}`click.UsageError`.
+    specifies, SQL-`SELECT`-style. Raises `KeyError` for an unknown ID. A
+    selection reaching here through `--columns` is already checked against the
+    registry by {class}`~click_extra.types.MultiChoice`, so that guards a caller
+    assembling `selected_ids` on its own.
     """
     if not selected_ids:
         return tuple(columns)
