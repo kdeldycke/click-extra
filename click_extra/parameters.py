@@ -28,9 +28,13 @@ from typing import TypeVar
 import click
 import cloup
 from boltons.pathutils import shrinkuser
-from click import ParamType, get_current_context
+from click import ParamType, echo, get_current_context, style
 from click._utils import UNSET
-from click.core import ParameterSource, _format_deprecated_label
+from click.core import (
+    ParameterSource,
+    _format_deprecated_label,
+    _format_deprecated_suffix,
+)
 from deepmerge import always_merger
 
 from . import context
@@ -337,6 +341,44 @@ class _ParameterMixin:
     # mypy flagging them as undefined on the standalone mixin.
     multiple: bool
     nargs: int
+    deprecated: bool | str
+    name: str
+    param_type_name: str
+
+    def process_value(self, ctx: click.Context, value: Any) -> Any:
+        """Warn about a deprecated parameter a configuration file switched on.
+
+        Click warns only for a value it can attribute to the invocation itself:
+        its check is `source < ParameterSource.DEFAULT_MAP`, which covers the
+        command line and the environment and stops one rank short of the
+        configuration. So the one place a selection outlives the project it
+        names, a file written once and carried between machines, is the one
+        place nothing says the parameter is on its way out.
+
+        The notice is emitted here rather than by overriding
+        `click.Parameter.handle_parse_result`, whose check sits inline in sixty
+        lines of parsing internals that would have to be copied to reach it.
+        `process_value` runs once per parse, right after that check, with the
+        source already recorded. The wording is Click's own, down to the suffix
+        helper, so the two notices read as one feature.
+        """
+        if (
+            self.deprecated
+            and value is not UNSET
+            and ctx.get_parameter_source(self.name)
+            is ParameterSource.DEFAULT_MAP
+        ):
+            message = _(
+                "DeprecationWarning: The {param_type} {name!r} is deprecated."
+                "{extra_message}"
+            ).format(
+                param_type=self.param_type_name,
+                name=self.human_readable_name,  # type: ignore[attr-defined]
+                extra_message=_format_deprecated_suffix(self.deprecated),
+            )
+            echo(style(message, fg="red"), err=True)
+
+        return super().process_value(ctx, value)  # type: ignore[misc]
 
     def get_default(self, ctx: click.Context, call: bool = True):
         """Override `click.Parameter.get_default()` to support `EnumChoice` types.
@@ -387,6 +429,24 @@ class Option(_ParameterMixin, cloup.Option):
     Inherits first from `_ParameterMixin` to allow future overrides of Click's
     `Parameter` methods.
     """
+
+    @property
+    def human_readable_name(self) -> str:
+        """Every spelling of the option, joined the way Click hints at one.
+
+        Click returns `self.name` here: the Python identifier it derived from
+        the declarations, which is the one spelling that appears nowhere on the
+        command line. A deprecated `--apt-cyg / --no-apt-cyg` announced itself
+        as `'apt_cyg'`, naming a flag no user can type and none of the two they
+        did. `click.Argument` already overrides the property for its own
+        reasons, leaving `click.Option` re-declaring the inherited body
+        verbatim.
+
+        `" / "` is the separator `click.Parameter.get_error_hint` joins the same
+        spellings with, so a message naming an option reads the same whichever
+        of the two produced it.
+        """
+        return " / ".join(param_spellings(self))
 
 
 class ExtraOption(Option):

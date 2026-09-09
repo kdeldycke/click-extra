@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Name every spelling of a deprecated option in the notice Click prints, as `--apt-cyg / --no-apt-cyg`. It reported `'apt_cyg'`, the Python identifier, which is the one spelling no user can type.
+- Warn about a deprecated parameter a configuration file switches on. Click stops one rank short of the configuration, leaving the one place a selection outlives the project it names.
 - Paint a CLI's own deprecation markers with the `deprecated` theme slot, through a new `deprecated` field on `HelpKeywords`. Click's spelling was the whole pattern, so a project marking a parameter in its own vocabulary got no color for it.
 - Stop `{env_info}` crashing when the working directory it reports has been deleted. Requires `boltons` `26.2.0`.
 - Draw the columns a `ShowParamsOption` subclass declares in its `default_columns()`, which `--params` ignored in favor of the base class's. That hook is the only way to reach an opt-in column on a CLI carrying no `--columns` option.
