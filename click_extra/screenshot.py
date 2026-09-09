@@ -435,11 +435,10 @@ for, and anything the command would tailor to that terminal has to be kept
 away from it, or the same capture comes out differently on every machine.
 
 `TERM_PROGRAM` is the one that bites, through
-{data}`~click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`: a table
-carrying an emoji-presentation sequence is padded for the terminal named
-there, so a capture taken under Apple Terminal is wider than the same capture
-taken anywhere else. Committed side by side, the two never stop rewriting each
-other.
+{func}`~click_extra.table._paints_wider_than_it_advances`: a table carrying an
+emoji-presentation sequence is padded for the terminal named there, so a
+capture taken under Apple Terminal is wider than the same capture taken under
+Ghostty. Committed side by side, the two never stop rewriting each other.
 
 Cleared rather than pinned to a value: no name is the honest answer, since a
 capture is drawn for no terminal in particular.

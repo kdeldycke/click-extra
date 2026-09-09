@@ -29,6 +29,7 @@ import yaml
 from boltons.strutils import strip_ansi
 from extra_platforms import is_windows
 from tabulate import tabulate_formats
+from wcwidth import list_term_programs, width as cell_width
 
 # tabulate 0.10 introduced the ``colon_grid`` format and changed the asciidoc
 # cell-alignment marker from ``8<`` to ``<8``. Older releases (still shipped
@@ -797,6 +798,26 @@ def test_emoji_presentation_padding_stays_out_of_markup(monkeypatch):
     monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
     markup = render_table((("⁉️ ripe",),), ("state",), table_format=TableFormat.GITHUB)
     assert "⁉️ ripe" in markup
+
+
+@pytest.mark.parametrize("term_program", sorted(list_term_programs()))
+def test_table_rows_line_up_on_every_terminal_wcwidth_knows(monkeypatch, term_program):
+    """Rows advance the same width on each terminal, not just the default one.
+
+    Measured with `wcwidth`'s own per-terminal tables rather than with the
+    measure the layout used, so a terminal whose correction Click Extra misses
+    shows up as a ragged table instead of agreeing with itself.
+    """
+    monkeypatch.setenv("TERM_PROGRAM", term_program)
+    table = render_table(
+        (("papaya", "\u2049\ufe0f ripe"), ("cherry", "\u2705 ripe")),
+        ("fruit", "state"),
+        table_format=TableFormat.ROUNDED_OUTLINE,
+    )
+    widths = {
+        cell_width(line, term_program=term_program) for line in table.splitlines()
+    }
+    assert len(widths) == 1
 
 
 def test_table_rows_are_uniform_under_a_narrow_emoji_terminal(monkeypatch):

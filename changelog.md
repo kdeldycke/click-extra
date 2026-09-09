@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Breaking:** Drop `click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`. Which terminals narrow an emoji-presentation sequence now comes from `wcwidth`'s own measured tables.
 - Highlight a subcommand, and the options it accepts, where a help screen writes an example invocation like `$ my-cli pick --ripe`.
 - Add a `separator` theme slot, painting the `--` end-of-options separator wherever a help screen writes it.
 - Paint the last component of a command path with the `subcommand` slot, the one its parent screen lists it under, wherever a help screen writes the path.
@@ -33,6 +34,7 @@
 - Return a Click Extra theme from `HelpTheme.dark()` and `HelpTheme.light()`, which used to hand back a bare `cloup.HelpTheme` missing every extra slot.
 - Count a double-width character as the two columns it takes when wrapping styled text and laying out the `--version` screen. Requires `wcwidth` `0.8.3`.
 - Keep an OSC 8 hyperlink intact through `wrap_ansi()`, which used to drop its markers and leave the display text alone.
+- Line up a table carrying an emoji-presentation glyph on every terminal `wcwidth` has measured, instead of Apple Terminal alone.
 
 ## [`9.1.0` (2026-09-03)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...v9.1.0)
 
