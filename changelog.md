@@ -10,7 +10,7 @@
 - Paint the last component of the command path in a usage line with the `subcommand` slot, the one the parent screen lists it under.
 - Paint a numeric value spelled out beside the option it feeds, like the `1` of `--jobs 1`.
 - Style each part of an enumerated metavar a CLI writes itself, like the `INTEGER|auto` of a hybrid type.
-- Close the `click-extra --help` screen with example invocations.
+- Close every `click-extra` help screen with example invocations.
 - Paint an operand named in a command's description, like the `SCRIPT` of an option taking a target and forwarding the rest.
 - Name the values `click-extra screenshot --hold` and `--columns` accept in their metavar, as `[auto|FLOAT]` and `[auto|INTEGER]`.
 - Replace the inline value list of `--columns` and `click-extra test-suite --skip-platform` with a metavar. The `man`, `markdown` and `json` renders list them.

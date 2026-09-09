@@ -214,7 +214,22 @@ def demo():
 demo.add_command(wrap_cmd)
 
 
-@command(name="test-suite")
+#: Sample invocations closing the `test-suite` help screen.
+TEST_SUITE_EPILOG = """\b
+Examples:
+\b
+  Run the built-in default suite against a CLI:
+    $ click-extra test-suite --command my-cli
+\b
+  Run the cases a file declares, one at a time, stopping on the first failure:
+    $ click-extra test-suite --command my-cli --suite-file cases.yaml --jobs 1 --exit-on-error
+\b
+  Run two of them, skipping the cases a platform cannot answer:
+    $ click-extra test-suite --command my-cli --select-test 3 --select-test 7 --skip-platform windows
+"""
+
+
+@command(name="test-suite", epilog=TEST_SUITE_EPILOG)
 @option(
     "--command",
     "--binary",
@@ -373,7 +388,22 @@ def test_suite_cmd(
 demo.add_command(test_suite_cmd)
 
 
-@command(name="refresh-directives")
+#: Sample invocations closing the `refresh-directives` help screen.
+REFRESH_DIRECTIVES_EPILOG = """\b
+Examples:
+\b
+  Refresh every self-updating block of a documentation tree:
+    $ click-extra refresh-directives docs
+\b
+  Refresh one page:
+    $ click-extra refresh-directives docs/recipes.md
+\b
+  Report the stale ones without writing, for a continuous-integration job:
+    $ click-extra refresh-directives --check docs
+"""
+
+
+@command(name="refresh-directives", epilog=REFRESH_DIRECTIVES_EPILOG)
 @argument(
     "paths",
     nargs=-1,
@@ -448,7 +478,19 @@ def refresh_directives_cmd(
 demo.add_command(refresh_directives_cmd)
 
 
-@command(name="convert-to-myst")
+#: Sample invocations closing the `convert-to-myst` help screen.
+CONVERT_TO_MYST_EPILOG = """\b
+Examples:
+\b
+  Convert the docstrings of the package in the current directory:
+    $ click-extra convert-to-myst
+\b
+  Convert the docstrings under another one:
+    $ click-extra convert-to-myst src/basket
+"""
+
+
+@command(name="convert-to-myst", epilog=CONVERT_TO_MYST_EPILOG)
 @argument("directory", required=False, default=None)
 def convert_to_myst_cmd(directory: str | None) -> None:
     """Convert reST docstrings to MyST markdown in Python source files.
@@ -803,7 +845,25 @@ def _parse_hold(
     return hold
 
 
-@command(name="screenshot")
+#: Sample invocations closing the `screenshot` help screen.
+SCREENSHOT_EPILOG = """\b
+Examples:
+\b
+  Draw a help screen as a picture a README can show:
+    $ click-extra screenshot --output my-cli.svg -- my-cli --help
+\b
+  Draw it as selectable text, for a page you own:
+    $ click-extra screenshot --output my-cli.html -- my-cli --help
+\b
+  Capture a CLI that is not built on Click Extra, colored all the same:
+    $ click-extra screenshot --output flask.svg --wrap -- flask run --help
+\b
+  Record the frames a spinner draws, as an animation:
+    $ click-extra screenshot --output ripen.svg --record --columns 80 -- ripen
+"""
+
+
+@command(name="screenshot", epilog=SCREENSHOT_EPILOG)
 @argument("command_line", nargs=-1, required=True, type=click.UNPROCESSED)
 @capture_options(
     columns_help="Terminal width, in characters, the command wraps its output "
@@ -1150,7 +1210,22 @@ refresh_directives_cmd.excluded_keywords = HelpKeywords(choices={"never"})
 convert_to_myst_cmd.excluded_keywords = HelpKeywords(choices={"markdown"})
 
 
-@command(name="snippet")
+#: Sample invocations closing the `snippet` help screen.
+SNIPPET_EPILOG = """\b
+Examples:
+\b
+  Draw a source file as a picture a README can show:
+    $ click-extra snippet --output basket.svg basket.py
+\b
+  Draw it as selectable text, under a named theme:
+    $ click-extra snippet --output basket.html --theme dracula basket.py
+\b
+  Number the lines and point at the one that matters:
+    $ click-extra snippet --output basket.svg --line-numbers --emphasize-lines 12 basket.py
+"""
+
+
+@command(name="snippet", epilog=SNIPPET_EPILOG)
 @argument(
     "source",
     type=file_path(exists=True, readable=True, allow_dash=True),
