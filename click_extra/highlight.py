@@ -751,7 +751,9 @@ class HelpFormatter(cloup.HelpFormatter):
             if kw.subcommands:
                 help_text = self._highlight_invoked_subcommands(help_text, kw)
 
-            # Highlight CLI names and commands.
+            # Highlight CLI names and commands. A path of several words is
+            # split the way the usage line splits it: the command it ends on
+            # is the one a parent screen lists under `subcommand`.
             if kw.cli_names:
                 help_text = highlight(
                     help_text,
@@ -759,7 +761,7 @@ class HelpFormatter(cloup.HelpFormatter):
                         re.compile(rf"(?<=\s){re.escape(name)}(?=\s)")
                         for name in sorted(kw.cli_names, key=len, reverse=True)
                     ),
-                    self.theme.invoked_command,
+                    self._style_command_path,
                 )
 
             # Highlight options (long and short combined). Per-keyword lookbehind
@@ -844,26 +846,34 @@ class HelpFormatter(cloup.HelpFormatter):
 
         return help_text
 
+    def _style_command_path(self, path: str) -> str:
+        """Paint a command path, naming its last component a subcommand.
+
+        A root CLI is one word and keeps `invoked_command` whole. Shared by the
+        usage line and the cross-reference pass, so `my-cli pick` reads the same
+        wherever a screen writes it.
+        """
+        parent, separator, subcommand = path.rpartition(" ")
+        if not separator:
+            return self.theme.invoked_command(path)  # type: ignore[no-any-return]
+        return (
+            self.theme.invoked_command(parent)
+            + separator
+            + self.theme.subcommand(subcommand)
+        )
+
     def write_usage(self, prog: str, args: str = "", prefix: str | None = None) -> None:
         """Draw the usage line, naming the command the same way the rest does.
 
         Reimplements `cloup.HelpFormatter.write_usage`, which paints the whole
         command path with the `invoked_command` slot. A subcommand's path ends
         on a name the parent screen lists under `subcommand`, and the same word
-        in two colors across two screens reads as two different things. The
-        leading path keeps `invoked_command`, so a root CLI is unchanged.
+        in two colors across two screens reads as two different things.
         """
         prefix = self.theme.heading("Usage:" if prefix is None else prefix) + " "
-        parent, _, subcommand = prog.rpartition(" ")
-        if parent:
-            styled = (
-                self.theme.invoked_command(parent)
-                + " "
-                + self.theme.subcommand(subcommand)
-            )
-        else:
-            styled = self.theme.invoked_command(prog)
-        click.HelpFormatter.write_usage(self, styled, args, prefix)
+        click.HelpFormatter.write_usage(
+            self, self._style_command_path(prog), args, prefix
+        )
 
     def write_command_help_text(self, cmd: click.Command) -> None:
         """Draw the command's description, with Click's deprecation label.

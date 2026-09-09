@@ -7,7 +7,7 @@
 
 - Highlight a subcommand, and the options it accepts, where a help screen writes an example invocation like `$ my-cli pick --ripe`.
 - Add a `separator` theme slot, painting the `--` end-of-options separator wherever a help screen writes it.
-- Paint the last component of the command path in a usage line with the `subcommand` slot, the one the parent screen lists it under.
+- Paint the last component of a command path with the `subcommand` slot, the one its parent screen lists it under, wherever a help screen writes the path.
 - Paint a numeric value spelled out beside the option it feeds, like the `1` of `--jobs 1`.
 - Style each part of an enumerated metavar a CLI writes itself, like the `INTEGER|auto` of a hybrid type.
 - Close every `click-extra` help screen with example invocations.
