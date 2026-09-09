@@ -242,7 +242,6 @@ Examples:
     "--suite-file",
     type=file_path(exists=True, readable=True, resolve_path=True),
     multiple=True,
-    metavar="FILE_PATH",
     help="Path to a test suite file; its format is taken from the extension "
     "(YAML, TOML, JSON, JSON5, JSONC, Hjson). Repeat to run multiple suites in "
     "sequence. Without any suite source, a built-in default suite runs.",
@@ -293,7 +292,6 @@ Examples:
     "-W",
     "--work-directory",
     type=dir_path(exists=True, readable=True, resolve_path=True),
-    metavar="DIR_PATH",
     help="Directory to run each case's command in. Defaults to the current one. "
     "Moves the command under test, not the runner: suite files are read before "
     "any case starts.",
@@ -691,6 +689,7 @@ def capture_options(
         ),
         option(
             "--border",
+            metavar="COLOR",
             default=None,
             help="Color of the frame drawn around the terminal window, as CSS "
             "names it. Pass none to draw no frame. Defaults to the one the "
@@ -699,6 +698,7 @@ def capture_options(
         option(
             "--border-width",
             type=IntRange(min=0),
+            metavar="PIXELS",
             default=DEFAULT_BORDER_WIDTH,
             show_default=True,
             help="Thickness of that frame, in pixels.",
@@ -706,6 +706,7 @@ def capture_options(
         option(
             "--radius",
             type=IntRange(min=0),
+            metavar="PIXELS",
             default=None,
             help="How round the window's corners are, in pixels. Zero squares "
             f"them. Defaults to {DEFAULT_RADIUS}, or to the rounding --preset "
@@ -713,6 +714,7 @@ def capture_options(
         ),
         option(
             "--backdrop",
+            metavar="COLOR",
             default=NO_PAINT,
             show_default=True,
             help="Color filling the image behind the window, margin included, "
@@ -721,6 +723,7 @@ def capture_options(
         ),
         option(
             "--shadow",
+            metavar="COLOR",
             default=None,
             help="Color of the drop shadow lifting the window off the page, as "
             "CSS names it. Pass none to draw no shadow. Defaults to the one the "
@@ -729,6 +732,7 @@ def capture_options(
         option(
             "--margin",
             type=IntRange(min=0),
+            metavar="PIXELS",
             default=DEFAULT_MARGIN,
             show_default=True,
             help="Transparent pixels left around the window, on all four sides. "
@@ -738,6 +742,7 @@ def capture_options(
         option(
             "--padding",
             type=IntRange(min=0),
+            metavar="PIXELS",
             default=DEFAULT_PADDING,
             show_default=True,
             help="Pixels added inside the window, around the drawn text, on top "
@@ -763,6 +768,7 @@ def capture_options(
         ),
         option(
             "--watermark-color",
+            metavar="COLOR",
             default=None,
             help="Color that credit line is drawn in, as CSS names it, alpha "
             "included. Defaults to a neutral gray: the line sits in the "
@@ -895,6 +901,7 @@ Examples:
 @option(
     "--timeout",
     type=FloatRange(min=0, min_open=True),
+    metavar="SECONDS",
     default=None,
     help="Seconds before the command is killed. Waits forever by default. "
     "With --record, this is also where the recording stops.",
@@ -928,6 +935,7 @@ Examples:
 @option(
     "--blank",
     type=FloatRange(min=0),
+    metavar="SECONDS",
     default=None,
     help=f"With --record, seconds of empty screen closing the cycle. Defaults "
     f"to {DEFAULT_RECORDING_BLANK}.",
@@ -948,6 +956,7 @@ Examples:
 @option(
     "--blink",
     type=FloatRange(min=0),
+    metavar="SECONDS",
     default=None,
     help=f"With --cursor, seconds one blink takes. Pass 0 to draw a steady "
     f"cursor. Defaults to {Cursor().blink}.",
@@ -962,6 +971,7 @@ Examples:
 @option(
     "--typing",
     type=FloatRange(min=0, min_open=True),
+    metavar="SECONDS",
     default=None,
     help="With --record, open the animation by typing the command line out, "
     "this many seconds per character. Omitted, the prompt stands there from "
@@ -970,6 +980,7 @@ Examples:
 @option(
     "--submit",
     type=FloatRange(min=0, min_open=True),
+    metavar="SECONDS",
     default=None,
     help=f"With --typing, seconds the finished command line waits before its "
     f"output starts. Defaults to {DEFAULT_SUBMIT}.",
@@ -1232,8 +1243,8 @@ Examples:
 )
 @capture_options(
     default_columns=AUTO_COLUMNS,
-    columns_help="Width, in characters, the image is laid out at. Defaults to "
-    "the longest line the source holds, so nothing folds: a file was never "
+    columns_help="Width, in characters, the image is laid out at. Pass auto to "
+    "take the longest line the source holds, so nothing folds: a file was never "
     "wrapped to a terminal's width, and code that soft-wrapped in the picture "
     "would lose the indentation a reader is there to read.",
 )
