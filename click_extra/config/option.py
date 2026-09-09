@@ -2270,6 +2270,21 @@ def _serialize_toml_with_unset(tree: dict[str, Any]) -> str:
     return str(tomlkit.dumps(doc))
 
 
+def _under_opaque_path(keys: Sequence[str], opaque_paths: frozenset[str]) -> bool:
+    """Does the parameter reached by *keys* sit inside an opaque schema sub-tree?
+
+    `keys` opens with the CLI name, which the opaque paths do not carry: they are
+    relative to the app's configuration section.
+    """
+    if not opaque_paths:
+        return False
+    relative = PARAM_PATH_SEP.join(keys[1:])
+    return any(
+        relative == path or relative.startswith(f"{path}{PARAM_PATH_SEP}")
+        for path in opaque_paths
+    )
+
+
 def _config_dump_value(param: click.Parameter, value: Any) -> Any:
     """Coerce a resolved parameter value into a config-serializable form.
 
@@ -2435,6 +2450,13 @@ class ExportConfigOption(ExtraOption):
         tree: dict[str, Any] = {}
         for keys, target in config_option.walk_params():
             if PARAM_PATH_SEP.join(keys) in excluded:
+                continue
+            # A sub-tree the schema marks opaque holds app-owned data, not CLI
+            # parameters: the loader hands it to the app's own validator, which
+            # knows nothing of a subcommand sharing the namespace. Exporting
+            # that subcommand's options there writes a file the same loader
+            # refuses to read back.
+            if _under_opaque_path(keys, config_option._opaque_paths):
                 continue
             if has_raw_args:
                 raw, _source = target.consume_value(ctx, opts)

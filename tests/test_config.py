@@ -25,6 +25,7 @@ import re
 import subprocess
 import sys
 import unittest.mock
+from dataclasses import dataclass, field
 from pathlib import Path
 from textwrap import dedent
 
@@ -1029,6 +1030,34 @@ def test_export_config_reads_a_repeatable_flag_as_a_toggle(invoke):
     assert result.exit_code == 0
     assert '"sugar": null' in result.stdout
     assert '"fruit": []' in result.stdout
+
+
+def test_export_config_skips_an_opaque_subtree(invoke):
+    """A subcommand sharing a name with an opaque schema field is not exported.
+
+    The loader hands the whole sub-tree to the app's own validator, so the
+    subcommand's options cannot be read back from there. Exporting them writes a
+    file the same loader refuses.
+    """
+
+    @dataclass
+    class Menu:
+        starters: dict[str, dict] = field(default_factory=dict)
+
+    @group(config_schema=Menu)
+    def kitchen():
+        echo("run")
+
+    @kitchen.command()
+    @option("--spicy", is_flag=True)
+    def starters(spicy):
+        echo("starters")
+
+    result = invoke(kitchen, "--export-config", "toml", color=False)
+    assert result.exit_code == 0
+    assert "[kitchen]" in result.stdout
+    assert "[kitchen.starters]" not in result.stdout
+    assert "spicy" not in result.stdout
 
 
 def test_export_config_kebab_case_keys(invoke, tmp_path):
