@@ -38,6 +38,8 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib  # type: ignore[import-not-found]
 
+from .conftest import fetch_or_skip
+
 PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
 """Path to the project's ``pyproject.toml``, relative to this test file."""
 
@@ -82,8 +84,7 @@ def load_click_matrix() -> tuple[SpecifierSet, list[str], set[str]]:
 
 def stable_pypi_versions(package: str) -> set[Version]:
     """Return all non-yanked, non-prerelease versions of ``package`` on PyPI."""
-    response = requests.get(f"https://pypi.org/pypi/{package}/json", timeout=30)
-    response.raise_for_status()
+    response = fetch_or_skip(f"https://pypi.org/pypi/{package}/json", timeout=30)
     versions = set()
     for release, files in response.json()["releases"].items():
         # Skip releases with no distribution files, or whose files are all yanked.

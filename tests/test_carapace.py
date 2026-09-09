@@ -28,7 +28,6 @@ from pathlib import Path
 import click
 import cloup
 import pytest
-import requests
 import yaml
 from click.shell_completion import CompletionItem, get_completion_class
 from cloup.constraints import mutually_exclusive
@@ -50,6 +49,8 @@ from click_extra.carapace import (
 )
 from click_extra.cli import demo
 from click_extra.testing import CliRunner
+
+from .conftest import fetch_or_skip
 
 CARAPACE_SCHEMA = json.loads(
     (Path(__file__).parent / "carapace-spec.schema.json").read_text(encoding="utf-8")
@@ -683,8 +684,7 @@ def test_spec_drives_real_carapace_engine(tmp_path):
         "https://github.com/carapace-sh/carapace-spec/releases/download/"
         f"v{CARAPACE_SPEC_VERSION}/{asset}"
     )
-    with requests.get(url, timeout=60) as response:
-        assert response.ok, f"failed to download {url}"
+    with fetch_or_skip(url) as response:
         archive_bytes = response.content
 
     archive = tmp_path / asset

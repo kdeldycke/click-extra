@@ -20,6 +20,7 @@ from __future__ import annotations
 import os
 
 import pytest
+import requests
 from extra_platforms.pytest import skip_windows
 
 from click_extra.color import COLOR_ENVVARS
@@ -75,3 +76,35 @@ See:
 - https://github.com/pallets/click/issues/2111
 - https://github.com/pallets/click/issues/2110
 """
+
+
+#: Status codes a host answers with when it is refusing *this* request rather
+#: than reporting something about the resource: a rate limit, a proxy hiccup,
+#: or a service that is briefly down.
+TRANSIENT_STATUS_CODES = frozenset({408, 425, 429, 500, 502, 503, 504})
+
+
+def fetch_or_skip(url: str, timeout: float = 60) -> requests.Response:
+    """Fetch `url`, skipping the test when the failure says nothing about it.
+
+    A network-dependent test asserts something about what a host serves. It
+    cannot assert it while the host is rate-limiting, timing out, or down, and
+    a bare `assert response.ok` there reports `assert False`: a red run that
+    looks like the finding the test exists to make, with nothing naming the
+    cause. GitHub throttles anonymous archive downloads, so a full-suite run
+    hits this on its own schedule and reads as an order-dependent flake.
+
+    A response that *is* about the resource still fails, loudly and with its
+    status: a 404 means the URL these tests build no longer resolves, which is
+    the finding, not the weather.
+    """
+    try:
+        response = requests.get(url, timeout=timeout)
+    except requests.RequestException as error:
+        pytest.skip(f"cannot reach {url}: {error}")
+
+    if response.status_code in TRANSIENT_STATUS_CODES:
+        pytest.skip(f"{url} answered {response.status_code} {response.reason}")
+
+    assert response.ok, f"{url} answered {response.status_code} {response.reason}"
+    return response

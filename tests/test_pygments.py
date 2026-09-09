@@ -23,7 +23,6 @@ from operator import itemgetter
 from pathlib import Path
 
 import pytest
-import requests
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
 from pygments import highlight
@@ -53,6 +52,8 @@ from click_extra.pygments import (
     collect_session_lexers,
 )
 from click_extra.styling import _nearest_256
+
+from .conftest import fetch_or_skip
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -131,9 +132,9 @@ def test_ansi_lexers_candidates(tmp_path):
     base_folder = f"pygments-{version}"
     archive_path = tmp_path / f"{base_folder}.tar.gz"
 
-    # Download the source distribution from GitHub.
-    with requests.get(source_url) as response:
-        assert response.ok
+    # Download the source distribution from GitHub, which throttles an
+    # anonymous archive request rather than serving it every time.
+    with fetch_or_skip(source_url) as response:
         archive_path.write_bytes(response.content)
 
     assert archive_path.exists()
