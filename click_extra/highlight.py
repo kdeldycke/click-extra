@@ -622,7 +622,7 @@ class HelpFormatter(cloup.HelpFormatter):
             re.MULTILINE,
         )
 
-        def style_tail(match: re.Match) -> str:
+        def style_tail(match: re.Match[str]) -> str:
             return match.group("head") + subcommand_re.sub(
                 lambda m: self.theme.subcommand(m.group()),
                 match.group("tail"),
@@ -782,7 +782,7 @@ class HelpFormatter(cloup.HelpFormatter):
                     r"(?P<value>\d+(?:\.\d+)?)(?![\w\-])"
                 )
 
-                def style_option_value(match: re.Match) -> str:
+                def style_option_value(match: re.Match[str]) -> str:
                     value = match.group("value")
                     return match.group()[: -len(value)] + self.theme.choice(value)
 
@@ -855,7 +855,7 @@ class HelpFormatter(cloup.HelpFormatter):
         """
         parent, separator, subcommand = path.rpartition(" ")
         if not separator:
-            return self.theme.invoked_command(path)  # type: ignore[no-any-return]
+            return self.theme.invoked_command(path)
         return (
             self.theme.invoked_command(parent)
             + separator

@@ -1995,6 +1995,8 @@ def _walk_commands(command, ctx, path=()):
     if isinstance(command, click.Group):
         for name in command.list_commands(ctx):
             sub = command.get_command(ctx, name)
+            if sub is None:
+                continue
             sub_ctx = click.Context(sub, parent=ctx, info_name=name)
             yield from _walk_commands(sub, sub_ctx, (*path, name))
 
@@ -2017,12 +2019,12 @@ def test_command_listing_is_not_cut_by_an_abbreviation():
 
     root_ctx = click.Context(demo, info_name="click-extra")
     offenders = []
-    for path, command in _walk_commands(demo, root_ctx):
-        if not path or not command.help:
+    for path, subcommand in _walk_commands(demo, root_ctx):
+        if not path or not subcommand.help:
             continue
-        first_paragraph = command.help.split("\n\n")[0]
+        first_paragraph = subcommand.help.split("\n\n")[0]
         # A high limit isolates the sentence-end rule from the width one.
-        listing = _make_default_short_help(command.help, 10_000)
+        listing = _make_default_short_help(subcommand.help, 10_000)
         expected = _first_sentence(first_paragraph)
         if listing != expected:
             offenders.append((" ".join(path), listing, expected))
