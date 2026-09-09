@@ -785,6 +785,34 @@ def test_option_highlight(opt, expected_outputs):
         assert expected in help
 
 
+def test_extra_deprecated_markers_are_painted():
+    """A CLI's own marker takes the `deprecated` slot, beside Click's spelling.
+
+    `DEPRECATED_RE` is the word `deprecated` and nothing else, so a project
+    marking a parameter in its own vocabulary gets no color for it until it
+    declares the marker.
+    """
+    opt = ExtraOption(["--legacy"], help="Old behaviour. (unmaintained)")
+    cli = Command("test", params=[opt])
+
+    plain = cli.get_help(Context(cli))
+    assert " Old behaviour. (unmaintained)" in plain
+
+    cli.extra_keywords = HelpKeywords(deprecated={"(unmaintained)"})
+    painted = cli.get_help(Context(cli))
+    assert " Old behaviour. " + theme.deprecated("(unmaintained)") in painted
+
+
+def test_extra_deprecated_marker_overlapping_click_is_painted_once():
+    """A declared marker Click also writes is styled by one pass, not two."""
+    opt = ExtraOption(["--legacy"], help="Old behaviour.", deprecated=True)
+    cli = Command("test", params=[opt])
+    cli.extra_keywords = HelpKeywords(deprecated={"(DEPRECATED)"})
+
+    help = cli.get_help(Context(cli))
+    assert " Old behaviour. " + theme.deprecated("(DEPRECATED)") in help
+
+
 @pytest.mark.parametrize(
     ("category", "keyword"),
     (

@@ -80,6 +80,17 @@ class HelpKeywords:
     metavars: set[str] = field(default_factory=set)
     envvars: set[str] = field(default_factory=set)
     defaults: set[str] = field(default_factory=set)
+    deprecated: set[str] = field(default_factory=set)
+    """Markers a CLI paints with the `deprecated` slot beside Click's own.
+
+    {data}`DEPRECATED_RE` covers the spellings Click writes, and only those. A
+    project marking a parameter in its own vocabulary (`(unmaintained)` for a
+    tool whose upstream is gone, where the option itself is not being retired)
+    otherwise gets no color for it, since the word is the whole pattern.
+
+    Each entry is matched literally, so a marker is written the way it reads on
+    the screen, punctuation included.
+    """
 
     def merge(self, other: HelpKeywords) -> None:
         """Merge another `HelpKeywords` into this one.
@@ -528,8 +539,20 @@ class HelpFormatter(cloup.HelpFormatter):
 
         # Highlight deprecated messages. Uses a case-insensitive regex to catch
         # both Click-native "(DEPRECATED)" markers and manually-added variants
-        # like "(Deprecated)" in help strings.
-        help_text = highlight(help_text, [self._deprecated_re], self.theme.deprecated)
+        # like "(Deprecated)" in help strings. A CLI's own markers ride in the
+        # same pass rather than a second one, so an entry overlapping Click's
+        # spelling is painted once instead of twice.
+        help_text = highlight(
+            help_text,
+            [
+                self._deprecated_re,
+                *(
+                    re.compile(re.escape(marker))
+                    for marker in sorted(kw.deprecated, key=len, reverse=True)
+                ),
+            ],
+            self.theme.deprecated,
+        )
 
         # Highlight subcommand names. Requires 2-space indentation as a
         # leading boundary.
