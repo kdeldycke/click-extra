@@ -9,6 +9,9 @@
 - Add a `separator` theme slot, painting the `--` end-of-options separator wherever a help screen writes it.
 - Style each part of an enumerated metavar a CLI writes itself, like the `INTEGER|auto` of a hybrid type.
 - Close the `click-extra --help` screen with example invocations.
+- Paint an operand named in a command's description, like the `SCRIPT` of an option taking a target and forwarding the rest.
+- Name the values `click-extra screenshot --hold` and `--columns` accept in their metavar, as `[auto|FLOAT]` and `[auto|INTEGER]`.
+- Replace the inline value list of `--columns` and `click-extra test-suite --skip-platform` with a metavar. The `man`, `markdown` and `json` renders list them.
 - Render `click-extra wrap --table-format` as a `FORMAT` metavar, replacing the list of its fifty accepted values.
 - Close a `[default: ...]` field on its own bracket when the default value is itself bracketed, as `[default: [...]]`.
 - Report the `--rows`, `--hold`, `--blank`, `--blink`, `--submit` and `--speed` defaults of `click-extra screenshot` in Click's own field, instead of a second one written into the help text.

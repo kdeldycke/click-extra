@@ -1699,6 +1699,7 @@ class ColumnsOption(ExtraOption):
         param_decls: Sequence[str] | None = None,
         columns: Sequence[ColumnSpec] | None = None,
         type=None,
+        metavar: str = "COLUMNS",
         default: Sequence[str] | None = (),
         expose_value: bool = False,
         is_eager: bool = True,
@@ -1715,9 +1716,13 @@ class ColumnsOption(ExtraOption):
         self.columns: tuple[ColumnSpec, ...] = tuple(columns) if columns else ()
         """Column registry this option advertises and validates against (may be empty)."""
 
-        # When the registry is known, expose the IDs in the metavar (parallel to
-        # `click.Choice` showing `[a|b|c]`) so the help screen enumerates the
-        # accepted values inline rather than burying them in the description.
+        # The registry still reaches the type, which validates against it and
+        # reports the IDs to every doc render. The help screen shows the
+        # `COLUMNS` placeholder instead of the enumeration: a table wide enough
+        # to be worth projecting carries more IDs than a metavar can hold, and
+        # the unwrappable line pushes the description off the column and past
+        # the terminal's width. The `man`, `markdown` and `json` renders list
+        # them, see `DocOptionItem.unlisted_choices`.
         if type is None:
             type = ColumnsType(accepted_ids=tuple(c.id for c in self.columns))
 
@@ -1726,6 +1731,7 @@ class ColumnsOption(ExtraOption):
         super().__init__(
             param_decls=param_decls,
             type=type,
+            metavar=metavar,
             default=default,
             expose_value=expose_value,
             help=help,

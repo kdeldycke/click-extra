@@ -253,6 +253,9 @@ demo.add_command(wrap_cmd)
     "-s",
     "--skip-platform",
     type=Choice(sorted(ALL_IDS), case_sensitive=False),
+    # Roughly 180 IDs, which Click would enumerate on one unwrappable line.
+    # The `man`, `markdown` and `json` renders list them.
+    metavar="PLATFORM",
     multiple=True,
     help="Skip cases on these platforms. Repeat to skip several.",
 )
@@ -619,7 +622,7 @@ def capture_options(
         ),
         option(
             "--columns",
-            metavar="INTEGER|auto",
+            metavar="[auto|INTEGER]",
             default=str(default_columns),
             show_default=True,
             callback=_parse_columns,
@@ -855,6 +858,10 @@ def _parse_hold(
     "--hold",
     default=None,
     show_default=str(DEFAULT_RECORDING_HOLD),
+    # The callback reads seconds or the `auto` keyword, and Click infers TEXT
+    # for a type it was never given. Naming both keeps the accepted values on
+    # the help screen, the way a `click.Choice` puts them there.
+    metavar="[auto|FLOAT]",
     callback=_parse_hold,
     help=f"With --record, extra seconds the last frame stays up before the "
     f"animation starts over, or {AUTO_HOLD} to scale them to that frame's line "

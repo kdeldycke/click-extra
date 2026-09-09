@@ -296,7 +296,15 @@ class _HelpColorsMixin:
             elif isinstance(param, click.Argument):
                 # Collect argument metavars (like "MY_ARG") as a distinct
                 # category from option metavars.
-                kw.arguments.add(param.make_metavar(ctx=ctx))
+                metavar = param.make_metavar(ctx=ctx)
+                kw.arguments.add(metavar)
+                # A hand-written metavar can name several operands at once,
+                # like the `SCRIPT [ARGS]...` of a command taking a target and
+                # forwarding the rest. The prose then refers to one of them by
+                # name, so each is worth a keyword of its own. The whole string
+                # stays one too, and the usage line still paints it as a single
+                # run: `highlight` merges the spans it overlaps.
+                kw.arguments.update(_metavar_operands(metavar))
 
             # Only Choice and DateTime types produce their own structured
             # metavar (with delimiters like brackets and pipes). All other
@@ -371,6 +379,24 @@ class _HelpColorsMixin:
         formatter.keywords = self.collect_keywords(ctx)
         formatter.excluded_keywords = self._collect_excluded_keywords(ctx)
         super().format_help(ctx, formatter)  # type: ignore[misc]
+
+
+#: Matches an operand name inside a compound metavar, ignoring the brackets and
+#: ellipsis marking it optional or variadic.
+_OPERAND_RE = re.compile(r"[A-Z][A-Z0-9_]*")
+
+
+def _metavar_operands(metavar: str) -> set[str]:
+    """Split a compound metavar into the operand names it holds.
+
+    `SCRIPT [ARGS]...` names two, and a plain `MY_ARG` names itself, which the
+    caller already has. Returns nothing for a single-operand metavar, so no
+    keyword is added twice.
+    """
+    operands = set(_OPERAND_RE.findall(metavar))
+    if operands == {metavar}:
+        return set()
+    return operands
 
 
 @lru_cache(maxsize=512)
