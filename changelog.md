@@ -5,6 +5,13 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Highlight a subcommand, and the options it accepts, where a help screen writes an example invocation like `$ my-cli pick --ripe`.
+- Add a `separator` theme slot, painting the `--` end-of-options separator wherever a help screen writes it.
+- Style each part of an enumerated metavar a CLI writes itself, like the `INTEGER|auto` of a hybrid type.
+- Close the `click-extra --help` screen with example invocations.
+- Render `click-extra wrap --table-format` as a `FORMAT` metavar, replacing the list of its fifty accepted values.
+- Close a `[default: ...]` field on its own bracket when the default value is itself bracketed, as `[default: [...]]`.
+- Report the `--rows`, `--hold`, `--blank`, `--blink`, `--submit` and `--speed` defaults of `click-extra screenshot` in Click's own field, instead of a second one written into the help text.
 - Name every spelling of a deprecated option in the notice Click prints, as `--apt-cyg / --no-apt-cyg`. It reported `'apt_cyg'`, the Python identifier, which is the one spelling no user can type.
 - Warn about a deprecated parameter a configuration file switches on. Click stops one rank short of the configuration, leaving the one place a selection outlives the project it names.
 - Paint a CLI's own deprecation markers with the `deprecated` theme slot, through a new `deprecated` field on `HelpKeywords`. Click's spelling was the whole pattern, so a project marking a parameter in its own vocabulary got no color for it.
