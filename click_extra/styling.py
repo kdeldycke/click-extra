@@ -57,7 +57,6 @@ from functools import lru_cache
 
 import cloup
 from boltons.strutils import strip_ansi
-from wcwidth import wrap as wcwidth_wrap
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -935,32 +934,6 @@ def render_ansi(text: str, emitter: Callable[[Style, str], str]) -> str:
             if line:
                 chunks.append(emitter(style, line))
     return "".join(chunks)
-
-
-def wrap_ansi(text: str, width: int) -> list[str]:
-    """Wrap *text* to *width* terminal cells, preserving its ANSI styling.
-
-    {func}`textwrap.wrap` counts every byte of an ANSI escape toward the line
-    length, so a styled string wraps far earlier than its visible width
-    warrants. {func}`wcwidth.wrap` measures an escape at no cells and every
-    character between escapes at the width a terminal advances by. It reopens
-    on each line the styling still in effect, so no escape sequence crosses a
-    line boundary: each returned line carries the styling it needs, opened and
-    closed within the line.
-
-    Returns a list of lines, empty *text* yielding a single empty one.
-
-    ```{note}
-    Breaks land where {func}`textwrap.wrap` puts them on plain ASCII, so
-    long-word breaking and whitespace handling match it exactly. The two
-    measures part on a double-width character, which counts for the two cells
-    it takes, and on an OSC 8 hyperlink, which counts for none.
-    ```
-    """
-    # Tab expansion would change the visible width of the text. Disabled,
-    # `replace_whitespace` still substitutes a single space for each whitespace
-    # character, which preserves it.
-    return wcwidth_wrap(text, width, expand_tabs=False) or [""]
 
 
 def _html_emitter(style: Style, text: str) -> str:

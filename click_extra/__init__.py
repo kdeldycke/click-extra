@@ -191,6 +191,11 @@ from .highlight import (
     HelpKeywords,
 )
 from .humanize import format_duration, format_size
+
+# `Style` shadows the `cloup.Style` bound by the star import above with
+# click-extra's enhanced subclass; relative imports always follow the cloup
+# star import, so the override needs no special placement.
+from .layout import wrap_ansi
 from .logging import (
     DebugOption,
     Formatter,
@@ -234,10 +239,6 @@ from .spinner import (  # type: ignore[no-redef]
     SpinnerPreset,
     progressbar,
 )
-
-# `Style` shadows the `cloup.Style` bound by the star import above with
-# click-extra's enhanced subclass; relative imports always follow the cloup
-# star import, so the override needs no special placement.
 from .styling import (
     Style,
     ansi_to_html,
@@ -247,7 +248,6 @@ from .styling import (
     open_ansi,
     render_ansi,
     split_ansi,
-    wrap_ansi,
 )
 from .table import (
     ColumnsOption,

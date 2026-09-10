@@ -36,13 +36,13 @@ from wcwidth import wcswidth, wcwidth as char_width, width as cell_width
 from . import context
 from ._utils import missing_extra_message
 from .config.formats import ConfigFormat, serialize_content
+from .layout import wrap_ansi
 from .parameters import ExtraOption
 from .styling import (
     ansi_to_html,
     ansi_to_jira,
     ansi_to_latex,
     ansi_to_textile,
-    wrap_ansi,
 )
 from .types import EnumChoice, MultiChoice
 

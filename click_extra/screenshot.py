@@ -60,7 +60,6 @@ from hashlib import sha256
 from html import escape
 from importlib import metadata
 from math import ceil, cos, hypot, pi, sin
-from unicodedata import bidirectional
 
 from boltons.strutils import strip_ansi
 from click import style, unstyle
@@ -71,10 +70,14 @@ from .execution import args_cleanup, format_cli_prompt, run_cli
 from .layout import (
     PADDING,
     RULE_COLOR,
-    # Re-exported: `cell_width` was this module's before the terminal-grid
-    # primitives moved out of it, and downstream code imports it from here.
+    # Re-exported: these were this module's before the terminal-grid
+    # primitives moved out of it, and downstream code imports them here.
     cell_width,
     center_in_rule,
+    fit_columns,
+    grid,
+    is_bidirectional,
+    number_lines,
 )
 from .screenshot_presets import (
     MACOS_BUTTONS,
@@ -92,7 +95,6 @@ from .styling import (
     _palette_to_rgb,
     _rgb_to_hex,
     ansi_to_html,
-    split_ansi,
 )
 from .theme import BUILTIN_THEMES
 
@@ -572,12 +574,6 @@ and both read as the same emphasis. Far enough to find the line at a glance,
 near enough to leave its text the thing being read.
 """
 
-RTL_BIDI_CLASSES = frozenset({"R", "AL", "AN"})
-"""Unicode bidirectional classes written right to left.
-
-Right-to-left letters, Arabic letters and Arabic-Indic numbers, as
-{func}`unicodedata.bidirectional` names them. See {func}`is_bidirectional`.
-"""
 
 HIDDEN_FRAME_ATTRIBUTES = ' visibility="hidden" opacity="0"'
 """How an animated capture hides the frames its still is not made of.
@@ -696,7 +692,7 @@ AUTO_COLUMNS: Literal["auto"] = "auto"
 
 Neither end of the pipeline is pinned: the command wraps to whatever terminal it
 finds (Click's own 80 when that is a pipe, or a documentation build), and the
-image is laid out at the longest line that came back, see {func}`fit_columns`.
+image is laid out at the longest line that came back, see {func}`~click_extra.layout.fit_columns`.
 Nothing the command printed folds inside the picture then, which is what a line
 the command does not wrap on its own needs: a prompt, a wide table, a
 machine-readable dump.
@@ -723,12 +719,6 @@ printing nothing but blank lines would otherwise ask for an image no glyph fits
 in.
 """
 
-LINE_NUMBER_SEPARATOR = " │ "
-"""Rule drawn between a line's number and the line itself.
-
-A vertical bar rather than a bare space, so the gutter reads as a column of its
-own even where the output is itself indented.
-"""
 
 AUTO_TRUNCATION: Literal["auto"] = "auto"
 """Marker asking for a rule as wide as the lines it stands between.
@@ -806,33 +796,6 @@ _STOP_RE = re.compile(r"^(?P<color>.+?)(?:\s+(?P<position>[\d.]+)%)?$", re.DOTAL
 """One color stop of a gradient, with the position it may pin itself at."""
 
 
-def number_lines(text: str, start: int = 1) -> str:
-    """Prefix each line of `text` with its number, in a dim gutter.
-
-    The numbers are drawn into the terminal text rather than into a column of
-    the image, which is the same trade Pygments makes with its inline line
-    numbers: every renderer places them for free, and every reader copying the
-    capture copies them too.
-
-    Right-aligned on the widest number, so the gutter is one column whatever the
-    output's length, and separated by {data}`LINE_NUMBER_SEPARATOR`.
-
-    :param text: captured output, ANSI escape sequences included.
-    :param start: number given to the first line.
-    :return: the numbered text.
-    """
-    lines = text.splitlines()
-    if not lines:
-        return text
-    width = len(str(start + len(lines) - 1))
-    gutter = (
-        f"{style(str(number).rjust(width), dim=True)}"
-        f"{style(LINE_NUMBER_SEPARATOR, dim=True)}"
-        for number in range(start, start + len(lines))
-    )
-    return "\n".join(f"{prefix}{line}" for prefix, line in zip(gutter, lines))
-
-
 def preset_palette(
     preset: TerminalPreset,
     background: CaptureBackground,
@@ -855,20 +818,6 @@ def resolve_palette(
     if preset is None:
         return CAPTURE_PALETTES[background]
     return preset_palette(preset, background)
-
-
-def is_bidirectional(text: str) -> bool:
-    """Whether `text` carries a character written right to left.
-
-    Arabic, Hebrew and their neighbours are reordered by whoever draws them, and
-    the cursive ones are shaped: a letter's form depends on what it joins. A
-    terminal grid describes neither, which is why {func}`render_svg` stops
-    pinning such a run to an exact width.
-
-    :param text: the text to inspect.
-    :return: `True` when at least one character is right-to-left.
-    """
-    return any(bidirectional(char) in RTL_BIDI_CLASSES for char in text)
 
 
 def cursor_cell(picture: str, columns: int) -> tuple[int, int] | None:
@@ -906,32 +855,6 @@ def cursor_cell(picture: str, columns: int) -> tuple[int, int] | None:
 
 
 @cache
-def _char_width(char: str) -> int:
-    """Cells one character occupies, cached.
-
-    {func}`grid` measures every character of a capture one at a time, and
-    terminal output draws from a small alphabet, so the cache turns the
-    repeated width-table walks of {func}`cell_width` into dict hits.
-    """
-    return cell_width(char)
-
-
-def fit_columns(text: str) -> int:
-    """Width, in characters, of the longest line in `text`.
-
-    ANSI escapes are stripped first: they style the glyphs around them and
-    occupy no cell of their own. Measured in terminal cells, so a line of CJK
-    asks for the two columns per glyph it is drawn with. Floored at
-    {data}`MIN_COLUMNS`.
-
-    :param text: captured output, ANSI escape sequences included.
-    :return: the width laying every line out without folding any.
-    """
-    return max(
-        [MIN_COLUMNS, *(cell_width(unstyle(line)) for line in text.splitlines())],
-    )
-
-
 def auto_columns(pictures: Sequence[str], cursor: Cursor | None = None) -> int:
     """Width, in characters, an auto-sized capture of `pictures` asks for.
 
@@ -950,7 +873,7 @@ def auto_columns(pictures: Sequence[str], cursor: Cursor | None = None) -> int:
     :param cursor: the cursor the capture draws, if any.
     :return: the width, in characters.
     """
-    width = max(fit_columns(picture) for picture in pictures)
+    width = max(fit_columns(picture, floor=MIN_COLUMNS) for picture in pictures)
     if cursor is None:
         return width
     # Probed one column wider than the text, so the reading is where the cursor
@@ -1148,55 +1071,6 @@ def blend(color: str, into: str, ratio: float) -> str:
     return _rgb_to_hex(
         tuple(round(a + (b - a) * ratio) for a, b in zip(start, end)),  # type: ignore[arg-type]
     )
-
-
-def grid(text: str, columns: int) -> list[list[tuple[Style, str, int]]]:
-    """Lay ANSI text out on a terminal's character grid.
-
-    The one place a capture stops being a stream and becomes a picture. Each
-    styled run of {func}`~click_extra.styling.split_ansi` is split at newlines
-    into rows, then placed on the column it starts at, measured in cells rather
-    than characters so a wide glyph takes the two it is drawn with.
-
-    A line reaching past `columns` soft-wraps onto the next row, the way it would
-    on a terminal that narrow, rather than being cropped: a command is free to
-    print a line it never wraps itself (a long URL, a wide table, a
-    machine-readable dump), and a picture that silently swallowed the overflow
-    would be lying about what ran. A glyph straddling the edge moves down whole.
-
-    Returning the column with each run is what lets {func}`render_svg` place a
-    run without measuring anything back out of its own output.
-
-    :param text: captured output, ANSI escape sequences included.
-    :param columns: width of the grid, in cells.
-    :return: one list of `(style, text, column)` runs per row.
-    """
-    rows: list[list[tuple[Style, str, int]]] = [[]]
-    column = 0
-    for run_style, run in split_ansi(text):
-        for index, line in enumerate(run.split("\n")):
-            if index:
-                rows.append([])
-                column = 0
-            if not line:
-                continue
-            kept: list[str] = []
-            start = column
-            for char in line:
-                size = _char_width(char)
-                # `and column` keeps a glyph wider than the whole grid on the
-                # row it started, instead of wrapping forever onto empty ones.
-                if column + size > columns and column:
-                    if kept:
-                        rows[-1].append((run_style, "".join(kept), start))
-                        kept = []
-                    rows.append([])
-                    column = start = 0
-                kept.append(char)
-                column += size
-            if kept:
-                rows[-1].append((run_style, "".join(kept), start))
-    return rows
 
 
 def _split_arguments(text: str) -> list[str]:
@@ -1840,7 +1714,7 @@ def render_svg(
     """Draw captured terminal text as a picture of a terminal window.
 
     A terminal is a fixed grid of identically-sized cells, which is what makes
-    this arithmetic rather than typesetting: {func}`grid` says which cell each
+    this arithmetic rather than typesetting: {func}`~click_extra.layout.grid` says which cell each
     run of same-styled characters starts on, and every coordinate below is that
     column times {data}`CELL_WIDTH`.
 
@@ -2813,7 +2687,7 @@ def capture(
     :param merge_stderr: fold `stderr` into the captured output.
     :param timeout: seconds before the command is killed.
     :param line_numbers: draw each line's number in a gutter, see
-        {func}`number_lines`. The prompt counts as the first of them, being the
+        {func}`~click_extra.layout.number_lines`. The prompt counts as the first of them, being the
         invocation everything under it came from.
     :param emphasize: lines to draw a band behind, see {func}`render_svg`. The
         prompt is line 1 here too, and a gutter does not shift the count.

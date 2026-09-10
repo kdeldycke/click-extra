@@ -142,7 +142,7 @@ print(repr(Style.from_ansi("\x1b[38;5;226m")))
 
 `from_ansi` is the inverse of calling the style: parsing the output of `Style(fg="red", bold=True)("text")` recovers the same style.
 
-## `split_ansi()`, `render_ansi()` and `wrap_ansi()`: tokenize ANSI streams
+## `split_ansi()` and `render_ansi()`: tokenize ANSI streams
 
 While `from_ansi()` parses bare escapes, `split_ansi()` tokenizes a whole string mixing text and escapes. It is a stateful SGR stream parser: each escape updates the current style (full and selective resets honored), and every maximal run of text sharing the same style is yielded as a `(Style, text)` tuple. Non-SGR escapes (cursor movements, OSC hyperlink wrappers) carry no style information and are removed from the yielded text:
 
@@ -178,30 +178,6 @@ assert result == "a [styled] word"
 print(result)
 ```
 
-`wrap_ansi(text, width)` wraps a styled string to a visible width. `textwrap.wrap()` counts every byte of an escape toward the line length, so it breaks a styled string several words early. Here an escape measures no cells and a double-width character two, and each line opens and closes the styling it needs:
-
-```{python:run}
-from boltons.strutils import strip_ansi
-
-from click_extra import style, wrap_ansi
-
-forecast = "Overcast in the morning, with a light drizzle after midday."
-styled = style(forecast, fg="red")
-
-# The escapes make the string 9 characters longer than it looks.
-assert len(styled) == len(forecast) + 9
-
-lines = wrap_ansi(styled, 30)
-
-# Breaks land where the plain text would break, not 9 characters early.
-assert [strip_ansi(line) for line in lines] == wrap_ansi(forecast, 30)
-
-for line in lines:
-    assert line.endswith("\x1b[0m")
-    print(repr(line))
-```
-
-It powers the wrapping of the [`vertical` table format](table.md#column-widths), which has no rendering backend to delegate its line breaking to.
 
 ## `open_ansi()`: splice a fragment into styled text
 

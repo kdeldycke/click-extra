@@ -28,6 +28,7 @@ import pytest
 from boltons.strutils import strip_ansi
 
 from click_extra import Style
+from click_extra.layout import wrap_ansi
 from click_extra.styling import (
     _nearest_256,
     ansi_to_html,
@@ -38,7 +39,6 @@ from click_extra.styling import (
     render_ansi,
     split_ansi,
     supports_truecolor,
-    wrap_ansi,
 )
 
 CLICK_VERSION = tuple(

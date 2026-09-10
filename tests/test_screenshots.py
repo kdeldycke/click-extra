@@ -2061,8 +2061,8 @@ def html_to_text(markup: str) -> str:
     ),
 )
 def test_fit_columns(text, expected):
-    """The width `auto` resolves to is the longest line, floored."""
-    assert fit_columns(text) == expected
+    """The width `auto` resolves to is the longest line, floored by the caller."""
+    assert fit_columns(text, floor=MIN_COLUMNS) == expected
 
 
 def test_render_auto_columns_folds_nothing():

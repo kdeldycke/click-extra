@@ -21,7 +21,13 @@ from __future__ import annotations
 import pytest
 
 from click_extra import Style, unstyle
-from click_extra.layout import RULE_COLOR, RULE_GLYPH, cell_width, center_in_rule
+from click_extra.layout import (
+    RULE_COLOR,
+    RULE_GLYPH,
+    cell_width,
+    center_in_rule,
+    fit_columns,
+)
 
 
 @pytest.mark.parametrize("label", (None, ""))
@@ -45,3 +51,14 @@ def test_center_in_rule_paints_the_rule_and_leaves_the_label_alone():
     # Opting out leaves the whole line as its parts arrived.
     bare = center_in_rule("nord", 40, color=None)
     assert unstyle(bare) == bare
+
+
+def test_fit_columns_floors_at_nothing_by_default():
+    """The floor belongs to whoever lays the text out, not to the measure.
+
+    It was `MIN_COLUMNS` while the function lived in the capture module, which
+    is a property of a picture rather than of the text measured for one.
+    """
+    assert fit_columns("") == 0
+    assert fit_columns("kiwi") == 4
+    assert fit_columns("kiwi", floor=20) == 20

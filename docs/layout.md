@@ -124,6 +124,33 @@ That label is 4 cells of text carrying 17 characters, so a rule built on `len` w
 A rule drawn with a Box Drawing dash (`┄`, `┈`, `╌`) carries two or three strokes inside a single cell. In a [capture](screenshots.md) each stroke is a pixel or two wide and a cell advances a fractional number of device pixels, so neighbouring dashes merge on some cells and separate on others, and the rule shimmers. An unbroken `─` has nothing to merge, and `·` puts one mark per cell with room around it. Both stay even at any scale.
 ```
 
+## Wrapping a styled line
+
+`wrap_ansi(text, width)` wraps a styled string to a visible width. `textwrap.wrap()` counts every byte of an escape toward the line length, so it breaks a styled string several words early. Here an escape measures no cells and a double-width character two, and each line opens and closes the styling it needs:
+
+```{python:run}
+from boltons.strutils import strip_ansi
+
+from click_extra import style, wrap_ansi
+
+forecast = "Overcast in the morning, with a light drizzle after midday."
+styled = style(forecast, fg="red")
+
+# The escapes make the string 9 characters longer than it looks.
+assert len(styled) == len(forecast) + 9
+
+lines = wrap_ansi(styled, 30)
+
+# Breaks land where the plain text would break, not 9 characters early.
+assert [strip_ansi(line) for line in lines] == wrap_ansi(forecast, 30)
+
+for line in lines:
+    assert line.endswith("\x1b[0m")
+    print(repr(line))
+```
+
+It powers the wrapping of the [`vertical` table format](table.md#column-widths), which has no rendering backend to delegate its line breaking to.
+
 ## `click_extra.layout` API
 
 ```{eval-rst}
