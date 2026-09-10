@@ -250,7 +250,7 @@ assert result.exit_code == 0
 ``````
 
 ```{tip}
-Prefer the terminal? Run `click-extra themes` to print the same gallery in your shell: the `themes` demo subcommand renders one sample help screen under each built-in palette, one after another. A terminal keeps a single background, so the light-background themes (`light`, `manpage`) look washed out on a dark terminal, and the dark themes look washed out on a light one.
+Prefer the terminal? Run `click-extra themes` to print the same gallery in your shell: the `themes` demo subcommand renders one sample help screen under each built-in palette, one after another. Name the palettes you want to compare to render only those, in the order given, as `click-extra themes nord dracula`. It takes [`auto`](#automatic-background-detection) too, and labels the screen with the palette that resolves to. A terminal keeps a single background, so the light-background themes (`light`, `manpage`) look washed out on a dark terminal, and the dark themes look washed out on a light one.
 ```
 
 Three flavors ship in `click_extra/themes.toml`:

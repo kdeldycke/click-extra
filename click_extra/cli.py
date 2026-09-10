@@ -107,7 +107,7 @@ from .test_suite import (
     parse_test_suite,
     run_test_suite,
 )
-from .theme import BUILTIN_THEMES
+from .theme import AUTO_THEME, ThemeChoice, get_theme_registry, resolve_auto_theme
 from .types import EnumChoice
 from .version import (
     BUILD_RESOLVERS,
@@ -1776,16 +1776,48 @@ def _theme_gallery_sample(**_kwargs: object) -> None:
 
 
 @demo.command(name="themes", section=_demo_section)
+@argument(
+    "theme_ids",
+    type=ThemeChoice(),
+    nargs=-1,
+    # Spell the choices as a metavar: the list is long enough that Click breaks
+    # it mid-word in the usage line, and `--theme` already advertises the names.
+    metavar="[auto|THEME]...",
+    help="Palettes to render, in the order given. Defaults to all of them.",
+)
 @pass_context
-def demo_themes(ctx: click.Context) -> None:
-    """Render a sample help screen under every built-in theme, one after another.
+def demo_themes(ctx: click.Context, theme_ids: tuple[str, ...]) -> None:
+    """Render a sample help screen under each theme, one after another.
 
-    Each built-in palette is applied in turn to the same throwaway CLI so the
-    themes can be eyeballed back to back. A terminal keeps a single background,
-    so light-background themes (light, manpage) look washed out on a dark
-    terminal, and dark themes look washed out on a light one.
+    Each palette is applied in turn to the same throwaway CLI so the themes can
+    be eyeballed back to back. A terminal keeps a single background, so
+    light-background themes (light, manpage) look washed out on a dark terminal,
+    and dark themes look washed out on a light one.
+
+    Without an argument the whole registry is rendered, alphabetically: the
+    built-in palettes, plus any a configuration file defines. Name palettes to
+    render only those, in the order given. The auto value stands for the palette
+    the terminal background resolves to, as it does on --theme.
     """
-    for name, theme in BUILTIN_THEMES.items():
+    registry = get_theme_registry(ctx)
+    if theme_ids:
+        # "auto" names no palette, so map it onto the one the terminal
+        # background resolves to: the gallery labels palettes, not directives.
+        auto_theme = resolve_auto_theme(ctx) if AUTO_THEME in theme_ids else None
+        auto_name = next(
+            (name for name, theme in registry.items() if theme is auto_theme),
+            None,
+        )
+        selection = [
+            auto_name if theme_id == AUTO_THEME else theme_id for theme_id in theme_ids
+        ]
+        # A name is None once ThemeChoice found nothing to resolve against,
+        # which is an empty registry: themes.toml was dropped at packaging time.
+        gallery = [(name, registry[name]) for name in selection if name is not None]
+    else:
+        gallery = sorted(registry.items())
+
+    for name, theme in gallery:
         # Point get_current_theme() at this palette by writing the same
         # context.THEME meta ThemeOption sets from --theme; the HelpFormatter
         # reads it back when it renders the sample below. Scoped to this

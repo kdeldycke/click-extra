@@ -7,6 +7,7 @@
 
 - **Breaking:** Drop `click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`. Which terminals narrow an emoji-presentation sequence now comes from `wcwidth`'s own measured tables.
 - Highlight a subcommand, and the options it accepts, where a help screen writes an example invocation like `$ my-cli pick --ripe`.
+- Take theme names on `click-extra themes`, rendering only those, in the order given. `auto` stands for the palette the terminal background resolves to.
 - Head each `click-extra themes` screen with the theme name centered in a rule, drawn as wide as the help screen below it.
 - Add a `separator` theme slot, painting the `--` end-of-options separator wherever a help screen writes it.
 - Paint the last component of a command path with the `subcommand` slot, the one its parent screen lists it under, wherever a help screen writes the path.
