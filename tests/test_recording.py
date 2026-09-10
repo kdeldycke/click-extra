@@ -23,6 +23,7 @@ import re
 import sys
 import time
 from itertools import pairwise
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -359,7 +360,7 @@ def test_record_and_render_hides_an_empty_prompt():
         prompt="",
         unique_id="bare-run",
     )
-    assert "python" not in svg
+    assert Path(sys.executable).name not in svg
 
 
 @skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
