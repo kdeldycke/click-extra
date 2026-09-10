@@ -1420,3 +1420,71 @@ def test_formatter_osc8_quotes_escaped_in_href():
 def test_real_world_ansi(text, expected_tokens):
     """Real-world ANSI patterns from terminal tools and documentation references."""
     assert lex(text) == expected_tokens
+
+
+def test_ansi_session_decodes_a_styled_input_line():
+    r"""An input line arriving styled keeps its colors instead of its escape bytes.
+
+    A session lexer reads any line opening on a prompt as a typed command, and
+    a ``--help`` epilog writing ``$ my-cli pick --ripe`` matches. Its escapes
+    used to reach the inner shell lexer, which tokenized ``\x1b[36m`` as an
+    operator between two runs of text and left the raw bytes in the page.
+    """
+    session = "  Sow a crop:\n    $ \x1b[36mgarden\x1b[0m sow\n"
+    tokens = list(get_lexer_by_name("ansi-shell-session").get_tokens(session))
+
+    assert not any("\x1b" in value for _, value in tokens)
+    assert (Token.Generic.Prompt, "    $ ") in tokens
+    assert (Token.Ansi.Cyan, "garden") in tokens
+
+
+def test_ansi_session_leaves_a_plain_input_line_to_the_shell_lexer():
+    """Input carrying no escape still gets its shell highlighting."""
+    tokens = list(
+        get_lexer_by_name("ansi-shell-session").get_tokens("$ ls /tmp | grep basket\n")
+    )
+    assert (Token.Punctuation, "|") in tokens
+
+
+@pytest.mark.once
+def test_no_click_extra_help_screen_renders_raw_escapes():
+    r"""No help screen this package ships leaks an escape byte into its HTML.
+
+    The whole CLI tree is rendered the way ``click:run`` does it, then lexed and
+    formatted. Whatever the lexer fails to decode surfaces as a literal
+    ``\x1b`` in the page, so the assertion reads the formatted output rather
+    than the token stream.
+    """
+    import click
+
+    from click_extra.cli import demo
+    from click_extra.pygments import AnsiHtmlFormatter
+
+    lexer = get_lexer_by_name("ansi-shell-session")
+    formatter = AnsiHtmlFormatter()
+    offenders = []
+    for path, subcommand in _walk_click_commands(demo):
+        name = " ".join(("click-extra", *path))
+        ctx = click.Context(subcommand, info_name=name)
+        with ctx:
+            help_screen = subcommand.get_help(ctx)
+        if "\x1b" in highlight(help_screen, lexer, formatter):
+            offenders.append(name)
+
+    assert not offenders, "help screens rendering raw escapes: " + ", ".join(offenders)
+
+
+def _walk_click_commands(command, ctx=None, path=()):
+    """Yield every `(path, command)` pair under `command`, itself included."""
+    import click
+
+    if ctx is None:
+        ctx = click.Context(command, info_name=command.name)
+    yield path, command
+    if isinstance(command, click.Group):
+        for name in command.list_commands(ctx):
+            sub = command.get_command(ctx, name)
+            if sub is None:
+                continue
+            sub_ctx = click.Context(sub, parent=ctx, info_name=name)
+            yield from _walk_click_commands(sub, sub_ctx, (*path, name))

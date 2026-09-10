@@ -80,6 +80,7 @@ from .screenshot_presets import (
 )
 from .styling import (
     _ANSI_INDEX,
+    _ATTR_CSS,
     _hex_to_rgb,
     _palette_to_rgb,
     _rgb_to_hex,
@@ -722,7 +723,55 @@ A vertical bar rather than a bare space, so the gutter reads as a column of its
 own even where the output is itself indented.
 """
 
-DEFAULT_TRUNCATION = "[...]"
+AUTO_TRUNCATION: Literal["auto"] = "auto"
+"""Marker asking for a rule as wide as the lines it stands between.
+
+{data}`TRUNCATION_LABEL` centered in a run of box-drawing dashes, spanning the
+widest line the capture kept. A bare label sits in the left margin and reads as
+one more line of output; a rule crosses the picture and reads as a seam, which
+is what a cut is.
+
+Measured on the kept lines alone, so the marker can never be what decides the
+image width. That also makes it track an explicit `columns` only as far as the
+text does: a capture whose lines all stop short draws a rule that stops there
+too.
+"""
+
+RULE_GLYPH = "\N{BOX DRAWINGS LIGHT HORIZONTAL}"
+"""Character {func}`center_in_rule` draws a rule with, absent a better one.
+
+An unbroken line, which is what a divider between two whole things is.
+"""
+
+RULE_COLOR = "bright_black"
+"""Color {func}`center_in_rule` paints a rule and its brackets.
+
+A rule is the one line of a screen nothing printed, so it is drawn to recede:
+dimmer than the text it separates, in both the gallery of `click-extra themes`
+and the marker standing in for what a capture cut. A marker named on the
+command line is written as given, color included, since a caller spelling one
+out has already decided how it should look.
+"""
+
+TRUNCATION_LABEL = "\N{BLACK SCISSORS}"
+"""What {data}`AUTO_TRUNCATION` centers in its rule."""
+
+TRUNCATION_RULE = "\N{MIDDLE DOT}"
+"""Character {data}`AUTO_TRUNCATION` draws its rule with.
+
+Broken rather than {data}`RULE_GLYPH`: a dotted line reads as text missing from
+that spot, where an unbroken one reads as a section ending.
+
+A dot rather than one of the Box Drawing dashes, which carry two or three
+strokes inside a single cell. Those strokes and the hairline gaps between them
+are each a pixel or two wide at a normal capture scale, and a cell advances a
+fractional number of device pixels, so the gaps land inside a pixel on some
+cells and on a boundary on others: neighbouring dashes merge here and separate
+there, and the rule shimmers. One dot per cell has nothing to merge with.
+"""
+
+
+DEFAULT_TRUNCATION: str = AUTO_TRUNCATION
 """Marker standing in for the lines {func}`trim_lines` cut away."""
 
 PADDING = " \N{NO-BREAK SPACE}"
@@ -1053,11 +1102,76 @@ def trim_lines(
     kept = (head or 0) + (tail or 0)
     if kept >= len(lines):
         return text
-    return "\n".join([
-        *(lines[:head] if head else []),
-        truncation,
-        *(lines[-tail:] if tail else []),
-    ])
+    head_lines = lines[:head] if head else []
+    tail_lines = lines[-tail:] if tail else []
+    marker = truncation
+    if truncation == AUTO_TRUNCATION:
+        marker = _rule_marker([*head_lines, *tail_lines])
+    return "\n".join([*head_lines, marker, *tail_lines])
+
+
+def center_in_rule(
+    label: str | None,
+    width: int,
+    rule: str = RULE_GLYPH,
+    opening: str = "[ ",
+    closing: str = " ]",
+    color: str | None = RULE_COLOR,
+) -> str:
+    """One line of `width` cells: `label` centered in a rule drawn with `rule`.
+
+    `label` may arrive already styled, and is measured with its escapes
+    stripped, so a caller paints the label its own way and hands the whole
+    thing over. `color` paints the rule and the two brackets, which is the half
+    a caller cannot pre-style without knowing where they fall.
+
+    A `None` or empty label draws no brackets and one contiguous rule: a
+    divider naming nothing should not look like a frame around nothing. A width
+    too narrow for the brackets drops them the same way, and one too narrow for
+    the label leaves the label alone rather than drawing a rule that cannot
+    close.
+
+    Measured in cells, not characters: a label carrying a wide glyph shifts a
+    rule built on `len` by one column per glyph.
+
+    :param label: the text the rule is drawn around, styled or not, or `None`
+        for an unbroken rule.
+    :param width: columns the line occupies.
+    :param rule: character the rule is drawn with.
+    :param opening: bracket written between the rule and `label`.
+    :param closing: bracket written between `label` and the rule.
+    :param color: color the rule and brackets are painted, or `None` to leave
+        them as they are. `label` is never repainted: a caller styles it
+        itself, or leaves it in the terminal's own ink.
+    :return: the whole line.
+    """
+    label = label or ""
+    plain = strip_ansi(label)
+    if not plain:
+        opening = closing = ""
+    if cell_width(f"{opening}{plain}{closing}") > width:
+        opening = closing = ""
+    padding = max(width - cell_width(f"{opening}{plain}{closing}"), 0)
+    left = padding // 2
+
+    def paint(text: str) -> str:
+        return style(text, fg=color) if color and text else text
+
+    return f"{paint(rule * left + opening)}{label}{paint(closing + rule * (padding - left))}"
+
+
+def _rule_marker(lines: Sequence[str]) -> str:
+    """Center {data}`TRUNCATION_LABEL` in a rule as wide as the widest of `lines`.
+
+    :param lines: the lines the marker is drawn between.
+    :return: the marker to write in their place.
+    """
+    width = max((cell_width(strip_ansi(line)) for line in lines), default=0)
+    return center_in_rule(
+        style(TRUNCATION_LABEL, fg=RULE_COLOR),
+        width,
+        rule=TRUNCATION_RULE,
+    )
 
 
 def palette_color(color: object, palette: TerminalPalette) -> str:
@@ -1527,10 +1641,18 @@ def tile_runs(text: str, column: int) -> Iterator[tuple[str, int]]:
         yield text, column
         return
     cell = column
-    for start in range(0, len(text), TILE_RUN):
-        piece = text[start : start + TILE_RUN]
+    start = 0
+    while start < len(text):
+        end = min(start + TILE_RUN, len(text))
+        # A piece is placed by its first glyph, so one opening on a blank draws
+        # every tile behind it a cell late. Carry the blank into the piece
+        # before it instead, which is the one already holding its own offset.
+        while end < len(text) and text[end] in PADDING:
+            end += 1
+        piece = text[start:end]
         yield piece, cell
         cell += cell_width(piece)
+        start = end
 
 
 def glyph_offsets(text: str, column: int) -> str:
@@ -1568,10 +1690,16 @@ def style_rules(style: Style, palette: TerminalPalette) -> str:
         rules.append("font-weight: bold")
     if style.italic:
         rules.append("font-style: italic")
-    if style.underline:
-        rules.append("text-decoration: underline")
-    if style.strikethrough:
-        rules.append("text-decoration: line-through")
+    # The three decorations share one property, so they are written as one
+    # declaration: CSS keeps the last of a repeated property, and a run that is
+    # both underlined and struck through would otherwise lose the underline.
+    decorations = [
+        _ATTR_CSS[attribute][1]
+        for attribute in ("underline", "overline", "strikethrough")
+        if getattr(style, attribute)
+    ]
+    if decorations:
+        rules.append(f"text-decoration: {' '.join(decorations)}")
     return ";".join(rules)
 
 

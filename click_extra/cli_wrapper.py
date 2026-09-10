@@ -952,15 +952,19 @@ def _config_args_for_target(
 #: Sample invocations closing the `wrap` help screen.
 WRAP_EPILOG = """\b
 Examples:
+
 \b
   Run a CLI with Click Extra's colored help:
     $ click-extra wrap -- my-cli --help
+
 \b
   Read the help of one of its subcommands:
     $ click-extra wrap -- my-cli pick --help
+
 \b
   Report what a subcommand accepts, and where each value comes from:
     $ click-extra wrap --params -- my-cli pick
+
 \b
   Write a shell-completion spec where its consumer looks for it:
     $ click-extra wrap --help-format carapace --install -- my-cli

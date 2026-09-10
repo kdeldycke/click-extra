@@ -73,6 +73,7 @@ from .screenshot import (
     AUTO_COLUMNS,
     AUTO_CURSOR,
     AUTO_HOLD,
+    AUTO_TRUNCATION,
     DEFAULT_BORDER_WIDTH,
     DEFAULT_COLUMNS,
     DEFAULT_MARGIN,
@@ -87,6 +88,7 @@ from .screenshot import (
     CaptureBackground,
     CaptureFormat,
     capture,
+    center_in_rule,
     format_from_path,
 )
 from .screenshot_presets import PRESETS, Cursor, CursorShape
@@ -177,18 +179,23 @@ _demo_section = cloup.Section(
 #: an epilog into one block otherwise.
 DEMO_EPILOG = """\b
 Examples:
+
 \b
   Run any Click CLI through Click Extra's colored help:
     $ click-extra wrap -- my-cli --help
+
 \b
   Draw that help screen as a picture a README can show:
     $ click-extra screenshot --output my-cli.svg -- my-cli --help
+
 \b
   Report the parameters a CLI accepts, and where each value comes from:
     $ click-extra wrap --params -- my-cli
+
 \b
   Highlight a source file as a themed picture:
     $ click-extra snippet --output basket.svg basket.py
+
 \b
   See how a help screen reads under each built-in theme:
     $ click-extra themes
@@ -217,12 +224,15 @@ demo.add_command(wrap_cmd)
 #: Sample invocations closing the `test-suite` help screen.
 TEST_SUITE_EPILOG = """\b
 Examples:
+
 \b
   Run the built-in default suite against a CLI:
     $ click-extra test-suite --command my-cli
+
 \b
   Run the cases a file declares, one at a time, stopping on the first failure:
     $ click-extra test-suite --command my-cli --suite-file cases.yaml --jobs 1 --exit-on-error
+
 \b
   Run two of them, skipping the cases a platform cannot answer:
     $ click-extra test-suite --command my-cli --select-test 3 --select-test 7 --skip-platform windows
@@ -389,12 +399,15 @@ demo.add_command(test_suite_cmd)
 #: Sample invocations closing the `refresh-directives` help screen.
 REFRESH_DIRECTIVES_EPILOG = """\b
 Examples:
+
 \b
   Refresh every self-updating block of a documentation tree:
     $ click-extra refresh-directives docs
+
 \b
   Refresh one page:
     $ click-extra refresh-directives docs/recipes.md
+
 \b
   Report the stale ones without writing, for a continuous-integration job:
     $ click-extra refresh-directives --check docs
@@ -479,9 +492,11 @@ demo.add_command(refresh_directives_cmd)
 #: Sample invocations closing the `convert-to-myst` help screen.
 CONVERT_TO_MYST_EPILOG = """\b
 Examples:
+
 \b
   Convert the docstrings of the package in the current directory:
     $ click-extra convert-to-myst
+
 \b
   Convert the docstrings under another one:
     $ click-extra convert-to-myst src/basket
@@ -789,9 +804,12 @@ def capture_options(
         ),
         option(
             "--truncation",
+            metavar="[auto|TEXT]",
             default=DEFAULT_TRUNCATION,
             show_default=True,
-            help="Line standing in for what --head or --tail cut away.",
+            help=f"Line standing in for what --head or --tail cut away, or "
+            f"{AUTO_TRUNCATION} to rule one across the width the kept lines "
+            f"span.",
         ),
         option(
             "--line-numbers",
@@ -854,15 +872,19 @@ def _parse_hold(
 #: Sample invocations closing the `screenshot` help screen.
 SCREENSHOT_EPILOG = """\b
 Examples:
+
 \b
   Draw a help screen as a picture a README can show:
     $ click-extra screenshot --output my-cli.svg -- my-cli --help
+
 \b
   Draw it as selectable text, for a page you own:
     $ click-extra screenshot --output my-cli.html -- my-cli --help
+
 \b
   Capture a CLI that is not built on Click Extra, colored all the same:
     $ click-extra screenshot --output flask.svg --wrap -- flask run --help
+
 \b
   Record the frames a spinner draws, as an animation:
     $ click-extra screenshot --output ripen.svg --record --columns 80 -- ripen
@@ -1224,12 +1246,15 @@ convert_to_myst_cmd.excluded_keywords = HelpKeywords(choices={"markdown"})
 #: Sample invocations closing the `snippet` help screen.
 SNIPPET_EPILOG = """\b
 Examples:
+
 \b
   Draw a source file as a picture a README can show:
     $ click-extra snippet --output basket.svg basket.py
+
 \b
   Draw it as selectable text, under a named theme:
     $ click-extra snippet --output basket.html --theme dracula basket.py
+
 \b
   Number the lines and point at the one that matters:
     $ click-extra snippet --output basket.svg --line-numbers --emphasize-lines 12 basket.py
@@ -1826,17 +1851,12 @@ def demo_themes(ctx: click.Context, theme_ids: tuple[str, ...]) -> None:
         sample_ctx = make_resilient_context(_theme_gallery_sample, "garden")
         sample_ctx.color = ctx.color
         # Center the theme name in a rule as wide as the column count the sample
-        # help below wraps to, so the gallery keeps a single right edge. The
-        # padding is measured on the unstyled label, as the styled one carries
-        # escape sequences that occupy no cell.
-        label = f"[ Theme: {name} ]"
-        padding = max(sample_ctx.make_formatter().width - len(label), 0)
-        left = padding // 2
+        # help below wraps to, so the gallery keeps a single right edge.
         echo(
-            style("─" * left + "[", fg="bright_black")
-            + " Theme: "
-            + theme.heading(name)
-            + style(" ]" + "─" * (padding - left), fg="bright_black"),
+            center_in_rule(
+                f"Theme: {theme.heading(name)}",
+                sample_ctx.make_formatter().width,
+            ),
             color=ctx.color,
         )
         echo()

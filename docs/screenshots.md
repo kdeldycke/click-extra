@@ -107,7 +107,13 @@ $ click-extra screenshot --output cli-help.html -- my-cli --help
 That writes a standalone document. Add `--fragment` to get a bare `<pre>` with inline styles, so it needs no stylesheet.
 
 ```{tip}
-An SVG capture needs no web font and no HTTP request to render, and it looks the same in a browser, a file manager, a git client and a thumbnailer.
+An SVG capture needs no web font and no HTTP request to render, so it draws the same in any viewer that implements the whole of SVG's text styling.
+```
+
+```{caution}
+Not every viewer does. macOS has two SVG engines, and they disagree. Preview, Quick Look and Safari go through WebKit and draw a capture in full. Finder's icon thumbnails and any app reading the file through `NSImage` go through Core Graphics instead, which implements `fill` and `font-weight` but neither `font-style` nor `text-decoration`: italic renders upright and underline, overline and strikethrough render as nothing. Colors, bold, dim and reverse survive.
+
+The file is the same either way, so there is nothing to fix in a capture that looks flat in a file manager or a git client. Open it in a browser to see what a reader on a documentation page gets. Animated captures and [OSC 8 hyperlinks](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) reach no static thumbnail at all, whichever engine draws it.
 ```
 
 ```{note}
@@ -1016,7 +1022,7 @@ $ click-extra screenshot --output docs/assets/text-styles-screen.svg --columns 1
 $ click-extra screenshot --output docs/assets/theme-gallery-screen.svg --head 34 --prompt "click-extra themes" -- uv run --frozen -- click-extra themes
 ```
 
-`--prompt` makes each image show the bare `click-extra …` a reader would type, while `uv run --frozen --` is what actually ran. The plumbing that reaches a checkout's copy of the CLI is not worth picturing. `--head` bounds the two long ones, and the `[...]` marker says the rest was cut.
+`--prompt` makes each image show the bare `click-extra …` a reader would type, while `uv run --frozen --` is what actually ran. The plumbing that reaches a checkout's copy of the CLI is not worth picturing. `--head` bounds the two long ones, and a dotted rule closing on `✂` says the rest was cut.
 
 The before/after pair opening the [readme](https://github.com/kdeldycke/click-extra#example) takes the other route. Those two screens already exist as live [`click:run`](sphinx.md#committed-captures) blocks in the [tutorial](tutorial.md), so the blocks maintain them instead of shooting them again: a `:screenshot:` option writes each image on every documentation build. That keeps the readme's front page in step with the code.
 

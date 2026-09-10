@@ -74,8 +74,13 @@ from click_extra.screenshot import (
     OPAQUE,
     PADDING,
     REDUCED_MOTION_QUERY,
+    RULE_COLOR,
+    RULE_GLYPH,
     STDOUT_PATH,
+    TILE_RUN,
     TITLEBAR_HEIGHT,
+    TRUNCATION_LABEL,
+    TRUNCATION_RULE,
     WATERMARK_INK,
     WATERMARK_INSET,
     WATERMARK_URL,
@@ -89,6 +94,7 @@ from click_extra.screenshot import (
     capture,
     capture_output,
     cell_width,
+    center_in_rule,
     column_segments,
     cursor_cell,
     fit_columns,
@@ -100,10 +106,13 @@ from click_extra.screenshot import (
     palette_color,
     render,
     render_svg,
+    style_rules,
+    tile_runs,
     trim_lines,
     window_buttons,
 )
 from click_extra.screenshot_presets import PRESETS, Cursor, CursorShape
+from click_extra.styling import split_ansi
 
 _TEXT_ELEMENT_RE = re.compile(r"<text(?P<attrs>[^>]*)>(?P<content>[^<]*)</text>")
 """One run of same-styled characters in a rendered capture.
@@ -247,6 +256,104 @@ def test_trim_lines(head, tail, expected):
         "one\ntwo\nthree\nfour", head=head, tail=tail, truncation="<cut>"
     )
     assert trimmed.splitlines() == expected
+
+
+def test_trim_lines_rules_the_default_marker_across_the_kept_width():
+    """The default marker is a rule, spanning the widest line the capture kept."""
+    text = "\n".join(f"line {index} of the captured output" for index in range(1, 9))
+    trimmed = trim_lines(text, head=2, tail=1).splitlines()
+
+    marker = unstyle(trimmed[2])
+    assert marker.startswith(TRUNCATION_RULE)
+    assert marker.endswith(TRUNCATION_RULE)
+    assert f"[ {TRUNCATION_LABEL} ]" in marker
+    # Painted to recede, the way the theme gallery rules its own screens.
+    assert trimmed[2] != marker
+    # Never the widest line: the marker must not be what decides image width.
+    assert cell_width(marker) == max(cell_width(unstyle(line)) for line in trimmed)
+
+
+def test_trim_lines_keeps_a_marker_too_wide_for_its_rule_bare():
+    """A capture narrower than the frame gets the label alone, not a broken rule."""
+    marker = trim_lines("a\nb\nc", head=1, tail=1).splitlines()[1]
+    assert unstyle(marker) == TRUNCATION_LABEL
+
+
+@pytest.mark.parametrize("label", (None, ""))
+def test_center_in_rule_draws_an_unbroken_line_for_no_label(label):
+    """Naming nothing draws a divider, not a frame around an empty middle."""
+    assert unstyle(center_in_rule(label, 40)) == RULE_GLYPH * 40
+
+
+def test_center_in_rule_measures_a_styled_label_unstyled():
+    """A label's escapes occupy no cell, so they must not shorten the rule."""
+    plain = center_in_rule("nord", 40)
+    styled = center_in_rule(Style(fg="cyan")("nord"), 40)
+    assert cell_width(unstyle(styled)) == cell_width(unstyle(plain)) == 40
+
+
+def test_center_in_rule_paints_the_rule_and_leaves_the_label_alone():
+    """The rule recedes by default, and a caller's own label styling survives."""
+    ruled = center_in_rule(Style(fg="cyan")("nord"), 40)
+    assert Style(fg="cyan")("nord") in ruled
+    assert Style(fg=RULE_COLOR)(f"{RULE_GLYPH * 16}[ ") in ruled
+    # Opting out leaves the whole line as its parts arrived.
+    bare = center_in_rule("nord", 40, color=None)
+    assert unstyle(bare) == bare
+
+
+def test_trim_lines_leaves_an_explicit_marker_alone():
+    """Naming a marker takes it verbatim: only `auto` asks for a rule."""
+    assert trim_lines("a\nb\nc", head=1, tail=1, truncation="<cut>").splitlines() == [
+        "a",
+        "<cut>",
+        "c",
+    ]
+
+
+def test_tile_runs_never_opens_a_piece_on_padding():
+    """A tiled column cut at a blank carries it into the piece before it.
+
+    A piece is placed by its first glyph, so one opening on a blank draws every
+    tile behind it a cell late. The cut is made on character count, which lands
+    on a blank whenever a label sits inside a rule.
+    """
+    text = TRUNCATION_RULE * TILE_RUN + "[ x ]"
+    assert not any(piece[0] in PADDING for piece, _ in tile_runs(text, 0))
+
+
+def test_tile_runs_keeps_every_piece_on_its_own_column():
+    """Cutting a tiled column apart never moves a glyph off its cell."""
+    text = f"{TRUNCATION_RULE * 9}[ x ]{TRUNCATION_RULE * 9}"
+    rebuilt = ""
+    for piece, column in tile_runs(text, 0):
+        assert column == cell_width(rebuilt)
+        rebuilt += piece
+    assert rebuilt == text
+
+
+@pytest.mark.parametrize(
+    ("sgr", "expected"),
+    (
+        ("4", "text-decoration: underline"),
+        ("53", "text-decoration: overline"),
+        ("9", "text-decoration: line-through"),
+        ("4;9", "text-decoration: underline line-through"),
+        ("4;53;9", "text-decoration: underline overline line-through"),
+    ),
+)
+def test_style_rules_writes_one_declaration_per_property(sgr, expected):
+    """Every decoration reaches the CSS, and the three share one declaration.
+
+    CSS keeps the last of a repeated property, so a run written as two
+    `text-decoration` declarations loses all but one of them. `overline` had no
+    branch at all, which left the column of `click-extra styles` naming it
+    identical to the plain one in every viewer.
+    """
+    style = next(iter(split_ansi(f"\x1b[{sgr}mx\x1b[0m")))[0]
+    rules = style_rules(style, next(iter(CAPTURE_PALETTES.values())))
+    assert expected in rules
+    assert rules.count("text-decoration") == 1
 
 
 def test_render_folds_an_unusable_unique_id():

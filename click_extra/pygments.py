@@ -515,6 +515,55 @@ class AnsiFilter(Filter):
 # --- Session lexer factory ---
 
 
+def _ansi_input_lexer(inner_cls: type[Lexer]) -> type[Lexer]:
+    r"""Wrap a session's inner lexer so an input line carrying ANSI keeps its colors.
+
+    {class}`~pygments.lexers.shell.ShellSessionBaseLexer` splits a session into
+    the commands a user typed and the output they produced, and only the output
+    reaches {class}`AnsiFilter`. That split is drawn by matching a prompt, so a
+    line the program *printed* is read as input whenever it opens on one: a
+    `--help` epilog writing `$ my-cli pick --ripe` is the common case. Its escape
+    sequences then reach the inner shell lexer, which has no idea what they are
+    and tokenizes `\x1b[36m` as an operator between two runs of text, leaving the
+    raw bytes in the rendered page.
+
+    Input carrying no escape is handed to `inner_cls` untouched, so a
+    hand-written session keeps its shell highlighting. Input carrying one is
+    lexed by {class}`AnsiColorLexer` instead: the line arrived already styled,
+    and drawing it the way the terminal does beats syntax-coloring it a second
+    time.
+
+    :param inner_cls: the lexer the session applies to its input lines.
+    :return: a lexer class routing between `inner_cls` and `AnsiColorLexer`.
+    """
+
+    class _AnsiInputLexer(Lexer):
+        name = f"ANSI-aware {inner_cls.name}"
+
+        def __init__(self, **options) -> None:
+            true_color = bool(options.pop("true_color", True))
+            super().__init__(**options)
+            self.plain_lexer = inner_cls(**options)
+            self.ansi_lexer = AnsiColorLexer(true_color=true_color)
+
+        def get_tokens_unprocessed(
+            self, text: str
+        ) -> Iterator[tuple[int, _TokenType, str]]:
+            if "\x1b" not in text:
+                yield from self.plain_lexer.get_tokens_unprocessed(text)
+                return
+            # Re-indexed on what is emitted: AnsiColorLexer drops the escape
+            # bytes but still counts their width in the positions it reports,
+            # and `do_insertions` splits the first token when its index runs
+            # ahead of the text consumed, dropping the prompt mid-word.
+            position = 0
+            for _, ttype, value in self.ansi_lexer.get_tokens_unprocessed(text):
+                yield position, ttype, value
+                position += len(value)
+
+    return _AnsiInputLexer
+
+
 class _AnsiSessionMeta(LexerMeta):
     """Metaclass that creates ANSI-capable variants of session lexers."""
 
@@ -524,10 +573,15 @@ class _AnsiSessionMeta(LexerMeta):
         - Adds an `ANSI` prefix to the lexer's name.
         - Replaces all `aliases` IDs from the parent lexer with variants prefixed with
             `ansi-`.
+        - Wraps the inner lexer of a shell session so ANSI survives an input line,
+            see {func}`_ansi_input_lexer`. Only the shell-session family has one.
         """
         new_cls = super().__new__(cls, name, bases, dct)
         new_cls.name = f"ANSI {new_cls.name}"
         new_cls.aliases = tuple(f"ansi-{alias}" for alias in new_cls.aliases)
+        inner_cls = getattr(new_cls, "_innerLexerCls", None)
+        if inner_cls is not None:
+            new_cls._innerLexerCls = _ansi_input_lexer(inner_cls)
         return new_cls
 
 
@@ -548,6 +602,9 @@ class _AnsiFilterMixin(Lexer):
         """
         true_color = bool(kwargs.pop("true_color", True))
         super().__init__(*args, **kwargs)
+        # Put the option back where Pygments builds the inner lexer from, as
+        # ShellSessionBaseLexer instantiates it with `**self.options`.
+        self.options["true_color"] = true_color
         self.filters.append(TokenMergeFilter())
         self.filters.append(AnsiFilter(true_color=true_color))
 

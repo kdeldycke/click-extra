@@ -2033,3 +2033,28 @@ def test_command_listing_is_not_cut_by_an_abbreviation():
         f"{name}: listed as {listing!r}, sentence is {expected!r}"
         for name, listing, expected in offenders
     )
+
+
+@pytest.mark.once
+def test_no_help_screen_leaks_a_no_rewrap_marker():
+    r"""A ``\b`` marker never reaches the rendered help of any command.
+
+    Click strips the marker only where it opens a paragraph, and paragraphs are
+    split on blank lines. An epilog writing one between two indented blocks
+    without a blank line around it therefore ships the raw backspace character:
+    a terminal hides it, an HTML page does not.
+    """
+    from click_extra.cli import demo
+
+    root_ctx = click.Context(demo, info_name="click-extra")
+    offenders = []
+    for path, subcommand in _walk_commands(demo, root_ctx):
+        name = " ".join(("click-extra", *path))
+        ctx = click.Context(subcommand, info_name=name)
+        # Pushed on the stack: rendering a help screen reads the active context
+        # back to resolve the theme.
+        with ctx:
+            if "\b" in subcommand.get_help(ctx):
+                offenders.append(name)
+
+    assert not offenders, "help screens leaking a \\b marker: " + ", ".join(offenders)
