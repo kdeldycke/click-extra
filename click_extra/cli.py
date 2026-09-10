@@ -1765,7 +1765,12 @@ def demo_trail(
     help="Centimetres between seeds.",
 )
 @option("--water/--no-water", default=True, help="Water the bed right after sowing.")
-@argument("plot")
+# Click lists a positional argument only when it carries a help string. Cloup's
+# own `Argument` used to force a row for a help-less one, and dropped that shim
+# for Click 8.5: without this `help=`, released cloup draws a `Positional
+# arguments:` section here and cloup master draws none, so the committed capture
+# can only match one of them.
+@argument("plot", help="Garden bed to sow the crop into.")
 def _theme_gallery_sample(**_kwargs: object) -> None:
     """Sow a crop into a garden PLOT and water it in."""
 

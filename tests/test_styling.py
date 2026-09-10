@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import importlib.metadata
 import re
 import textwrap
@@ -72,6 +73,19 @@ Click ``8.5.0`` started rejecting falsy non-``None`` color values with
 colors unrecognized by ``_interpret_color``. Both are caught here since
 development snapshots with version numbers >= ``8.5`` may not yet enforce
 this validation, or may enforce it with either exception class.
+"""
+
+CLOUP_STYLE_HAS_KWARGS_CACHE = any(
+    f.name == "_style_kwargs" for f in dataclasses.fields(cloup.Style)
+)
+"""True when ``cloup.Style`` still carries its lazy ``_style_kwargs`` cache.
+
+Cloup builds that cache on the first ``__call__`` and declares it without
+``compare=False``, so a called style stops comparing equal to its twin and
+``hash()`` raises. Cloup removed the cache to fix `janluke/cloup#224
+<https://github.com/janluke/cloup/issues/224>`_, so the field is absent from
+development snapshots. The invariant the cache threatened is checked on both,
+and only the probes reading the field itself are gated on this flag.
 """
 
 # --- 1. Hex string color shorthand ------------------------------------------
@@ -388,8 +402,9 @@ def test_eq_ignores_style_kwargs_cache():
     a = Style(fg="red")
     b = Style(fg="red")
     a("trigger")  # primes a's _style_kwargs
-    assert b._style_kwargs is None
-    assert a._style_kwargs is not None
+    if CLOUP_STYLE_HAS_KWARGS_CACHE:
+        assert b._style_kwargs is None
+        assert a._style_kwargs is not None
     assert a == b
     assert hash(a) == hash(b)
 
