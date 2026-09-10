@@ -185,7 +185,7 @@ def test_command_default_color():
     auto default (ctx.color=None), yet a forced runner still renders ANSI codes."""
     runner = CliRunner()
     # Clear ambient color env vars so the auto default is deterministic.
-    env = {var: None for var in COLOR_ENVVARS}
+    env = dict.fromkeys(COLOR_ENVVARS)
     result = runner.invoke(run_cli_extra, color=True, env=env)
     assert result.exit_code == 0
     assert "\x1b[32mcolored output\x1b[0m" in result.stdout
