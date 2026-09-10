@@ -1349,7 +1349,9 @@ def terminal_width(monkeypatch):
 
     def pin(columns: int) -> None:
         monkeypatch.setattr(
-            shutil, "get_terminal_size", lambda *_: os.terminal_size((columns, 24))
+            shutil,
+            "get_terminal_size",
+            lambda *args, **kwargs: os.terminal_size((columns, 24)),
         )
 
     return pin
