@@ -1793,8 +1793,20 @@ def demo_themes(ctx: click.Context) -> None:
         context.set(ctx, context.THEME, theme)
         sample_ctx = make_resilient_context(_theme_gallery_sample, "garden")
         sample_ctx.color = ctx.color
-        echo(style("─" * 60, fg="bright_black"), color=ctx.color)
-        echo("Theme: " + theme.heading(name), color=ctx.color)
+        # Center the theme name in a rule as wide as the column count the sample
+        # help below wraps to, so the gallery keeps a single right edge. The
+        # padding is measured on the unstyled label, as the styled one carries
+        # escape sequences that occupy no cell.
+        label = f"[ Theme: {name} ]"
+        padding = max(sample_ctx.make_formatter().width - len(label), 0)
+        left = padding // 2
+        echo(
+            style("─" * left + "[", fg="bright_black")
+            + " Theme: "
+            + theme.heading(name)
+            + style(" ]" + "─" * (padding - left), fg="bright_black"),
+            color=ctx.color,
+        )
         echo()
         echo(_theme_gallery_sample.get_help(sample_ctx), color=ctx.color)
         echo()
