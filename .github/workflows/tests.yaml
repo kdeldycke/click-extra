@@ -136,6 +136,12 @@ jobs:
         # package by design, so measuring this slice gates nothing. The
         # `[tool.coverage] report.fail_under` floor is held by the matrix job
         # below, the only one that runs the whole suite.
+        #
+        # `!cancelled()` keeps this running after a failed self-test above: the
+        # two check different things, and a stale assertion in
+        # cli-test-suite.toml would otherwise hide every once-marked test.
+        # Wrapped in `${{ }}` because a bare leading `!` is a YAML tag.
+        if: ${{ !cancelled() }}
         run: uv --no-progress run --frozen -- pytest -m once
 
   test-package-install:
