@@ -60,11 +60,11 @@ from gettext import gettext as _
 from typing import TypeVar, cast
 
 import click
-from wcwidth import wcswidth
 
 from . import context
 from .color import COLOR_DISABLING_TERMS, is_a_tty
 from .humanize import format_duration
+from .layout import cell_width
 from .parameters import ExtraOption
 from .spinner_presets import (
     SPINNER_FRAMES,
@@ -1586,7 +1586,7 @@ def _spinner_preview(preset: SpinnerPreset) -> str:
     width = 0
     for frame in preset.frames:
         glyph = frame.replace("\ufe0f", "")  # Drop emoji variation selectors.
-        cost = max(wcswidth(glyph), 0) + (1 if shown else 0)  # +1 joining space.
+        cost = cell_width(glyph) + (1 if shown else 0)  # +1 joining space.
         if width + cost > _SPINNER_PREVIEW_WIDTH:
             break
         shown.append(glyph)

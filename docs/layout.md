@@ -30,15 +30,52 @@ assert result.stdout.splitlines() == [
 
 Reach for it over `len` wherever a column has to line up: a table gutter, a padded label, a rule.
 
-An escape sequence is the one thing it cannot account for. A string carrying one holds a control character, `wcswidth` refuses to measure any such string, and `cell_width` falls back to the character count:
+Styling costs nothing either, which is what lets you measure text as it arrived instead of stripping it first. An ANSI escape and an OSC 8 hyperlink each occupy no cell, and a tab reaches the next stop eight columns along:
 
 ```{click:run}
 from click_extra.layout import cell_width
 
-assert cell_width("\x1b[31mapricot\x1b[0m") == 16
+assert cell_width("\x1b[31mapricot\x1b[0m") == 7
+assert cell_width("\x1b]8;;https://example.com\x1b\\apricot\x1b]8;;\x1b\\") == 7
+assert cell_width("a\tb") == 9
 ```
 
-Sixteen, where the terminal draws seven. Strip the styling before measuring text that already carries it, the way `center_in_rule` does below.
+```{note}
+`wcwidth.wcswidth`, the older call, refuses any string carrying a control character and answers `-1` for it, which is every styled string. Reach for it only where a consumer reads that value back, as `tabulate` does.
+```
+
+Naming the terminal applies `wcwidth`'s correction for the emoji-presentation sequences a few of them advance by one column where the Unicode tables say two:
+
+```{click:run}
+from click_extra.layout import cell_width
+
+assert cell_width("\u2705") == 2
+assert cell_width("\u2705", term_program="iTerm.app") == 2
+```
+
+## Padding a line
+
+`pad_to` fills a line out to a stated width. `str.ljust` counts characters, so on a styled line it counts the escapes it cannot see and pads short, or not at all:
+
+```{click:run}
+from click_extra.layout import cell_width, pad_to
+from click_extra.styling import Style
+
+styled = Style(fg="red")("kiwi")
+
+# str.ljust sees a 13-character string and leaves it alone.
+assert styled.ljust(10) == styled
+
+assert cell_width(pad_to(styled, 10)) == 10
+```
+
+Whatever style the text left open is closed before the blanks, so a background cannot bleed across the gap into whatever sits beside it:
+
+```{click:run}
+from click_extra.layout import pad_to
+
+assert pad_to("\x1b[41mkiwi", 8) == "\x1b[41mkiwi\x1b[0m    "
+```
 
 ## Ruling a line
 

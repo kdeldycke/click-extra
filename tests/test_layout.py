@@ -22,11 +22,13 @@ import pytest
 
 from click_extra import Style, unstyle
 from click_extra.layout import (
+    RESET,
     RULE_COLOR,
     RULE_GLYPH,
     cell_width,
     center_in_rule,
     fit_columns,
+    pad_to,
 )
 
 
@@ -62,3 +64,54 @@ def test_fit_columns_floors_at_nothing_by_default():
     assert fit_columns("") == 0
     assert fit_columns("kiwi") == 4
     assert fit_columns("kiwi", floor=20) == 20
+
+
+@pytest.mark.parametrize(
+    ("text", "cells"),
+    (
+        ("apricot", 7),
+        ("杏", 2),
+        ("e\u0301", 1),
+        # An escape styles the glyphs around it and occupies no cell of its own.
+        ("\x1b[31mapricot\x1b[0m", 7),
+        ("\x1b]8;;https://example.com\x1b\\apricot\x1b]8;;\x1b\\", 7),
+        # A tab reaches the next stop, eight columns along.
+        ("a\tb", 9),
+        ("", 0),
+    ),
+)
+def test_cell_width_discounts_what_a_terminal_draws_nowhere(text, cells):
+    """Escapes and hyperlinks measure nothing, and a tab measures to its stop.
+
+    `wcwidth.wcswidth`, which this used to call, refuses any string carrying a
+    control character and answers `-1`, so every styled string fell back to its
+    character count: 16 for a red `apricot` the terminal draws in 7.
+    """
+    assert cell_width(text) == cells
+
+
+def test_cell_width_is_never_negative():
+    """A control character measures what a terminal advances by, never `-1`."""
+    assert cell_width("\x07") == 0
+    assert cell_width("\x00") == 0
+
+
+def test_pad_to_measures_the_text_a_terminal_draws():
+    """`str.ljust` counts escapes it cannot see, so a styled line pads short."""
+    styled = Style(fg="red")("kiwi")
+    assert len(styled.ljust(10)) == len(styled)  # str.ljust does nothing here.
+    assert cell_width(pad_to(styled, 10)) == 10
+    assert cell_width(pad_to("kiwi", 10)) == 10
+
+
+def test_pad_to_closes_a_style_before_the_blanks():
+    """A background left open would otherwise bleed across the gap."""
+    assert pad_to("\x1b[41mkiwi", 8).endswith(f"{RESET}    ")
+    # A line already closed gains no second reset.
+    assert pad_to(Style(fg="red")("kiwi"), 8).count(RESET) == 1
+
+
+def test_pad_to_leaves_text_already_wide_enough_alone():
+    """Nothing to pad, nothing added, reset included."""
+    assert pad_to("apricot", 4) == "apricot"
+    assert pad_to("杏杏", 4) == "杏杏"

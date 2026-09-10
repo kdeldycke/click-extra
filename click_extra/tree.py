@@ -47,10 +47,10 @@ from gettext import gettext as _
 
 import click
 import cloup
-from wcwidth import wcswidth
 
 from . import context
 from .highlight import DEPRECATED_RE, highlight, style_choice_metavar
+from .layout import cell_width
 from .parameters import (
     ExtraOption,
     full_short_help,
@@ -261,16 +261,14 @@ def render_command_tree(
     # right edge. An over-wide label hangs its description on the next line
     # instead (see below).
     measure_rows = child_rows or rows
-    label_width = max(
-        max(wcswidth(rail + plain), 0) for rail, _, plain, _, _ in measure_rows
-    )
+    label_width = max(cell_width(rail + plain) for rail, _, plain, _, _ in measure_rows)
     desc_column = label_width + COLUMN_GAP
     desc_width = max(width - desc_column, MIN_DESCRIPTION_WIDTH)
 
     lines = []
     for rail, cont, plain, styled, help_text in rows:
         line = rail + styled
-        row_width = max(wcswidth(rail + plain), 0)
+        row_width = cell_width(rail + plain)
         wrapped = textwrap.wrap(help_text, width=desc_width) if help_text else []
         # Painted after wrapping, so the escapes never count toward the column
         # width, and a marker the wrap split across two lines keeps its own
@@ -278,7 +276,7 @@ def render_command_tree(
         wrapped = [
             highlight(part, [DEPRECATED_RE], theme.deprecated) for part in wrapped
         ]
-        cont_pad = " " * (desc_column - max(wcswidth(cont), 0))
+        cont_pad = " " * (desc_column - cell_width(cont))
         if wrapped and row_width + COLUMN_GAP > desc_column:
             # Label wider than the description column: keep it on its own
             # line and hang the whole description under it, at the column.

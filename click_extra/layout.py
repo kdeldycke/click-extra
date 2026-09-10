@@ -31,9 +31,8 @@ from __future__ import annotations
 
 from unicodedata import bidirectional
 
-from boltons.strutils import strip_ansi
-from click import style, unstyle
-from wcwidth import wcswidth, wrap as wcwidth_wrap
+from click import style
+from wcwidth import width as wcwidth_width, wrap as wcwidth_wrap
 
 from .styling import Style, split_ansi
 
@@ -63,19 +62,55 @@ already decided how it should look.
 """
 
 
-def cell_width(text: str) -> int:
+RESET = "\x1b[0m"
+"""Escape closing every style a line left open, written before any padding."""
+
+
+def cell_width(text: str, term_program: str | None = None) -> int:
     """Columns `text` occupies on a terminal's character grid.
 
-    Not its length: a CJK ideograph is drawn two cells wide, a combining mark
-    none at all. `wcwidth.wcswidth` answers for both, and returns `-1` for
-    a string carrying a control character, where the count of characters is the
-    closest thing to an answer left.
+    Not its length. A CJK ideograph is drawn two cells wide, a combining mark
+    none, an ANSI escape or an OSC 8 hyperlink none at all while adding several
+    characters, and a tab as many as it takes to reach the next stop eight
+    columns along. `wcwidth.width` answers for all of them, which is what lets a
+    caller measure text as it arrived rather than stripping it first.
+
+    ```{note}
+    `wcwidth.wcswidth`, the older call, refuses any string carrying a control
+    character and answers `-1` for it, which is every styled string. Reach for
+    it only where a consumer reads that value back, as `tabulate` does.
+    ```
 
     :param text: the text to measure.
-    :return: the number of cells it occupies.
+    :param term_program: name of the terminal drawing the text, as
+        `$TERM_PROGRAM` holds it. A few of them advance an emoji-presentation
+        sequence by one column where the Unicode tables say two, and naming the
+        terminal applies `wcwidth`'s correction for it. `None` measures what the
+        tables say.
+    :return: the number of cells it occupies, never negative.
     """
-    width = wcswidth(text)
-    return width if width >= 0 else len(text)
+    return wcwidth_width(text, term_program=term_program or False)
+
+
+def pad_to(text: str, width: int) -> str:
+    """Pad `text` with blanks until it occupies `width` cells.
+
+    {meth}`str.ljust` counts characters, so on a styled line it counts the
+    escapes it cannot see and pads too little, or nothing at all. Text already
+    at least `width` cells wide comes back untouched.
+
+    Any style the text left open is closed before the blanks, so a background
+    cannot bleed across the gap into whatever sits beside it.
+
+    :param text: the text to pad, styled or not.
+    :param width: cells the result occupies.
+    :return: the padded text.
+    """
+    gap = width - cell_width(text)
+    if gap <= 0:
+        return text
+    reset = RESET if "\x1b[" in text and not text.endswith(RESET) else ""
+    return f"{text}{reset}{' ' * gap}"
 
 
 def center_in_rule(
@@ -88,8 +123,8 @@ def center_in_rule(
 ) -> str:
     """One line of `width` cells: `label` centered in a rule drawn with `rule`.
 
-    `label` may arrive already styled, and is measured with its escapes
-    stripped, so a caller paints the label its own way and hands the whole
+    `label` may arrive already styled: {func}`cell_width` discounts its
+    escapes, so a caller paints the label its own way and hands the whole
     thing over. `color` paints the rule and the two brackets, which is the half
     a caller cannot pre-style without knowing where they fall.
 
@@ -114,12 +149,13 @@ def center_in_rule(
     :return: the whole line.
     """
     label = label or ""
-    plain = strip_ansi(label)
-    if not plain:
+    if not cell_width(label):
         opening = closing = ""
-    if cell_width(f"{opening}{plain}{closing}") > width:
+    framed = cell_width(label) + cell_width(opening) + cell_width(closing)
+    if framed > width:
         opening = closing = ""
-    padding = max(width - cell_width(f"{opening}{plain}{closing}"), 0)
+        framed = cell_width(label)
+    padding = max(width - framed, 0)
     left = padding // 2
 
     def paint(text: str) -> str:
@@ -198,9 +234,9 @@ def _char_width(char: str) -> int:
 def fit_columns(text: str, floor: int = 0) -> int:
     """Width, in characters, of the longest line in `text`.
 
-    ANSI escapes are stripped first: they style the glyphs around them and
-    occupy no cell of their own. Measured in terminal cells, so a line of CJK
-    asks for the two columns per glyph it is drawn with.
+    ANSI escapes style the glyphs around them and occupy no cell of their own,
+    so they are discounted. Measured in terminal cells, so a line of CJK asks
+    for the two columns per glyph it is drawn with.
 
     :param text: the text to measure, ANSI escape sequences included.
     :param floor: width to return when every line is narrower than it. A caller
@@ -209,7 +245,7 @@ def fit_columns(text: str, floor: int = 0) -> int:
     :return: the width laying every line out without folding any.
     """
     return max(
-        [floor, *(cell_width(unstyle(line)) for line in text.splitlines())],
+        [floor, *(cell_width(line) for line in text.splitlines())],
     )
 
 

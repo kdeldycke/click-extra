@@ -845,9 +845,7 @@ def cursor_cell(picture: str, columns: int) -> tuple[int, int] | None:
     if not picture.strip():
         return None
     rows = picture.split("\n")
-    # Only the escapes are dropped: they are drawn nowhere, so they occupy no
-    # cell, and counting them would push the cursor off the end of its row.
-    row, column = len(rows) - 1, cell_width(strip_ansi(rows[-1]))
+    row, column = len(rows) - 1, cell_width(rows[-1])
     if column >= columns:
         # A terminal carries a cursor past its last column onto the next row.
         row, column = row + 1, 0

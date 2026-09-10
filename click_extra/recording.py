@@ -50,10 +50,10 @@ import time
 from typing import NamedTuple
 
 from extra_platforms import is_unix
-from wcwidth import wcswidth
 
 from .color import forced_color
 from .execution import args_cleanup
+from .layout import cell_width
 from .screenshot import (
     AUTO_HOLD,
     CAPTURE_HIDDEN_TERMINAL_VARS,
@@ -291,10 +291,9 @@ class TerminalScreen:
                     continue
                 self._land()
                 self.rows[-1] += chunk
-                # A wide glyph covers the two cells it is drawn with. Text
-                # carrying something unmeasurable reads as zero rather than as
-                # the -1 wcswidth answers with.
-                self._column += max(wcswidth(chunk), 0)
+                # A wide glyph covers the two cells it is drawn with, and a
+                # tab as many as reach the next stop.
+                self._column += cell_width(chunk)
 
 
 class Frame(NamedTuple):

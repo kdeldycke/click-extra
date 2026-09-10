@@ -54,11 +54,11 @@ from boltons.formatutils import BaseFormatField, tokenize_format_str
 from click import echo, get_current_context
 from click._utils import UNSET
 from extra_platforms import current_architecture, current_platform
-from wcwidth import width as cell_width
 
 from ._utils import memoize_enums
 from .color import invocation_color, is_a_tty
 from .context import ACCESSIBLE, _LazyMetaDict, get
+from .layout import cell_width
 from .parameters import ExtraOption
 from .styling import Style
 from .theme import get_current_theme
@@ -611,10 +611,8 @@ def default_facts() -> dict[str, str]:
 def visible_width(text: str) -> int:
     """Cells *text* occupies once its escape sequences are discounted.
 
-    {func}`wcwidth.width` measures each character at the width a terminal
-    advances the cursor by, so a double-width character (CJK, emoji) counts for
-    two cells, and an ANSI escape or an OSC 8 hyperlink for none. A tab counts
-    up to the next tab stop, eight columns apart.
+    Kept as the name this module has always measured with;
+    {func}`~click_extra.layout.cell_width` is where the measure lives.
     """
     return cell_width(text)
 

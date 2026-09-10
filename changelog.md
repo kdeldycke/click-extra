@@ -7,7 +7,7 @@
 
 - **Breaking:** Drop `click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`. Which terminals narrow an emoji-presentation sequence now comes from `wcwidth`'s own measured tables.
 - Highlight a subcommand, and the options it accepts, where a help screen writes an example invocation like `$ my-cli pick --ripe`.
-- Add a `click_extra.layout` module for terminal-grid work, holding a new `center_in_rule` alongside `cell_width`, `fit_columns`, `grid`, `is_bidirectional`, `number_lines` and `wrap_ansi`. Every one stays importable where it was.
+- Add a `click_extra.layout` module for terminal-grid work, holding the new `center_in_rule` and `pad_to` alongside `cell_width`, `fit_columns`, `grid`, `is_bidirectional`, `number_lines` and `wrap_ansi`. Every one stays importable where it was.
 - Draw the `--truncation` marker of a capture as a dotted rule spanning the kept lines, centered on `✂`. Naming a marker still takes it verbatim.
 - Take theme names on `click-extra themes`, rendering only those, in the order given. `auto` stands for the palette the terminal background resolves to.
 - Head each `click-extra themes` screen with the theme name centered in a rule, drawn as wide as the help screen below it.
@@ -63,6 +63,7 @@
 - Match a configuration key against a parameter name whatever its case, so `Foo-Bar` and `FOO_BAR` both reach the `foo_bar` parameter. Adds `canonical_param_name()`.
 - Report an unmatched argfile declaration under the name Click would derive from it, so `--Unknown-Option` is named `unknown_option`.
 - Disable the `SQLITE` configuration format on a Python whose `sqlite3` bindings are missing, like FreeBSD's, instead of breaking every CLI at import time.
+- Measure a styled string at the width a terminal draws it. `cell_width` counted the escape sequences instead, answering 16 cells for a colored `apricot` drawn in 7.
 - Draw overline in a capture, which reached the terminal and never the picture.
 - Fix a capture dropping the underline off a run that was also struck through.
 - Fix a capture drawing every tile of a rule one cell late when a label inside it fell on a chunk boundary.

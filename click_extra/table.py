@@ -31,12 +31,12 @@ from types import SimpleNamespace
 import click
 from boltons.strutils import strip_ansi
 from click import echo
-from wcwidth import wcswidth, wcwidth as char_width, width as cell_width
+from wcwidth import wcswidth, wcwidth as char_width
 
 from . import context
 from ._utils import missing_extra_message
 from .config.formats import ConfigFormat, serialize_content
-from .layout import wrap_ansi
+from .layout import cell_width, wrap_ansi
 from .parameters import ExtraOption
 from .styling import (
     ansi_to_html,
@@ -571,8 +571,9 @@ def _term_program() -> str:
 
     Read per call rather than at import, so a test can name a terminal and a
     long-running process can be handed a different environment. Handing the
-    name to {func}`wcwidth.width` matters for the same reason: its own
-    auto-detection caches the first answer for the life of the process.
+    name to {func}`~click_extra.layout.cell_width` matters for the same reason:
+    `wcwidth`'s own auto-detection caches the first answer for the life of the
+    process.
 
     A multiplexer overwrites this variable with its own name, and rightly so:
     under `tmux` or `screen` it is the multiplexer that lays the cells out.
