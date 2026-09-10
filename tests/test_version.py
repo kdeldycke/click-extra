@@ -1345,7 +1345,18 @@ def test_version_dev_hash_assembly(module_version, expected):
 
 @pytest.fixture
 def terminal_width(monkeypatch):
-    """Pin the width `VersionScreen.render` measures itself against."""
+    """Pin the width `VersionScreen.render` measures itself against.
+
+    The function is patched, and `COLUMNS` deliberately left alone.
+    `shutil.get_terminal_size` reads that variable before it measures the
+    terminal, so exporting it would pin the width just as well. It would also
+    resize pytest's own reports for as long as a narrow pin is held.
+
+    The replacement accepts keyword arguments because pytest measures its
+    progress line with `shutil.get_terminal_size(fallback=(80, 24))`. A
+    positional-only stand-in raises `TypeError` there and aborts the run with an
+    `INTERNALERROR`. See [#1934](https://github.com/kdeldycke/click-extra/pull/1934).
+    """
 
     def pin(columns: int) -> None:
         monkeypatch.setattr(
