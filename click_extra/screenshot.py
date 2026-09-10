@@ -64,11 +64,18 @@ from unicodedata import bidirectional
 
 from boltons.strutils import strip_ansi
 from click import style, unstyle
-from wcwidth import wcswidth
 
 from ._utils import generator_tag
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
+from .layout import (
+    PADDING,
+    RULE_COLOR,
+    # Re-exported: `cell_width` was this module's before the terminal-grid
+    # primitives moved out of it, and downstream code imports it from here.
+    cell_width,
+    center_in_rule,
+)
 from .screenshot_presets import (
     MACOS_BUTTONS,
     PRESETS,
@@ -726,31 +733,16 @@ own even where the output is itself indented.
 AUTO_TRUNCATION: Literal["auto"] = "auto"
 """Marker asking for a rule as wide as the lines it stands between.
 
-{data}`TRUNCATION_LABEL` centered in a run of box-drawing dashes, spanning the
-widest line the capture kept. A bare label sits in the left margin and reads as
-one more line of output; a rule crosses the picture and reads as a seam, which
-is what a cut is.
+{data}`TRUNCATION_LABEL` centered in a run of {data}`TRUNCATION_RULE`, spanning
+the widest line the capture kept. A bare label sits in the left margin and reads
+as one more line of output; a rule crosses the picture and reads as a seam,
+which is what a cut is. It carries no brackets, unlike a rule naming a section:
+there is nothing to name here, and the label is the cut itself.
 
 Measured on the kept lines alone, so the marker can never be what decides the
 image width. That also makes it track an explicit `columns` only as far as the
 text does: a capture whose lines all stop short draws a rule that stops there
 too.
-"""
-
-RULE_GLYPH = "\N{BOX DRAWINGS LIGHT HORIZONTAL}"
-"""Character {func}`center_in_rule` draws a rule with, absent a better one.
-
-An unbroken line, which is what a divider between two whole things is.
-"""
-
-RULE_COLOR = "bright_black"
-"""Color {func}`center_in_rule` paints a rule and its brackets.
-
-A rule is the one line of a screen nothing printed, so it is drawn to recede:
-dimmer than the text it separates, in both the gallery of `click-extra themes`
-and the marker standing in for what a capture cut. A marker named on the
-command line is written as given, color included, since a caller spelling one
-out has already decided how it should look.
 """
 
 TRUNCATION_LABEL = "\N{BLACK SCISSORS}"
@@ -773,13 +765,6 @@ there, and the rule shimmers. One dot per cell has nothing to merge with.
 
 DEFAULT_TRUNCATION: str = AUTO_TRUNCATION
 """Marker standing in for the lines {func}`trim_lines` cut away."""
-
-PADDING = " \N{NO-BREAK SPACE}"
-"""Characters separating one column of a capture from the next.
-
-{func}`render_svg` emits every space as a non-breaking one, so the padding
-survives an XML round-trip and no renderer collapses a run of them.
-"""
 
 _SGR_RE = re.compile(r"\x1b\[[0-9;]*m")
 """One SGR escape sequence, the kind that changes how the text after it looks.
@@ -884,21 +869,6 @@ def is_bidirectional(text: str) -> bool:
     :return: `True` when at least one character is right-to-left.
     """
     return any(bidirectional(char) in RTL_BIDI_CLASSES for char in text)
-
-
-def cell_width(text: str) -> int:
-    """Columns `text` occupies on a terminal's character grid.
-
-    Not its length: a CJK ideograph is drawn two cells wide, a combining mark
-    none at all. {func}`wcwidth.wcswidth` answers for both, and returns `-1` for
-    a string carrying a control character, where the count of characters is the
-    closest thing to an answer left.
-
-    :param text: the text to measure.
-    :return: the number of cells it occupies.
-    """
-    width = wcswidth(text)
-    return width if width >= 0 else len(text)
 
 
 def cursor_cell(picture: str, columns: int) -> tuple[int, int] | None:
@@ -1110,56 +1080,6 @@ def trim_lines(
     return "\n".join([*head_lines, marker, *tail_lines])
 
 
-def center_in_rule(
-    label: str | None,
-    width: int,
-    rule: str = RULE_GLYPH,
-    opening: str = "[ ",
-    closing: str = " ]",
-    color: str | None = RULE_COLOR,
-) -> str:
-    """One line of `width` cells: `label` centered in a rule drawn with `rule`.
-
-    `label` may arrive already styled, and is measured with its escapes
-    stripped, so a caller paints the label its own way and hands the whole
-    thing over. `color` paints the rule and the two brackets, which is the half
-    a caller cannot pre-style without knowing where they fall.
-
-    A `None` or empty label draws no brackets and one contiguous rule: a
-    divider naming nothing should not look like a frame around nothing. A width
-    too narrow for the brackets drops them the same way, and one too narrow for
-    the label leaves the label alone rather than drawing a rule that cannot
-    close.
-
-    Measured in cells, not characters: a label carrying a wide glyph shifts a
-    rule built on `len` by one column per glyph.
-
-    :param label: the text the rule is drawn around, styled or not, or `None`
-        for an unbroken rule.
-    :param width: columns the line occupies.
-    :param rule: character the rule is drawn with.
-    :param opening: bracket written between the rule and `label`.
-    :param closing: bracket written between `label` and the rule.
-    :param color: color the rule and brackets are painted, or `None` to leave
-        them as they are. `label` is never repainted: a caller styles it
-        itself, or leaves it in the terminal's own ink.
-    :return: the whole line.
-    """
-    label = label or ""
-    plain = strip_ansi(label)
-    if not plain:
-        opening = closing = ""
-    if cell_width(f"{opening}{plain}{closing}") > width:
-        opening = closing = ""
-    padding = max(width - cell_width(f"{opening}{plain}{closing}"), 0)
-    left = padding // 2
-
-    def paint(text: str) -> str:
-        return style(text, fg=color) if color and text else text
-
-    return f"{paint(rule * left + opening)}{label}{paint(closing + rule * (padding - left))}"
-
-
 def _rule_marker(lines: Sequence[str]) -> str:
     """Center {data}`TRUNCATION_LABEL` in a rule as wide as the widest of `lines`.
 
@@ -1171,6 +1091,8 @@ def _rule_marker(lines: Sequence[str]) -> str:
         style(TRUNCATION_LABEL, fg=RULE_COLOR),
         width,
         rule=TRUNCATION_RULE,
+        opening=" ",
+        closing=" ",
     )
 
 

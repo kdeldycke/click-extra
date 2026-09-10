@@ -7,6 +7,7 @@
 
 - **Breaking:** Drop `click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`. Which terminals narrow an emoji-presentation sequence now comes from `wcwidth`'s own measured tables.
 - Highlight a subcommand, and the options it accepts, where a help screen writes an example invocation like `$ my-cli pick --ripe`.
+- Add a `click_extra.layout` module holding `cell_width` and a new `center_in_rule`, which draws a label centered in a rule of a stated width.
 - Draw the `--truncation` marker of a capture as a dotted rule spanning the kept lines, centered on `✂`. Naming a marker still takes it verbatim.
 - Take theme names on `click-extra themes`, rendering only those, in the order given. `auto` stands for the palette the terminal background resolves to.
 - Head each `click-extra themes` screen with the theme name centered in a rule, drawn as wide as the help screen below it.

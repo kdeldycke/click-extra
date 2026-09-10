@@ -507,6 +507,34 @@ assert "optoin" in result.stderr
 
 The built-in `ConfigValidator` for the `themes` sub-tree is auto-registered on every `ConfigOption`, so app authors don't have to opt in. Apps that ship their own `ConfigValidator` continue to work alongside it.
 
+### Eyeball it before you ship it
+
+A palette defined in a configuration file joins the gallery of `click-extra themes`, so you can see it drawn on a real help screen without wiring it into your own CLI first. Copy the table under a `click-extra` header, then name it:
+
+```toml
+[click-extra.themes.orchard]
+heading = { fg = "bright_magenta", underline = true }
+option = { fg = "bright_green", bold = true }
+metavar = { fg = "yellow", italic = true }
+```
+
+```shell-session
+$ click-extra --config orchard.toml themes orchard
+```
+
+Add [`auto`](#automatic-background-detection) to draw the palette your terminal resolves to right beside it, which says whether your own colors sit closer to the `dark` or the `light` built-in:
+
+```shell-session
+$ click-extra --config orchard.toml themes orchard auto
+```
+
+A terminal keeps one background, so the gallery cannot answer whether a palette reads on the other one. [`click-extra screenshot --background`](screenshots.md#light-and-dark-chrome) can: it draws the same screen on light chrome and on dark, side by side, which is the check a theme meant for both has to pass.
+
+```shell-session
+$ click-extra --config orchard.toml screenshot --output orchard-dark.svg -- my-cli --theme orchard --help
+$ click-extra --config orchard.toml screenshot --output orchard-light.svg --background light -- my-cli --theme orchard --help
+```
+
 ## Interaction with `--color` / `--no-color`
 
 `--theme` controls *which* colors are used. `--color` / `--no-color` controls *whether* colors are emitted at all. The two are independent:

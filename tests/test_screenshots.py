@@ -74,8 +74,6 @@ from click_extra.screenshot import (
     OPAQUE,
     PADDING,
     REDUCED_MOTION_QUERY,
-    RULE_COLOR,
-    RULE_GLYPH,
     STDOUT_PATH,
     TILE_RUN,
     TITLEBAR_HEIGHT,
@@ -94,7 +92,6 @@ from click_extra.screenshot import (
     capture,
     capture_output,
     cell_width,
-    center_in_rule,
     column_segments,
     cursor_cell,
     fit_columns,
@@ -266,7 +263,9 @@ def test_trim_lines_rules_the_default_marker_across_the_kept_width():
     marker = unstyle(trimmed[2])
     assert marker.startswith(TRUNCATION_RULE)
     assert marker.endswith(TRUNCATION_RULE)
-    assert f"[ {TRUNCATION_LABEL} ]" in marker
+    assert f" {TRUNCATION_LABEL} " in marker
+    # No brackets: a cut names nothing, unlike a rule heading a section.
+    assert "[" not in marker
     # Painted to recede, the way the theme gallery rules its own screens.
     assert trimmed[2] != marker
     # Never the widest line: the marker must not be what decides image width.
@@ -277,29 +276,6 @@ def test_trim_lines_keeps_a_marker_too_wide_for_its_rule_bare():
     """A capture narrower than the frame gets the label alone, not a broken rule."""
     marker = trim_lines("a\nb\nc", head=1, tail=1).splitlines()[1]
     assert unstyle(marker) == TRUNCATION_LABEL
-
-
-@pytest.mark.parametrize("label", (None, ""))
-def test_center_in_rule_draws_an_unbroken_line_for_no_label(label):
-    """Naming nothing draws a divider, not a frame around an empty middle."""
-    assert unstyle(center_in_rule(label, 40)) == RULE_GLYPH * 40
-
-
-def test_center_in_rule_measures_a_styled_label_unstyled():
-    """A label's escapes occupy no cell, so they must not shorten the rule."""
-    plain = center_in_rule("nord", 40)
-    styled = center_in_rule(Style(fg="cyan")("nord"), 40)
-    assert cell_width(unstyle(styled)) == cell_width(unstyle(plain)) == 40
-
-
-def test_center_in_rule_paints_the_rule_and_leaves_the_label_alone():
-    """The rule recedes by default, and a caller's own label styling survives."""
-    ruled = center_in_rule(Style(fg="cyan")("nord"), 40)
-    assert Style(fg="cyan")("nord") in ruled
-    assert Style(fg=RULE_COLOR)(f"{RULE_GLYPH * 16}[ ") in ruled
-    # Opting out leaves the whole line as its parts arrived.
-    bare = center_in_rule("nord", 40, color=None)
-    assert unstyle(bare) == bare
 
 
 def test_trim_lines_leaves_an_explicit_marker_alone():

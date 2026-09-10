@@ -54,6 +54,7 @@ envvar
 colorize
 theme
 styling
+layout
 table
 spinner
 ```
