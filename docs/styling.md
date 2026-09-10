@@ -178,7 +178,6 @@ assert result == "a [styled] word"
 print(result)
 ```
 
-
 ## `open_ansi()`: splice a fragment into styled text
 
 Styling a fragment closes it with a reset, and that reset also closes whatever styling surrounded the fragment. `open_ansi(text)` returns the escapes `text` still leaves in effect, so the surrounding styling can be reopened right after the splice:
