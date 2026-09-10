@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import io
 import re
+import sys
 import time
 from itertools import pairwise
 from typing import cast
@@ -290,7 +291,7 @@ def test_record_command_recovers_a_foreign_animation():
     `stderr`, where a spinner and a progress bar both write.
     """
     frames = record_command(
-        ("python", "-c", BAR_SCRIPT),
+        (sys.executable, "-c", BAR_SCRIPT),
         columns=40,
         duration=5.0,
     )
@@ -322,7 +323,7 @@ def test_record_command_reassembles_a_glyph_split_across_reads():
     the recorder must hold the partial sequence until its tail arrives.
     """
     frames = record_command(
-        ("python", "-c", SPLIT_GLYPH_SCRIPT),
+        (sys.executable, "-c", SPLIT_GLYPH_SCRIPT),
         columns=40,
         duration=5.0,
     )
@@ -336,7 +337,7 @@ def test_record_command_reassembles_a_glyph_split_across_reads():
 def test_record_and_render_draws_the_prompt_on_every_frame():
     """The stated invocation leads each frame, styled as a shell prompt."""
     svg, returncode = record_and_render(
-        ("python", "-c", BAR_SCRIPT),
+        (sys.executable, "-c", BAR_SCRIPT),
         columns=40,
         prompt="basket ripen --all",
         unique_id="pantry-run",
@@ -353,7 +354,7 @@ def test_record_and_render_draws_the_prompt_on_every_frame():
 def test_record_and_render_hides_an_empty_prompt():
     """An empty --prompt draws no invocation at all."""
     svg, _returncode = record_and_render(
-        ("python", "-c", BAR_SCRIPT),
+        (sys.executable, "-c", BAR_SCRIPT),
         columns=40,
         prompt="",
         unique_id="bare-run",
@@ -365,7 +366,7 @@ def test_record_and_render_hides_an_empty_prompt():
 def test_record_and_render_reports_the_exit_code():
     """The command's own verdict travels beside the picture of it."""
     _svg, returncode = record_and_render(
-        ("python", "-c", "import sys; print('rotten'); sys.exit(3)"),
+        (sys.executable, "-c", "import sys; print('rotten'); sys.exit(3)"),
         columns=40,
         prompt="",
     )
@@ -376,7 +377,7 @@ def test_record_and_render_reports_the_exit_code():
 def test_record_and_render_refuses_an_empty_recording():
     """A command that drew nothing leaves nothing to animate."""
     with pytest.raises(ValueError, match="drew no screen"):
-        record_and_render(("python", "-c", "pass"), columns=40)
+        record_and_render((sys.executable, "-c", "pass"), columns=40)
 
 
 @pytest.mark.parametrize(
@@ -548,13 +549,13 @@ def test_a_typed_opening_walks_its_cursor_one_cell_at_a_time():
 def test_a_recording_types_its_prompt_when_asked():
     """The typed opening leads the recorded frames, under the prompt it types."""
     plain, _ = record_and_render(
-        ("python", "-c", BAR_SCRIPT),
+        (sys.executable, "-c", BAR_SCRIPT),
         columns=40,
         prompt="basket ripen --all",
         unique_id="orchard",
     )
     typed, _ = record_and_render(
-        ("python", "-c", BAR_SCRIPT),
+        (sys.executable, "-c", BAR_SCRIPT),
         columns=40,
         prompt="basket ripen --all",
         unique_id="orchard",
@@ -574,7 +575,7 @@ def test_a_recording_types_its_prompt_when_asked():
 def test_a_recording_types_nothing_unless_asked():
     """The default opens on the finished prompt, as every recording so far does."""
     svg, _ = record_and_render(
-        ("python", "-c", BAR_SCRIPT),
+        (sys.executable, "-c", BAR_SCRIPT),
         columns=40,
         prompt="basket ripen --all",
         unique_id="orchard",
@@ -616,7 +617,7 @@ def window_height(svg: str) -> float:
 def recorded(script: str, **kwargs: object) -> str:
     """Record one script, however the capture is asked to close."""
     svg, _returncode = record_and_render(
-        ("python", "-c", script),
+        (sys.executable, "-c", script),
         columns=40,
         prompt="basket ripen --all",
         unique_id="orchard",
