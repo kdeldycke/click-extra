@@ -81,7 +81,7 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.5"
-      - name: Run repomatic metadata
+      - name: Run repomatic show-metadata
         id: metadata
         # The `--exclude-newer-package` flag is not optional: the workflow-level
         # `UV_EXCLUDE_NEWER` above gates every resolution, and this pin moves in
@@ -91,7 +91,7 @@ jobs:
         # failure while running no test at all. `uvx` reads no project config, so
         # the bypass has to ride on the command line. See claude.md.
         run: >
-          uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==7.15.0' metadata
+          uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==7.15.0' show-metadata
           --format github-json --output "$GITHUB_OUTPUT"
           test_matrix test_matrix_pr
 
@@ -215,7 +215,7 @@ jobs:
       - metadata
     strategy:
       fail-fast: false
-      # Matrix is pre-computed by repomatic metadata. PRs get a reduced matrix
+      # Matrix is pre-computed by repomatic show-metadata. PRs get a reduced matrix
       # (fewer OS variants and Python versions) to save CI minutes.
       matrix: >-
         ${{ github.event_name != 'pull_request'
