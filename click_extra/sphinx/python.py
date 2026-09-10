@@ -164,7 +164,7 @@ class PythonRunner:
         `python:run` block).
         """
         self._locate(directive)
-        exec(compile_directive(directive), self.namespace)  # noqa: S102
+        exec(compile_directive(directive), self.namespace)
 
     def run_python(self, directive: ClickDirective) -> list[str]:
         """Execute the directive's content and capture `stdout`.
@@ -176,7 +176,7 @@ class PythonRunner:
         self._locate(directive)
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
-            exec(compile_directive(directive), self.namespace)  # noqa: S102
+            exec(compile_directive(directive), self.namespace)
         return buffer.getvalue().splitlines()
 
 
@@ -461,7 +461,7 @@ def _execute_mirror_block(
     sys.path.insert(0, directory)
     try:
         with contextlib.redirect_stdout(buffer):
-            exec(code, namespace)  # noqa: S102
+            exec(code, namespace)
     finally:
         with contextlib.suppress(ValueError):
             sys.path.remove(directory)

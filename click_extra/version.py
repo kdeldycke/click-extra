@@ -553,7 +553,7 @@ def resolve_license(meta: PackageMetadata | None) -> str | None:
     for classifier in meta.get_all("Classifier") or []:
         text = str(classifier)
         if text.startswith("License ::"):
-            return text.split("::")[-1].strip()
+            return text.rsplit("::", maxsplit=1)[-1].strip()
 
     # Free-form legacy field (may hold the full license text).
     return meta_value(meta, "License")

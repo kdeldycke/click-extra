@@ -453,7 +453,7 @@ class ClickRunner(CliRunner):
         """Execute the given code, adding it to the runner's namespace."""
         code = compile_directive(directive)
         with patch_subprocess():
-            exec(code, self.namespace)  # noqa: S102
+            exec(code, self.namespace)
 
     def run_cli(self, directive: SphinxDirective) -> list[str]:
         """Execute the given `source_code`.
@@ -514,7 +514,7 @@ class ClickRunner(CliRunner):
                 )
 
         code = compile_directive(directive)
-        exec(code, self.namespace, local_vars)  # noqa: S102
+        exec(code, self.namespace, local_vars)
         return buffer
 
 

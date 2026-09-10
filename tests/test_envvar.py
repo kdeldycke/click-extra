@@ -238,7 +238,7 @@ def envvars_test_cases():
         "0": False,
     }
     # No envvar value will have an effect on the flag if the envvar is not recognized.
-    broken_value_map = {k: False for k in working_value_map}
+    broken_value_map = dict.fromkeys(working_value_map, False)
 
     for (cmd_decorator, decorator_name), envvar_cases in matrix.items():
         for case_name, envvar_names in (

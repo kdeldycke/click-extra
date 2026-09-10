@@ -601,7 +601,7 @@ def field_docstrings(cls: type) -> dict[str, str]:
 
 def _first_paragraph(text: str) -> str:
     """Collapse the first paragraph of `text` onto a single line."""
-    return " ".join(text.split("\n\n")[0].split())
+    return " ".join(text.split("\n\n", maxsplit=1)[0].split())
 
 
 def _field_config_key(field: Field) -> str:

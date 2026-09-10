@@ -2016,7 +2016,7 @@ def test_field_docstrings_returns_full_text():
 def test_field_docstrings_degrades_without_source():
     """A class defined through exec has no source: the mapping is empty."""
     namespace: dict = {}
-    exec(  # noqa: S102
+    exec(
         dedent("""
             from dataclasses import dataclass
 

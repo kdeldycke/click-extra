@@ -247,7 +247,7 @@ def _colorfgbg_background(value: str) -> Literal["dark", "light"] | None:
     an integer.
     """
     try:
-        background_index = int(value.split(";")[-1])
+        background_index = int(value.rsplit(";", maxsplit=1)[-1])
     except ValueError:
         return None
     if background_index in _DARK_COLORFGBG_INDICES:

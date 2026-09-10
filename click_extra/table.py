@@ -1661,7 +1661,7 @@ def select_row(
     Falls back to `canonical_ids` when `selected_ids` is empty / unset, so the
     row preserves its canonical column order in the absence of any user selection.
     """
-    ids = selected_ids if selected_ids else canonical_ids
+    ids = selected_ids or canonical_ids
     return tuple(row[col_id] for col_id in ids)
 
 
