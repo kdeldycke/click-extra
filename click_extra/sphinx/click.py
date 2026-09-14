@@ -82,6 +82,7 @@ from ..snippet import highlight_code, resolve_style, style_palette
 from ..spinner import Spinner
 from ..testing import isolated_filesystem
 from ..theme import NOCOLOR_THEME
+from ..version import reset_version_resolution
 from ._base import (
     StatelessDomain,
     compile_directive,
@@ -404,6 +405,12 @@ class ClickRunner(CliRunner):
         output_lines = _output_lines if _output_lines is not None else []
 
         args = args or []
+
+        # A build renders many commands in one process, so a version resolved
+        # by an earlier render (the man-page hook runs before any page is read)
+        # would stand for every block below it. Each documented invocation gets
+        # the reading a reader's own shell would give it.
+        reset_version_resolution(cli)
 
         if prog_name is None:
             prog_name = cli.name.replace("_", "-")

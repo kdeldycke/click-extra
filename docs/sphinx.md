@@ -592,8 +592,10 @@ assert result.exit_code == 0
 assert "Usage:" in result.stdout
 ```
 
-```{caution}
-Avoid `--version` in a live `click:run` block. `VersionOption` resolves the owning package by walking the call stack, then memoizes the result for the rest of the build. On this project's own docs, `click_extra_manpages` (set in `conf.py`) generates `demo`'s man pages before any page is read, and that walk resolves `--version` for the first time from a call path with no `CliRunner.invoke` frame in it, landing on a Sphinx frame instead of the CLI's own module. The wrong value then sticks for every later `--version` example in the same build: verified, this block used to render `Click Extra, version 9.1.0`, which is the Sphinx version the build ran rather than click-extra's. The same quirk reaches `{package_name}`, which the [version page](version.md#get-metadata-values) renders as `click_extra.sphinx`. `--help` and ordinary subcommands are unaffected, since they do no package detection.
+```{note}
+`--version` is safe in a live `click:run` block, and each block resolves it for itself. `VersionOption` finds the owning package by walking the call stack and memoizes the answer, which suits a CLI: one invocation, one process. A build renders many commands in one process, and a render carrying no `CliRunner.invoke` frame (`click_extra_manpages` writing roff before any page is read, on this project's own docs) resolves the chain from a stack the walk cannot read. That answer used to stand for every later block, which published a version screen with no version on it. The runner now clears the memo before each invocation, so a documented `--version` reads as a reader's own shell would render it.
+
+`{package_name}` is a separate matter and still reports `click_extra.sphinx` for a CLI a page defines inline: such a command belongs to no importable module, so the walk correctly names the runner's. The [version page](version.md#get-metadata-values) shows it.
 ```
 
 ### Capture mode

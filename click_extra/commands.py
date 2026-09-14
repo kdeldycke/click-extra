@@ -547,7 +547,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                                 f" Must be one of {param.template_fields}."
                             )
                             raise TypeError(msg)
-                        setattr(param, field_id, field_value)
+                        param.pin_field(field_id, field_value)
 
         # Forward config option parameters to the ConfigOption instance.
         if included_params is not None and excluded_params is not None:

@@ -1602,3 +1602,86 @@ def test_colors_reach_output(monkeypatch, color, stdout_is_a_tty, expected):
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
         assert colors_reach_output() is expected
+
+
+@pytest.mark.once
+def test_sphinx_runner_resets_version_resolution():
+    """Each documented invocation resolves `--version` for itself.
+
+    The resolution chain opens on a stack walk and memoizes, which suits a CLI:
+    one invocation, one process. A documentation build renders many commands in
+    one process, and a render carrying no CLI frame (writing roff for a command
+    tree, say) resolves the chain from a stack the walk cannot read. That answer
+    used to stand for the rest of the build, so a later `--version` example
+    published a screen with no version on it.
+
+    This guards the mechanism, not the build: it plants a stale resolution by
+    hand rather than reproducing the frame shape a real `sphinx-build` has, so
+    it holds `ClickRunner.invoke` to clearing the memo and says nothing about
+    which renders would otherwise poison it.
+    """
+    from click_extra.sphinx.click import ClickRunner
+
+    @command
+    @version_option()
+    def local_cli():
+        echo("ran")
+
+    option = next(p for p in local_cli.params if isinstance(p, VersionOption))
+    # The shape a frame-less render leaves behind: a resolved chain naming a
+    # package that does not exist.
+    option.__dict__["package_name"] = "not-a-real-package"
+
+    ClickRunner().invoke(local_cli, ["--help"], _show_prompt=False)
+
+    assert "package_name" not in option.__dict__
+
+
+@pytest.mark.once
+def test_reset_resolution_clears_every_memoized_field():
+    """`reset_resolution()` drops the whole chain, not a chosen few fields."""
+    from functools import cached_property
+
+    @command
+    @version_option()
+    def local_cli():
+        echo("ran")
+
+    option = next(p for p in local_cli.params if isinstance(p, VersionOption))
+
+    def memoized():
+        return {
+            key
+            for key in option.__dict__
+            if isinstance(getattr(type(option), key, None), cached_property)
+        }
+
+    # Resolve the chain, then confirm the reset leaves nothing memoized behind.
+    assert option.version
+    assert memoized(), "nothing was memoized, so the test proves nothing"
+
+    option.reset_resolution()
+
+    assert not memoized(), f"left memoized: {sorted(memoized())}"
+
+
+@pytest.mark.once
+def test_reset_resolution_keeps_a_pinned_field():
+    """A field pinned through `fields=` is not a resolution, so it survives.
+
+    An override lands in the instance dict under the name of the property it
+    shadows, so a reset that goes by name alone erases it. That silently turns
+    a pinned version into `None` on every documented invocation.
+    """
+
+    @command(version_fields={"version": "1.2.3"})
+    @version_option()
+    def local_cli():
+        echo("ran")
+
+    option = next(p for p in local_cli.params if isinstance(p, VersionOption))
+    assert option.version == "1.2.3"
+
+    option.reset_resolution()
+
+    assert option.version == "1.2.3"

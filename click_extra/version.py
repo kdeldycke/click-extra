@@ -169,6 +169,7 @@ if TYPE_CHECKING:
     from types import FrameType, ModuleType
     from typing import Any, ClassVar, TypeAlias
 
+    from click import Command
     from cloup.styling import IStyle
 
     Facts: TypeAlias = Mapping[str, str]
@@ -924,9 +925,18 @@ class VersionOption(ExtraOption):
                 )
                 raise ValueError(msg)
 
+        self._field_overrides: frozenset[str] = frozenset()
+        """Fields the caller pinned, which no later resolution may reconsider.
+
+        An override lands in the instance dict under the name of the
+        `cached_property` it shadows, so nothing distinguishes the two by
+        inspection. {meth}`reset_resolution` needs the difference: it drops a
+        resolved field and must leave a pinned one alone.
+        """
+
         # A field value override shadows the cached_property of the same name.
         for field_id, field_value in field_overrides.items():
-            setattr(self, field_id, field_value)
+            self.pin_field(field_id, field_value)
 
         # Per-field styles: class defaults overridden by user-provided styles.
         self.styles: dict[str, IStyle | None] = {
@@ -944,6 +954,46 @@ class VersionOption(ExtraOption):
             help=help,
             **kwargs,
         )
+
+    def pin_field(self, field_id: str, value: Any) -> None:
+        """Pin a template field to a caller-supplied value.
+
+        The value shadows the `cached_property` that would otherwise resolve
+        the field, and is recorded so {meth}`reset_resolution` can tell the two
+        apart. Every caller that pins a field goes through here: a bare
+        `setattr` sets the value without the record, and the next reset then
+        discards it.
+
+        :param field_id: Name of the template field to pin.
+        :param value: Value the field reports from now on.
+        """
+        setattr(self, field_id, value)
+        self._field_overrides = self._field_overrides | {field_id}
+
+    def reset_resolution(self) -> None:
+        """Drop every memoized field, so the next read resolves from scratch.
+
+        The resolution chain starts on a stack walk, and the option is built
+        once at decoration time, so the first read in a process fixes the
+        answer for every later one. That is what a CLI wants: one invocation,
+        one process, one walk.
+
+        A documentation build breaks the assumption. It renders many commands
+        in one process, and a render that carries no CLI frame (writing roff
+        for a command tree, say) resolves the chain from a stack the walk
+        cannot read. The wrong answer then stands for the rest of the build,
+        and a later `--version` example publishes it. Clearing the memo hands
+        the next reader its own walk, at the cost of repeating one.
+
+        A field the caller pinned through `fields=` is not a resolution and
+        survives: see {attr}`_field_overrides`.
+        """
+        cls = type(self)
+        for key in list(self.__dict__):
+            if key in self._field_overrides:
+                continue
+            if isinstance(getattr(cls, key, None), cached_property):
+                del self.__dict__[key]
 
     def __deepcopy__(self, memo: dict[int, Any]) -> VersionOption:
         """Copy the option, dropping every cached field value.
@@ -1815,3 +1865,28 @@ class VersionOption(ExtraOption):
 
         echo(self.render_message(), color=ctx.color)
         ctx.exit()
+
+
+def reset_version_resolution(command: Command) -> None:
+    """Reset every {class}`VersionOption` in a command tree.
+
+    Walks the tree once, cycle-safe, and calls
+    {meth}`VersionOption.reset_resolution` on each option it finds.
+
+    Written for a documentation build, which renders many commands in one
+    process where a CLI renders one. See that method for what a stale
+    resolution costs a published page.
+    """
+    seen: set[int] = set()
+
+    def walk(cmd: Command) -> None:
+        if id(cmd) in seen:
+            return
+        seen.add(id(cmd))
+        for param in cmd.params:
+            if isinstance(param, VersionOption):
+                param.reset_resolution()
+        for sub in getattr(cmd, "commands", {}).values():
+            walk(sub)
+
+    walk(command)

@@ -17,6 +17,7 @@
 - Name what an option takes on every `click-extra` screen with one vocabulary: `SECONDS` for a duration, `COLOR` for a CSS color, `PIXELS` for a pixel count, and `FILE` or `DIRECTORY` for a path.
 - Give `click-extra screenshot --hold` and `--columns` the metavars `[auto|FLOAT]` and `[auto|INTEGER]`, naming what each accepts.
 - Replace the inline value lists of the table `--columns`, `click-extra test-suite --skip-platform` and `click-extra wrap --table-format` with metavars. The `man`, `markdown` and `json` renders list the values.
+- Resolve `--version` afresh for each `click:run` block, instead of letting the first render in a documentation build answer for every later one. A page could publish a version screen with no version on it.
 - Stop `{env_info}` crashing when the working directory it reports has been deleted. Requires `boltons` `26.2.0`.
 - Count a double-width character as the two columns it takes when wrapping styled text and laying out the `--version` screen. Requires `wcwidth` `0.8.3`.
 - Line up a table carrying an emoji-presentation glyph on every terminal `wcwidth` has measured, instead of Apple Terminal alone.
