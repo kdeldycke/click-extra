@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 
+import click
 import pytest
 import requests
 from extra_platforms.pytest import skip_windows
@@ -31,6 +32,10 @@ from click_extra.pytest import (  # noqa: F401
     runner,
 )
 from click_extra.theme import THEME_ENVVAR
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 @pytest.fixture(scope="session")
@@ -108,3 +113,30 @@ def fetch_or_skip(url: str, timeout: float = 60) -> requests.Response:
 
     assert response.ok, f"{url} answered {response.status_code} {response.reason}"
     return response
+
+
+def walk_commands(
+    command: click.Command,
+    ctx: click.Context | None = None,
+    path: tuple[str, ...] = (),
+) -> Iterator[tuple[tuple[str, ...], click.Command]]:
+    """Yield every `(path, command)` pair under `command`, itself included.
+
+    `path` holds the subcommand names leading to the command, the root's own
+    name excluded, so joining it names the invocation a user would type.
+
+    :param command: the command to walk, a group or a leaf.
+    :param ctx: the context `command` is looked up in. Built from the command
+        itself when omitted, which is what a walk starting at the root wants.
+    :param path: the names already walked through, for the recursion.
+    """
+    if ctx is None:
+        ctx = click.Context(command, info_name=command.name)
+    yield path, command
+    if isinstance(command, click.Group):
+        for name in command.list_commands(ctx):
+            sub = command.get_command(ctx, name)
+            if sub is None:
+                continue
+            sub_ctx = click.Context(sub, parent=ctx, info_name=name)
+            yield from walk_commands(sub, sub_ctx, (*path, name))

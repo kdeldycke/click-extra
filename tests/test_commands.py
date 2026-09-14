@@ -31,6 +31,7 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
+from click.utils import _make_default_short_help
 
 import click_extra
 from click_extra import (
@@ -48,6 +49,7 @@ from click_extra import (
     pass_context,
     version_option,
 )
+from click_extra.cli import demo
 from click_extra.commands import (
     DEFAULT_OPTION_GROUPS,
     DEFAULT_PRIORITY,
@@ -66,6 +68,8 @@ from click_extra.pytest import (
     default_options_colored_help,
     default_options_uncolored_help,
 )
+
+from .conftest import walk_commands
 
 
 @pytest.mark.once
@@ -1989,18 +1993,6 @@ def _first_sentence(paragraph: str) -> str:
     return collapsed[: match.end()].strip() if match else collapsed
 
 
-def _walk_commands(command, ctx, path=()):
-    """Yield every `(path, command)` pair under `command`, itself included."""
-    yield path, command
-    if isinstance(command, click.Group):
-        for name in command.list_commands(ctx):
-            sub = command.get_command(ctx, name)
-            if sub is None:
-                continue
-            sub_ctx = click.Context(sub, parent=ctx, info_name=name)
-            yield from _walk_commands(sub, sub_ctx, (*path, name))
-
-
 @pytest.mark.once
 def test_command_listing_is_not_cut_by_an_abbreviation():
     """A subcommand's line in its parent's list holds its whole first sentence.
@@ -2013,13 +2005,9 @@ def test_command_listing_is_not_cut_by_an_abbreviation():
     landing before the first sentence ends, which is the one failure a docstring
     can cause without anyone noticing.
     """
-    from click.utils import _make_default_short_help
-
-    from click_extra.cli import demo
-
     root_ctx = click.Context(demo, info_name="click-extra")
     offenders = []
-    for path, subcommand in _walk_commands(demo, root_ctx):
+    for path, subcommand in walk_commands(demo, root_ctx):
         if not path or not subcommand.help:
             continue
         first_paragraph = subcommand.help.split("\n\n")[0]
@@ -2044,11 +2032,9 @@ def test_no_help_screen_leaks_a_no_rewrap_marker():
     without a blank line around it therefore ships the raw backspace character:
     a terminal hides it, an HTML page does not.
     """
-    from click_extra.cli import demo
-
     root_ctx = click.Context(demo, info_name="click-extra")
     offenders = []
-    for path, subcommand in _walk_commands(demo, root_ctx):
+    for path, subcommand in walk_commands(demo, root_ctx):
         name = " ".join(("click-extra", *path))
         ctx = click.Context(subcommand, info_name=name)
         # Pushed on the stack: rendering a help screen reads the active context

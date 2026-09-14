@@ -38,9 +38,11 @@ intact and adds:
   a `Style` instance.
 - {meth}`Style.contrast_ratio` returning the WCAG contrast ratio between
   two foreground colors. Useful for theme designers checking accessibility.
-- {func}`split_ansi`, {func}`render_ansi` and {func}`wrap_ansi` for tokenizing
-  a string mixing text and ANSI escapes into styled runs, re-rendering those
-  runs through a markup emitter, and wrapping them to a visible width.
+- {func}`split_ansi` and {func}`render_ansi` for tokenizing a string mixing
+  text and ANSI escapes into styled runs, then re-rendering those runs through
+  a markup emitter. Wrapping them to a width lives in
+  {func}`~click_extra.layout.wrap_ansi`, with the rest of the terminal-grid
+  measures.
 - {func}`open_ansi` reporting the escapes a string leaves open, so a styled
   fragment can be spliced into styled text without closing it.
 - The {func}`ansi_to_html`, {func}`ansi_to_jira`, {func}`ansi_to_latex` and

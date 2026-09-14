@@ -59,6 +59,7 @@ from pygments.styles import get_all_styles, get_style_by_name
 from pygments.token import Token
 from pygments.util import ClassNotFound
 
+from .layout import number_lines
 from .screenshot import (
     AUTO_COLUMNS,
     DEFAULT_BORDER_WIDTH,
@@ -70,7 +71,6 @@ from .screenshot import (
     OPAQUE,
     CaptureBackground,
     CaptureFormat,
-    number_lines,
     render,
     resolve_palette,
     trim_lines,
@@ -103,11 +103,13 @@ TAB_WIDTH = 4
 """Spaces a tab is expanded to before the snippet is laid out.
 
 A terminal expands tabs as it prints, so captured output never carries one and
-the renderer never had to answer for it. A file does carry them, and a tab has
-no width on a character grid: {func}`~click_extra.screenshot.cell_width` reads
-`wcwidth.wcswidth`, which answers `-1` for a control character and takes the
-whole line's measurement down with it. Expanding up front is what keeps the grid
-arithmetic true.
+the renderer never had to answer for it. A file does carry them, and a tab is
+the one character whose width depends on where it starts: it reaches the next
+stop eight columns along. {func}`~click_extra.layout.grid` weighs each character
+on its own, so it reads every tab as the eight cells
+{func}`~click_extra.layout.cell_width` answers for one measured alone, wherever
+the tab actually sits. Expanding up front is what keeps the grid arithmetic
+true, at the width a reader expects of source code rather than of a terminal.
 """
 
 FALLBACK_LEXER = "text"
@@ -319,7 +321,7 @@ def render_snippet(
     :param tail: number of trailing lines to keep.
     :param truncation: line standing in for the lines cut by `head` or `tail`.
     :param line_numbers: draw each line's number in a gutter, see
-        {func}`~click_extra.screenshot.number_lines`.
+        {func}`~click_extra.layout.number_lines`.
     :param emphasize: lines to draw a band behind, counted from `1`.
     :param title: see {func}`~click_extra.screenshot.render`.
     :param unique_id: see {func}`~click_extra.screenshot.render`.

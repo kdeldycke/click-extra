@@ -139,7 +139,7 @@ from boltons.strutils import strip_ansi
 assert "version" in strip_ansi(result.output)
 ```
 
-Both `extra_keywords` and `excluded_keywords` accept a `HelpKeywords` instance. The available category fields are: `cli_names`, `subcommands`, `command_aliases`, `arguments`, `long_options`, `short_options`, `choices`, `choice_metavars`, `metavars`, `envvars`, and `defaults`. The `choice_metavars` field is auto-populated from `click.Choice` parameters and rarely needs manual specification.
+Both `extra_keywords` and `excluded_keywords` accept a `HelpKeywords` instance. The available category fields are: `cli_names`, `subcommands`, `command_aliases`, `arguments`, `long_options`, `short_options`, `choices`, `choice_metavars`, `metavars`, `envvars`, `defaults`, and `deprecated`. The `choice_metavars` field is auto-populated from `click.Choice` parameters and rarely needs manual specification.
 
 For advanced customization, override `collect_keywords()` on your command class. Call `super()` and mutate the returned `HelpKeywords` to add or remove entries:
 

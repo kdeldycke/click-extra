@@ -44,13 +44,15 @@ assert cell_width("a\tb") == 9
 `wcwidth.wcswidth`, the older call, refuses any string carrying a control character and answers `-1` for it, which is every styled string. Reach for it only where a consumer reads that value back, as `tabulate` does.
 ```
 
-Naming the terminal applies `wcwidth`'s correction for the emoji-presentation sequences a few of them advance by one column where the Unicode tables say two:
+A few terminals advance an emoji-presentation sequence by one column where the Unicode tables say two. Naming the terminal applies `wcwidth`'s correction for it:
 
 ```{click:run}
 from click_extra.layout import cell_width
 
-assert cell_width("\u2705") == 2
-assert cell_width("\u2705", term_program="iTerm.app") == 2
+# A warning sign followed by the emoji variation selector U+FE0F.
+assert cell_width("\u26a0\ufe0f") == 2
+assert cell_width("\u26a0\ufe0f", term_program="Apple_Terminal") == 1
+assert cell_width("\u26a0\ufe0f", term_program="iTerm.app") == 2
 ```
 
 ## Padding a line

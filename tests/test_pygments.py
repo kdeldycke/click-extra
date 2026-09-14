@@ -22,6 +22,7 @@ from importlib import metadata
 from operator import itemgetter
 from pathlib import Path
 
+import click
 import pytest
 from boltons.strutils import camel2under
 from boltons.typeutils import issubclass
@@ -35,6 +36,7 @@ from pygments.lexers import find_lexer_class_by_name, get_lexer_by_name
 from pygments.token import Text, Token
 
 from click_extra import pygments as extra_pygments
+from click_extra.cli import demo
 from click_extra.pygments import (
     _ANSI_STYLES,
     _NAMED_COLORS,
@@ -53,7 +55,7 @@ from click_extra.pygments import (
 )
 from click_extra.styling import _nearest_256
 
-from .conftest import fetch_or_skip
+from .conftest import fetch_or_skip, walk_commands
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -1455,15 +1457,10 @@ def test_no_click_extra_help_screen_renders_raw_escapes():
     ``\x1b`` in the page, so the assertion reads the formatted output rather
     than the token stream.
     """
-    import click
-
-    from click_extra.cli import demo
-    from click_extra.pygments import AnsiHtmlFormatter
-
     lexer = get_lexer_by_name("ansi-shell-session")
     formatter = AnsiHtmlFormatter()
     offenders = []
-    for path, subcommand in _walk_click_commands(demo):
+    for path, subcommand in walk_commands(demo):
         name = " ".join(("click-extra", *path))
         ctx = click.Context(subcommand, info_name=name)
         with ctx:
@@ -1472,19 +1469,3 @@ def test_no_click_extra_help_screen_renders_raw_escapes():
             offenders.append(name)
 
     assert not offenders, "help screens rendering raw escapes: " + ", ".join(offenders)
-
-
-def _walk_click_commands(command, ctx=None, path=()):
-    """Yield every `(path, command)` pair under `command`, itself included."""
-    import click
-
-    if ctx is None:
-        ctx = click.Context(command, info_name=command.name)
-    yield path, command
-    if isinstance(command, click.Group):
-        for name in command.list_commands(ctx):
-            sub = command.get_command(ctx, name)
-            if sub is None:
-                continue
-            sub_ctx = click.Context(sub, parent=ctx, info_name=name)
-            yield from _walk_click_commands(sub, sub_ctx, (*path, name))

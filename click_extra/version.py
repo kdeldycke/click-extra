@@ -1622,13 +1622,6 @@ class VersionOption(ExtraOption):
         """Various environment info.
 
         Returns the data produced by [boltons.ecoutils.get_profile()](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile).
-
-        ```{todo}
-        Delete the `boltons` line from `[tool.uv] exclude-newer-package` in
-        `pyproject.toml` on 2026-09-14. It bypasses the cooldown for the one
-        release the floor requires, and caps `boltons` at `26.2.0` until it
-        goes.
-        ```
         """
         # `boltons.ecoutils` introspects the interpreter, OS and platform to
         # build its profile, and is comparatively expensive to import. It is

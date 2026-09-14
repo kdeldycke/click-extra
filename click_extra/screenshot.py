@@ -55,7 +55,6 @@ import subprocess
 import zlib
 from collections import Counter
 from enum import Enum
-from functools import cache
 from hashlib import sha256
 from html import escape
 from importlib import metadata
@@ -67,11 +66,16 @@ from click import style, unstyle
 from ._utils import generator_tag
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
+
+# These were this module's own before the terminal-grid primitives moved out to
+# click_extra.layout, so downstream code reaches them at this address. The two the
+# body no longer calls are kept anyway, and marked, so the move stays invisible to
+# an importer.
 from .layout import (
+    LINE_NUMBER_SEPARATOR,  # noqa: F401
     PADDING,
+    RTL_BIDI_CLASSES,  # noqa: F401
     RULE_COLOR,
-    # Re-exported: these were this module's before the terminal-grid
-    # primitives moved out of it, and downstream code imports them here.
     cell_width,
     center_in_rule,
     fit_columns,
@@ -692,10 +696,10 @@ AUTO_COLUMNS: Literal["auto"] = "auto"
 
 Neither end of the pipeline is pinned: the command wraps to whatever terminal it
 finds (Click's own 80 when that is a pipe, or a documentation build), and the
-image is laid out at the longest line that came back, see {func}`~click_extra.layout.fit_columns`.
-Nothing the command printed folds inside the picture then, which is what a line
-the command does not wrap on its own needs: a prompt, a wide table, a
-machine-readable dump.
+image is laid out at the longest line that came back, see
+{func}`~click_extra.layout.fit_columns`. Nothing the command printed folds
+inside the picture then, which is what a line the command does not wrap on its
+own needs: a prompt, a wide table, a machine-readable dump.
 
 The cost is that the picture stops being a fixed-width terminal, so a capture
 meant to sit beside others at the same width should name that width instead.
@@ -741,8 +745,8 @@ TRUNCATION_LABEL = "\N{BLACK SCISSORS}"
 TRUNCATION_RULE = "\N{MIDDLE DOT}"
 """Character {data}`AUTO_TRUNCATION` draws its rule with.
 
-Broken rather than {data}`RULE_GLYPH`: a dotted line reads as text missing from
-that spot, where an unbroken one reads as a section ending.
+Broken rather than {data}`~click_extra.layout.RULE_GLYPH`: a dotted line reads as
+text missing from that spot, where an unbroken one reads as a section ending.
 
 A dot rather than one of the Box Drawing dashes, which carry two or three
 strokes inside a single cell. Those strokes and the hairline gaps between them
@@ -852,7 +856,6 @@ def cursor_cell(picture: str, columns: int) -> tuple[int, int] | None:
     return (row, column)
 
 
-@cache
 def auto_columns(pictures: Sequence[str], cursor: Cursor | None = None) -> int:
     """Width, in characters, an auto-sized capture of `pictures` asks for.
 
@@ -1007,10 +1010,9 @@ def _rule_marker(lines: Sequence[str]) -> str:
     :param lines: the lines the marker is drawn between.
     :return: the marker to write in their place.
     """
-    width = max((cell_width(strip_ansi(line)) for line in lines), default=0)
     return center_in_rule(
         style(TRUNCATION_LABEL, fg=RULE_COLOR),
-        width,
+        fit_columns("\n".join(lines)),
         rule=TRUNCATION_RULE,
         opening=" ",
         closing=" ",
@@ -1712,9 +1714,9 @@ def render_svg(
     """Draw captured terminal text as a picture of a terminal window.
 
     A terminal is a fixed grid of identically-sized cells, which is what makes
-    this arithmetic rather than typesetting: {func}`~click_extra.layout.grid` says which cell each
-    run of same-styled characters starts on, and every coordinate below is that
-    column times {data}`CELL_WIDTH`.
+    this arithmetic rather than typesetting: {func}`~click_extra.layout.grid`
+    says which cell each run of same-styled characters starts on, and every
+    coordinate below is that column times {data}`CELL_WIDTH`.
 
     Two primitives draw everything. A `<rect>` fills the cells behind a run that
     carries a background, and a `<text>` draws its glyphs, pinned to its columns
@@ -2685,8 +2687,8 @@ def capture(
     :param merge_stderr: fold `stderr` into the captured output.
     :param timeout: seconds before the command is killed.
     :param line_numbers: draw each line's number in a gutter, see
-        {func}`~click_extra.layout.number_lines`. The prompt counts as the first of them, being the
-        invocation everything under it came from.
+        {func}`~click_extra.layout.number_lines`. The prompt counts as the first
+        of them, being the invocation everything under it came from.
     :param emphasize: lines to draw a band behind, see {func}`render_svg`. The
         prompt is line 1 here too, and a gutter does not shift the count.
     :param cursor: see {func}`render`. A still capture leaves its cursor after

@@ -53,6 +53,7 @@ from .decorators import argument, command, group, jobs_option, option
 from .envvar import merge_envvar_ids
 from .execution import run_jobs
 from .highlight import HelpKeywords
+from .layout import center_in_rule
 from .logo import BRAND_SCREEN
 from .myst_converter import convert_directory, detect_source_package
 from .parameters import make_resilient_context
@@ -88,7 +89,6 @@ from .screenshot import (
     CaptureBackground,
     CaptureFormat,
     capture,
-    center_in_rule,
     format_from_path,
 )
 from .screenshot_presets import PRESETS, Cursor, CursorShape

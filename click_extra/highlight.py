@@ -491,6 +491,10 @@ class HelpFormatter(cloup.HelpFormatter):
     #: Matches a lone `--`, the POSIX end-of-options separator.
     _separator_re: ClassVar[re.Pattern] = re.compile(r"(?<!\S)--(?!\S)")
 
+    #: Matches what an example line puts before the CLI name: an indent, and
+    #: the shell prompt a transcript is written with.
+    _prompt_re: ClassVar[re.Pattern] = re.compile(r"[ \t]*(?:[$>#]\s+)?")
+
     #: The marker pattern the help screen paints, see {data}`DEPRECATED_RE`.
     _deprecated_re: ClassVar[re.Pattern] = DEPRECATED_RE
 
@@ -580,10 +584,6 @@ class HelpFormatter(cloup.HelpFormatter):
         key = f"\x00B{len(store)}\x00"
         store[key] = styled
         return key
-
-    #: Matches what an example line puts before the CLI name: an indent, and
-    #: the shell prompt a transcript is written with.
-    _prompt_re: ClassVar[re.Pattern] = re.compile(r"[ \t]*(?:[$>#]\s+)?")
 
     def _highlight_invoked_subcommands(
         self,
@@ -764,18 +764,15 @@ class HelpFormatter(cloup.HelpFormatter):
                     self._style_command_path,
                 )
 
-            # Highlight options (long and short combined). Per-keyword lookbehind
-            # excludes the option's own leading symbol to prevent matching repeated
-            # prefixes (for example, "---debug" should not match "--debug").
             all_options = sorted(
                 kw.long_options | kw.short_options, key=len, reverse=True
             )
-            # Paint a numeric value spelled out beside the option it feeds,
-            # like the `1` of "--jobs 1 for sequential execution". A number is
-            # the one value shape that cannot be read as prose, so the pass
-            # stops there: the word after an option name is a value in
-            # "--jobs max" and an ordinary verb in "--wrap routes it".
             if all_options:
+                # Paint a numeric value spelled out beside the option it feeds,
+                # like the `1` of "--jobs 1 for sequential execution". A number
+                # is the one value shape that cannot be read as prose, so the
+                # pass stops there: the word after an option name is a value in
+                # "--jobs max" and an ordinary verb in "--wrap routes it".
                 option_alt = "|".join(re.escape(name) for name in all_options)
                 option_value_re = re.compile(
                     rf"(?<![\w\-])(?:{option_alt})(?:\s+|=)"
@@ -788,7 +785,10 @@ class HelpFormatter(cloup.HelpFormatter):
 
                 help_text = option_value_re.sub(style_option_value, help_text)
 
-            if all_options:
+                # Highlight options (long and short combined). Per-keyword
+                # lookbehind excludes the option's own leading symbol to prevent
+                # matching repeated prefixes (for example, "---debug" should not
+                # match "--debug").
                 help_text = highlight(
                     help_text,
                     (

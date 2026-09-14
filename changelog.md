@@ -6,39 +6,32 @@
 > This version is **not released yet** and is under active development.
 
 - **Breaking:** Drop `click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`. Which terminals narrow an emoji-presentation sequence now comes from `wcwidth`'s own measured tables.
-- Highlight a subcommand, and the options it accepts, where a help screen writes an example invocation like `$ my-cli pick --ripe`.
 - Add a `click_extra.layout` module for terminal-grid work, holding the new `center_in_rule` and `pad_to` alongside `cell_width`, `fit_columns`, `grid`, `is_bidirectional`, `number_lines` and `wrap_ansi`. Every one stays importable where it was.
+- Add `open_ansi()`, returning the ANSI escapes a string leaves in effect, to splice a styled fragment into styled text.
+- Add `separator`, `subcommand` and `deprecated` theme slots, painting the `--` end-of-options separator, a command path's last component, and the deprecation markers a new `HelpKeywords.deprecated` field matches.
+- Take theme names on `click-extra themes`, rendering only those in the order given, each headed by its name centered in a rule. `auto` stands for the palette the terminal background resolves to.
 - Draw the `--truncation` marker of a capture as a dotted rule spanning the kept lines, centered on `✂`. Naming a marker still takes it verbatim.
-- Take theme names on `click-extra themes`, rendering only those, in the order given. `auto` stands for the palette the terminal background resolves to.
-- Head each `click-extra themes` screen with the theme name centered in a rule, drawn as wide as the help screen below it.
-- Add a `separator` theme slot, painting the `--` end-of-options separator wherever a help screen writes it.
-- Paint the last component of a command path with the `subcommand` slot, the one its parent screen lists it under, wherever a help screen writes the path.
-- Paint a numeric value spelled out beside the option it feeds, like the `1` of `--jobs 1`.
-- Style each part of an enumerated metavar a CLI writes itself, like the `INTEGER|auto` of a hybrid type.
 - Close every `click-extra` help screen with example invocations.
-- Paint an operand named in a command's description, like the `SCRIPT` of an option taking a target and forwarding the rest.
-- Name the values `click-extra screenshot --hold` and `--columns` accept in their metavar, as `[auto|FLOAT]` and `[auto|INTEGER]`.
-- Replace the inline value list of `--columns` and `click-extra test-suite --skip-platform` with a metavar. The `man`, `markdown` and `json` renders list them.
-- Render `click-extra wrap --table-format` as a `FORMAT` metavar, replacing the list of its fifty accepted values.
+- Highlight more of a help screen: an example invocation's subcommand and the options it accepts, a numeric value beside the option it feeds, each part of an enumerated metavar, and an operand named in a description.
 - Name what an option takes on every `click-extra` screen with one vocabulary: `SECONDS` for a duration, `COLOR` for a CSS color, `PIXELS` for a pixel count, and `FILE` or `DIRECTORY` for a path.
-- Close a `[default: ...]` field on its own bracket when the default value is itself bracketed, as `[default: [...]]`.
-- List `click-extra gradient` under its whole first sentence. An abbreviation cut it to "Render 24-bit RGB gradients vs."
-- State the `--rows`, `--hold`, `--blank`, `--blink`, `--submit` and `--speed` defaults of `click-extra screenshot` in their own sentence, replacing a second `[default: ...]` field written into the help text.
+- Give `click-extra screenshot --hold` and `--columns` the metavars `[auto|FLOAT]` and `[auto|INTEGER]`, naming what each accepts.
+- Replace the inline value lists of the table `--columns`, `click-extra test-suite --skip-platform` and `click-extra wrap --table-format` with metavars. The `man`, `markdown` and `json` renders list the values.
+- Stop `{env_info}` crashing when the working directory it reports has been deleted. Requires `boltons` `26.2.0`.
+- Count a double-width character as the two columns it takes when wrapping styled text and laying out the `--version` screen. Requires `wcwidth` `0.8.3`.
+- Line up a table carrying an emoji-presentation glyph on every terminal `wcwidth` has measured, instead of Apple Terminal alone.
+- Keep an OSC 8 hyperlink intact through `wrap_ansi()`, which used to drop its markers and leave the display text alone.
+- Return a Click Extra theme from `HelpTheme.dark()` and `HelpTheme.light()`, which used to hand back a bare `cloup.HelpTheme` missing every extra slot.
+- Keep a deprecation message colored past a keyword quoted inside it: a highlighted option or command name used to strip the color off the rest of the message.
 - Name every spelling of a deprecated option in the notice Click prints, as `--apt-cyg / --no-apt-cyg`. It reported `'apt_cyg'`, the Python identifier, which is the one spelling no user can type.
 - Warn about a deprecated parameter a configuration file switches on. Click stops one rank short of the configuration, leaving the one place a selection outlives the project it names.
-- Paint a CLI's own deprecation markers with the `deprecated` theme slot, through a new `deprecated` field on `HelpKeywords`. Click's spelling was the whole pattern, so a project marking a parameter in its own vocabulary got no color for it.
-- Stop `{env_info}` crashing when the working directory it reports has been deleted. Requires `boltons` `26.2.0`.
-- Draw the columns a `ShowParamsOption` subclass declares in its `default_columns()`, which `--params` ignored in favor of the base class's. That hook is the only way to reach an opt-in column on a CLI carrying no `--columns` option.
+- Draw the columns a `ShowParamsOption` subclass declares in its `default_columns()`, which `--params` ignored in favor of the base class's.
 - Keep the help-screen section of an option a `params` hook swaps for a subclass of it, which used to be drawn under `Other options` instead.
 - Read a repeatable boolean flag as the toggle it is, in `--export-config` and in INI files, instead of as a list of values that dumped an unset one as `[]`.
 - Leave a subcommand's options out of `--export-config` when the schema marks their section opaque. The export used to write a file its own loader refused.
 - Check a `MultiChoice` value given as a list against its choices, as a configuration file provides it. An unknown column ID reached `select_columns` and raised `KeyError` there.
-- Add `open_ansi()`, returning the ANSI escapes a string leaves in effect, to splice a styled fragment into styled text.
-- Keep a deprecation message colored past a keyword quoted inside it: a highlighted option or command name used to strip the color off the rest of the message.
-- Return a Click Extra theme from `HelpTheme.dark()` and `HelpTheme.light()`, which used to hand back a bare `cloup.HelpTheme` missing every extra slot.
-- Count a double-width character as the two columns it takes when wrapping styled text and laying out the `--version` screen. Requires `wcwidth` `0.8.3`.
-- Keep an OSC 8 hyperlink intact through `wrap_ansi()`, which used to drop its markers and leave the display text alone.
-- Line up a table carrying an emoji-presentation glyph on every terminal `wcwidth` has measured, instead of Apple Terminal alone.
+- Close a `[default: ...]` field on its own bracket when the default value is itself bracketed, as `[default: [...]]`.
+- List `click-extra gradient` under its whole first sentence. An abbreviation cut it to "Render 24-bit RGB gradients vs."
+- State the `--rows`, `--hold`, `--blank`, `--blink`, `--submit` and `--speed` defaults of `click-extra screenshot` in their own sentence, replacing a second `[default: ...]` field written into the help text.
 
 ## [`9.1.0` (2026-09-03)](https://github.com/kdeldycke/click-extra/compare/v9.0.0...v9.1.0)
 

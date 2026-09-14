@@ -702,7 +702,7 @@ def _render_vertical(
     A cell exceeding its `max_column_widths` entry wraps onto extra lines,
     each aligned under the first one so the label column stays readable. Unlike
     the tabulate-backed formats, this layout does the wrapping itself: there is
-    no backend to delegate it to. {func}`~click_extra.styling.wrap_ansi` does
+    no backend to delegate it to. {func}`~click_extra.layout.wrap_ansi` does
     the measuring, so a styled cell breaks on its visible width and keeps its
     styling across the wrap.
 

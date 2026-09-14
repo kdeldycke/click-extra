@@ -29,6 +29,7 @@ the same grid, and so can any CLI drawing a divider of its own.
 
 from __future__ import annotations
 
+from functools import cache
 from unicodedata import bidirectional
 
 from click import style
@@ -161,7 +162,9 @@ def center_in_rule(
     def paint(text: str) -> str:
         return style(text, fg=color) if color and text else text
 
-    return f"{paint(rule * left + opening)}{label}{paint(closing + rule * (padding - left))}"
+    head = paint(rule * left + opening)
+    tail = paint(closing + rule * (padding - left))
+    return f"{head}{label}{tail}"
 
 
 LINE_NUMBER_SEPARATOR = " │ "
@@ -221,6 +224,7 @@ def is_bidirectional(text: str) -> bool:
     return any(bidirectional(char) in RTL_BIDI_CLASSES for char in text)
 
 
+@cache
 def _char_width(char: str) -> int:
     """Cells one character occupies, cached.
 
@@ -300,7 +304,7 @@ def grid(text: str, columns: int) -> list[list[tuple[Style, str, int]]]:
 
 
 def wrap_ansi(text: str, width: int) -> list[str]:
-    """Wrap *text* to *width* terminal cells, preserving its ANSI styling.
+    """Wrap `text` to `width` terminal cells, preserving its ANSI styling.
 
     {func}`textwrap.wrap` counts every byte of an ANSI escape toward the line
     length, so a styled string wraps far earlier than its visible width
@@ -310,14 +314,16 @@ def wrap_ansi(text: str, width: int) -> list[str]:
     line boundary: each returned line carries the styling it needs, opened and
     closed within the line.
 
-    Returns a list of lines, empty *text* yielding a single empty one.
-
     ```{note}
     Breaks land where {func}`textwrap.wrap` puts them on plain ASCII, so
     long-word breaking and whitespace handling match it exactly. The two
     measures part on a double-width character, which counts for the two cells
     it takes, and on an OSC 8 hyperlink, which counts for none.
     ```
+
+    :param text: the text to wrap, ANSI escape sequences included.
+    :param width: cells each returned line occupies at most.
+    :return: the wrapped lines, empty `text` yielding a single empty one.
     """
     # Tab expansion would change the visible width of the text. Disabled,
     # `replace_whitespace` still substitutes a single space for each whitespace

@@ -53,7 +53,7 @@ from extra_platforms import is_unix
 
 from .color import forced_color
 from .execution import args_cleanup
-from .layout import cell_width
+from .layout import cell_width, number_lines
 from .screenshot import (
     AUTO_HOLD,
     CAPTURE_HIDDEN_TERMINAL_VARS,
@@ -67,7 +67,6 @@ from .screenshot import (
     OPAQUE,
     CaptureBackground,
     append_prompt,
-    number_lines,
     prompt_line,
     render,
 )

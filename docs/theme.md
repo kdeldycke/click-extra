@@ -250,7 +250,7 @@ assert result.exit_code == 0
 ``````
 
 ```{tip}
-Prefer the terminal? Run `click-extra themes` to print the same gallery in your shell: the `themes` demo subcommand renders one sample help screen under each built-in palette, one after another. Name the palettes you want to compare to render only those, in the order given, as `click-extra themes nord dracula`. It takes [`auto`](#automatic-background-detection) too, and labels the screen with the palette that resolves to. A terminal keeps a single background, so the light-background themes (`light`, `manpage`) look washed out on a dark terminal, and the dark themes look washed out on a light one.
+Prefer the terminal? Run `click-extra themes` to print the same gallery in your shell. The `themes` demo subcommand renders one sample help screen under every registered palette in turn, alphabetically: the built-in ones, plus any a configuration file adds. Name the palettes you want to compare to render only those, in the order given, as `click-extra themes nord dracula`. It takes [`auto`](#automatic-background-detection) too, and labels the screen with the palette that resolves to. A terminal keeps a single background, so the light-background themes (`light`, `manpage`) look washed out on a dark terminal, and the dark themes look washed out on a light one.
 ```
 
 Three flavors ship in `click_extra/themes.toml`:
@@ -362,7 +362,7 @@ minimal = BUILTIN_THEMES["dark"].with_(
 
 The styling slots carry a second, coarser classification borrowed from [man-pages(7)](https://man7.org/linux/man-pages/man7/man-pages.7.html): *literal* tokens the user types verbatim versus *replaceable* tokens the user substitutes with a real value. Man pages render the former in **bold** and the latter in *italic*, "even in the SYNOPSIS section". `click_extra.theme` records that mapping as two frozensets of slot names:
 
-- `LITERAL_STYLES`: `invoked_command`, `subcommand`, `alias`, `alias_secondary`, `option`, `choice`.
+- `LITERAL_STYLES`: `invoked_command`, `subcommand`, `alias`, `alias_secondary`, `option`, `choice`, `separator`.
 - `REPLACEABLE_STYLES`: `metavar`, `argument`.
 
 Every remaining slot (log levels, the `[default: ...]` and `[env var: ...]` bracket fields, headings, …) sits outside the dichotomy. Every built-in theme applies this split: literal slots render bold and replaceable slots italic, even inside the color palettes, and the [`manpage`](#manpage) theme renders it with nothing else. A future [man-page generator](man-page.md) can reuse the same two sets to map each styled token to roff's `\fB` / `\fI`.

@@ -49,7 +49,7 @@ click-extra first, Click second, Cloup third, then remaining frameworks sorted b
 
 ### `pyproject-fmt` panics on a version-opening indented comment
 
-A comment whose text is indented two spaces or more and then opens on `N.N` (like `3.10`) reads as a Markdown ordered-list marker to `pyproject-fmt`, which panics and formats the whole file not at all. The bug is unfixed through `2.28.0`, the version repomatic ships. Prefix the version with a word (`Python 3.10`). The indentation that counts sits after the `#`, not before it. So a two-space-indented floor comment in `[project] dependencies` stays safe, while a continuation line indented under a `-` bullet in a comment block does not. A bare `3.` is safe too: the trigger needs a digit on each side of the dot. The crash surfaces as `PanicException: begin <= end`, and before repomatic's `rewrite_exit_code` check it was indistinguishable from a successful reformat: the autofix job stayed green for two months while formatting nothing.
+A comment whose text is indented two spaces or more and then opens on `N.N` (like `3.10`) reads as a Markdown ordered-list marker to `pyproject-fmt`, which panics and formats the whole file not at all. The bug is unfixed through `2.28.2`, the version repomatic `7.15.0` ships, and fixed in `2.29.0`: drop the workaround once a repomatic bump carries that release. Prefix the version with a word (`Python 3.10`). The indentation that counts sits after the `#`, not before it. So a two-space-indented floor comment in `[project] dependencies` stays safe, while a continuation line indented under a `-` bullet in a comment block does not. A bare `3.` is safe too: the trigger needs a digit on each side of the dot. The crash surfaces as `PanicException: begin <= end`, and before repomatic's `rewrite_exit_code` check it was indistinguishable from a successful reformat: the autofix job stayed green for two months while formatting nothing.
 
 ### Synced rules this repository has not caught up with
 
@@ -93,7 +93,7 @@ When writing or updating Sphinx documentation in `docs/*.md`, **always prefer li
 
 ### Directives
 
-Use the two MyST directives provided by `click_extra.sphinx`:
+Use these MyST directives from `click_extra.sphinx`:
 
 - ```` ```{click:source} ```` — defines and displays a Click CLI's source code (syntax-highlighted as Python).
 - ```` ```{click:run} ```` — invokes the CLI and renders the output as a terminal session. Code inside is executed at `sphinx-build` time.
