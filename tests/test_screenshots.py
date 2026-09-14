@@ -1059,7 +1059,19 @@ def test_screenshot_record_types_its_prompt(invoke, tmp_path):
         found = re.search(r"frames=(\d+)", target.read_text(encoding="UTF-8"))
         assert found
         counts[name] = int(found.group(1))
-    assert counts["typed"] - counts["plain"] == len(f"{PROMPT}basket ripen")
+
+    typed_length = len(f"{PROMPT}basket ripen")
+    # Every typed character is a frame, so the opening cannot be shorter than
+    # the line. The exact count belongs to type_line and is pinned there, by
+    # test_type_line_makes_one_frame_per_character: what this covers is that a
+    # real recording gets that opening prepended.
+    assert counts["typed"] >= typed_length
+    # Typing only ever adds frames to the front of a recording.
+    assert counts["typed"] > counts["plain"]
+    # The difference is deliberately not pinned. Only the typing frames are
+    # deterministic: how many frames the wrapped command itself records depends
+    # on when its output lands, and a loaded runner splits it one more time than
+    # an idle one does.
 
 
 def test_auto_columns_leaves_room_for_a_cursor():
