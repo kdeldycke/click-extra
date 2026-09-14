@@ -31,7 +31,6 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
-from click.utils import _make_default_short_help
 
 import click_extra
 from click_extra import (
@@ -2005,6 +2004,12 @@ def test_command_listing_is_not_cut_by_an_abbreviation():
     landing before the first sentence ends, which is the one failure a docstring
     can cause without anyone noticing.
     """
+    # Local on purpose, against the usual module-scope rule: this private helper
+    # is absent from Click 8.4.x, and the marker above keeps the test off every
+    # matrix cell pinned to it. Collection imports the module regardless, so at
+    # module scope this import errors the whole file on those cells.
+    from click.utils import _make_default_short_help
+
     root_ctx = click.Context(demo, info_name="click-extra")
     offenders = []
     for path, subcommand in walk_commands(demo, root_ctx):
