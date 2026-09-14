@@ -40,7 +40,104 @@ assert result.output.count("\x1b[36m\x1b[1m--format\x1b[0m") >= 3
 assert result.output.count("\x1b[36m\x1b[1m--output\x1b[0m") >= 3
 ```
 
-Every option name in the help screen carries the same style, regardless of where it appears: synopsis column, another option's description, the command's docstring. This turns plain-text references into visual links, making it easier to scan for related options. The same applies to choices (highlighted in the metavar list and anywhere the description mentions them), arguments, and subcommand names.
+Every option name in the help screen carries the same style, regardless of where it appears: synopsis column, another option's description, the command's docstring. This turns plain-text references into visual links, making it easier to scan for related options.
+
+### What gets highlighted
+
+Options are one class among several. A help screen is scanned for all of these, and each gets its own style:
+
+- **CLI and subcommand names**, plus any alias a subcommand answers to.
+- **Options**, long and short.
+- **Arguments**, both in the usage line and where the description names the operand.
+- **Choices**, in the metavar list and anywhere the description mentions one.
+- **Metavars**, including each part of an enumerated one a CLI writes itself.
+- **Environment variables** and **default values**, in their bracket fields.
+- **Deprecation markers**, covered under [custom keyword injection](#custom-keyword-injection) below.
+
+Three of these are easy to miss, so here they are together: a numeric value standing beside the option it feeds, the two halves of a hand-written `[auto|INTEGER]` metavar, and an operand named in prose rather than in the usage line.
+
+```{click:source}
+from click_extra import Choice, IntRange, argument, command, echo, option
+
+@command
+@option(
+    "--jobs",
+    type=IntRange(1, 8),
+    default=1,
+    help="Baskets to fill at once. Pass --jobs 1 to pick one at a time.",
+)
+@option(
+    "--width",
+    type=Choice(["auto", "40", "80"]),
+    default="auto",
+    metavar="[auto|INTEGER]",
+    help="Columns to lay the crate out on.",
+)
+@argument("basket", required=False)
+def pick(jobs, width, basket):
+    """Pick fruit into a crate.
+
+    Reads BASKET and ripens whatever it holds.
+    """
+    echo("picked")
+```
+
+```{click:run}
+result = invoke(pick, args=["--help"])
+assert result.exit_code == 0
+# The 1 of "--jobs 1" is styled as the value it is, not left as prose.
+assert "\x1b[36m\x1b[1m--jobs\x1b[0m \x1b[35m\x1b[1m1\x1b[0m" in result.output
+# Each half of the hand-written metavar is styled on its own: "auto" as a
+# choice, "INTEGER" as a metavar.
+assert "[\x1b[35m\x1b[1mauto\x1b[0m|\x1b[36m\x1b[2m\x1b[3mINTEGER\x1b[0m]" in result.output
+# BASKET is highlighted where the docstring names it, not just in the usage line.
+assert "\x1b[36m\x1b[3mBASKET\x1b[0m" in result.output
+```
+
+### Highlighting inside an example invocation
+
+An example invocation written into help text is read as a command line, not as prose. Its subcommand and options are styled by the role they play in it, which is what makes a worked example scannable at a glance.
+
+This is the one place a subcommand name lights up outside a command listing. The same word in an ordinary sentence stays plain, because there it is a word rather than a command being run.
+
+```{click:source}
+from click_extra import command, echo, group, option
+
+EPILOG = """Examples:
+
+\b
+  Take only what is ready:
+    $ orchard pick --ripe
+"""
+
+@command
+@option("--ripe", is_flag=True, help="Only fruit that is ready.")
+def pick_ripe(ripe):
+    """Pick fruit."""
+    echo("picked")
+
+@group(epilog=EPILOG)
+def orchard():
+    """Tend an orchard.
+
+    Run orchard pick --ripe when the season starts.
+    """
+
+orchard.add_command(pick_ripe, name="pick")
+```
+
+```{click:run}
+result = invoke(orchard, args=["--help"])
+assert result.exit_code == 0
+# In the example invocation, "pick" is styled as the subcommand it names.
+assert (
+    "$ \x1b[97m\x1b[1morchard\x1b[0m \x1b[36m\x1b[1mpick\x1b[0m \x1b[36m\x1b[1m--ripe\x1b[0m"
+    in result.output
+)
+# In the docstring sentence, the same word is left alone. The CLI name and the
+# option around it are still styled.
+assert "Run \x1b[97m\x1b[1morchard\x1b[0m pick \x1b[36m\x1b[1m--ripe\x1b[0m" in result.output
+```
 
 ### Disabling cross-reference highlighting
 
@@ -80,6 +177,28 @@ assert result.exit_code == 0
 # --profile is not a real parameter, but it is highlighted as an option
 # because it was injected via extra_keywords.
 assert "\x1b[36m\x1b[1m--profile\x1b[0m" in result.output
+```
+
+The `deprecated` field is the one category with no counterpart among a command's parameters. Click marks a retirement in its own words, and a project that words it differently gets no color for it. Naming that vocabulary paints it with the `deprecated` style, wherever the help screen writes it:
+
+```{click:source}
+from click_extra import HelpKeywords, command, echo, option
+
+@command(
+    extra_keywords=HelpKeywords(deprecated={"retired"}),
+)
+@option("--crate", help="Crate to fill. The wicker basket is retired.")
+def store(crate):
+    """Store fruit."""
+    echo("stored")
+```
+
+```{click:run}
+result = invoke(store, args=["--help"])
+assert result.exit_code == 0
+# "retired" is this project's own wording, so Click never marks it. Naming it
+# gives it the deprecated style anyway.
+assert "\x1b[93mretired\x1b[0m" in result.output
 ```
 
 ### Suppressing keyword highlighting
