@@ -67,14 +67,12 @@ from ._utils import generator_tag
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
 
-# These were this module's own before the terminal-grid primitives moved out to
-# click_extra.layout, so downstream code reaches them at this address. The two the
-# body no longer calls are kept anyway, and marked, so the move stays invisible to
-# an importer.
+# These were this module's own until the terminal-grid primitives moved to
+# click_extra.layout, and the body still calls every one. They are imports, not a
+# compatibility surface: a name this module stops using goes with it, and importers
+# follow it to its new home.
 from .layout import (
-    LINE_NUMBER_SEPARATOR,  # noqa: F401
     PADDING,
-    RTL_BIDI_CLASSES,  # noqa: F401
     RULE_COLOR,
     cell_width,
     center_in_rule,

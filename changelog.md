@@ -6,7 +6,8 @@
 > This version is **not released yet** and is under active development.
 
 - **Breaking:** Drop `click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`. Which terminals narrow an emoji-presentation sequence now comes from `wcwidth`'s own measured tables.
-- Add a `click_extra.layout` module for terminal-grid work, holding the new `center_in_rule` and `pad_to` alongside `cell_width`, `fit_columns`, `grid`, `is_bidirectional`, `number_lines` and `wrap_ansi`. Every one stays importable where it was.
+- **Breaking:** Drop `LINE_NUMBER_SEPARATOR` and `RTL_BIDI_CLASSES` from `click_extra.screenshot`. Both moved to `click_extra.layout`, which is where to import them from now.
+- Add a `click_extra.layout` module for terminal-grid work, holding the new `center_in_rule` and `pad_to` alongside `cell_width`, `fit_columns`, `grid`, `is_bidirectional`, `number_lines` and `wrap_ansi`. Every function above stays importable where it was.
 - Add `open_ansi()`, returning the ANSI escapes a string leaves in effect, to splice a styled fragment into styled text.
 - Add `separator`, `subcommand` and `deprecated` theme slots, painting the `--` end-of-options separator, a command path's last component, and the deprecation markers a new `HelpKeywords.deprecated` field matches.
 - Take theme names on `click-extra themes`, rendering only those in the order given, each headed by its name centered in a rule. `auto` stands for the palette the terminal background resolves to.
