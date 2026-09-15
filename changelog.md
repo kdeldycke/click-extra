@@ -1,9 +1,6 @@
 # Changelog
 
-## [`9.2.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.1.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`9.2.0` (2026-09-15)](https://github.com/kdeldycke/click-extra/compare/v9.1.0...v9.2.0)
 
 - **Breaking:** Drop `click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`. Which terminals narrow an emoji-presentation sequence now comes from `wcwidth`'s own measured tables.
 - **Breaking:** Drop `LINE_NUMBER_SEPARATOR` and `RTL_BIDI_CLASSES` from `click_extra.screenshot`. Both moved to `click_extra.layout`, which is where to import them from now.
