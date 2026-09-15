@@ -1,9 +1,6 @@
 # Changelog
 
-## [`9.2.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.2.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`9.2.1` (2026-09-15)](https://github.com/kdeldycke/click-extra/compare/v9.2.0...v9.2.1)
 
 ## [`9.2.0` (2026-09-15)](https://github.com/kdeldycke/click-extra/compare/v9.1.0...v9.2.0)
 
