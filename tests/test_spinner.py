@@ -560,6 +560,102 @@ def test_invalid_style_raises():
         Spinner(style=Style(fg="notacolor"))
 
 
+def test_style_alone_keeps_painting_the_line_as_one_run():
+    """Without a part style, `style` still wraps the whole line, byte for byte."""
+    style = Style(fg="green")
+    spinner = Spinner("Brewing tea", frames=("*",), style=style, timer=True)
+    assert spinner.frame_lines() == (style("* Brewing tea (0.0s)"),)
+
+
+@pytest.mark.parametrize(
+    ("options", "glyph", "label", "timer"),
+    (
+        pytest.param(
+            {"label_style": Style(italic=True), "timer_style": Style(dim=True)},
+            "*",
+            Style(italic=True)(" Brewing tea"),
+            Style(dim=True)(" (0.0s)"),
+            id="each-part-its-own",
+        ),
+        pytest.param(
+            {"style": Style(fg="green"), "timer_style": Style(dim=True)},
+            Style(fg="green")("*"),
+            Style(fg="green")(" Brewing tea"),
+            Style(dim=True)(" (0.0s)"),
+            id="label-falls-back-to-style",
+        ),
+        pytest.param(
+            {"style": Style(fg="green"), "label_style": Style(bold=True)},
+            Style(fg="green")("*"),
+            Style(bold=True)(" Brewing tea"),
+            Style(fg="green")(" (0.0s)"),
+            id="timer-falls-back-to-style",
+        ),
+    ),
+)
+def test_part_styles_paint_their_own_part(options, glyph, label, timer):
+    """Each part carries its leading space and takes its own style over `style`.
+
+    The timer's parentheses belong to its part, which is what a `timer`
+    callable formatting only the duration cannot reach.
+    """
+    spinner = Spinner("Brewing tea", frames=("*",), timer=True, **options)
+    assert spinner.frame_lines() == (f"{glyph}{label}{timer}",)
+
+
+@pytest.mark.parametrize(
+    "options",
+    (
+        pytest.param({}, id="no-style"),
+        pytest.param({"style": Style(fg="green")}, id="style"),
+        pytest.param(
+            {"label_style": Style(bold=True), "timer_style": Style(dim=True)},
+            id="part-styles",
+        ),
+    ),
+)
+def test_color_off_strips_escapes_embedded_in_the_label(options):
+    """A label styled by hand renders plain when color is off, like any other."""
+    label = f"{Style(fg='red')('kettle')}: {Style(italic=True)('boiling water')}"
+    spinner = Spinner(label, frames=("*",), timer=True, **options)
+    assert spinner.frame_lines(color=False) == ("* kettle: boiling water (0.0s)",)
+
+
+def test_kept_line_paints_label_and_timer_with_part_styles(monkeypatch):
+    """`ok()` paints its label and timer with the part styles, when color is on."""
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    stream = TTYStringIO()
+    spinner = Spinner(
+        "Brewing tea",
+        stream=stream,
+        timer=True,
+        label_style=Style(italic=True),
+        timer_style=Style(dim=True),
+    )
+    spinner.start()
+    spinner.ok(symbol="*", style=Style(fg="green"))
+    written = stream.getvalue().rpartition(CLEAR_LINE)[2]
+    line = written.removeprefix(SHOW_CURSOR).removesuffix("\n")
+    assert line.startswith(Style(fg="green")("*") + Style(italic=True)(" Brewing tea"))
+    # The whole clock, parentheses included, sits inside the dim run.
+    assert re.fullmatch(r".*\x1b\[2m \([^)]+\)\x1b\[0m", line)
+
+
+def test_kept_line_strips_embedded_escapes_with_color_off():
+    """Off a TTY, `ok()` writes the label plain, embedded escapes included."""
+    stream = io.StringIO()
+    spinner = Spinner(Style(fg="red")("Brewing tea"), stream=stream)
+    spinner.ok(symbol="*")
+    assert stream.getvalue() == "* Brewing tea\n"
+
+
+@pytest.mark.parametrize("argument", ("label_style", "timer_style"))
+def test_invalid_part_style_raises(argument):
+    with pytest.raises(ValueError, match="Invalid spinner style"):
+        Spinner(**{argument: Style(fg="notacolor")})
+
+
 def test_frame_lines_are_what_the_animation_draws(monkeypatch):
     """A picture of a spinner shows the lines the spinner really writes.
 

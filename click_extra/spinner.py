@@ -231,7 +231,9 @@ class Spinner:
         interval: float | None = None,
         delay: float = 0.0,
         style: Style | None = None,
+        label_style: Style | None = None,
         timer: bool | Callable[[float], str] = False,
+        timer_style: Style | None = None,
         stream: IO[str] | None = None,
         enabled: bool | None = None,
         hide_cursor: bool = True,
@@ -260,13 +262,26 @@ class Spinner:
         :param style: a {class}`~click_extra.styling.Style` applied to the spinner
             glyph, label and timer (`Style(fg="cyan", bold=True)`). Color is
             decoupled from animation: `--no-color` / `NO_COLOR` strip it while
-            the spinner keeps spinning (see {class}`ProgressOption`).
+            the spinner keeps spinning (see {class}`ProgressOption`). The strip
+            reaches escapes embedded in `label` itself too, so a label styled
+            by hand is as safe as one styled through these arguments.
+        :param label_style: a {class}`~click_extra.styling.Style` for the label
+            alone, in place of `style` there. It also paints the label of the
+            kept {meth}`ok` / {meth}`fail` line, which `style` leaves plain. It
+            outlives a reassigned {attr}`label`, where styling embedded in the
+            text has to be applied again at every step.
         :param timer: append the elapsed wall-clock time to the spinner, and to
             any final {meth}`ok` / {meth}`fail` line. `True` uses
             {func}`~click_extra.humanize.format_duration` for the default
             compact format (`2.3s`, `1:05`, then `1:02:03`). Pass a callable
             `(seconds: float) -> str` to format the duration yourself, like
             ``timer=lambda s: f"{s / 60:.0f}m"`` for whole minutes.
+        :param timer_style: a {class}`~click_extra.styling.Style` for the timer,
+            parentheses included, in place of `style` there
+            (`Style(dim=True)` to set the clock back from the label). A `timer`
+            callable formats only the duration, so it cannot reach the
+            parentheses: this can. Also paints the timer of the kept {meth}`ok`
+            / {meth}`fail` line.
         :param stream: where to draw; defaults to {data}`sys.stderr` so the
             spinner never mixes into `stdout` data.
         :param enabled: force the spinner on or off. `None` (the default)
@@ -276,8 +291,8 @@ class Spinner:
         :param beep: ring the terminal bell once when the spinner stops. It
             fires only when the spinner was active, so a disabled or redirected
             spinner stays silent.
-        :raises ValueError: if `style` carries a color or attribute that
-            cannot be rendered.
+        :raises ValueError: if `style`, `label_style` or `timer_style` carries a
+            color or attribute that cannot be rendered.
         """
         # Support a bare `@Spinner` decorator (no parentheses): the first
         # positional is then the wrapped function, not a text label. `@Spinner(…)`
@@ -317,18 +332,22 @@ class Spinner:
         self.reverse = reverse
         self.delay = delay
         self.style = style
+        self.label_style = label_style
         self.timer = timer
+        self.timer_style = timer_style
         self.stream = stream
         self.enabled = enabled
         self.hide_cursor = hide_cursor
         self.beep = beep
 
-        # Validate the style once, so a bad color or attribute fails loudly here
+        # Validate each style once, so a bad color or attribute fails loudly here
         # instead of silently killing the draw thread (cloup builds and applies
         # the style lazily on first call, where the error would surface off-thread).
-        if style is not None:
+        for candidate in (style, label_style, timer_style):
+            if candidate is None:
+                continue
             try:
-                style("")
+                candidate("")
             except (TypeError, ValueError) as error:
                 raise ValueError(f"Invalid spinner style: {error}") from error
 
@@ -401,9 +420,21 @@ class Spinner:
             its own answer to whether ANSI survives.
         :return: the text, styled or bare.
         """
+        return self._paint(text, self.style, color=color)
+
+    def _paint(
+        self, text: str, style: Style | None, *, color: bool | None = None
+    ) -> str:
+        """Apply `style` to `text` when color is on and there is text to paint.
+
+        :param style: the style to apply, used as given: no fallback to
+            {attr}`style`.
+        :param color: see {meth}`_style`.
+        :return: the text, styled or bare.
+        """
         enabled = self._color_enabled if color is None else color
-        if enabled and self.style is not None:
-            return self.style(text)
+        if enabled and style is not None and text:
+            return style(text)
         return text
 
     @property
@@ -463,12 +494,36 @@ class Spinner:
         what the spinner draws, instead of a second guess at it that drifts the
         first time this composition changes.
 
+        Without `label_style` or `timer_style`, `style` paints the line as one
+        run. With either, each part is painted on its own, carrying its leading
+        space, and a part with no style of its own falls back to `style`. With
+        color off, every escape is stripped, the ones embedded in the label
+        included.
+
         :param frame: one of {attr}`frames`, the glyph the line opens with.
         :param color: see {meth}`_style`.
-        :return: the line, ANSI escape sequences included.
+        :return: the line, ANSI escape sequences included when color is on.
         """
         label = f" {self.label}" if self.label else ""
-        return self._style(f"{frame}{label}{self._clock()}", color=color)
+        clock = self._clock()
+        if self.label_style is None and self.timer_style is None:
+            line = self._style(f"{frame}{label}{clock}", color=color)
+        else:
+            line = (
+                self._style(frame, color=color)
+                + self._paint(
+                    label,
+                    self.style if self.label_style is None else self.label_style,
+                    color=color,
+                )
+                + self._paint(
+                    clock,
+                    self.style if self.timer_style is None else self.timer_style,
+                    color=color,
+                )
+            )
+        enabled = self._color_enabled if color is None else color
+        return line if enabled else click.unstyle(line)
 
     def frame_lines(self, *, color: bool = True) -> tuple[str, ...]:
         """Every line this spinner's animation draws, one per frame.
@@ -670,11 +725,18 @@ class Spinner:
         stream = self._resolve_stream()
         color_enabled = self._resolve_color_enabled(stream)
         self.stop()
-        label = f" {self.label}" if self.label else ""
-        clock = self._clock()
+        label = self._paint(
+            f" {self.label}" if self.label else "",
+            self.label_style,
+            color=color_enabled,
+        )
+        clock = self._paint(self._clock(), self.timer_style, color=color_enabled)
         marker = paint(glyph) if color_enabled else glyph
+        line = f"{marker}{label}{clock}"
+        if not color_enabled:
+            line = click.unstyle(line)
         with self._lock:
-            stream.write(f"{marker}{label}{clock}\n")
+            stream.write(f"{line}\n")
             stream.flush()
 
     def _animate(self, stream: IO[str]) -> None:
