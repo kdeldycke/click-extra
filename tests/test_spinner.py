@@ -1035,6 +1035,53 @@ def test_concurrent_trail_disabled_stays_silent():
     assert trail.ok_count == 0
 
 
+@pytest.mark.parametrize(
+    "rendering",
+    (
+        pytest.param({"jobs": 2}, id="concurrent-spinner"),
+        pytest.param({"progress_bar": True}, id="progress-bar"),
+    ),
+)
+def test_trail_echoes_a_batch_its_indicator_never_drew(rendering):
+    """A batch finishing inside `delay` still leaves its whole record on screen.
+
+    Its indicator never drew, so the lines it buffered never reached the
+    stream. A sequential batch of the same outcomes prints them, and so must
+    this one: `finish` echoes them plainly, in order, before the finisher.
+    """
+    stream = TTYStringIO()
+    with OperationTrail(
+        label="Syncing", unit="repos", total=2, delay=30.0, stream=stream, **rendering
+    ) as trail:
+        trail.mark(True, "repo-a synced")
+        trail.mark(False, "repo-b failed")
+        trail.finish(False, "Synced 1/2 repos")
+    assert trail._indicator is None
+    assert stream.getvalue().splitlines() == [
+        trail_line(True, "repo-a synced"),
+        trail_line(False, "repo-b failed"),
+        trail_line(False, "Synced 1/2 repos"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("options", "stream_class"),
+    (
+        pytest.param({"echo_sequential": False}, TTYStringIO, id="echo-opt-out"),
+        pytest.param({"enabled": False}, TTYStringIO, id="disabled"),
+        pytest.param({}, io.StringIO, id="off-tty"),
+    ),
+)
+def test_trail_leaves_nothing_for_an_undrawn_batch_without_echo(options, stream_class):
+    """The echo of an undrawn batch obeys the same gates as a sequential one."""
+    stream = stream_class()
+    with OperationTrail(total=1, jobs=2, delay=30.0, stream=stream, **options) as trail:
+        trail.mark(True, "repo-a synced")
+        trail.finish(True, "Synced 1/1 repos")
+    assert stream.getvalue() == ""
+    assert trail.ok_count == 1
+
+
 def test_concurrent_trail_marks_are_thread_safe():
     """Concurrent mark() calls from worker threads all land in the tally."""
     stream = TTYStringIO()

@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix an `OperationTrail` batch that finishes inside its `delay` leaving no trail on screen: its lines and finisher now echo plainly, as a sequential batch's do.
+
 ## [`9.2.0` (2026-09-15)](https://github.com/kdeldycke/click-extra/compare/v9.1.0...v9.2.0)
 
 - **Breaking:** Drop `click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`. Which terminals narrow an emoji-presentation sequence now comes from `wcwidth`'s own measured tables.
