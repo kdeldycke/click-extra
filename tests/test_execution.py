@@ -939,7 +939,8 @@ def test_run_cli_streams_output_at_debug_with_label(caplog):
 
     The tag rides the record's ``label`` attribute, not the message text: the
     default :class:`click_extra.logging.Formatter` renders it glued to the level
-    name (``debug:probe: line1``).
+    name (``debug:probe: line1``). The prompt line carries it too, so the
+    command and its output read as one call when several children interleave.
     """
     code = "import sys; print('line1'); print('line2'); print('boom', file=sys.stderr)"
     with caplog.at_level(logging.DEBUG):
@@ -952,12 +953,12 @@ def test_run_cli_streams_output_at_debug_with_label(caplog):
     assert "line1" in streamed
     assert "line2" in streamed
     assert "boom" in streamed
-    # Only the streamed output lines carry the tag, all at the output level.
-    assert all(
-        record.levelno == logging.DEBUG
-        for record in caplog.records
-        if getattr(record, "label", None) == "probe"
-    )
+    labeled = [r for r in caplog.records if getattr(r, "label", None) == "probe"]
+    prompts = [r for r in labeled if strip_ansi(r.getMessage()).startswith(PROMPT)]
+    # One prompt line at the command level, every other tagged line at the output
+    # level.
+    assert [r.levelno for r in prompts] == [logging.INFO]
+    assert all(r.levelno == logging.DEBUG for r in labeled if r not in prompts)
 
 
 def test_highlight_bin_name():

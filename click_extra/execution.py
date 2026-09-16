@@ -1139,8 +1139,9 @@ def run_cli(
         `label` attribute, which {class}`click_extra.logging.Formatter` renders
         glued to the level name and styled like an invoked command
         (`debug:mas: Warning: ...`); a foreign formatter can read
-        `record.label` itself. Applied to the output lines only, never the
-        prompt line.
+        `record.label` itself. Applied to the prompt line and to every output
+        line, so an interleaved log attributes each command as well as what it
+        printed.
     :param merge_streams: route the child's `stderr` into `stdout` so the OS
         interleaves both in write order. The result's `stderr` is then `None`,
         like a {func}`subprocess.run` call with `stderr=STDOUT`.
@@ -1185,7 +1186,11 @@ def run_cli(
     clean_args = args_cleanup(args)
     assert clean_args, "No CLI to run."
 
-    log.log(command_level, format_cli_prompt(clean_args, extra_env))
+    log.log(
+        command_level,
+        format_cli_prompt(clean_args, extra_env),
+        extra={"label": label} if label else None,
+    )
 
     # On Windows, CREATE_NO_WINDOW suppresses any console window the child might
     # open, while still capturing output via the explicit PIPE handles. SW_HIDE is
