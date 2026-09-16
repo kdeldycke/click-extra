@@ -8,6 +8,7 @@
 - Tag the prompt line `run_cli` logs with its `label` too, so an interleaved log attributes each command as well as its output.
 - Add `label_style` and `timer_style` to `Spinner`, painting the label and the timer (parentheses included) apart from `style`, on every frame and on the kept `ok()` / `fail()` line.
 - Strip the ANSI escapes embedded in a `Spinner` label when color is off, so `--no-color` and `NO_COLOR` also hold for a label styled by hand.
+- Start a log message spanning several lines below its level prefix, so a block like a command's captured output keeps its columns instead of shifting its first line right.
 - Fix an `OperationTrail` batch that finishes inside its `delay` leaving no trail on screen: its lines now echo plainly, with its finisher if it has one, as a sequential batch's do.
 - Fix `OperationTrail` lines and finisher written above a drawn indicator keeping their color under `--no-color` or `NO_COLOR`, and a `Spinner` on a worker thread missing `--no-color`.
 

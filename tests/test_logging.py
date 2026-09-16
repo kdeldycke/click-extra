@@ -718,6 +718,50 @@ def test_formatter_renders_label_glued_to_level_name():
     assert rendered == "debug:mas: Warning: No installed apps found"
 
 
+@pytest.mark.parametrize(
+    ("label", "prefix"),
+    ((None, "info:"), ("almanac", "info:almanac:")),
+)
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    (
+        # Control: a single line stays glued to its prefix, a trailing line
+        # break included.
+        pytest.param("Sunny in Lima", " Sunny in Lima", id="line"),
+        pytest.param("Sunny in Lima\n", " Sunny in Lima\n", id="trailing-break"),
+        pytest.param(
+            "City  Forecast\n====  ========\nOslo  Snow\nLima  Sunny",
+            "\nCity  Forecast\n====  ========\nOslo  Snow\nLima  Sunny",
+            id="block",
+        ),
+        # Already below its prefix: no second line break.
+        pytest.param(
+            "\nOslo  Snow\nLima  Sunny",
+            " \nOslo  Snow\nLima  Sunny",
+            id="leading-break",
+        ),
+    ),
+)
+def test_formatter_starts_a_block_below_its_prefix(label, prefix, message, expected):
+    """A message spanning several lines starts on the line below its prefix, so
+    its first line keeps the columns of the lines under it."""
+    formatter = Formatter(fmt="{levelname}: {message}", style="{")
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg=message,
+        args=None,
+        exc_info=None,
+    )
+    if label:
+        record.label = label
+    assert strip_ansi(formatter.format(record)) == prefix + expected
+    # The record keeps its own message for the next handler to format.
+    assert record.message == message
+
+
 def test_stream_handler_routes_through_active_spinner(capsys):
     """A record emitted while a spinner animates on the same stream is printed
     through Spinner.echo(), on its own line, instead of over the frame."""

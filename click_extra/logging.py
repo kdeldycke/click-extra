@@ -219,11 +219,21 @@ class Formatter(logging.Formatter):
         tag stays out of the message text itself, so a foreign formatter is free
         to render `record.label` its own way.
 
-        The record's `levelname` is restored afterwards: a record may be
-        formatted more than once (several handlers, a captured then re-rendered
-        record), and must not accumulate styling or glued labels.
+        A message spanning several lines starts on the line below its prefix.
+        Glued to the prefix, the first line of a block (a command's captured
+        output, a table) shifts right by the width of that prefix while the
+        lines below stay at the margin, which breaks the block's columns.
+
+        The record's `levelname` and `message` are restored afterwards: a record
+        may be formatted more than once (several handlers, a captured then
+        re-rendered record), and must not accumulate styling, glued labels or
+        line breaks.
         """
         original_levelname = record.levelname
+        message = getattr(record, "message", "")
+        # A trailing line break does not make a block, and a leading one already
+        # starts the message below its prefix.
+        block = "\n" in message.rstrip("\n") and not message.startswith("\n")
         try:
             theme = get_current_theme()
             level = original_levelname.lower()
@@ -233,9 +243,17 @@ class Formatter(logging.Formatter):
             label = getattr(record, "label", None)
             if label:
                 record.levelname += ":" + theme.invoked_command(label)
-            return super().formatMessage(record)
+            if not block:
+                return super().formatMessage(record)
+            record.message = "\n" + message
+            rendered = super().formatMessage(record)
+            head, moved, tail = rendered.partition(record.message)
+            # The format's separator now ends the prefix line: drop its space.
+            return head.rstrip(" ") + moved + tail if moved else rendered
         finally:
             record.levelname = original_levelname
+            if block:
+                record.message = message
 
 
 def basicConfig(

@@ -37,6 +37,7 @@ Default behavior of the option:
 - show `WARNING`-level messages and above,
 - use `{`-style format strings,
 - render logs with the `{levelname}: {message}` format,
+- start a message spanning several lines on the line below its `{levelname}:` prefix, so a block like a command's output keeps its columns,
 - color the log's `{levelname}` variable.
 
 ```{tip}
