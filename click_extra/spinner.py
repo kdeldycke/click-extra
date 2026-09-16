@@ -1374,9 +1374,22 @@ class OperationTrail:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        if self._indicator is not None:
-            self._indicator.__exit__(exc_type, exc_val, exc_tb)
-            self._indicator = None
+        indicator = self._indicator
+        if indicator is None:
+            return
+        # Leaving without a finisher keeps every outcome line, as finish() does.
+        # Lines the indicator drew are already on screen, past any still buffered
+        # behind a first frame that fell due after the last mark. Lines of a batch
+        # it never drew echo plainly, on the same terms as in finish().
+        with self._lock:
+            if indicator.shown:
+                self._flush()
+            replay = self._buffer if self._echo_plain else []
+            self._buffer = []
+        indicator.__exit__(exc_type, exc_val, exc_tb)
+        self._indicator = None
+        for text in replay:
+            self._echo_line(text)
 
     @property
     def ok_count(self) -> int:

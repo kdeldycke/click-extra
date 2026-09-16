@@ -1138,12 +1138,14 @@ def test_concurrent_trail_disabled_stays_silent():
         pytest.param({"progress_bar": True}, id="progress-bar"),
     ),
 )
-def test_trail_echoes_a_batch_its_indicator_never_drew(rendering):
+@pytest.mark.parametrize("finished", (True, False), ids=("finished", "left-early"))
+def test_trail_echoes_a_batch_its_indicator_never_drew(rendering, finished):
     """A batch finishing inside `delay` still leaves its whole record on screen.
 
     Its indicator never drew, so the lines it buffered never reached the
     stream. A sequential batch of the same outcomes prints them, and so must
-    this one: `finish` echoes them plainly, in order, before the finisher.
+    this one, in order: before the finisher, or on its own when the batch is
+    left without one.
     """
     stream = TTYStringIO()
     with OperationTrail(
@@ -1151,13 +1153,13 @@ def test_trail_echoes_a_batch_its_indicator_never_drew(rendering):
     ) as trail:
         trail.mark(True, "repo-a synced")
         trail.mark(False, "repo-b failed")
-        trail.finish(False, "Synced 1/2 repos")
+        if finished:
+            trail.finish(False, "Synced 1/2 repos")
     assert trail._indicator is None
-    assert stream.getvalue().splitlines() == [
-        trail_line(True, "repo-a synced"),
-        trail_line(False, "repo-b failed"),
-        trail_line(False, "Synced 1/2 repos"),
-    ]
+    expected = [trail_line(True, "repo-a synced"), trail_line(False, "repo-b failed")]
+    if finished:
+        expected.append(trail_line(False, "Synced 1/2 repos"))
+    assert stream.getvalue().splitlines() == expected
 
 
 @pytest.mark.parametrize(
@@ -1168,12 +1170,16 @@ def test_trail_echoes_a_batch_its_indicator_never_drew(rendering):
         pytest.param({}, io.StringIO, id="off-tty"),
     ),
 )
-def test_trail_leaves_nothing_for_an_undrawn_batch_without_echo(options, stream_class):
+@pytest.mark.parametrize("finished", (True, False), ids=("finished", "left-early"))
+def test_trail_leaves_nothing_for_an_undrawn_batch_without_echo(
+    options, stream_class, finished
+):
     """The echo of an undrawn batch obeys the same gates as a sequential one."""
     stream = stream_class()
     with OperationTrail(total=1, jobs=2, delay=30.0, stream=stream, **options) as trail:
         trail.mark(True, "repo-a synced")
-        trail.finish(True, "Synced 1/1 repos")
+        if finished:
+            trail.finish(True, "Synced 1/1 repos")
     assert stream.getvalue() == ""
     assert trail.ok_count == 1
 
