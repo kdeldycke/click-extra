@@ -8,6 +8,7 @@
 - Add `label_style` and `timer_style` to `Spinner`, painting the label and the timer (parentheses included) apart from `style`, on every frame and on the kept `ok()` / `fail()` line.
 - Strip the ANSI escapes embedded in a `Spinner` label when color is off, so `--no-color` and `NO_COLOR` also hold for a label styled by hand.
 - Fix an `OperationTrail` batch that finishes inside its `delay` leaving no trail on screen: its lines now echo plainly, with its finisher if it has one, as a sequential batch's do.
+- Fix `OperationTrail` lines and finisher written above a drawn indicator keeping their color under `--no-color` or `NO_COLOR`, and a `Spinner` on a worker thread missing `--no-color`.
 
 ## [`9.2.0` (2026-09-15)](https://github.com/kdeldycke/click-extra/compare/v9.1.0...v9.2.0)
 

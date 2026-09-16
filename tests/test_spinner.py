@@ -1184,6 +1184,63 @@ def test_trail_leaves_nothing_for_an_undrawn_batch_without_echo(
     assert trail.ok_count == 1
 
 
+@pytest.mark.parametrize(
+    "rendering",
+    (
+        pytest.param({"jobs": 2}, id="concurrent-spinner"),
+        pytest.param({"progress_bar": True}, id="progress-bar"),
+    ),
+)
+def test_trail_stays_plain_above_a_drawn_indicator_without_color(
+    monkeypatch, rendering
+):
+    """With color off, a drawn indicator's trail lines and finisher carry no SGR.
+
+    Those lines reach the stream through a raw write rather than
+    `click.echo`, so the glyph's paint and any escape embedded in the message
+    have to be stripped before the write.
+    """
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setattr("click_extra.color._invocation_color", False)
+    stream = TTYStringIO()
+    with OperationTrail(
+        label="Syncing", unit="repos", total=2, stream=stream, **rendering
+    ) as trail:
+        assert wait_until(
+            lambda: trail._indicator is not None and trail._indicator.shown
+        )
+        trail.mark(True, f"{Style(fg='red')('repo-a')} synced")
+        trail.mark(False, "repo-b failed")
+        trail.finish(False, "Synced 1/2 repos")
+    output = stream.getvalue()
+    assert re.search(r"\x1b\[[0-9;]*m", output) is None
+    assert f"{OK_GLYPH} repo-a synced" in output
+    assert f"{KO_GLYPH} repo-b failed" in output
+    assert f"{KO_GLYPH} Synced 1/2 repos" in output
+
+
+def test_color_resolution_reaches_worker_threads(monkeypatch):
+    """A spinner started on a worker thread sees the invocation's `--no-color`.
+
+    The thread-local command context is absent there, so the published
+    invocation color is what carries the decision, and it outranks the
+    environment it was reconciled from.
+    """
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.setattr("click_extra.color._invocation_color", False)
+    stream = TTYStringIO()
+    answers = []
+    worker = threading.Thread(
+        target=lambda: answers.append(
+            Spinner(stream=stream)._resolve_color_enabled(stream)
+        )
+    )
+    worker.start()
+    worker.join()
+    assert answers == [False]
+
+
 def test_concurrent_trail_marks_are_thread_safe():
     """Concurrent mark() calls from worker threads all land in the tally."""
     stream = TTYStringIO()

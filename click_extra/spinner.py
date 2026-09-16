@@ -62,7 +62,7 @@ from typing import TypeVar, cast
 import click
 
 from . import context
-from .color import COLOR_DISABLING_TERMS, is_a_tty
+from .color import COLOR_DISABLING_TERMS, invocation_color, is_a_tty
 from .humanize import format_duration
 from .layout import cell_width
 from .parameters import ExtraOption
@@ -177,6 +177,32 @@ def active_spinner(stream: IO[str] | None = None) -> Spinner | None:
             ):
                 return line
     return None
+
+
+def _color_enabled(stream: IO[str]) -> bool:
+    """Decide whether output to `stream` may carry ANSI color.
+
+    Follows the invocation's reconciled color first, so `--color` / `--no-color`
+    and the `NO_COLOR` / `FORCE_COLOR` family have already been honored. It is
+    read through {func}`~click_extra.color.invocation_color`, never `ctx.color`
+    alone, because a trail line and a spinner can be rendered on a worker thread
+    the thread-local command context does not reach. Outside a CLI it falls back
+    to those two environment variables and a dumb/unknown `TERM` (see
+    {data}`~click_extra.color.COLOR_DISABLING_TERMS`), then to TTY detection.
+    """
+    color = invocation_color()
+    if color is not None:
+        return color
+    # Mirror resolve_color_env()'s enabling-wins reconciliation outside a command
+    # context: FORCE_COLOR wins, then a dumb/unknown TERM or NO_COLOR forces plain
+    # text, so this fallback agrees with the env path no context has resolved yet.
+    if "FORCE_COLOR" in os.environ:
+        return True
+    if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
+        return False
+    if "NO_COLOR" in os.environ:
+        return False
+    return is_a_tty(stream)
 
 
 def _stream_enabled(enabled: bool | None, stream: IO[str]) -> bool:
@@ -382,29 +408,12 @@ class Spinner:
     def _resolve_color_enabled(self, stream: IO[str]) -> bool:
         """Decide whether to apply ANSI color, orthogonally to whether it animates.
 
-        Color follows Click Extra's reconciled {attr}`ctx.color
-        <click.Context.color>` when a command context is active, so `--color` /
-        `--no-color` and the `NO_COLOR` / `FORCE_COLOR` family have already
-        been honored. Outside a CLI it falls back to those two environment variables
-        and a dumb/unknown `TERM` (see
-        {data}`~click_extra.color.COLOR_DISABLING_TERMS`), then to TTY detection.
-        This is independent of {meth}`_resolve_enabled`: a spinner can spin in plain
-        text (a TTY under `NO_COLOR`), which is exactly the decoupling
-        {class}`ProgressOption` documents.
+        See {func}`_color_enabled` for the resolution. This is independent of
+        {meth}`_resolve_enabled`: a spinner can spin in plain text (a TTY under
+        `NO_COLOR`), which is exactly the decoupling {class}`ProgressOption`
+        documents.
         """
-        ctx = click.get_current_context(silent=True)
-        if ctx is not None and ctx.color is not None:
-            return ctx.color
-        # Mirror resolve_color_env()'s enabling-wins reconciliation outside a command
-        # context: FORCE_COLOR wins, then a dumb/unknown TERM or NO_COLOR forces plain
-        # text, so this fallback agrees with the env path no context has resolved yet.
-        if "FORCE_COLOR" in os.environ:
-            return True
-        if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
-            return False
-        if "NO_COLOR" in os.environ:
-            return False
-        return is_a_tty(stream)
+        return _color_enabled(stream)
 
     def _style(self, text: str, *, color: bool | None = None) -> str:
         """Apply the configured {class}`~click_extra.styling.Style`, or return bare.
@@ -1154,9 +1163,12 @@ class _BarIndicator:
                 if self._timer
                 else ""
             )
+            line = f"{trail_line(ok, summary)}{clock}"
+            if not _color_enabled(stream):
+                line = click.unstyle(line)
             # Erase the bar, keep the finisher in its place, restore the cursor
             # Click hid via BEFORE_BAR.
-            stream.write(f"\r\x1b[K{trail_line(ok, summary)}{clock}\n\x1b[?25h")
+            stream.write(f"\r\x1b[K{line}\n\x1b[?25h")
             stream.flush()
             self._drawn = False
 
@@ -1396,6 +1408,18 @@ class OperationTrail:
         """How many marked outcomes have succeeded so far."""
         return self._ok
 
+    def _render_line(self, ok: bool, message: str) -> str:
+        """Format one `✓`/`✘` line for the trail's stream, plain when color is off.
+
+        The glyph is painted unconditionally by {func}`trail_line`, and a line
+        flushed above a drawn indicator reaches the stream through a raw write,
+        not through {func}`click.echo`'s strip. So the strip happens here, and
+        takes any escape embedded in `message` along with the glyph's.
+        """
+        line = trail_line(ok, message)
+        stream = self.stream if self.stream is not None else sys.stderr
+        return line if _color_enabled(stream) else click.unstyle(line)
+
     def _echo_line(self, message: str) -> None:
         """Print one rendered line to the trail's stream."""
         if self.stream is not None:
@@ -1418,11 +1442,11 @@ class OperationTrail:
             if ok:
                 self._ok += 1
             if self._indicator is not None:
-                self._buffer.append(trail_line(ok, message))
+                self._buffer.append(self._render_line(ok, message))
                 self._indicator.advance(self._done)
                 self._flush()
             elif self._echo:
-                self._echo_line(trail_line(ok, message))
+                self._echo_line(self._render_line(ok, message))
 
     def _flush(self) -> None:
         # Caller holds the lock. Drain buffered lines once the indicator is
@@ -1469,7 +1493,7 @@ class OperationTrail:
         if self.timer:
             elapsed = time.monotonic() - self._start
             summary = f"{summary} ({_format_timer(self.timer, elapsed)})"
-        self._echo_line(trail_line(ok, summary))
+        self._echo_line(self._render_line(ok, summary))
 
     def operation(self) -> _Operation:
         """Start a timed operation, returning a handle to record its outcome.
