@@ -56,12 +56,15 @@ import os
 import sys
 import threading
 import time
+import warnings
 from gettext import gettext as _
 from typing import TypeVar, cast
 
 import click
+from click._utils import UNSET
 
 from . import context
+from ._deprecated import deprecation_message
 from .color import COLOR_DISABLING_TERMS, invocation_color, is_a_tty
 from .humanize import format_duration
 from .layout import cell_width
@@ -80,6 +83,7 @@ if TYPE_CHECKING:
     from typing import IO, Any, Literal, Protocol, TextIO
 
     from click._termui_impl import ProgressBar
+    from click._utils import T_UNSET
     from typing_extensions import Self
 
     class _LiveLine(Protocol):
@@ -876,8 +880,7 @@ def _resolve_timer(
 
     An explicit `bool` or callable is returned unchanged; `None` (the trail
     default) follows the CLI's `--time` / `--no-time` flag via
-    {func}`_time_flag_active`, mirroring how `enabled=None` auto-detects the
-    terminal.
+    {func}`_time_flag_active`, mirroring how `live="auto"` detects the terminal.
     """
     return _time_flag_active() if timer is None else timer
 
@@ -1191,6 +1194,15 @@ class _BarIndicator:
             self._finished = True
 
 
+_LIVE_ENABLED: dict[str, bool | None] = {"auto": None, "always": True, "never": False}
+"""Each `live` mode of {class}`OperationTrail`, as the `enabled` value its
+aggregate indicator takes.
+
+`None` draws on an interactive terminal only: the resolution {class}`Spinner`
+and the progress-bar indicator share through {func}`_stream_enabled`.
+"""
+
+
 class OperationTrail:
     """A `✓`/`✘` progress trail and finisher for a batch of operations.
 
@@ -1216,13 +1228,13 @@ class OperationTrail:
       it. Serves sequential and concurrent batches alike, and needs a known
       `total`.
 
-    The aggregate indicators draw only on an interactive terminal, unless
-    `enabled` forces the matter: they redraw in place, which a pipe or a CI log
-    cannot do. The `✓`/`✘` lines and the finisher only append, so they print on
-    any stream, in plain text where color is off. Where no indicator can draw,
+    The aggregate indicators redraw in place, which a pipe or a CI log cannot
+    do, so by default they draw only on an interactive terminal, and `live`
+    changes where they draw. The `✓`/`✘` lines and the finisher only append, so
+    they print on any stream, in plain text where color is off. Where no indicator draws,
     every rendering echoes each outcome as it lands, as the sequential one does.
-    The running `✓` tally is kept as outcomes land ({attr}`ok_count`), so a
-    caller computes no counts of its own.
+    `visible=False` silences all of it. The running `✓` tally is kept as
+    outcomes land ({attr}`ok_count`), so a caller computes no counts of its own.
 
     Thread-safe: {meth}`mark` may be called from worker threads. Use it as a
     context manager whenever it may run concurrently, to bound the aggregate
@@ -1257,12 +1269,19 @@ class OperationTrail:
         progress_bar: bool = False,
         timer: bool | Callable[[float], str] | None = None,
         clock: Literal["elapsed", "eta"] = "elapsed",
-        enabled: bool | None = None,
+        visible: bool = True,
+        live: Literal["auto", "always", "never"] = "auto",
         echo_sequential: bool = True,
         delay: float = 0.0,
         stream: IO[str] | None = None,
+        enabled: bool | T_UNSET | None = UNSET,
     ) -> None:
         """Configure (but do not start) the trail.
+
+        ```{todo}
+        Remove the deprecated `enabled` argument and its test in click-extra
+        `10.0.0`, the release `click_extra._deprecated` retires its aliases in.
+        ```
 
         :param label: present-tense verb for the running aggregate indicator
             (`"Fetching"`), composed into its ``{label} {done}/{total} {unit}``
@@ -1297,11 +1316,13 @@ class OperationTrail:
             progress bar and the concurrent spinner honor `"eta"` (the spinner
             reuses Click's progress-bar estimate, since the trail knows its
             `total`). Per-operation and finisher times are always elapsed.
-        :param enabled: force the trail on or off. `None` (the default) prints
-            the lines and the finisher on any stream, and draws an aggregate
-            indicator only on an interactive terminal. `True` also forces the
-            indicator on, whatever the stream. `False` silences the lines, the
-            finisher and the indicator.
+        :param visible: whether the trail shows anything. `False` silences the
+            lines, the finisher and the aggregate indicator, while
+            {attr}`ok_count` keeps counting.
+        :param live: where the aggregate indicator may draw: `"auto"` (the
+            default) on an interactive terminal only, `"always"` on any stream,
+            `"never"` nowhere. Where it does not draw, each outcome line prints
+            as it lands. Map a CLI's `--no-progress` here, so the lines stay.
         :param echo_sequential: whether the batch echoes its outcome lines and
             finisher as plain lines at all: in a sequential batch, in a batch
             whose aggregate indicator cannot draw on the stream, and in one that
@@ -1314,9 +1335,12 @@ class OperationTrail:
             echoed plainly at {meth}`finish` instead (see `echo_sequential`).
         :param stream: where to render; defaults to {data}`sys.stderr` so the
             trail never mixes into `stdout` data.
+        :param enabled: deprecated, use `visible` and `live` instead: `False`
+            stands for `visible=False`, and `True` for `live="always"`.
         :raises ValueError: if `progress_bar` is set without a positive
-            `total`, or together with `spinner`, or if `clock` is neither
-            `"elapsed"` nor `"eta"`.
+            `total`, or together with `spinner`, if `clock` is neither
+            `"elapsed"` nor `"eta"`, or if `live` is not `"auto"`, `"always"`
+            or `"never"`.
         """
         if progress_bar and total <= 0:
             raise ValueError("progress_bar=True requires a positive total.")
@@ -1324,6 +1348,20 @@ class OperationTrail:
             raise ValueError("progress_bar= and spinner= are mutually exclusive.")
         if clock not in ("elapsed", "eta"):
             raise ValueError('clock must be "elapsed" or "eta".')
+        if live not in _LIVE_ENABLED:
+            raise ValueError('live must be "auto", "always" or "never".')
+        if enabled is not UNSET:
+            warnings.warn(
+                deprecation_message(
+                    "OperationTrail(enabled=...)", "visible= and live="
+                ),
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if enabled is False:
+                visible = False
+            elif enabled is True:
+                live = "always"
         self.label = label
         self.unit = unit
         self.total = total
@@ -1333,7 +1371,8 @@ class OperationTrail:
         self.timer = _resolve_timer(timer)
         self.clock = clock
         self.spinner_preset = spinner
-        self.enabled = enabled
+        self.visible = visible
+        self.live = live
         self.stream = stream
         self._delay = delay
         self._lock = threading.Lock()
@@ -1343,16 +1382,19 @@ class OperationTrail:
         self._indicator: _AggregateIndicator | None = None
         self._buffer: list[str] = []
         # Whether outcome lines may reach the stream as plain text: the trail is
-        # the batch's output, unless `enabled` silences it. A plain line needs no
-        # cursor control, so this holds for a pipe or a file as for a terminal.
-        self._echo_plain = echo_sequential and enabled is not False
+        # the batch's output and is visible. A plain line needs no cursor
+        # control, so this holds for a pipe or a file as for a terminal.
+        self._echo_plain = echo_sequential and visible
+        # What the aggregate indicator takes as `enabled`: a hidden trail draws
+        # nothing, whatever `live` says.
+        self._indicator_enabled = _LIVE_ENABLED[live] if visible else False
         # An aggregate indicator (a progress bar, or a spinner for a concurrent
         # batch) owns the live line only on a stream it can draw on, under the
         # same resolution the indicator applies. There, lines wait for its first
         # frame, and finish() echoes them for a batch it never drew. Elsewhere
         # no indicator ever draws, so lines echo as they are marked.
         self._indicator_draws = (self.concurrent or progress_bar) and _stream_enabled(
-            enabled, stream if stream is not None else sys.stderr
+            self._indicator_enabled, stream if stream is not None else sys.stderr
         )
         self._echo = self._echo_plain and not self._indicator_draws
 
@@ -1363,7 +1405,7 @@ class OperationTrail:
                 unit=self.unit,
                 total=self.total,
                 delay=self._delay,
-                enabled=self.enabled,
+                enabled=self._indicator_enabled,
                 stream=self.stream,
                 timer=self.timer,
                 clock=self.clock,
@@ -1374,7 +1416,7 @@ class OperationTrail:
                 unit=self.unit,
                 total=self.total,
                 delay=self._delay,
-                enabled=self.enabled,
+                enabled=self._indicator_enabled,
                 stream=self.stream,
                 spinner=self.spinner_preset,
                 timer=self.timer,
@@ -1472,9 +1514,9 @@ class OperationTrail:
 
         A batch finishing inside `delay` never draws its indicator, so none of
         its buffered lines reached the stream. When the trail is the batch's
-        output (`echo_sequential`, and not disabled), they are echoed plainly
-        along with the finisher, the way a sequential batch prints them: how
-        fast a batch ran must not decide whether its record exists.
+        output (`echo_sequential` and `visible`), they are echoed plainly along
+        with the finisher, the way a sequential batch prints them: how fast a
+        batch ran must not decide whether its record exists.
         """
         indicator = self._indicator
         if indicator is not None:

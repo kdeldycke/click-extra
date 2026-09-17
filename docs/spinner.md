@@ -353,7 +353,7 @@ def fetch_feeds(stream=None):
     feeds = ["apples", "bread", "cheese", "damsons", "eggs"]
     with OperationTrail(
         label="Fetching", unit="feeds", total=len(feeds), jobs=4,
-        enabled=True, stream=stream,
+        live="always", stream=stream,
     ) as trail:
         def pull(feed):
             # Staggered, so four jobs running at once still land one by one.
@@ -381,7 +381,9 @@ assert callable(fetch_feeds)
 
 The rendering adapts to the batch's concurrency, and you pick neither mode by hand. Run concurrently (`jobs > 1`), one aggregate spinner carries the `Fetching 3/5 feeds` tally while the trail lines stream above it, its animation picked from the [catalog](#spinner-catalog) with `spinner=SPINNERS["moon"]`. Run sequentially (`jobs <= 1`), each outcome echoes as a plain line and every operation stays free to keep its own per-call `Spinner`. Either way the finisher carries the elapsed time. {class}`~click_extra.spinner.OperationTrail` details what each mode drives.
 
-Only the aggregate spinner or bar needs an interactive terminal, since it redraws in place. The `✓`/`✘` lines and the finisher print on any stream, so a pipe or a CI log keeps the batch's record, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.spinner.OperationTrail.ok_count` tally. `enabled=False` silences a trail entirely, which is how a CLI honors `--no-progress`.
+Only the aggregate spinner or bar needs an interactive terminal, since it redraws in place. The `✓`/`✘` lines and the finisher print on any stream, so a pipe or a CI log keeps the batch's record, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.spinner.OperationTrail.ok_count` tally.
+
+Two arguments decide what a trail shows. `live` says where its spinner or bar may draw: `"auto"` (the default) on an interactive terminal only, `"always"` on any stream, and `"never"` nowhere. A CLI maps `--no-progress` to `live="never"`, so the run keeps its lines. `visible=False` silences the whole trail.
 
 This page captures its commands off a terminal, and the trail still prints there. That is how it shows a live sequential run:
 
@@ -462,7 +464,7 @@ with OperationTrail(
 
 The aggregate indicator becomes a bar holding the `done/total` count, the same `✓`/`✘` outcomes streaming above it, and a kept summary replaces the bar on `finish()`. It serves sequential and concurrent batches alike.
 
-Unlike the sequential trail above, the bar is driven by cursor-control codes, so it draws only on an interactive terminal, unless `enabled` forces it. Recorded off one, the landed outcomes sit above a bar tracking the tally:
+Unlike the sequential trail above, the bar is driven by cursor-control codes, so it draws only on an interactive terminal, unless `live="always"` forces it. Recorded off one, the landed outcomes sit above a bar tracking the tally:
 
 ```{click:source}
 :hide-source:
@@ -471,7 +473,7 @@ def roast_with_bar(stream=None):
     vegetables = ["carrots", "fennel", "leeks", "peppers"]
     with OperationTrail(
         label="Roasting", unit="vegetables", total=len(vegetables),
-        progress_bar=True, enabled=True, stream=stream,
+        progress_bar=True, live="always", stream=stream,
     ) as trail:
         for vegetable in vegetables:
             sleep(1.4)

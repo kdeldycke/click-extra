@@ -1722,9 +1722,9 @@ def demo_trail(
     spinner carries the running tally while outcomes stream above it;
     --progress-bar swaps that spinner for a determinate progress bar. Add --time
     to append each vegetable's roast time and the batch total; --elapsed and
-    --eta turn that on too, counting up from zero or down as an estimate. Honors
-    --progress / --no-progress. Off an interactive terminal no spinner or bar
-    draws, and each outcome and the summary print as plain lines.
+    --eta turn that on too, counting up from zero or down as an estimate. Under
+    --no-progress, or off an interactive terminal, no spinner or bar draws, and
+    each outcome and the summary print as plain lines.
     """
     worker_count = context.get(ctx, context.JOBS, 1)
     progress_on = context.get(ctx, context.PROGRESS, True)
@@ -1744,7 +1744,8 @@ def demo_trail(
         spinner=None if use_bar or spinner_name is None else SPINNERS[spinner_name],
         timer=timer,
         clock="eta" if eta else "elapsed",
-        enabled=None if progress_on else False,
+        # --no-progress drops the redrawing indicator, never the outcome lines.
+        live="auto" if progress_on else "never",
     ) as trail:
 
         def roast(item: tuple[str, float, bool]) -> None:
