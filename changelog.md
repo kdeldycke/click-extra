@@ -8,7 +8,7 @@
 - **Breaking:** Print `OperationTrail` lines and its finisher off an interactive terminal too, where no spinner or progress bar draws. Pass `visible=False` to keep a trail silent.
 - **Breaking:** Make every argument of an option class after `param_decls` keyword-only, like `ColorOption(default="never")`: pass them by name.
 - **Breaking:** Drop `RESET` from `click_extra.version`: import it from `click_extra.layout`, which already carried it.
-- **Breaking:** Move the SVG renderer and the window vocabulary from `click_extra.screenshot` to `click_extra.screenshot_svg`: `render_svg`, `NO_PAINT`, `OPAQUE`, `AUTO_HOLD`, `DEFAULT_WATERMARK`, the cell metrics and the drawing helpers. `DEFAULT_PRESET` and `CAPTURE_FONT_STACK` move to `click_extra.screenshot_presets`.
+- **Breaking:** Split `click_extra.screenshot`: the SVG renderer and the window vocabulary (`render_svg`, `NO_PAINT`, `OPAQUE`, `AUTO_HOLD`, `DEFAULT_WATERMARK`, the cell metrics) move to `click_extra.screenshot_svg`, `render_html` to `click_extra.screenshot_html`, and `CaptureBackground`, the capture palettes, `resolve_palette`, `DEFAULT_PRESET` and `CAPTURE_FONT_STACK` to `click_extra.screenshot_presets`.
 - **Breaking:** Move `ColumnSpec`, `select_columns`, `select_row` and `render_columns_markdown_table` from `click_extra.table` to `click_extra.columns`. The root package still exports them.
 - **Breaking:** Move the `screenshot` and `snippet` commands to `click_extra.cli_capture` and the `prebake` group to `click_extra.cli_prebake`. The `click-extra` CLI is unchanged.
 - **Deprecated:** Replace the `enabled` argument of `Spinner` with `live` (`"auto"`, `"always"` or `"never"`), and that of `OperationTrail` with `visible` and `live`; `enabled` resolves until `10.0.0`.

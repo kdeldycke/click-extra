@@ -65,13 +65,15 @@ from .layout import number_lines
 from .screenshot import (
     AUTO_COLUMNS,
     DEFAULT_TRUNCATION,
-    CaptureBackground,
     CaptureFormat,
     Chrome,
     fold_chrome_arguments,
     render,
-    resolve_palette,
     trim_lines,
+)
+from .screenshot_presets import (
+    CaptureBackground,
+    resolve_palette,
 )
 
 TYPE_CHECKING = False

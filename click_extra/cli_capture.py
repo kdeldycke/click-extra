@@ -56,13 +56,17 @@ from .screenshot import (
     DEFAULT_TRUNCATION,
     MIN_COLUMNS,
     STDOUT_PATH,
-    CaptureBackground,
     CaptureFormat,
     Chrome,
     capture,
     format_from_path,
 )
-from .screenshot_presets import PRESETS, Cursor, CursorShape
+from .screenshot_presets import (
+    PRESETS,
+    CaptureBackground,
+    Cursor,
+    CursorShape,
+)
 from .screenshot_svg import (
     AUTO_HOLD,
     DEFAULT_BORDER_WIDTH,

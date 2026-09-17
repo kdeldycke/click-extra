@@ -28,7 +28,7 @@ import pytest
 from docutils import nodes
 from pygments.styles import get_style_by_name
 
-from click_extra.screenshot import (
+from click_extra.screenshot_presets import (
     CAPTURE_BACKGROUND,
     LIGHT_CAPTURE_BACKGROUND,
     CaptureBackground,

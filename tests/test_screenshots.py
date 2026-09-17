@@ -51,22 +51,16 @@ from click_extra.layout import PADDING, cell_width, fit_columns, grid, number_li
 from click_extra.recording import TerminalScreen, record_and_render
 from click_extra.screenshot import (
     AUTO_COLUMNS,
-    CAPTURE_BACKGROUND,
     CAPTURE_BORDERS,
-    CAPTURE_FOREGROUND,
     CAPTURE_HIDDEN_TERMINAL_VARS,
-    CAPTURE_PALETTES,
     CAPTURE_SHADOWS,
     CAPTURE_TERMINAL_HINTS,
     CHROME_FIELDS,
     DEFAULT_COLUMNS,
-    LIGHT_CAPTURE_BACKGROUND,
-    LIGHT_CAPTURE_FOREGROUND,
     MIN_COLUMNS,
     STDOUT_PATH,
     TRUNCATION_LABEL,
     TRUNCATION_RULE,
-    CaptureBackground,
     CaptureFormat,
     Chrome,
     append_prompt,
@@ -77,7 +71,17 @@ from click_extra.screenshot import (
     render,
     trim_lines,
 )
-from click_extra.screenshot_presets import PRESETS, Cursor, CursorShape
+from click_extra.screenshot_presets import (
+    CAPTURE_BACKGROUND,
+    CAPTURE_FOREGROUND,
+    CAPTURE_PALETTES,
+    LIGHT_CAPTURE_BACKGROUND,
+    LIGHT_CAPTURE_FOREGROUND,
+    PRESETS,
+    CaptureBackground,
+    Cursor,
+    CursorShape,
+)
 from click_extra.screenshot_svg import (
     _COLUMN_GAP_RE,
     AUTO_HOLD,

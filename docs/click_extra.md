@@ -252,6 +252,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.screenshot_html module
+
+```{eval-rst}
+.. automodule:: click_extra.screenshot_html
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.screenshot_presets module
 
 ```{eval-rst}

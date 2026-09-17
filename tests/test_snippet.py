@@ -35,13 +35,15 @@ from pygments.token import Token
 from click_extra.cli_capture import capture_options, screenshot_cmd, snippet_cmd
 from click_extra.screenshot import (
     AUTO_COLUMNS,
-    CAPTURE_PALETTES,
     DEFAULT_COLUMNS,
-    CaptureBackground,
     CaptureFormat,
     Chrome,
 )
-from click_extra.screenshot_presets import PRESETS
+from click_extra.screenshot_presets import (
+    CAPTURE_PALETTES,
+    PRESETS,
+    CaptureBackground,
+)
 from click_extra.snippet import (
     DEFAULT_SYNTAX_STYLES,
     TAB_WIDTH,

@@ -58,12 +58,14 @@ from .screenshot import (
     CAPTURE_HIDDEN_TERMINAL_VARS,
     CAPTURE_TERMINAL_HINTS,
     DEFAULT_COLUMNS,
-    CaptureBackground,
     Chrome,
     append_prompt,
     fold_chrome_arguments,
     prompt_line,
     render,
+)
+from .screenshot_presets import (
+    CaptureBackground,
 )
 from .screenshot_svg import AUTO_HOLD
 

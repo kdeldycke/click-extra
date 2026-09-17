@@ -54,7 +54,6 @@ import shlex
 import subprocess
 from dataclasses import asdict, dataclass, fields, replace
 from enum import Enum
-from html import escape
 
 from click import style, unstyle
 
@@ -67,13 +66,13 @@ from .execution import args_cleanup, format_cli_prompt, run_cli
 # compatibility surface: a name this module stops using goes with it, and importers
 # follow it to its new home.
 from .layout import RULE_COLOR, cell_width, center_in_rule, fit_columns, number_lines
+from .screenshot_html import render_html
 from .screenshot_presets import (
-    CAPTURE_FONT_STACK,
-    DEFAULT_PRESET,
+    CaptureBackground,
     Cursor,
     TerminalPalette,
     TerminalPreset,
-    WindowButtons,
+    resolve_palette,
 )
 from .screenshot_svg import (
     DEFAULT_BORDER_WIDTH,
@@ -82,18 +81,12 @@ from .screenshot_svg import (
     EMPHASIS_RATIO,
     NO_PAINT,
     OPAQUE,
-    SHADOW_BLUR,
-    SHADOW_OFFSET,
     WATERMARK_INK,
-    WATERMARK_INSET,
-    WATERMARK_SIZE,
-    WATERMARK_URL,
     blend,
-    credit_segments,
     cursor_cell,
     render_svg,
 )
-from .styling import _hex_to_rgb, ansi_to_html
+from .styling import _hex_to_rgb
 from .theme import BUILTIN_THEMES
 
 TYPE_CHECKING = False
@@ -153,63 +146,6 @@ class CaptureFormat(Enum):
     Laid out on a character grid by {func}`~click_extra.screenshot_svg.render_svg`.
     """
 
-
-class CaptureBackground(Enum):
-    """Terminal chrome a capture is drawn on.
-
-    A capture freezes the colors of the run it pictures, so the chrome has to
-    answer to the palette that run was colored for. Neither direction survives
-    the other: a screen colored for a dark terminal is unreadable on white, and
-    click-extra's own `light` and `manpage` themes wash out on the dark chrome
-    a renderer defaults to.
-
-    The value doubles as the `--background` choice the CLI offers.
-    """
-
-    DARK = "dark"
-    """What a terminal, and this package's default theme, usually look like."""
-
-    LIGHT = "light"
-    """For a CLI rendered with a light-background theme."""
-
-    def __str__(self):
-        return self.name.lower()
-
-
-CAPTURE_PALETTES: dict[CaptureBackground, TerminalPalette] = {
-    CaptureBackground.DARK: DEFAULT_PRESET.dark,
-    CaptureBackground.LIGHT: DEFAULT_PRESET.light,
-}
-"""Colors each chrome resolves a capture's ANSI codes against.
-
-A palette carries the 16 ANSI colors alongside the background and foreground,
-which is the other half of the job: a CLI naming `blue` leaves the shade to
-whoever draws it, and the one that reads on white is not the one that reads on
-`#292929`.
-"""
-
-CAPTURE_BACKGROUND = CAPTURE_PALETTES[CaptureBackground.DARK].background
-"""Background a dark capture is drawn on.
-
-Stating it is not optional: a help screen colored for a dark terminal is
-unreadable on a page that defaults to white.
-"""
-
-CAPTURE_FOREGROUND = CAPTURE_PALETTES[CaptureBackground.DARK].foreground
-"""Color of the text a dark capture leaves unstyled. See {data}`CAPTURE_BACKGROUND`."""
-
-LIGHT_CAPTURE_BACKGROUND = CAPTURE_PALETTES[CaptureBackground.LIGHT].background
-"""Background a light capture is drawn on.
-
-See {data}`CAPTURE_BACKGROUND`: an SVG and an HTML capture of the same run have
-to look like the same terminal.
-"""
-
-LIGHT_CAPTURE_FOREGROUND = CAPTURE_PALETTES[CaptureBackground.LIGHT].foreground
-"""Color of the text a light capture leaves unstyled.
-
-See {data}`LIGHT_CAPTURE_BACKGROUND`.
-"""
 
 PROMPT_THEMES: dict[CaptureBackground, HelpTheme | None] = {
     CaptureBackground.DARK: None,
@@ -358,8 +294,9 @@ class Chrome:
     ) -> Chrome:
         """This chrome, with every `None` replaced by what the capture draws.
 
-        {func}`~click_extra.screenshot_svg.render_svg` and {func}`render_html` take
-        resolved values, which makes this the one step between the two layers.
+        {func}`~click_extra.screenshot_svg.render_svg` and
+        {func}`~click_extra.screenshot_html.render_html` take resolved values, which
+        makes this the one step between the two layers.
 
         :param background: chrome the capture is headed for.
         :param preset: terminal being pictured, or `None`.
@@ -536,30 +473,6 @@ _SGR_RE = re.compile(r"\x1b\[[0-9;]*m")
 Matched so {func}`emphasize_ansi` can restate a band after each one: a full
 reset closes the band along with the ink it was closing.
 """
-
-
-def preset_palette(
-    preset: TerminalPreset,
-    background: CaptureBackground,
-) -> TerminalPalette:
-    """The colors a preset shows on the given chrome."""
-    return preset.dark if background is CaptureBackground.DARK else preset.light
-
-
-def resolve_palette(
-    preset: TerminalPreset | None,
-    background: CaptureBackground,
-) -> TerminalPalette:
-    """The colors a capture resolves its ANSI codes against.
-
-    The preset's palette on the given chrome, or the default terminal's
-    ({data}`CAPTURE_PALETTES`) when no preset dresses the capture. The one
-    resolution rule shared by {func}`render` and {func}`render_html`, so the
-    two formats cannot disagree on what a chrome looks like.
-    """
-    if preset is None:
-        return CAPTURE_PALETTES[background]
-    return preset_palette(preset, background)
 
 
 def auto_columns(pictures: Sequence[str], cursor: Cursor | None = None) -> int:
@@ -768,144 +681,6 @@ def emphasize_ansi(
     return "\n".join(painted)
 
 
-def render_html(
-    text: str,
-    *,
-    title: str = "",
-    full: bool = True,
-    background: CaptureBackground = CaptureBackground.DARK,
-    preset: TerminalPreset | None = None,
-    palette: TerminalPalette | None = None,
-    border: str = NO_PAINT,
-    border_width: int = DEFAULT_BORDER_WIDTH,
-    radius: int = DEFAULT_RADIUS,
-    backdrop: str = NO_PAINT,
-    shadow: str = NO_PAINT,
-    margin: int = 0,
-    padding: int = 0,
-    buttons: WindowButtons | None = None,
-    buttons_color: str = CAPTURE_FOREGROUND,
-    font_stack: str = CAPTURE_FONT_STACK,
-    titlebar: str = NO_PAINT,
-    collapse_titlebar: bool = False,
-    opacity: float = OPAQUE,
-    watermark: str = "",
-    watermark_color: str = WATERMARK_INK,
-    watermark_url: str = WATERMARK_URL,
-) -> str:
-    """Render captured terminal text to HTML.
-
-    The `<pre>` carries its own inline styling, so a fragment pasted into an
-    existing page needs no stylesheet and cannot be restyled out of legibility
-    by the host. Nothing else is needed either: a `<pre>` preserves the
-    capture's own spacing, which is what spares HTML the column arithmetic
-    {func}`~click_extra.screenshot_svg.render_svg` performs for a picture.
-
-    ```{caution}
-    The text is escaped before its ANSI is translated, the order
-    {mod}`click_extra.table` uses for its `html` format. Skip it and any `<` a
-    CLI prints opens a tag: click-extra's own `--export-config` help says it
-    writes `to <stdout>`.
-    ```
-
-    ```{note}
-    An OSC 8 hyperlink loses its URL and keeps its visible text: the escape is
-    dropped rather than turned into an `<a>`.
-    ```
-
-    :param text: captured output, ANSI escape sequences included.
-    :param title: `<title>` of the document. Ignored for a fragment.
-    :param full: wrap the `<pre>` in a standalone document. `False` returns the
-        `<pre>` alone, to paste into a page that has its own.
-    :param background: chrome to draw on, see {class}`CaptureBackground`.
-    :param palette: colors the text resolves against. `None` takes the ones the
-        preset and chrome name, which is what a terminal capture wants. Stated
-        by a capture whose colors come from somewhere else, as a
-        {mod}`~click_extra.snippet` one takes them from a syntax style.
-    :param border: color of the block's frame, see
-        {func}`~click_extra.screenshot_svg.render_svg`.
-    :param border_width: thickness of that frame, in pixels.
-    :param radius: how round the block's corners are, in pixels.
-    :param backdrop: paint filling the page behind the block.
-    :param shadow: color of the block's drop shadow, see
-        {func}`~click_extra.screenshot_svg.render_svg`.
-    :param margin: pixels left around the block, on all four sides.
-    :param padding: pixels added inside the block, on top of its own.
-    :param buttons: ignored. HTML reflows with the page embedding it, so it
-        carries the text and its colors, not a window drawn around them.
-    :param buttons_color: ignored, see `buttons`.
-    :param titlebar: ignored, see `buttons`.
-    :param collapse_titlebar: ignored, see `buttons`.
-    :param opacity: how solid the block's background is, from
-        {data}`~click_extra.screenshot_svg.OPAQUE` down to `0.0`, where the page shows
-        straight through the text.
-    :param watermark: credit line drawn under the block, against its right edge,
-        where an SVG draws it in the margin. Empty draws none.
-    :param watermark_color: color that line is drawn in, alpha included.
-    :param watermark_url: where the package name points. Empty links nothing.
-    :return: the rendered markup.
-    """
-    if palette is None:
-        palette = resolve_palette(preset, background)
-    chrome, ink = palette.background, palette.foreground
-    if opacity != OPAQUE:
-        # CSS carries no background-opacity, and the `opacity` property would
-        # take the text down with it, so the color itself is thinned instead.
-        chrome = f"color-mix(in srgb, {chrome} {opacity:.0%}, transparent)"
-    frame = "" if border == NO_PAINT else f"border: {border_width}px solid {border}; "
-    if shadow != NO_PAINT:
-        frame += f"box-shadow: 0 {SHADOW_OFFSET}px {SHADOW_BLUR * 2}px {shadow}; "
-    # A credit line takes the block's bottom margin over, so the two read as one
-    # figure: the same place an SVG draws its mark, which is the margin rather
-    # than the page below it.
-    block_margin = f"{margin}px"
-    if watermark:
-        block_margin = (
-            f"{margin}px {margin}px {max(margin // 4, WATERMARK_INSET // 2)}px"
-        )
-    body = (
-        f'<pre style="background: {chrome}; color: {ink}; '
-        f"font-family: {font_stack}; line-height: 1.25; "
-        f"margin: {block_margin}; padding: calc(1em + {padding}px); "
-        f"{frame}border-radius: {radius}px; "
-        f'overflow-x: auto">{ansi_to_html(escape(text, quote=False))}</pre>'
-    )
-    if watermark:
-        credit = escape(watermark, quote=False)
-        segments = credit_segments(watermark) if watermark_url else None
-        if segments:
-            before, name, after = segments
-            # The anchor inherits the credit's own gray rather than taking the
-            # page's link color, which would make the mark the loudest thing in
-            # a capture whose point is the terminal above it.
-            credit = (
-                f"{escape(before, quote=False)}"
-                f'<a href="{escape(watermark_url)}" style="color: inherit">'
-                f"{escape(name, quote=False)}</a>{escape(after, quote=False)}"
-            )
-        body += (
-            f'\n<div style="margin: 0 {margin}px {margin}px; text-align: right; '
-            f"color: {watermark_color}; font-family: {font_stack}; "
-            f'font-size: {WATERMARK_SIZE}px">{credit}</div>'
-        )
-    page = "" if backdrop == NO_PAINT else f"background: {backdrop}; "
-    if not full:
-        # A fragment carries no page of its own, so a backdrop needs one. A
-        # credit line needs nothing: a fragment is a run of markup, and the mark
-        # is the second element of it.
-        return f'<div style="{page}">{body}</div>' if page else body
-    return (
-        "<!doctype html>\n"
-        '<html lang="en">\n'
-        "<head>\n"
-        '<meta charset="utf-8">\n'
-        f"<title>{escape(title, quote=False)}</title>\n"
-        "</head>\n"
-        f'<body style="{page}margin: 0">\n{body}\n</body>\n'
-        "</html>\n"
-    )
-
-
 def render(
     text: str = "",
     *,
@@ -962,8 +737,9 @@ def render(
         {class}`~click_extra.screenshot_presets.Cursor`. `None` draws none. A
         cursor naming no shape takes the one the `preset` says that terminal
         draws, so `--preset windows` gets its bar without stating it.
-    :param full: HTML only. See {func}`render_html`.
-    :param background: chrome to draw on, see {class}`CaptureBackground`.
+    :param full: HTML only. See {func}`~click_extra.screenshot_html.render_html`.
+    :param background: chrome to draw on, see
+        {class}`~click_extra.screenshot_presets.CaptureBackground`.
     :param palette: colors the text resolves against. `None` takes the ones the
         preset and chrome name, which is what a terminal capture wants. The
         window's decorations keep answering to the chrome either way: a stated

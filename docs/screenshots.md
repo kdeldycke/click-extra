@@ -1068,6 +1068,16 @@ The switch keys on the *browser's* color scheme, not on the theme toggle of a do
    :undoc-members:
 ```
 
+## `click_extra.screenshot_html` API
+
+```{eval-rst}
+.. automodule:: click_extra.screenshot_html
+   :no-index:
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `click_extra.screenshot_svg` API
 
 ```{eval-rst}

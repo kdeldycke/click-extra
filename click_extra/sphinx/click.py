@@ -69,13 +69,18 @@ from ..screenshot import (
     AUTO_CURSOR,
     DEFAULT_COLUMNS,
     MIN_COLUMNS,
-    CaptureBackground,
     Chrome,
     append_prompt,
     prompt_line,
     render,
 )
-from ..screenshot_presets import PRESETS, Cursor, CursorShape, TerminalPreset
+from ..screenshot_presets import (
+    PRESETS,
+    CaptureBackground,
+    Cursor,
+    CursorShape,
+    TerminalPreset,
+)
 from ..screenshot_svg import AUTO_HOLD, OPAQUE, animation_metadata
 from ..snippet import highlight_code, resolve_style, style_palette
 from ..spinner import Spinner
@@ -976,7 +981,7 @@ class ClickDirective(SphinxDirective):
         Defaults to the dark chrome a terminal and this package's default theme
         both look like. A block rendering a light-background theme says so, or
         its capture washes out: see
-        {class}`~click_extra.screenshot.CaptureBackground`.
+        {class}`~click_extra.screenshot_presets.CaptureBackground`.
         """
         return self.options.get("screenshot-background", CaptureBackground.DARK)  # type: ignore[no-any-return]
 

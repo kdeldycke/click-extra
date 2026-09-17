@@ -30,7 +30,10 @@ image knows which desktop it came from:
 
 None of it is applied unless asked for: a capture with no preset keeps the
 renderer's own neutral window, which is what every image in this project's
-documentation is drawn as.
+documentation is drawn as. That window is described here too: {data}`DEFAULT_PRESET`
+is the terminal it resolves its colors against, {class}`CaptureBackground` names
+the dark or light chrome a capture is drawn on, and {func}`resolve_palette`
+answers the palette any preset shows on either.
 
 ```{caution}
 A palette here is a *published default*, transcribed from the scheme each
@@ -379,3 +382,90 @@ of this: a capture embedded with `<img>` never sees the page's own `@font-face`
 either, so a stylesheet cannot fix this from the outside.
 ```
 """
+
+
+class CaptureBackground(Enum):
+    """Terminal chrome a capture is drawn on.
+
+    A capture freezes the colors of the run it pictures, so the chrome has to
+    answer to the palette that run was colored for. Neither direction survives
+    the other: a screen colored for a dark terminal is unreadable on white, and
+    click-extra's own `light` and `manpage` themes wash out on the dark chrome
+    a renderer defaults to.
+
+    The value doubles as the `--background` choice the CLI offers.
+    """
+
+    DARK = "dark"
+    """What a terminal, and this package's default theme, usually look like."""
+
+    LIGHT = "light"
+    """For a CLI rendered with a light-background theme."""
+
+    def __str__(self):
+        return self.name.lower()
+
+
+CAPTURE_PALETTES: dict[CaptureBackground, TerminalPalette] = {
+    CaptureBackground.DARK: DEFAULT_PRESET.dark,
+    CaptureBackground.LIGHT: DEFAULT_PRESET.light,
+}
+"""Colors each chrome resolves a capture's ANSI codes against.
+
+A palette carries the 16 ANSI colors alongside the background and foreground,
+which is the other half of the job: a CLI naming `blue` leaves the shade to
+whoever draws it, and the one that reads on white is not the one that reads on
+`#292929`.
+"""
+
+
+CAPTURE_BACKGROUND = CAPTURE_PALETTES[CaptureBackground.DARK].background
+"""Background a dark capture is drawn on.
+
+Stating it is not optional: a help screen colored for a dark terminal is
+unreadable on a page that defaults to white.
+"""
+
+
+CAPTURE_FOREGROUND = CAPTURE_PALETTES[CaptureBackground.DARK].foreground
+"""Color of the text a dark capture leaves unstyled. See {data}`CAPTURE_BACKGROUND`."""
+
+
+LIGHT_CAPTURE_BACKGROUND = CAPTURE_PALETTES[CaptureBackground.LIGHT].background
+"""Background a light capture is drawn on.
+
+See {data}`CAPTURE_BACKGROUND`: an SVG and an HTML capture of the same run have
+to look like the same terminal.
+"""
+
+
+LIGHT_CAPTURE_FOREGROUND = CAPTURE_PALETTES[CaptureBackground.LIGHT].foreground
+"""Color of the text a light capture leaves unstyled.
+
+See {data}`LIGHT_CAPTURE_BACKGROUND`.
+"""
+
+
+def preset_palette(
+    preset: TerminalPreset,
+    background: CaptureBackground,
+) -> TerminalPalette:
+    """The colors a preset shows on the given chrome."""
+    return preset.dark if background is CaptureBackground.DARK else preset.light
+
+
+def resolve_palette(
+    preset: TerminalPreset | None,
+    background: CaptureBackground,
+) -> TerminalPalette:
+    """The colors a capture resolves its ANSI codes against.
+
+    The preset's palette on the given chrome, or the default terminal's
+    ({data}`CAPTURE_PALETTES`) when no preset dresses the capture. The one
+    resolution rule shared by {func}`~click_extra.screenshot.render` and
+    {func}`~click_extra.screenshot_html.render_html`, so the two formats cannot disagree
+    on what a chrome looks like.
+    """
+    if preset is None:
+        return CAPTURE_PALETTES[background]
+    return preset_palette(preset, background)
