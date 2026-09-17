@@ -39,7 +39,7 @@ from click_extra import (
     echo,
     pass_context,
 )
-from click_extra.cli import demo
+from click_extra.cli import _TRAIL_BATCH, demo
 from click_extra.context import PROGRESS, START_TIME
 from click_extra.screenshot import cell_width
 from click_extra.spinner import (
@@ -968,14 +968,26 @@ def test_demo_trail_rejects_unknown_spinner(invoke):
         pytest.param(("--progress-bar", "--eta"), id="progress-bar-eta"),
     ),
 )
-def test_demo_trail_runs_silently_off_tty(invoke, monkeypatch, extra_args):
-    """Every rendering runs the batch to completion and, off a TTY, stays silent."""
+def test_demo_trail_prints_plain_lines_off_tty(invoke, monkeypatch, extra_args):
+    """Every rendering runs the batch to completion and, off a TTY, prints each
+    outcome and the finisher as plain lines, with no indicator drawn."""
     # Skip the real per-vegetable pauses so the batch completes instantly.
     monkeypatch.setattr(time, "sleep", lambda _seconds: None)
     result = invoke(demo, "trail", *extra_args)
     assert result.exit_code == 0
-    # Off a TTY the trail draws no indicator and echoes no lines.
-    assert result.output == ""
+    # No spinner or bar drew: either one writes a carriage return to redraw.
+    assert "\r" not in result.output
+    # Drop the timing suffix that --eta turns on, then compare the text alone.
+    lines = [
+        re.sub(r" \([^)]*\)$", "", line)
+        for line in click.unstyle(result.output).splitlines()
+    ]
+    # Concurrent workers land in any order, but the finisher always closes.
+    assert sorted(lines[:-1]) == sorted(
+        f"{OK_GLYPH} {name} roasted" if roasted else f"{KO_GLYPH} {name} scorched"
+        for name, _seconds, roasted in _TRAIL_BATCH
+    )
+    assert lines[-1] == f"{KO_GLYPH} Roasted 5/6 vegetables"
 
 
 def test_tour_duration_bounds_dwell():
@@ -1059,10 +1071,23 @@ def test_sequential_trail_echoes_lines_and_finisher():
     assert trail.ok_count == 1
 
 
-def test_sequential_trail_silent_off_tty():
-    """A non-interactive stream gets no trail at all by default."""
+def test_sequential_trail_echoes_off_tty():
+    """A non-interactive stream gets the trail lines and finisher by default."""
     stream = io.StringIO()
     trail = OperationTrail(label="Fetching", unit="feeds", total=1, stream=stream)
+    trail.mark(True, "feed-a fetched")
+    trail.finish(True, "Fetched 1/1 feeds")
+    assert click.unstyle(stream.getvalue()).splitlines() == [
+        f"{OK_GLYPH} feed-a fetched",
+        f"{OK_GLYPH} Fetched 1/1 feeds",
+    ]
+    assert trail.ok_count == 1
+
+
+def test_sequential_trail_disabled_stays_silent_off_tty():
+    """`enabled=False` silences the trail on a non-interactive stream too."""
+    stream = io.StringIO()
+    trail = OperationTrail(total=1, enabled=False, stream=stream)
     trail.mark(True, "feed-a fetched")
     trail.finish(True, "Fetched 1/1 feeds")
     assert stream.getvalue() == ""
@@ -1070,12 +1095,16 @@ def test_sequential_trail_silent_off_tty():
     assert trail.ok_count == 1
 
 
-def test_sequential_trail_forced_on_pipe():
-    """`enabled=True` forces the sequential echo onto a non-interactive stream."""
+def test_trail_forced_spinner_draws_on_pipe():
+    """`enabled=True` animates the aggregate spinner on a non-interactive stream."""
     stream = io.StringIO()
-    trail = OperationTrail(total=1, enabled=True, stream=stream)
-    trail.mark(True, "done")
-    assert "done" in stream.getvalue()
+    with OperationTrail(
+        label="Syncing", unit="repos", total=2, jobs=2, enabled=True, stream=stream
+    ) as trail:
+        assert wait_until(
+            lambda: trail._indicator is not None and trail._indicator.shown
+        )
+        assert "Syncing 0/2 repos" in click.unstyle(stream.getvalue())
 
 
 def test_sequential_trail_echo_opt_out():
@@ -1166,8 +1195,10 @@ def test_trail_echoes_a_batch_its_indicator_never_drew(rendering, finished):
     ("options", "stream_class"),
     (
         pytest.param({"echo_sequential": False}, TTYStringIO, id="echo-opt-out"),
+        pytest.param(
+            {"echo_sequential": False}, io.StringIO, id="echo-opt-out-off-tty"
+        ),
         pytest.param({"enabled": False}, TTYStringIO, id="disabled"),
-        pytest.param({}, io.StringIO, id="off-tty"),
     ),
 )
 @pytest.mark.parametrize("finished", (True, False), ids=("finished", "left-early"))
@@ -1503,13 +1534,46 @@ def test_progress_bar_trail_works_concurrently():
     assert "Crunched 16/16 items" in stream.getvalue()
 
 
-def test_progress_bar_trail_disabled_stays_silent():
-    """Off a TTY, the progress-bar trail renders nothing but keeps its tally."""
-    stream = io.StringIO()
-    with OperationTrail(total=2, progress_bar=True, stream=stream) as trail:
-        trail.mark(True, "a done")
-        trail.finish(True, "Done 1/2")
-    assert stream.getvalue() == ""
+@pytest.mark.parametrize(
+    "rendering",
+    (
+        pytest.param({"jobs": 2}, id="concurrent-spinner"),
+        pytest.param({"progress_bar": True}, id="progress-bar"),
+    ),
+)
+@pytest.mark.parametrize(
+    ("stream_class", "term"),
+    (
+        pytest.param(io.StringIO, None, id="off-tty"),
+        pytest.param(TTYStringIO, "dumb", id="dumb-terminal"),
+    ),
+)
+def test_trail_echoes_live_where_no_indicator_draws(
+    monkeypatch, rendering, stream_class, term
+):
+    """Where no indicator can draw, each outcome prints as soon as it is marked.
+
+    Nothing owns the live line there, so no line waits for a first frame that
+    never comes, and no cursor control reaches the stream.
+    """
+    if term:
+        monkeypatch.setenv("TERM", term)
+    stream = stream_class()
+    with OperationTrail(
+        label="Syncing", unit="repos", total=2, stream=stream, **rendering
+    ) as trail:
+        trail.mark(True, "repo-a synced")
+        assert click.unstyle(stream.getvalue()) == f"{OK_GLYPH} repo-a synced\n"
+        trail.mark(False, "repo-b failed")
+        trail.finish(False, "Synced 1/2 repos")
+    output = stream.getvalue()
+    assert click.unstyle(output).splitlines() == [
+        f"{OK_GLYPH} repo-a synced",
+        f"{KO_GLYPH} repo-b failed",
+        f"{KO_GLYPH} Synced 1/2 repos",
+    ]
+    assert "\r" not in output
+    assert "\x1b[K" not in output
     assert trail.ok_count == 1
 
 

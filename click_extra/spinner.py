@@ -1216,10 +1216,13 @@ class OperationTrail:
       it. Serves sequential and concurrent batches alike, and needs a known
       `total`.
 
-    All render only on an interactive stream unless `enabled` forces the
-    matter, so pipes, CI logs and captured test buffers stay clean. The running
-    `✓` tally is kept as outcomes land ({attr}`ok_count`), so a caller computes
-    no counts of its own.
+    The aggregate indicators draw only on an interactive terminal, unless
+    `enabled` forces the matter: they redraw in place, which a pipe or a CI log
+    cannot do. The `✓`/`✘` lines and the finisher only append, so they print on
+    any stream, in plain text where color is off. Where no indicator can draw,
+    every rendering echoes each outcome as it lands, as the sequential one does.
+    The running `✓` tally is kept as outcomes land ({attr}`ok_count`), so a
+    caller computes no counts of its own.
 
     Thread-safe: {meth}`mark` may be called from worker threads. Use it as a
     context manager whenever it may run concurrently, to bound the aggregate
@@ -1294,16 +1297,18 @@ class OperationTrail:
             progress bar and the concurrent spinner honor `"eta"` (the spinner
             reuses Click's progress-bar estimate, since the trail knows its
             `total`). Per-operation and finisher times are always elapsed.
-        :param enabled: force the trail on or off. `None` (the default)
-            auto-detects: the sequential echo renders only on an interactive
-            stream, and the aggregate indicator applies its own TTY gate.
-        :param echo_sequential: whether a sequential batch echoes its outcome
-            lines and finisher at all. Turn it off when the batch has another
-            output that is the real product (a result table) and the trail
-            would be noise. It also decides whether a batch that finishes
-            before its aggregate indicator first draws echoes that record
-            plainly (on) or leaves nothing on screen (off); an indicator that
-            did draw is unaffected.
+        :param enabled: force the trail on or off. `None` (the default) prints
+            the lines and the finisher on any stream, and draws an aggregate
+            indicator only on an interactive terminal. `True` also forces the
+            indicator on, whatever the stream. `False` silences the lines, the
+            finisher and the indicator.
+        :param echo_sequential: whether the batch echoes its outcome lines and
+            finisher as plain lines at all: in a sequential batch, in a batch
+            whose aggregate indicator cannot draw on the stream, and in one that
+            finishes before its indicator first draws. Turn it off when the
+            batch has another output that is the real product (a result table)
+            and the trail would be noise. An indicator that did draw is
+            unaffected.
         :param delay: seconds before the aggregate indicator first draws: a
             fast batch then completes without ever flashing one, its lines
             echoed plainly at {meth}`finish` instead (see `echo_sequential`).
@@ -1338,19 +1343,18 @@ class OperationTrail:
         self._indicator: _AggregateIndicator | None = None
         self._buffer: list[str] = []
         # Whether outcome lines may reach the stream as plain text: the trail is
-        # the batch's output and the stream is interactive, unless `enabled`
-        # forces the matter, mirroring the indicator's own TTY gate.
-        if not echo_sequential or enabled is False:
-            self._echo_plain = False
-        elif enabled is True:
-            self._echo_plain = True
-        else:
-            self._echo_plain = is_a_tty(stream if stream is not None else sys.stderr)
+        # the batch's output, unless `enabled` silences it. A plain line needs no
+        # cursor control, so this holds for a pipe or a file as for a terminal.
+        self._echo_plain = echo_sequential and enabled is not False
         # An aggregate indicator (a progress bar, or a spinner for a concurrent
-        # batch) owns the live line, so the plain echo runs as lines are marked
-        # only when there is none. With one, plain lines are the fallback of
-        # finish() for a batch the indicator never drew.
-        self._echo = self._echo_plain and not (self.concurrent or progress_bar)
+        # batch) owns the live line only on a stream it can draw on, under the
+        # same resolution the indicator applies. There, lines wait for its first
+        # frame, and finish() echoes them for a batch it never drew. Elsewhere
+        # no indicator ever draws, so lines echo as they are marked.
+        self._indicator_draws = (self.concurrent or progress_bar) and _stream_enabled(
+            enabled, stream if stream is not None else sys.stderr
+        )
+        self._echo = self._echo_plain and not self._indicator_draws
 
     def __enter__(self) -> Self:
         if self.progress_bar:
@@ -1441,12 +1445,12 @@ class OperationTrail:
             self._done += 1
             if ok:
                 self._ok += 1
-            if self._indicator is not None:
+            if self._echo:
+                self._echo_line(self._render_line(ok, message))
+            elif self._indicator is not None:
                 self._buffer.append(self._render_line(ok, message))
                 self._indicator.advance(self._done)
                 self._flush()
-            elif self._echo:
-                self._echo_line(self._render_line(ok, message))
 
     def _flush(self) -> None:
         # Caller holds the lock. Drain buffered lines once the indicator is
@@ -1463,15 +1467,14 @@ class OperationTrail:
 
         With an aggregate indicator that drew, it becomes the indicator's kept
         line (a spinner's {meth}`Spinner.ok` / {meth}`Spinner.fail` line, or the
-        bar's replacement line); sequential without one, a plain echoed line. The
-        batch's elapsed time since construction is appended when `timer` is on
-        (the default).
+        bar's replacement line); otherwise, a plain echoed line. The batch's
+        elapsed time since construction is appended when `timer` is on.
 
         A batch finishing inside `delay` never draws its indicator, so none of
         its buffered lines reached the stream. When the trail is the batch's
-        output (`echo_sequential`, on an interactive stream), they are echoed
-        plainly along with the finisher, the way a sequential batch prints them:
-        how fast a batch ran must not decide whether its record exists.
+        output (`echo_sequential`, and not disabled), they are echoed plainly
+        along with the finisher, the way a sequential batch prints them: how
+        fast a batch ran must not decide whether its record exists.
         """
         indicator = self._indicator
         if indicator is not None:

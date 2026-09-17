@@ -1723,7 +1723,8 @@ def demo_trail(
     --progress-bar swaps that spinner for a determinate progress bar. Add --time
     to append each vegetable's roast time and the batch total; --elapsed and
     --eta turn that on too, counting up from zero or down as an estimate. Honors
-    --progress / --no-progress and stays silent off an interactive terminal.
+    --progress / --no-progress. Off an interactive terminal no spinner or bar
+    draws, and each outcome and the summary print as plain lines.
     """
     worker_count = context.get(ctx, context.JOBS, 1)
     progress_on = context.get(ctx, context.PROGRESS, True)

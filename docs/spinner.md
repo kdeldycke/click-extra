@@ -381,9 +381,9 @@ assert callable(fetch_feeds)
 
 The rendering adapts to the batch's concurrency, and you pick neither mode by hand. Run concurrently (`jobs > 1`), one aggregate spinner carries the `Fetching 3/5 feeds` tally while the trail lines stream above it, its animation picked from the [catalog](#spinner-catalog) with `spinner=SPINNERS["moon"]`. Run sequentially (`jobs <= 1`), each outcome echoes as a plain line and every operation stays free to keep its own per-call `Spinner`. Either way the finisher carries the elapsed time. {class}`~click_extra.spinner.OperationTrail` details what each mode drives.
 
-Like the spinner, the trail renders only on an interactive stream unless `enabled` forces the matter, so pipes and CI logs stay clean, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.spinner.OperationTrail.ok_count` tally.
+Only the aggregate spinner or bar needs an interactive terminal, since it redraws in place. The `✓`/`✘` lines and the finisher print on any stream, so a pipe or a CI log keeps the batch's record, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.spinner.OperationTrail.ok_count` tally. `enabled=False` silences a trail entirely, which is how a CLI honors `--no-progress`.
 
-Off a terminal the trail is silent, so it cannot render in a captured build unless `enabled` forces it. Passing `enabled=True` echoes the trail regardless of the stream, which is how this page shows a live sequential run (a real CLI leaves `enabled=None` and lets the terminal decide, as the `--progress` section below covers):
+This page captures its commands off a terminal, and the trail still prints there. That is how it shows a live sequential run:
 
 ```{click:source}
 from click_extra import command
@@ -394,9 +394,7 @@ from click_extra.spinner import OperationTrail
 def roast():
     """Roast a tray of vegetables, tracing each outcome as it lands."""
     vegetables = ["carrots", "fennel", "leeks", "peppers"]
-    # enabled=True forces the trail on so this page can render it; a real CLI
-    # leaves enabled=None to auto-detect the terminal (see --progress below).
-    with OperationTrail(jobs=1, enabled=True) as trail:
+    with OperationTrail(jobs=1) as trail:
         for vegetable in vegetables:
             roasted = vegetable != "leeks"  # The leeks caught the heat.
             trail.mark(
