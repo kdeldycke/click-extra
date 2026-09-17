@@ -34,9 +34,11 @@ from contextlib import contextmanager
 from gettext import gettext as _
 
 import click
+from click._utils import UNSET
 from click.core import ParameterSource
 from extra_platforms import is_unix
 
+from ._deprecated import warn_deprecated_argument
 from .envvar import parse_envvar_flag, temporary_env
 from .parameters import ExtraOption
 from .styling import _relative_luminance
@@ -56,6 +58,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import IO, Any, ClassVar, Literal
 
+    from click._utils import T_UNSET
     from click.parser import _OptionParser
 
 
@@ -358,7 +361,9 @@ def query_osc_background(
 
 
 def resolve_background(
-    allow_query: bool = False,
+    query_background: bool = False,
+    *,
+    allow_query: bool | T_UNSET = UNSET,
 ) -> Literal["dark", "light"] | None:
     """Detect whether the terminal has a dark or light background.
 
@@ -371,7 +376,7 @@ def resolve_background(
        `:variant`) is a deliberate override and wins outright; `auto` and
        anything unrecognized fall through.
     #. The live OSC 11 query ({func}`query_osc_background`), but only when
-       *allow_query* is true. It is the most accurate and the only real-time
+       *query_background* is true. It is the most accurate and the only real-time
        signal, yet it reads stdin, so it stays opt-in.
     #. `COLORFGBG` — set by a handful of terminals (rxvt, Konsole) and cached
        by [shell-term-background](https://github.com/rocky/shell-term-background)
@@ -379,7 +384,9 @@ def resolve_background(
        the value at terminal launch and is not refreshed when the user switches
        themes.
 
-    :param allow_query: permit the stdin-reading OSC 11 query. Off by default.
+    :param query_background: permit the stdin-reading OSC 11 query. Off by
+        default, as on {class}`~click_extra.theme.ThemeOption`.
+    :param allow_query: deprecated, use `query_background` instead.
 
     ```{seealso}
     "Is this terminal dark or light?" has a small ecosystem of prior art,
@@ -395,6 +402,11 @@ def resolve_background(
       Windows console.
     ```
     """
+    if allow_query is not UNSET:
+        warn_deprecated_argument(
+            "resolve_background", "allow_query", "query_background="
+        )
+        query_background = allow_query
     clitheme = os.environ.get("CLITHEME", "").strip().lower()
     mode = clitheme.split(":", 1)[0]
     if mode == "dark":
@@ -402,7 +414,7 @@ def resolve_background(
     if mode == "light":
         return "light"
 
-    if allow_query:
+    if query_background:
         rgb = query_osc_background()
         if rgb is not None:
             return "dark" if _is_dark_rgb(rgb) else "light"

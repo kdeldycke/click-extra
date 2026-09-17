@@ -505,7 +505,7 @@ class CLITestCase:
                 # route stderr into stdout so the OS interleaves both in write
                 # order: result.stdout then holds the combined stream and
                 # result.stderr is None. Otherwise capture the two separately.
-                merge_streams=self.has_merged_output_directives,
+                merge_stderr=self.has_merged_output_directives,
                 # Last-resort guard for binaries that emit non-UTF-8 bytes anyway:
                 # escape them instead of raising UnicodeDecodeError from the reader
                 # thread, which surfaced as a bare "expected string or bytes-like

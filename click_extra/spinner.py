@@ -56,7 +56,6 @@ import os
 import sys
 import threading
 import time
-import warnings
 from gettext import gettext as _
 from typing import TypeVar, cast
 
@@ -64,7 +63,7 @@ import click
 from click._utils import UNSET
 
 from . import context
-from ._deprecated import deprecation_message
+from ._deprecated import warn_deprecated_argument
 from .color import COLOR_DISABLING_TERMS, invocation_color, is_a_tty
 from .humanize import format_duration
 from .layout import cell_width
@@ -230,18 +229,6 @@ def _check_live(live: str) -> None:
         raise ValueError('live must be "auto", "always" or "never".')
 
 
-def _warn_enabled(owner: str, replacement: str) -> None:
-    """Warn that `enabled=` is deprecated on `owner`, at the caller of `owner`.
-
-    `stacklevel=3` skips this helper and the `__init__` calling it.
-    """
-    warnings.warn(
-        deprecation_message(f"{owner}(enabled=...)", replacement),
-        DeprecationWarning,
-        stacklevel=3,
-    )
-
-
 def _can_draw(live: str, stream: IO[str]) -> bool:
     """Resolve whether a cursor-driven display may draw on `stream`.
 
@@ -304,11 +291,6 @@ class Spinner:
         enabled: bool | T_UNSET | None = UNSET,
     ) -> None:
         """Configure (but do not start) the spinner.
-
-        ```{todo}
-        Remove the deprecated `enabled` argument and its test in click-extra
-        `10.0.0`, the release `click_extra._deprecated` retires its aliases in.
-        ```
 
         :param label: text shown after the spinner glyph. As a special case, a
             bare `@Spinner` decorator passes the wrapped function here instead;
@@ -407,7 +389,7 @@ class Spinner:
             self.interval = 0.1
         _check_live(live)
         if enabled is not UNSET:
-            _warn_enabled("Spinner", "live=")
+            warn_deprecated_argument("Spinner", "enabled", "live=")
             live = "auto" if enabled is None else "always" if enabled else "never"
         self.reverse = reverse
         self.delay = delay
@@ -1321,11 +1303,6 @@ class OperationTrail:
     ) -> None:
         """Configure (but do not start) the trail.
 
-        ```{todo}
-        Remove the deprecated `enabled` argument and its test in click-extra
-        `10.0.0`, the release `click_extra._deprecated` retires its aliases in.
-        ```
-
         :param label: present-tense verb for the running aggregate indicator
             (`"Fetching"`), composed into its ``{label} {done}/{total} {unit}``
             tally.
@@ -1393,7 +1370,7 @@ class OperationTrail:
             raise ValueError('clock must be "elapsed" or "eta".')
         _check_live(live)
         if enabled is not UNSET:
-            _warn_enabled("OperationTrail", "visible= and live=")
+            warn_deprecated_argument("OperationTrail", "enabled", "visible= and live=")
             if enabled is False:
                 visible = False
             elif enabled is True:

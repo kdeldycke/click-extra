@@ -965,7 +965,7 @@ def capture_output(
             args,
             extra_env=extra_env,
             timeout=timeout,
-            merge_streams=merge_stderr,
+            merge_stderr=merge_stderr,
         )
 
 

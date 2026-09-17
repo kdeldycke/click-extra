@@ -53,11 +53,13 @@ import click
 from boltons.iterutils import flatten
 from boltons.strutils import strip_ansi
 from click import echo
+from click._utils import UNSET
 from click.core import ParameterSource
 from click.shell_completion import CompletionItem
 from extra_platforms import is_windows
 
 from . import context
+from ._deprecated import warn_deprecated_argument
 from .envvar import env_copy
 from .parameters import ExtraOption
 from .theme import get_current_theme
@@ -69,6 +71,8 @@ if TYPE_CHECKING:
     from pathlib import Path
     from types import FrameType
     from typing import IO, Any
+
+    from click._utils import T_UNSET
 
     from .envvar import TEnvVars
     from .theme import HelpTheme
@@ -1076,13 +1080,14 @@ def run_cli(
     cwd: Path | str | None = None,
     timeout: float | None = None,
     label: str | None = None,
-    merge_streams: bool = False,
+    merge_stderr: bool = False,
     errors: str = "replace",
     windows_creation_flags: int = 0,
     start_new_session: bool = False,
     command_level: int = logging.INFO,
     output_level: int = logging.DEBUG,
     log: logging.Logger | None = None,
+    merge_streams: bool | T_UNSET = UNSET,
 ) -> subprocess.CompletedProcess[str]:
     """Run a CLI in a subprocess, disclosing the call and streaming its output live.
 
@@ -1142,7 +1147,7 @@ def run_cli(
         `record.label` itself. Applied to the prompt line and to every output
         line, so an interleaved log attributes each command as well as what it
         printed.
-    :param merge_streams: route the child's `stderr` into `stdout` so the OS
+    :param merge_stderr: route the child's `stderr` into `stdout` so the OS
         interleaves both in write order. The result's `stderr` is then `None`,
         like a {func}`subprocess.run` call with `stderr=STDOUT`.
     :param errors: decoding error handler for the child's output. The default
@@ -1180,7 +1185,11 @@ def run_cli(
         {data}`logging.DEBUG`.
     :param log: destination logger. Defaults to the root logger, whose level the
         {class}`~click_extra.logging.VerbosityOption` family manages.
+    :param merge_streams: deprecated, use `merge_stderr` instead.
     """
+    if merge_streams is not UNSET:
+        warn_deprecated_argument("run_cli", "merge_streams", "merge_stderr=")
+        merge_stderr = merge_streams
     if log is None:
         log = logging.getLogger()
     clean_args = args_cleanup(args)
@@ -1210,7 +1219,7 @@ def run_cli(
         # Prevents the child from blocking on stdin reads.
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT if merge_streams else subprocess.PIPE,
+        stderr=subprocess.STDOUT if merge_stderr else subprocess.PIPE,
         encoding="utf-8",
         errors=errors,
         env=cast("subprocess._ENV", env_copy(extra_env)),
@@ -1256,7 +1265,7 @@ def run_cli(
             clean_args,
             timeout,
             output="".join(out_lines),
-            stderr=None if merge_streams else "".join(err_lines),
+            stderr=None if merge_stderr else "".join(err_lines),
         )
 
     def kill_child() -> None:
@@ -1312,5 +1321,5 @@ def run_cli(
         clean_args,
         process.returncode,
         stdout=stdout,
-        stderr=None if merge_streams else stderr,
+        stderr=None if merge_stderr else stderr,
     )

@@ -1060,18 +1060,27 @@ def test_format_cli_prompt_honors_an_explicit_theme():
 
 
 def test_run_cli_merged_streams():
-    """merge_streams interleaves stderr into stdout and nulls the stderr field."""
+    """merge_stderr interleaves stderr into stdout and nulls the stderr field."""
     code = dedent("""\
         import sys
         print("to out")
         sys.stdout.flush()
         print("to err", file=sys.stderr)
         """)
-    result = run_cli((sys.executable, "-c", code), merge_streams=True)
+    result = run_cli((sys.executable, "-c", code), merge_stderr=True)
     # run_cli() types both streams as str; merging nulls stderr at runtime.
     stderr: str | None = result.stderr
     assert stderr is None
     assert "to out" in result.stdout
+    assert "to err" in result.stdout
+
+
+def test_run_cli_merge_streams_is_deprecated():
+    """`merge_streams` still merges, warning at the caller."""
+    code = 'import sys; print("to err", file=sys.stderr)'
+    with pytest.warns(DeprecationWarning, match="use merge_stderr= instead") as record:
+        result = run_cli((sys.executable, "-c", code), merge_streams=True)
+    assert Path(record[0].filename).name == Path(__file__).name
     assert "to err" in result.stdout
 
 

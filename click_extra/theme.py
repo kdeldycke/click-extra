@@ -632,7 +632,7 @@ def resolve_auto_theme(
         untouched so {func}`get_current_theme` keeps the no-color default.
     """
     registry = get_theme_registry(ctx)
-    mode = color.resolve_background(allow_query=query_background)
+    mode = color.resolve_background(query_background=query_background)
     for name in (mode, "dark"):
         if name is not None and name in registry:
             return registry[name]

@@ -13,19 +13,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Backward-compatible deprecated aliases.
+"""Backward-compatible deprecated aliases and arguments.
 
 Symbols that were renamed or moved between modules stay importable from their
 original location for one deprecation cycle. Accessing one emits a
 {exc}`DeprecationWarning` pointing at its replacement, through the
 [PEP 562](https://peps.python.org/pep-0562/) module `__getattr__` hooks wired
 into `click_extra/color.py`, `click_extra/parameters.py` and
-`click_extra/theme.py`.
+`click_extra/theme.py`. A renamed argument keeps its old name for the same
+cycle, and passing it warns through {func}`warn_deprecated_argument`.
 
-```{important}
-Aliases registered here are scheduled for removal in the release recorded in
-{data}`REMOVAL_VERSION`. When that release is cut, delete this module, every
-`__getattr__` hook that calls {func}`resolve_deprecated`, and their tests,
+```{todo}
+Cut all of it in the release recorded in {data}`REMOVAL_VERSION`: delete this
+module, every `__getattr__` hook that calls {func}`resolve_deprecated`, every
+argument handled by a call to {func}`warn_deprecated_argument`, and their tests,
 exactly as the `9.0.0` release did with the previous batch.
 ```
 """
@@ -78,6 +79,29 @@ def deprecation_message(subject: str, replacement: str) -> str:
     return (
         f"{subject} is deprecated and will be removed in click-extra "
         f"{REMOVAL_VERSION}, use {replacement} instead."
+    )
+
+
+def warn_deprecated_argument(
+    function: str, argument: str, replacement: str, *, stacklevel: int = 3
+) -> None:
+    """Warn that `argument` of `function` is deprecated, at the caller's call site.
+
+    The keyword counterpart of the module aliases: a renamed argument keeps its
+    old name for one deprecation cycle, and passing it warns through here, so
+    the wording and the announced removal release stay in one place.
+
+    :param function: name of the callable taking the argument, like `Spinner`.
+    :param argument: the deprecated argument name.
+    :param replacement: what to pass instead, like `live=`.
+    :param stacklevel: frames between this helper and the call site to blame.
+        The default fits a direct call from the function taking the argument:
+        this helper, that function, then its caller.
+    """
+    warnings.warn(
+        deprecation_message(f"{function}({argument}=...)", replacement),
+        DeprecationWarning,
+        stacklevel=stacklevel,
     )
 
 

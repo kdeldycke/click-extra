@@ -7,6 +7,7 @@
 
 - **Breaking:** Print `OperationTrail` lines and its finisher off an interactive terminal too, where no spinner or progress bar draws. Pass `visible=False` to keep a trail silent.
 - **Deprecated:** Replace the `enabled` argument of `Spinner` with `live` (`"auto"`, `"always"` or `"never"`), and that of `OperationTrail` with `visible` and `live`; `enabled` resolves until `10.0.0`.
+- **Deprecated:** Rename the `merge_streams` argument of `run_cli` to `merge_stderr`, and `allow_query` of `resolve_background` to `query_background`, matching `capture_output` and `ThemeOption`; the old names resolve until `10.0.0`.
 - Show a `Spinner`'s elapsed time under `--time` by default, as `OperationTrail` and `progressbar` do.
 - Tag the prompt line `run_cli` logs with its `label` too, so an interleaved log attributes each command as well as its output.
 - Add `label_style` and `timer_style` to `Spinner`, painting the label and the timer (parentheses included) apart from `style`, on every frame and on the kept `ok()` / `fail()` line.

@@ -651,15 +651,27 @@ def test_resolve_background(monkeypatch, env, expected):
 
 
 def test_resolve_background_query_is_opt_in(monkeypatch):
-    """The OSC 11 query runs only when ``allow_query`` is set, below the env vars."""
+    """The OSC 11 query runs only when ``query_background`` is set, below env vars."""
     for var in ("CLITHEME", "COLORFGBG"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setattr(color, "query_osc_background", lambda: (255, 255, 255))
 
     # With no env signal and the query allowed, the live color decides.
-    assert resolve_background(allow_query=True) == "light"
+    assert resolve_background(query_background=True) == "light"
     # The query is never consulted when not explicitly allowed.
-    assert resolve_background(allow_query=False) is None
+    assert resolve_background(query_background=False) is None
+
+
+def test_resolve_background_allow_query_is_deprecated(monkeypatch):
+    """`allow_query` still permits the query, warning at the caller."""
+    for var in ("CLITHEME", "COLORFGBG"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(color, "query_osc_background", lambda: (255, 255, 255))
+    with pytest.warns(
+        DeprecationWarning, match="use query_background= instead"
+    ) as record:
+        assert resolve_background(allow_query=True) == "light"
+    assert record[0].filename == __file__
 
 
 def test_resolve_background_query_below_explicit_env(monkeypatch):
@@ -667,7 +679,7 @@ def test_resolve_background_query_below_explicit_env(monkeypatch):
     monkeypatch.delenv("COLORFGBG", raising=False)
     monkeypatch.setenv("CLITHEME", "dark")
     monkeypatch.setattr(color, "query_osc_background", lambda: (255, 255, 255))
-    assert resolve_background(allow_query=True) == "dark"
+    assert resolve_background(query_background=True) == "dark"
 
 
 @pytest.mark.parametrize(
