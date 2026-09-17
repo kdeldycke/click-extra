@@ -30,6 +30,9 @@
 
 ## [`9.2.0` (2026-09-15)](https://github.com/kdeldycke/click-extra/compare/v9.1.0...v9.2.0)
 
+> [!NOTE]
+> `9.2.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/9.2.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v9.2.0).
+
 - **Breaking:** Drop `click_extra.table.NARROW_EMOJI_PRESENTATION_TERMINALS`. Which terminals narrow an emoji-presentation sequence now comes from `wcwidth`'s own measured tables.
 - **Breaking:** Drop `LINE_NUMBER_SEPARATOR` and `RTL_BIDI_CLASSES` from `click_extra.screenshot`. Both moved to `click_extra.layout`, which is where to import them from now.
 - Add a `click_extra.layout` module for terminal-grid work, holding the new `center_in_rule` and `pad_to` alongside `cell_width`, `fit_columns`, `grid`, `is_bidirectional`, `number_lines` and `wrap_ansi`. Every function above stays importable where it was.
