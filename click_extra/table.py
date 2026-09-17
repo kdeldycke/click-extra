@@ -21,6 +21,7 @@ import csv
 import os
 import re
 import shutil
+from contextvars import ContextVar
 from enum import Enum
 from functools import cache, partial
 from gettext import gettext as _
@@ -97,7 +98,8 @@ def _setup_tabulate() -> None:
     # tabulate pads cells with its own import of wcwidth. Point it at the
     # measure Click Extra uses everywhere else, so a table's padding and its
     # wrapping cannot disagree on an emoji-presentation sequence: see
-    # _paints_wider_than_it_advances().
+    # _paints_wider_than_it_advances(), and _LAID_OUT_FOR_TERMINAL for the
+    # markup renderings the terminal never sees.
     # Only the string entry point changes: the emoji-presentation rule is one
     # about a sequence, which a single character cannot carry.
     tabulate.wcwidth = SimpleNamespace(  # type: ignore[attr-defined]
@@ -557,6 +559,26 @@ EMOJI_PRESENTATION_RE = re.compile(f".{EMOJI_PRESENTATION_SELECTOR}")
 """Matches one emoji-presentation sequence: a character and the selector."""
 
 
+_LAID_OUT_FOR_TERMINAL: ContextVar[bool] = ContextVar(
+    "laid_out_for_terminal", default=True
+)
+"""Whether the table being rendered is laid out for the running terminal.
+
+Set by {func}`render_table` for the duration of one rendering, and read by
+{func}`_terminal_wcswidth`, the measure {func}`_setup_tabulate` hands `tabulate`
+once for the whole process. `True` outside any rendering, so a direct `tabulate`
+call keeps measuring for the screen.
+
+A markup format renders under `False`. It carries the table to a reader who
+never sees this terminal, and to a formatter padding it with the Unicode widths
+alone: `mdformat` re-padded every row holding an emoji-presentation sequence of
+a `github` table rendered from Apple Terminal, one column each, on each pass.
+
+A context variable rather than a module global, so two threads rendering at
+once, one for the screen and one for a file, cannot swap each other's measure.
+"""
+
+
 def _term_program() -> str:
     """`$TERM_PROGRAM`, naming the terminal a table is laid out for.
 
@@ -594,17 +616,19 @@ def _paints_wider_than_it_advances(text: str) -> bool:
 
 
 def _terminal_wcswidth(text: str) -> int:
-    """Columns the running terminal advances the cursor by for `text`.
+    """Columns `text` takes in the layout being rendered.
 
-    {func}`wcwidth.width`, corrected for the terminal named in `$TERM_PROGRAM`:
-    see {func}`_paints_wider_than_it_advances`.
+    For the running terminal, {func}`wcwidth.width` corrected for the one named
+    in `$TERM_PROGRAM`: see {func}`_paints_wider_than_it_advances`. For a markup
+    rendering, the Unicode widths alone: see {data}`_LAID_OUT_FOR_TERMINAL`.
 
     Keeps `wcswidth`'s own convention of returning `-1` for a string carrying a
     non-printable character, since `tabulate` measures with this too and reads
     that value.
     """
-    if wcswidth(text) < 0:
-        return -1
+    width = wcswidth(text)
+    if width < 0 or not _LAID_OUT_FOR_TERMINAL.get():
+        return width
     return cell_width(text, term_program=_term_program())
 
 
@@ -1123,13 +1147,20 @@ def render_table(
         {data}`~click_extra.table.WRAPPABLE_FORMATS`.
     """
     table_data, labels = _resolve_table_inputs(table_data, headers, sort_key)
-    widths = _resolve_column_widths(
-        table_data, headers, labels, table_format, max_column_widths
-    )
-    if widths is not None:
-        kwargs["max_column_widths"] = widths
-    render_func, _ = _select_table_funcs(table_format)
-    return render_func(table_data, labels, **kwargs)
+    # A markup rendering is measured with the Unicode widths for as long as it
+    # renders: the column widths resolved below and the padding tabulate applies
+    # must read every cell the same way.
+    token = _LAID_OUT_FOR_TERMINAL.set(not (table_format or DEFAULT_FORMAT).is_markup)
+    try:
+        widths = _resolve_column_widths(
+            table_data, headers, labels, table_format, max_column_widths
+        )
+        if widths is not None:
+            kwargs["max_column_widths"] = widths
+        render_func, _ = _select_table_funcs(table_format)
+        return render_func(table_data, labels, **kwargs)
+    finally:
+        _LAID_OUT_FOR_TERMINAL.reset(token)
 
 
 def _strip_ansi_cells(

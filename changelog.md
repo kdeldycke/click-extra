@@ -35,6 +35,7 @@
 - Fix `OperationTrail` lines and finisher written above a drawn indicator keeping their color under `--no-color` or `NO_COLOR`, and a `Spinner` on a worker thread missing `--no-color`.
 - Fix an option typed `EnumChoice` with a `None` default failing validation when left out, reading it as a choice named `None`.
 - Fix `run_cli(start_new_session=True)` leaving descendants running after a timeout or interrupt when they started a session of their own, as CPAN.pm's `make test` does.
+- Fix a markup table padded by the rendering terminal's own emoji widths: a `github` table rendered from Apple Terminal came out one column wider on every row holding an emoji-presentation sequence than `mdformat` pads it.
 
 ## [`9.2.0` (2026-09-15)](https://github.com/kdeldycke/click-extra/compare/v9.1.0...v9.2.0)
 

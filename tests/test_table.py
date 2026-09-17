@@ -29,7 +29,7 @@ import yaml
 from boltons.strutils import strip_ansi
 from extra_platforms import is_windows
 from tabulate import tabulate_formats
-from wcwidth import list_term_programs, width as cell_width
+from wcwidth import list_term_programs, wcswidth, width as cell_width
 
 # tabulate 0.10 introduced the ``colon_grid`` format and changed the asciidoc
 # cell-alignment marker from ``8<`` to ``<8``. Older releases (still shipped
@@ -797,6 +797,23 @@ def test_emoji_presentation_padding_stays_out_of_markup(monkeypatch):
     monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
     markup = render_table((("⁉️ ripe",),), ("state",), table_format=TableFormat.GITHUB)
     assert "⁉️ ripe" in markup
+
+
+def test_markup_pads_emoji_presentation_by_unicode_width(monkeypatch):
+    """A markup table pads an emoji-presentation sequence by the Unicode tables.
+
+    Whatever terminal renders it: a Markdown table is read by a formatter and a
+    browser that never see that terminal, and `mdformat` pads it with
+    `wcswidth`. Rendered from Apple Terminal, a `github` table came out one
+    column wider on every row carrying such a sequence, which `mdformat` took
+    back on its next pass, one commit at a time.
+    """
+    rows = (("⁉️ ripe",), ("✅ ripe",))
+    monkeypatch.setenv("TERM_PROGRAM", "Ghostty")
+    reference = render_table(rows, ("state",), table_format=TableFormat.GITHUB)
+    monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
+    assert render_table(rows, ("state",), table_format=TableFormat.GITHUB) == reference
+    assert len({wcswidth(line) for line in reference.splitlines()}) == 1
 
 
 @pytest.mark.parametrize("term_program", sorted(list_term_programs()))
