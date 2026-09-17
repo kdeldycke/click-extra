@@ -106,17 +106,17 @@ def test_explicit_stream_is_honored():
 
 
 @pytest.mark.parametrize(
-    ("enabled", "stream", "expected"),
+    ("live", "stream", "expected"),
     (
-        (None, io.StringIO(), False),
-        (None, TTYStringIO(), True),
-        (True, io.StringIO(), True),
-        (False, TTYStringIO(), False),
+        ("auto", io.StringIO(), False),
+        ("auto", TTYStringIO(), True),
+        ("always", io.StringIO(), True),
+        ("never", TTYStringIO(), False),
     ),
 )
-def test_resolve_enabled(enabled, stream, expected):
-    spinner = Spinner(stream=stream, enabled=enabled)
-    assert spinner._resolve_enabled(stream) is expected
+def test_resolve_live(live, stream, expected):
+    spinner = Spinner(stream=stream, live=live)
+    assert spinner._resolve_live(stream) is expected
 
 
 def test_noop_on_non_tty_stream():
@@ -441,14 +441,14 @@ def test_dumb_terminal_disables_spinner(monkeypatch, term):
     """A cursor-less terminal self-disables the spinner even on a TTY."""
     monkeypatch.setenv("TERM", term)
     spinner = Spinner(stream=TTYStringIO())
-    assert spinner._resolve_enabled(spinner._resolve_stream()) is False
+    assert spinner._resolve_live(spinner._resolve_stream()) is False
 
 
-def test_explicit_enabled_overrides_dumb_terminal(monkeypatch):
-    """An explicit ``enabled=True`` wins over the ``TERM=dumb`` auto-detection."""
+def test_live_always_overrides_dumb_terminal(monkeypatch):
+    """An explicit ``live="always"`` wins over the ``TERM=dumb`` auto-detection."""
     monkeypatch.setenv("TERM", "dumb")
-    spinner = Spinner(stream=TTYStringIO(), enabled=True)
-    assert spinner._resolve_enabled(spinner._resolve_stream()) is True
+    spinner = Spinner(stream=TTYStringIO(), live="always")
+    assert spinner._resolve_live(spinner._resolve_stream()) is True
 
 
 def test_decorator_runs_function_inside_spinner():
@@ -1021,7 +1021,7 @@ def test_active_spinner_registry_lifecycle():
 
     # A huge delay keeps the animation registered without ever drawing a frame,
     # making the test timing-free.
-    spinner = Spinner("work", enabled=True, delay=3600)
+    spinner = Spinner("work", live="always", delay=3600)
     spinner.start()
     try:
         assert active_spinner() is spinner
@@ -1039,7 +1039,7 @@ def test_active_spinner_registry_lifecycle():
 
 def test_active_spinner_ignores_disabled_spinner():
     """A disabled spinner never animates, so it never registers either."""
-    spinner = Spinner("silent", enabled=False)
+    spinner = Spinner("silent", live="never")
     spinner.start()
     try:
         assert active_spinner() is None
@@ -1555,6 +1555,45 @@ def test_operation_trail_without_enabled_does_not_warn():
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
         OperationTrail(visible=False, live="never")
+
+
+@pytest.mark.parametrize(
+    ("enabled", "live"),
+    (
+        pytest.param(None, "auto", id="none"),
+        pytest.param(True, "always", id="true"),
+        pytest.param(False, "never", id="false"),
+    ),
+)
+def test_spinner_enabled_is_deprecated(enabled, live):
+    """`enabled` still resolves onto `live`, warning at the caller."""
+    with pytest.warns(DeprecationWarning, match="use live= instead") as record:
+        spinner = Spinner(enabled=enabled)
+    assert Path(record[0].filename).name == Path(__file__).name
+    assert spinner.live == live
+
+
+def test_spinner_without_enabled_does_not_warn():
+    """Only a caller passing `enabled` gets the deprecation warning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        Spinner(live="never")
+
+
+def test_spinner_rejects_invalid_live():
+    """`live` must be one of `LIVE_MODES`."""
+    with pytest.raises(ValueError, match='"auto", "always" or "never"'):
+        Spinner(live="sometimes")  # type: ignore[arg-type]
+
+
+def test_spinner_timer_follows_time_flag():
+    """A spinner's default `timer` follows --time, as a trail's does."""
+    assert Spinner().timer is False
+    with click.Context(click.Command("noop")) as ctx:
+        assert Spinner().timer is False
+        ctx.meta[START_TIME] = 1.0  # Set by TimerOption under --time.
+        assert Spinner().timer is True
+        assert Spinner(timer=False).timer is False
 
 
 def test_progress_bar_trail_works_concurrently():

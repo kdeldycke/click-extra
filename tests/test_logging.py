@@ -780,7 +780,7 @@ def test_stream_handler_routes_through_active_spinner(capsys):
 
     # A huge delay keeps the spinner registered without ever drawing a frame,
     # making the test timing-free: echo() then degrades to a plain line write.
-    spinner = Spinner("work", enabled=True, delay=3600)
+    spinner = Spinner("work", live="always", delay=3600)
     spinner.start()
     try:
         handler.emit(record)

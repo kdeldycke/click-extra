@@ -786,7 +786,7 @@ def run_test_suite(
     def progress_label() -> str:
         return f"Running test cases ({completed}/{len(pending)})"
 
-    spinner = Spinner(progress_label(), enabled=None if show_progress else False)
+    spinner = Spinner(progress_label(), live="auto" if show_progress else "never")
     outcomes: list[tuple[int, str, CLITestCase]] = []
     bailed = False
     # run_jobs drives the cases per the worker count: sequential and lazy at one

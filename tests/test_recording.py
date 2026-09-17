@@ -171,7 +171,7 @@ def test_screen_recovers_every_frame_a_spinner_draws(monkeypatch):
         style=Style(fg="green"),
         stream=stream,
         interval=0.02,
-        enabled=True,
+        live="always",
     )
     spinner.start()
     # Long enough to draw every frame of an eight-frame preset at 20ms each.

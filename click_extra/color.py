@@ -99,7 +99,7 @@ COLOR_DISABLING_TERMS = frozenset({"dumb", "unknown"})
 A `dumb` or `unknown` terminal advertises neither SGR color nor the
 cursor-control codes (carriage return, clear-line) an animation relies on, so both
 Click Extra's color resolution ({func}`~click_extra.color.resolve_color_env`) and the
-spinner's animation gating (`Spinner._resolve_enabled`) treat these two values as a
+spinner's animation gating (`Spinner._resolve_live`) treat these two values as a
 hard opt-out. Sharing the set keeps the color and animation axes from drifting apart.
 
 An *unset* `TERM` is deliberately excluded: it is common on legitimately
