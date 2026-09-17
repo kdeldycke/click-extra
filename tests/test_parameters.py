@@ -58,6 +58,7 @@ from click_extra import (
     echo,
     get_app_dir,
     group,
+    last_param,
     option,
     option_group,
     render_table,
@@ -165,6 +166,47 @@ def test_canonical_param_name_never_answers_an_identifier_decl():
     param = click.Option(["--foo-bar", "Explicit_Name"])
     assert param.name == "Explicit_Name"
     assert canonical_param_name("Explicit_Name") != param.name
+
+
+class FruitOption(click.Option):
+    """An option class to search for."""
+
+
+class AppleOption(FruitOption):
+    """A subclass of it, to tell subclass matching apart."""
+
+
+def test_search_params_returns_the_one_match():
+    """A single match comes back as itself, a subclass matching by default."""
+    fruit = FruitOption(["--fruit"])
+    apple = AppleOption(["--apple"])
+    city = click.Option(["--city"])
+    assert search_params([city, apple], AppleOption) is apple
+    assert search_params([city, apple], FruitOption) is apple
+    assert search_params([city, apple], FruitOption, include_subclasses=False) is None
+    assert search_params([city, fruit], FruitOption, include_subclasses=False) is fruit
+    assert search_params([city], FruitOption) is None
+    with pytest.raises(RuntimeError, match="More than one FruitOption"):
+        search_params([fruit, apple], FruitOption)
+
+
+def test_search_params_unique_is_deprecated():
+    """`unique=False` still returns every match as a list, warning at the caller."""
+    fruit = FruitOption(["--fruit"])
+    apple = AppleOption(["--apple"])
+    with pytest.warns(DeprecationWarning, match=r"search_params\(unique=") as record:
+        found = search_params([fruit, apple], FruitOption, unique=False)
+    assert found == [fruit, apple]
+    assert record[0].filename == __file__
+
+
+def test_last_param_keeps_the_last_exact_match():
+    """Duplicates resolve to the last one, and a subclass never matches."""
+    first = FruitOption(["--fruit"])
+    second = FruitOption(["--berry"])
+    apple = AppleOption(["--apple"])
+    assert last_param([first, apple, second], FruitOption) is second
+    assert last_param([apple], FruitOption) is None
 
 
 def test_factory_decorators_expose_option_signature():

@@ -23,7 +23,7 @@ from contextlib import nullcontext
 from functools import cached_property, reduce
 from gettext import gettext as _
 from operator import getitem
-from typing import TypeVar
+from typing import TypeVar, overload
 
 import click
 import cloup
@@ -38,6 +38,7 @@ from click.core import (
 from deepmerge import always_merger
 
 from . import context
+from ._deprecated import warn_deprecated_argument
 
 # Imported under a private name so this module's namespace does not resurrect
 # the moved helper: its canonical home is click_extra._utils, and the public
@@ -54,56 +55,85 @@ if TYPE_CHECKING:
     from typing import Any, ClassVar, Literal
 
     from boltons.urlutils import URL
+    from click._utils import T_UNSET
 
 logger = logging.getLogger(__name__)
 
 P = TypeVar("P", bound=click.Parameter)
-"""Type variable bound to {class}`click.Parameter`, letting
-{func}`require_sibling_param` return the exact subclass it was asked to find."""
+"""Type variable bound to {class}`click.Parameter`, letting {func}`search_params`,
+{func}`last_param` and {func}`require_sibling_param` return the exact subclass
+they were asked to find."""
 
 #: Separator joining the keys of a parameter's fully-qualified path
 #: (`cli.subcommand.param`).
 PARAM_PATH_SEP = "."
 
 
+@overload
 def search_params(
     params: Iterable[click.Parameter],
-    klass: type[click.Parameter],
+    klass: type[P],
     include_subclasses: bool = True,
-    unique: bool = True,
-) -> list[click.Parameter] | click.Parameter | None:
-    """Search a particular class of parameter in a list and return them.
+    *,
+    unique: Literal[True] = ...,
+) -> P | None: ...
+
+
+@overload
+def search_params(
+    params: Iterable[click.Parameter],
+    klass: type[P],
+    include_subclasses: bool = True,
+    *,
+    unique: Literal[False],
+) -> list[P] | None: ...
+
+
+def search_params(
+    params: Iterable[click.Parameter],
+    klass: type[P],
+    include_subclasses: bool = True,
+    *,
+    unique: bool | T_UNSET = UNSET,
+) -> P | list[P] | None:
+    """Return the one parameter of class `klass` in `params`, or `None`.
+
+    The result is typed as `klass` itself, so a caller needs no `isinstance`
+    check to use what it found.
 
     :param params: list of parameter instances to search in.
-    :param klass: the class of the parameters to look for.
-    :param include_subclasses: if `True`, includes in the results all parameters subclassing
-        the provided `klass`. If `False`, only matches parameters which are strictly instances of `klass`.
-        Defaults to `True`.
-    :param unique: if `True`, raise an error if more than one parameter of the
-        provided `klass` is found. Defaults to `True`.
+    :param klass: the class of the parameter to look for.
+    :param include_subclasses: if `True` (the default), a parameter subclassing
+        `klass` matches too. If `False`, only a parameter of exactly `klass`
+        does.
+    :param unique: deprecated. `False` returned every match as a list: filter
+        `params` yourself instead, as {func}`last_param` does.
+    :raises RuntimeError: if more than one parameter matches.
     """
     param_list = [
         p
         for p in params
-        if (include_subclasses and isinstance(p, klass))
-        or (not include_subclasses and p.__class__ is klass)
+        if isinstance(p, klass) and (include_subclasses or p.__class__ is klass)
     ]
+    if unique is not UNSET:
+        warn_deprecated_argument(
+            "search_params", "unique", "a list comprehension over params"
+        )
+        if not unique:
+            return param_list or None
     if not param_list:
         return None
-    if unique:
-        if len(param_list) != 1:
-            raise RuntimeError(
-                f"More than one {klass.__name__} parameters found on command: "
-                f"{param_list}"
-            )
-        return param_list.pop()
-    return param_list
+    if len(param_list) != 1:
+        raise RuntimeError(
+            f"More than one {klass.__name__} parameters found on command: {param_list}"
+        )
+    return param_list[0]
 
 
 def last_param(
     params: Iterable[click.Parameter],
-    klass: type[click.Parameter],
-) -> click.Parameter | None:
+    klass: type[P],
+) -> P | None:
     """Return the last parameter of exactly `klass` in *params*, or `None`.
 
     Unlike {func}`search_params`, this matches the exact `klass` (no subclasses)
@@ -115,8 +145,8 @@ def last_param(
     :param params: the command's parameter list to scan.
     :param klass: the exact parameter class to look for.
     """
-    options = search_params(params, klass, include_subclasses=False, unique=False)
-    return options[-1] if options else None  # type: ignore[index]
+    options = [p for p in params if isinstance(p, klass) and p.__class__ is klass]
+    return options[-1] if options else None
 
 
 def require_sibling_param(
@@ -138,11 +168,8 @@ def require_sibling_param(
     :param klass: the sibling parameter class to look for.
     """
     sibling = search_params(params, klass)
-    if not isinstance(sibling, klass):
-        # RuntimeError (not the type-implied TypeError) is intentional: it keeps
-        # the historical --no-config contract and unifies all call sites on one
-        # exception type for a missing-or-wrong-type sibling.
-        raise RuntimeError(  # noqa: TRY004
+    if sibling is None:
+        raise RuntimeError(
             f"{'/'.join(requester.opts)} {type(requester).__name__} must be used "
             f"alongside {klass.__name__}."
         )
@@ -1181,13 +1208,12 @@ def render_params_table(
 
     # Locate a --config option to fill the "allowed in conf?" column.
     config_option = search_params(cmd.get_params(subject_ctx), ConfigOption)
-    assert config_option is None or isinstance(config_option, ConfigOption)
 
     # Resolve the table format: an explicit context entry wins, else a sibling
     # --table-format option, else the default.
     if context.get(subject_ctx, context.TABLE_FORMAT) is None:
         table_option = search_params(cmd.get_params(subject_ctx), TableFormatOption)
-        if table_option and isinstance(table_option, TableFormatOption):
+        if table_option is not None:
             table_fmt, _ = table_option.consume_value(subject_ctx, opts)
             table_option.init_formatter(
                 subject_ctx,
@@ -1203,7 +1229,7 @@ def render_params_table(
     # sibling --columns option, else the provided default.
     if context.get(subject_ctx, context.COLUMNS) is None:
         cols_option = search_params(cmd.get_params(subject_ctx), ColumnsOption)
-        if cols_option and isinstance(cols_option, ColumnsOption):
+        if cols_option is not None:
             cols_value, _ = cols_option.consume_value(subject_ctx, opts)
             cols_option.init_columns(
                 subject_ctx,

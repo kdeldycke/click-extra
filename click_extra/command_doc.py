@@ -928,7 +928,7 @@ def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
     invocation context (the `--man` path) is reused as-is.
     """
     config_option = search_params(command.params, ConfigOption)
-    if not isinstance(config_option, ConfigOption):
+    if config_option is None:
         return ()
     try:
         if click.get_current_context(silent=True) is None:

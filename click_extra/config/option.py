@@ -2225,7 +2225,6 @@ def ensure_config_loaded(ctx: click.Context) -> None:
     config_option = search_params(ctx.command.params, ConfigOption)
     if config_option is None:
         return
-    assert isinstance(config_option, ConfigOption)
     if config_option.callback is None:
         return
     opts = replay_raw_args(ctx)

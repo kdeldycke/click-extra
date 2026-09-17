@@ -22,7 +22,11 @@ from importlib import import_module
 
 import pytest
 
-from click_extra._deprecated import DEPRECATED_ALIASES, REMOVAL_VERSION
+from click_extra._deprecated import (
+    DEPRECATED_ALIASES,
+    REMOVAL_VERSION,
+    warn_deprecated_argument,
+)
 
 
 def _resolve(target: str) -> object:
@@ -59,3 +63,19 @@ def test_unknown_attribute_raises(module_id):
     """A non-registered attribute still raises a standard AttributeError."""
     with pytest.raises(AttributeError, match="has no attribute 'DOES_NOT_EXIST'"):
         _ = import_module(module_id).DOES_NOT_EXIST
+
+
+def test_warn_deprecated_argument_blames_the_caller():
+    """The warning names the argument and its replacement, at the call site."""
+
+    def steep(**kwargs):
+        warn_deprecated_argument("steep", "minutes", "duration=")
+
+    with pytest.deprecated_call(
+        match=re.escape(
+            "steep(minutes=...) is deprecated and will be removed in "
+            f"click-extra {REMOVAL_VERSION}, use duration= instead."
+        ),
+    ) as record:
+        steep(minutes=4)
+    assert record[0].filename == __file__
