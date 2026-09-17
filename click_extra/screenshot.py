@@ -54,6 +54,7 @@ import shlex
 import subprocess
 import zlib
 from collections import Counter
+from dataclasses import asdict, dataclass, fields, replace
 from enum import Enum
 from hashlib import sha256
 from html import escape
@@ -63,6 +64,7 @@ from math import ceil, cos, hypot, pi, sin
 from boltons.strutils import strip_ansi
 from click import style, unstyle
 
+from ._deprecated import warn_deprecated_usage
 from ._utils import generator_tag
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
@@ -102,9 +104,11 @@ from .theme import BUILTIN_THEMES
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Iterable, Iterator, Mapping, Sequence
     from pathlib import Path
-    from typing import Any, Literal, TypeAlias
+    from typing import Any, Literal, TypeAlias, TypedDict
+
+    from typing_extensions import Unpack
 
     from .execution import TArg, TNestedArgs
     from .styling import Style
@@ -115,6 +119,20 @@ if TYPE_CHECKING:
 
     THold: TypeAlias = float | Literal["auto"]
     """Pause an animation takes on its last frame, see {data}`AUTO_HOLD`."""
+
+    class ChromeArguments(TypedDict, total=False):
+        """The window arguments taken one by one before {class}`Chrome`."""
+
+        border: str | None
+        border_width: int
+        radius: int | None
+        backdrop: str
+        shadow: str | None
+        margin: int
+        padding: int
+        opacity: float
+        watermark: str
+        watermark_color: str | None
 
 
 class CaptureFormat(Enum):
@@ -417,6 +435,136 @@ no click reaches inside one, which is how this documentation embeds its own
 captures.
 ```
 """
+
+
+@dataclass(frozen=True)
+class Chrome:
+    """How the window around a capture's text is drawn.
+
+    One value for the decoration {func}`render`, {func}`capture`,
+    {func}`~click_extra.recording.record_and_render` and
+    {func}`~click_extra.snippet.render_snippet` all take, so its defaults live in
+    one place. A field left at `None` takes what the capture's background and
+    preset draw, which {meth}`resolve` fills in.
+
+    ```{code-block} python
+
+    from click_extra.screenshot import Chrome, render
+
+    svg = render(text, chrome=Chrome(margin=0, watermark=""))
+    ```
+    """
+
+    border: str | None = None
+    """Color of the window's frame.
+
+    `None` takes the one the background can show, see {data}`CAPTURE_BORDERS`;
+    {data}`NO_PAINT` draws none.
+    """
+
+    border_width: int = DEFAULT_BORDER_WIDTH
+    """Thickness of that frame, in pixels."""
+
+    radius: int | None = None
+    """How round the window's corners are, in pixels. Zero squares them.
+
+    `None` takes the preset's own, or {data}`DEFAULT_RADIUS` without one.
+    """
+
+    backdrop: str = NO_PAINT
+    """Paint filling the image behind the window, margin included.
+
+    {data}`NO_PAINT` leaves it transparent.
+    """
+
+    shadow: str | None = None
+    """Color of the window's drop shadow.
+
+    `None` takes the background's own, see {data}`CAPTURE_SHADOWS`;
+    {data}`NO_PAINT` draws none.
+    """
+
+    margin: int = DEFAULT_MARGIN
+    """Transparent pixels left around the window, on all four sides."""
+
+    padding: int = DEFAULT_PADDING
+    """Pixels added inside the window, around the text."""
+
+    opacity: float = OPAQUE
+    """How solid the window's body is, from {data}`OPAQUE` down to `0.0`.
+
+    Below it, whatever the capture is laid over shows through.
+    """
+
+    watermark: str = DEFAULT_WATERMARK
+    """Credit line drawn in the image's bottom-right corner.
+
+    See {data}`DEFAULT_WATERMARK`. An empty string draws none.
+    """
+
+    watermark_color: str | None = None
+    """Color that line is drawn in.
+
+    `None` takes {data}`WATERMARK_INK`, which reads on a page of either color.
+    """
+
+    def resolve(
+        self, background: CaptureBackground, preset: TerminalPreset | None
+    ) -> Chrome:
+        """This chrome, with every `None` replaced by what the capture draws.
+
+        {func}`render_svg` and {func}`render_html` take resolved values, which
+        makes this the one step between the two layers.
+
+        :param background: chrome the capture is headed for.
+        :param preset: terminal being pictured, or `None`.
+        :return: a chrome carrying no `None`.
+        """
+        return replace(
+            self,
+            border=CAPTURE_BORDERS[background] if self.border is None else self.border,
+            radius=(
+                (DEFAULT_RADIUS if preset is None else preset.radius)
+                if self.radius is None
+                else self.radius
+            ),
+            shadow=CAPTURE_SHADOWS[background] if self.shadow is None else self.shadow,
+            watermark_color=(
+                WATERMARK_INK if self.watermark_color is None else self.watermark_color
+            ),
+        )
+
+
+CHROME_FIELDS: frozenset[str] = frozenset(field.name for field in fields(Chrome))
+"""Names of the {class}`Chrome` fields, which the capture functions once took one by one."""
+
+
+def fold_chrome_arguments(
+    function: str, chrome: Chrome, legacy: Mapping[str, Any]
+) -> Chrome:
+    """`chrome`, with the window arguments `function` used to take folded in.
+
+    Those arguments still resolve for one deprecation cycle, and passing any of
+    them warns.
+
+    :param function: name of the capture function, for the messages.
+    :param chrome: the chrome the call passed.
+    :param legacy: the other keyword arguments the call passed.
+    :return: `chrome` updated with `legacy`.
+    :raises TypeError: on an argument `function` never took.
+    """
+    unknown = sorted(set(legacy) - CHROME_FIELDS)
+    if unknown:
+        msg = f"{function}() got an unexpected keyword argument {unknown[0]!r}"
+        raise TypeError(msg)
+    if not legacy:
+        return chrome
+    warn_deprecated_usage(
+        f"Passing {', '.join(f'{name}=' for name in legacy)} to {function}()",
+        f"chrome=Chrome({', '.join(f'{name}=...' for name in legacy)})",
+    )
+    return replace(chrome, **legacy)
+
 
 CAPTURE_TERMINAL_HINTS: dict[CaptureBackground, dict[str, str]] = {
     CaptureBackground.DARK: {"CLITHEME": "dark", "COLORFGBG": "15;0"},
@@ -2443,16 +2591,8 @@ def render(
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
     palette: TerminalPalette | None = None,
-    border: str | None = None,
-    border_width: int = DEFAULT_BORDER_WIDTH,
-    radius: int | None = None,
-    backdrop: str = NO_PAINT,
-    shadow: str | None = None,
-    margin: int = DEFAULT_MARGIN,
-    padding: int = DEFAULT_PADDING,
-    opacity: float = OPAQUE,
-    watermark: str = DEFAULT_WATERMARK,
-    watermark_color: str | None = None,
+    chrome: Chrome = Chrome(),
+    **legacy: Unpack[ChromeArguments],
 ) -> str:
     """Render captured terminal text to the document `format` names.
 
@@ -2494,57 +2634,25 @@ def render(
         preset and chrome name, which is what a terminal capture wants. The
         window's decorations keep answering to the chrome either way: a stated
         palette repaints the terminal's body, not the desktop's frame around it.
-    :param border: color of the window's frame. `None` takes the one the chrome
-        can show, see {data}`CAPTURE_BORDERS`; {data}`NO_PAINT` draws none.
-    :param border_width: thickness of that frame, in pixels.
-    :param radius: how round the window's corners are, in pixels. Zero squares
-        them.
-    :param backdrop: paint filling the image behind the window, margin included.
-        {data}`NO_PAINT` leaves it transparent.
-    :param shadow: color of the window's drop shadow. `None` takes the chrome's
-        own, see {data}`CAPTURE_SHADOWS`; {data}`NO_PAINT` draws none.
-    :param margin: transparent pixels left around the window, on all four sides.
-    :param padding: pixels added inside the window, around the text.
-    :param opacity: how solid the window's body is, from {data}`OPAQUE` down to
-        `0.0`. Below it, whatever the capture is laid over shows through.
-    :param watermark: credit line drawn in the image's bottom-right corner, see
-        {data}`DEFAULT_WATERMARK`. An empty string draws none.
-    :param watermark_color: color that line is drawn in. `None` takes
-        {data}`WATERMARK_INK`, which reads on a page of either color.
+    :param chrome: how the window around the text is drawn, see
+        {class}`Chrome`.
+    :param legacy: deprecated: the {class}`Chrome` fields, passed one by one.
     :return: the rendered document.
     :raises ValueError: asking an HTML capture to animate.
     """
-    if border is None:
-        border = CAPTURE_BORDERS[background]
-    if shadow is None:
-        shadow = CAPTURE_SHADOWS[background]
-    if watermark_color is None:
-        watermark_color = WATERMARK_INK
-    if radius is None:
-        radius = DEFAULT_RADIUS if preset is None else preset.radius
-    frame: dict[str, Any] = {
-        "border": border,
-        "border_width": border_width,
-        "radius": radius,
-        "backdrop": backdrop,
-        "shadow": shadow,
-        "margin": margin,
-        "padding": padding,
-        "opacity": opacity,
-        "watermark": watermark,
-        "watermark_color": watermark_color,
-    }
+    chrome = fold_chrome_arguments("render", chrome, legacy)
+    frame: dict[str, Any] = asdict(chrome.resolve(background, preset))
     # What the chrome would paint on its own, kept apart from the `palette` the
     # text is drawn with: the two differ for a capture whose colors come from
     # elsewhere, and the decorations below stay the chrome's in that case.
-    chrome = resolve_palette(preset, background)
+    chrome_palette = resolve_palette(preset, background)
     if palette is None:
-        palette = chrome
+        palette = chrome_palette
     if preset is not None:
         frame["buttons"] = preset.buttons
-        frame["buttons_color"] = chrome.foreground
+        frame["buttons_color"] = chrome_palette.foreground
         frame["font_stack"] = preset.font_stack
-        frame["titlebar"] = chrome.titlebar
+        frame["titlebar"] = chrome_palette.titlebar
         # A window wearing neither decoration nor caption has nothing to seat in
         # its title bar, so it closes over the first line of output instead.
         frame["collapse_titlebar"] = not any(
@@ -2654,16 +2762,8 @@ def capture(
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
-    border: str | None = None,
-    border_width: int = DEFAULT_BORDER_WIDTH,
-    radius: int | None = None,
-    backdrop: str = NO_PAINT,
-    shadow: str | None = None,
-    margin: int = DEFAULT_MARGIN,
-    padding: int = DEFAULT_PADDING,
-    opacity: float = OPAQUE,
-    watermark: str = DEFAULT_WATERMARK,
-    watermark_color: str | None = None,
+    chrome: Chrome = Chrome(),
+    **legacy: Unpack[ChromeArguments],
 ) -> tuple[str, int]:
     """Run a command and render its output as a document.
 
@@ -2698,18 +2798,12 @@ def capture(
     :param unique_id: see {func}`render`.
     :param full: see {func}`render`.
     :param background: see {func}`render`.
-    :param border: see {func}`render`.
-    :param border_width: see {func}`render`.
-    :param radius: see {func}`render`.
-    :param backdrop: see {func}`render`.
-    :param shadow: see {func}`render`.
-    :param margin: see {func}`render`.
-    :param padding: see {func}`render`.
-    :param opacity: see {func}`render`.
-    :param watermark: see {func}`render`.
-    :param watermark_color: see {func}`render`.
+    :param preset: see {func}`render`.
+    :param chrome: see {func}`render`.
+    :param legacy: deprecated: the {class}`Chrome` fields, passed one by one.
     :return: the rendered document, and the command's exit code.
     """
+    chrome = fold_chrome_arguments("capture", chrome, legacy)
     process = capture_output(
         args,
         columns=columns,
@@ -2744,16 +2838,7 @@ def capture(
             full=full,
             background=background,
             preset=preset,
-            border=border,
-            border_width=border_width,
-            radius=radius,
-            backdrop=backdrop,
-            shadow=shadow,
-            margin=margin,
-            padding=padding,
-            opacity=opacity,
-            watermark=watermark,
-            watermark_color=watermark_color,
+            chrome=chrome,
         ),
         process.returncode,
     )

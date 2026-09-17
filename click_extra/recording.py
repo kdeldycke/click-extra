@@ -58,15 +58,11 @@ from .screenshot import (
     AUTO_HOLD,
     CAPTURE_HIDDEN_TERMINAL_VARS,
     CAPTURE_TERMINAL_HINTS,
-    DEFAULT_BORDER_WIDTH,
     DEFAULT_COLUMNS,
-    DEFAULT_MARGIN,
-    DEFAULT_PADDING,
-    DEFAULT_WATERMARK,
-    NO_PAINT,
-    OPAQUE,
     CaptureBackground,
+    Chrome,
     append_prompt,
+    fold_chrome_arguments,
     prompt_line,
     render,
 )
@@ -85,8 +81,10 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from typing_extensions import Unpack
+
     from .execution import TArg, TNestedArgs
-    from .screenshot import THold
+    from .screenshot import ChromeArguments, THold
     from .screenshot_presets import Cursor, TerminalPreset
 
 CSI_RE = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
@@ -672,16 +670,8 @@ def record_and_render(
     title: str = "",
     unique_id: str | None = None,
     preset: TerminalPreset | None = None,
-    border: str | None = None,
-    border_width: int = DEFAULT_BORDER_WIDTH,
-    radius: int | None = None,
-    backdrop: str = NO_PAINT,
-    shadow: str | None = None,
-    margin: int = DEFAULT_MARGIN,
-    padding: int = DEFAULT_PADDING,
-    opacity: float = OPAQUE,
-    watermark: str = DEFAULT_WATERMARK,
-    watermark_color: str | None = None,
+    chrome: Chrome = Chrome(),
+    **legacy: Unpack[ChromeArguments],
 ) -> tuple[str, int]:
     """Record a command under a pseudo-terminal and render it as an animated SVG.
 
@@ -733,21 +723,15 @@ def record_and_render(
     :param title: see {func}`~click_extra.screenshot.render`.
     :param unique_id: see {func}`~click_extra.screenshot.render`.
     :param preset: see {func}`~click_extra.screenshot.render`.
-    :param border: see {func}`~click_extra.screenshot.render`.
-    :param border_width: see {func}`~click_extra.screenshot.render`.
-    :param radius: see {func}`~click_extra.screenshot.render`.
-    :param backdrop: see {func}`~click_extra.screenshot.render`.
-    :param shadow: see {func}`~click_extra.screenshot.render`.
-    :param margin: see {func}`~click_extra.screenshot.render`.
-    :param padding: see {func}`~click_extra.screenshot.render`.
-    :param opacity: see {func}`~click_extra.screenshot.render`.
-    :param watermark: see {func}`~click_extra.screenshot.render`.
-    :param watermark_color: see {func}`~click_extra.screenshot.render`.
+    :param chrome: see {func}`~click_extra.screenshot.render`.
+    :param legacy: deprecated: the {class}`~click_extra.screenshot.Chrome` fields,
+        passed one by one.
     :return: the rendered SVG document, and the command's exit code.
     :raises NotImplementedError: on a platform with no pseudo-terminal.
     :raises ValueError: when the command drew nothing to record, or when a
         stated `typing` or `submit` is not positive.
     """
+    chrome = fold_chrome_arguments("record_and_render", chrome, legacy)
     frames, returncode = _record_process(
         args,
         columns=columns,
@@ -795,16 +779,7 @@ def record_and_render(
             unique_id=unique_id,
             background=background,
             preset=preset,
-            border=border,
-            border_width=border_width,
-            radius=radius,
-            backdrop=backdrop,
-            shadow=shadow,
-            margin=margin,
-            padding=padding,
-            opacity=opacity,
-            watermark=watermark,
-            watermark_color=watermark_color,
+            chrome=chrome,
         ),
         returncode,
     )

@@ -12,6 +12,7 @@
 - **Deprecated:** Drop the `unique` argument of `search_params`, whose `False` returned every match as a list: filter the parameters directly instead. It resolves until `10.0.0`.
 - **Deprecated:** Replace `color="forced"` in `CliRunner.invoke` with a `force_color=True` argument; `"forced"` resolves until `10.0.0`.
 - **Deprecated:** Replace the `(label, column_id)` tuple with a `ColumnSpec` in table headers, `SortByOption` and `column_sort_key`; the tuple resolves until `10.0.0`.
+- **Deprecated:** Replace the window arguments of `render`, `capture`, `record_and_render` and `render_snippet`, like `margin` and `watermark`, with one `chrome=Chrome(...)`; they resolve until `10.0.0`.
 - Add `sortable` to `ColumnSpec`, keeping a column in the table layout without offering it to `--sort-by`.
 - Show a `Spinner`'s elapsed time under `--time` by default, as `OperationTrail` and `progressbar` do.
 - Type the result of `search_params` and `last_param` as the parameter class they look for, so a match needs no `isinstance` check.

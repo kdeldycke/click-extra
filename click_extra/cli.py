@@ -88,6 +88,7 @@ from .screenshot import (
     STDOUT_PATH,
     CaptureBackground,
     CaptureFormat,
+    Chrome,
     capture,
     format_from_path,
 )
@@ -1085,6 +1086,18 @@ def screenshot_cmd(
     long as its line count asks, see --hold.
     """
     capture_format = resolve_capture_format(output, fragment)
+    chrome = Chrome(
+        border=border,
+        border_width=border_width,
+        radius=radius,
+        backdrop=backdrop,
+        shadow=shadow,
+        margin=margin,
+        padding=padding,
+        opacity=opacity,
+        watermark=watermark,
+        watermark_color=watermark_color,
+    )
 
     if record:
         if capture_format is not CaptureFormat.SVG:
@@ -1173,16 +1186,7 @@ def screenshot_cmd(
                 title=title,
                 unique_id=output.stem,
                 preset=None if preset is None else PRESETS[preset.lower()],
-                border=border,
-                border_width=border_width,
-                radius=radius,
-                backdrop=backdrop,
-                shadow=shadow,
-                margin=margin,
-                padding=padding,
-                opacity=opacity,
-                watermark=watermark,
-                watermark_color=watermark_color,
+                chrome=chrome,
             )
         except (NotImplementedError, ValueError) as error:
             raise ClickException(str(error)) from error
@@ -1207,16 +1211,7 @@ def screenshot_cmd(
                 full=not fragment,
                 background=background,
                 preset=None if preset is None else PRESETS[preset.lower()],
-                border=border,
-                border_width=border_width,
-                radius=radius,
-                backdrop=backdrop,
-                shadow=shadow,
-                margin=margin,
-                padding=padding,
-                opacity=opacity,
-                watermark=watermark,
-                watermark_color=watermark_color,
+                chrome=chrome,
             )
         except ImportError as error:
             raise ClickException(str(error)) from error
@@ -1344,6 +1339,18 @@ def snippet_cmd(
         ) from error
 
     capture_format = resolve_capture_format(output, fragment)
+    chrome = Chrome(
+        border=border,
+        border_width=border_width,
+        radius=radius,
+        backdrop=backdrop,
+        shadow=shadow,
+        margin=margin,
+        padding=padding,
+        opacity=opacity,
+        watermark=watermark,
+        watermark_color=watermark_color,
+    )
 
     reading_stdin = str(source) == "-"
     if reading_stdin:
@@ -1372,16 +1379,7 @@ def snippet_cmd(
             full=not fragment,
             background=background,
             preset=None if preset is None else PRESETS[preset.lower()],
-            border=border,
-            border_width=border_width,
-            radius=radius,
-            backdrop=backdrop,
-            shadow=shadow,
-            margin=margin,
-            padding=padding,
-            opacity=opacity,
-            watermark=watermark,
-            watermark_color=watermark_color,
+            chrome=chrome,
         )
     except ValueError as error:
         raise ClickException(str(error)) from error

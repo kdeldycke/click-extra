@@ -31,6 +31,7 @@ documented alongside the image in `docs/screenshots.md`.
 from __future__ import annotations
 
 import importlib.metadata
+import inspect
 import os
 import re
 import shutil
@@ -46,7 +47,7 @@ from extra_platforms.pytest import skip_windows
 from click_extra import SPINNERS, Spinner, Style, unstyle
 from click_extra.cli import screenshot_cmd
 from click_extra.execution import PROMPT
-from click_extra.recording import TerminalScreen
+from click_extra.recording import TerminalScreen, record_and_render
 from click_extra.screenshot import (
     _COLUMN_GAP_RE,
     AUTO_COLUMNS,
@@ -62,9 +63,11 @@ from click_extra.screenshot import (
     CAPTURE_SHADOWS,
     CAPTURE_TERMINAL_HINTS,
     CELL_BLEED,
+    CHROME_FIELDS,
     CELL_WIDTH,
     CURSOR_THICKNESS,
     DEFAULT_COLUMNS,
+    DEFAULT_RADIUS,
     DEFAULT_WATERMARK,
     LIGHT_CAPTURE_BACKGROUND,
     LIGHT_CAPTURE_FOREGROUND,
@@ -84,6 +87,7 @@ from click_extra.screenshot import (
     WATERMARK_URL,
     CaptureBackground,
     CaptureFormat,
+    Chrome,
     append_prompt,
     auto_columns,
     auto_hold,
@@ -109,6 +113,7 @@ from click_extra.screenshot import (
     window_buttons,
 )
 from click_extra.screenshot_presets import PRESETS, Cursor, CursorShape
+from click_extra.snippet import render_snippet
 from click_extra.styling import split_ansi
 
 _TEXT_ELEMENT_RE = re.compile(r"<text(?P<attrs>[^>]*)>(?P<content>[^<]*)</text>")
@@ -1621,9 +1626,51 @@ def test_render_frames_with_a_border_its_chrome_can_show(background):
     assert f'flood-color="{CAPTURE_SHADOWS[background]}"' in svg
 
 
+@pytest.mark.parametrize("background", tuple(CaptureBackground))
+def test_chrome_resolves_what_the_capture_draws(background):
+    """`None` fields take the background's and the preset's own; stated ones stay."""
+    resolved = Chrome().resolve(background, None)
+    assert resolved.border == CAPTURE_BORDERS[background]
+    assert resolved.shadow == CAPTURE_SHADOWS[background]
+    assert resolved.radius == DEFAULT_RADIUS
+    assert resolved.watermark_color == WATERMARK_INK
+    windows = PRESETS["windows"]
+    assert Chrome().resolve(background, windows).radius == windows.radius
+    stated = Chrome(border="red", radius=3, shadow=NO_PAINT, watermark_color="blue")
+    assert stated.resolve(background, windows) == stated
+
+
+@pytest.mark.parametrize(
+    "function", (render, capture, record_and_render, render_snippet)
+)
+def test_capture_functions_take_one_chrome(function):
+    """The window is one `chrome` argument everywhere, with one default."""
+    parameters = inspect.signature(function).parameters
+    assert parameters["chrome"].default == Chrome()
+    assert not CHROME_FIELDS & set(parameters)
+
+
+def test_render_window_arguments_are_deprecated():
+    """The window arguments still reach the capture, warning at the caller."""
+    with pytest.warns(
+        DeprecationWarning, match=r"Passing margin=, watermark= to render\(\)"
+    ) as record:
+        svg = render("kiwi", unique_id="fruit", margin=0, watermark="")
+    assert record[0].filename == __file__
+    assert svg == render(
+        "kiwi", unique_id="fruit", chrome=Chrome(margin=0, watermark="")
+    )
+
+
+def test_render_rejects_an_unknown_argument():
+    """A typo is still refused, as a signature naming every argument would."""
+    with pytest.raises(TypeError, match="unexpected keyword argument 'marign'"):
+        render("kiwi", marign=0)  # type: ignore[call-arg]
+
+
 def test_render_paints_what_it_is_given():
     """A caller's own frame and shadow reach the window."""
-    svg = render("kiwi", unique_id="fruit", border="red", shadow="blue")
+    svg = render("kiwi", unique_id="fruit", chrome=Chrome(border="red", shadow="blue"))
     assert 'stroke="red"' in svg
     assert 'flood-color="blue"' in svg
     assert 'filter="url(#fruit-shadow)"' in svg
@@ -1635,10 +1682,7 @@ def test_render_states_the_whole_window():
         "kiwi",
         unique_id="fruit",
         title="caption",
-        border="red",
-        border_width=3,
-        radius=0,
-        backdrop="#1f6feb",
+        chrome=Chrome(border="red", border_width=3, radius=0, backdrop="#1f6feb"),
     )
     assert 'stroke-width="3"' in svg
     assert 'rx="0"' in svg
@@ -1702,7 +1746,9 @@ def test_gradient_svg_places_the_line_in_user_space(value, expected):
 
 def test_render_paints_a_gradient_backdrop():
     """A gradient backdrop reaches the capture as a declared paint server."""
-    svg = render("kiwi", unique_id="fruit", backdrop="linear-gradient(#000, #fff)")
+    svg = render(
+        "kiwi", unique_id="fruit", chrome=Chrome(backdrop="linear-gradient(#000, #fff)")
+    )
     assert '<linearGradient id="fruit-backdrop"' in svg
     assert '<rect fill="url(#fruit-backdrop)"' in svg
 
@@ -1842,7 +1888,7 @@ def test_render_draws_the_preset_it_is_given():
     # Its square corners come along, unless the caller states otherwise.
     assert 'rx="0"' in svg
     assert 'rx="8"' in render(
-        "kiwi", unique_id="fruit", preset=PRESETS["windows"], radius=8
+        "kiwi", unique_id="fruit", preset=PRESETS["windows"], chrome=Chrome(radius=8)
     )
 
 
@@ -1883,12 +1929,14 @@ def test_titlebar_collapses_on_a_window_wearing_nothing():
 )
 def test_render_thins_the_window_out(format, expected):
     """Opacity below one lets whatever the capture sits on through its body."""
-    thinned = render("kiwi", format=format, unique_id="fruit", opacity=0.4)
+    thinned = render(
+        "kiwi", format=format, unique_id="fruit", chrome=Chrome(opacity=0.4)
+    )
     assert expected in thinned
     # The text keeps its own paint whatever the body does.
     assert "kiwi" in thinned
     assert expected not in render(
-        "kiwi", format=format, unique_id="fruit", opacity=OPAQUE
+        "kiwi", format=format, unique_id="fruit", chrome=Chrome(opacity=OPAQUE)
     )
 
 
@@ -1916,10 +1964,13 @@ def test_render_credits_what_drew_it(format):
     assert re.search(r"click-extra \d+\.\d+", DEFAULT_WATERMARK)
     # And the mark is a default, not a fixture.
     assert DEFAULT_WATERMARK not in render(
-        "kiwi", format=format, unique_id="fruit", watermark=""
+        "kiwi", format=format, unique_id="fruit", chrome=Chrome(watermark="")
     )
     assert "pantry 1.4.2" in render(
-        "kiwi", format=format, unique_id="fruit", watermark="pantry 1.4.2"
+        "kiwi",
+        format=format,
+        unique_id="fruit",
+        chrome=Chrome(watermark="pantry 1.4.2"),
     )
 
 
@@ -1937,7 +1988,12 @@ def test_watermark_links_the_package_name(format):
 @pytest.mark.parametrize("format", DRAWN_FORMATS)
 def test_watermark_leaves_a_borrowed_credit_unlinked(format):
     """A project crediting itself has no click-extra to point anywhere."""
-    marked = render("kiwi", format=format, unique_id="fruit", watermark="pantry 1.4.2")
+    marked = render(
+        "kiwi",
+        format=format,
+        unique_id="fruit",
+        chrome=Chrome(watermark="pantry 1.4.2"),
+    )
     assert "pantry 1.4.2" in marked
     assert WATERMARK_URL not in marked
     assert "<a " not in marked
@@ -1945,14 +2001,14 @@ def test_watermark_leaves_a_borrowed_credit_unlinked(format):
 
 def test_watermark_is_not_terminal_text():
     """The mark is chrome, so reading a capture back does not collect it."""
-    svg = render("kiwi", unique_id="fruit", watermark="pantry 1.4.2")
+    svg = render("kiwi", unique_id="fruit", chrome=Chrome(watermark="pantry 1.4.2"))
     assert "pantry 1.4.2" in svg
     assert svg_to_lines(svg) == ["kiwi"]
 
 
 def test_watermark_sits_where_the_margin_is():
     """It is drawn against the image's own corner, wherever the margin puts it."""
-    svg = render("kiwi", unique_id="fruit", margin=60)
+    svg = render("kiwi", unique_id="fruit", chrome=Chrome(margin=60))
     box = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', svg)
     mark = re.search(r'<text class="watermark" x="([\d.]+)" y="([\d.]+)"', svg)
     assert box and mark
@@ -1962,7 +2018,9 @@ def test_watermark_sits_where_the_margin_is():
 
 def test_render_draws_neither_when_asked_for_neither():
     """`none` is the value that leaves the window bare."""
-    svg = render("kiwi", unique_id="fruit", border=NO_PAINT, shadow=NO_PAINT)
+    svg = render(
+        "kiwi", unique_id="fruit", chrome=Chrome(border=NO_PAINT, shadow=NO_PAINT)
+    )
     assert 'stroke="none"' in svg
     assert "feDropShadow" not in svg
     assert "filter=" not in svg
@@ -1978,8 +2036,10 @@ def test_render_geometry(margin, padding):
     Neither moves a glyph relative to the others: the capture is repositioned as
     a whole, so its text still reads back line by line.
     """
-    bare = render("kiwi", unique_id="fruit", margin=0, padding=0)
-    framed = render("kiwi", unique_id="fruit", margin=margin, padding=padding)
+    bare = render("kiwi", unique_id="fruit", chrome=Chrome(margin=0, padding=0))
+    framed = render(
+        "kiwi", unique_id="fruit", chrome=Chrome(margin=margin, padding=padding)
+    )
 
     grown = 2 * (margin + padding)
     assert svg_box(framed) == tuple(side + grown for side in svg_box(bare))
@@ -2022,7 +2082,10 @@ def test_render_html_round_trips_the_terminal_text():
 def test_render_html_fragment_is_self_contained():
     """A fragment carries its own styling, and no document scaffolding."""
     fragment = render(
-        SAMPLE_CAPTURE, format=CaptureFormat.HTML, full=False, watermark=""
+        SAMPLE_CAPTURE,
+        format=CaptureFormat.HTML,
+        full=False,
+        chrome=Chrome(watermark=""),
     )
     assert fragment.startswith("<pre style=")
     assert fragment.endswith("</pre>")
@@ -2284,10 +2347,8 @@ def test_ansi_capture_draws_no_window():
         "mango\n",
         format=CaptureFormat.ANSI,
         title="basket",
-        watermark="credit me",
         preset=PRESETS["macos"],
-        backdrop="#ff0000",
-        margin=48,
+        chrome=Chrome(watermark="credit me", backdrop="#ff0000", margin=48),
     )
     assert drawn == "mango\n"
 

@@ -71,6 +71,7 @@ from ..screenshot import (
     MIN_COLUMNS,
     OPAQUE,
     CaptureBackground,
+    Chrome,
     animation_metadata,
     append_prompt,
     number_lines,
@@ -1269,7 +1270,7 @@ class ClickDirective(SphinxDirective):
         `click_extra_screenshot_preset` `conf.py` value names, so a project
         drawing all of its captures as the same terminal states it once.
         """
-        frame = {
+        decoration = {
             name.replace("-", "_"): self.options[f"screenshot-{name}"]
             for name in (
                 "backdrop",
@@ -1278,10 +1279,8 @@ class ClickDirective(SphinxDirective):
                 "margin",
                 "opacity",
                 "padding",
-                "preset",
                 "radius",
                 "shadow",
-                "title",
                 "watermark",
                 "watermark-color",
             )
@@ -1290,10 +1289,16 @@ class ClickDirective(SphinxDirective):
         # Stated even when nothing asks for one, the renderer crediting
         # click-extra by default: an image a build rewrites and commits cannot
         # carry a release number without being rewritten by every release.
-        frame.setdefault(
+        decoration.setdefault(
             "watermark",
             self.env.config.click_extra_screenshot_watermark,
         )
+        frame: dict[str, Any] = {
+            name: self.options[f"screenshot-{name}"]
+            for name in ("preset", "title")
+            if f"screenshot-{name}" in self.options
+        }
+        frame["chrome"] = Chrome(**decoration)
         if "screenshot-cursor" in self.options:
             frame["cursor"] = Cursor(
                 shape=self.options["screenshot-cursor"],

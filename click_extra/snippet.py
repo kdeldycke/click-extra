@@ -62,15 +62,11 @@ from pygments.util import ClassNotFound
 from .layout import number_lines
 from .screenshot import (
     AUTO_COLUMNS,
-    DEFAULT_BORDER_WIDTH,
-    DEFAULT_MARGIN,
-    DEFAULT_PADDING,
     DEFAULT_TRUNCATION,
-    DEFAULT_WATERMARK,
-    NO_PAINT,
-    OPAQUE,
     CaptureBackground,
     CaptureFormat,
+    Chrome,
+    fold_chrome_arguments,
     render,
     resolve_palette,
     trim_lines,
@@ -81,8 +77,9 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pygments.lexer import Lexer
+    from typing_extensions import Unpack
 
-    from .screenshot import TColumns
+    from .screenshot import ChromeArguments, TColumns
     from .screenshot_presets import TerminalPalette, TerminalPreset
 
 
@@ -285,16 +282,8 @@ def render_snippet(
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
-    border: str | None = None,
-    border_width: int = DEFAULT_BORDER_WIDTH,
-    radius: int | None = None,
-    backdrop: str = NO_PAINT,
-    shadow: str | None = None,
-    margin: int = DEFAULT_MARGIN,
-    padding: int = DEFAULT_PADDING,
-    opacity: float = OPAQUE,
-    watermark: str = DEFAULT_WATERMARK,
-    watermark_color: str | None = None,
+    chrome: Chrome = Chrome(),
+    **legacy: Unpack[ChromeArguments],
 ) -> str:
     """Color source code and render it as a document.
 
@@ -328,19 +317,13 @@ def render_snippet(
     :param full: see {func}`~click_extra.screenshot.render`.
     :param background: see {func}`~click_extra.screenshot.render`.
     :param preset: see {func}`~click_extra.screenshot.render`.
-    :param border: see {func}`~click_extra.screenshot.render`.
-    :param border_width: see {func}`~click_extra.screenshot.render`.
-    :param radius: see {func}`~click_extra.screenshot.render`.
-    :param backdrop: see {func}`~click_extra.screenshot.render`.
-    :param shadow: see {func}`~click_extra.screenshot.render`.
-    :param margin: see {func}`~click_extra.screenshot.render`.
-    :param padding: see {func}`~click_extra.screenshot.render`.
-    :param opacity: see {func}`~click_extra.screenshot.render`.
-    :param watermark: see {func}`~click_extra.screenshot.render`.
-    :param watermark_color: see {func}`~click_extra.screenshot.render`.
+    :param chrome: see {func}`~click_extra.screenshot.render`.
+    :param legacy: deprecated: the {class}`~click_extra.screenshot.Chrome` fields,
+        passed one by one.
     :return: the rendered document.
     :raises ValueError: when `language` or `style` names nothing Pygments knows.
     """
+    chrome = fold_chrome_arguments("render_snippet", chrome, legacy)
     resolved_style = resolve_style(style, background)
     text = highlight_code(
         code,
@@ -362,14 +345,5 @@ def render_snippet(
         background=background,
         preset=preset,
         palette=style_palette(resolved_style, background, preset=preset),
-        border=border,
-        border_width=border_width,
-        radius=radius,
-        backdrop=backdrop,
-        shadow=shadow,
-        margin=margin,
-        padding=padding,
-        opacity=opacity,
-        watermark=watermark,
-        watermark_color=watermark_color,
+        chrome=chrome,
     )

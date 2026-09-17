@@ -150,7 +150,7 @@ Every one of them, animating:
 ```{python:render}
 from pathlib import Path
 
-from click_extra.screenshot import CaptureFormat, cell_width, render
+from click_extra.screenshot import CaptureFormat, Chrome, cell_width, render
 from click_extra.screenshot_presets import PRESETS
 from click_extra.spinner import Spinner
 from click_extra.spinner_presets import SPINNERS
@@ -171,9 +171,7 @@ for name, preset in SPINNERS.items():
             frames=lines,
             interval=preset.interval,
             preset=PRESETS["plain"],
-            watermark="",
-            margin=0,
-            padding=2,
+            chrome=Chrome(watermark="", margin=0, padding=2),
         ),
         encoding="utf-8",
     )

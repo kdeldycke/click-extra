@@ -39,6 +39,7 @@ from click_extra.screenshot import (
     DEFAULT_COLUMNS,
     CaptureBackground,
     CaptureFormat,
+    Chrome,
 )
 from click_extra.screenshot_presets import PRESETS
 from click_extra.snippet import (
@@ -145,14 +146,16 @@ def test_highlight_expands_tabs():
 
 def test_snippet_draws_the_lines_it_was_given():
     """The code comes back out of the picture, character for character."""
-    svg = render_snippet(SAMPLE, language="python", watermark="")
+    svg = render_snippet(SAMPLE, language="python", chrome=Chrome(watermark=""))
     assert svg_to_lines(svg) == SAMPLE.rstrip("\n").split("\n")
 
 
 def test_snippet_numbers_its_lines():
     """A numbered snippet counts from one, in a gutter of its own."""
     lines = svg_to_lines(
-        render_snippet(SAMPLE, language="python", line_numbers=True, watermark=""),
+        render_snippet(
+            SAMPLE, language="python", line_numbers=True, chrome=Chrome(watermark="")
+        ),
     )
     assert lines[0].startswith("1 │ ")
     assert lines[-1].startswith("3 │ ")
