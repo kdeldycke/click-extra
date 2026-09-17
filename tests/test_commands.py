@@ -431,7 +431,7 @@ def test_help_custom_name(invoke):
 def test_subcommand_help(invoke, all_command_cli, cmd_id, param, assert_output_regex):
     # Force color: under the GNU auto default, piped output (like this runner) is
     # left uncolored, but here we exercise the colored rendering of extra commands.
-    result = invoke(all_command_cli, cmd_id, param, color="forced")
+    result = invoke(all_command_cli, cmd_id, param, force_color=True)
 
     colored_help_header = (
         r"It works!\n"
@@ -516,7 +516,7 @@ def test_colored_bare_help(invoke, cmd_decorator, param):
 
     # Force color: with the GNU auto default, piped output is uncolored, but this
     # test asserts the extra formatter still colorizes even a bare command.
-    result = invoke(bare_cli, param, color="forced")
+    result = invoke(bare_cli, param, force_color=True)
     assert (
         "\n"
         "\x1b[94m\x1b[4mOptions:\x1b[0m\n"

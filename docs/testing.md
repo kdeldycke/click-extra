@@ -101,16 +101,16 @@ When the callback raises, the runner catches the exception, sets a non-zero `exi
 
 ## Colors
 
-ANSI codes survive the trip only when asked for. `color` accepts one more value than Click's:
+ANSI codes survive the trip only when asked for. `color` keeps Click's meaning, and `force_color` adds one more state:
 
-| `color=`   | Captured streams | `Context.color` |
-| ---------- | ---------------- | --------------- |
-| `None`     | Stripped         | `None`          |
-| `False`    | Stripped         | `None`          |
-| `True`     | Kept             | `None`          |
-| `"forced"` | Kept             | `True`          |
+| Argument           | Captured streams | `Context.color` |
+| ------------------ | ---------------- | --------------- |
+| `color=None`       | Stripped         | `None`          |
+| `color=False`      | Stripped         | `None`          |
+| `color=True`       | Kept             | `None`          |
+| `force_color=True` | Kept             | `True`          |
 
-`color=True` keeps the codes in the captured output, but the invoked CLI still sees an uncolored context and takes its uncolored branch. `color="forced"` covers both: it keeps the codes *and* initializes `Context.color` to `True`, which vanilla Click cannot express because the two meanings collide on one parameter name ([pallets/click#2110](https://github.com/pallets/click/issues/2110)). Click Extra routes the second one through a patched `main()` call, so any other `Context` keyword named like an `invoke()` parameter gets through as well.
+`color=True` keeps the codes in the captured output, but the invoked CLI still sees an uncolored context and takes its uncolored branch. `force_color=True` covers both: it keeps the codes *and* initializes `Context.color` to `True`, which vanilla Click cannot express because the two meanings collide on one parameter name ([pallets/click#2110](https://github.com/pallets/click/issues/2110)). Click Extra routes the second one through a patched `main()` call, so any other `Context` keyword named like an `invoke()` parameter gets through as well.
 
 ```{python:source}
 import click
@@ -128,13 +128,13 @@ def report(ctx):
 ```{python:run}
 :show-source:
 :language: ansi-output
-result = runner.invoke(report, color="forced")
+result = runner.invoke(report, force_color=True)
 
 assert "\x1b[33mSunny\x1b[0m in Lisbon.\n" in result.stdout
 assert "Context.color is True\n" in result.stdout
 ```
 
-Setting `color=False` goes one step further than Click's stripping and scrubs the result bytes, so a CLI writing raw escape sequences past Click's own machinery still yields clean text. To keep the codes on every invocation of a suite without touching each call, set the `force_color` class attribute on {py:class}`~click_extra.testing.CliRunner`: it pins every run to the `color=True` row above.
+Setting `color=False` goes one step further than Click's stripping and scrubs the result bytes, so a CLI writing raw escape sequences past Click's own machinery still yields clean text. To force colors on every invocation of a suite without touching each call, set the `force_color` class attribute on {py:class}`~click_extra.testing.CliRunner`: it pins every run to the `force_color=True` row above, unless a call passes `color=False`.
 
 ```{note}
 The command above is a plain Click one on purpose: nothing but the runner decides its colors. A Click Extra command owns that decision itself, through its [`--color`/`--no-color` options](colorize.md#color-flag) and the `NO_COLOR` and `FORCE_COLOR` environment variables, which have the last word over whatever the runner was told.

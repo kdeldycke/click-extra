@@ -20,6 +20,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
+import pytest
 
 from click_extra import (
     CliRunner,
@@ -159,14 +160,32 @@ def test_invoke_color_keep(invoke):
     )
 
 
-def test_invoke_color_forced(invoke):
+def test_invoke_force_color(invoke):
     """Test colors are preserved while invoking, and forced to be rendered on
     Windows."""
-    result = invoke(run_cli1, color="forced")
+    result = invoke(run_cli1, force_color=True)
     check_default_colored_rendering(result)
     assert result.stdout.endswith(
         "Context.color = True\nclick.utils.should_strip_ansi = False\n",
     )
+
+
+def test_invoke_color_forced_is_deprecated(invoke):
+    """`color="forced"` still forces colors, warning at the caller."""
+    with pytest.warns(
+        DeprecationWarning, match="use force_color=True instead"
+    ) as record:
+        result = CliRunner().invoke(run_cli1, color="forced")
+    assert record[0].filename == __file__
+    assert result.stdout.endswith(
+        "Context.color = True\nclick.utils.should_strip_ansi = False\n",
+    )
+
+
+def test_invoke_force_color_contradicting_color_raises():
+    """Asking for forced colors and stripped ones at once is refused."""
+    with pytest.raises(ValueError, match="contradicts"):
+        CliRunner().invoke(run_cli1, color=False, force_color=True)
 
 
 # --- Full-stack click-extra color tests ---
@@ -206,18 +225,24 @@ def test_command_no_color_flag():
 
 
 def test_force_color_attribute():
-    """CliRunner.force_color=True overrides color parameter."""
+    """CliRunner.force_color=True applies `force_color` to every run."""
 
     @click.command
-    def simple_cli():
+    @click.pass_context
+    def simple_cli(ctx):
         echo(Style(fg="green")("styled"))
+        echo(f"Context.color = {ctx.color!r}")
 
     runner = CliRunner()
     runner.force_color = True
-    result = runner.invoke(simple_cli, color=None)
+    result = runner.invoke(simple_cli)
     assert result.exit_code == 0
-    # force_color=True makes isolation_color=True, so ANSI codes are preserved.
     assert "\x1b[32mstyled\x1b[0m" in result.stdout
+    assert "Context.color = True" in result.stdout
+    # An explicit color=False on one call still wins over the class default.
+    result = runner.invoke(simple_cli, color=False)
+    assert "\x1b[" not in result.stdout
+    assert "Context.color = None" in result.stdout
 
 
 # --- NO_COLOR / FORCE_COLOR environment variable tests ---

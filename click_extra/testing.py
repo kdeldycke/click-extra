@@ -37,6 +37,7 @@ from boltons.strutils import strip_ansi
 from boltons.tbutils import ExceptionInfo
 from cloup import Color
 
+from ._deprecated import warn_deprecated_argument
 from ._utils import patch_attr
 
 # The CLI-invocation serialization and disclosure atoms moved to
@@ -283,7 +284,10 @@ class CliRunner(click.testing.CliRunner):
     """Augment {class}`click.testing.CliRunner` with extra features and bug fixes."""
 
     force_color: bool = False
-    """Global class attribute to override the `color` parameter in `invoke`."""
+    """Default of the `force_color` argument of {meth}`invoke`, for every run.
+
+    A call passing `color=False` still gets uncolored output.
+    """
 
     def invoke(  # type: ignore[override]
         self,
@@ -293,6 +297,7 @@ class CliRunner(click.testing.CliRunner):
         env: TEnvVars | None = None,
         catch_exceptions: bool = True,
         color: bool | Literal["forced"] | None = None,
+        force_color: bool | None = None,
         **extra: Any,
     ) -> Result:
         """Same as `click.testing.CliRunner.invoke()` with extra features.
@@ -304,13 +309,10 @@ class CliRunner(click.testing.CliRunner):
         - The CLI arguments can be nested iterables of arbitrary depth. This is
           [useful for argument composition of test cases with @pytest.mark.parametrize](https://docs.pytest.org/en/stable/example/parametrize.html).
 
-        - Allow forcing of the `color` property at the class-level via
-          `force_color` attribute.
-
-        - Adds a special case in the form of `color="forced"` parameter, which allows
-          colored output to be kept, while forcing the initialization of
+        - Adds `force_color`, which keeps colored output while initializing
           `Context.color = True`. This is [not allowed in current implementation](https://github.com/pallets/click/issues/2110) of
           `click.testing.CliRunner.invoke()` because of colliding parameters.
+          The {attr}`force_color` class attribute sets it for every run.
 
         - Strips all ANSI codes from results if `color` was explicitly set to
           `False`.
@@ -329,12 +331,17 @@ class CliRunner(click.testing.CliRunner):
         :param input: same as `click.testing.CliRunner.invoke()`.
         :param env: same as `click.testing.CliRunner.invoke()`.
         :param catch_exceptions: same as `click.testing.CliRunner.invoke()`.
-        :param color: If a boolean, the parameter will be passed as-is to
-            `click.testing.CliRunner.isolation()`. If `"forced"`, the parameter
-            will be passed as `True` to `click.testing.CliRunner.isolation()` and
-            an extra `color=True` parameter will be passed to the invoked CLI.
+        :param color: whether the captured streams keep ANSI codes, passed to
+            `click.testing.CliRunner.isolation()`. `False` also scrubs the
+            result bytes. The string `"forced"` is deprecated: pass
+            `force_color=True` instead.
+        :param force_color: keep the ANSI codes *and* initialize the invoked
+            CLI's `Context.color` to `True`, so it takes its colored branch.
+            `None` (the default) follows the {attr}`force_color` class
+            attribute.
         :param extra: same as `click.testing.CliRunner.invoke()`, but colliding
             parameters are allowed and properly passed on to the invoked CLI.
+        :raises ValueError: if `force_color=True` is passed with `color=False`.
         """
         # Pop out the `args` parameter from `extra` and append it to the positional
         # arguments. This handles the case where `args` is passed as a keyword
@@ -346,18 +353,23 @@ class CliRunner(click.testing.CliRunner):
         clean_args = _args_cleanup(*cli_args)
 
         if color == "forced":
+            warn_deprecated_argument(
+                "CliRunner.invoke", 'color="forced"', "force_color=True"
+            )
+            color, force_color = None, True
+        if force_color is None:
+            # An explicit color=False on one call wins over the class default.
+            force_color = self.force_color and color is not False
+        elif force_color and color is False:
+            raise ValueError("color=False contradicts force_color=True.")
+
+        if force_color:
             # Pass the color argument as an extra parameter to the invoked CLI.
             # This works around Click issue #2110: `CliRunner.invoke(color=True)`
             # controls the test "terminal" but cannot simultaneously pass `color`
             # through to `Context`.
             extra["color"] = True
-
-        # The class attribute `force_color` overrides the `color` parameter.
-        if self.force_color:
-            isolation_color = True
-        # Cast to `bool` to avoid passing `None` or `"forced"` to `invoke()`.
-        else:
-            isolation_color = bool(color)
+        isolation_color = force_color or bool(color)
 
         # No-op context manager without any effects.
         extra_params_bypass: AbstractContextManager = nullcontext()
