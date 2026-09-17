@@ -905,27 +905,132 @@ _GROUP_LEADERS: Final[set[subprocess.Popen[str]]] = set()
 """Subset of {data}`_LIVE_PROCESSES` spawned with `start_new_session`.
 
 Each of these children leads its own POSIX session and process group, so the
-kill paths signal the whole group (reaping its descendants along with it)
-instead of the direct child alone. Maintained by {func}`run_cli` in lockstep
-with {data}`_LIVE_PROCESSES`, under the same lock.
+kill paths signal the whole group, plus every group a descendant moved to (see
+{func}`_kill_posix_process_group`), instead of the direct child alone.
+Maintained by {func}`run_cli` in lockstep with {data}`_LIVE_PROCESSES`, under
+the same lock.
 """
+
+
+def _parse_proc_stat(stat: str) -> tuple[int, int] | None:
+    """Read the parent PID and process group ID off a Linux `/proc/<pid>/stat` line.
+
+    The command name sits in parentheses and may itself hold spaces or
+    parentheses, so the fields are counted from the last `)`: the state, the
+    parent PID, then the process group. Returns `None` for a line that does not
+    parse.
+    """
+    fields = stat.rpartition(")")[2].split()
+    try:
+        return int(fields[1]), int(fields[2])
+    except (IndexError, ValueError):
+        return None
+
+
+def _posix_process_table() -> dict[int, tuple[int, int]]:
+    """Map every visible process ID to its parent PID and process group ID.
+
+    Reads `/proc` where it holds Linux `stat` files, which needs no subprocess and
+    works in a container that ships no `ps`. Runs `ps` everywhere else, whose
+    `-A` and `-o` options are POSIX. A process that exits while the table is read
+    is left out, and the table is empty when neither source answers.
+    """
+    table: dict[int, tuple[int, int]] = {}
+    if os.path.exists("/proc/self/stat"):
+        for name in os.listdir("/proc"):
+            if not name.isdigit():
+                continue
+            try:
+                with open(
+                    f"/proc/{name}/stat", encoding="UTF-8", errors="replace"
+                ) as stat_file:
+                    parsed = _parse_proc_stat(stat_file.read())
+            except OSError:
+                continue
+            if parsed is not None:
+                table[int(name)] = parsed
+        return table
+    try:
+        listing = subprocess.run(
+            ("ps", "-A", "-o", "pid=", "-o", "ppid=", "-o", "pgid="),
+            capture_output=True,
+            encoding="UTF-8",
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return table
+    for line in listing.stdout.splitlines():
+        try:
+            pid, ppid, pgid = (int(field) for field in line.split())
+        except ValueError:
+            continue
+        table[pid] = (ppid, pgid)
+    return table
+
+
+def _escaped_process_groups(
+    leader: int,
+    table: dict[int, tuple[int, int]],
+) -> set[int]:
+    """Find the process groups holding descendants of `leader` outside its group.
+
+    A descendant that calls `setsid()` or `setpgid()` leaves the group `leader`
+    heads, so signalling that group misses it and everything it starts. CPAN.pm
+    does this for every `make test` run: it forks, and the fork detaches with
+    `setsid()`. Descendants are found through their parent PIDs, so `table` must
+    be read while `leader` is alive: once it dies, its children are reparented and
+    nothing links them back to it.
+
+    The group of the calling process is never returned, nor a group ID below `2`,
+    which {func}`os.killpg` does not read as a plain group.
+    """
+    children: dict[int, list[int]] = {}
+    for pid, (ppid, _group) in table.items():
+        children.setdefault(ppid, []).append(pid)
+    own_group = os.getpgid(0)
+    groups: set[int] = set()
+    seen = {leader}
+    pending = [leader]
+    while pending:
+        for child in children.get(pending.pop(), ()):
+            if child in seen:
+                continue
+            seen.add(child)
+            pending.append(child)
+            group = table[child][1]
+            if group not in (leader, own_group) and group > 1:
+                groups.add(group)
+    return groups
 
 
 def _kill_posix_process_group(
     process: subprocess.Popen[str],
     signum: signal.Signals,
+    table: dict[int, tuple[int, int]] | None = None,
 ) -> bool:
-    """Signal the whole POSIX process group led by `process`.
+    """Signal the POSIX process group led by `process`, and each group its
+    descendants moved to.
 
     Only meaningful for a child spawned with `start_new_session`, whose group
-    ID equals its PID. Returns `True` when the signal was delivered to the
-    group, `False` when it could not be (no `killpg` on this platform, or
-    the group is already gone), leaving the caller to fall back on signalling
-    the direct child.
+    ID equals its PID. A descendant that left that group (see
+    {func}`_escaped_process_groups`) is signalled through its own group, so it dies
+    with the child instead of surviving as an orphan that holds the output pipes
+    open. Pass `table` to reuse one {func}`_posix_process_table` read for several
+    children.
+
+    Returns `True` when the signal was delivered to the child's group, `False`
+    when it could not be (no `killpg` on this platform, or the group is already
+    gone), leaving the caller to fall back on signalling the direct child.
     """
     killpg = getattr(os, "killpg", None)
     if killpg is None:
         return False
+    # Read the tree before any signal: a killed child's descendants are reparented
+    # at once, which cuts the parent links the walk follows.
+    if table is None:
+        table = _posix_process_table()
+    escaped = _escaped_process_groups(process.pid, table)
     try:
         # A start_new_session child is its own session and group leader, so its
         # PID doubles as the group ID: no getpgid() lookup (which could race
@@ -933,8 +1038,16 @@ def _kill_posix_process_group(
         killpg(process.pid, signum)
     except OSError:
         # The whole group is already gone: nothing left to signal.
-        return False
-    return True
+        delivered = False
+    else:
+        delivered = True
+    for group in escaped:
+        try:
+            killpg(group, signum)
+        except OSError:
+            # Gone already, or owned by another user: nothing to signal.
+            pass
+    return delivered
 
 
 def terminate_live_processes() -> None:
@@ -948,7 +1061,7 @@ def terminate_live_processes() -> None:
 
     A child spawned with `start_new_session` never receives the terminal's
     `SIGINT` at all (it left the foreground process group), so its whole group
-    is signalled here, descendants included.
+    is signalled here, with the groups its descendants moved to.
 
     Uses `SIGTERM` rather than `SIGKILL` so a child still gets to clean up,
     notably to restore terminal state a `sudo` password prompt may have altered.
@@ -959,10 +1072,13 @@ def terminate_live_processes() -> None:
     with _LIVE_PROCESSES_LOCK:
         live = tuple(_LIVE_PROCESSES)
         leaders = set(_GROUP_LEADERS)
+    # One read of the process table, taken before any signal, serves every leader.
+    table = _posix_process_table() if leaders and hasattr(os, "killpg") else {}
     for process in live:
         if process in leaders and _kill_posix_process_group(
             process,
             signal.SIGTERM,
+            table,
         ):
             continue
         try:
@@ -1010,8 +1126,8 @@ Once the child is killed its pipes normally hit `EOF` at once, so the readers
 finish within milliseconds. The exception is an orphaned grandchild holding an
 inherited pipe handle open: the grace period bounds the wait instead of blocking
 forever, and the daemon reader threads are then abandoned with whatever output
-they collected. A `start_new_session` child never leaves such orphans behind
-(its whole group is killed), so its drain always completes promptly.
+they collected. A `start_new_session` child normally leaves no such orphan
+behind, since its descendants are killed with it, so its drain completes promptly.
 """
 
 
@@ -1117,8 +1233,9 @@ def run_cli(
     - raises {exc}`subprocess.TimeoutExpired` (with the partial capture attached)
       when the child, or the draining of its output, outlives `timeout`. The
       child is killed first — its whole process tree on Windows (see
-      {func}`_kill_windows_process_tree`), its whole POSIX process group when
-      spawned with `start_new_session`, the direct child alone otherwise;
+      {func}`_kill_windows_process_tree`), its POSIX process group and every
+      group its descendants moved to when spawned with `start_new_session`, the
+      direct child alone otherwise;
     - a {exc}`KeyboardInterrupt` mid-run kills the child (with the same tree,
       group or direct scope), then propagates.
 
@@ -1166,7 +1283,9 @@ def run_cli(
         {exc}`KeyboardInterrupt`, and {func}`terminate_live_processes` — then
         signals the whole group, so a grandchild spawned by the child (a shim
         re-executing the real binary, an installer helper) is reaped along with
-        it instead of surviving as an orphan holding the output pipes open.
+        it instead of surviving as an orphan holding the output pipes open. A
+        descendant that left the group with `setsid()`, like the `make test`
+        run CPAN.pm forks, is signalled through its own group.
         Off by default, and to be left off when a descendant must keep the
         controlling terminal: a new session detaches from it, so an interactive
         prompt raised from inside the child (`sudo` reading `/dev/tty`)
@@ -1274,8 +1393,9 @@ def run_cli(
         )
 
     def kill_child() -> None:
-        """Forcibly stop the child: its tree on Windows, its whole POSIX process
-        group when session-isolated, the direct child otherwise."""
+        """Forcibly stop the child: its tree on Windows, its POSIX process group
+        and the groups its descendants moved to when session-isolated, the direct
+        child otherwise."""
         _kill_windows_process_tree(process.pid)
         if not (
             start_new_session and _kill_posix_process_group(process, signal.SIGKILL)

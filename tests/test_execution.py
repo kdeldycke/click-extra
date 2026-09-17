@@ -66,7 +66,10 @@ from click_extra.execution import (
     CPU_COUNT,
     DEFAULT_JOBS,
     PROMPT,
+    _escaped_process_groups,
     _logical_cpu_count,
+    _parse_proc_stat,
+    _posix_process_table,
     install_interrupt_handler,
     terminate_live_processes,
 )
@@ -1162,17 +1165,32 @@ def _assert_process_dies(pid: int, deadline_seconds: float = 5.0) -> None:
     pytest.fail(f"PID {pid} survived the process-group kill.")
 
 
+GRANDCHILD_SESSIONS = pytest.mark.parametrize(
+    "grandchild_session",
+    (
+        pytest.param(False, id="same-group"),
+        # A grandchild leading a session of its own has left the child's process
+        # group, like the `make test` supervisor CPAN.pm forks and detaches with
+        # setsid().
+        pytest.param(True, id="own-session"),
+    ),
+)
+"""Run a group-kill test on a grandchild inside the child's group and outside it."""
+
+
 @skip_windows
-def test_run_cli_timeout_new_session_kills_grandchildren():
-    """A timed-out start_new_session child takes its whole process group down:
+@GRANDCHILD_SESSIONS
+def test_run_cli_timeout_new_session_kills_grandchildren(grandchild_session):
+    """A timed-out start_new_session child takes its whole process tree down:
     the grandchild is reaped along with it instead of surviving as an orphan
     holding the inherited output pipe open."""
-    code = dedent("""\
+    code = dedent(f"""\
         import subprocess, sys, time
         grandchild = subprocess.Popen(
             (sys.executable, "-c", "import time; time.sleep(30)"),
+            start_new_session={grandchild_session},
         )
-        print(f"grandchild={grandchild.pid}", flush=True)
+        print(f"grandchild={{grandchild.pid}}", flush=True)
         time.sleep(30)
         """)
     start = monotonic()
@@ -1218,7 +1236,8 @@ def test_run_cli_registers_live_process_then_discards_it():
 
 
 @skip_windows
-def test_terminate_live_processes_signals_whole_group(tmp_path):
+@GRANDCHILD_SESSIONS
+def test_terminate_live_processes_signals_whole_group(tmp_path, grandchild_session):
     """Interrupting a start_new_session child reaps its grandchild too: the
     group never received the terminal's SIGINT (it left the foreground group),
     so terminate_live_processes() is its only kill path and must cover the
@@ -1235,6 +1254,7 @@ def test_terminate_live_processes_signals_whole_group(tmp_path):
         import os, subprocess, sys, time
         grandchild = subprocess.Popen(
             (sys.executable, "-c", "import time; time.sleep(30)"),
+            start_new_session={grandchild_session},
         )
         pid_file = {str(pid_file)!r}
         with open(pid_file + ".tmp", "w", encoding="utf-8") as f:
@@ -1263,6 +1283,51 @@ def test_terminate_live_processes_signals_whole_group(tmp_path):
     assert not _LIVE_PROCESSES
     assert not _GROUP_LEADERS
     _assert_process_dies(int(pid_file.read_text(encoding="utf-8")))
+
+
+@pytest.mark.parametrize(
+    ("stat", "expected"),
+    (
+        ("4242 (python3) S 1 4242 4242 0 -1 4194304", (1, 4242)),
+        # The command name may hold spaces and parentheses of its own.
+        ("4242 (a (b) c) R 17 99 99 0 -1", (17, 99)),
+        ("4242 (python3)", None),
+        ("not a stat line", None),
+    ),
+)
+def test_parse_proc_stat(stat, expected):
+    assert _parse_proc_stat(stat) == expected
+
+
+@skip_windows
+def test_posix_process_table_lists_this_process():
+    table = _posix_process_table()
+    assert table[os.getpid()] == (os.getppid(), os.getpgid(0))
+
+
+@skip_windows
+def test_escaped_process_groups():
+    """Only the groups of descendants outside the leader's group are returned.
+
+    The IDs sit above the largest PID any platform allocates, so none of them
+    can be the group of the running test process.
+    """
+    leader = 10_000_000
+    table = {
+        leader: (1, leader),
+        leader + 1: (leader, leader),
+        # A grandchild that called setsid(), and its own child.
+        leader + 2: (leader, leader + 2),
+        leader + 3: (leader + 2, leader + 2),
+        # A great-grandchild that left the group below a member that stayed.
+        leader + 4: (leader + 1, leader + 4),
+        # Not a descendant.
+        leader + 5: (1, leader + 5),
+        # Groups killpg() must never be handed.
+        leader + 6: (leader, 1),
+        leader + 7: (leader, os.getpgid(0)),
+    }
+    assert _escaped_process_groups(leader, table) == {leader + 2, leader + 4}
 
 
 def test_terminate_live_processes_ignores_already_reaped():
