@@ -56,7 +56,6 @@ import re
 import shutil
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from enum import Enum
 from gettext import gettext as _
 from importlib import metadata
@@ -83,7 +82,7 @@ from .parameters import (
     split_option_groups,
 )
 from .types import EnumChoice
-from .version import resolve_author, resolve_distribution
+from .version import build_moment, resolve_author, resolve_distribution
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -384,19 +383,26 @@ class DocOptionItem:
             return ()
         return self.choices
 
+    @property
+    def attached_value(self) -> str:
+        """The `[=METAVAR]` form of an optional value.
+
+        An optional value renders attached and bracketed
+        (`--color[=auto|always|never]`), the man convention for a flag usable
+        bare. The metavar's own outer brackets, if any, are stripped so a
+        Choice does not double up.
+        """
+        inner = self.metavar or ""
+        if inner.startswith("[") and inner.endswith("]"):
+            inner = inner[1:-1]
+        return f"[={inner}]"
+
     def to_roff(self) -> list[str]:
         """Render this option as a roff tagged paragraph (`.TP`)."""
         tag = " / ".join(_bold(name) for name in self.names)
         if self.metavar:
             if self.optional_value:
-                # An optional value renders attached and bracketed
-                # (`--color[=auto|always|never]`), the man convention for a flag
-                # usable bare. Strip the metavar's own outer brackets, if any, so a
-                # Choice does not double up.
-                inner = self.metavar
-                if inner.startswith("[") and inner.endswith("]"):
-                    inner = inner[1:-1]
-                tag += _italic("[=" + inner + "]")
+                tag += _italic(self.attached_value)
             else:
                 tag += " " + _italic(self.metavar)
         lines = [".TP", tag]
@@ -419,10 +425,7 @@ class DocOptionItem:
         spec = " / ".join(self.names)
         if self.metavar:
             if self.optional_value:
-                inner = self.metavar
-                if inner.startswith("[") and inner.endswith("]"):
-                    inner = inner[1:-1]
-                spec += f"[={inner}]"
+                spec += self.attached_value
             else:
                 spec += f" {self.metavar}"
         return spec
@@ -870,15 +873,12 @@ class CommandDoc:
 
 
 def _resolve_date() -> str:
-    """Resolve the man page date, honoring `SOURCE_DATE_EPOCH` for reproducible
-    builds (https://reproducible-builds.org/specs/source-date-epoch/)."""
-    epoch = os.environ.get("SOURCE_DATE_EPOCH")
-    when = (
-        datetime.fromtimestamp(int(epoch), tz=timezone.utc)
-        if epoch
-        else datetime.now(tz=timezone.utc)
-    )
-    return when.strftime("%Y-%m-%d")
+    """The man page date, as `YYYY-MM-DD`.
+
+    Pinned by `SOURCE_DATE_EPOCH` in a reproducible build, see
+    {func}`~click_extra.version.build_moment`.
+    """
+    return build_moment().strftime("%Y-%m-%d")
 
 
 def _distribution_names(ctx: Context) -> tuple[str, ...]:

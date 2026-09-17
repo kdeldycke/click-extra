@@ -51,7 +51,7 @@ from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.util import logging, parselinenos
 
-from ..blocks import OPTION_LINE_RE, fence_spans, marker_res, update_blocks
+from ..blocks import rewrite_fenced_regions, split_options, update_blocks
 from ..color import forced_color
 from ..execution import format_cli_prompt
 from ..recording import (
@@ -149,10 +149,6 @@ build-time pass regenerates it in memory.
 
 SCREENSHOT_MARKER_END = "<!-- screenshot-end -->"
 """Closing marker of a `:mirror:` region. See {data}`SCREENSHOT_MARKER_START`."""
-
-# Reading-side regexes of the marker pair above, in the shared grammar from
-# `blocks.marker_res`.
-_SCREENSHOT_OPEN_RE, _SCREENSHOT_CLOSE_RE = marker_res("screenshot")
 
 _INTERPRETER_RE = re.compile(r"(?:^|/)(?:python|pypy)[\d.]*$")
 """Match the first word of a command line that only *runs* a program.
@@ -815,6 +811,20 @@ class ClickDirective(SphinxDirective):
                 options.append(line)
         return options
 
+    def _toggle(self, subject: str, default: bool) -> bool:
+        """Resolve a `show-<subject>` / `hide-<subject>` option pair.
+
+        The last one given wins, in the order the options were written. With
+        neither, `default` answers.
+        """
+        value = default
+        for option_id in self.options:
+            if option_id == f"show-{subject}":
+                value = True
+            elif option_id == f"hide-{subject}":
+                value = False
+        return value
+
     @cached_property
     def show_source(self) -> bool:
         """Whether to show the source code of the example in the code block.
@@ -822,13 +832,7 @@ class ClickDirective(SphinxDirective):
         The last occurrence of either `show-source` or `hide-source` options
         wins. If neither is set, the default is taken from `show_source_by_default`.
         """
-        show_source = self.show_source_by_default
-        for option_id in self.options:
-            if option_id == "show-source":
-                show_source = True
-            elif option_id == "hide-source":
-                show_source = False
-        return show_source
+        return self._toggle("source", self.show_source_by_default)
 
     @cached_property
     def show_results(self) -> bool:
@@ -837,13 +841,7 @@ class ClickDirective(SphinxDirective):
         The last occurrence of either `show-results` or `hide-results` options
         wins. If neither is set, the default is taken from `show_results_by_default`.
         """
-        show_results = self.show_results_by_default
-        for option_id in self.options:
-            if option_id == "show-results":
-                show_results = True
-            elif option_id == "hide-results":
-                show_results = False
-        return show_results
+        return self._toggle("results", self.show_results_by_default)
 
     @cached_property
     def show_prompt(self) -> bool:
@@ -861,13 +859,7 @@ class ClickDirective(SphinxDirective):
         when the invocation is noise the surrounding prose already carries, or
         when a capture is wanted as bare output.
         """
-        show_prompt = self.show_prompt_by_default
-        for option_id in self.options:
-            if option_id == "show-prompt":
-                show_prompt = True
-            elif option_id == "hide-prompt":
-                show_prompt = False
-        return show_prompt
+        return self._toggle("prompt", self.show_prompt_by_default)
 
     @cached_property
     def is_myst_syntax(self) -> bool:
@@ -1596,97 +1588,29 @@ class RunDirective(ClickDirective):
 ClickDirective.runner_factory = ClickRunner
 
 
-def _split_run_options(inner: Iterable[str]) -> dict[str, str]:
-    """Collect the leading `:key: value` option lines of a fence body.
-
-    Stops at the first line that is not an option, so a body whose Python
-    happens to start with a colon is never mistaken for one.
-    """
-    options: dict[str, str] = {}
-    for line in inner:
-        match = OPTION_LINE_RE.match(line)
-        if not match:
-            break
-        options[match.group("key")] = match.group("value")
-    return options
-
-
-def _skip_existing_screenshot_region(lines: list[str], index: int) -> int:
-    """Return the index just past an existing screenshot region at `index`.
-
-    Skips leading blank lines, then a {data}`SCREENSHOT_MARKER_START` …
-    {data}`SCREENSHOT_MARKER_END` block if one is present. Returns `index`
-    unchanged when no region follows, so a first-time block is not consumed.
-    """
-    cursor = index
-    while cursor < len(lines) and not lines[cursor].strip():
-        cursor += 1
-    if cursor < len(lines) and _SCREENSHOT_OPEN_RE.match(lines[cursor]):
-        while cursor < len(lines) and not _SCREENSHOT_CLOSE_RE.match(lines[cursor]):
-            cursor += 1
-        if cursor < len(lines):
-            return cursor + 1
-    return index
-
-
 def _rewrite_screenshot_regions(
     text: str,
     directory: str = DEFAULT_SCREENSHOT_DIR,
 ) -> str:
     """Return `text` with every capture block's `:mirror:` region refreshed.
 
-    Walks the document fence by fence via {func}`click_extra.blocks.fence_spans`,
-    so an example nested inside a longer `code-block` fence is copied verbatim,
-    never treated as a live block. Only a top-level fence
-    ({data}`_CAPTURE_FENCE_OPEN`) carrying both `:screenshot:` and `:mirror:`
-    gets a region, inserted directly below it on first sight. Idempotent: an
-    unchanged block round-trips to the same text.
+    Only a top-level fence ({data}`_CAPTURE_FENCE_OPEN`) carrying both
+    `:screenshot:` and `:mirror:` gets a region, holding the Markdown link to
+    the capture. The walk, the insertion and the idempotency are those of
+    {func}`click_extra.blocks.rewrite_fenced_regions`.
 
     The image itself is written by the directive at build time. This only
     maintains the Markdown pointing at it.
     """
-    lines = text.split("\n")
-    spans = fence_spans(lines)
-    total = len(lines)
-    out: list[str] = []
-    index = 0
-    while index < total:
-        span = spans.get(index)
-        if span is None:
-            out.append(lines[index])
-            index += 1
-            continue
-        if span.close is None:
-            # Unterminated fence: leave the tail untouched.
-            out.extend(lines[index:])
-            break
 
-        options: dict[str, str] = {}
-        if _CAPTURE_FENCE_OPEN.match(lines[index]):
-            options = _split_run_options(lines[index + 1 : span.close])
-        # Emit the whole fence unit (source and close line) verbatim.
-        out.extend(lines[index : span.close + 1])
-        index = span.close + 1
+    def link(inner: list[str]) -> list[str] | None:
+        options, _content = split_options(inner)
         name = options.get("screenshot")
         if not name or "mirror" not in options:
-            continue
+            return None
+        return [f"![{name}]({directory}/{name}.svg)"]
 
-        index = _skip_existing_screenshot_region(lines, index)
-        out.extend([
-            "",
-            SCREENSHOT_MARKER_START,
-            "",
-            f"![{name}]({directory}/{name}.svg)",
-            "",
-            SCREENSHOT_MARKER_END,
-        ])
-        # Collapse the gap to the following content to a single blank line.
-        while index < total and not lines[index].strip():
-            index += 1
-        if index < total:
-            out.append("")
-
-    return "\n".join(out)
+    return rewrite_fenced_regions(text, "screenshot", _CAPTURE_FENCE_OPEN, link)
 
 
 def update_screenshot_blocks(

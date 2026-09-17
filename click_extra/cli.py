@@ -121,10 +121,13 @@ from .version import (
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable
     from typing import Any
 
-    from .screenshot import TColumns, THold
+    from typing_extensions import Unpack
+
+    from .screenshot import ChromeArguments, TColumns, THold
+    from .screenshot_presets import TerminalPreset
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +160,48 @@ def _to_dunder(name: str) -> str:
     if not name.endswith("__"):
         name = f"{name}__"
     return name
+
+
+def _bake_dunder_fields(
+    init_path: Path,
+    fields: Iterable[tuple[str, Callable[[], str | None]]],
+) -> bool:
+    """Fill every empty `__<field>__` placeholder of `init_path` that resolves.
+
+    Each field is resolved only when its placeholder is present and still
+    empty, so a value already baked is never recomputed and a resolver that
+    cannot answer (no git repository, no tag) leaves its placeholder alone.
+
+    :param fields: `(field name, resolver)` pairs, each resolver answering the
+        value to bake, or `None` when it has none.
+    :return: whether the file was written.
+    """
+    changed = False
+    source = init_path.read_text(encoding="utf-8")
+    for field_name, resolve in fields:
+        dunder_name = f"__{field_name}__"
+        node = _find_dunder_str(source, dunder_name)
+        if node is None:
+            continue
+        if node.value:
+            echo(f"Skipped {init_path}: {dunder_name} already set")
+            continue
+        value = resolve()
+        if not value:
+            echo(f"Skipped {init_path}: {dunder_name} (no value)")
+            continue
+        baked = prebake_dunder(init_path, dunder_name, value)
+        if baked:
+            echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
+            changed = True
+            # Re-read the source after each write so AST offsets stay valid.
+            source = init_path.read_text(encoding="utf-8")
+    return changed
+
+
+def _resolve_preset(name: str | None) -> TerminalPreset | None:
+    """The terminal preset `--preset` names, or `None` when it names none."""
+    return None if name is None else PRESETS[name.lower()]
 
 
 _module_option = option(
@@ -1021,16 +1066,6 @@ def screenshot_cmd(
     columns: TColumns,
     background: CaptureBackground,
     preset: str | None,
-    border: str | None,
-    border_width: int,
-    radius: int | None,
-    backdrop: str,
-    shadow: str | None,
-    margin: int,
-    padding: int,
-    opacity: float,
-    watermark: str,
-    watermark_color: str | None,
     prompt: str | None,
     head: int | None,
     tail: int | None,
@@ -1052,6 +1087,7 @@ def screenshot_cmd(
     typing: float | None,
     submit: float | None,
     speed: float | None,
+    **chrome_fields: Unpack[ChromeArguments],
 ) -> None:
     """Capture a command's colored output and write it as an image or HTML.
 
@@ -1086,18 +1122,8 @@ def screenshot_cmd(
     long as its line count asks, see --hold.
     """
     capture_format = resolve_capture_format(output, fragment)
-    chrome = Chrome(
-        border=border,
-        border_width=border_width,
-        radius=radius,
-        backdrop=backdrop,
-        shadow=shadow,
-        margin=margin,
-        padding=padding,
-        opacity=opacity,
-        watermark=watermark,
-        watermark_color=watermark_color,
-    )
+    chrome = Chrome(**chrome_fields)
+    terminal = _resolve_preset(preset)
 
     if record:
         if capture_format is not CaptureFormat.SVG:
@@ -1185,7 +1211,7 @@ def screenshot_cmd(
                 emphasize=emphasize,
                 title=title,
                 unique_id=output.stem,
-                preset=None if preset is None else PRESETS[preset.lower()],
+                preset=terminal,
                 chrome=chrome,
             )
         except (NotImplementedError, ValueError) as error:
@@ -1210,7 +1236,7 @@ def screenshot_cmd(
                 unique_id=output.stem,
                 full=not fragment,
                 background=background,
-                preset=None if preset is None else PRESETS[preset.lower()],
+                preset=terminal,
                 chrome=chrome,
             )
         except ImportError as error:
@@ -1291,16 +1317,6 @@ def snippet_cmd(
     columns: TColumns,
     background: CaptureBackground,
     preset: str | None,
-    border: str | None,
-    border_width: int,
-    radius: int | None,
-    backdrop: str,
-    shadow: str | None,
-    margin: int,
-    padding: int,
-    opacity: float,
-    watermark: str,
-    watermark_color: str | None,
     head: int | None,
     tail: int | None,
     truncation: str,
@@ -1310,6 +1326,7 @@ def snippet_cmd(
     fragment: bool,
     language: str | None,
     syntax_style: str | None,
+    **chrome_fields: Unpack[ChromeArguments],
 ) -> None:
     """Highlight a source file and write it as an image or HTML.
 
@@ -1339,18 +1356,6 @@ def snippet_cmd(
         ) from error
 
     capture_format = resolve_capture_format(output, fragment)
-    chrome = Chrome(
-        border=border,
-        border_width=border_width,
-        radius=radius,
-        backdrop=backdrop,
-        shadow=shadow,
-        margin=margin,
-        padding=padding,
-        opacity=opacity,
-        watermark=watermark,
-        watermark_color=watermark_color,
-    )
 
     reading_stdin = str(source) == "-"
     if reading_stdin:
@@ -1378,8 +1383,8 @@ def snippet_cmd(
             unique_id=output.stem,
             full=not fragment,
             background=background,
-            preset=None if preset is None else PRESETS[preset.lower()],
-            chrome=chrome,
+            preset=_resolve_preset(preset),
+            chrome=Chrome(**chrome_fields),
         )
     except ValueError as error:
         raise ClickException(str(error)) from error
@@ -1953,12 +1958,17 @@ def all_fields(module: Path | None) -> None:
     resolution is available. Fields without a placeholder in the source file
     are skipped silently.
     """
-    paths = _resolve_paths(module)
+    # The field-to-resolver tables live in click_extra.version, so adding a
+    # field there needs no matching edit here. A git resolver runs in the
+    # current directory; a build resolver describes the host running this
+    # command, so it takes no directory and always answers.
+    fields: list[tuple[str, Callable[[], str | None]]] = [
+        *((name, partial(resolve, None)) for name, resolve in GIT_RESOLVERS.items()),
+        *BUILD_RESOLVERS.items(),
+    ]
+
     changed = False
-
-    for init_path in paths:
-        source = init_path.read_text(encoding="utf-8")
-
+    for init_path in _resolve_paths(module):
         # Pre-bake __version__ with git short hash.
         git_hash = run_git(*GIT_FIELDS["git_short_hash"])
         if git_hash:
@@ -1966,48 +1976,7 @@ def all_fields(module: Path | None) -> None:
             if baked:
                 echo(f"Pre-baked {init_path}: __version__ = {baked!r}")
                 changed = True
-
-        # Pre-bake each git field that has an empty dunder placeholder. The
-        # canonical field-to-resolver mapping lives in click_extra.version, so
-        # adding a git field there needs no matching edit here. Direct fields,
-        # the tag-derived git_tag_sha, and the computed git_distance/git_dirty
-        # all resolve uniformly through their GIT_RESOLVERS callable.
-        for field_name, resolver in GIT_RESOLVERS.items():
-            dunder_name = f"__{field_name}__"
-            node = _find_dunder_str(source, dunder_name)
-            if node is None:
-                continue
-            if node.value:
-                echo(f"Skipped {init_path}: {dunder_name} already set")
-                continue
-            value = resolver(None)
-            if not value:
-                echo(f"Skipped {init_path}: {dunder_name} (no git value)")
-                continue
-            baked = prebake_dunder(init_path, dunder_name, value)
-            if baked:
-                echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
-                changed = True
-                # Re-read source after each write so AST offsets stay valid.
-                source = init_path.read_text(encoding="utf-8")
-
-        # Pre-bake each build field the same way. Their resolvers describe the
-        # host running this command, so they take no working directory and
-        # always answer.
-        for field_name, build_resolver in BUILD_RESOLVERS.items():
-            dunder_name = f"__{field_name}__"
-            node = _find_dunder_str(source, dunder_name)
-            if node is None:
-                continue
-            if node.value:
-                echo(f"Skipped {init_path}: {dunder_name} already set")
-                continue
-            baked = prebake_dunder(init_path, dunder_name, build_resolver())
-            if baked:
-                echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
-                changed = True
-                # Re-read source after each write so AST offsets stay valid.
-                source = init_path.read_text(encoding="utf-8")
+        changed |= _bake_dunder_fields(init_path, fields)
 
     if not changed:
         echo("No changes made.")

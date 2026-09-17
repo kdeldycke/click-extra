@@ -439,6 +439,14 @@ def _deepcopy_params(params: list[click.Parameter]) -> list[click.Parameter]:
     return copy.deepcopy(params, memo)
 
 
+def _param_keys(param: click.Parameter) -> set[str]:
+    """The names a parameter claims: its destination and, for an option, its flags."""
+    keys: set[str] = {param.name} if param.name else set()
+    if isinstance(param, click.Option):
+        keys.update(param.opts, param.secondary_opts)
+    return keys
+
+
 def _merge_params(
     group_params: list[click.Parameter],
     sub_params: list[click.Parameter],
@@ -451,23 +459,12 @@ def _merge_params(
     default options, which would otherwise appear twice.
     """
     reserved: set[str] = set()
-
-    def _record(param: click.Parameter) -> None:
-        if param.name:
-            reserved.add(param.name)
-        if isinstance(param, click.Option):
-            reserved.update(param.opts)
-            reserved.update(param.secondary_opts)
-
     for param in group_params:
-        _record(param)
+        reserved |= _param_keys(param)
 
     merged = list(group_params)
     for param in sub_params:
-        keys: set[str] = {param.name} if param.name else set()
-        if isinstance(param, click.Option):
-            keys.update(param.opts)
-            keys.update(param.secondary_opts)
+        keys = _param_keys(param)
         if keys & reserved:
             logger.debug(
                 f"Dropping subcommand parameter {param.name!r}: "
@@ -475,7 +472,7 @@ def _merge_params(
             )
             continue
         merged.append(param)
-        _record(param)
+        reserved |= keys
     return merged
 
 

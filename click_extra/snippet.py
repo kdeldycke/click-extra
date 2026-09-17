@@ -45,6 +45,8 @@ while a terminal names sixteen and leaves their shades to whoever draws them.
 
 from __future__ import annotations
 
+from functools import cache
+
 from ._utils import missing_extra_message
 
 try:
@@ -117,8 +119,12 @@ text it could not be proven to be, rather than miscolored as a guess.
 """
 
 
+@cache
 def known_styles() -> tuple[str, ...]:
     """Every Pygments style a snippet can be colored with, sorted.
+
+    Cached: the walk behind {func}`pygments.styles.get_all_styles` reads the
+    plugin entry points on every call, and a process never gains a style.
 
     :return: the style names.
     """

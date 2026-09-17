@@ -157,22 +157,40 @@ skip_naked = pytest.mark.skip(reason="Naked decorator not supported.")
 """
 
 
+_FRAMEWORKS = ("click", "cloup", "click_extra")
+"""The frameworks a decorator matrix spans, in the order its rows list them."""
+
+
 def _expand_decorator_params(
-    matrix: Iterable[tuple[Any, str, str]],
+    kind_rows: Iterable[tuple[str, bool, tuple[Any, Any, Any]]],
+    skip_frameworks: tuple[bool, bool, bool],
     *,
     with_parenthesis: bool,
     with_types: bool,
 ) -> tuple[ParameterSet, ...]:
-    """Expand `(decorator, framework, kind)` triples into pytest parameters.
+    """Expand a decorator matrix into pytest parameters.
 
-    Each triple yields the naked variant, then (`with_parenthesis`) the
-    parenthesized one. Parameter IDs are `<framework>.<kind>` and
+    `kind_rows` holds one `(kind, skip, decorators)` row per decorator kind,
+    its decorators in {data}`_FRAMEWORKS` order, and `skip_frameworks` the
+    frameworks to leave out in that same order.
+
+    Each kept decorator yields the naked variant, then (`with_parenthesis`)
+    the parenthesized one. Parameter IDs are `<framework>.<kind>` and
     `<framework>.<kind>()`. Naked Cloup decorators carry the
     {data}`skip_naked` mark, since Cloup does not support the
     parenthesis-less form. With `with_types`, each parameter also carries
     its ``{framework-tag, kind}`` descriptor set (the `click_extra`
     framework is tagged `extra`).
     """
+    matrix = [
+        (deco, framework, kind)
+        for kind, skip_kind, decorators in kind_rows
+        if not skip_kind
+        for deco, framework, skip_framework in zip(
+            decorators, _FRAMEWORKS, skip_frameworks
+        )
+        if not skip_framework
+    ]
     params: list[ParameterSet] = []
     for deco, framework, kind in matrix:
         tags = {framework.removeprefix("click_"), kind}
@@ -221,19 +239,11 @@ def command_decorators(
         ("command", no_commands, (click.command, cloup.command, command)),
         ("group", no_groups, (click.group, cloup.group, group)),
     )
-    matrix: list[tuple[Any, str, str]] = []
-    for kind, skip_kind, decorators in kind_rows:
-        if skip_kind:
-            continue
-        for deco, framework, skip_framework in zip(
-            decorators,
-            ("click", "cloup", "click_extra"),
-            (no_click, no_cloup, no_extra),
-        ):
-            if not skip_framework:
-                matrix.append((deco, framework, kind))
     return _expand_decorator_params(
-        matrix, with_parenthesis=with_parenthesis, with_types=with_types
+        kind_rows,
+        (no_click, no_cloup, no_extra),
+        with_parenthesis=with_parenthesis,
+        with_types=with_types,
     )
 
 
@@ -269,19 +279,11 @@ def option_decorators(
         ("option", no_options, (click.option, cloup.option, option)),
         ("argument", no_arguments, (click.argument, cloup.argument, argument)),
     )
-    matrix: list[tuple[Any, str, str]] = []
-    for kind, skip_kind, decorators in kind_rows:
-        if skip_kind:
-            continue
-        for deco, framework, skip_framework in zip(
-            decorators,
-            ("click", "cloup", "click_extra"),
-            (no_click, no_cloup, no_extra),
-        ):
-            if not skip_framework:
-                matrix.append((deco, framework, kind))
     return _expand_decorator_params(
-        matrix, with_parenthesis=with_parenthesis, with_types=with_types
+        kind_rows,
+        (no_click, no_cloup, no_extra),
+        with_parenthesis=with_parenthesis,
+        with_types=with_types,
     )
 
 

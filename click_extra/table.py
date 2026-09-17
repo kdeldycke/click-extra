@@ -197,8 +197,8 @@ class TableFormat(Enum):
     YAML = "yaml"
     YOUTRACK = "youtrack"
 
-    def __str__(self):
-        return self.name.lower().replace("_", "-")
+    def __str__(self) -> str:
+        return self.value
 
     @property
     def is_markup(self) -> bool:
@@ -469,29 +469,20 @@ def _rows_as_dicts(
     return [list(row) for row in table_data]
 
 
-def _render_json(
+def _render_records(
+    fmt: ConfigFormat,
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
     **kwargs,
 ) -> str:
-    """Render a table as JSON."""
-    return serialize_content(
-        ConfigFormat.JSON, _rows_as_dicts(table_data, headers), **kwargs
-    )
+    """Render a table as a list of records serialized in `fmt`.
 
-
-def _render_yaml(
-    table_data: Sequence[Sequence[str | None]],
-    headers: Sequence[str | None] | None = None,
-    **kwargs,
-) -> str:
-    """Render a table as YAML.
-
-    Requires the `pyyaml` package (installable via the `[yaml]` extra).
+    Serves JSON, YAML and HJSON, which all take the {func}`_rows_as_dicts`
+    shape as is. A format shipped by an extra (`[yaml]`, `[hjson]`) raises
+    `ImportError` when that extra is missing, like
+    {func}`~click_extra.config.formats.serialize_content` does.
     """
-    return serialize_content(
-        ConfigFormat.YAML, _rows_as_dicts(table_data, headers), **kwargs
-    )
+    return serialize_content(fmt, _rows_as_dicts(table_data, headers), **kwargs)
 
 
 def _render_toml(
@@ -520,20 +511,6 @@ def _render_toml(
         aot.append(t)
 
     return serialize_content(ConfigFormat.TOML, {RECORD_KEY: aot}, **kwargs)
-
-
-def _render_hjson(
-    table_data: Sequence[Sequence[str | None]],
-    headers: Sequence[str | None] | None = None,
-    **kwargs,
-) -> str:
-    """Render a table as HJSON.
-
-    Requires the `hjson` package (installable via the `[hjson]` extra).
-    """
-    return serialize_content(
-        ConfigFormat.HJSON, _rows_as_dicts(table_data, headers), **kwargs
-    )
 
 
 def _render_xml(
@@ -1026,15 +1003,15 @@ def _select_table_funcs(
         ):
             return partial(_render_csv, table_format=table_format), print_func
         case TableFormat.HJSON:
-            return _render_hjson, print_func
+            return partial(_render_records, ConfigFormat.HJSON), print_func
         case TableFormat.JSON | TableFormat.JSON5 | TableFormat.JSONC:
-            return _render_json, print_func
+            return partial(_render_records, ConfigFormat.JSON), print_func
         case TableFormat.TOML:
             return _render_toml, print_func
         case TableFormat.XML:
             return _render_xml, print_func
         case TableFormat.YAML:
-            return _render_yaml, print_func
+            return partial(_render_records, ConfigFormat.YAML), print_func
         case TableFormat.VERTICAL:
             return _render_vertical, print_func
         case _:

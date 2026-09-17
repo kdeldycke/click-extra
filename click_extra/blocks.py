@@ -31,12 +31,13 @@ script reuse `replace_region` and `update_blocks` without pulling in the
 from __future__ import annotations
 
 import re
+from functools import cache
 from pathlib import Path
 from typing import NamedTuple
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Sequence
 
 
 OPTION_LINE_RE = re.compile(r"^[ \t]*:(?P<key>[\w+-]+):[ \t]*(?P<value>.*?)[ \t]*$")
@@ -99,6 +100,7 @@ def fence_spans(lines: list[str]) -> dict[int, FenceSpan]:
     return spans
 
 
+@cache
 def marker_res(name: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
     """Build the `(open, close)` regexes of a `<!-- name -->` region.
 
@@ -106,6 +108,9 @@ def marker_res(name: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
     comment is `<!-- name [args] -->` (`args` optional, whitespace
     separated), the closing comment is `<!-- name-end -->`. Both capture
     their leading indentation as `indent`.
+
+    Cached: a region name maps to one pair of compiled patterns, however many
+    refreshers read it.
     """
     escaped = re.escape(name)
     open_re = re.compile(
@@ -166,6 +171,119 @@ def replace_region(text: str, name: str, content: str, *, pad: bool = True) -> s
 
     rebuilt = [*lines[: open_idx + 1], *middle, *lines[close_idx:]]
     return "\n".join(rebuilt)
+
+
+def region_markers(name: str) -> tuple[str, str]:
+    """The `(open, close)` lines of a `<!-- name -->` region, as a refresher writes them.
+
+    The writing-side twin of {func}`marker_res`: `<!-- name -->` opens the
+    region and `<!-- name-end -->` closes it, and every refresher writes both
+    through here so they cannot drift from what that reader matches.
+    """
+    return f"<!-- {name} -->", f"<!-- {name}-end -->"
+
+
+def split_options(lines: Sequence[str]) -> tuple[dict[str, str], list[str]]:
+    """Split a fence body into its leading `:key: value` options and its content.
+
+    Stops at the first line that is not an option, so a body whose Python
+    happens to start with a colon is never mistaken for one. A single blank
+    line separating the options from the content goes with the options: the
+    content comes back exactly as the directive would receive it.
+
+    :param lines: the lines between a fence's opening and closing markers.
+    :return: the options, in declaration order, and the content lines.
+    """
+    options: dict[str, str] = {}
+    index = 0
+    while index < len(lines) and (match := OPTION_LINE_RE.match(lines[index])):
+        options[match.group("key")] = match.group("value")
+        index += 1
+    if index < len(lines) and not lines[index].strip():
+        index += 1
+    return options, list(lines[index:])
+
+
+def skip_region(lines: Sequence[str], index: int, name: str) -> int:
+    """Return the index just past the `<!-- name -->` region opening at `index`.
+
+    Skips leading blank lines, then a whole region if one opens there. Returns
+    `index` unchanged when no region follows, so the content below a
+    first-time block is never consumed as if it were a stale region.
+    """
+    open_re, close_re = marker_res(name)
+    cursor = index
+    while cursor < len(lines) and not lines[cursor].strip():
+        cursor += 1
+    if cursor < len(lines) and open_re.match(lines[cursor]):
+        while cursor < len(lines) and not close_re.match(lines[cursor]):
+            cursor += 1
+        if cursor < len(lines):
+            return cursor + 1
+    return index
+
+
+def rewrite_fenced_regions(
+    text: str,
+    name: str,
+    fence_open: re.Pattern[str],
+    content: Callable[[list[str]], list[str] | None],
+) -> str:
+    """Refresh the `<!-- name -->` region kept below every matching fence of `text`.
+
+    Walks the document fence by fence via {func}`fence_spans`, so an example
+    nested inside a longer `code-block` fence is copied verbatim, never read as
+    a live block. A top-level fence whose opening line matches `fence_open`
+    hands its inner lines, options included, to `content`, which answers the
+    lines the region holds, or `None` to leave the fence with no region at all.
+    The region is inserted directly below the fence on first sight and replaced
+    afterwards, blank-line padded so `mdformat` never ping-pongs on the
+    markers. Idempotent: an unchanged block round-trips to the same text.
+
+    The `python:render` `:mirror:` and the `click:run` `:screenshot:` regions
+    are both maintained through here, each with its own `content`.
+
+    :param text: the Markdown source.
+    :param name: the region's marker name, see {func}`region_markers`.
+    :param fence_open: matches the opening line of a fence carrying a region.
+    :param content: computes the region's lines from the fence's inner lines.
+    :return: the rewritten source.
+    """
+    opening, closing = region_markers(name)
+    lines = text.split("\n")
+    spans = fence_spans(lines)
+    total = len(lines)
+    out: list[str] = []
+    index = 0
+    while index < total:
+        span = spans.get(index)
+        if span is None:
+            out.append(lines[index])
+            index += 1
+            continue
+        if span.close is None:
+            # Unterminated fence: leave the tail untouched.
+            out.extend(lines[index:])
+            break
+
+        region = None
+        if fence_open.match(lines[index]):
+            region = content(lines[index + 1 : span.close])
+        # Emit the whole fence unit (source and close line) verbatim.
+        out.extend(lines[index : span.close + 1])
+        index = span.close + 1
+        if region is None:
+            continue
+
+        index = skip_region(lines, index, name)
+        out.extend(["", opening, "", *region, "", closing])
+        # Collapse the gap to the following content to a single blank line.
+        while index < total and not lines[index].strip():
+            index += 1
+        if index < total:
+            out.append("")
+
+    return "\n".join(out)
 
 
 def iter_markdown_files(paths: Iterable[Path]) -> Iterable[Path]:

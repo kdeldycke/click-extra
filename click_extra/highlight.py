@@ -416,6 +416,20 @@ def _escape_for_help_screen(text: str) -> str:
     return re.escape(text).replace("-", "-\\s*").replace("\\ ", "\\s+")
 
 
+def _longest_first(names: Iterable[str]) -> list[str]:
+    """Order names so a regex alternation tries the longest one first.
+
+    An alternation matches the first branch that fits, so `--color` listed
+    before `--color-mode` would leave the `-mode` tail unpainted.
+    """
+    return sorted(names, key=len, reverse=True)
+
+
+def _alternation(names: Iterable[str]) -> str:
+    """The `a|b|c` regex body matching any of `names` verbatim, longest first."""
+    return "|".join(re.escape(name) for name in _longest_first(names))
+
+
 class HelpFormatter(cloup.HelpFormatter):
     """Extends Cloup's custom HelpFormatter to highlights options, choices, metavars and
     default values.
@@ -605,16 +619,9 @@ class HelpFormatter(cloup.HelpFormatter):
         if not kw.cli_names:
             return help_text
 
-        cli_alt = "|".join(
-            re.escape(name) for name in sorted(kw.cli_names, key=len, reverse=True)
-        )
+        cli_alt = _alternation(kw.cli_names)
         subcommand_re = re.compile(
-            r"(?<![\w\-])(?:"
-            + "|".join(
-                re.escape(name)
-                for name in sorted(kw.subcommands, key=len, reverse=True)
-            )
-            + r")(?![\w\-])"
+            rf"(?<![\w\-])(?:{_alternation(kw.subcommands)})(?![\w\-])"
         )
         invocation_re = re.compile(
             rf"^(?P<head>{self._prompt_re.pattern}(?:{cli_alt})(?![\w\-]))"
@@ -650,7 +657,7 @@ class HelpFormatter(cloup.HelpFormatter):
                 self._deprecated_re,
                 *(
                     re.compile(re.escape(marker))
-                    for marker in sorted(kw.deprecated, key=len, reverse=True)
+                    for marker in _longest_first(kw.deprecated)
                 ),
             ],
             self.theme.deprecated,
@@ -665,7 +672,7 @@ class HelpFormatter(cloup.HelpFormatter):
                 help_text,
                 (
                     re.compile(rf"(?<=  ){re.escape(name)}(?=\s)")
-                    for name in sorted(kw.subcommands, key=len, reverse=True)
+                    for name in _longest_first(kw.subcommands)
                 ),
                 self.theme.subcommand,
             )
@@ -686,10 +693,7 @@ class HelpFormatter(cloup.HelpFormatter):
         # matches when every comma-separated word is a known alias, so a
         # parenthetical in prose that merely contains an alias is left alone.
         if kw.command_aliases:
-            alias_alt = "|".join(
-                re.escape(name)
-                for name in sorted(kw.command_aliases, key=len, reverse=True)
-            )
+            alias_alt = _alternation(kw.command_aliases)
             alias_group_re = re.compile(
                 rf"\((?P<aliases>(?:{alias_alt})(?:, (?:{alias_alt}))*)\)"
             )
@@ -759,21 +763,19 @@ class HelpFormatter(cloup.HelpFormatter):
                     help_text,
                     (
                         re.compile(rf"(?<=\s){re.escape(name)}(?=\s)")
-                        for name in sorted(kw.cli_names, key=len, reverse=True)
+                        for name in _longest_first(kw.cli_names)
                     ),
                     self._style_command_path,
                 )
 
-            all_options = sorted(
-                kw.long_options | kw.short_options, key=len, reverse=True
-            )
+            all_options = _longest_first(kw.long_options | kw.short_options)
             if all_options:
                 # Paint a numeric value spelled out beside the option it feeds,
                 # like the `1` of "--jobs 1 for sequential execution". A number
                 # is the one value shape that cannot be read as prose, so the
                 # pass stops there: the word after an option name is a value in
                 # "--jobs max" and an ordinary verb in "--wrap routes it".
-                option_alt = "|".join(re.escape(name) for name in all_options)
+                option_alt = _alternation(all_options)
                 option_value_re = re.compile(
                     rf"(?<![\w\-])(?:{option_alt})(?:\s+|=)"
                     r"(?P<value>\d+(?:\.\d+)?)(?![\w\-])"

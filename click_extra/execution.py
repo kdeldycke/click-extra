@@ -1392,15 +1392,20 @@ def run_cli(
             stderr=None if merge_stderr else "".join(err_lines),
         )
 
-    def kill_child() -> None:
-        """Forcibly stop the child: its tree on Windows, its POSIX process group
-        and the groups its descendants moved to when session-isolated, the direct
-        child otherwise."""
+    def abort(reason: str) -> None:
+        """Forcibly stop the child, reap it and collect what its pipes still hold.
+
+        Kills its tree on Windows, its POSIX process group and the groups its
+        descendants moved to when session-isolated, the direct child otherwise.
+        """
+        log.debug(f"PID {process.pid} {reason}; sending kill.")
         _kill_windows_process_tree(process.pid)
         if not (
             start_new_session and _kill_posix_process_group(process, signal.SIGKILL)
         ):
             process.kill()
+        process.wait()
+        _drain_readers(readers, _KILL_DRAIN_GRACE)
 
     deadline = time.monotonic() + timeout if timeout is not None else None
     timeout_desc = "none" if timeout is None else f"{timeout}s"
@@ -1409,17 +1414,11 @@ def run_cli(
             log.debug(f"Waiting for PID {process.pid} (timeout={timeout_desc}).")
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            log.debug(f"PID {process.pid} timed out; sending kill.")
-            kill_child()
-            process.wait()
-            _drain_readers(readers, _KILL_DRAIN_GRACE)
+            abort("timed out")
             log.debug(f"PID {process.pid} killed; exit {process.returncode}.")
             raise timeout_expired() from None
         except KeyboardInterrupt:
-            log.debug(f"PID {process.pid} interrupted; sending kill.")
-            kill_child()
-            process.wait()
-            _drain_readers(readers, _KILL_DRAIN_GRACE)
+            abort("interrupted")
             raise
     finally:
         # The child is no longer live: drop it so a later Ctrl+C does not try to

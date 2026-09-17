@@ -74,6 +74,7 @@ from .spinner_presets import (
     SpinnerPreset,
 )
 from .styling import Style
+from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -244,6 +245,15 @@ def _can_draw(live: str, stream: IO[str]) -> bool:
     if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
         return False
     return is_a_tty(stream)
+
+
+def _stream_or_stderr(stream: IO[str] | None) -> IO[str]:
+    """The stream a line is drawn on: the one given, or {data}`sys.stderr`.
+
+    Read at the moment of drawing rather than at construction, so a stream
+    swapped in afterwards (as test harnesses do) is honored.
+    """
+    return stream if stream is not None else sys.stderr
 
 
 class Spinner:
@@ -425,12 +435,8 @@ class Spinner:
         self._stop_time: float | None = None
 
     def _resolve_stream(self) -> IO[str]:
-        """Return the explicit `stream`, or default to {data}`sys.stderr`.
-
-        Resolved lazily so a stream swapped in after construction (as test
-        harnesses do) is honored.
-        """
-        return self.stream if self.stream is not None else sys.stderr
+        """The explicit `stream`, or {data}`sys.stderr`, see {func}`_stream_or_stderr`."""
+        return _stream_or_stderr(self.stream)
 
     def _resolve_live(self, stream: IO[str]) -> bool:
         """Decide whether to animate on `stream`, as {attr}`live` says.
@@ -758,10 +764,6 @@ class Spinner:
         Degrades to a plain line when color is disabled or the spinner was never
         shown, so the outcome is still recorded off a TTY.
         """
-        # Lazy import to avoid a circular dependency with theme (as parameters.py
-        # does); the active theme is resolved here, not frozen at construction.
-        from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
-
         glyph = symbol if symbol is not None else (OK_GLYPH if success else KO_GLYPH)
         if style is None:
             theme = get_current_theme()
@@ -869,10 +871,6 @@ def trail_glyph(ok: bool) -> str:
     theme's `success` slot, or the failure glyph
     {data}`~click_extra.theme.KO_GLYPH` painted with its `error` slot.
     """
-    # Lazy import to avoid a circular dependency with theme, as Spinner._finalize
-    # does; the active theme is resolved at call time, not import time.
-    from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
-
     theme = get_current_theme()
     return theme.success(OK_GLYPH) if ok else theme.error(KO_GLYPH)
 
@@ -1064,7 +1062,7 @@ class _BarIndicator:
         self._ticker: threading.Thread | None = None
 
     def _resolve_stream(self) -> IO[str]:
-        return self._stream if self._stream is not None else sys.stderr
+        return _stream_or_stderr(self._stream)
 
     def __enter__(self) -> Self:
         stream = self._resolve_stream()
@@ -1407,7 +1405,7 @@ class OperationTrail:
         # frame, and finish() echoes them for a batch it never drew. Elsewhere
         # no indicator ever draws, so lines echo as they are marked.
         self._indicator_draws = (self.concurrent or progress_bar) and _can_draw(
-            self._indicator_live, stream if stream is not None else sys.stderr
+            self._indicator_live, _stream_or_stderr(stream)
         )
         self._echo = self._echo_plain and not self._indicator_draws
 
@@ -1476,7 +1474,7 @@ class OperationTrail:
         takes any escape embedded in `message` along with the glyph's.
         """
         line = trail_line(ok, message)
-        stream = self.stream if self.stream is not None else sys.stderr
+        stream = _stream_or_stderr(self.stream)
         return line if _color_enabled(stream) else click.unstyle(line)
 
     def _echo_line(self, message: str) -> None:

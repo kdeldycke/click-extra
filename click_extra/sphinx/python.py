@@ -60,9 +60,9 @@ from docutils.parsers.rst import Parser as RstParser, directives
 from docutils.utils import new_document
 
 from ..blocks import (
-    OPTION_LINE_RE,
     fence_spans,
-    marker_res,
+    rewrite_fenced_regions,
+    split_options,
     update_blocks,
 )
 from ._base import (
@@ -96,10 +96,6 @@ as the `<!-- matrix … -->` regions of {mod}`click_extra.sphinx.matrix`.
 
 MIRROR_MARKER_END = "<!-- mirror-end -->"
 """Closing marker of a `:mirror:` region. See {data}`MIRROR_MARKER_START`."""
-
-# Reading-side regexes of the marker pair above, in the shared grammar from
-# `blocks.marker_res`.
-_MIRROR_OPEN_RE, _MIRROR_CLOSE_RE = marker_res("mirror")
 
 _MIRROR_FENCE_OPEN = re.compile(r"^[ \t]*`{3,}\{python:render\}[ \t]*\S*[ \t]*$")
 """Match a MyST `python:render` backtick-fence opening line.
@@ -402,41 +398,6 @@ class PythonRenderRstDirective(PythonRenderBaseDirective):
     forced_parser = RstParser
 
 
-def _split_mirror_options(inner: list[str]) -> tuple[set[str], list[str]]:
-    """Split a fence's inner lines into its option keys and its Python body.
-
-    Leading `:key:` lines are consumed as directive options; an optional
-    single blank line separates them from the body. Returns the set of option
-    keys and the remaining body lines.
-    """
-    options: set[str] = set()
-    index = 0
-    while index < len(inner) and (match := OPTION_LINE_RE.match(inner[index])):
-        options.add(match.group("key"))
-        index += 1
-    if index < len(inner) and not inner[index].strip():
-        index += 1
-    return options, inner[index:]
-
-
-def _skip_existing_mirror_region(lines: list[str], index: int) -> int:
-    """Return the index just past an existing mirror region starting at `index`.
-
-    Skips leading blank lines, then a {data}`MIRROR_MARKER_START` …
-    {data}`MIRROR_MARKER_END` block if one is present. Returns `index`
-    unchanged when no region follows, so a first-time block is not consumed.
-    """
-    cursor = index
-    while cursor < len(lines) and not lines[cursor].strip():
-        cursor += 1
-    if cursor < len(lines) and _MIRROR_OPEN_RE.match(lines[cursor]):
-        while cursor < len(lines) and not _MIRROR_CLOSE_RE.match(lines[cursor]):
-            cursor += 1
-        if cursor < len(lines):
-            return cursor + 1
-    return index
-
-
 def _execute_mirror_block(
     body: list[str],
     namespace: dict[str, object],
@@ -471,13 +432,12 @@ def _execute_mirror_block(
 def _rewrite_mirror_regions(text: str, location: str) -> str:
     """Return `text` with every ``python:render {mirror}`` region refreshed.
 
-    Walks the document fence by fence via
-    {func}`click_extra.blocks.fence_spans`, so a `python:render`
-    example nested inside a longer `code-block` fence is copied verbatim,
-    never executed. Only a top-level `python:render` fence carrying a
-    `:mirror:` option is executed, its output written into the marker region
-    directly below it (a region is inserted on first sight). Idempotent: a
-    region whose source is unchanged round-trips to the same text.
+    Only a top-level `python:render` fence carrying a `:mirror:` option is
+    executed, its output written into the marker region directly below it. The
+    walk, the insertion and the idempotency are those of
+    {func}`click_extra.blocks.rewrite_fenced_regions`. The blocks of one
+    document share a namespace, so a later block can reuse an earlier block's
+    imports and variables.
 
     ```{note}
     The mirrored region is raw Markdown, re-parsed by the host on every
@@ -487,43 +447,15 @@ def _rewrite_mirror_regions(text: str, location: str) -> str:
     the generator and the formatter will fight over the region.
     ```
     """
-    lines = text.split("\n")
-    spans = fence_spans(lines)
-    total = len(lines)
-    out: list[str] = []
     namespace: dict[str, object] = {"__file__": "dummy.py"}
-    index = 0
-    while index < total:
-        span = spans.get(index)
-        if span is None:
-            out.append(lines[index])
-            index += 1
-            continue
-        if span.close is None:
-            # Unterminated fence: leave the tail untouched.
-            out.extend(lines[index:])
-            break
 
-        options: set[str] = set()
-        body: list[str] = []
-        if _MIRROR_FENCE_OPEN.match(lines[index]):
-            options, body = _split_mirror_options(lines[index + 1 : span.close])
-        # Emit the whole fence unit (source and close line) verbatim.
-        out.extend(lines[index : span.close + 1])
-        index = span.close + 1
+    def generate(inner: list[str]) -> list[str] | None:
+        options, body = split_options(inner)
         if "mirror" not in options:
-            continue
+            return None
+        return _execute_mirror_block(body, namespace, location)
 
-        generated = _execute_mirror_block(body, namespace, location)
-        index = _skip_existing_mirror_region(lines, index)
-        out.extend(["", MIRROR_MARKER_START, "", *generated, "", MIRROR_MARKER_END])
-        # Collapse the gap to the following content to a single blank line.
-        while index < total and not lines[index].strip():
-            index += 1
-        if index < total:
-            out.append("")
-
-    return "\n".join(out)
+    return rewrite_fenced_regions(text, "mirror", _MIRROR_FENCE_OPEN, generate)
 
 
 def _rewrite_mirror_src_regions(text: str, location: str) -> str:

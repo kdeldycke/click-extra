@@ -63,10 +63,10 @@ from sphinx.directives import SphinxDirective, directives
 from sphinx.util import logging
 
 from ..blocks import (
-    OPTION_LINE_RE,
     FenceSpan,
     fence_spans,
     marker_res,
+    split_options,
     update_blocks,
 )
 from ..table import TableFormat, render_table
@@ -1300,13 +1300,7 @@ def _refresh_fence_block(
     fence = match.group("fence")
     axis = match.group("axis")
 
-    options: dict[str, str] = {}
-    for cursor in range(index + 1, close):
-        option_match = OPTION_LINE_RE.match(lines[cursor])
-        if not option_match:
-            break
-        options[option_match.group("key")] = option_match.group("value")
-
+    options, _body = split_options(lines[index + 1 : close])
     table = _regenerate(axis, options, base_dir)
     if not table:
         return lines[index : close + 1]

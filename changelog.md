@@ -7,12 +7,17 @@
 
 - **Breaking:** Print `OperationTrail` lines and its finisher off an interactive terminal too, where no spinner or progress bar draws. Pass `visible=False` to keep a trail silent.
 - **Breaking:** Make every argument of an option class after `param_decls` keyword-only, like `ColorOption(default="never")`: pass them by name.
+- **Breaking:** Drop `RESET` from `click_extra.version`: import it from `click_extra.layout`, which already carried it.
 - **Deprecated:** Replace the `enabled` argument of `Spinner` with `live` (`"auto"`, `"always"` or `"never"`), and that of `OperationTrail` with `visible` and `live`; `enabled` resolves until `10.0.0`.
 - **Deprecated:** Rename the `merge_streams` argument of `run_cli` to `merge_stderr`, and `allow_query` of `resolve_background` to `query_background`, matching `capture_output` and `ThemeOption`; the old names resolve until `10.0.0`.
 - **Deprecated:** Drop the `unique` argument of `search_params`, whose `False` returned every match as a list: filter the parameters directly instead. It resolves until `10.0.0`.
 - **Deprecated:** Replace `color="forced"` in `CliRunner.invoke` with a `force_color=True` argument; `"forced"` resolves until `10.0.0`.
 - **Deprecated:** Replace the `(label, column_id)` tuple with a `ColumnSpec` in table headers, `SortByOption` and `column_sort_key`; the tuple resolves until `10.0.0`.
 - **Deprecated:** Replace the window arguments of `render`, `capture`, `record_and_render` and `render_snippet`, like `margin` and `watermark`, with one `chrome=Chrome(...)`; they resolve until `10.0.0`.
+- Add `rewrite_fenced_regions`, `split_options`, `skip_region` and `region_markers` to `click_extra.blocks`: the marker-region refresh the `:mirror:` and `:screenshot:` directive options share.
+- Add `build_moment` to `click_extra.version`, the `SOURCE_DATE_EPOCH`-aware instant `--version` and the man page date both stamp.
+- Add `attached_value` to `DocOptionItem`, the `[=METAVAR]` form of an option taking an optional value.
+- Name the INI option a value cannot be converted for in the error, as an argfile does, instead of raising the bare conversion error.
 - Add `sortable` to `ColumnSpec`, keeping a column in the table layout without offering it to `--sort-by`.
 - Show a `Spinner`'s elapsed time under `--time` by default, as `OperationTrail` and `progressbar` do.
 - Type the result of `search_params` and `last_param` as the parameter class they look for, so a match needs no `isinstance` check.

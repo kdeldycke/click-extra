@@ -58,13 +58,10 @@ from extra_platforms import current_architecture, current_platform
 from ._utils import memoize_enums
 from .color import invocation_color, is_a_tty
 from .context import ACCESSIBLE, _LazyMetaDict, get
-from .layout import cell_width
+from .layout import cell_width, pad_to
 from .parameters import ExtraOption
 from .styling import Style
 from .theme import get_current_theme
-
-RESET = "\x1b[0m"
-"""The sequence closing every style, for padding that must inherit none of one."""
 
 MUTED = Style(fg="bright_black")
 """The recessive style the version screen gives its tagline and its fact labels."""
@@ -251,6 +248,10 @@ def resolve_git_dirty(cwd: Path | None = None) -> str | None:
     return "dirty" if status else "clean"
 
 
+_DESCRIBE_DISTANCE_RE = re.compile(r"-(\d+)-g[0-9a-f]+$")
+"""The distance in a `git describe --tags --long` line, `<tag>-<distance>-g<hash>`."""
+
+
 def resolve_git_distance(cwd: Path | None = None) -> str | None:
     """Count commits since the most recent tag, as a string, or `None`.
 
@@ -262,7 +263,7 @@ def resolve_git_distance(cwd: Path | None = None) -> str | None:
     described = run_git("describe", "--tags", "--long", cwd=cwd)
     if described is None:
         return None
-    match = re.search(r"-(\d+)-g[0-9a-f]+$", described)
+    match = _DESCRIBE_DISTANCE_RE.search(described)
     return match.group(1) if match else None
 
 
@@ -327,18 +328,24 @@ See the [reproducible-builds.org specification](https://reproducible-builds.org/
 """
 
 
-def resolve_build_time() -> str:
-    """The moment the distribution is built, as an RFC 3339 UTC timestamp.
+def build_moment() -> datetime:
+    """The instant a build happens, in UTC.
 
     Reads `SOURCE_DATE_EPOCH` when the build sets it, so two runs of a
     reproducible build stamp the same instant. Falls back to the current time.
     """
     epoch = os.environ.get(SOURCE_DATE_EPOCH)
     if epoch:
-        moment = datetime.fromtimestamp(int(epoch), tz=timezone.utc)
-    else:
-        moment = datetime.now(tz=timezone.utc)
-    return moment.isoformat(timespec="seconds").replace("+00:00", "Z")
+        return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
+    return datetime.now(tz=timezone.utc)
+
+
+def resolve_build_time() -> str:
+    """The moment the distribution is built, as an RFC 3339 UTC timestamp.
+
+    See {func}`build_moment` for where the instant comes from.
+    """
+    return build_moment().isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def resolve_build_os() -> str:
@@ -468,8 +475,8 @@ def archival_field(data: Mapping[str, str], field_id: str) -> str | None:
         described = value("describe-name")
         if described is None:
             return None
-        # "<tag>-<distance>-g<short_hash>"; a bare "<tag>" means distance zero.
-        match = re.search(r"-(\d+)-g[0-9a-f]+$", described)
+        # A bare "<tag>" means distance zero.
+        match = _DESCRIBE_DISTANCE_RE.search(described)
         return match.group(1) if match else "0"
     return None
 
@@ -653,19 +660,12 @@ class VersionScreen:
         Padding here rather than asking for it is what lets a caller hand over
         whatever its renderer produced. Trailing blanks are invisible on a line by
         itself and ragged the moment anything is placed beside it, and a caller
-        cannot repair that afterwards: `str.ljust` counts the escape sequences it
-        cannot see, so on a styled line it silently does nothing.
+        cannot repair that afterwards: {func}`~click_extra.layout.pad_to` is
+        what measures a styled line right and closes the style it left open.
         """
         raw = self.logo.split("\n") if isinstance(self.logo, str) else list(self.logo)
         width = self.width
-        padded = []
-        for line in raw:
-            gap = width - visible_width(line)
-            # Close any style the line left open, so the padding cannot inherit a
-            # background and bleed across the gutter.
-            reset = RESET if gap and "\x1b[" in line else ""
-            padded.append(f"{line}{reset}{' ' * gap}")
-        return tuple(padded)
+        return tuple(pad_to(line, width) for line in raw)
 
     @property
     def width(self) -> int:
@@ -1457,16 +1457,15 @@ class VersionOption(ExtraOption):
         return read_archival(path) if path else {}
 
     def _resolve_uniform_git_field(self, field_id: str) -> str | None:
-        """Resolve a `git_*` field that has a single static `git` command.
+        """Resolve a `git_*` field through the shared precedence.
 
-        Applies the precedence shared by every uniform git field: a pre-baked
-        `__<field_id>__` dunder, then the live value from
+        A pre-baked `__<field_id>__` dunder first, then the live value from
         {data}`GIT_RESOLVERS` (run inside {attr}`git_repo_path`), then the
-        `.git_archival.json` fallback.
+        `.git_archival.json` fallback, which answers `None` for a field it
+        does not carry.
 
-        Only valid for the fields in {data}`GIT_FIELDS`. The computed fields
-        ({attr}`git_tag_sha`, {attr}`git_distance`, {attr}`git_dirty`) diverge
-        in their fallbacks and resolve themselves.
+        Valid for every field in {data}`GIT_RESOLVERS` but {attr}`git_tag_sha`,
+        whose live value derives from a tag that may itself be pre-baked.
         """
         live = None
         if self.git_repo_path:
@@ -1561,14 +1560,7 @@ class VersionOption(ExtraOption):
         `.git_archival.json`. `None` when no tag is reachable or Git is
         unavailable.
         """
-        prebaked = self._get_prebaked("git_distance")
-        if prebaked:
-            return prebaked
-        if self.git_repo_path:
-            distance = resolve_git_distance(self.git_repo_path)
-            if distance is not None:
-                return distance
-        return archival_field(self._archival_data, "git_distance")
+        return self._resolve_uniform_git_field("git_distance")
 
     @cached_property
     def git_dirty(self) -> str | None:
@@ -1579,12 +1571,7 @@ class VersionOption(ExtraOption):
         Git is unavailable. There is no `.git_archival.json` fallback: an
         archive has no work tree, so its state is unknowable.
         """
-        prebaked = self._get_prebaked("git_dirty")
-        if prebaked:
-            return prebaked
-        if not self.git_repo_path:
-            return None
-        return resolve_git_dirty(self.git_repo_path)
+        return self._resolve_uniform_git_field("git_dirty")
 
     def _resolve_build_field(self, field_id: str) -> str | None:
         """Resolve a `build_*` field, which only a pre-bake can answer.

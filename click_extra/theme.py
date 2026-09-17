@@ -608,6 +608,14 @@ the same reason.
 """
 
 
+def _theme_choices(ctx: click.Context | None = None) -> tuple[str, ...]:
+    """The values `--theme` takes in `ctx`, alphabetically sorted.
+
+    The theme names {func}`get_theme_registry` sees, plus {data}`AUTO_THEME`.
+    """
+    return tuple(sorted({AUTO_THEME, *get_theme_registry(ctx)}))
+
+
 def resolve_auto_theme(
     ctx: click.Context | None = None,
     query_background: bool = False,
@@ -730,11 +738,7 @@ class ThemeChoice(click.ParamType):
         a value a CLI accepts everywhere and advertises nowhere is a value
         nobody finds, and `--color` lists its own `auto` alongside the rest.
         """
-        try:
-            ctx = click.get_current_context(silent=True)
-        except RuntimeError:
-            ctx = None
-        return tuple(sorted({AUTO_THEME, *get_theme_registry(ctx)}))
+        return _theme_choices(click.get_current_context(silent=True))
 
     def _normalize(self, value: str) -> str:
         return value if self.case_sensitive else value.casefold()
@@ -802,7 +806,7 @@ class ThemeChoice(click.ParamType):
         prefix = self._normalize(incomplete)
         return [
             CompletionItem(name)
-            for name in sorted({AUTO_THEME, *get_theme_registry(ctx)})
+            for name in _theme_choices(ctx)
             if self._normalize(name).startswith(prefix)
         ]
 
