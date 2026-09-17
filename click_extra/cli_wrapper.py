@@ -49,8 +49,8 @@ from .carapace import (
     write_carapace_spec,
 )
 from .command_doc import (
-    HELP_FORMATS,
     INSTALLABLE_FORMATS,
+    HelpFormat,
     install_manpages,
     read_manpage,
     render_help,
@@ -74,6 +74,7 @@ from .theme import (
     set_default_theme,
 )
 from .tree import render_command_tree
+from .types import EnumChoice
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -788,11 +789,11 @@ def _wrap_help_format(
     ctx: click.Context,
     script: str,
     nav: tuple[str, ...],
-    help_format: str,
+    help_format: HelpFormat,
     output_dir: Path | None,
     install: bool,
 ) -> None:
-    """Resolve a foreign target and render it in one of the {data}`HELP_FORMATS`.
+    """Resolve a foreign target and render it in one of the {class}`HelpFormat` formats.
 
     The target needs no cooperation for this: it is loaded, walked and described
     from the outside, exactly like `--params` and `--man` already do. A CLI whose
@@ -807,7 +808,7 @@ def _wrap_help_format(
     """
     cmd, _ = resolve_target_command(script, nav)
 
-    if help_format == "carapace":
+    if help_format is HelpFormat.CARAPACE:
         # A spec is keyed on the binary a shell completes, not on the path typed
         # to reach it (see render_help). The reconstructed wrap command goes in
         # the header, rebuilt from the context rather than sys.argv so it is also
@@ -842,7 +843,7 @@ def _wrap_help_format(
             )
         return
 
-    if help_format == "man" and (output_dir or install):
+    if help_format is HelpFormat.MAN and (output_dir or install):
         if nav:
             raise click.ClickException(
                 "Writing man pages always emits the full tree rooted at SCRIPT "
@@ -999,7 +1000,7 @@ Examples:
 )
 @option(
     "--help-format",
-    type=click.Choice(sorted(HELP_FORMATS)),
+    type=EnumChoice(HelpFormat),
     default=None,
     help="Render the target CLI in the given format and exit, without running it.",
 )
@@ -1043,7 +1044,7 @@ def wrap(
     params: bool,
     man: bool,
     tree: bool,
-    help_format: str | None,
+    help_format: HelpFormat | None,
     output_dir: Path | None,
     install: bool,
     table_format: TableFormat,

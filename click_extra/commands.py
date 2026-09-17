@@ -333,7 +333,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
     {func}`~click_extra.command_doc.normalize_examples`. Declared here so the
     attribute exists on every command, whether or not its author passed any:
     the renderers reading it (help screen, man page, and every
-    {data}`~click_extra.command_doc.HELP_FORMATS` backend) then need no guard.
+    {class}`~click_extra.command_doc.HelpFormat` backend) then need no guard.
     """
 
     def __init__(
@@ -668,7 +668,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         ```{important}
         This is the one place the section order is decided. The help screen
         ({meth}`format_params`), the man page and every other
-        {data}`~click_extra.command_doc.HELP_FORMATS` backend
+        {class}`~click_extra.command_doc.HelpFormat` backend
         ({func}`~click_extra.command_doc._build_option_groups`), and the
         completion specs ({func}`~click_extra.parameters.iter_params_for_display`)
         all read it, so a CLI never lists its options in one order on `--help`
@@ -699,7 +699,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
 
         Resolution goes through {func}`~click_extra.parameters.resolve_param_help`,
         the same helper the man page and every other
-        {data}`~click_extra.command_doc.HELP_FORMATS` backend reads, so an operand
+        {class}`~click_extra.command_doc.HelpFormat` backend reads, so an operand
         carries one description whatever renders it.
         """
         return arg.make_metavar(ctx=ctx), resolve_param_help(arg, ctx) or ""

@@ -37,6 +37,7 @@ from click_extra.command_doc import (
     HELP_FORMATS,
     MAN_FORMATTERS,
     OVERSTRIKE_RE,
+    HelpFormat,
     render_help,
     render_manpage,
     render_manpages,
@@ -497,6 +498,21 @@ def test_render_help_rejects_unknown_format():
     assert "yaml" in str(raised.value)
     for known in HELP_FORMATS:
         assert known in str(raised.value)
+
+
+def test_help_formats_describe_every_format():
+    """Every `HelpFormat` has a description, and members run alphabetically."""
+    assert list(HELP_FORMATS) == list(HelpFormat)
+    assert all(HELP_FORMATS.values())
+    assert list(HelpFormat) == sorted(HelpFormat)
+
+
+@pytest.mark.parametrize("help_format", (HelpFormat.JSON, "json"))
+def test_render_help_takes_a_member_or_its_value(help_format):
+    """A `HelpFormat` member and its string value render the same document."""
+    rendered = render_help(weather, help_format, prog_name="weather")
+    assert rendered == render_help(weather, HelpFormat.JSON, prog_name="weather")
+    assert json.loads(rendered)
 
 
 def test_json_carries_every_section():
