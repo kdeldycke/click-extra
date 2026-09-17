@@ -10,6 +10,8 @@
 - **Deprecated:** Rename the `merge_streams` argument of `run_cli` to `merge_stderr`, and `allow_query` of `resolve_background` to `query_background`, matching `capture_output` and `ThemeOption`; the old names resolve until `10.0.0`.
 - **Deprecated:** Drop the `unique` argument of `search_params`, whose `False` returned every match as a list: filter the parameters directly instead. It resolves until `10.0.0`.
 - **Deprecated:** Replace `color="forced"` in `CliRunner.invoke` with a `force_color=True` argument; `"forced"` resolves until `10.0.0`.
+- **Deprecated:** Replace the `(label, column_id)` tuple with a `ColumnSpec` in table headers, `SortByOption` and `column_sort_key`; the tuple resolves until `10.0.0`.
+- Add `sortable` to `ColumnSpec`, keeping a column in the table layout without offering it to `--sort-by`.
 - Show a `Spinner`'s elapsed time under `--time` by default, as `OperationTrail` and `progressbar` do.
 - Type the result of `search_params` and `last_param` as the parameter class they look for, so a match needs no `isinstance` check.
 - Set `Context.color` too from the `force_color` class attribute of `CliRunner`, as the new `force_color` argument does, unless a call passes `color=False`.

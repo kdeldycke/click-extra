@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from typing import Concatenate, Final
 
-    from .table import ColumnSpec, TableFormat
+    from .table import TableFormat, THeader
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -162,8 +162,7 @@ class Context(cloup.Context):
     def render_table(
         self,
         table_data: Sequence[Sequence[str | None]],
-        headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None]
-        | None = None,
+        headers: Sequence[THeader] | None = None,
         table_format: TableFormat | None = None,
         sort_key: Callable[[Sequence[str | None]], Any] | None = None,
         **kwargs: Any,
@@ -197,8 +196,7 @@ class Context(cloup.Context):
     def print_table(
         self,
         table_data: Sequence[Sequence[str | None]],
-        headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None]
-        | None = None,
+        headers: Sequence[THeader] | None = None,
         table_format: TableFormat | None = None,
         sort_key: Callable[[Sequence[str | None]], Any] | None = None,
         **kwargs: Any,

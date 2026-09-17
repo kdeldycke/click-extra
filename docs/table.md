@@ -654,7 +654,7 @@ print(output, end="")
 
 ## Sorted tables
 
-The `@sort_by_option` decorator adds a `--sort-by` CLI option whose choices are derived from column definitions. Column definitions are `(label, column_id)` tuples or `ColumnSpec` instances. Columns with `column_id=None` are displayed but not offered as sort choices.
+The `@sort_by_option` decorator adds a `--sort-by` CLI option whose choices are derived from column definitions. Column definitions are `ColumnSpec` instances. A column marked `sortable=False` is displayed but not offered as a sort choice.
 
 The option can be repeated to define a multi-column sort priority: `--sort-by name --sort-by age` sorts by name first, then breaks ties by age.
 
@@ -662,12 +662,13 @@ When active, `SortByOption` publishes the derived sort key on the context, where
 
 ```{click:source}
 from click_extra import command, pass_context, sort_by_option
+from click_extra.table import ColumnSpec
 
 @command
 @sort_by_option(
-    ("Fruit", "fruit"),
-    ("Count", "count"),
-    ("Notes", None),
+    ColumnSpec("fruit", "Fruit"),
+    ColumnSpec("count", "Count"),
+    ColumnSpec("notes", "Notes", sortable=False),
 )
 @pass_context
 def inventory(ctx):
@@ -746,11 +747,11 @@ assert result.stdout.index("Apple") < result.stdout.index("Cherry")
 
 A CLI whose subcommands render different tables can still share a single `--sort-by`, declared once on the group. Pass bare column IDs instead of column definitions: they declare a **field vocabulary** untied to any single table layout, so no sort key is published at declaration time.
 
-Each table then declares which field its columns carry, by passing `(label, column_id)` pairs (or `ColumnSpec` instances) as `print_table()` headers. The selection is resolved per table: rows sort by the selected fields the table carries (in selection order, remaining columns breaking ties left to right), and keep their original order when the table carries none of them.
+Each table then declares which field its columns carry, by passing `ColumnSpec` instances as `print_table()` headers, and plain labels for the columns carrying no field. The selection is resolved per table: rows sort by the selected fields the table carries (in selection order, remaining columns breaking ties left to right), and keep their original order when the table carries none of them.
 
 ```{click:source}
 from click_extra import group, sort_by_option
-from click_extra.table import TableFormat, print_table
+from click_extra.table import ColumnSpec, TableFormat, print_table
 
 @group
 @sort_by_option("fruit", "price", default=())
@@ -762,7 +763,7 @@ def fruits():
     """Table carrying the `fruit` field."""
     print_table(
         [["Cherry", "50"], ["Apple", "120"], ["Banana", "80"]],
-        [("Fruit", "fruit"), ("Count", None)],
+        [ColumnSpec("fruit", "Fruit"), "Count"],
         table_format=TableFormat.ROUNDED_OUTLINE,
     )
 
@@ -771,7 +772,7 @@ def cities():
     """Table carrying none of the vocabulary fields."""
     print_table(
         [["Paris", "2M"], ["London", "9M"]],
-        [("City", "city"), ("Population", None)],
+        [ColumnSpec("city", "City"), "Population"],
         table_format=TableFormat.ROUNDED_OUTLINE,
     )
 ```

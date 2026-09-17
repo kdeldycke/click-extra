@@ -21,18 +21,22 @@ original location for one deprecation cycle. Accessing one emits a
 [PEP 562](https://peps.python.org/pep-0562/) module `__getattr__` hooks wired
 into `click_extra/color.py`, `click_extra/parameters.py` and
 `click_extra/theme.py`. A renamed argument keeps its old name for the same
-cycle, and passing it warns through {func}`warn_deprecated_argument`.
+cycle, and passing it warns through {func}`warn_deprecated_argument`, as a
+retired value or shape of a value does through {func}`warn_deprecated_usage`.
 
 ```{todo}
 Cut all of it in the release recorded in {data}`REMOVAL_VERSION`: delete this
 module, every `__getattr__` hook that calls {func}`resolve_deprecated`, every
-argument handled by a call to {func}`warn_deprecated_argument`, and their tests,
+form handled by a call to {func}`warn_deprecated_argument` or
+{func}`warn_deprecated_usage`, and their tests,
 exactly as the `9.0.0` release did with the previous batch.
 ```
 """
 
 from __future__ import annotations
 
+import os
+import sys
 import warnings
 from importlib import import_module
 
@@ -42,6 +46,9 @@ if TYPE_CHECKING:
 
 REMOVAL_VERSION = "10.0.0"
 """The release in which the registered aliases stop resolving."""
+
+_PACKAGE_DIR = os.path.join(os.path.dirname(__file__), "")
+"""This package's directory, trailing separator included, to tell its frames apart."""
 
 DEPRECATED_ALIASES: dict[str, dict[str, str]] = {
     "click_extra.color": {
@@ -82,26 +89,56 @@ def deprecation_message(subject: str, replacement: str) -> str:
     )
 
 
-def warn_deprecated_argument(
-    function: str, argument: str, replacement: str, *, stacklevel: int = 3
-) -> None:
+def _outside_stacklevel() -> int:
+    """The `stacklevel` of the first frame outside this package, for its caller.
+
+    Counted from the function calling this one, which is where
+    {func}`warnings.warn` starts counting. A deprecated form can be caught
+    several frames deep (a header deep in a table render, an argument
+    forwarded by a subclass), and a fixed level would then blame this
+    package instead of the code to change.
+    """
+    frame = sys._getframe(1)
+    level = 1
+    while frame.f_back is not None and frame.f_code.co_filename.startswith(
+        _PACKAGE_DIR
+    ):
+        frame = frame.f_back
+        level += 1
+    return level
+
+
+def warn_deprecated_usage(subject: str, replacement: str) -> None:
+    """Warn that `subject` is deprecated, at the first call site outside this package.
+
+    The counterpart of the module aliases for everything else a caller passes:
+    a renamed argument, a retired value, an old shape of a value. The wording
+    and the announced removal release stay in one place.
+
+    :param subject: what is deprecated, like `A (label, column_id) header`.
+    :param replacement: what to use instead.
+    """
+    warnings.warn(
+        deprecation_message(subject, replacement),
+        DeprecationWarning,
+        stacklevel=_outside_stacklevel(),
+    )
+
+
+def warn_deprecated_argument(function: str, argument: str, replacement: str) -> None:
     """Warn that `argument` of `function` is deprecated, at the caller's call site.
 
-    The keyword counterpart of the module aliases: a renamed argument keeps its
-    old name for one deprecation cycle, and passing it warns through here, so
-    the wording and the announced removal release stay in one place.
+    A renamed argument keeps its old name for one deprecation cycle, and passing
+    it warns through here.
 
     :param function: name of the callable taking the argument, like `Spinner`.
     :param argument: the deprecated argument name.
     :param replacement: what to pass instead, like `live=`.
-    :param stacklevel: frames between this helper and the call site to blame.
-        The default fits a direct call from the function taking the argument:
-        this helper, that function, then its caller.
     """
     warnings.warn(
         deprecation_message(f"{function}({argument}=...)", replacement),
         DeprecationWarning,
-        stacklevel=stacklevel,
+        stacklevel=_outside_stacklevel(),
     )
 
 

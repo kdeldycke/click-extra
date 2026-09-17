@@ -34,6 +34,7 @@ from click import echo
 from wcwidth import wcswidth, wcwidth as char_width
 
 from . import context
+from ._deprecated import warn_deprecated_usage
 from ._utils import missing_extra_message
 from .config.formats import ConfigFormat, serialize_content
 from .layout import cell_width, wrap_ansi
@@ -49,13 +50,26 @@ from .types import EnumChoice, MultiChoice
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping, Sequence
-    from typing import Any, Final, Literal
+    from typing import Any, Final, Literal, TypeAlias
 
     ColumnWidth = int | Literal["auto"] | None
     """Width limit of a single column: a character count, `auto`, or no limit."""
 
     MaxColumnWidths = Sequence[ColumnWidth] | ColumnWidth
     """Width limits of a table: one entry per column, or a scalar for all of them."""
+
+    THeader: TypeAlias = "str | ColumnSpec | tuple[str, str | None] | None"
+    """One entry of a table's `headers`: a plain label, or a {class}`ColumnSpec`.
+
+    The `(label, column_id)` tuple is deprecated.
+    """
+
+    TColumnDef: TypeAlias = "ColumnSpec | str | tuple[str, str | None]"
+    """One column definition of {class}`SortByOption` or {func}`column_sort_key`.
+
+    A {class}`ColumnSpec`, or a bare column ID. The `(label, column_id)` tuple
+    is deprecated.
+    """
 
 
 @cache
@@ -848,7 +862,7 @@ def _available_width() -> int:
 
 
 def _declared_max_widths(
-    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None,
+    headers: Sequence[THeader] | None,
 ) -> list[ColumnWidth] | None:
     """Per-column width declared by the {class}`ColumnSpec` entries of `headers`.
 
@@ -947,7 +961,7 @@ def _resolve_auto_widths(
 
 def _resolve_column_widths(
     table_data: Sequence[Sequence[str | None]],
-    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None,
+    headers: Sequence[THeader] | None,
     labels: Sequence[str | None] | None,
     table_format: TableFormat | None,
     max_column_widths: MaxColumnWidths,
@@ -1028,27 +1042,32 @@ def _select_table_funcs(
 
 
 def _split_header_defs(
-    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None,
+    headers: Sequence[THeader] | None,
 ) -> tuple[
     Sequence[str | None] | None,
     tuple[tuple[str | None, str | None], ...] | None,
 ]:
     """Split header definitions into render labels and sortable column defs.
 
-    `headers` entries may be plain strings (a label carrying no column ID),
-    {class}`ColumnSpec` instances or `(label, column_id)` pairs. Returns the
-    labels to render and the `(label, column_id)` definitions, the latter
-    `None` when no entry carries a column ID (nothing to sort on).
+    `headers` entries may be plain strings (a label carrying no column ID) or
+    {class}`ColumnSpec` instances. Returns the labels to render and the
+    `(label, column_id)` definitions, the latter `None` when no entry carries a
+    sortable column ID (nothing to sort on).
     """
     if headers is None:
         return None, None
+    if any(isinstance(header, (tuple, list)) for header in headers):
+        warn_deprecated_usage(
+            "A (label, column_id) table header",
+            "ColumnSpec(column_id, label), or the bare label for no column ID",
+        )
     labels: list[str | None] = []
     defs: list[tuple[str | None, str | None]] = []
     for header in headers:
         label: str | None
         col_id: str | None
         if isinstance(header, ColumnSpec):
-            label, col_id = header.label, header.id
+            label, col_id = header.label, header.id if header.sortable else None
         elif isinstance(header, (tuple, list)):
             label, col_id = header
         else:
@@ -1077,12 +1096,12 @@ def _context_sort_key(
     sort_columns = context.get(ctx, context.SORT_BY)
     if not sort_columns:
         return None
-    return column_sort_key(header_defs, sort_columns)
+    return _defs_sort_key(header_defs, sort_columns)
 
 
 def _resolve_table_inputs(
     table_data: Sequence[Sequence[str | None]],
-    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None,
+    headers: Sequence[THeader] | None,
     sort_key: Callable[[Sequence[str | None]], Any] | None,
 ) -> tuple[Sequence[Sequence[str | None]], Sequence[str | None] | None]:
     """Split header definitions and apply the resolved row sort.
@@ -1102,7 +1121,7 @@ def _resolve_table_inputs(
 
 def render_table(
     table_data: Sequence[Sequence[str | None]],
-    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None = None,
+    headers: Sequence[THeader] | None = None,
     table_format: TableFormat | None = None,
     sort_key: Callable[[Sequence[str | None]], Any] | None = None,
     max_column_widths: MaxColumnWidths = None,
@@ -1110,9 +1129,8 @@ def render_table(
 ) -> str:
     """Render a table and return it as a string.
 
-    `headers` entries carrying a column ID ({class}`ColumnSpec` instances or
-    `(label, column_id)` pairs) plug the table into the active `--sort-by`
-    selection: when no explicit `sort_key` is given, rows sort by the
+    `headers` entries carrying a column ID ({class}`ColumnSpec` instances) plug
+    the table into the active `--sort-by` selection: when no explicit `sort_key` is given, rows sort by the
     selected columns this table carries, and keep their original order when it
     carries none. See {func}`column_sort_key` for the exact semantics.
 
@@ -1182,7 +1200,7 @@ def _color_forced() -> bool:
 
 def print_table(
     table_data: Sequence[Sequence[str | None]],
-    headers: Sequence[str | ColumnSpec | tuple[str, str | None] | None] | None = None,
+    headers: Sequence[THeader] | None = None,
     table_format: TableFormat | None = None,
     sort_key: Callable[[Sequence[str | None]], Any] | None = None,
     max_column_widths: MaxColumnWidths = None,
@@ -1190,9 +1208,8 @@ def print_table(
 ) -> None:
     """Render a table and print it to the console.
 
-    `headers` entries carrying a column ID ({class}`ColumnSpec` instances or
-    `(label, column_id)` pairs) plug the table into the active `--sort-by`
-    selection: when no explicit `sort_key` is given, rows sort by the
+    `headers` entries carrying a column ID ({class}`ColumnSpec` instances) plug
+    the table into the active `--sort-by` selection: when no explicit `sort_key` is given, rows sort by the
     selected columns this table carries, and keep their original order when it
     carries none. See {func}`column_sort_key` for the exact semantics.
 
@@ -1500,18 +1517,17 @@ def _row_sort_key(
 
 
 def column_sort_key(
-    header_defs: Sequence[ColumnSpec | tuple[str | None, str | None]],
+    header_defs: Sequence[TColumnDef],
     sort_columns: Sequence[str] | None = None,
     cell_key: Callable[[str | None], Any] | None = None,
 ) -> Callable[[Sequence[str | None]], tuple] | None:
     """Build a row sort key from the `sort_columns` a table actually carries.
 
     `header_defs` describes the rendered columns: {class}`ColumnSpec`
-    instances or `(label, column_id)` tuples, with `column_id=None` for
-    columns that cannot be sorted on. The requested `sort_columns` the table
-    carries drive the comparison first, de-duplicated and in request order;
-    the remaining columns follow in their natural left-to-right order for
-    tie-breaking.
+    instances, with `sortable=False` for columns that cannot be sorted on. The
+    requested `sort_columns` the table carries drive the comparison first,
+    de-duplicated and in request order; the remaining columns follow in their
+    natural left-to-right order for tie-breaking.
 
     Returns `None` when the table carries none of the requested columns,
     signalling that rows should keep their original order. This is what lets
@@ -1519,7 +1535,17 @@ def column_sort_key(
     heterogeneous tables: each table sorts by the requested fields it knows,
     and a table knowing none of them is left untouched.
     """
-    defs = tuple(_normalize_column_def(c) for c in header_defs)
+    return _defs_sort_key(
+        tuple(_normalize_column_def(c) for c in header_defs), sort_columns, cell_key
+    )
+
+
+def _defs_sort_key(
+    defs: Sequence[tuple[str | None, str | None]],
+    sort_columns: Sequence[str] | None = None,
+    cell_key: Callable[[str | None], Any] | None = None,
+) -> Callable[[Sequence[str | None]], tuple] | None:
+    """{func}`column_sort_key` over definitions already normalized to pairs."""
     col_index = {col_id: i for i, (_, col_id) in enumerate(defs) if col_id}
     primaries = [
         col_index[col_id]
@@ -1536,7 +1562,7 @@ def column_sort_key(
 
 
 def _column_sort_key(
-    header_defs: Sequence[tuple[str, str | None]],
+    header_defs: Sequence[tuple[str | None, str | None]],
     sort_columns: Sequence[str] | None = None,
     cell_key: Callable[[str | None], Any] | None = None,
 ) -> Callable[[Sequence[str | None]], tuple]:
@@ -1548,7 +1574,7 @@ def _column_sort_key(
     the context (`click_extra.context.TABLE_SORT_KEY`) when its column
     definitions are known at declaration time.
     """
-    key = column_sort_key(header_defs, sort_columns, cell_key)
+    key = _defs_sort_key(header_defs, sort_columns, cell_key)
     if key is None:
         key = _row_sort_key(range(len(header_defs)), cell_key)
     return key
@@ -1568,7 +1594,8 @@ class ColumnSpec:
     - `description`: a MyST/Markdown blurb describing what the column represents.
       Used to auto-generate the column reference in the documentation.
 
-    A fourth, `max_width`, is purely optional presentation.
+    The other fields tune presentation and sorting: `max_width`, `optional` and
+    `sortable`.
 
     ```{note}
     Frozen + slots: instances are immutable and lightweight. Tuples of
@@ -1609,6 +1636,13 @@ class ColumnSpec:
     ask for it. Marking it optional keeps it out of the unprojected table while
     leaving it addressable by ID, so a consumer that wants it (a structured-format
     export feeding a machine, typically) selects it explicitly."""
+
+    sortable: bool = True
+    """Whether `--sort-by` offers this column and a sort selection matches it.
+
+    A column that only annotates its row (free-form notes, a path) still needs a
+    place in the table layout, so a sort key knows where the sortable columns
+    sit, without becoming a sort choice itself."""
 
 
 def render_columns_markdown_table(columns: Iterable[ColumnSpec]) -> str:
@@ -1772,19 +1806,24 @@ class ColumnsOption(ExtraOption):
         context.set(ctx, context.COLUMNS, tuple(columns) if columns else ())
 
 
-def _normalize_column_def(column: ColumnSpec | tuple[str | None, str | None] | str):
+def _normalize_column_def(column: TColumnDef) -> tuple[str | None, str | None]:
     """Coerce a column definition to a `(label, column_id)` tuple.
 
     Accepts a {class}`ColumnSpec` (so a registry can be shared with
-    `--columns`), a raw `(label, column_id)` tuple, or a bare column ID
-    string, which declares a sortable field untied to any table layout (its
-    label is `None`).
+    `--columns`), whose column ID is dropped when it is not `sortable`, or a
+    bare column ID string, which declares a sortable field untied to any table
+    layout (its label is `None`). A `(label, column_id)` tuple is deprecated.
     """
     if isinstance(column, ColumnSpec):
-        return (column.label, column.id)
+        return (column.label, column.id if column.sortable else None)
     if isinstance(column, str):
         return (None, column)
-    return tuple(column)
+    warn_deprecated_usage(
+        "A (label, column_id) column definition",
+        "ColumnSpec(column_id, label), with sortable=False for no column ID",
+    )
+    label, column_id = column
+    return (label, column_id)
 
 
 class SortByOption(ExtraOption):
@@ -1798,9 +1837,9 @@ class SortByOption(ExtraOption):
     `multiple=True`, so users can repeat `--sort-by` to define a
     multi-column sort priority.
 
-    Column definitions may be `ColumnSpec` instances or raw
-    `(label, column_id)` tuples, passed positionally or via the `columns=`
-    keyword. Passing a `ColumnSpec` registry via `columns=` lets the same
+    Column definitions are `ColumnSpec` instances, passed positionally or via
+    the `columns=` keyword. A column marked `sortable=False` keeps its place in
+    the layout without being offered as a choice. Passing a `ColumnSpec` registry via `columns=` lets the same
     tuple drive both `ColumnsOption` (`--columns`) and `--sort-by`, so
     the two options stay in sync from a single source of truth.
 
@@ -1841,20 +1880,23 @@ class SortByOption(ExtraOption):
 
     @my_cli.command
     def installed():
-        print_table(rows, [("Package ID", "package_id"), ("Manager", "manager_id")])
+        print_table(
+            rows,
+            [ColumnSpec("package_id", "Package ID"), ColumnSpec("manager_id", "Manager")],
+        )
 
 
     @my_cli.command
     def managers():
-        print_table(rows, [("Manager", "manager_id"), ("Path", None)])
+        print_table(rows, [ColumnSpec("manager_id", "Manager"), "Path"])
     ```
     """
 
     def __init__(
         self,
-        *header_defs: ColumnSpec | tuple[str, str | None] | str,
+        *header_defs: TColumnDef,
         param_decls: Sequence[str] | None = None,
-        columns: Sequence[ColumnSpec | tuple[str, str | None] | str] | None = None,
+        columns: Sequence[TColumnDef] | None = None,
         default: str | Sequence[str] | None = None,
         expose_value: bool = False,
         cell_key: Callable[[str | None], Any] | None = None,
@@ -1865,9 +1907,8 @@ class SortByOption(ExtraOption):
             param_decls = ("--sort-by",)
 
         # Accept a shared `columns=` registry (the same `ColumnSpec` tuple
-        # passed to `--columns`) or positional definitions. Each entry may be a
-        # `ColumnSpec`, a raw `(label, column_id)` tuple, or a bare column ID
-        # string.
+        # passed to `--columns`) or positional definitions. Each entry is a
+        # `ColumnSpec` or a bare column ID string.
         if columns is not None and header_defs:
             msg = "Pass column definitions positionally or via columns=, not both."
             raise TypeError(msg)
