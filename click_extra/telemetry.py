@@ -29,6 +29,7 @@ from .parameters import ExtraOption
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from typing import Any
 
     import click
 
@@ -90,12 +91,13 @@ class TelemetryOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        default=False,
-        expose_value=False,
-        envvar=None,
-        show_envvar=True,
-        help=_("Collect telemetry and usage data."),
-        **kwargs,
+        *,
+        default: bool = False,
+        expose_value: bool = False,
+        envvar: str | Sequence[str] | None = None,
+        show_envvar: bool = True,
+        help: str = _("Collect telemetry and usage data."),
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--telemetry/--no-telemetry",)

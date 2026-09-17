@@ -1644,15 +1644,16 @@ class ProgressOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        is_flag=True,
-        default=True,
-        is_eager=True,
-        expose_value=False,
-        help=_(
+        *,
+        is_flag: bool = True,
+        default: bool = True,
+        is_eager: bool = True,
+        expose_value: bool = False,
+        help: str = _(
             "Show progress indicators during long operations. Disabled for "
             "non-interactive output (pipes, dumb terminals, CI) and by --accessible."
         ),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--progress/--no-progress",)

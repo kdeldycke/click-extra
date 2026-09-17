@@ -54,7 +54,7 @@ from .table import TableFormat
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
-    from typing import Final
+    from typing import Any, Final
 
 
 ACCESSIBLE_ENVVAR: Final[str] = "ACCESSIBLE"
@@ -151,17 +151,16 @@ class AccessibleOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        is_flag=True,
-        default=False,
-        is_eager=True,
-        expose_value=False,
-        # "plain" is a --table-format choice value, so naming it here would have
-        # cross-reference highlighting paint it as one, mid-sentence.
-        help=_(
+        *,
+        is_flag: bool = True,
+        default: bool = False,
+        is_eager: bool = True,
+        expose_value: bool = False,
+        help: str = _(
             "Accessibility mode: disable colors and render tables in a "
             "borderless, screen-reader-friendly format."
         ),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--accessible",)

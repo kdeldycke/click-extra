@@ -212,9 +212,10 @@ class ConfigOption(ExtraOption, ParamStructure):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        metavar="LOCATION",
-        type=UNPROCESSED,
-        help=_(
+        *,
+        metavar: str = "LOCATION",
+        type: click.ParamType | Any = UNPROCESSED,
+        help: str = _(
             "Location of the configuration file. Supports local path with glob patterns "
             "or remote URL.",
         ),
@@ -228,15 +229,13 @@ class ConfigOption(ExtraOption, ParamStructure):
         show_file_patterns: bool | None = None,
         roaming: bool = True,
         force_posix: bool = False,
-        search_pattern_flags: int = (
-            glob.GLOBSTAR
-            | glob.FOLLOW
-            | glob.DOTGLOB
-            | glob.BRACE
-            | glob.SPLIT
-            | glob.GLOBTILDE
-            | glob.NODIR
-        ),
+        search_pattern_flags: int = glob.GLOBSTAR
+        | glob.FOLLOW
+        | glob.DOTGLOB
+        | glob.BRACE
+        | glob.SPLIT
+        | glob.GLOBTILDE
+        | glob.NODIR,
         search_parents: bool = False,
         stop_at: Path | str | Literal[Sentinel.VCS] | None = Sentinel.VCS,
         cascade: bool = False,
@@ -247,7 +246,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         schema_strict: bool = False,
         fallback_sections: Sequence[str] = (),
         config_validators: Sequence[ConfigValidator] = (),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Takes as input a path to a file or folder, a glob pattern, or an URL.
 
@@ -2040,15 +2039,16 @@ class NoConfigOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        help=_(
+        *,
+        help: str = _(
             "Ignore all configuration files and only use command line parameters and "
             "environment variables.",
         ),
-        is_flag=True,
-        flag_value=NO_CONFIG,
-        is_eager=True,
-        expose_value=False,
-        **kwargs,
+        is_flag: bool = True,
+        flag_value: Any = NO_CONFIG,
+        is_eager: bool = True,
+        expose_value: bool = False,
+        **kwargs: Any,
     ) -> None:
         """`flag_value=NO_CONFIG` is the `Sentinel` enum member that
         signals "skip configuration loading" to {class}`ConfigOption`. Click
@@ -2102,6 +2102,7 @@ class ValidateConfigOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        *,
         type: click.ParamType | Any = UNPROCESSED,
         metavar: str = "LOCATION",
         is_eager: bool = True,
@@ -2378,6 +2379,7 @@ class ExportConfigOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        *,
         type: click.ParamType | Any = None,
         metavar: str = "FORMAT",
         is_eager: bool = True,

@@ -664,10 +664,11 @@ class _VerbosityOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        *,
         default_logger: Logger | str = logging.root.name,
-        expose_value=False,
-        is_eager=True,
-        **kwargs,
+        expose_value: bool = False,
+        is_eager: bool = True,
+        **kwargs: Any,
     ) -> None:
         """Set up a verbosity-altering option.
 
@@ -717,12 +718,15 @@ class VerbosityOption(_VerbosityOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        *,
         default_logger: Logger | str = logging.root.name,
         default: LogLevel = DEFAULT_LEVEL,
-        metavar="LEVEL",
-        type=EnumChoice(LogLevel),
-        help=_("Either {log_levels}.").format(log_levels=", ".join(map(str, LogLevel))),
-        **kwargs,
+        metavar: str = "LEVEL",
+        type: click.ParamType | Any = EnumChoice(LogLevel),
+        help: str = _("Either {log_levels}.").format(
+            log_levels=", ".join(map(str, LogLevel))
+        ),
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--verbosity",)
@@ -769,11 +773,14 @@ class DebugOption(_VerbosityOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        *,
         default_logger: Logger | str = logging.root.name,
-        is_flag=True,
-        default=False,
-        help=_("Shorthand for --verbosity {level}.").format(level=LogLevel.DEBUG),
-        **kwargs,
+        is_flag: bool = True,
+        default: bool = False,
+        help: str = _("Shorthand for --verbosity {level}.").format(
+            level=LogLevel.DEBUG
+        ),
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--debug",)
@@ -822,8 +829,9 @@ class _CounterOption(_VerbosityOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        *,
         count: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         # Force type and default to have them aligned with the counting option's
         # original behavior:
@@ -866,7 +874,7 @@ class VerboseOption(_CounterOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--verbose", "-v")
@@ -898,7 +906,7 @@ class QuietOption(_CounterOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--quiet", "-q")

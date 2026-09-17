@@ -61,7 +61,8 @@ from .theme import get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Iterator, Sequence
+    from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -321,12 +322,13 @@ class TreeOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls: tuple[str, ...] | None = None,
+        param_decls: Sequence[str] | None = None,
+        *,
         is_flag: bool = True,
         expose_value: bool = False,
         is_eager: bool = True,
         help: str = _("Show the tree of nested subcommands and exit."),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--tree",)

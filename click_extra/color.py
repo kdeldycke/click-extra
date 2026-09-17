@@ -765,13 +765,16 @@ class ColorOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        is_flag=False,
-        flag_value="always",
-        default="auto",
-        is_eager=True,
-        expose_value=False,
-        help=_("Colorize the output. A bare --color is the same as --color=always."),
-        **kwargs,
+        *,
+        is_flag: bool = False,
+        flag_value: str = "always",
+        default: str = "auto",
+        is_eager: bool = True,
+        expose_value: bool = False,
+        help: str = _(
+            "Colorize the output. A bare --color is the same as --color=always."
+        ),
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--color",)
@@ -830,12 +833,13 @@ class NoColorOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        is_flag=True,
-        default=False,
-        is_eager=True,
-        expose_value=False,
-        help=_("Disable colorization (alias of --color=never)."),
-        **kwargs,
+        *,
+        is_flag: bool = True,
+        default: bool = False,
+        is_eager: bool = True,
+        expose_value: bool = False,
+        help: str = _("Disable colorization (alias of --color=never)."),
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--no-color",)

@@ -1439,13 +1439,14 @@ class TableFormatOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        type=EnumChoice(TableFormat),
-        metavar="FORMAT",
-        default=DEFAULT_FORMAT,
-        expose_value=False,
-        is_eager=True,
-        help=_("Rendering style of tables."),
-        **kwargs,
+        *,
+        type: click.ParamType | Any = EnumChoice(TableFormat),
+        metavar: str = "FORMAT",
+        default: TableFormat = DEFAULT_FORMAT,
+        expose_value: bool = False,
+        is_eager: bool = True,
+        help: str = _("Rendering style of tables."),
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--table-format",)
@@ -1746,8 +1747,9 @@ class ColumnsOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        *,
         columns: Sequence[ColumnSpec] | None = None,
-        type=None,
+        type: click.ParamType | Any | None = None,
         metavar: str = "COLUMNS",
         default: Sequence[str] | None = (),
         expose_value: bool = False,
@@ -1757,7 +1759,7 @@ class ColumnsOption(ExtraOption):
             "Comma-separated list of column IDs. Default: all columns in "
             "canonical order.",
         ),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--columns",)
@@ -1901,7 +1903,7 @@ class SortByOption(ExtraOption):
         expose_value: bool = False,
         cell_key: Callable[[str | None], Any] | None = None,
         help: str = _("Sort table by this column. Repeat to set priority."),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--sort-by",)

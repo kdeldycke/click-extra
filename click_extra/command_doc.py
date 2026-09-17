@@ -1464,12 +1464,13 @@ class ManOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls: tuple[str, ...] | None = None,
+        param_decls: Sequence[str] | None = None,
+        *,
         is_flag: bool = True,
         expose_value: bool = False,
         is_eager: bool = True,
         help: str = _("Read the command's manual page and exit."),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--man",)
@@ -1520,11 +1521,12 @@ class HelpFormatOption(ExtraOption):
 
     def __init__(
         self,
-        param_decls: tuple[str, ...] | None = None,
+        param_decls: Sequence[str] | None = None,
+        *,
         expose_value: bool = False,
         is_eager: bool = True,
         help: str = _("Render the command in the given format and exit."),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--help-format",)

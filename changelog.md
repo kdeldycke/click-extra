@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - **Breaking:** Print `OperationTrail` lines and its finisher off an interactive terminal too, where no spinner or progress bar draws. Pass `visible=False` to keep a trail silent.
+- **Breaking:** Make every argument of an option class after `param_decls` keyword-only, like `ColorOption(default="never")`: pass them by name.
 - **Deprecated:** Replace the `enabled` argument of `Spinner` with `live` (`"auto"`, `"always"` or `"never"`), and that of `OperationTrail` with `visible` and `live`; `enabled` resolves until `10.0.0`.
 - **Deprecated:** Rename the `merge_streams` argument of `run_cli` to `merge_stderr`, and `allow_query` of `resolve_background` to `query_background`, matching `capture_output` and `ThemeOption`; the old names resolve until `10.0.0`.
 - **Deprecated:** Drop the `unique` argument of `search_params`, whose `False` returned every match as a list: filter the parameters directly instead. It resolves until `10.0.0`.

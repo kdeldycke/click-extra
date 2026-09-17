@@ -2312,3 +2312,55 @@ def test_help_column_is_documented():
     """The auto-generated column reference covers the opt-in column too."""
     md = ShowParamsOption.render_doc_table()
     assert "| `Help` | " in md
+
+
+def _option_classes() -> list[type[click.Option]]:
+    """Every option class click-extra defines with a constructor of its own."""
+
+    def walk(cls: type) -> list[type]:
+        return [c for sub in cls.__subclasses__() for c in (sub, *walk(sub))]
+
+    return sorted(
+        {
+            cls
+            for cls in walk(click.Option)
+            if cls.__module__.startswith("click_extra.") and "__init__" in vars(cls)
+        },
+        key=lambda cls: f"{cls.__module__}.{cls.__qualname__}",
+    )
+
+
+POSITIONAL_DEFINITIONS = frozenset({"SortByOption"})
+"""Option classes taking positional definitions ahead of `param_decls`.
+
+`SortByOption` reads its column definitions positionally, which is why its
+`param_decls` is keyword-only (see `click_extra.decorators.sort_by_option`).
+"""
+
+
+@pytest.mark.parametrize(
+    "option_class", _option_classes(), ids=lambda cls: cls.__qualname__
+)
+def test_option_constructors_share_one_shape(option_class):
+    """`param_decls` first, then annotated keyword-only arguments, then `**kwargs`.
+
+    One shape across every option class: a caller never has to look up the
+    positional order of a passthrough, and an unannotated one cannot slip in.
+    """
+    parameters = list(inspect.signature(option_class.__init__).parameters.values())
+    assert parameters[0].name == "self"
+    named = parameters[1:-1]
+    if option_class.__name__ in POSITIONAL_DEFINITIONS:
+        assert named[0].kind is inspect.Parameter.VAR_POSITIONAL
+        named = named[1:]
+    decls, *rest = named
+    assert decls.name == "param_decls"
+    assert decls.annotation == "Sequence[str] | None"
+    assert decls.default is None
+    if option_class.__name__ not in POSITIONAL_DEFINITIONS:
+        assert decls.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+    for parameter in rest:
+        assert parameter.kind is inspect.Parameter.KEYWORD_ONLY, parameter.name
+        assert parameter.annotation is not inspect.Parameter.empty, parameter.name
+    assert parameters[-1].kind is inspect.Parameter.VAR_KEYWORD
+    assert parameters[-1].annotation == "Any"

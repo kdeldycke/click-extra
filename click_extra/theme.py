@@ -907,12 +907,13 @@ class ThemeOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        *,
         default: str = "dark",
         is_eager: bool = True,
         expose_value: bool = False,
         query_background: bool = False,
         help: str = _("Color theme used for help screens."),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--theme",)

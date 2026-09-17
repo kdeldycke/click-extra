@@ -868,16 +868,17 @@ class VersionOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
+        *,
         message: str | None = None,
         fields: Mapping[str, Any] | None = None,
         styles: Mapping[str, IStyle | None] | None = None,
         message_style: IStyle | None = None,
         screen: VersionScreen | None = None,
-        is_flag=True,
-        expose_value=False,
-        is_eager=True,
-        help=_("Show the version and exit."),
-        **kwargs,
+        is_flag: bool = True,
+        expose_value: bool = False,
+        is_eager: bool = True,
+        help: str = _("Show the version and exit."),
+        **kwargs: Any,
     ) -> None:
         """Preconfigured as a `--version` option flag.
 

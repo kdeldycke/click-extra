@@ -342,16 +342,17 @@ class JobsOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        default="auto",
-        expose_value=False,
-        show_default=True,
-        type=JobCount(),
-        help=_(
+        *,
+        default: int | str = "auto",
+        expose_value: bool = False,
+        show_default: bool | str = True,
+        type: click.ParamType | Any = JobCount(),
+        help: str = _(
             "Number of parallel jobs. Accepts an integer, auto (the host's "
             "logical CPUs minus one) or max (all logical CPUs). --jobs 0 runs "
             "sequentially."
         ),
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--jobs",)
@@ -672,11 +673,12 @@ class TimerOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        default=False,
-        expose_value=False,
-        is_eager=True,
-        help=_("Measure and print elapsed execution time."),
-        **kwargs,
+        *,
+        default: bool = False,
+        expose_value: bool = False,
+        is_eager: bool = True,
+        help: str = _("Measure and print elapsed execution time."),
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("--time/--no-time",)
@@ -731,11 +733,14 @@ class ZeroExitOption(ExtraOption):
     def __init__(
         self,
         param_decls: Sequence[str] | None = None,
-        default=False,
-        expose_value=False,
-        is_flag=True,
-        help=_("Always exit with a status code of 0, even when problems are found."),
-        **kwargs,
+        *,
+        default: bool = False,
+        expose_value: bool = False,
+        is_flag: bool = True,
+        help: str = _(
+            "Always exit with a status code of 0, even when problems are found."
+        ),
+        **kwargs: Any,
     ) -> None:
         if not param_decls:
             param_decls = ("-0", "--zero-exit")
