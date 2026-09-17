@@ -427,14 +427,15 @@ class _ParameterMixin:
             and isinstance(self.type, EnumChoice)
             # Turns out UNSET is also an Enum member, so we need to ignore it.
             and default_value is not UNSET
+            # A `None` default means no default: leave it for Click, which turns
+            # it into `None` or an empty tuple. Stringified, it would read as a
+            # choice called `None` and fail its own validation.
+            and default_value is not None
         ):
             if self.multiple or self.nargs == -1:
-                # A `None` default is not iterable; leave it for Click to turn
-                # into an empty tuple.
-                if default_value is not None:
-                    default_value = tuple(
-                        self.type.get_choice_string(member) for member in default_value
-                    )
+                default_value = tuple(
+                    self.type.get_choice_string(member) for member in default_value
+                )
             else:
                 default_value = self.type.get_choice_string(default_value)
 

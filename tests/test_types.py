@@ -978,6 +978,29 @@ def test_enum_choice_multiple_default_value(
     assert not result.stderr
 
 
+@pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
+@pytest.mark.parametrize(
+    "opt_decorator",
+    option_decorators(no_arguments=True, with_parenthesis=False),
+)
+def test_enum_choice_none_default(invoke, cmd_decorator, opt_decorator) -> None:
+    """A single-value EnumChoice option defaulting to `None` stays unset.
+
+    Regression test for the ``get_default()`` override turning a `None` default
+    into the choice string ``"None"``, which then failed its own validation.
+    """
+
+    @cmd_decorator
+    @opt_decorator("--my-enum", type=EnumChoice(MyEnum), default=None)
+    def cli(my_enum: MyEnum | None) -> None:
+        echo(f"my_enum: {my_enum!r}")
+
+    result = invoke(cli)
+    assert result.exit_code == 0
+    assert result.stdout == "my_enum: None\n"
+    assert not result.stderr
+
+
 @pytest.mark.parametrize(
     "cmd_decorator",
     command_decorators(no_groups=True),

@@ -23,6 +23,7 @@
 - Start a log message spanning several lines below its level prefix, so a block like a command's captured output keeps its columns instead of shifting its first line right.
 - Fix an `OperationTrail` batch that finishes inside its `delay` leaving no trail on screen: its lines now echo plainly, with its finisher if it has one, as a sequential batch's do.
 - Fix `OperationTrail` lines and finisher written above a drawn indicator keeping their color under `--no-color` or `NO_COLOR`, and a `Spinner` on a worker thread missing `--no-color`.
+- Fix an option typed `EnumChoice` with a `None` default failing validation when left out, reading it as a choice named `None`.
 
 ## [`9.2.0` (2026-09-15)](https://github.com/kdeldycke/click-extra/compare/v9.1.0...v9.2.0)
 
