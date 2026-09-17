@@ -712,7 +712,7 @@ from click_extra import MultiChoice
 @command
 @option(
     "--tags",
-    type=MultiChoice(("alpha", "beta", "gamma"), case_sensitive=False),
+    type=MultiChoice(("alpha", "beta", "gamma")),
     default=(),
     help="Comma-separated tags to apply.",
 )
@@ -740,11 +740,11 @@ assert "Unknown value(s): 'delta'" in result.stderr
 assert "Accepted: alpha, beta, gamma" in result.stderr
 ```
 
-With `case_sensitive=False`, tokens match the choices regardless of case, and surrounding whitespace is trimmed. The returned tuple holds the canonical, original-case values from `choices`:
+Tokens match the choices regardless of case, as with `EnumChoice`, and surrounding whitespace is trimmed. The returned tuple holds the canonical, original-case values from `choices`. Pass `case_sensitive=True` to require an exact match:
 
 ```{click:run}
 result = invoke(tag_cli, args=["--tags", "AlPhA, BETA"])
-# case_sensitive=False normalizes back to the canonical case from `choices`:
+# Matching ignores case, and normalizes back to the canonical case from `choices`:
 assert result.output == "Selected tags: ('alpha', 'beta')\n"
 ```
 

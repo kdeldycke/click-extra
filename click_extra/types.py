@@ -73,7 +73,7 @@ class MultiChoice(click.ParamType):
         self,
         choices: Sequence[str] = (),
         separator: str = ",",
-        case_sensitive: bool = True,
+        case_sensitive: bool = False,
     ) -> None:
         """Initialize the type.
 
@@ -83,9 +83,11 @@ class MultiChoice(click.ParamType):
             the consumer.
         :param separator: the token boundary. Use any single character; this
             also drives the metavar rendering (`[a<sep>b<sep>c]`).
-        :param case_sensitive: when `False`, tokens match `choices`
-            case-insensitively and the returned tuple holds the canonical
-            (original-case) values from `choices`.
+        :param case_sensitive: when `True`, a token must match one of
+            `choices` exactly. By default tokens match case-insensitively, as
+            with {class}`EnumChoice` and {class}`~click_extra.theme.ThemeChoice`,
+            and the returned tuple holds the canonical (original-case) values
+            from `choices`.
         """
         self.choices: tuple[str, ...] = tuple(choices)
         self.separator: str = separator

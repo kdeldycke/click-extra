@@ -16,6 +16,7 @@
 - Show a `Spinner`'s elapsed time under `--time` by default, as `OperationTrail` and `progressbar` do.
 - Type the result of `search_params` and `last_param` as the parameter class they look for, so a match needs no `isinstance` check.
 - Set `Context.color` too from the `force_color` class attribute of `CliRunner`, as the new `force_color` argument does, unless a call passes `color=False`.
+- Match `MultiChoice` tokens regardless of case by default, as `EnumChoice` and `ThemeChoice` do. Pass `case_sensitive=True` for an exact match.
 - Tag the prompt line `run_cli` logs with its `label` too, so an interleaved log attributes each command as well as its output.
 - Add `label_style` and `timer_style` to `Spinner`, painting the label and the timer (parentheses included) apart from `style`, on every frame and on the kept `ok()` / `fail()` line.
 - Strip the ANSI escapes embedded in a `Spinner` label when color is off, so `--no-color` and `NO_COLOR` also hold for a label styled by hand.
