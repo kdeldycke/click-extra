@@ -386,7 +386,7 @@ zero_exit_option = decorator_factory(dec=option, cls=ZeroExitOption)
 def sort_by_option(*header_defs, cls=SortByOption, group=None, **kwargs):
     """Attach a {class}`~click_extra.table.SortByOption` to a command.
 
-    Forwards the positional `header_defs` ({class}`~click_extra.table.ColumnSpec`
+    Forwards the positional `header_defs` ({class}`~click_extra.columns.ColumnSpec`
     instances or bare column IDs) straight
     to the option constructor and registers a regular Cloup `Option`, so the
     `--sort-by` option composes with `@option_group` and `@constraint` like any

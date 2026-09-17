@@ -54,6 +54,7 @@ from sphinx.util import logging, parselinenos
 from ..blocks import rewrite_fenced_regions, split_options, update_blocks
 from ..color import forced_color
 from ..execution import format_cli_prompt
+from ..layout import number_lines
 from ..recording import (
     DEFAULT_QUANTUM,
     DEFAULT_RECORDING_BLANK,
@@ -66,19 +67,16 @@ from ..recording import (
 from ..screenshot import (
     AUTO_COLUMNS,
     AUTO_CURSOR,
-    AUTO_HOLD,
     DEFAULT_COLUMNS,
     MIN_COLUMNS,
-    OPAQUE,
     CaptureBackground,
     Chrome,
-    animation_metadata,
     append_prompt,
-    number_lines,
     prompt_line,
     render,
 )
 from ..screenshot_presets import PRESETS, Cursor, CursorShape, TerminalPreset
+from ..screenshot_svg import AUTO_HOLD, OPAQUE, animation_metadata
 from ..snippet import highlight_code, resolve_style, style_palette
 from ..spinner import Spinner
 from ..testing import isolated_filesystem
@@ -99,8 +97,9 @@ if TYPE_CHECKING:
 
     from sphinx.util.typing import OptionSpec
 
-    from ..screenshot import TColumns, THold
+    from ..screenshot import TColumns
     from ..screenshot_presets import TerminalPalette
+    from ..screenshot_svg import THold
 
 
 logger = logging.getLogger(__name__)
@@ -598,7 +597,7 @@ def _screenshot_hold(argument: str) -> THold:
     """Read the `:screenshot-hold:` option into seconds, or into `auto`.
 
     `auto` scales the pause to the final frame's own line count, see
-    {func}`click_extra.screenshot.auto_hold`.
+    {func}`click_extra.screenshot_svg.auto_hold`.
     """
     if argument.strip().lower() == AUTO_HOLD:
         return AUTO_HOLD
@@ -1256,7 +1255,7 @@ class ClickDirective(SphinxDirective):
         rendered, its prompt first. `:screenshot-cursor:` draws a terminal
         cursor, in the shape it names or in the preset's own, and
         `:screenshot-blink:` says how long one blink takes. See
-        {func}`~click_extra.screenshot.render_svg`.
+        {func}`~click_extra.screenshot_svg.render_svg`.
 
         A block naming no preset falls back to the one the
         `click_extra_screenshot_preset` `conf.py` value names, so a project

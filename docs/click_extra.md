@@ -36,6 +36,24 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.cli_capture module
+
+```{eval-rst}
+.. automodule:: click_extra.cli_capture
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.cli_prebake module
+
+```{eval-rst}
+.. automodule:: click_extra.cli_prebake
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.cli_wrapper module
 
 ```{eval-rst}
@@ -49,6 +67,15 @@ click_extra.sphinx
 
 ```{eval-rst}
 .. automodule:: click_extra.color
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.columns module
+
+```{eval-rst}
+.. automodule:: click_extra.columns
    :members:
    :show-inheritance:
    :undoc-members:
@@ -229,6 +256,15 @@ click_extra.sphinx
 
 ```{eval-rst}
 .. automodule:: click_extra.screenshot_presets
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.screenshot_svg module
+
+```{eval-rst}
+.. automodule:: click_extra.screenshot_svg
    :members:
    :show-inheritance:
    :undoc-members:

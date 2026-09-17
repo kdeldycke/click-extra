@@ -502,7 +502,7 @@ A single value stands in for the whole table (`max_column_widths=30` caps every 
 
 ### Widths on column definitions
 
-A width can also be declared on the {class}`~click_extra.table.ColumnSpec` describing the column, which applies without passing any argument:
+A width can also be declared on the {class}`~click_extra.columns.ColumnSpec` describing the column, which applies without passing any argument:
 
 ```{click:source}
 from click_extra import command, pass_context
@@ -827,6 +827,16 @@ assert result.stdout.index("Apple") < result.stdout.index("Cherry")
    :strict:
 
 .. automodule:: click_extra.table
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.columns` API
+
+```{eval-rst}
+.. automodule:: click_extra.columns
    :no-index:
    :members:
    :undoc-members:

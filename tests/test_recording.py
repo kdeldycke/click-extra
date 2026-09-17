@@ -41,14 +41,14 @@ from click_extra.recording import (
     record_command,
     type_line,
 )
-from click_extra.screenshot import (
+from click_extra.screenshot_presets import Cursor
+from click_extra.screenshot_svg import (
     CELL_HEIGHT,
     CELL_WIDTH,
     LINE_HEIGHT,
     animation_digest,
     render_svg,
 )
-from click_extra.screenshot_presets import Cursor
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

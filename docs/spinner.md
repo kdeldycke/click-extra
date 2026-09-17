@@ -150,7 +150,8 @@ Every one of them, animating:
 ```{python:render}
 from pathlib import Path
 
-from click_extra.screenshot import CaptureFormat, Chrome, cell_width, render
+from click_extra.layout import cell_width
+from click_extra.screenshot import CaptureFormat, Chrome, render
 from click_extra.screenshot_presets import PRESETS
 from click_extra.spinner import Spinner
 from click_extra.spinner_presets import SPINNERS

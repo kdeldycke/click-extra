@@ -124,13 +124,13 @@ class CursorShape(Enum):
 class Cursor(NamedTuple):
     """The cursor a capture draws, and how it behaves.
 
-    Passed to {func}`~click_extra.screenshot.render_svg` to draw one at all: a
+    Passed to {func}`~click_extra.screenshot_svg.render_svg` to draw one at all: a
     capture shows no cursor unless asked, which is what keeps an image taken
     before this existed byte-identical to the one taken after.
 
     ```{note}
     Where the cursor *is* is never stated here. A frame's text already says so,
-    see {func}`~click_extra.screenshot.cursor_cell`, so a caller states what the
+    see {func}`~click_extra.screenshot_svg.cursor_cell`, so a caller states what the
     cursor looks like and the picture answers for the rest.
     ```
     """
@@ -149,7 +149,7 @@ class Cursor(NamedTuple):
     ```{caution}
     Blinking is motion, and a reader may have asked their system for less of
     it. The rule sits behind
-    {data}`~click_extra.screenshot.REDUCED_MOTION_QUERY` like every other
+    {data}`~click_extra.screenshot_svg.REDUCED_MOTION_QUERY` like every other
     animation this package emits, which leaves the cursor lit and still. That
     guard is also what answers [WCAG 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide),
     which asks that anything blinking past five seconds can be stopped.
@@ -330,4 +330,52 @@ PRESETS: Final[dict[str, TerminalPreset]] = {
 `plain` is the odd one out: it mimics no desktop, dropping the buttons and the
 rounded corners for a capture that has to read as a block of output rather than
 as a window, on a slide or in a paper.
+"""
+
+
+DEFAULT_PRESET: Final = PRESETS["plain"]
+"""Terminal a capture with no `--preset` is drawn as.
+
+`plain` mimics no desktop, which is what a capture wearing no decoration should
+resolve its colors against. Naming it here is what keeps the two formats looking
+like the same terminal, and keeps one catalog answering for every palette a
+capture can use: without it the default colors would be a second set of literals
+free to drift from the one the presets publish.
+"""
+
+CAPTURE_FONT_STACK: Final = DEFAULT_PRESET.font_stack
+"""Monospaced fonts a capture asks for, best first.
+
+Nothing is embedded and nothing is fetched, so both formats set the text in the
+first family the reader already has, and a capture renders the same offline, on
+a page forbidding third-party requests, and in a viewer that speaks no CSS
+`@font-face`.
+
+Family names are single-quoted on purpose: this lands in a double-quoted
+`style` attribute, which a double quote here would terminate early.
+
+```{note}
+Not embedding is a decision, not an omission: a subsetted font would ship inside
+this package, and redistribute someone else's font under its own license. The
+bytes are small; the license management is not worth a terminal picture. The
+JuliaMono subset under `docs/_static/` does not change this: it sets the
+documentation's own HTML, where a stylesheet reaches the text, and reusing it in
+a capture would be that same redistribution.
+
+The fallback cost is measured. A stock macOS falls through to Menlo, which
+carries no Braille and none of the Mathematical Operators the spinner catalog
+draws, so those resolve to the proportional Apple Symbols: 26 of the 89 tiles
+under `docs/assets/spinner-*.svg` draw 11% to 80% wider than their column, and
+the window's clip cuts the overflow. A reader with either of the first two
+families sees none of it, and emoji stay out of reach of every monospaced font.
+
+Fitting each run to its columns instead (`lengthAdjust="spacingAndGlyphs"`) was
+measured and rejected: across the 1407 runs in the committed captures it
+distorts 425 of them by more than 6%, some past 100%, because it stretches a
+narrow glyph as readily as it squeezes a wide one.
+
+Note that {data}`~click_extra.screenshot_svg.WATERMARK_URL` documents the other half
+of this: a capture embedded with `<img>` never sees the page's own `@font-face`
+either, so a stylesheet cannot fix this from the outside.
+```
 """

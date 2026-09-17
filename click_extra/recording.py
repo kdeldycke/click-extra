@@ -55,7 +55,6 @@ from .color import forced_color
 from .execution import args_cleanup
 from .layout import cell_width, number_lines
 from .screenshot import (
-    AUTO_HOLD,
     CAPTURE_HIDDEN_TERMINAL_VARS,
     CAPTURE_TERMINAL_HINTS,
     DEFAULT_COLUMNS,
@@ -66,6 +65,7 @@ from .screenshot import (
     prompt_line,
     render,
 )
+from .screenshot_svg import AUTO_HOLD
 
 # A pseudo-terminal is what makes a CLI checking `isatty` animate for a
 # recorder, and `pty` reaches for `termios`, which Windows does not ship. The
@@ -84,8 +84,9 @@ if TYPE_CHECKING:
     from typing_extensions import Unpack
 
     from .execution import TArg, TNestedArgs
-    from .screenshot import ChromeArguments, THold
+    from .screenshot import ChromeArguments
     from .screenshot_presets import Cursor, TerminalPreset
+    from .screenshot_svg import THold
 
 CSI_RE = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
 """One control sequence, from the escape that opens it to the letter ending it.
@@ -118,7 +119,7 @@ A recording ends somewhere, and the end is usually its point: the trail filled
 in, the bar run out, the outcome landed. Looping straight back gives a reader no
 time to read any of it, and how much time reading takes depends on how much the
 ending shows, so the default scales with it: see
-{func}`~click_extra.screenshot.auto_hold`. A declared animation cycles in place
+{func}`~click_extra.screenshot_svg.auto_hold`. A declared animation cycles in place
 and ends nowhere, so it holds for nothing unless a page asks.
 """
 
@@ -548,7 +549,7 @@ def quantize(
     This settles jitter and nothing else. A frame the scheduler dropped leaves a
     shorter recording of the same frames, which no rounding recovers. That case
     is answered a layer up, by
-    {func}`~click_extra.screenshot.animation_digest`, which fingerprints the
+    {func}`~click_extra.screenshot_svg.animation_digest`, which fingerprints the
     frames a cycle holds rather than how many of them were caught.
     ```
 
@@ -614,10 +615,10 @@ def type_line(
     ```{note}
     Ordinary frames, carrying no mechanism of their own: they prepend to a
     recording's and travel through
-    {func}`~click_extra.screenshot.render_svg` like any others. Everything the
+    {func}`~click_extra.screenshot_svg.render_svg` like any others. Everything the
     picture does for a frame therefore reaches these too, the gutter numbering
     them and the cursor following the text along, see
-    {func}`~click_extra.screenshot.cursor_cell`.
+    {func}`~click_extra.screenshot_svg.cursor_cell`.
     ```
 
     The last frame holds the finished line for `submit`, which is the beat
@@ -696,7 +697,7 @@ def record_and_render(
     :param quantum: grid the frame durations are rounded onto, see
         {func}`quantize`.
     :param hold: extra seconds the last frame stays up, or
-        {data}`~click_extra.screenshot.AUTO_HOLD` (the default here) to scale
+        {data}`~click_extra.screenshot_svg.AUTO_HOLD` (the default here) to scale
         them to that frame's line count.
     :param blank: seconds of empty screen closing the cycle.
     :param speed: how much faster to play than recorded. The typed opening is
@@ -711,7 +712,7 @@ def record_and_render(
     :param line_numbers: draw each line's number in a gutter, the prompt
         counting as the first of them.
     :param emphasize: lines to draw a band behind, see
-        {func}`~click_extra.screenshot.render_svg`.
+        {func}`~click_extra.screenshot_svg.render_svg`.
     :param cursor: the terminal cursor to draw, see
         {class}`~click_extra.screenshot_presets.Cursor`. It follows the text
         from screen to screen on its own, so a typed opening gets its caret

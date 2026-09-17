@@ -32,7 +32,7 @@ from click import Command, Option, unstyle
 from pygments.styles import get_style_by_name
 from pygments.token import Token
 
-from click_extra.cli import capture_options, screenshot_cmd, snippet_cmd
+from click_extra.cli_capture import capture_options, screenshot_cmd, snippet_cmd
 from click_extra.screenshot import (
     AUTO_COLUMNS,
     CAPTURE_PALETTES,
@@ -239,7 +239,7 @@ def test_snippet_renders_html():
 
 
 def shared_option_names() -> tuple[str, ...]:
-    """Every option name {func}`~click_extra.cli.capture_options` attaches.
+    """Every option name {func}`~click_extra.cli_capture.capture_options` attaches.
 
     Read off a bare function the decorator is applied to, rather than restated
     here: a list written out by hand is one more place for the two commands to

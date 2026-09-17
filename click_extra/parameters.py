@@ -44,6 +44,12 @@ from ._deprecated import warn_deprecated_argument
 # the moved helper: its canonical home is click_extra._utils, and the public
 # `parameters.patch_attr` spelling resolves through the deprecation hook below.
 from ._utils import patch_attr as _patch_attr
+from .columns import (
+    ColumnSpec,
+    render_columns_markdown_table,
+    select_columns,
+    select_row,
+)
 from .envvar import param_envvar_ids
 from .styling import Style
 from .types import EnumChoice
@@ -1171,8 +1177,6 @@ def render_params_table(
         ColumnsOption,
         TableFormatOption,
         print_table,
-        select_columns,
-        select_row,
     )
     from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
 
@@ -1340,10 +1344,8 @@ class ShowParamsOption(ExtraOption, ParamStructure):
     ```
     """
 
-    from .table import ColumnSpec as _ColumnSpec
-
-    TABLE_HEADERS: ClassVar[tuple[_ColumnSpec, ...]] = (
-        _ColumnSpec(
+    TABLE_HEADERS: ClassVar[tuple[ColumnSpec, ...]] = (
+        ColumnSpec(
             id="id",
             label="ID",
             description=(
@@ -1355,7 +1357,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "spelling of the last segment."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="spec",
             label="Spec.",
             description=(
@@ -1365,7 +1367,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "#click.Parameter)."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="help",
             label="Help",
             optional=True,
@@ -1379,7 +1381,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "rendered `--help` screen."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="class",
             label="Class",
             description=(
@@ -1399,7 +1401,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "(#click_extra.parameters.ExtraOption))."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="param_type",
             label="Param type",
             description=(
@@ -1412,7 +1414,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "or a Click Extra type."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="python_type",
             label="Python type",
             description=(
@@ -1428,7 +1430,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "the Click `Param type`."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="hidden",
             label="Hidden",
             description=(
@@ -1440,7 +1442,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "which does not support hiding."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="exposed",
             label="Exposed",
             description=(
@@ -1452,7 +1454,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "exposed."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="allowed_in_conf",
             label="Allowed in conf?",
             description=(
@@ -1464,7 +1466,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "when the CLI has no [`--config` option](config.md)."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="envvars",
             label="Env. vars.",
             description=(
@@ -1475,7 +1477,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "[Environment variables](envvar.md)."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="default",
             label="Default",
             description=(
@@ -1484,7 +1486,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "#click.Parameter.get_default), rendered as its Python `repr()`."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="is_flag",
             label="Is flag",
             description=(
@@ -1495,7 +1497,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "(https://click.palletsprojects.com/en/stable/api/#click.Argument)."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="flag_value",
             label="Flag value",
             description=(
@@ -1507,7 +1509,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "(like `@option('--upper', 'transform', flag_value='upper')`)."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="is_bool_flag",
             label="Is bool flag",
             description=(
@@ -1516,7 +1518,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "boolean flag, as opposed to a flag-value style option."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="multiple",
             label="Multiple",
             description=(
@@ -1526,7 +1528,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "values into a tuple."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="nargs",
             label="Nargs",
             description=(
@@ -1536,7 +1538,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "default; `-1` denotes a variadic argument."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="prompt",
             label="Prompt",
             description=(
@@ -1546,7 +1548,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "the command line. Empty when no prompt is configured."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="confirmation_prompt",
             label="Confirmation prompt",
             description=(
@@ -1556,7 +1558,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "confirmation."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="value",
             label="Value",
             description=(
@@ -1566,7 +1568,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "from the merged sources (CLI, environment, config file, default)."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="source",
             label="Source",
             description=(
@@ -1576,7 +1578,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "`ENVIRONMENT`, `DEFAULT_MAP`, or `DEFAULT`."
             ),
         ),
-        _ColumnSpec(
+        ColumnSpec(
             id="config_file",
             label="Config file",
             optional=True,
@@ -1595,7 +1597,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
     )
     """Rich column registry for the `--params` table.
 
-    Each entry is a {class}`click_extra.table.ColumnSpec` carrying the column's
+    Each entry is a {class}`click_extra.columns.ColumnSpec` carrying the column's
     stable `id` (used by `--columns` and as structured-format key), its
     display `label`, and a MyST/Markdown `description` consumed by the
     documentation's auto-generated *Available columns* section. Iteration
@@ -1613,10 +1615,10 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         return tuple(col.id for col in cls.TABLE_HEADERS)
 
     @classmethod
-    def default_columns(cls) -> tuple[_ColumnSpec, ...]:
+    def default_columns(cls) -> tuple[ColumnSpec, ...]:
         """Return the columns rendered when `--columns` asks for no projection.
 
-        Every column but the {attr}`~click_extra.table.ColumnSpec.optional` ones,
+        Every column but the {attr}`~click_extra.columns.ColumnSpec.optional` ones,
         which stay addressable by ID and out of the way until named.
         """
         return tuple(col for col in cls.TABLE_HEADERS if not col.optional)
@@ -1633,7 +1635,7 @@ class ShowParamsOption(ExtraOption, ParamStructure):
 
     @classmethod
     def find_column(cls, column_id: str):
-        """Return the {class}`~click_extra.table.ColumnSpec` matching `column_id`.
+        """Return the {class}`~click_extra.columns.ColumnSpec` matching `column_id`.
 
         Raises `KeyError` if no column has this ID; callers should convert
         the error into a {class}`click.UsageError` when surfaced to a user.
@@ -1653,9 +1655,6 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         `docs/parameters.md`: editing a description here automatically
         rebuilds the docs table on the next `sphinx-build`.
         """
-        # Imported here to avoid a circular import: table imports from this module.
-        from .table import render_columns_markdown_table
-
         return render_columns_markdown_table(cls.TABLE_HEADERS)
 
     def __init__(

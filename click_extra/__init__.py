@@ -83,6 +83,12 @@ from .color import (
     ColorOption,
     NoColorOption,
 )
+from .columns import (
+    ColumnSpec,
+    render_columns_markdown_table,
+    select_columns,
+    select_row,
+)
 from .command_doc import (
     HELP_FORMATS,
     INSTALLABLE_FORMATS,
@@ -252,17 +258,13 @@ from .styling import (
 )
 from .table import (
     ColumnsOption,
-    ColumnSpec,
     SortByOption,
     TableFormat,
     TableFormatOption,
     column_sort_key,
     print_data,
     print_table,
-    render_columns_markdown_table,
     render_table,
-    select_columns,
-    select_row,
     serialize_data,
 )
 from .telemetry import TelemetryOption

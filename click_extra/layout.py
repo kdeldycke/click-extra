@@ -41,7 +41,7 @@ PADDING = " \N{NO-BREAK SPACE}"
 """Characters that separate one column of terminal text from the next.
 
 Both are one cell wide and draw nothing.
-{func}`~click_extra.screenshot.render_svg` emits every space as a non-breaking
+{func}`~click_extra.screenshot_svg.render_svg` emits every space as a non-breaking
 one, so the padding survives an XML round-trip and no renderer collapses a run
 of them.
 """
@@ -215,7 +215,7 @@ def is_bidirectional(text: str) -> bool:
     Arabic, Hebrew and their neighbours are reordered by whoever draws them, and
     the cursive ones are shaped: a letter's form depends on what it joins. A
     terminal grid describes neither, which is why
-    {func}`~click_extra.screenshot.render_svg` stops pinning such a run to an
+    {func}`~click_extra.screenshot_svg.render_svg` stops pinning such a run to an
     exact width.
 
     :param text: the text to inspect.

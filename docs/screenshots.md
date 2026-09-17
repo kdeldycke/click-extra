@@ -676,7 +676,7 @@ assert "apricot" in result.stdout
 
 Size a run by its character count instead and the picture drifts: the seven lines above would land on four different columns, the wide scripts drawn at half their width and stacking on each other. That is [`rich#2742`](https://github.com/Textualize/rich/issues/2742), open upstream since 2023 and one of the reasons this renderer is click-extra's own. The [upstream page](upstream.md#terminal-captures-as-svg) collects the rest.
 
-Two spaces are what mark a column. A capture cuts each line at its gutters ({func}`click_extra.screenshot.column_segments`), then pins every piece to its own offset. One space is ordinary word spacing rather than a gutter, so a wide glyph and the word after it stay a single run, and where that word sits inside the run is left to the font. Pad a column to a fixed width, the way `market` does above, instead of separating it by one space. Captured output rarely trips on this: a table or a help screen already leaves two spaces or a rule between its columns. A hand-written example is where it shows.
+Two spaces are what mark a column. A capture cuts each line at its gutters ({func}`click_extra.screenshot_svg.column_segments`), then pins every piece to its own offset. One space is ordinary word spacing rather than a gutter, so a wide glyph and the word after it stay a single run, and where that word sits inside the run is left to the font. Pad a column to a fixed width, the way `market` does above, instead of separating it by one space. Captured output rarely trips on this: a table or a help screen already leaves two spaces or a rule between its columns. A hand-written example is where it shows.
 
 ```{note}
 Right-to-left scripts are the case cell arithmetic cannot settle. Arabic and Hebrew are reordered by whoever draws them, and the cursive ones are *shaped*: a letter's form depends on the letters it joins. A run carrying any of them is therefore left to size itself, rather than pinned to an exact width that would pay for the difference in letter spacing and pull the word apart at its joins. The run still starts on its own column, so the grid around it holds; only its own width floats.
@@ -693,7 +693,7 @@ An SVG capture can hold more than one frame. Pass `frames` a sequence of capture
 ```python
 from pathlib import Path
 
-from click_extra.screenshot import render_svg
+from click_extra.screenshot_svg import render_svg
 from click_extra.spinner_presets import SPINNERS
 from click_extra.styling import Style
 
@@ -740,7 +740,7 @@ The frame left visible is the **last** one, because an animation that accumulate
 A capture draws no cursor unless it is asked for one. Pass a `Cursor` and it draws one:
 
 ```python
-from click_extra.screenshot import render_svg
+from click_extra.screenshot_svg import render_svg
 from click_extra.screenshot_presets import Cursor, CursorShape
 
 render_svg("$ pantry restock --crates 4", columns=44, cursor=Cursor())
@@ -1062,6 +1062,16 @@ The switch keys on the *browser's* color scheme, not on the theme toggle of a do
 
 ```{eval-rst}
 .. automodule:: click_extra.screenshot
+   :no-index:
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.screenshot_svg` API
+
+```{eval-rst}
+.. automodule:: click_extra.screenshot_svg
    :no-index:
    :members:
    :show-inheritance:

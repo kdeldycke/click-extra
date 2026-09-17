@@ -49,13 +49,13 @@ from click_extra import (
     style,
     table_format_option,
 )
+from click_extra.columns import ColumnSpec, select_columns
 from click_extra.pytest import command_decorators
 from click_extra.table import (
     SERIALIZATION_FORMATS,
     STYLED_FORMATS,
     WRAPPABLE_FORMATS,
     ColumnsOption,
-    ColumnSpec,
     SortByOption,
     TableFormat,
     _apply_default,
@@ -67,7 +67,6 @@ from click_extra.table import (
     print_data,
     print_table,
     render_table,
-    select_columns,
     serialize_data,
 )
 

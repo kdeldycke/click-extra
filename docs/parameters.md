@@ -41,7 +41,7 @@ Every command built with `@command` or `@group` captures the pre-parsed `argv` s
 
 ### Available columns
 
-Each row in the table mirrors a single [`click.Parameter`](https://click.palletsprojects.com/en/stable/api/#click.Parameter) instance. The columns map to its public attributes (plus a handful of Click Extra-specific fields). The table below is auto-generated at build time from {py:attr}`ShowParamsOption.TABLE_HEADERS <click_extra.parameters.ShowParamsOption.TABLE_HEADERS>`: edit the {py:attr}`ColumnSpec.description <click_extra.table.ColumnSpec.description>` entries in `click_extra/parameters.py` to update it.
+Each row in the table mirrors a single [`click.Parameter`](https://click.palletsprojects.com/en/stable/api/#click.Parameter) instance. The columns map to its public attributes (plus a handful of Click Extra-specific fields). The table below is auto-generated at build time from {py:attr}`ShowParamsOption.TABLE_HEADERS <click_extra.parameters.ShowParamsOption.TABLE_HEADERS>`: edit the {py:attr}`ColumnSpec.description <click_extra.columns.ColumnSpec.description>` entries in `click_extra/parameters.py` to update it.
 
 {{ show_params_columns_table }}
 

@@ -45,16 +45,12 @@ import pytest
 from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style, unstyle
-from click_extra.cli import screenshot_cmd
+from click_extra.cli_capture import screenshot_cmd
 from click_extra.execution import PROMPT
+from click_extra.layout import PADDING, cell_width, fit_columns, grid, number_lines
 from click_extra.recording import TerminalScreen, record_and_render
 from click_extra.screenshot import (
-    _COLUMN_GAP_RE,
     AUTO_COLUMNS,
-    AUTO_HOLD,
-    AUTO_HOLD_MAX,
-    AUTO_HOLD_MIN,
-    AUTO_HOLD_SECONDS_PER_LINE,
     CAPTURE_BACKGROUND,
     CAPTURE_BORDERS,
     CAPTURE_FOREGROUND,
@@ -62,57 +58,59 @@ from click_extra.screenshot import (
     CAPTURE_PALETTES,
     CAPTURE_SHADOWS,
     CAPTURE_TERMINAL_HINTS,
-    CELL_BLEED,
-    CELL_WIDTH,
     CHROME_FIELDS,
-    CURSOR_THICKNESS,
     DEFAULT_COLUMNS,
-    DEFAULT_RADIUS,
-    DEFAULT_WATERMARK,
     LIGHT_CAPTURE_BACKGROUND,
     LIGHT_CAPTURE_FOREGROUND,
-    LINE_HEIGHT,
     MIN_COLUMNS,
-    NO_PAINT,
-    OPAQUE,
-    PADDING,
-    REDUCED_MOTION_QUERY,
     STDOUT_PATH,
-    TILE_RUN,
-    TITLEBAR_HEIGHT,
     TRUNCATION_LABEL,
     TRUNCATION_RULE,
-    WATERMARK_INK,
-    WATERMARK_INSET,
-    WATERMARK_URL,
     CaptureBackground,
     CaptureFormat,
     Chrome,
     append_prompt,
     auto_columns,
+    capture,
+    capture_output,
+    format_from_path,
+    render,
+    trim_lines,
+)
+from click_extra.screenshot_presets import PRESETS, Cursor, CursorShape
+from click_extra.screenshot_svg import (
+    _COLUMN_GAP_RE,
+    AUTO_HOLD,
+    AUTO_HOLD_MAX,
+    AUTO_HOLD_MIN,
+    AUTO_HOLD_SECONDS_PER_LINE,
+    CELL_BLEED,
+    CELL_WIDTH,
+    CURSOR_THICKNESS,
+    DEFAULT_RADIUS,
+    DEFAULT_WATERMARK,
+    LINE_HEIGHT,
+    NO_PAINT,
+    OPAQUE,
+    REDUCED_MOTION_QUERY,
+    TILE_RUN,
+    TITLEBAR_HEIGHT,
+    WATERMARK_INK,
+    WATERMARK_INSET,
+    WATERMARK_URL,
     auto_hold,
     blend,
     blink_css,
-    capture,
-    capture_output,
-    cell_width,
     column_segments,
     cursor_cell,
-    fit_columns,
-    format_from_path,
     frame_animation_css,
     gradient_svg,
-    grid,
-    number_lines,
     palette_color,
-    render,
     render_svg,
     style_rules,
     tile_runs,
-    trim_lines,
     window_buttons,
 )
-from click_extra.screenshot_presets import PRESETS, Cursor, CursorShape
 from click_extra.snippet import render_snippet
 from click_extra.styling import split_ansi
 
@@ -216,7 +214,7 @@ def svg_to_lines(svg: str) -> list[str]:
 
     Groups the `<text>` runs into lines by their shared `y` baseline, then lays
     each one back on its column: the capture is monospaced, so dividing a run's
-    `x` offset by {data}`~click_extra.screenshot.CELL_WIDTH` gives the character
+    `x` offset by {data}`~click_extra.screenshot_svg.CELL_WIDTH` gives the character
     column it starts at.
 
     :param svg: source of a rendered capture.
@@ -744,7 +742,7 @@ def test_cursor_cell_reads_the_screen_it_is_given(picture, expected):
 def test_cursor_cell_matches_the_screen_that_wrote_it():
     """The derived column is the one the screen itself counted, not an estimate.
 
-    Locks the claim {func}`~click_extra.screenshot.cursor_cell` rests on: a
+    Locks the claim {func}`~click_extra.screenshot_svg.cursor_cell` rests on: a
     recorded frame carries its cursor position implicitly, so nothing has to
     travel beside the text to say where the cursor was.
     """
