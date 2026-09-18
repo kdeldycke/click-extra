@@ -203,7 +203,7 @@ Running 3 test cases across 7 workers (8 logical CPUs).
 Test suite results - Total: 3, Skipped: 0, Failed: 0
 ```
 
-Cases run in parallel by default, one fewer than the available logical CPUs (see [`--jobs`](execution.md#parallel-jobs)). Pass `--jobs max` to use every core, or `--jobs 1` for sequential execution, which lets `--exit-on-error` stop on the first failure. On an interactive terminal a spinner reports progress; it is silent in pipes and CI logs, and `--no-progress` turns it off.
+Cases run in parallel by default, one fewer than the available logical CPUs, or all of them on hosts with fewer than three (see [`--jobs`](execution.md#parallel-jobs)). Pass `--jobs max` to use every core, or `--jobs 1` for sequential execution, which lets `--exit-on-error` stop on the first failure. On an interactive terminal a spinner reports progress; it is silent in pipes and CI logs, and `--no-progress` turns it off.
 
 ### Configuring the suite
 

@@ -349,8 +349,8 @@ class JobsOption(ExtraOption):
         type: click.ParamType | Any = JobCount(),
         help: str = _(
             "Number of parallel jobs. Accepts an integer, auto (the host's "
-            "logical CPUs minus one) or max (all logical CPUs). --jobs 0 runs "
-            "sequentially."
+            "logical CPUs, minus one when there are three or more) or max (all "
+            "logical CPUs). --jobs 0 runs sequentially."
         ),
         **kwargs: Any,
     ) -> None:

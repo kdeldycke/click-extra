@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix the `--jobs` help and documentation, which said `auto` always leaves one logical CPU free: hosts with fewer than three use all of them.
 - Document `HelpFormat`, `DocOptionItem.attached_value` and `build_moment`, which `9.3.0` shipped without a docs mention.
 - Fix the `HelpFormatOption` docstring, which described `--man` as `--help-format roff`, a format that does not exist.
 - Skip `test_sphinx_runner_resets_version_resolution` without the `sphinx` extra, instead of failing on an `ImportError`, so `pytest -m "not network"` passes without the docs toolchain.

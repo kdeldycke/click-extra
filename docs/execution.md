@@ -67,7 +67,7 @@ assert re.fullmatch(
 
 ## Parallel jobs
 
-A pre-configured `--jobs` option to control parallel execution. It accepts an integer, or one of two keywords: `auto` (the default: one fewer than the available logical CPU cores, leaving a core free for the main process and system tasks) and `max` (every available logical CPU core). A value of `0` disables parallelism and runs sequentially.
+A pre-configured `--jobs` option to control parallel execution. It accepts an integer, or one of two keywords: `auto` (the default: one fewer than the available logical CPU cores, leaving a core free for the main process and system tasks, except on hosts with fewer than three logical CPUs, where reserving one would leave a single worker) and `max` (every available logical CPU core). A value of `0` disables parallelism and runs sequentially.
 
 The option itself does not drive any concurrency: it only captures the user's intent.
 
