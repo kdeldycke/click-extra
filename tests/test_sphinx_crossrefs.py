@@ -62,11 +62,18 @@ PROJECT_ROOT = Path(__file__).parent.parent
 
 
 @pytest.fixture(scope="module")
-def built_docs(tmp_path_factory: pytest.TempPathFactory) -> Path:
+def built_docs(
+    tmp_path_factory: pytest.TempPathFactory,
+    captures_before_build: dict[Path, bytes],
+) -> Path:
     """Build the HTML documentation once and return its output directory.
 
     Builds into a throwaway directory (rather than ``docs/_build``) so the run
     is hermetic and never clobbers a developer's local build.
+
+    Requests {func}`captures_before_build` so the snapshot is taken before the
+    build whichever test triggers it: every test of this module shares the one
+    build, and `pytest-randomly` decides which of them runs first.
     """
     out_dir = tmp_path_factory.mktemp("sphinx-html")
     subprocess.run(
@@ -91,8 +98,8 @@ def built_docs(tmp_path_factory: pytest.TempPathFactory) -> Path:
 def captures_before_build() -> dict[Path, bytes]:
     """Snapshot every committed capture before a build gets a chance to rewrite one.
 
-    Requested ahead of {func}`built_docs` by the freshness check below, so the
-    bytes are read while the tree is still as committed.
+    {func}`built_docs` requests it, so the bytes are read while the tree is
+    still as committed, whichever test of the module builds first.
     """
     return {
         path: path.read_bytes()

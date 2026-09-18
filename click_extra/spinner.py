@@ -360,7 +360,7 @@ class Spinner:
             `"auto"`, `True` for `"always"` and `False` for `"never"`.
         :raises ValueError: if `style`, `label_style` or `timer_style` carries a
             color or attribute that cannot be rendered, or if `live` is not one
-            of {data}`LIVE_MODES`.
+            of {data}`~click_extra.spinner.LIVE_MODES`.
         """
         # Support a bare `@Spinner` decorator (no parentheses): the first
         # positional is then the wrapped function, not a text label. `@Spinner(…)`
@@ -435,17 +435,13 @@ class Spinner:
         self._stop_time: float | None = None
 
     def _resolve_stream(self) -> IO[str]:
-        """The explicit `stream`, or {data}`sys.stderr`, see {func}`_stream_or_stderr`."""
+        """The `stream` given, or {data}`sys.stderr`: see {func}`_stream_or_stderr`."""
         return _stream_or_stderr(self.stream)
 
     def _resolve_live(self, stream: IO[str]) -> bool:
         """Decide whether to animate on `stream`, as {attr}`live` says.
 
-        `"auto"` animates only on an interactive terminal that can move the
-        cursor. That rules out non-interactive streams (a pipe, file or captured
-        buffer, which are not a TTY) and `TERM=dumb` / `TERM=unknown` terminals,
-        whose lack of cursor control would smear a trail of frames down the
-        screen instead of animating in place.
+        See {func}`_can_draw` for the resolution.
         """
         return _can_draw(self.live, stream)
 
@@ -1254,10 +1250,11 @@ class OperationTrail:
     The aggregate indicators redraw in place, which a pipe or a CI log cannot
     do, so by default they draw only on an interactive terminal, and `live`
     changes where they draw. The `✓`/`✘` lines and the finisher only append, so
-    they print on any stream, in plain text where color is off. Where no indicator draws,
-    every rendering echoes each outcome as it lands, as the sequential one does.
-    `visible=False` silences all of it. The running `✓` tally is kept as
-    outcomes land ({attr}`ok_count`), so a caller computes no counts of its own.
+    they print on any stream, in plain text where color is off. Where no
+    indicator draws, every rendering echoes each outcome as it lands, as the
+    sequential one does. `visible=False` silences all of it. The running `✓`
+    tally is kept as outcomes land ({attr}`ok_count`), so a caller computes no
+    counts of its own.
 
     Thread-safe: {meth}`mark` may be called from worker threads. Use it as a
     context manager whenever it may run concurrently, to bound the aggregate
@@ -1357,8 +1354,8 @@ class OperationTrail:
             stands for `visible=False`, and `True` for `live="always"`.
         :raises ValueError: if `progress_bar` is set without a positive
             `total`, or together with `spinner`, if `clock` is neither
-            `"elapsed"` nor `"eta"`, or if `live` is not `"auto"`, `"always"`
-            or `"never"`.
+            `"elapsed"` nor `"eta"`, or if `live` is not one of
+            {data}`~click_extra.spinner.LIVE_MODES`.
         """
         if progress_bar and total <= 0:
             raise ValueError("progress_bar=True requires a positive total.")

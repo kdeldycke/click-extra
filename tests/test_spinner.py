@@ -633,8 +633,13 @@ def test_kept_line_paints_label_and_timer_with_part_styles(monkeypatch):
         timer=True,
         label_style=Style(italic=True),
         timer_style=Style(dim=True),
+        interval=0.02,
     )
     spinner.start()
+    # Wait for a frame: `ok()` erases it with a clear-to-end-of-line, and that
+    # erasure is what the kept line is isolated from below. A finisher landing
+    # between the hide-cursor write and the first frame leaves no clear at all.
+    assert wait_until(lambda: spinner._drawn)
     spinner.ok(symbol="*", style=Style(fg="green"))
     written = stream.getvalue().rpartition(CLEAR_LINE)[2]
     line = written.removeprefix(SHOW_CURSOR).removesuffix("\n")
@@ -651,10 +656,16 @@ def test_kept_line_strips_embedded_escapes_with_color_off():
     assert stream.getvalue() == "* Brewing tea\n"
 
 
-@pytest.mark.parametrize("argument", ("label_style", "timer_style"))
-def test_invalid_part_style_raises(argument):
+@pytest.mark.parametrize(
+    "options",
+    (
+        pytest.param({"label_style": Style(fg="notacolor")}, id="label_style"),
+        pytest.param({"timer_style": Style(fg="notacolor")}, id="timer_style"),
+    ),
+)
+def test_invalid_part_style_raises(options):
     with pytest.raises(ValueError, match="Invalid spinner style"):
-        Spinner(**{argument: Style(fg="notacolor")})
+        Spinner(**options)
 
 
 def test_frame_lines_are_what_the_animation_draws(monkeypatch):

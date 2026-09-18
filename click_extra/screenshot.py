@@ -318,7 +318,7 @@ class Chrome:
 
 
 CHROME_FIELDS: frozenset[str] = frozenset(field.name for field in fields(Chrome))
-"""Names of the {class}`Chrome` fields, which the capture functions once took one by one."""
+"""The {class}`Chrome` field names, which the capture functions once took one by one."""
 
 
 def fold_chrome_arguments(

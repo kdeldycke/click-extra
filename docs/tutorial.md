@@ -348,7 +348,7 @@ You can target specific versions of Click Extra in your script dependencies:
 :emphasize-lines: 3
 #!/usr/bin/env -S uv run --script
 # /// script
-# dependencies = ["click-extra == 9.1.0"]
+# dependencies = ["click-extra == 9.2.0"]
 # ///
 ```
 ````

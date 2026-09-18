@@ -1732,9 +1732,10 @@ class SortByOption(ExtraOption):
 
     Column definitions are `ColumnSpec` instances, passed positionally or via
     the `columns=` keyword. A column marked `sortable=False` keeps its place in
-    the layout without being offered as a choice. Passing a `ColumnSpec` registry via `columns=` lets the same
-    tuple drive both `ColumnsOption` (`--columns`) and `--sort-by`, so
-    the two options stay in sync from a single source of truth.
+    the layout without being offered as a choice. Passing a `ColumnSpec`
+    registry via `columns=` lets the same tuple drive both `ColumnsOption`
+    (`--columns`) and `--sort-by`, so the two options stay in sync from a
+    single source of truth.
 
     ```{code-block} python
 
@@ -1775,7 +1776,10 @@ class SortByOption(ExtraOption):
     def installed():
         print_table(
             rows,
-            [ColumnSpec("package_id", "Package ID"), ColumnSpec("manager_id", "Manager")],
+            [
+                ColumnSpec("package_id", "Package ID"),
+                ColumnSpec("manager_id", "Manager"),
+            ],
         )
 
 

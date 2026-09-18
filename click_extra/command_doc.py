@@ -1203,8 +1203,9 @@ class HelpFormat(str, Enum):
 
     The value is the spelling `--help-format` takes. Members are ordered
     alphabetically, which is also the order `--help-format` advertises them in.
-    Adding a format is a member here, a description in {data}`HELP_FORMATS` and a
-    branch in {func}`render_help`: no new flag, no wider help screen. See
+    Adding a format is a member here, a description in
+    {data}`~click_extra.command_doc.HELP_FORMATS` and a branch in
+    {func}`render_help`: no new flag, no wider help screen. See
     {doc}`/man-page` for what each one is good for.
 
     A `str` subclass, so a member compares, hashes and sorts as its value, and a
@@ -1219,7 +1220,7 @@ class HelpFormat(str, Enum):
     MARKDOWN_FULL = "markdown-full"
 
     def __str__(self) -> str:
-        return str(self.value)
+        return self.value
 
 
 HELP_FORMATS: dict[HelpFormat, str] = {

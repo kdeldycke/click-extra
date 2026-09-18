@@ -20,7 +20,6 @@
 - Add `rewrite_fenced_regions`, `split_options`, `skip_region` and `region_markers` to `click_extra.blocks`: the marker-region refresh the `:mirror:` and `:screenshot:` directive options share.
 - Add `build_moment` to `click_extra.version`, the `SOURCE_DATE_EPOCH`-aware instant `--version` and the man page date both stamp.
 - Add `attached_value` to `DocOptionItem`, the `[=METAVAR]` form of an option taking an optional value.
-- Name the INI option a value cannot be converted for in the error, as an argfile does, instead of raising the bare conversion error.
 - Add `sortable` to `ColumnSpec`, keeping a column in the table layout without offering it to `--sort-by`.
 - Show a `Spinner`'s elapsed time under `--time` by default, as `OperationTrail` and `progressbar` do.
 - Type the result of `search_params` and `last_param` as the parameter class they look for, so a match needs no `isinstance` check.
@@ -29,8 +28,9 @@
 - Add `HelpFormat`, the enum of `--help-format` formats. `render_help` takes a member or its value, and `HELP_FORMATS` maps each member to its description.
 - Tag the prompt line `run_cli` logs with its `label` too, so an interleaved log attributes each command as well as its output.
 - Add `label_style` and `timer_style` to `Spinner`, painting the label and the timer (parentheses included) apart from `style`, on every frame and on the kept `ok()` / `fail()` line.
-- Strip the ANSI escapes embedded in a `Spinner` label when color is off, so `--no-color` and `NO_COLOR` also hold for a label styled by hand.
 - Start a log message spanning several lines below its level prefix, so a block like a command's captured output keeps its columns instead of shifting its first line right.
+- Name the INI option a value cannot be converted for in the error, as an argfile does, instead of raising the bare conversion error.
+- Strip the ANSI escapes embedded in a `Spinner` label when color is off, so `--no-color` and `NO_COLOR` also hold for a label styled by hand.
 - Fix an `OperationTrail` batch that finishes inside its `delay` leaving no trail on screen: its lines now echo plainly, with its finisher if it has one, as a sequential batch's do.
 - Fix `OperationTrail` lines and finisher written above a drawn indicator keeping their color under `--no-color` or `NO_COLOR`, and a `Spinner` on a worker thread missing `--no-color`.
 - Fix an option typed `EnumChoice` with a `None` default failing validation when left out, reading it as a choice named `None`.

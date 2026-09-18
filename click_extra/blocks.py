@@ -174,7 +174,7 @@ def replace_region(text: str, name: str, content: str, *, pad: bool = True) -> s
 
 
 def region_markers(name: str) -> tuple[str, str]:
-    """The `(open, close)` lines of a `<!-- name -->` region, as a refresher writes them.
+    """The `(open, close)` marker lines of a `<!-- name -->` region.
 
     The writing-side twin of {func}`marker_res`: `<!-- name -->` opens the
     region and `<!-- name-end -->` closes it, and every refresher writes both

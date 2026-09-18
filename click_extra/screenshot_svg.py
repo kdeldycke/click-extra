@@ -545,9 +545,8 @@ def blend(color: str, into: str, ratio: float) -> str:
     :return: the blended color, as `#rrggbb`.
     """
     start, end = _hex_to_rgb(color), _hex_to_rgb(into)
-    return _rgb_to_hex(
-        tuple(round(a + (b - a) * ratio) for a, b in zip(start, end)),  # type: ignore[arg-type]
-    )
+    blended = tuple(round(a + (b - a) * ratio) for a, b in zip(start, end))
+    return _rgb_to_hex(blended)  # type: ignore[arg-type]
 
 
 def _split_arguments(text: str) -> list[str]:
@@ -1523,11 +1522,12 @@ def render_svg(
                     radius=radius,
                 )
             )
+        buttons_markup = window_buttons(
+            buttons, width=window_width, color=buttons_color, font_stack=font_stack
+        )
         body.append(
             f'<g transform="translate({_svg_number(margin + WINDOW_INSET)}, '
-            f'{_svg_number(margin + WINDOW_INSET)})">'
-            f"{window_buttons(buttons, width=window_width, color=buttons_color, font_stack=font_stack)}"
-            "</g>"
+            f'{_svg_number(margin + WINDOW_INSET)})">{buttons_markup}</g>'
         )
         if title:
             body.append(

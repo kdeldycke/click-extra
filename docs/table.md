@@ -506,7 +506,7 @@ A width can also be declared on the {class}`~click_extra.columns.ColumnSpec` des
 
 ```{click:source}
 from click_extra import command, pass_context
-from click_extra.table import ColumnSpec
+from click_extra.columns import ColumnSpec
 
 COLUMNS = (
     ColumnSpec(id="city", label="City"),
@@ -662,7 +662,7 @@ When active, `SortByOption` publishes the derived sort key on the context, where
 
 ```{click:source}
 from click_extra import command, pass_context, sort_by_option
-from click_extra.table import ColumnSpec
+from click_extra.columns import ColumnSpec
 
 @command
 @sort_by_option(
@@ -713,7 +713,7 @@ To keep `--sort-by` and `--columns` in sync, pass the same `ColumnSpec` registry
 
 ```{click:source}
 from click_extra import columns_option, command, pass_context, sort_by_option
-from click_extra.table import ColumnSpec
+from click_extra.columns import ColumnSpec
 
 COLUMNS = (
     ColumnSpec("fruit", "Fruit"),
@@ -751,7 +751,8 @@ Each table then declares which field its columns carry, by passing `ColumnSpec` 
 
 ```{click:source}
 from click_extra import group, sort_by_option
-from click_extra.table import ColumnSpec, TableFormat, print_table
+from click_extra.columns import ColumnSpec
+from click_extra.table import TableFormat, print_table
 
 @group
 @sort_by_option("fruit", "price", default=())
