@@ -935,11 +935,11 @@ def test_bracket_field_full_combination_styling():
 
 
 def test_range_field_does_not_leak_into_following_choice():
-    """A range field must not bleed its bracket styling into the next option.
+    r"""A range field must not bleed its bracket styling into the next option.
 
     Regression guard: the ``[x>=1]`` field emitted for an ``IntRange(min=1)``
     option is immediately followed by a ``Choice`` option whose ``[apple|mango]``
-    metavar supplies a closing ``]``. When the range bound matched ``\\S+`` it
+    metavar supplies a closing ``]``. When the range bound matched ``\S+`` it
     absorbed the field's own ``]``, letting the bracket regex run past the field
     and dim everything up to the choice metavar's ``]``. Assert the range field
     is self-contained and closed, and the following choice keeps its own

@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""The bundled catalog of terminal presets a capture can be drawn as.
+r"""The bundled catalog of terminal presets a capture can be drawn as.
 
 A capture is a picture of a terminal, and terminals do not look alike. A preset
 carries the five things that make one recognizable, so a reader placing the
@@ -24,7 +24,7 @@ image knows which desktop it came from:
 - the **palette** its colors resolve against, which is what turns a bright blue
   into Campbell's `#3B78FF` or Tango's `#729FCF`;
 - the **font** the terminal ships with;
-- the **prompt** its shell draws, `$` against `PS C:\\>`;
+- the **prompt** its shell draws, `$` against `PS C:\>`;
 - the **cursor** it draws, a block everywhere but Windows Terminal, which
   opens on a bar.
 

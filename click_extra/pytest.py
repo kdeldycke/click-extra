@@ -96,12 +96,12 @@ def invoke(runner):
 
 @pytest.fixture
 def isolated_app_dir(monkeypatch, tmp_path):
-    """Repoint configuration-file discovery at a fresh, empty directory.
+    r"""Repoint configuration-file discovery at a fresh, empty directory.
 
     The default `--config` search pattern derives from
     {func}`click.get_app_dir`, which resolves to the *host* configuration
     folder (`~/Library/Application Support/<app>` on macOS,
-    `~/.config/<app>` on Unix, `%APPDATA%\\<app>` on Windows). Any
+    `~/.config/<app>` on Unix, `%APPDATA%\<app>` on Windows). Any
     configuration file living there bleeds into every in-process CLI
     invocation, making a test suite pass or fail depending on the developer's
     personal configuration.

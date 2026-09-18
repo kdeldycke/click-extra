@@ -238,7 +238,7 @@ class TerminalScreen:
         self._write(tail)
 
     def _land(self) -> None:
-        """Apply a deferred carriage return, just before something lands.
+        r"""Apply a deferred carriage return, just before something lands.
 
         A return only *moves* the cursor: whether the row survives depends on
         what comes next. Text or styling landing on the row redraws it, so the

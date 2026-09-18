@@ -816,7 +816,7 @@ def format_cli_prompt(
     theme: HelpTheme | None = None,
     prompt: str | None = None,
 ) -> str:
-    """Render the shell prompt simulating a CLI invocation, for logs and dry-runs.
+    r"""Render the shell prompt simulating a CLI invocation, for logs and dry-runs.
 
     Prefixes {data}`~click_extra.execution.PROMPT` to any `extra_env` assignments
     and the command line. Each token family is styled with the theme slot
@@ -841,7 +841,7 @@ def format_cli_prompt(
     ```{note}
     The program is left as it stands. Quoting has to wrap the whole token, which
     would put the closing quote inside the name {func}`highlight_bin_name` styles,
-    and a Windows path is quoted whole for its separators alone: `C:\\Tools\\mas.exe`
+    and a Windows path is quoted whole for its separators alone: `C:\Tools\mas.exe`
     needs none of it to paste back.
     ```
 
@@ -854,7 +854,7 @@ def format_cli_prompt(
         show.
     :param prompt: sigil to draw before the command, when the shell being
         pictured is not the one running. A capture mimicking a Windows terminal
-        passes `PS C:\\>`; `None` keeps {data}`PROMPT`, which is this platform's.
+        passes `PS C:\>`; `None` keeps {data}`PROMPT`, which is this platform's.
     :return: the styled prompt line.
     """
     active_theme = get_current_theme() if theme is None else theme
@@ -1210,7 +1210,7 @@ def run_cli(
     log: logging.Logger | None = None,
     merge_streams: bool | T_UNSET = UNSET,
 ) -> subprocess.CompletedProcess[str]:
-    """Run a CLI in a subprocess, disclosing the call and streaming its output live.
+    r"""Run a CLI in a subprocess, disclosing the call and streaming its output live.
 
     A {func}`subprocess.run` work-alike for CLI-wrapping tools, with observability
     built in:
@@ -1243,10 +1243,10 @@ def run_cli(
     `stdin`, and never opens a console window on Windows.
 
     ```{note}
-    The pipes are opened in universal-newlines text mode, so a bare `\\r`
+    The pipes are opened in universal-newlines text mode, so a bare `\r`
     (a child redrawing a progress bar in place) terminates a line just like
-    `\\n`: each redraw is streamed as its own log line, and the captured
-    text normalizes both to `\\n`, exactly as
+    `\n`: each redraw is streamed as its own log line, and the captured
+    text normalizes both to `\n`, exactly as
     {meth}`subprocess.Popen.communicate` does.
     ```
 

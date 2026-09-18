@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Extract a Click command into a structured document and render it.
+r"""Extract a Click command into a structured document and render it.
 
 {func}`extract_command_doc` walks a command (and, through
 {func}`iter_command_contexts`, its whole tree) into a {class}`CommandDoc`: one
@@ -31,7 +31,7 @@ The roff backend is Click Extra's answer to the unmaintained [click-man](https:/
 - discovering subcommands dynamically through
   {meth}`click.Group.list_commands` / {meth}`click.Group.get_command` with a
   live context;
-- honoring Click's `\\b` no-rewrap marker (rendered as roff `.nf` / `.fi`);
+- honoring Click's `\b` no-rewrap marker (rendered as roff `.nf` / `.fi`);
 - rendering boolean flags (`--foo` / `--no-foo`) and skipping hidden
   commands and options;
 - mirroring Cloup option groups as `.SS` subsections of OPTIONS (ungrouped
@@ -42,8 +42,8 @@ The roff backend is Click Extra's answer to the unmaintained [click-man](https:/
 
 Font selection follows the man typographic convention encoded by
 {data}`click_extra.theme.LITERAL_STYLES` / {data}`~click_extra.theme.REPLACEABLE_STYLES`:
-literal tokens (command and option names) render bold (`\\fB`), replaceable
-tokens (metavars, operands) render italic (`\\fI`).
+literal tokens (command and option names) render bold (`\fB`), replaceable
+tokens (metavars, operands) render italic (`\fI`).
 """
 
 from __future__ import annotations
@@ -155,10 +155,10 @@ usage errors (`UsageError`), `1` for aborts, and `0` on success.
 
 
 def _roff_escape(text: str) -> str:
-    """Escape inline text for roff.
+    r"""Escape inline text for roff.
 
-    Backslashes become `\\e` first (so escapes added afterwards survive), then
-    literal hyphens become `\\-` so they render as copy-pasteable minus signs
+    Backslashes become `\e` first (so escapes added afterwards survive), then
+    literal hyphens become `\-` so they render as copy-pasteable minus signs
     rather than typographic hyphens (important for option names like
     `--config`).
     """
@@ -166,7 +166,7 @@ def _roff_escape(text: str) -> str:
 
 
 def _neutralize_leading_control(text: str) -> str:
-    """Prefix a zero-width `\\&` when `text` starts with a roff control
+    r"""Prefix a zero-width `\&` when `text` starts with a roff control
     character (`.` or `'`) so it is not mistaken for a macro request.
     """
     if text[:1] in (".", "'"):
@@ -190,10 +190,10 @@ def _quote(text: str) -> str:
 
 
 def _render_inline(text: str) -> str:
-    """Render one line of Click help prose to a roff body line.
+    r"""Render one line of Click help prose to a roff body line.
 
     Translates each reST inline literal (`"`...`"`) to a bold span
-    (`\\fB...\\fR`); escapes plain prose with {func}`_roff_escape`;
+    (`\fB...\fR`); escapes plain prose with {func}`_roff_escape`;
     neutralizes a leading control character (`.` or `'`) so the result
     is safe to emit between any other roff macros.
     """
@@ -204,9 +204,9 @@ def _render_inline(text: str) -> str:
 
 
 def _emit_help(text: str) -> list[str]:
-    """Render Click help/description prose to roff body lines (no section macro).
+    r"""Render Click help/description prose to roff body lines (no section macro).
 
-    Click marks a no-rewrap region with a `\\b` (`\\x08`) control
+    Click marks a no-rewrap region with a `\b` (`\x08`) control
     character: everything after the marker within the same paragraph is
     rendered verbatim. Each paragraph is therefore split into a filled
     prefix and a preformatted suffix, with `.nf` / `.fi` wrapping
@@ -276,9 +276,9 @@ def normalize_examples(
 
 
 def _clean_help(text: str) -> str:
-    """Normalize Click help prose for the backends that carry newlines natively.
+    r"""Normalize Click help prose for the backends that carry newlines natively.
 
-    Runs {func}`inspect.cleandoc` and drops Click's `\\b` (`\\x08`) no-rewrap
+    Runs {func}`inspect.cleandoc` and drops Click's `\b` (`\x08`) no-rewrap
     marker, keeping every line break the marker protected. Markdown and JSON
     both represent those breaks on their own, so neither needs an equivalent of
     the roff `.nf` / `.fi` pair {func}`_emit_help` emits: only the control
@@ -288,10 +288,10 @@ def _clean_help(text: str) -> str:
 
 
 def _markdown_help(text: str) -> list[str]:
-    """Render Click help prose as Markdown block lines.
+    r"""Render Click help prose as Markdown block lines.
 
     Paragraphs are emitted as prose, with one exception: the region Click marks
-    with `\\b` keeps its shape inside a fenced code block. That marker exists
+    with `\b` keeps its shape inside a fenced code block. That marker exists
     precisely because the author aligned something by hand (a table, a tree, a
     sample session), and Markdown would reflow it into a single line otherwise.
     """
@@ -431,9 +431,9 @@ class DocOptionItem:
         return spec
 
     def to_markdown(self) -> list[str]:
-        """Render this option as a Markdown list item.
+        r"""Render this option as a Markdown list item.
 
-        A `\\b` no-rewrap region in the help becomes a fenced block indented
+        A `\b` no-rewrap region in the help becomes a fenced block indented
         under the item, rather than being folded into the sentence: the author
         aligned it on purpose, and a list item can carry a block as well as a
         paragraph can.
@@ -1418,7 +1418,7 @@ today. Dropping the pair's first half leaves the plain character.
 
 
 def read_manpage(command: Command, ctx: Context | None = None) -> None:
-    """Typeset a command's manual and send it to the pager.
+    r"""Typeset a command's manual and send it to the pager.
 
     The reading counterpart of `--help-format man`, which emits the roff source
     a packager installs. Falls back to printing that source, with a warning
@@ -1429,7 +1429,7 @@ def read_manpage(command: Command, ctx: Context | None = None) -> None:
     ({func}`~click_extra.accessibility.echo_via_pager` streams instead). Both
     matter to the same reader: a pager is a cursor-driven takeover, and
     overstrike is worse than the ANSI codes accessible mode already removes,
-    since a screen reader voices `N\\x08NA\\x08AM\\x08ME\\x08E` rather than
+    since a screen reader voices `N\x08NA\x08AM\x08ME\x08E` rather than
     skipping it.
     """
     roff = render_manpage(command, ctx=ctx)

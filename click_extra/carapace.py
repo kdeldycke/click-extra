@@ -192,11 +192,11 @@ def _env_var(prog_name: str) -> str:
 
 
 def _dynamic_action(command_path: tuple[str, ...], option: str | None = None) -> str:
-    """A Carapace shell-macro action that calls back into the CLI for completion.
+    r"""A Carapace shell-macro action that calls back into the CLI for completion.
 
     Carapace's default `$(...)` macro runs `sh -c '<script>' -- <words>`,
     exposing the already-typed words as `$*` and parsing each output line as
-    `value\\tdescription`. The script re-invokes the program in Click's
+    `value\tdescription`. The script re-invokes the program in Click's
     completion mode ({class}`CarapaceComplete`, registered as the `carapace`
     shell), which prints exactly that. Carapace prefix-filters the result, so the
     callback returns the full candidate set.
@@ -721,10 +721,10 @@ def install_carapace_spec(
 
 @add_completion_class
 class CarapaceComplete(ShellComplete):
-    """Click completion backend that emits Carapace's value/description lines.
+    r"""Click completion backend that emits Carapace's value/description lines.
 
     Registered as the `carapace` shell, so `_FOO_COMPLETE=carapace_complete`
-    makes a Click CLI print completions in the `value\\tdescription` text format
+    makes a Click CLI print completions in the `value\tdescription` text format
     Carapace's shell macro parses. This is the callback target of the dynamic
     actions emitted by {func}`_dynamic_action`; it reuses Click's own
     {meth}`~click.shell_completion.ShellComplete.get_completions`, so a parameter's
@@ -755,7 +755,7 @@ class CarapaceComplete(ShellComplete):
         return args, ""
 
     def format_completion(self, item) -> str:
-        """Render one completion as Carapace's `value` or `value\\tdescription`."""
+        r"""Render one completion as Carapace's `value` or `value\tdescription`."""
         if item.help:
             return f"{item.value}\t{item.help}"
         return str(item.value)

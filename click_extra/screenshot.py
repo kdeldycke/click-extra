@@ -643,7 +643,7 @@ def emphasize_ansi(
     lines: Sequence[int],
     paint: str,
 ) -> str:
-    """Band the named lines of ANSI text, the way a terminal can.
+    r"""Band the named lines of ANSI text, the way a terminal can.
 
     The picture's band is a rectangle drawn behind a row. A terminal has no
     behind, so the band is the row's own background color, set for the whole
@@ -652,7 +652,7 @@ def emphasize_ansi(
 
     ```{caution}
     The band is restated after every escape sequence in the row, not just at
-    its start. Pygments closes a colored run with a full reset (`\\x1b[39;00m`),
+    its start. Pygments closes a colored run with a full reset (`\x1b[39;00m`),
     which clears the background along with the ink: set once, a band would stop
     at the row's first keyword. Restating the same color costs nothing to look
     at, since the second declaration paints what the first already did.

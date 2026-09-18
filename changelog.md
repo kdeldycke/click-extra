@@ -8,6 +8,7 @@
 - Fix the `--jobs` help and documentation, which said `auto` always leaves one logical CPU free: hosts with fewer than three use all of them.
 - Document `HelpFormat`, `DocOptionItem.attached_value` and `build_moment`, which `9.3.0` shipped without a docs mention.
 - Fix the `HelpFormatOption` docstring, which described `--man` as `--help-format roff`, a format that does not exist.
+- Fix the API documentation of `TerminatedEchoingStdin`, which rendered an invisible EOT character where it meant to show `\x04`.
 - Skip `test_sphinx_runner_resets_version_resolution` without the `sphinx` extra, instead of failing on an `ImportError`, so `pytest -m "not network"` passes without the docs toolchain.
 
 ## [`9.3.0` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.2.0...v9.3.0)

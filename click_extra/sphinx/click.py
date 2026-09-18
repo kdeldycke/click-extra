@@ -243,7 +243,7 @@ def _myst_content_offset_inflation(directive: SphinxDirective) -> int:
 
 
 class TerminatedEchoingStdin(EchoingStdin):
-    """Like `click.testing.EchoingStdin` but adds a visible
+    r"""Like `click.testing.EchoingStdin` but adds a visible
     `^D` in place of the EOT character (`\x04`).
 
     {meth}`ClickRunner.invoke` adds `\x04` when `terminate_input=True`.

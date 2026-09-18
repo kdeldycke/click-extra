@@ -659,16 +659,16 @@ class Style(cloup.Style):
 
     @classmethod
     def from_ansi(cls, escape: str) -> Style:
-        """Parse one or more consecutive ANSI SGR escapes into a {class}`Style`.
+        r"""Parse one or more consecutive ANSI SGR escapes into a {class}`Style`.
 
         Supports the standard 8/16-color codes (30–37, 40–47, 90–97,
         100–107), the `38;5;n` / `48;5;n` 256-color extension, and the
         `38;2;r;g;b` / `48;2;r;g;b` 24-bit extension. Reset codes (the
-        full `0` reset, its parameter-less `\\x1b[m` form included, and
+        full `0` reset, its parameter-less `\x1b[m` form included, and
         selective resets like `22`, `39` or `49`) are ignored, so
         parsing the full output of a style call (trailing reset included)
         recovers that style. Multiple back-to-back escapes (as click emits
-        when combining colors with attributes: `\\x1b[31m\\x1b[1m`) are
+        when combining colors with attributes: `\x1b[31m\x1b[1m`) are
         merged into a single {class}`Style`.
 
         To tokenize a string mixing text and escapes, with resets honored,
@@ -734,10 +734,10 @@ _JIRA_ATTR_MARKUP: dict[str, str] = {
 
 
 def _sgr_params(params: str) -> tuple[int, ...]:
-    """Decode an SGR parameter substring into a sequence of integer codes.
+    r"""Decode an SGR parameter substring into a sequence of integer codes.
 
-    Per ECMA-48, an empty parameter defaults to `0`: `\\x1b[m` is a full
-    reset, and `\\x1b[;31m` carries a reset followed by a red foreground.
+    Per ECMA-48, an empty parameter defaults to `0`: `\x1b[m` is a full
+    reset, and `\x1b[;31m` carries a reset followed by a red foreground.
     """
     return tuple(int(code) if code else 0 for code in params.split(";"))
 
@@ -951,9 +951,9 @@ def _html_emitter(style: Style, text: str) -> str:
 
 
 def ansi_to_html(text: str) -> str:
-    """Translate ANSI styling in *text* to inline-styled HTML `<span>` tags.
+    r"""Translate ANSI styling in *text* to inline-styled HTML `<span>` tags.
 
-    `\\x1b[34mSummer\\x1b[0m` becomes
+    `\x1b[34mSummer\x1b[0m` becomes
     `<span style="color: blue">Summer</span>`. The spans are self-contained
     (no stylesheet needed) and also valid in markups accepting inline HTML,
     like MediaWiki.
@@ -982,15 +982,15 @@ def _jira_emitter(style: Style, text: str) -> str:
 
 
 def ansi_to_jira(text: str) -> str:
-    """Translate ANSI styling in *text* to Jira wiki markup.
+    r"""Translate ANSI styling in *text* to Jira wiki markup.
 
-    `\\x1b[34;1mSummer\\x1b[0m` becomes ``{color:blue}*Summer*{color}``.
+    `\x1b[34;1mSummer\x1b[0m` becomes ``{color:blue}*Summer*{color}``.
     """
     return render_ansi(text, _jira_emitter)
 
 
 def _latex_color(color: object) -> str:
-    """Render a color as `\\textcolor` / `\\colorbox` arguments.
+    r"""Render a color as `\textcolor` / `\colorbox` arguments.
 
     The 8 base ANSI color names are [predefined by xcolor](https://ctan.org/pkg/xcolor) and pass through as ``{name}``. Everything
     else (bright variants, 256-color indices, 24-bit values) resolves to an
@@ -1003,10 +1003,10 @@ def _latex_color(color: object) -> str:
 
 
 def _latex_emitter(style: Style, text: str) -> str:
-    """Wrap *text* in LaTeX styling macros.
+    r"""Wrap *text* in LaTeX styling macros.
 
     Colors require the [xcolor package](https://ctan.org/pkg/xcolor) in the
-    document preamble (``\\usepackage{xcolor}``); bold, italic and underline
+    document preamble (``\usepackage{xcolor}``); bold, italic and underline
     use core LaTeX macros. Dim, overline, reverse, blink and strikethrough
     have no core-LaTeX equivalent and are dropped (strikethrough alone would
     pull in the `ulem` package).
@@ -1026,11 +1026,11 @@ def _latex_emitter(style: Style, text: str) -> str:
 
 
 def ansi_to_latex(text: str) -> str:
-    """Translate ANSI styling in *text* to LaTeX macros.
+    r"""Translate ANSI styling in *text* to LaTeX macros.
 
-    `\\x1b[34;1mSummer\\x1b[0m` becomes
-    ``\\textcolor{blue}{\\textbf{Summer}}``. The colored macros require
-    ``\\usepackage{xcolor}`` in the document preamble.
+    `\x1b[34;1mSummer\x1b[0m` becomes
+    ``\textcolor{blue}{\textbf{Summer}}``. The colored macros require
+    ``\usepackage{xcolor}`` in the document preamble.
     """
     return render_ansi(text, _latex_emitter)
 
@@ -1049,9 +1049,9 @@ def _textile_emitter(style: Style, text: str) -> str:
 
 
 def ansi_to_textile(text: str) -> str:
-    """Translate ANSI styling in *text* to Textile spans.
+    r"""Translate ANSI styling in *text* to Textile spans.
 
-    `\\x1b[34;1mSummer\\x1b[0m` becomes
+    `\x1b[34;1mSummer\x1b[0m` becomes
     ``%{color: blue; font-weight: bold}Summer%``.
     """
     return render_ansi(text, _textile_emitter)

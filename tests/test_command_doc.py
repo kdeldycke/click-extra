@@ -135,7 +135,7 @@ def test_count_option_has_no_metavar():
 
 
 def test_no_rewrap_marker_becomes_no_fill():
-    """Click's ``\\b`` marker must produce a roff ``.nf`` / ``.fi`` block (click-man #9)."""
+    r"""Click's ``\b`` marker must produce a roff ``.nf`` / ``.fi`` block (click-man #9)."""
     roff = render_manpage(weather)
     assert ".nf" in roff
     assert ".fi" in roff
@@ -143,7 +143,7 @@ def test_no_rewrap_marker_becomes_no_fill():
 
 
 def test_no_rewrap_marker_does_not_leak_into_surrounding_paragraphs():
-    """A ``\\b`` paragraph must not switch the whole DESCRIPTION to
+    r"""A ``\b`` paragraph must not switch the whole DESCRIPTION to
     preformatted mode: prose before and after stays filled, only the
     marked paragraph lands between ``.nf`` / ``.fi``."""
 
@@ -158,7 +158,7 @@ def test_no_rewrap_marker_does_not_leak_into_surrounding_paragraphs():
         original line breaks.
 
         Trailing paragraph that should also render as filled prose.
-        """
+        """  # noqa: D301  Click reads the \b backspace as a no-rewrap marker.
 
     roff = render_manpage(harbor)
     # Scope the assertions to the DESCRIPTION block: the FILES section
@@ -189,8 +189,8 @@ def test_name_line_keeps_full_short_help():
 
 
 def test_inline_literal_in_short_help_renders_as_bold():
-    """Inline reST literals (``..``) in the first docstring line land on
-    the NAME ``.SH`` line as ``\\fB..\\fR``, not as raw backticks (which
+    r"""Inline reST literals (``..``) in the first docstring line land on
+    the NAME ``.SH`` line as ``\fB..\fR``, not as raw backticks (which
     mandoc renders as quote characters)."""
 
     @command
@@ -206,7 +206,7 @@ def test_inline_literal_in_short_help_renders_as_bold():
 
 
 def test_inline_literal_in_description_renders_as_bold():
-    """Inline reST literals in the description body become ``\\fB..\\fR``
+    r"""Inline reST literals in the description body become ``\fB..\fR``
     so mandoc's HTML output shows them in bold rather than wrapped in
     Unicode quote characters."""
 
@@ -723,7 +723,7 @@ def test_markdown_full_walks_the_whole_tree():
 
 
 def test_no_rewrap_marker_keeps_its_shape_in_markdown():
-    """A `\\b` region is fenced rather than reflowed into a paragraph."""
+    r"""A `\b` region is fenced rather than reflowed into a paragraph."""
     md = render_help(weather, "markdown", prog_name="weather")
     assert "  ```text\n  line one\n  line two\n  ```" in md
 

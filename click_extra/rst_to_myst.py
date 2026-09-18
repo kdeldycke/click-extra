@@ -42,15 +42,15 @@ _RST_UNDERLINE_LEVELS: dict[str, str] = {
 
 
 def _clean_heading(title: str) -> str:
-    """Normalize an RST heading for markdown.
+    r"""Normalize an RST heading for markdown.
 
-    Strips RST-specific backslash escapes (e.g. `\\_` used to prevent
+    Strips RST-specific backslash escapes (e.g. `\_` used to prevent
     reference interpretation) and wraps qualified Python identifiers in
     backticks so they render as code.
 
     ```{note}
     `sphinx-apidoc` produces headings like
-    `weather\\_station\\_manager.managers.apm module`.  The backslash
+    `weather\_station\_manager.managers.apm module`.  The backslash
     escapes are necessary in RST but meaningless in markdown, where they
     cause a tug-of-war with `mdformat` (which strips them on every
     reformat pass).  Wrapping the identifier in backticks makes the

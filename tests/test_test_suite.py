@@ -197,7 +197,7 @@ def test_cases_from_data_rejects_unknown_directive():
     ),
 )
 def test_split_args_honors_quotes(cli, expected):
-    """Quoting survives tokenization identically on POSIX and Windows.
+    r"""Quoting survives tokenization identically on POSIX and Windows.
 
     `shlex` and `CommandLineToArgvW` are two different parsers, so the cases
     above are the subset of syntax on which they must agree. Windows used to
@@ -206,7 +206,7 @@ def test_split_args_honors_quotes(cli, expected):
     Two corners stay out on purpose, because the parsers answer differently and
     each answer is right for its platform: a backslash escapes the next
     character for `shlex` but stands for itself on Windows (which is what keeps
-    `C:\\Users` intact), and a doubled quote inside a quoted run closes and
+    `C:\Users` intact), and a doubled quote inside a quoted run closes and
     reopens it for `shlex` while Windows folds it into one literal quote.
     """
     assert _split_args(cli) == expected

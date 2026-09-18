@@ -808,7 +808,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         ctx: click.Context,
         formatter: click.HelpFormatter,
     ) -> None:
-        """Write an `Examples:` section listing the command's {attr}`examples`.
+        r"""Write an `Examples:` section listing the command's {attr}`examples`.
 
         Each entry renders its description, then the command line it describes,
         indented behind a `$` prompt. A command declaring none writes nothing at
@@ -818,7 +818,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         The command lines go out verbatim rather than through
         `formatter.write_text()`: an example exists to be copied, and Click's
         text wrapper would fold a long one onto a second line mid-token. This is
-        the same call the `\\b` no-rewrap marker makes for help prose.
+        the same call the `\b` no-rewrap marker makes for help prose.
 
         Nothing here styles anything. The lines land in the formatter's buffer,
         which {meth}`~click_extra.highlight.HelpFormatter.getvalue` runs through

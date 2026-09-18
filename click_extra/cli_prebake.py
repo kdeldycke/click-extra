@@ -208,7 +208,7 @@ def all_fields(module: Path | None) -> None:
     `__git_dirty__`) are baked if their dunder placeholder exists and a git
     resolution is available. Fields without a placeholder in the source file
     are skipped silently.
-    """
+    """  # noqa: D301  Click reads the \b backspace as a no-rewrap marker.
     # The field-to-resolver tables live in click_extra.version, so adding a
     # field there needs no matching edit here. A git resolver runs in the
     # current directory; a build resolver describes the host running this

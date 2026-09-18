@@ -80,15 +80,15 @@ def greet(name):
 
 
 def test_theme_does_not_leak_across_invocations():
-    """A `--theme light` invocation must not bleed into a later `--help` render.
+    r"""A `--theme light` invocation must not bleed into a later `--help` render.
 
     Two back-to-back invocations of the same CLI in the same process:
 
     1. ``--theme light --help`` -- selects the light palette for this call only.
     2. ``--help`` -- no ``--theme`` argument, must fall back to the dark default.
 
-    The dark theme renders headings with ``\\x1b[94m`` (bright blue); the light
-    theme uses ``\\x1b[35m`` (magenta, chosen to stay distinct from its blue
+    The dark theme renders headings with ``\x1b[94m`` (bright blue); the light
+    theme uses ``\x1b[35m`` (magenta, chosen to stay distinct from its blue
     options). If the second invocation picks up the first's choice via
     process-wide state, it leaks the light palette and the assertion below fails.
     """

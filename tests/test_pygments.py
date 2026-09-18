@@ -786,7 +786,7 @@ def test_osc_sequence_stripped():
 
 
 def test_osc_st_terminated_stripped():
-    """OSC sequences terminated by ST (ESC \\) are fully stripped."""
+    r"""OSC sequences terminated by ST (ESC \) are fully stripped."""
     tokens = lex("\x1b]0;title\x1b\\visible")
     assert tokens == [(Text, "visible\n")]
 

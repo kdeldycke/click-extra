@@ -873,7 +873,7 @@ def test_defaults_without_frames_or_preset():
 
 
 def test_multichar_preset_renders():
-    """A multi-character animation (which upstream `\\b` renderers drop) draws."""
+    r"""A multi-character animation (which upstream `\b` renderers drop) draws."""
     preset = SPINNERS["bouncing-bar"]
     assert any(len(frame) > 1 for frame in preset.frames)  # Multi-char frames.
     stream = TTYStringIO()
