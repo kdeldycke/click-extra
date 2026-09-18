@@ -1620,6 +1620,8 @@ def test_sphinx_runner_resets_version_resolution():
     it holds `ClickRunner.invoke` to clearing the memo and says nothing about
     which renders would otherwise poison it.
     """
+    pytest.importorskip("sphinx", reason="click_extra.sphinx needs the sphinx extra")
+
     from click_extra.sphinx.click import ClickRunner
 
     @command
