@@ -1,9 +1,6 @@
 # Changelog
 
-## [`9.3.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.2.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`9.3.0` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.2.0...v9.3.0)
 
 - **Breaking:** Print `OperationTrail` lines and its finisher off an interactive terminal too, where no spinner or progress bar draws. Pass `visible=False` to keep a trail silent.
 - **Breaking:** Make every argument of an option class after `param_decls` keyword-only, like `ColorOption(default="never")`: pass them by name.
