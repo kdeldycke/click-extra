@@ -5,6 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Document `HelpFormat`, `DocOptionItem.attached_value` and `build_moment`, which `9.3.0` shipped without a docs mention.
+- Skip `test_sphinx_runner_resets_version_resolution` without the `sphinx` extra, instead of failing on an `ImportError`, so `pytest -m "not network"` passes without the docs toolchain.
+
 ## [`9.3.0` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.2.0...v9.3.0)
 
 > [!NOTE]
