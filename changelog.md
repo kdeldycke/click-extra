@@ -1,9 +1,6 @@
 # Changelog
 
-## [`9.3.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.3.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`9.3.1` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.3.0...v9.3.1)
 
 - Fix the `--jobs` help and documentation, which said `auto` always leaves one logical CPU free: hosts with fewer than three use all of them.
 - Fix `click:run` and `python:run` blocks ending early when the output holds a code fence of its own, which spilled the rest of it into the page.
