@@ -108,22 +108,14 @@ def captures_before_build() -> dict[Path, bytes]:
     }
 
 
-# A build stamps the generator's own release into every capture it rewrites:
-# the `@generated` XML comment and any Carapace-spec header through
-# `generator_tag`, and the default watermark through the release the package
-# reports. That release moves at every version bump, so a committed capture and
-# a fresh build of it then differ on the stamp alone, with no drift in what the
-# CLI drew, which the freshness check below would otherwise report as staleness
-# and force a restamp commit for. Blanking the stamp on both sides keeps the
-# check on the drawing while a bump passes through untouched.
 _RELEASE = rb"[0-9]+\.[0-9]+\.[0-9]+(?:\.[a-z][0-9a-z]*)?(?:\+[0-9a-z]+)?"
 """One PEP 440 release as bytes: `9.3.0`, `9.3.0.dev0`, `9.3.0.dev0+a1b2c3d`."""
 
 _GENERATOR_STAMP = re.compile(rb"Click(?:&#160;| )Extra(?:&#160;| )" + _RELEASE)
-"""`generator_tag()` output, in the XML comment and a Carapace-spec header.
+"""`generator_tag()` output, in the XML comment or drawn as a Carapace-spec header.
 
-The Carapace body renders the separators as non-breaking spaces (`&#160;`) and
-the comment as plain spaces, so both are accepted.
+A capture draws its text with non-breaking spaces (`&#160;`), and the comment
+keeps plain ones, so both separators are accepted.
 """
 
 _WATERMARK_STAMP = re.compile(rb"(click-extra</tspan></a>) " + _RELEASE + rb"(</text>)")
@@ -133,8 +125,9 @@ _WATERMARK_STAMP = re.compile(rb"(click-extra</tspan></a>) " + _RELEASE + rb"(</
 def blank_release_stamps(svg: bytes) -> bytes:
     """Replace the generator's own release wherever it stamps a capture.
 
-    A release printed as CLI output is left alone: only the two stamp contexts
-    above match, and a domain-neutral example never names `Click Extra`.
+    Any other release a capture shows, like a CLI's own `--version`, is left
+    alone: only the two patterns above match, and a domain-neutral example never
+    names `Click Extra`.
     """
     svg = _GENERATOR_STAMP.sub(b"Click Extra <release>", svg)
     return _WATERMARK_STAMP.sub(rb"\1 <release>\2", svg)
@@ -148,7 +141,7 @@ def test_committed_captures_survive_a_build(captures_before_build, built_docs):
     surfaces here, instead of sitting stale in a readme nobody re-checked.
 
     The generator's release is blanked on both sides first: it moves at every
-    version bump and would otherwise redden this test on a stamp no reader sees.
+    version bump, and would otherwise redden this test when nothing else changed.
     Regenerating is still the fix for a real difference: build and commit it.
     """
     assert captures_before_build, "no committed capture found to check"

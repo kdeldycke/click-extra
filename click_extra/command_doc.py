@@ -1525,10 +1525,10 @@ class HelpFormatOption(ExtraOption):
     """A pre-configured `--help-format` option printing the command in one of the
     {class}`HelpFormat` formats and exiting.
 
-    Eager and value-taking, unlike its `--man` neighbour, which is the same
-    renderer reached through a bare flag: `--man` is exactly
-    `--help-format roff`, kept because a runtime manual flag has its own
-    tradition (see {class}`ManOption`).
+    Eager and value-taking, unlike its `--man` neighbour. That bare flag
+    typesets the same page and sends it to the pager, where `--help-format man`
+    prints its roff source. It stays a flag of its own because a runtime manual
+    flag has its own tradition (see {class}`ManOption`).
 
     ```{note}
     One option carrying a format, rather than one flag per format. A CLI's

@@ -114,7 +114,7 @@ assert "- `CITY`: Name of the city to report on." in result.output
 | `markdown`      | This command as a Markdown document, one section per topic.                                           |
 | `markdown-full` | Every command of the tree as one Markdown document.                                                   |
 
-Each row is a {py:class}`HelpFormat <click_extra.command_doc.HelpFormat>` member, and the table mirrors {py:data}`HELP_FORMATS <click_extra.command_doc.HELP_FORMATS>`, the map `--help-format`'s help text is built from. {py:func}`render_help() <click_extra.command_doc.render_help>` renders a command to a given member from Python, exactly what the option does at runtime.
+Each row is a {py:class}`HelpFormat <click_extra.command_doc.HelpFormat>` member, and `--help-format` takes its choices from that enum. {py:data}`HELP_FORMATS <click_extra.command_doc.HELP_FORMATS>` maps each member to a one-line description. {py:func}`render_help() <click_extra.command_doc.render_help>` renders a command in a given format from Python. The option calls that same function at runtime.
 
 ```{note}
 The plain and `-full` variants differ in how much they hand over at once. A plain render describes one command and *names* its children, so a reader descends one level at a time rather than pulling a whole tree into a context window to answer a question about one leaf. The `-full` variants are for the opposite job: generating documentation, or diffing a CLI's whole surface between two releases.
