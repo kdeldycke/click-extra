@@ -496,6 +496,11 @@ addopts = [
   # copy of the package coexists with the source tree, as in distro builds.
   "--import-mode=importlib",
 ]
+# Dump every thread's traceback if a single test runs longer than this many
+# seconds, turning a silent hang (a blocking call with no timeout) into a
+# diagnosable dump in the log instead of stalling until the CI job's limit.
+# The dump fails nothing: the test keeps running.
+faulthandler_timeout = "90"
 markers = [
   "network: Tests that require network access (excluded with -m 'not network').",
   "once: Tests that only need to run once, not across the full CI matrix.",
