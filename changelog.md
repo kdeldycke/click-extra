@@ -7,6 +7,9 @@
 
 ## [`9.3.0` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.2.0...v9.3.0)
 
+> [!NOTE]
+> `9.3.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/9.3.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v9.3.0).
+
 - **Breaking:** Print `OperationTrail` lines and its finisher off an interactive terminal too, where no spinner or progress bar draws. Pass `visible=False` to keep a trail silent.
 - **Breaking:** Make every argument of an option class after `param_decls` keyword-only, like `ColorOption(default="never")`: pass them by name.
 - **Breaking:** Drop `RESET` from `click_extra.version`: import it from `click_extra.layout`, which already carried it.
