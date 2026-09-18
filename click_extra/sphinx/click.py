@@ -633,6 +633,21 @@ def _screenshot_background(argument: str) -> CaptureBackground:
     return CaptureBackground(directives.choice(argument, choices))
 
 
+def _code_fence(lines: Iterable[str]) -> str:
+    """Return a backtick fence longer than any backtick run opening one of `lines`.
+
+    A MyST fence closes on the first bare backtick run at least as long as its
+    opener. A fixed three-backtick fence therefore ends early around content
+    holding a fence of its own, like a command's Markdown help. The fence is
+    never shorter than three backticks.
+    """
+    longest = max(
+        (len(line) - len(line.lstrip("`")) for line in map(str.lstrip, lines)),
+        default=0,
+    )
+    return "`" * max(3, longest + 1)
+
+
 class ClickDirective(SphinxDirective):
     """Base class of every `click:*` directive.
 
@@ -937,11 +952,16 @@ class ClickDirective(SphinxDirective):
         highlighting to each block.
         """
         block: list[str] = []
+        lines = list(lines)
         if not lines:
             return block
 
-        # Initiate the code block with with its MyST or rST syntax.
-        code_directive = "```{code-block}" if self.is_myst_syntax else ".. code-block::"
+        # Initiate the code block with its MyST or rST syntax. The MyST fence
+        # outgrows any fence the lines hold, which would otherwise close it.
+        fence = _code_fence(lines)
+        code_directive = (
+            f"{fence}{{code-block}}" if self.is_myst_syntax else ".. code-block::"
+        )
         block.append(f"{code_directive} {language}")
 
         # Re-attach each option to the code block.
@@ -961,7 +981,7 @@ class ClickDirective(SphinxDirective):
 
         # In MyST, we need to close the code block.
         if self.is_myst_syntax:
-            block.append("```")
+            block.append(fence)
 
         return block
 
@@ -2073,13 +2093,14 @@ class ConfigDirective(ClickDirective):
                 lines.append("")
             example = _toml_value(info.default) if include_examples else None
             if example is not None:
+                example_lines = [f"[{section}]"] if section else []
+                example_lines.extend(f"{info.key} = {example}".splitlines())
+                fence = _code_fence(example_lines)
                 lines.append("**Example:**")
                 lines.append("")
-                lines.append("```toml")
-                if section:
-                    lines.append(f"[{section}]")
-                lines.extend(f"{info.key} = {example}".splitlines())
-                lines.append("```")
+                lines.append(f"{fence}toml")
+                lines.extend(example_lines)
+                lines.append(fence)
                 lines.append("")
 
         # Hand the generated MyST source back to the parser, like click:tree.

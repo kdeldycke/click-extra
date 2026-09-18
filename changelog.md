@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Fix the `--jobs` help and documentation, which said `auto` always leaves one logical CPU free: hosts with fewer than three use all of them.
+- Fix `click:run` and `python:run` blocks ending early when the output holds a code fence of its own, which spilled the rest of it into the page.
 - Document `HelpFormat`, `DocOptionItem.attached_value` and `build_moment`, which `9.3.0` shipped without a docs mention.
 - Fix the `HelpFormatOption` docstring, which described `--man` as `--help-format roff`, a format that does not exist.
 - Fix the API documentation of `TerminatedEchoingStdin`, which rendered an invisible EOT character where it meant to show `\x04`.

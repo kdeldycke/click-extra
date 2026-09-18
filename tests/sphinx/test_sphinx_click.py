@@ -38,6 +38,7 @@ from click_extra.sphinx.click import (
     SCREENSHOT_MARKER_END,
     SCREENSHOT_MARKER_START,
     ClickRunner,
+    _code_fence,
     _rewrite_screenshot_regions,
     _screenshot_background,
     _screenshot_columns,
@@ -1328,6 +1329,56 @@ def test_click_run_prompt_options(sphinx_app_myst, options, prompted):
     # The output is rendered either way; only the prompt above it moves.
     assert "Hello, papaya!" in html
     assert ('<span class="gp">$ </span>greet' in html) is prompted
+
+
+def test_click_run_output_holding_a_fence_stays_in_its_block(sphinx_app_myst):
+    """Output carrying a code fence of its own renders whole in the result block.
+
+    A fixed three-backtick fence closes on the output's own bare fence line, and
+    MyST then parses the rest of the output as part of the page.
+    """
+    html = sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            from click_extra import command, echo
+
+            FENCE = "`" * 3
+
+            @command
+            def recipe():
+                echo("## Pancakes")
+                echo(f"{FENCE}text")
+                echo("flour, eggs, milk")
+                echo(FENCE)
+                echo("## Steps")
+                echo("Whisk, then fry.")
+            ```
+
+            ```{click:run}
+            result = invoke(recipe)
+            ```
+        """)
+    )
+    assert html
+    results = html[html.index(HTML["shell_session"]) :]
+    results = results[: results.index("</pre>")]
+    assert "Whisk, then fry." in results
+    assert 'id="steps"' not in html
+
+
+@pytest.mark.parametrize(
+    ("lines", "fence"),
+    (
+        pytest.param([], "```", id="empty"),
+        pytest.param(["Sunny, 24 degrees."], "```", id="no-backtick"),
+        pytest.param(["``short``"], "```", id="short-run"),
+        pytest.param(["```"], "````", id="bare-fence"),
+        pytest.param(["  ````toml", "````"], "`````", id="indented-long-fence"),
+    ),
+)
+def test_code_fence_outgrows_the_fences_it_wraps(lines, fence):
+    """The fence is one backtick longer than any run opening a line, at least three."""
+    assert _code_fence(lines) == fence
 
 
 def test_click_run_hide_prompt_reaches_the_screenshot(sphinx_app_myst):
