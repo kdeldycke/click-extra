@@ -407,7 +407,7 @@ The column is titled differently from the git table on purpose: a git field fall
 `{build_target}` is the one that states an ABI floor rather than a description. `macosx-15.0-arm64` says the binary needs macOS 15, where `{build_os}` only says it was built on macOS.
 
 ```{tip}
-`__build_time__` reads [`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/docs/source-date-epoch/) when the build sets it, so two runs of a reproducible build stamp the same instant instead of drifting apart.
+`__build_time__` reads [`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/docs/source-date-epoch/) when the build sets it, so two runs of a reproducible build stamp the same instant instead of drifting apart. {py:func}`build_moment() <click_extra.version.build_moment>` is the function that resolves it, shared with the man page's own date stamp.
 ```
 
 ### CLI usage

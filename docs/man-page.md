@@ -107,7 +107,7 @@ $ uvx --from click-extra --with flask click-extra wrap --help-format man --outpu
 
 ### Programmatic API
 
-Three entry points cover the Python API, from one-shot rendering up to writing the whole tree. Dates honor `SOURCE_DATE_EPOCH` for reproducible builds:
+Three entry points cover the Python API, from one-shot rendering up to writing the whole tree. Dates honor `SOURCE_DATE_EPOCH` for reproducible builds, resolved through {py:func}`build_moment() <click_extra.version.build_moment>`:
 
 1. `render_manpage(cli)` returns one page's roff as a string. Use it when you want to pipe to `groff` or post-process the output before writing it:
 

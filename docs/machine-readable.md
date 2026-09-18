@@ -59,6 +59,8 @@ assert units["help"] == "Temperature scale to display."
 
 An option whose type enumerates its values carries them in `choices`, as a list. Read them from there rather than parsing the `metavar`: an option is free to replace the `[celsius|fahrenheit]` rendering with a short placeholder to keep its help screen readable, and [`--table-format FORMAT`](table.md) does exactly that for its fifty values. `choices` is `null` for every other type.
 
+An option whose value is optional (usable bare, with a value attached only when the caller supplies one) reports `optional_value: true`, and its `spec` folds in the bracketed `[=METAVAR]` form instead of a space-separated one. {py:attr}`DocOptionItem.attached_value <click_extra.command_doc.DocOptionItem.attached_value>` is the property behind that rendering: it strips the metavar's own brackets first, so a `Choice` value doesn't double up.
+
 A group also lists what it dispatches to. Each entry names the subcommand, the other spellings it answers to, and its one-line description:
 
 ```{click:source}
@@ -111,6 +113,8 @@ assert "- `CITY`: Name of the city to report on." in result.output
 | `man`           | This command as a man page: the roff source [`--man`](man-page.md#reading-a-manual) typesets to read. |
 | `markdown`      | This command as a Markdown document, one section per topic.                                           |
 | `markdown-full` | Every command of the tree as one Markdown document.                                                   |
+
+Each row is a {py:class}`HelpFormat <click_extra.command_doc.HelpFormat>` member, and the table mirrors {py:data}`HELP_FORMATS <click_extra.command_doc.HELP_FORMATS>`, the map `--help-format`'s help text is built from. {py:func}`render_help() <click_extra.command_doc.render_help>` renders a command to a given member from Python, exactly what the option does at runtime.
 
 ```{note}
 The plain and `-full` variants differ in how much they hand over at once. A plain render describes one command and *names* its children, so a reader descends one level at a time rather than pulling a whole tree into a context window to answer a question about one leaf. The `-full` variants are for the opposite job: generating documentation, or diffing a CLI's whole surface between two releases.
