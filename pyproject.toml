@@ -721,9 +721,9 @@ nuitka.nofollow-imports = [ "tkinter" ]
 # runner (ubuntu-26.04-arm, measured in CI). The slices:
 #   - released click × released cloup: {3.10, 3.14} on the 4 retained OSes
 #     (ubuntu-26.04-arm, ubuntu-26.04, macos-26, windows-2025), plus repomatic's
-#     single-runner free-threaded 3.14t probe (ubuntu-26.04-arm) and the
-#     prerelease 3.15 probe held to ubuntu-26.04-arm by the `exclude` rows
-#     below. 10 jobs.
+#     single-runner free-threaded 3.14t cell (ubuntu-26.04-arm), which gates,
+#     and the prerelease 3.15 probe held to ubuntu-26.04-arm by the `exclude`
+#     rows below. 10 jobs.
 #   - {8.4.1, 8.4.2} click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.10
 #     (the floor corner), covering the declared >=8.4.1 range. 2 jobs.
 #   - released click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.14, the

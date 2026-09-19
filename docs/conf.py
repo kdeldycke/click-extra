@@ -255,7 +255,6 @@ nitpick_ignore = [
     ("py:meth", "fail"),
     ("py:class", "Constraint"),
     ("py:class", "click.MultiCommand"),
-    ("py:meth", "click.types.ParamType[t.Any].shell_complete"),
     # pygments' inherited ``aliases`` attribute docstring.
     ("py:func", "get_formatter_by_name"),
     # sphinx exception raised by the (deprecated) GitHub-alerts converter.
