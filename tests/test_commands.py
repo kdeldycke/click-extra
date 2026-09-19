@@ -24,6 +24,7 @@ import json
 import os
 import re
 import sys
+import warnings
 from contextlib import nullcontext
 from subprocess import run
 from textwrap import dedent
@@ -93,10 +94,46 @@ def test_module_root_declarations():
     }
     assert click_members <= click_extra_members
 
+    # Cloup 4.0.0 also lists Click's deprecated names, which click-extra forwards
+    # on access instead of declaring.
     cloup_members = {
-        m for m in cloup.__all__ if not m.startswith("_") and m not in artifacts
+        m
+        for m in cloup.__all__
+        if not m.startswith("_")
+        and m not in artifacts
+        and m not in click_extra._DEPRECATED_CLICK_EXPORTS
     }
     assert cloup_members <= click_extra_members
+
+
+@pytest.mark.parametrize("name", sorted(click_extra._DEPRECATED_CLICK_EXPORTS))
+def test_deprecated_click_exports_are_forwarded(name):
+    """Click's deprecated names resolve to Click's objects, never bound eagerly.
+
+    A binding would bypass Click's deprecation shim, and fetching it at import
+    time would warn in every program importing click-extra. Whether Click warns
+    on access depends on its version, so only the forwarding is checked.
+    """
+    assert name not in vars(click_extra)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        assert getattr(click_extra, name) is getattr(click, name)
+
+
+@pytest.mark.once
+def test_import_raises_no_deprecation_warning():
+    """Importing the package sets off no deprecation warning.
+
+    Cloup 4.0.0 lists Click's deprecated names in its ``__all__``, so a plain star
+    import of cloup fetches each of them, and Click warns once per name.
+    """
+    process = run(
+        (sys.executable, "-W", "error::DeprecationWarning", "-c", "import click_extra"),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert process.returncode == 0, process.stderr
 
 
 @pytest.mark.once

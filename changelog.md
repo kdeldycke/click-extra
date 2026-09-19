@@ -6,6 +6,8 @@
 > This version is **not released yet** and is under active development.
 
 - **Deprecated:** Make `select_columns`, `select_row` and `render_columns_markdown_table` importable from `click_extra.table` again, as aliases of their `click_extra.columns` versions until `10.0.0`.
+- Re-export `ArgumentKwargs` and `OptionKwargs` when the installed cloup provides them, as cloup `4.0` does.
+- Stop `import click_extra` from emitting Click deprecation warnings under cloup `4.0`: `BaseCommand`, `MultiCommand`, `OptionParser` and the stream getters now warn only when used.
 
 ## [`9.3.1` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.3.0...v9.3.1)
 

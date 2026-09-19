@@ -47,6 +47,8 @@ if TYPE_CHECKING:
     from .testing import CliRunner, Result
     from .theme import HelpTheme
 
+import warnings
+
 # Import all click's module-level content to allow for drop-in replacement.
 # XXX Star import is really badly supported by mypy for now and leads to lots of
 # "Module 'XXX' has no attribute 'YYY'". See: https://github.com/python/mypy/issues/4930
@@ -68,8 +70,27 @@ try:
 except ImportError:  # Click < 8.5.0.
     _HAS_CLICK_8_5_EXPORTS = False
 
-# Overrides click helpers with cloup's.
-from cloup import *  # type: ignore[no-redef, assignment]
+# Overrides click helpers with cloup's. Cloup 4.0.0 lists Click's deprecated
+# names in its `__all__` and serves them through its own `__getattr__`, so this
+# star import resolves each of them and Click warns: silence that here, then drop
+# the bindings further down, where _DEPRECATED_CLICK_EXPORTS takes them over.
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", DeprecationWarning)
+    from cloup import *  # type: ignore[no-redef, assignment]
+
+# ArgumentKwargs and OptionKwargs are cloup 4.0.0 additions, absent on the cloup
+# 3.x releases click-extra still supports. Import them only when present; their
+# __all__ entries are trimmed below when they are missing. Type checking against
+# cloup 3.x finds neither name, hence the ignore.
+try:
+    from cloup import (  # type: ignore[attr-defined, unused-ignore]
+        ArgumentKwargs,
+        OptionKwargs,
+    )
+
+    _HAS_CLOUP_4_EXPORTS = True
+except ImportError:  # Cloup < 4.0.0.
+    _HAS_CLOUP_4_EXPORTS = False
 
 # Imported for its registration side effect: defining the module registers the
 # `carapace` shell completion class (see click_extra.carapace.CarapaceComplete),
@@ -325,6 +346,7 @@ __all__ = [
     "Abort",
     "AccessibleOption",
     "Argument",
+    "ArgumentKwargs",
     "BadArgumentUsage",
     "BadOptionUsage",
     "BadParameter",
@@ -381,6 +403,7 @@ __all__ = [
     "Option",
     "OptionGroup",
     "OptionGroupMixin",
+    "OptionKwargs",
     "ParamStructure",
     "ParamType",
     "Parameter",
@@ -573,6 +596,13 @@ if not _HAS_CLICK_8_5_EXPORTS:
     __all__.remove("custom_version_option")
 del _HAS_CLICK_8_5_EXPORTS
 
+# ArgumentKwargs and OptionKwargs are only re-exported on cloup >= 4.0.0 (see the
+# note under the cloup star import). Drop them from the public API on cloup 3.x.
+if not _HAS_CLOUP_4_EXPORTS:
+    __all__.remove("ArgumentKwargs")
+    __all__.remove("OptionKwargs")
+del _HAS_CLOUP_4_EXPORTS
+
 # Scrub namespace artifacts that are not part of the public API: `annotations`
 # is this module's own `from __future__ import annotations` binding (deleting
 # it does not affect postponed evaluation, which is settled at compile time).
@@ -642,16 +672,27 @@ materializes them all, at the cost of loading the test tooling.
 """
 
 
-_DEPRECATED_CLICK_EXPORTS = frozenset({"get_binary_stream", "get_text_stream"})
-"""Click symbols a star import no longer binds, forwarded on access instead.
+_DEPRECATED_CLICK_EXPORTS = frozenset({
+    "BaseCommand",
+    "MultiCommand",
+    "OptionParser",
+    "get_binary_stream",
+    "get_text_stream",
+})
+"""Click symbols deprecated for removal in Click `9.0`, forwarded on access instead.
 
-Click `8.5.0` renamed these to private names and re-exposed them through its own
-module `__getattr__`, to deprecate them for removal in Click `9.0`. A star
-import never consults that hook, so `from click import *` stopped binding them
-and click-extra stopped re-exporting them. Forwarding each access keeps
+Click serves these only through its own module `__getattr__`: the first three
+since Click `8.2.0`, the two stream getters since Click `8.5.0`. A star import
+never consults that hook, so `from click import *` binds none of them. Cloup
+`4.0.0` lists all five in its own `__all__`, whose star import resolves each one:
+the bindings it leaves are deleted right below. Forwarding each access keeps
 click-extra a drop-in for as long as Click serves them, and warns exactly when
 Click does: the value is never cached, so every access reaches Click's shim.
 """
+
+for _name in _DEPRECATED_CLICK_EXPORTS:
+    globals().pop(_name, None)
+del _name
 
 
 def __getattr__(name: str) -> Any:
