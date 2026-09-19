@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.3.4.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.3.3...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.3.3` (2026-09-19)](https://github.com/kdeldycke/click-extra/compare/v9.3.2...v9.3.3)
 
 - Fix `from click_extra import *` emitting Click's deprecation warnings for `get_binary_stream` and `get_text_stream` under Click `8.5`. Like Click's own star import, it no longer binds them: import them by name instead.
