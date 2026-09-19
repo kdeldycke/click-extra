@@ -500,6 +500,8 @@ assert "City ↴ \\ Month →" in result.stdout
 
 The rows read downward from `City`, and the columns rightward from `Month`. The [`matrix` directive](python-directives.md#matrix-directives) labels its compatibility tables the same way.
 
+In a Sphinx build, the `click_extra.sphinx` extension keeps the first column of a table with such a label on one line. On a narrow screen, the table scrolls sideways instead of wrapping its row labels. Any table gets it when its top-left cell holds the `↴` arrow.
+
 ## Column widths
 
 A long cell stretches its column until the table runs off the terminal. `max_column_widths` caps it, wrapping the overflow onto extra lines while keeping it a single cell. Pass one entry per column, `None` leaving a column unbounded:

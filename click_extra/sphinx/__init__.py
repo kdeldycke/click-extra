@@ -51,7 +51,7 @@ from ..blocks import (
     update_blocks as update_blocks,
 )
 from ..pygments import AnsiHtmlFormatter
-from . import manpages, matrix, todos
+from . import manpages, matrix, tables, todos
 from .alerts import convert_github_alerts
 from .click import ClickDomain, cleanup_runner
 from .python import (
@@ -229,6 +229,9 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       nor a `todolist`, and switched off with
       {data}`click_extra.sphinx.todos.DEDUPE_TODOS_CONFIG`. See
       {mod}`click_extra.sphinx.todos`.
+    - A one-line first column for every table whose top-left cell names both
+      axes, like the `matrix` tables: a narrow screen scrolls the table
+      instead of wrapping its labels. See {mod}`click_extra.sphinx.tables`.
 
     Opt-in features (gated behind `click_extra_enable_exec_directives`):
 
@@ -285,6 +288,11 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # renderings produce (see todos.py). Inert unless the project enables
     # `sphinx.ext.todo` and writes a `todolist`.
     todos.setup(app)
+
+    # Keep the first column of a corner-labeled table on one line (see
+    # tables.py). Every HTML page links the stylesheet, but only a table with a
+    # corner label carries the class it styles.
+    tables.setup(app)
 
     # Register GitHub alerts converter only when myst-parser predates
     # the native "alert" syntax extension (added in 5.1.0). On newer

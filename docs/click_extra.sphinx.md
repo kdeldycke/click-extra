@@ -54,6 +54,15 @@
    :undoc-members:
 ```
 
+## click_extra.sphinx.tables module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.tables
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.sphinx.todos module
 
 ```{eval-rst}

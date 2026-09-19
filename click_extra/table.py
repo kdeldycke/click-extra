@@ -1121,6 +1121,14 @@ def _resolve_table_inputs(
     return table_data, labels
 
 
+CORNER_GLYPH = "↴"
+"""The arrow {func}`corner_header` places after the row axis.
+
+The Sphinx extension looks for it to find a table with a corner label: see
+{mod}`click_extra.sphinx.tables`.
+"""
+
+
 def corner_header(rows: str, columns: str) -> str:
     r"""Name both axes of a two-axis table in its top-left header cell.
 
@@ -1128,7 +1136,7 @@ def corner_header(rows: str, columns: str) -> str:
     the other headers list, read rightward: `corner_header("City", "Month")`
     returns `City ↴ \ Month →`.
     """
-    return f"{rows} ↴ \\ {columns} →"
+    return f"{rows} {CORNER_GLYPH} \\ {columns} →"
 
 
 def render_table(

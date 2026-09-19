@@ -11,6 +11,7 @@
 - Name both axes in the top-left cell of `matrix` tables, like `click-extra ↴ \ cloup →`.
 - Move the first release date of each `matrix` row into its label, like `6.0.x (2025-09-25) → 9.x`, and drop the `Released` column.
 - Give the newest release on PyPI its own column in `matrix` dependency tables, next to the `uv.lock` version, so a new release shows up before the lockfile adopts it.
+- Keep the first column of a table with a corner label on one line in Sphinx builds: a narrow screen scrolls the table instead of wrapping its row labels.
 - Stop `import click_extra` from emitting Click deprecation warnings under cloup `4.0`: `BaseCommand`, `MultiCommand`, `OptionParser` and the stream getters now warn only when used.
 - Fix the `matrix` directive rendering an all-❌ row for a Poetry caret or tilde range on a suffixed version, like `^2.0.0.post1`.
 - Fix `matrix` row labels naming the same `X.Y.x` twice when a minor series splits across two rows: the split bound now shows its exact version.
