@@ -643,7 +643,7 @@ _scrub_foreign_modules()
 del _scrub_foreign_modules
 
 
-__version__ = "9.3.2"
+__version__ = "9.3.3.dev0"
 __git_branch__ = ""
 __git_date__ = ""
 __git_long_hash__ = ""
