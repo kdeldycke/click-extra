@@ -253,21 +253,21 @@ This project uses it for the [Python compatibility table in `install.md`](instal
 ```
 ````
 
-and the updater fills in the table below the options, regenerated from every `vMAJOR.MINOR.PATCH` tag (reading the declared Python support from the `Programming Language :: Python :: X.Y` classifiers in `pyproject.toml`, falling back to `requires-python`, Poetry's `python = "..."`, then `setup.py`'s `python_requires`). Consecutive releases that agree are grouped into one row, labeled by minor series (`4.9.x` → `4.10.x`) unless a series is split across two rows, where the split bound shows its exact version (`5.0.x` → `6.0.0`, then `6.0.1` → `6.1.x`). A floor-only declaration is capped at the latest Python released while the range was current:
+and the updater fills in the table below the options, regenerated from every `vMAJOR.MINOR.PATCH` tag (reading the declared Python support from the `Programming Language :: Python :: X.Y` classifiers in `pyproject.toml`, falling back to `requires-python`, Poetry's `python = "..."`, then `setup.py`'s `python_requires`). Consecutive releases that agree are grouped into one row, labeled by minor series (`4.9.x` → `4.10.x`) unless a series is split across two rows, where the split bound shows its exact version (`5.0.x` → `6.0.0`, then `6.0.1` → `6.1.x`). The date after the lower bound is the first release of the range. A floor-only declaration is capped at the latest Python released while the range was current. The top-left cell names both axes, as [`corner_header()`](table.md#two-axis-tables) spells them:
 
 ````{code-block} markdown
 ```{matrix} python
 :package: click-extra
 
-| `click-extra`       | Released   | `3.14` | `3.13` | `3.12` | `3.11` | `3.10` | `3.9` | `3.8` | `3.7` |
-| :------------------ | :--------- | :----: | :----: | :----: | :----: | :----: | :---: | :---: | :---: |
-| `6.2.x` → `9.x`     | 2025-11-04 |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `6.0.1` → `6.1.x`   | 2025-10-08 |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `5.0.x` → `6.0.0`   | 2025-05-13 |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `4.11.x` → `4.15.x` | 2024-10-08 |   –    |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `4.9.x` → `4.10.x`  | 2024-07-25 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
-| `4.0.x` → `4.8.x`   | 2023-05-08 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
-| `0.0.x` → `3.10.x`  | 2021-10-18 |   –    |   –    |   –    |   ✅   |   ✅   |  ✅   |  ✅   |  ✅   |
+| `click-extra` ↴ \\ Python →      | `3.14` | `3.13` | `3.12` | `3.11` | `3.10` | `3.9` | `3.8` | `3.7` |
+| :------------------------------- | :----: | :----: | :----: | :----: | :----: | :---: | :---: | :---: |
+| `6.2.x` (2025-11-04) → `9.x`     |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
+| `6.0.1` (2025-10-08) → `6.1.x`   |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `5.0.x` (2025-05-13) → `6.0.0`   |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `4.11.x` (2024-10-08) → `4.15.x` |   –    |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
+| `4.9.x` (2024-07-25) → `4.10.x`  |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
+| `4.0.x` (2023-05-08) → `4.8.x`   |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
+| `0.0.x` (2021-10-18) → `3.10.x`  |   –    |   –    |   –    |   ✅   |   ✅   |  ✅   |  ✅   |  ✅   |
 ```
 ````
 
@@ -298,20 +298,20 @@ This project uses it for the [Click](install.md#click-compatibility) and [Cloup]
 :package: click-extra
 :show-spec:
 
-| `click-extra`       | Released   | Spec      | `8.5` | `8.4.1` | `8.4.0` | `8.3.3` | `8.3.1` | `8.3.0` | `8.2` | `8.1` | `8.0` |
-| :------------------ | :--------- | :-------- | :---: | :-----: | :-----: | :-----: | :-----: | :-----: | :---: | :---: | :---: |
-| `9.x`               | 2026-08-28 | `>=8.4.1` |  ✅   |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `8.x`               | 2026-06-22 | `>=8.3.1` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.17.x` → `7.20.x` | 2026-05-25 | `>=8.4.1` |  ✅   |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.15.x` → `7.16.x` | 2026-05-03 | `>=8.3.1` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.14.1`            | 2026-04-26 | `>=8.1`   |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ❌   |
-| `7.14.0`            | 2026-04-24 | `>=8.3.3` |  ✅   |   ✅    |   ✅    |   ✅    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.0.x` → `7.13.x`  | 2025-11-17 | `>=8.3.1` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `6.x`               | 2025-09-25 | `>=8.3.0` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ❌   |  ❌   |  ❌   |
-| `5.x`               | 2025-05-13 | `~=8.2.0` |  ❌   |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |  ✅   |  ❌   |  ❌   |
-| `4.9.x` → `4.15.x`  | 2024-07-25 | `~=8.1.4` |  ❌   |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ✅   |  ❌   |
-| `1.7.x` → `4.8.x`   | 2022-03-31 | `^8.1.1`  |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ❌   |
-| `0.0.x` → `1.6.x`   | 2021-10-18 | `^8.0.2`  |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ✅   |
+| `click-extra` ↴ \\ `click` →     | Spec      | `8.5` | `8.4.1` | `8.4.0` | `8.3.3` | `8.3.1` | `8.3.0` | `8.2` | `8.1` | `8.0` |
+| :------------------------------- | :-------- | :---: | :-----: | :-----: | :-----: | :-----: | :-----: | :---: | :---: | :---: |
+| `9.x` (2026-08-28)               | `>=8.4.1` |  ✅   |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
+| `8.x` (2026-06-22)               | `>=8.3.1` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
+| `7.17.x` (2026-05-25) → `7.20.x` | `>=8.4.1` |  ✅   |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
+| `7.15.x` (2026-05-03) → `7.16.x` | `>=8.3.1` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
+| `7.14.1` (2026-04-26)            | `>=8.1`   |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ❌   |
+| `7.14.0` (2026-04-24)            | `>=8.3.3` |  ✅   |   ✅    |   ✅    |   ✅    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
+| `7.0.x` (2025-11-17) → `7.13.x`  | `>=8.3.1` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
+| `6.x` (2025-09-25)               | `>=8.3.0` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ❌   |  ❌   |  ❌   |
+| `5.x` (2025-05-13)               | `~=8.2.0` |  ❌   |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |  ✅   |  ❌   |  ❌   |
+| `4.9.x` (2024-07-25) → `4.15.x`  | `~=8.1.4` |  ❌   |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ✅   |  ❌   |
+| `1.7.x` (2022-03-31) → `4.8.x`   | `^8.1.1`  |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ❌   |
+| `0.0.x` (2021-10-18) → `1.6.x`   | `^8.0.2`  |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ✅   |
 ```
 ````
 

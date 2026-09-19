@@ -73,7 +73,7 @@ from ..blocks import (
     split_options,
     update_blocks,
 )
-from ..table import TableFormat, render_table
+from ..table import TableFormat, corner_header, render_table
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -489,6 +489,7 @@ def _range_label(
     full_major: bool = False,
     split_start: bool = False,
     split_end: bool = False,
+    first_date: str = "",
 ) -> str:
     """Render the version-range label for a matrix group.
 
@@ -504,18 +505,22 @@ def _range_label(
     neighboring group shares, where `X.Y.x` would name both groups. That
     bound shows its exact version instead, and a group inside a single split
     minor shows both of its versions: `4.6.2` → `4.6.3`.
+
+    `first_date` follows the lower bound, which is the release it dates:
+    `6.0.x` (2025-09-25) → `9.x`.
     """
     first = first_tag.lstrip("v")
     last = last_tag.lstrip("v")
+    date = f" ({first_date})" if first_date else ""
     if first == last:
-        return f"`{first}`"
+        return f"`{first}`{date}"
     if full_major and not split_start:
-        return f"`{first.split('.')[0]}.x`"
+        return f"`{first.split('.')[0]}.x`{date}"
     first_minor = ".".join(first.split(".")[:2])
     last_minor = ".".join(last.split(".")[:2])
     same_minor = first_minor == last_minor
     if same_minor and not (split_start or split_end):
-        return f"`{first_minor}.x`"
+        return f"`{first_minor}.x`{date}"
     low = first if split_start or same_minor else f"{first_minor}.x"
     if is_latest:
         high = f"{last.split('.')[0]}.x"
@@ -523,7 +528,7 @@ def _range_label(
         high = last
     else:
         high = f"{last_minor}.x"
-    return f"`{low}` → `{high}`"
+    return f"`{low}`{date} → `{high}`"
 
 
 def _same_minor(tag: str, other_tag: str | None) -> bool:
@@ -533,15 +538,15 @@ def _same_minor(tag: str, other_tag: str | None) -> bool:
     return tag.lstrip("v").split(".")[:2] == other_tag.lstrip("v").split(".")[:2]
 
 
-def _range_labels(bounds: list[tuple[str, str]]) -> list[str]:
-    """Label each `(first_tag, last_tag)` group of a newest-first list.
+def _range_labels(bounds: list[tuple[str, str, str]]) -> list[str]:
+    """Label each `(first_tag, last_tag, first_date)` group of a newest-first list.
 
     Each label depends on both neighbors: the newer group decides whether this
     one is the latest or spans a full major, and either neighbor can split a
     minor series with it (see {func}`_range_label`).
     """
     labels = []
-    for index, (first_tag, last_tag) in enumerate(bounds):
+    for index, (first_tag, last_tag, first_date) in enumerate(bounds):
         newer_first = bounds[index - 1][0] if index else None
         older_last = bounds[index + 1][1] if index + 1 < len(bounds) else None
         labels.append(
@@ -552,9 +557,20 @@ def _range_labels(bounds: list[tuple[str, str]]) -> list[str]:
                 full_major=_spans_full_major(first_tag, last_tag, newer_first),
                 split_start=_same_minor(first_tag, older_last),
                 split_end=_same_minor(last_tag, newer_first),
+                first_date=first_date,
             ),
         )
     return labels
+
+
+def _corner_cell(label: str, axis: str) -> str:
+    """Name the release rows and the version columns in the top-left cell.
+
+    The backslash {func}`~click_extra.table.corner_header` places is doubled:
+    `mdformat` escapes a lone one that way, and a refreshed table must survive
+    a formatting pass unchanged. Both spellings render as a single backslash.
+    """
+    return corner_header(f"`{label}`", axis).replace("\\", "\\\\")
 
 
 def _python_cell(version: str, group: PythonMatrixGroup) -> str:
@@ -647,14 +663,16 @@ def python_matrix_table(
 
     rows = []
     ordered = list(reversed(groups))
-    range_labels = _range_labels([(g.first_tag, g.last_tag) for g in ordered])
+    range_labels = _range_labels([
+        (g.first_tag, g.last_tag, g.first_date) for g in ordered
+    ])
     for range_label, group in zip(range_labels, ordered, strict=True):
         cells = [_python_cell(v, group) for v in all_versions]
-        rows.append([range_label, group.first_date, *cells])
+        rows.append([range_label, *cells])
     if row_order == OLDEST_FIRST:
         rows.reverse()
-    headers = [f"`{label}`", "Released", *(f"`{v}`" for v in all_versions)]
-    colalign = ("left", "left", *("center",) * len(all_versions))
+    headers = [_corner_cell(label, "Python"), *(f"`{v}`" for v in all_versions)]
+    colalign = ("left", *("center",) * len(all_versions))
     return render_table(
         rows,
         headers=headers,
@@ -1143,18 +1161,19 @@ def dependency_matrix_table(
 
     rows = []
     ordered = list(reversed(merged))
-    range_labels = _range_labels([(group[0], group[1]) for group in ordered])
-    for label_cell, (_, _, first_date, spec, cells) in zip(
-        range_labels, ordered, strict=True
-    ):
+    range_labels = _range_labels([(group[0], group[1], group[2]) for group in ordered])
+    for label_cell, (*_, spec, cells) in zip(range_labels, ordered, strict=True):
         spec_cell = [f"`{spec.replace(' ', '')}`"] if show_spec else []
-        rows.append([label_cell, first_date, *spec_cell, *cells])
+        rows.append([label_cell, *spec_cell, *cells])
     if row_order == OLDEST_FIRST:
         rows.reverse()
     spec_header = ["Spec"] if show_spec else []
-    headers = [f"`{label}`", "Released", *spec_header, *(f"`{v}`" for v, _ in columns)]
+    headers = [
+        _corner_cell(label, f"`{dep_name}`"),
+        *spec_header,
+        *(f"`{v}`" for v, _ in columns),
+    ]
     colalign = (
-        "left",
         "left",
         *(("left",) if show_spec else ()),
         *("center",) * len(columns),

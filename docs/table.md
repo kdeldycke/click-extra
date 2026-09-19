@@ -498,7 +498,7 @@ assert result.exit_code == 0
 assert "City ↴ \\ Month →" in result.stdout
 ```
 
-The rows read downward from `City`, and the columns rightward from `Month`.
+The rows read downward from `City`, and the columns rightward from `Month`. The [`matrix` directive](python-directives.md#matrix-directives) labels its compatibility tables the same way.
 
 ## Column widths
 

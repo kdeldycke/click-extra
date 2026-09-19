@@ -24,6 +24,7 @@ that surfaces it. Both live under ``tests/sphinx/`` because importing
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -80,6 +81,12 @@ Importing the module object instead would put a `matrix` name in scope, and
 ruff would then read every `{matrix}` fence in the fixtures as an f-string.
 """
 
+LABEL_DATE_RE = re.compile(r" \(\d{4}-\d{2}-\d{2}\)")
+"""The first-release date a row label carries after its lower bound."""
+
+WIDGET_CORNER = "`proj` ↴ \\\\ `widget` →"
+"""Top-left cell of a ``proj`` table tracking ``widget``, backslash escaped."""
+
 
 @pytest.fixture(autouse=True)
 def offline_pypi(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -126,14 +133,16 @@ def declare_widget(repo: Path, spec: str) -> None:
 def tagged_table_rows(table: str) -> dict[str, list[str]]:
     """Parse a rendered GFM matrix into ``{row label: [cells…]}``.
 
-    Lets a test assert a whole row at once (date, spec, then the full
-    ``✅`` / ``❌`` vector) instead of probing the table for loose substrings.
+    Lets a test assert a whole row at once (spec, then the full ``✅`` / ``❌``
+    vector) instead of probing the table for loose substrings. The key drops
+    the first-release date of the label, since the fixtures tag their commits
+    on the day the test runs.
     """
     rows = {}
     # Skip the header and its alignment separator.
     for line in table.splitlines()[2:]:
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        rows[cells[0]] = cells[1:]
+        rows[LABEL_DATE_RE.sub("", cells[0])] = cells[1:]
     return rows
 
 
@@ -303,26 +312,48 @@ def test_python_matrix_groups_keeps_declared_spec(synthetic_repo: Path) -> None:
 @pytest.mark.parametrize(
     ("bounds", "expected"),
     [
-        # Groups meeting at a minor boundary keep their wildcards.
+        # Groups meeting at a minor boundary keep their wildcards, and the
+        # date always follows the lower bound.
         (
-            [("v3.1.0", "v3.1.5"), ("v3.0.0", "v3.0.9"), ("v1.2.0", "v2.4.1")],
-            ["`3.1.x`", "`3.0.x`", "`1.2.x` → `2.4.x`"],
+            [
+                ("v3.1.0", "v3.1.5", "2026-05-01"),
+                ("v3.0.0", "v3.0.9", "2026-01-15"),
+                ("v1.2.0", "v2.4.1", "2025-03-10"),
+            ],
+            [
+                "`3.1.x` (2026-05-01)",
+                "`3.0.x` (2026-01-15)",
+                "`1.2.x` (2025-03-10) → `2.4.x`",
+            ],
+        ),
+        # A full major and a single release carry no upper bound.
+        (
+            [("v9.0.0", "v9.3.1", "2026-08-28"), ("v8.1.0", "v8.1.0", "2026-06-22")],
+            ["`9.x` (2026-08-28)", "`8.1.0` (2026-06-22)"],
         ),
         # A minor split across three groups: each bound on a split shows its
         # exact version, so no two labels name the same `4.6.x`.
         (
-            [("v4.6.4", "v4.8.3"), ("v4.6.2", "v4.6.3"), ("v4.2.0", "v4.6.1")],
-            ["`4.6.4` → `4.x`", "`4.6.2` → `4.6.3`", "`4.2.x` → `4.6.1`"],
+            [
+                ("v4.6.4", "v4.8.3", "2023-08-23"),
+                ("v4.6.2", "v4.6.3", "2023-07-15"),
+                ("v4.2.0", "v4.6.1", "2023-05-23"),
+            ],
+            [
+                "`4.6.4` (2023-08-23) → `4.x`",
+                "`4.6.2` (2023-07-15) → `4.6.3`",
+                "`4.2.x` (2023-05-23) → `4.6.1`",
+            ],
         ),
         # A split start also blocks the full-major collapse: `6.x` would claim
         # the `6.0.1` release the older group holds.
         (
-            [("v6.0.2", "v6.4.0"), ("v5.0.0", "v6.0.1")],
-            ["`6.0.2` → `6.x`", "`5.0.x` → `6.0.1`"],
+            [("v6.0.2", "v6.4.0", "2025-10-08"), ("v5.0.0", "v6.0.1", "2025-05-13")],
+            ["`6.0.2` (2025-10-08) → `6.x`", "`5.0.x` (2025-05-13) → `6.0.1`"],
         ),
     ],
 )
-def test_range_labels(bounds: list[tuple[str, str]], expected: list[str]) -> None:
+def test_range_labels(bounds: list[tuple[str, str, str]], expected: list[str]) -> None:
     assert _range_labels(bounds) == expected
 
 
@@ -401,15 +432,17 @@ def test_python_matrix_table_three_states(tmp_path: Path) -> None:
 
     rows = tagged_table_rows(python_matrix_table(repo, "proj"))
     # Columns run 3.12, 3.11, 3.10, 3.9 (newest-first).
-    assert "".join(rows["`2.0.0`"][1:]) == "✅✅✅✅"
-    assert "".join(rows["`1.0.0`"][1:]) == f"{UNDECLARED_CELL}✅✅{FORBIDDEN_CELL}"
+    assert "".join(rows["`2.0.0`"]) == "✅✅✅✅"
+    assert "".join(rows["`1.0.0`"]) == f"{UNDECLARED_CELL}✅✅{FORBIDDEN_CELL}"
 
 
 def test_python_matrix_table_synthetic(synthetic_repo: Path) -> None:
     table = python_matrix_table(synthetic_repo, "my-project")
     # Header row must carry the label in backticks and the version columns.
-    assert "`my-project`" in table
-    assert "Released" in table
+    # The top-left cell names both axes, its backslash escaped for Markdown.
+    assert table.startswith("| `my-project` ↴ \\\\ Python → |")
+    # Each label carries the first release date of its range.
+    assert re.search(r"^\| `2\.0\.0` \(\d{4}-\d{2}-\d{2}\) ", table, re.MULTILINE)
     assert "`3.11`" in table
     assert "`3.12`" in table
     # Columns run newest-first so the current support sits in the upper-left.
@@ -991,8 +1024,7 @@ def test_dependency_matrix_table_exotic_specs(exotic_spec_repo: Path) -> None:
     table = dependency_matrix_table(exotic_spec_repo, "proj", "widget", show_spec=True)
     header = table.splitlines()[0]
     assert [cell.strip() for cell in header.strip().strip("|").split("|")] == [
-        "`proj`",
-        "Released",
+        WIDGET_CORNER,
         "Spec",
         "`6.0`",
         "`5.2.1`",
@@ -1005,7 +1037,7 @@ def test_dependency_matrix_table_exotic_specs(exotic_spec_repo: Path) -> None:
     rows = tagged_table_rows(table)
     # Each row keeps its raw specifier (whitespace squeezed out) next to the
     # cells it produced.
-    assert {label: (cells[1], "".join(cells[2:])) for label, cells in rows.items()} == {
+    assert {label: (cells[0], "".join(cells[1:])) for label, cells in rows.items()} == {
         "`6.0.0`": ("`>=6.0,<7.0`", "✅❌❌❌❌❌❌"),
         "`5.0.0`": ("`>=5.2.1`", "✅✅❌❌❌❌❌"),
         "`4.0.0`": ("`>=4.0,!=4.1.*`", "✅✅✅✅❌❌❌"),
@@ -1040,7 +1072,7 @@ def test_dependency_matrix_table_merges_equivalent_specs(tmp_path: Path) -> None
         dependency_matrix_table(repo, "proj", "widget", show_spec=True)
     )
     assert list(rows) == ["`1.x`"]
-    assert rows["`1.x`"][1] == "`^2.0`"
+    assert rows["`1.x`"][0] == "`^2.0`"
 
 
 def pinned_widget_repo(tmp_path: Path, name: str, spec: str) -> Path:
@@ -1075,8 +1107,8 @@ def test_dependency_matrix_table_pinned_spec(
     repo = pinned_widget_repo(tmp_path, f"pinned{abs(hash(spec))}", spec)
     table = dependency_matrix_table(repo, "proj", "widget")
     header = [c.strip() for c in table.splitlines()[0].strip().strip("|").split("|")]
-    assert header == ["`proj`", "Released", *columns]
-    assert "".join(tagged_table_rows(table)["`1.0.0`"][1:]) == cells
+    assert header == [WIDGET_CORNER, *columns]
+    assert "".join(tagged_table_rows(table)["`1.0.0`"]) == cells
 
 
 def test_dependency_matrix_table_lone_ceiling(tmp_path: Path) -> None:
@@ -1088,7 +1120,7 @@ def test_dependency_matrix_table_lone_ceiling(tmp_path: Path) -> None:
     """
     repo = pinned_widget_repo(tmp_path, "ceiling-only", "<2.1")
     table = dependency_matrix_table(repo, "proj", "widget")
-    assert "".join(tagged_table_rows(table)["`1.0.0`"][1:]) == "❌"
+    assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "❌"
 
 
 def test_dependency_matrix_table_suffixed_poetry_floor(tmp_path: Path) -> None:
@@ -1100,8 +1132,8 @@ def test_dependency_matrix_table_suffixed_poetry_floor(tmp_path: Path) -> None:
     repo = pinned_widget_repo(tmp_path, "post-release", "^2.0.0.post1")
     table = dependency_matrix_table(repo, "proj", "widget")
     header = [c.strip() for c in table.splitlines()[0].strip().strip("|").split("|")]
-    assert header == ["`proj`", "Released", "`2.4`", "`2.0`"]
-    assert "".join(tagged_table_rows(table)["`1.0.0`"][1:]) == "✅✅"
+    assert header == [WIDGET_CORNER, "`2.4`", "`2.0`"]
+    assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "✅✅"
 
 
 def test_dependency_matrix_table_anchors_on_pypi(
@@ -1117,8 +1149,8 @@ def test_dependency_matrix_table_anchors_on_pypi(
     )
     table = dependency_matrix_table(repo, "proj", "widget")
     header = [c.strip() for c in table.splitlines()[0].strip().strip("|").split("|")]
-    assert header == ["`proj`", "Released", "`3.0`", "`2.4`", "`2.1`"]
-    assert "".join(tagged_table_rows(table)["`1.0.0`"][1:]) == "✅✅✅"
+    assert header == [WIDGET_CORNER, "`3.0`", "`2.4`", "`2.1`"]
+    assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "✅✅✅"
 
 
 @pytest.fixture
