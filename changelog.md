@@ -15,6 +15,7 @@
 - Fix the `matrix` directive rendering an all-❌ row for a Poetry caret or tilde range on a suffixed version, like `^2.0.0.post1`.
 - Fix `matrix` row labels naming the same `X.Y.x` twice when a minor series splits across two rows: the split bound now shows its exact version.
 - Add a Cloup compatibility table to the installation page.
+- Name both axes in the top-left cell of the benchmark, executables and MyST docstring comparison tables.
 
 ## [`9.3.1` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.3.0...v9.3.1)
 

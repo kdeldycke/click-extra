@@ -204,7 +204,7 @@ For constructs the extension does not handle, use reST syntax directly in the do
 
 Architectural differences that are inherent to `sphinx.ext.autodoc` and cannot be addressed by a conversion extension:
 
-| Capability                         | `sphinx-autodoc2`                      | `autodoc` + `myst_docstrings`                         |
+| Capability ↴ \\ Approach →         | `sphinx-autodoc2`                      | `autodoc` + `myst_docstrings`                         |
 | :--------------------------------- | :------------------------------------- | :---------------------------------------------------- |
 | Static analysis (no module import) | Yes (via `astroid`)                    | No: modules must be importable at build time          |
 | Integrated module discovery        | Yes (no `sphinx-apidoc` step)          | No: requires separate `sphinx-apidoc` or manual stubs |
