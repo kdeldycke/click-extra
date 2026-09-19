@@ -23,7 +23,7 @@ The inventory in § Documented exemptions is repomatic's own. Here it holds two 
 - **repomatic's own pin in `tests.yaml`.** The inline `'repomatic==X.Y.Z'` moves in lockstep with the `uses:` refs pointing at the same tag, so it routinely names a release published hours ago. It carries `--exclude-newer-package repomatic=P0D` beside the pin. Dropping that flag takes the entire Tests workflow down: `metadata` cannot resolve, and every job is `needs: metadata`, so the run reports failure while executing no test at all.
 - **The `test-package-install` job.** Its subject *is* the freshly published click-extra, so a cooldown makes the question it exists to answer unanswerable, and it silently exercises the previous release instead. Scoped to that one job via a job-level `UV_EXCLUDE_NEWER: P0D`, which is what keeps it honest: it holds no secrets, inherits `permissions: {}`, and only runs `--version` on a throwaway runner.
 
-When bumping the inline pin by hand, carry the exemption with it. `sync-workflow-pins` splices a missing one in, but only on a run that also moves the version, so a pin already sitting on the newest release never gets it backfilled.
+`repomatic init` moves the inline pin with the `uses:` refs and adds a missing exemption back, and `lint-repo` reports a pin without one as an error.
 
 ### Package internals import from their source module
 
