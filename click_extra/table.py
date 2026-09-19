@@ -1121,6 +1121,16 @@ def _resolve_table_inputs(
     return table_data, labels
 
 
+def corner_header(rows: str, columns: str) -> str:
+    r"""Name both axes of a two-axis table in its top-left header cell.
+
+    `rows` says what the first column lists, read downward, and `columns` what
+    the other headers list, read rightward: `corner_header("City", "Month")`
+    returns `City ↴ \ Month →`.
+    """
+    return f"{rows} ↴ \\ {columns} →"
+
+
 def render_table(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[THeader] | None = None,

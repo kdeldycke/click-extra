@@ -64,6 +64,7 @@ from click_extra.table import (
     _strip_none,
     _visible_width,
     column_sort_key,
+    corner_header,
     print_data,
     print_table,
     render_table,
@@ -161,6 +162,10 @@ def test_unrecognized_format(invoke, cmd_decorator, cmd_type):
     )
 
     assert result.exit_code == 2
+
+
+def test_corner_header():
+    assert corner_header("City", "Month") == "City ↴ \\ Month →"
 
 
 aligned_table = """\

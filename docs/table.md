@@ -473,6 +473,33 @@ invoke(table_command, args=["--table-format", "yaml"])
 invoke(table_command, args=["--table-format", "youtrack"])
 ```
 
+## Two-axis tables
+
+When both the rows and the columns list values, like temperatures by city and month, the top-left cell can name both axes. `corner_header()` builds that cell:
+
+```{click:source}
+from click_extra import command, corner_header, pass_context
+
+@command
+@pass_context
+def climate(ctx):
+    """Print average high temperatures, in °C."""
+    headers = (corner_header("City", "Month"), "Jan", "Apr", "Jul", "Oct")
+    data = (
+        ("Paris", 7, 16, 25, 16),
+        ("Oslo", 0, 10, 22, 10),
+    )
+    ctx.print_table(data, headers)
+```
+
+```{click:run}
+result = invoke(climate)
+assert result.exit_code == 0
+assert "City ↴ \\ Month →" in result.stdout
+```
+
+The rows read downward from `City`, and the columns rightward from `Month`.
+
 ## Column widths
 
 A long cell stretches its column until the table runs off the terminal. `max_column_widths` caps it, wrapping the overflow onto extra lines while keeping it a single cell. Pass one entry per column, `None` leaving a column unbounded:

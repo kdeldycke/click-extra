@@ -65,6 +65,7 @@ from .spinner import (
 )
 from .spinner_presets import SPINNERS
 from .styling import _nearest_256
+from .table import corner_header
 from .test_suite import (
     DEFAULT_TEST_SUITE,
     CLITestCase,
@@ -596,7 +597,7 @@ def _render_gradient() -> str:
 def demo_colors(ctx: context.Context) -> None:
     """Render every foreground color against every background color."""
     styled_headers = [style(c, bg=c) for c in _ALL_COLORS]
-    headers = ["Foreground \u21b4 \\ Background \u2192"] + styled_headers
+    headers = [corner_header("Foreground", "Background"), *styled_headers]
     table: list[list[str]] = []
     for fg in _ALL_COLORS:
         row = [style(fg, fg=fg)]
@@ -610,7 +611,7 @@ def demo_colors(ctx: context.Context) -> None:
 def demo_styles(ctx: context.Context) -> None:
     """Render every color with each text style (bold, dim, italic, etc.)."""
     styled_headers = [style(s, **{s: True}) for s in _ALL_STYLES]
-    headers = ["Color \u21b4 \\ Style \u2192"] + styled_headers
+    headers = [corner_header("Color", "Style"), *styled_headers]
     table: list[list[str]] = []
     for color_name in _ALL_COLORS:
         row = [style(color_name, fg=color_name)]
