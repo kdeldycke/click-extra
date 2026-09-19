@@ -34,6 +34,7 @@ from textwrap import dedent
 
 import pytest
 from click.testing import CliRunner
+from packaging.version import Version
 
 from click_extra.cli import refresh_directives_cmd
 from click_extra.sphinx.matrix import (
@@ -45,7 +46,7 @@ from click_extra.sphinx.matrix import (
     PythonMatrixGroup,
     _dependency_columns,
     _extract_requirement,
-    _latest_pypi_release,
+    _pypi_releases,
     _python_cell,
     _range_labels,
     _render_block,
@@ -95,9 +96,9 @@ def offline_pypi(monkeypatch: pytest.MonkeyPatch) -> None:
 
     The fixtures track a made-up ``widget`` dependency, and a real project of
     that name on PyPI would move their columns. The tests of the PyPI anchor
-    stub the lookup again with the answer they need.
+    stub the lookup again with the releases they need.
     """
-    monkeypatch.setattr(f"{MATRIX_MODULE}._latest_pypi_release", lambda dep_name: "")
+    monkeypatch.setattr(f"{MATRIX_MODULE}._pypi_releases", lambda dep_name: ())
 
 
 def git_repo(path: Path) -> Callable[..., None]:
@@ -1183,6 +1184,34 @@ def test_dependency_matrix_table_merge_keeps_distinct_specs(
     assert tagged_table_rows(table) == expected
 
 
+def test_dependency_matrix_table_released_series_splits_ranges(
+    narrowing_floor_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A released 3.1 tells the caret range from the compatible-release one.
+
+    With a column of its own, 3.1 splits the two ranges on their cells alone,
+    without a Spec column.
+    """
+    releases = ("3.0.0", "3.0.7", "3.1.0", "4.0.0")
+    monkeypatch.setattr(
+        f"{MATRIX_MODULE}._pypi_releases",
+        lambda dep_name: tuple(map(Version, releases)),
+    )
+    table = dependency_matrix_table(narrowing_floor_repo, "proj", "widget")
+    assert table_header(table) == [
+        WIDGET_CORNER,
+        "`4.0.x`",
+        "`3.1.x`",
+        "`3.0.7`",
+        "`3.0.0`",
+    ]
+    assert tagged_table_rows(table) == {
+        "`3.0.0`": ["✅", "✅", "✅", "❌"],
+        "`2.0.0`": ["❌", "❌", "✅", "❌"],
+        "`1.0.0`": ["❌", "✅", "✅", "❌"],
+    }
+
+
 def pinned_widget_repo(tmp_path: Path, name: str, spec: str) -> Path:
     """A one-tag repo pinning ``widget`` to ``spec``, locked at 2.4.0."""
     repo = tmp_path / name
@@ -1251,11 +1280,36 @@ def test_dependency_matrix_table_anchors_on_pypi(
     """
     repo = pinned_widget_repo(tmp_path, "pypi-anchor", ">=2.1")
     monkeypatch.setattr(
-        f"{MATRIX_MODULE}._latest_pypi_release", lambda dep_name: "3.0.0"
+        f"{MATRIX_MODULE}._pypi_releases",
+        lambda dep_name: (Version("2.1.0"), Version("3.0.0")),
     )
     table = dependency_matrix_table(repo, "proj", "widget")
     assert table_header(table) == [WIDGET_CORNER, "`3.0.x`", "`2.4.x`", "`2.1.x`"]
     assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "✅✅✅"
+
+
+def test_dependency_matrix_table_covers_released_series(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every series released from the oldest floor on earns a column.
+
+    A series below the oldest floor stays out: no range could accept it.
+    """
+    repo = pinned_widget_repo(tmp_path, "released-series", ">=2.1")
+    releases = ("1.0.0", "2.1.0", "2.2.0", "2.3.1", "3.0.0")
+    monkeypatch.setattr(
+        f"{MATRIX_MODULE}._pypi_releases",
+        lambda dep_name: tuple(map(Version, releases)),
+    )
+    table = dependency_matrix_table(repo, "proj", "widget")
+    assert table_header(table) == [
+        WIDGET_CORNER,
+        "`3.0.x`",
+        "`2.4.x`",
+        "`2.3.x`",
+        "`2.2.x`",
+        "`2.1.x`",
+    ]
 
 
 @pytest.fixture
@@ -1267,30 +1321,35 @@ def pypi(httpserver, monkeypatch: pytest.MonkeyPatch):
     return httpserver
 
 
-def test_latest_pypi_release(pypi) -> None:
-    """The lookup asks for the normalized name and returns `info.version`."""
+def test_pypi_releases(pypi) -> None:
+    """The lookup asks for the normalized name and sorts the releases."""
     pypi.expect_request("/pypi/widget/json").respond_with_json({
-        "info": {"version": "3.0.0", "yanked": False}
+        "releases": {
+            "3.0.0": [{"yanked": False}],
+            "1.0.0": [{"yanked": False}],
+            # One file left unyanked keeps the release installable.
+            "2.0.0": [{"yanked": True}, {"yanked": False}],
+        }
     })
-    assert _latest_pypi_release("Widget") == "3.0.0"
+    assert _pypi_releases("Widget") == tuple(map(Version, ("1.0.0", "2.0.0", "3.0.0")))
 
 
 @pytest.mark.parametrize(
-    "info",
+    ("tag", "files"),
     [
-        # PyPI only reports these when a project has no stable, unyanked
-        # release left.
-        {"version": "3.0.0rc1", "yanked": False},
-        {"version": "3.0.0.dev0", "yanked": False},
-        {"version": "3.0.0", "yanked": True},
-        # Malformed answers.
-        {"version": "not a version"},
-        {},
+        ("3.0.0rc1", [{"yanked": False}]),
+        ("3.0.0.dev0", [{"yanked": False}]),
+        ("3.0.0", [{"yanked": True}]),
+        ("3.0.0", []),
+        ("not a version", [{"yanked": False}]),
     ],
 )
-def test_latest_pypi_release_discards(pypi, info: dict) -> None:
-    pypi.expect_request("/pypi/widget/json").respond_with_json({"info": info})
-    assert _latest_pypi_release("widget") == ""
+def test_pypi_releases_discards(pypi, tag: str, files: list) -> None:
+    """Pre-releases, yanked or empty releases and invalid versions are dropped."""
+    pypi.expect_request("/pypi/widget/json").respond_with_json({
+        "releases": {"1.0.0": [{"yanked": False}], tag: files}
+    })
+    assert _pypi_releases("widget") == (Version("1.0.0"),)
 
 
 @pytest.mark.parametrize(
@@ -1298,12 +1357,14 @@ def test_latest_pypi_release_discards(pypi, info: dict) -> None:
     [
         ("Not Found", 404),
         ("<html>Maintenance</html>", 200),
+        ("{}", 200),
+        ('{"releases": []}', 200),
     ],
 )
-def test_latest_pypi_release_unreadable(pypi, body: str, status: int) -> None:
-    """An error or a body that is not JSON costs the anchor, not the table."""
+def test_pypi_releases_unreadable(pypi, body: str, status: int) -> None:
+    """An error or a malformed answer costs the columns, not the table."""
     pypi.expect_request("/pypi/widget/json").respond_with_data(body, status=status)
-    assert _latest_pypi_release("widget") == ""
+    assert _pypi_releases("widget") == ()
 
 
 # Every example from Poetry's dependency-specification reference, mapping the

@@ -10,7 +10,7 @@
 - Re-export `ArgumentKwargs` and `OptionKwargs` when the installed cloup provides them, as cloup `4.0` does.
 - Name both axes in the top-left cell of `matrix` tables, like `click-extra ↴ \ cloup →`.
 - Drop the `Released` column of `matrix` tables: add `:show-date:` to follow each row label with its first release date instead.
-- Give the newest release on PyPI its own column in `matrix` dependency tables, next to the `uv.lock` version.
+- Give every minor series released on PyPI since a dependency's oldest floor its own column in `matrix` dependency tables, next to the `uv.lock` version.
 - Label a `matrix` dependency column covering a whole minor series as `8.2.x` instead of `8.2`, which read as the `8.2.0` release.
 - Keep the first column of a corner-labeled table on one line in Sphinx builds: a narrow screen scrolls the table instead of wrapping its row labels.
 - Stop `import click_extra` from emitting Click deprecation warnings under cloup `4.0`: `BaseCommand`, `MultiCommand`, `OptionParser` and the stream getters now warn only when used.
