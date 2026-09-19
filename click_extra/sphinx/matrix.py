@@ -909,7 +909,7 @@ def _spec_floor(spec: str) -> tuple[Version | None, bool]:
     distinguishes releases *inside* a minor series: an open `>=X.Y.Z` floor
     accepts only part of `X.Y`, and an exact pin accepts a single release of
     it. A range that covers its minor series from some point on, or caps
-    inside it, is served by one `X.Y` column.
+    inside it, is served by one `X.Y.x` column.
 
     A specifier with no lower bound at all (a lone ceiling) anchors nothing:
     the versions it allows are whichever columns the other release ranges
@@ -932,7 +932,7 @@ def _spec_floor(spec: str) -> tuple[Version | None, bool]:
     if m:
         return _safe_version(m.group(1)), False
     # An exact pin allows exactly one release, so it needs a column of its own
-    # precision: a whole `X.Y` column would read `❌` for the very version the
+    # precision: a whole `X.Y.x` column would read `❌` for the very version the
     # release pins.
     m = re.match(r"^={2,3}\s*(\d+(?:\.\d+){0,2})$", spec)
     if m:
@@ -1021,7 +1021,7 @@ def _dependency_columns(
 ) -> list[tuple[Version, bool]]:
     """Derive the ordered `(version, is_minor)` columns for a dependency axis.
 
-    A minor series gets a single `X.Y` column unless some spec distinguishes
+    A minor series gets a single `X.Y.x` column unless some spec distinguishes
     releases inside it (an open `>=` floor at patch level, or an exact pin),
     in which case it is split into `X.Y.0` plus each such version. Each of the
     `anchors` (see {func}`_anchor_versions`) adds its series too, whatever the
@@ -1191,7 +1191,7 @@ def dependency_matrix_table(
     headers = [
         _corner_cell(label, f"`{dep_name}`"),
         *spec_header,
-        *(f"`{v}`" for v, _ in columns),
+        *(f"`{v}.x`" if is_minor else f"`{v}`" for v, is_minor in columns),
     ]
     colalign = (
         "left",

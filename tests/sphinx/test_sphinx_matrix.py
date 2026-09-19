@@ -1006,11 +1006,11 @@ def test_dependency_matrix_table_columns_and_cells(synthetic_dep_repo: Path) -> 
         synthetic_dep_repo, "proj", "widget", show_spec=True
     )
     # Minor 1.0 stays grouped; the open >=2.1.3 floor splits 2.1 into .0 / .3.
-    assert "`1.0`" in table
+    assert "`1.0.x`" in table
     assert "`2.1.0`" in table
     assert "`2.1.3`" in table
     # Columns run newest-first, like the Python axis.
-    assert table.index("`2.1.3`") < table.index("`2.1.0`") < table.index("`1.0`")
+    assert table.index("`2.1.3`") < table.index("`2.1.0`") < table.index("`1.0.x`")
     # The Spec column carries each range's raw specifier.
     assert "Spec" in table
     assert "`>=1.0`" in table
@@ -1055,13 +1055,13 @@ def test_dependency_matrix_table_exotic_specs(exotic_spec_repo: Path) -> None:
     assert table_header(table) == [
         WIDGET_CORNER,
         "Spec",
-        "`6.0`",
+        "`6.0.x`",
         "`5.2.1`",
         "`5.2.0`",
-        "`4.0`",
-        "`3.1`",
-        "`2.1`",
-        "`1.0`",
+        "`4.0.x`",
+        "`3.1.x`",
+        "`2.1.x`",
+        "`1.0.x`",
     ]
     rows = tagged_table_rows(table)
     # Each row keeps its raw specifier (whitespace squeezed out) next to the
@@ -1168,7 +1168,7 @@ def test_dependency_matrix_table_merge_keeps_distinct_specs(
     assert table_header(table) == [
         WIDGET_CORNER,
         *spec_header,
-        "`4.0`",
+        "`4.0.x`",
         "`3.0.7`",
         "`3.0.0`",
     ]
@@ -1195,10 +1195,10 @@ def pinned_widget_repo(tmp_path: Path, name: str, spec: str) -> Path:
     [
         # An exact pin earns a patch-precise column, so the one release it
         # accepts is visible instead of the row reading as all-❌.
-        ("==2.1.4", ["`2.4`", "`2.1.4`", "`2.1.0`"], "❌✅❌"),
-        ("===2.1.4", ["`2.4`", "`2.1.4`", "`2.1.0`"], "❌✅❌"),
+        ("==2.1.4", ["`2.4.x`", "`2.1.4`", "`2.1.0`"], "❌✅❌"),
+        ("===2.1.4", ["`2.4.x`", "`2.1.4`", "`2.1.0`"], "❌✅❌"),
         # A wildcard pin accepts its whole series, which one column serves.
-        ("==2.1.*", ["`2.4`", "`2.1`"], "❌✅"),
+        ("==2.1.*", ["`2.4.x`", "`2.1.x`"], "❌✅"),
     ],
 )
 def test_dependency_matrix_table_pinned_spec(
@@ -1230,7 +1230,7 @@ def test_dependency_matrix_table_suffixed_poetry_floor(tmp_path: Path) -> None:
     """
     repo = pinned_widget_repo(tmp_path, "post-release", "^2.0.0.post1")
     table = dependency_matrix_table(repo, "proj", "widget")
-    assert table_header(table) == [WIDGET_CORNER, "`2.4`", "`2.0`"]
+    assert table_header(table) == [WIDGET_CORNER, "`2.4.x`", "`2.0.x`"]
     assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "✅✅"
 
 
@@ -1246,7 +1246,7 @@ def test_dependency_matrix_table_anchors_on_pypi(
         f"{MATRIX_MODULE}._latest_pypi_release", lambda dep_name: "3.0.0"
     )
     table = dependency_matrix_table(repo, "proj", "widget")
-    assert table_header(table) == [WIDGET_CORNER, "`3.0`", "`2.4`", "`2.1`"]
+    assert table_header(table) == [WIDGET_CORNER, "`3.0.x`", "`2.4.x`", "`2.1.x`"]
     assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "✅✅✅"
 
 
@@ -1353,7 +1353,7 @@ def test_dependency_matrix_table_column_order(
     table = dependency_matrix_table(
         synthetic_dep_repo, "proj", "widget", column_order=column_order
     )
-    newest_first = table.index("`2.1.3`") < table.index("`1.0`")
+    newest_first = table.index("`2.1.3`") < table.index("`1.0.x`")
     assert newest_first == (column_order == "newest-first")
 
 

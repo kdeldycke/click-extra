@@ -287,7 +287,7 @@ The result reads as a staircase: ❌ fills the lower-left as the floor rises ove
 
 ### A dependency axis
 
-`{matrix} <distribution>` tracks a runtime dependency instead. For each release range it reads that distribution's requirement specifier (PEP 621, Poetry, or `setup.py`) and marks ✅ / ❌ for each column version with [`packaging`](https://packaging.pypa.io). An extras bracket and an environment marker are both transparent: `tabulate[widechars]>=0.9` and `tomli>=2; python_version<'3.11'` each track the plain `>=` range. The distribution is matched on its [PEP 503](https://peps.python.org/pep-0503/) normalized name, looked up in the runtime dependencies then in those behind an extra. Development dependency groups ([PEP 735](https://peps.python.org/pep-0735/)) are skipped, since no installer resolves them for a consumer. Columns are auto-derived: a minor series stays a single `X.Y` column unless an open (`>=`) floor pins a specific patch, in which case it splits into `X.Y.0` plus that floor. The newest stable release on PyPI and the version resolved in `uv.lock` also get a column each. The PyPI lookup applies no cooldown, since an installer applies none either, so a new release shows up as soon as it is published. It needs network access: when PyPI cannot answer, the refresh logs a warning and the table goes without that column. Add `:show-spec:` for a `Spec` column with each range's raw specifier, in the release's own spelling. Cells here stay two-valued: unlike Python, a dependency has no informational second declaration to disagree with its specifier, so there is nothing an undeclared cell could mean.
+`{matrix} <distribution>` tracks a runtime dependency instead. For each release range it reads that distribution's requirement specifier (PEP 621, Poetry, or `setup.py`) and marks ✅ / ❌ for each column version with [`packaging`](https://packaging.pypa.io). An extras bracket and an environment marker are both transparent: `tabulate[widechars]>=0.9` and `tomli>=2; python_version<'3.11'` each track the plain `>=` range. The distribution is matched on its [PEP 503](https://peps.python.org/pep-0503/) normalized name, looked up in the runtime dependencies then in those behind an extra. Development dependency groups ([PEP 735](https://peps.python.org/pep-0735/)) are skipped, since no installer resolves them for a consumer. Columns are auto-derived: a minor series stays a single `X.Y.x` column unless an open (`>=`) floor pins a specific patch, in which case it splits into `X.Y.0` plus that floor. The newest stable release on PyPI and the version resolved in `uv.lock` also get a column each. The PyPI lookup applies no cooldown, since an installer applies none either, so a new release shows up as soon as it is published. It needs network access: when PyPI cannot answer, the refresh logs a warning and the table goes without that column. Add `:show-spec:` for a `Spec` column with each range's raw specifier, in the release's own spelling. Cells here stay two-valued: unlike Python, a dependency has no informational second declaration to disagree with its specifier, so there is nothing an undeclared cell could mean.
 
 [Poetry's own range syntax](https://python-poetry.org/docs/dependency-specification/) is translated to PEP 440 before evaluation, since a project's older tags usually predate its move to PEP 621. Carets follow Poetry's rule of bumping the leftmost non-zero component, so `^1.2.3` caps at `2.0.0` while `^0.2.3` caps at `0.3.0` and `^0.0.3` at `0.0.4`: under a `0.` prefix every release may break, and a caret there covers far less than the major series. Tilde and wildcard ranges (`~1`, `~1.2`, `1.*`, `1.2.*`) translate the same way. A pre-, post- or dev-release suffix stays on the floor and leaves the ceiling alone, so `^2.0.0.post1` becomes `>=2.0.0.post1,<3.0.0`.
 
@@ -298,20 +298,27 @@ This project uses it for the [Click](install.md#click-compatibility) and [Cloup]
 :package: click-extra
 :show-spec:
 
-| `click-extra` ↴ \\ `click` →     | Spec      | `8.5` | `8.4.1` | `8.4.0` | `8.3.3` | `8.3.1` | `8.3.0` | `8.2` | `8.1` | `8.0` |
-| :------------------------------- | :-------- | :---: | :-----: | :-----: | :-----: | :-----: | :-----: | :---: | :---: | :---: |
-| `9.x` (2026-08-28)               | `>=8.4.1` |  ✅   |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `8.x` (2026-06-22)               | `>=8.3.1` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.17.x` (2026-05-25) → `7.20.x` | `>=8.4.1` |  ✅   |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.15.x` (2026-05-03) → `7.16.x` | `>=8.3.1` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.14.1` (2026-04-26)            | `>=8.1`   |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ❌   |
-| `7.14.0` (2026-04-24)            | `>=8.3.3` |  ✅   |   ✅    |   ✅    |   ✅    |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `7.0.x` (2025-11-17) → `7.13.x`  | `>=8.3.1` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |
-| `6.x` (2025-09-25)               | `>=8.3.0` |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ❌   |  ❌   |  ❌   |
-| `5.x` (2025-05-13)               | `~=8.2.0` |  ❌   |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |  ✅   |  ❌   |  ❌   |
-| `4.9.x` (2024-07-25) → `4.15.x`  | `~=8.1.4` |  ❌   |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ✅   |  ❌   |
-| `1.7.x` (2022-03-31) → `4.8.x`   | `^8.1.1`  |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ❌   |
-| `0.0.x` (2021-10-18) → `1.6.x`   | `^8.0.2`  |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ✅   |
+| `click-extra` ↴ \\ `click` →     | Spec      | `8.5.x` | `8.4.1` | `8.4.0` | `8.3.3` | `8.3.1` | `8.3.0` | `8.2.x` | `8.1.x` | `8.0.x` |
+| :------------------------------- | :-------- | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: |
+| `9.x` (2026-08-28)               | `>=8.4.1` |   ✅    |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |
+| `8.x` (2026-06-22)               | `>=8.3.1` |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |
+| `7.17.x` (2026-05-25) → `7.20.x` | `>=8.4.1` |   ✅    |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |
+| `7.15.x` (2026-05-03) → `7.16.x` | `>=8.3.1` |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |
+| `7.14.1` (2026-04-26)            | `>=8.1`   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |
+| `7.14.0` (2026-04-24)            | `>=8.3.3` |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |
+| `7.0.x` (2025-11-17) → `7.13.x`  | `>=8.3.1` |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |   ❌    |   ❌    |   ❌    |
+| `6.x` (2025-09-25)               | `>=8.3.0` |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |   ❌    |   ❌    |
+| `5.1.1` (2025-08-24)             | `~=8.2.1` |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ✅    |   ❌    |   ❌    |
+| `5.1.0` (2025-08-01)             | `~=8.2.2` |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ✅    |   ❌    |   ❌    |
+| `5.0.x` (2025-05-13)             | `~=8.2.0` |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ✅    |   ❌    |   ❌    |
+| `4.12.x` (2025-01-20) → `4.15.x` | `~=8.1.8` |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ✅    |   ❌    |
+| `4.9.x` (2024-07-25) → `4.11.x`  | `~=8.1.4` |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |   ✅    |   ❌    |
+| `4.6.x` (2023-07-12) → `4.8.x`   | `^8.1.4`  |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |
+| `4.1.x` (2023-05-11) → `4.5.x`   | `^8.1`    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |
+| `4.0.0` (2023-05-08)             | `^8.1.3`  |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |
+| `1.7.x` (2022-03-31) → `3.10.x`  | `^8.1.1`  |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ❌    |
+| `1.5.x` (2022-02-21) → `1.6.x`   | `^8.0.4`  |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |
+| `0.0.x` (2021-10-18) → `1.4.x`   | `^8.0.2`  |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |
 ```
 ````
 
