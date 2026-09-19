@@ -20,6 +20,9 @@
 
 ## [`9.3.1` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.3.0...v9.3.1)
 
+> [!NOTE]
+> `9.3.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/9.3.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v9.3.1).
+
 - Fix the `--jobs` help and documentation, which said `auto` always leaves one logical CPU free: hosts with fewer than three use all of them.
 - Fix `click:run` and `python:run` blocks ending early when the output holds a code fence of its own, which spilled the rest of it into the page.
 - Document `HelpFormat`, `DocOptionItem.attached_value` and `build_moment`, which `9.3.0` shipped without a docs mention.
