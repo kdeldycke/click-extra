@@ -32,10 +32,10 @@ Two axes are supported:
   `❌`, and a version neither attested nor ruled out renders as `–` (see
   {data}`UNDECLARED_CELL`).
 - **A dependency** (``{matrix} <distribution>``, like ``{matrix} click``): the
-  per-tag constraint is that distribution's requirement specifier; columns are
-  auto-derived from the specifier boundaries, every minor series released on
-  PyPI from the oldest boundary on, and the `uv.lock` resolved version, and
-  each ✅ / ❌ cell is computed with {mod}`packaging`.
+  per-tag constraint is that distribution's requirement specifier; each
+  column covers a run of that distribution's releases on PyPI (plus the
+  `uv.lock` resolved version) that every range treats alike, and each ✅ / ❌
+  cell is computed with {mod}`packaging`.
 
 The rendered tables back the always-on `matrix` Sphinx directive (see
 {class}`MatrixDirective`), so a project's `install.md` can embed a live matrix
@@ -904,45 +904,30 @@ def _same_spec(spec: str, other: str) -> bool:
     return spec_set == _to_specifier_set(other)
 
 
-def _spec_floor(spec: str) -> tuple[Version | None, bool]:
-    """Return `(floor_version, patch_precise)` for a specifier.
+def _spec_floor(spec: str) -> Version | None:
+    """Return the lowest version a specifier names, or `None`.
 
-    The floor is where the specifier anchors a column. `patch_precise` says
-    that column has to be a patch-level one, because the specifier
-    distinguishes releases *inside* a minor series: an open `>=X.Y.Z` floor
-    accepts only part of `X.Y`, and an exact pin accepts a single release of
-    it. A range that covers its minor series from some point on, or caps
-    inside it, is served by one `X.Y.x` column.
-
-    A specifier with no lower bound at all (a lone ceiling) anchors nothing:
-    the versions it allows are whichever columns the other release ranges
-    happen to contribute.
+    Without PyPI's release list, the floors of the ranges stand in for the
+    releases the columns bin (see {func}`_column_candidates`). A specifier with
+    no lower bound at all, like a lone ceiling, names none.
     """
     spec = spec.strip()
-    # Poetry ranges all cap at a computed ceiling, so their series stays whole.
     m = POETRY_CARET_RE.match(spec) or POETRY_TILDE_RE.match(spec)
     if m:
-        return _safe_version(m["release"] + m["suffix"]), False
+        return _safe_version(m["release"] + m["suffix"])
     m = POETRY_WILDCARD_RE.match(spec)
     if m:
         parts = [p for p in m.groups() if p is not None]
-        return (_safe_version(".".join(parts)) if parts else None), False
+        return _safe_version(".".join(parts)) if parts else None
     m = re.match(r"^~=\s*(\d+(?:\.\d+){1,2})", spec)
     if m:
-        return _safe_version(m.group(1)), False
-    # A wildcard pin covers a whole series, so the series column serves it.
-    m = re.match(r"^==\s*(\d+(?:\.\d+)?)\.\*$", spec)
+        return _safe_version(m.group(1))
+    # An exact or wildcard pin: its floor is the version it names.
+    m = re.match(r"^={2,3}\s*(\d+(?:\.\d+){0,2})(?:\.\*)?$", spec)
     if m:
-        return _safe_version(m.group(1)), False
-    # An exact pin allows exactly one release, so it needs a column of its own
-    # precision: a whole `X.Y.x` column would read `❌` for the very version the
-    # release pins.
-    m = re.match(r"^={2,3}\s*(\d+(?:\.\d+){0,2})$", spec)
-    if m:
-        return _safe_version(m.group(1)), True
+        return _safe_version(m.group(1))
     m = re.search(r">=?\s*(\d+(?:\.\d+){0,2})", spec)
-    floor = _safe_version(m.group(1)) if m else None
-    return floor, "<" not in spec
+    return _safe_version(m.group(1)) if m else None
 
 
 PYPI_JSON_URL: str = "https://pypi.org/pypi/{name}/json"
@@ -1007,87 +992,48 @@ def _latest_locked_version(project_root: Path, dep_name: str) -> str:
     return m.group(1) if m else ""
 
 
-def _anchor_versions(
-    project_root: Path, dep_name: str, releases: Sequence[Version]
-) -> tuple[str, str]:
-    """Return the two versions of `dep_name` that earn a column of their own.
+def _column_candidates(
+    specs: Iterable[str], releases: Iterable[Version], locked: str
+) -> set[Version]:
+    """Return the versions of a dependency its matrix columns bin.
 
-    The newest of the PyPI `releases` shows what an installer picks today, and
-    the version `uv.lock` resolves shows what the project tests against. They
-    differ while a new release waits out the lockfile's cooldown. Either one is
-    `""` when unknown, like the PyPI release when PyPI cannot answer.
+    Every stable release on PyPI (see {func}`_pypi_releases`), plus the version
+    `uv.lock` resolves, which shows what the project tests against. Without the
+    release list, the floors of the ranges stand in for it, so a table rendered
+    offline still shows where each range starts.
     """
-    latest = str(releases[-1]) if releases else ""
-    return latest, _latest_locked_version(project_root, dep_name)
-
-
-def _minor_intersects(spec_set: SpecifierSet, major: int, minor: int) -> bool:
-    """Does `spec_set` allow any release in the `major.minor` series?"""
-    low = Version(f"{major}.{minor}.0")
-    high = Version(f"{major}.{minor}.99999")
-    return spec_set.contains(low, prereleases=True) or spec_set.contains(
-        high,
-        prereleases=True,
-    )
+    candidates = set(releases)
+    if not candidates:
+        candidates.update(filter(None, map(_spec_floor, specs)))
+    locked_version = _safe_version(locked) if locked else None
+    if locked_version is not None:
+        candidates.add(locked_version)
+    return candidates
 
 
 def _dependency_columns(
-    specs: list[str],
-    anchors: Iterable[str],
-    releases: Iterable[Version] = (),
-) -> list[tuple[Version, bool]]:
-    """Derive the ordered `(version, is_minor)` columns for a dependency axis.
+    spec_sets: Sequence[SpecifierSet | None], candidates: Iterable[Version]
+) -> list[tuple[Version, Version, tuple[bool, ...]]]:
+    """Bin `candidates` into columns of versions every range treats alike.
 
-    A minor series gets a single `X.Y.x` column unless some spec distinguishes
-    releases inside it (an open `>=` floor at patch level, or an exact pin),
-    in which case it is split into `X.Y.0` plus each such version. Each of the
-    `anchors` (see {func}`_anchor_versions`) adds its series too, whatever the
-    specs say, and an empty or invalid anchor is skipped. So does every minor
-    series of `releases` (see {func}`_pypi_releases`) from the oldest floor on,
-    so a series no specifier starts in still shows which ranges accept it.
-    Columns are sorted newest-first, so the newest anchor sits on the left
-    edge.
+    Each candidate gets the vector of the ranges accepting it, one entry per
+    item of `spec_sets` (`None` for an unparsable range, which accepts nothing).
+    Consecutive candidates sharing a vector share a column, so a range accepts
+    every version of a column or none of them, and each ✅ / ❌ cell is exact.
+
+    :return: `(first, last, accepted)` bins, oldest first.
     """
-    floors = [
-        (floor, patch_precise)
-        for floor, patch_precise in (_spec_floor(spec) for spec in specs)
-        if floor is not None
-    ]
-    anchor_versions = [
-        version for version in map(_safe_version, anchors) if version is not None
-    ]
-
-    split: dict[tuple[int, int], bool] = {}
-    for floor, patch_precise in floors:
-        key = (floor.major, floor.minor)
-        split.setdefault(key, False)
-        if patch_precise and floor.micro > 0:
-            split[key] = True
-    for anchor in anchor_versions:
-        split.setdefault((anchor.major, anchor.minor), False)
-    if floors:
-        oldest = min((floor.major, floor.minor) for floor, _ in floors)
-        for release in releases:
-            if (release.major, release.minor) >= oldest:
-                split.setdefault((release.major, release.minor), False)
-
-    columns: list[tuple[Version, bool]] = []
-    for key in sorted(split, reverse=True):
-        major, minor = key
-        if not split[key]:
-            columns.append((Version(f"{major}.{minor}"), True))
-            continue
-        patches = {Version(f"{major}.{minor}.0")}
-        patches.update(
-            floor
-            for floor, patch_precise in floors
-            if patch_precise and (floor.major, floor.minor) == key
+    bins: list[tuple[Version, Version, tuple[bool, ...]]] = []
+    for version in sorted(set(candidates)):
+        accepted = tuple(
+            spec_set is not None and spec_set.contains(version, prereleases=True)
+            for spec_set in spec_sets
         )
-        patches.update(
-            anchor for anchor in anchor_versions if (anchor.major, anchor.minor) == key
-        )
-        columns.extend((patch, False) for patch in sorted(patches, reverse=True))
-    return columns
+        if bins and bins[-1][2] == accepted:
+            bins[-1] = (bins[-1][0], version, accepted)
+        else:
+            bins.append((version, version, accepted))
+    return bins
 
 
 def dependency_matrix_groups(
@@ -1137,12 +1083,11 @@ def dependency_matrix_table(
 ) -> str:
     """Render the `dep_name` compatibility matrix as a markdown table.
 
-    Columns are auto-derived from the requirement specifiers across history
-    (see {func}`_dependency_columns`), every minor series released on PyPI
-    from the oldest boundary on, and the `uv.lock` version (see
-    {func}`_anchor_versions`);
-    each ✅ / ❌ cell is computed with {mod}`packaging`. Consecutive ranges
-    whose cells coincide are re-merged into one row. By default newest
+    Each column covers a run of `dep_name` releases that every range treats
+    alike (see {func}`_column_candidates` and {func}`_dependency_columns`),
+    labeled like the rows; each ✅ / ❌ cell is computed with
+    {mod}`packaging`. Consecutive ranges whose cells coincide are re-merged
+    into one row. By default newest
     releases sit on top and newest dependency versions on the left, matching
     the Python axis; `row_order` and `column_order` flip either axis.
 
@@ -1172,35 +1117,45 @@ def dependency_matrix_table(
     )
     if not groups:
         return ""
-    releases = _pypi_releases(dep_name)
-    columns = _dependency_columns(
-        [g.spec for g in groups],
-        _anchor_versions(project_root, dep_name, releases),
-        releases,
+    specs = [g.spec for g in groups]
+    spec_sets = [_to_specifier_set(spec) for spec in specs]
+    candidates = _column_candidates(
+        specs,
+        _pypi_releases(dep_name),
+        _latest_locked_version(project_root, dep_name),
     )
-    if not columns:
+    bins = _dependency_columns(spec_sets, candidates)
+    if not bins:
         return ""
+    # Label the columns the way the rows are labeled, newest first.
+    newest_first = list(reversed(bins))
+    column_labels = _range_labels([
+        (str(first), str(last), "") for first, last, _ in newest_first
+    ])
+    columns = [
+        (column_label, accepted)
+        for column_label, (*_, accepted) in zip(
+            column_labels, newest_first, strict=True
+        )
+    ]
+    # Drop the oldest columns no range accepts: they only say that the history
+    # starts later. Labeled before the drop, the oldest column left still
+    # names the exact release it starts at.
+    if any(any(accepted) for _, accepted in columns):
+        while not any(columns[-1][1]):
+            columns.pop()
     if column_order == OLDEST_FIRST:
         columns.reverse()
 
-    # Resolve each range's ✅ / ❌ vector, then re-merge consecutive ranges
-    # whose vectors coincide (a floor bump that changes no visible cell). A
-    # merged row shows the Spec cell of its oldest range, so with that column
-    # the ranges must also accept the same versions: `^3.0.1` and `~=3.0.5`
-    # read the same when no column holds 3.1, which only the first accepts.
+    # Read each range's ✅ / ❌ vector off the bins, then re-merge consecutive
+    # ranges whose vectors coincide: they accept the same releases. A merged
+    # row shows the Spec cell of its oldest range, so with that column the
+    # ranges must also accept the same versions beyond the newest release.
     merged: list[list] = []
-    for group in groups:
-        spec_set = _to_specifier_set(group.spec)
+    for index, group in enumerate(groups):
         cells = tuple(
-            SUPPORTED_CELL
-            if spec_set is not None
-            and (
-                _minor_intersects(spec_set, version.major, version.minor)
-                if is_minor
-                else spec_set.contains(version, prereleases=True)
-            )
-            else FORBIDDEN_CELL
-            for version, is_minor in columns
+            SUPPORTED_CELL if accepted[index] else FORBIDDEN_CELL
+            for _, accepted in columns
         )
         same = merged and merged[-1][4] == cells
         if same and (not show_spec or _same_spec(merged[-1][3], group.spec)):
@@ -1224,7 +1179,7 @@ def dependency_matrix_table(
     headers = [
         _corner_cell(label, f"`{dep_name}`"),
         *spec_header,
-        *(f"`{v}.x`" if is_minor else f"`{v}`" for v, is_minor in columns),
+        *(column_label for column_label, _ in columns),
     ]
     colalign = (
         "left",
