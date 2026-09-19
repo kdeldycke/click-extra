@@ -483,6 +483,8 @@ def _range_label(
     *,
     is_latest: bool,
     full_major: bool = False,
+    split_start: bool = False,
+    split_end: bool = False,
 ) -> str:
     """Render the version-range label for a matrix group.
 
@@ -493,19 +495,62 @@ def _range_label(
     `X.Y.Z` version rather than a patch wildcard, so two adjacent patch
     releases never collapse to the same ambiguous label. Other closed groups
     keep precise minor-version bounds.
+
+    `split_start` and `split_end` flag a bound whose minor series the
+    neighboring group shares, where `X.Y.x` would name both groups. That
+    bound shows its exact version instead, and a group inside a single split
+    minor shows both of its versions: `4.6.2` → `4.6.3`.
     """
-    if first_tag == last_tag:
-        return f"`{first_tag.lstrip('v')}`"
-    if full_major:
-        return f"`{first_tag.lstrip('v').split('.')[0]}.x`"
-    first_minor = ".".join(first_tag.lstrip("v").split(".")[:2])
-    last_minor = ".".join(last_tag.lstrip("v").split(".")[:2])
-    if first_minor == last_minor:
+    first = first_tag.lstrip("v")
+    last = last_tag.lstrip("v")
+    if first == last:
+        return f"`{first}`"
+    if full_major and not split_start:
+        return f"`{first.split('.')[0]}.x`"
+    first_minor = ".".join(first.split(".")[:2])
+    last_minor = ".".join(last.split(".")[:2])
+    same_minor = first_minor == last_minor
+    if same_minor and not (split_start or split_end):
         return f"`{first_minor}.x`"
+    low = first if split_start or same_minor else f"{first_minor}.x"
     if is_latest:
-        last_major = last_tag.lstrip("v").split(".")[0]
-        return f"`{first_minor}.x` → `{last_major}.x`"
-    return f"`{first_minor}.x` → `{last_minor}.x`"
+        high = f"{last.split('.')[0]}.x"
+    elif split_end or same_minor:
+        high = last
+    else:
+        high = f"{last_minor}.x"
+    return f"`{low}` → `{high}`"
+
+
+def _same_minor(tag: str, other_tag: str | None) -> bool:
+    """Whether `other_tag` exists and shares the `X.Y` minor series of `tag`."""
+    if other_tag is None:
+        return False
+    return tag.lstrip("v").split(".")[:2] == other_tag.lstrip("v").split(".")[:2]
+
+
+def _range_labels(bounds: list[tuple[str, str]]) -> list[str]:
+    """Label each `(first_tag, last_tag)` group of a newest-first list.
+
+    Each label depends on both neighbors: the newer group decides whether this
+    one is the latest or spans a full major, and either neighbor can split a
+    minor series with it (see {func}`_range_label`).
+    """
+    labels = []
+    for index, (first_tag, last_tag) in enumerate(bounds):
+        newer_first = bounds[index - 1][0] if index else None
+        older_last = bounds[index + 1][1] if index + 1 < len(bounds) else None
+        labels.append(
+            _range_label(
+                first_tag,
+                last_tag,
+                is_latest=index == 0,
+                full_major=_spans_full_major(first_tag, last_tag, newer_first),
+                split_start=_same_minor(first_tag, older_last),
+                split_end=_same_minor(last_tag, newer_first),
+            ),
+        )
+    return labels
 
 
 def _python_cell(version: str, group: PythonMatrixGroup) -> str:
@@ -598,25 +643,10 @@ def python_matrix_table(
 
     rows = []
     ordered = list(reversed(groups))
-    for index, group in enumerate(ordered):
-        next_first = ordered[index - 1].first_tag if index else None
+    range_labels = _range_labels([(g.first_tag, g.last_tag) for g in ordered])
+    for range_label, group in zip(range_labels, ordered, strict=True):
         cells = [_python_cell(v, group) for v in all_versions]
-        rows.append(
-            [
-                _range_label(
-                    group.first_tag,
-                    group.last_tag,
-                    is_latest=index == 0,
-                    full_major=_spans_full_major(
-                        group.first_tag,
-                        group.last_tag,
-                        next_first,
-                    ),
-                ),
-                group.first_date,
-                *cells,
-            ],
-        )
+        rows.append([range_label, group.first_date, *cells])
     if row_order == OLDEST_FIRST:
         rows.reverse()
     headers = [f"`{label}`", "Released", *(f"`{v}`" for v in all_versions)]
@@ -735,10 +765,21 @@ def _extract_requirement(pyproject: str, setup_py: str, dep_name: str) -> str:
     return ""
 
 
-POETRY_CARET_RE = re.compile(r"^\^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$")
+POETRY_VERSION_PATTERN: str = (
+    r"(?P<release>\d+(?:\.\d+){0,2})"
+    r"(?P<suffix>(?:[-_.]?[a-z]+\d*)*)"
+)
+"""The version a Poetry caret or tilde range opens on.
+
+Up to three release components, then an optional PEP 440 pre-, post- or
+dev-release suffix. The suffix stays on the floor and plays no part in the
+ceiling, as poetry-core reads it: `^2.0.0.post1` means `>=2.0.0.post1,<3.0.0`.
+"""
+
+POETRY_CARET_RE = re.compile(rf"^\^\s*{POETRY_VERSION_PATTERN}$", re.IGNORECASE)
 """Poetry's [caret range](https://python-poetry.org/docs/dependency-specification/#caret-requirements)."""
 
-POETRY_TILDE_RE = re.compile(r"^~\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$")
+POETRY_TILDE_RE = re.compile(rf"^~\s*{POETRY_VERSION_PATTERN}$", re.IGNORECASE)
 """Poetry's [tilde range](https://python-poetry.org/docs/dependency-specification/#tilde-requirements).
 
 Deliberately also matches a bare `~X`. It cannot swallow PEP 440's `~=`,
@@ -790,14 +831,12 @@ def _poetry_to_pep440(spec: str) -> str | None:
     """
     m = POETRY_CARET_RE.match(spec)
     if m:
-        parts = tuple(int(part) for part in m.groups() if part is not None)
-        floor = ".".join(str(part) for part in parts)
-        return f">={floor},<{_caret_ceiling(parts)}"
+        parts = tuple(int(part) for part in m["release"].split("."))
+        return f">={m['release']}{m['suffix']},<{_caret_ceiling(parts)}"
     m = POETRY_TILDE_RE.match(spec)
     if m:
-        parts = tuple(int(part) for part in m.groups() if part is not None)
-        floor = ".".join(str(part) for part in parts)
-        return f">={floor},<{_series_ceiling(parts)}"
+        parts = tuple(int(part) for part in m["release"].split("."))
+        return f">={m['release']}{m['suffix']},<{_series_ceiling(parts)}"
     m = POETRY_WILDCARD_RE.match(spec)
     if m:
         parts = tuple(int(part) for part in m.groups() if part is not None)
@@ -845,7 +884,7 @@ def _spec_floor(spec: str) -> tuple[Version | None, bool]:
     # Poetry ranges all cap at a computed ceiling, so their series stays whole.
     m = POETRY_CARET_RE.match(spec) or POETRY_TILDE_RE.match(spec)
     if m:
-        return _safe_version(".".join(p for p in m.groups() if p is not None)), False
+        return _safe_version(m["release"] + m["suffix"]), False
     m = POETRY_WILDCARD_RE.match(spec)
     if m:
         parts = [p for p in m.groups() if p is not None]
@@ -1045,14 +1084,10 @@ def dependency_matrix_table(
 
     rows = []
     ordered = list(reversed(merged))
-    for index, (first_tag, last_tag, first_date, spec, cells) in enumerate(ordered):
-        next_first = ordered[index - 1][0] if index else None
-        label_cell = _range_label(
-            first_tag,
-            last_tag,
-            is_latest=index == 0,
-            full_major=_spans_full_major(first_tag, last_tag, next_first),
-        )
+    range_labels = _range_labels([(group[0], group[1]) for group in ordered])
+    for label_cell, (_, _, first_date, spec, cells) in zip(
+        range_labels, ordered, strict=True
+    ):
         spec_cell = [f"`{spec.replace(' ', '')}`"] if show_spec else []
         rows.append([label_cell, first_date, *spec_cell, *cells])
     if row_order == OLDEST_FIRST:

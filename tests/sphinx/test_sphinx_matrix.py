@@ -45,6 +45,7 @@ from click_extra.sphinx.matrix import (
     _dependency_columns,
     _extract_requirement,
     _python_cell,
+    _range_labels,
     _render_block,
     _resolve_root,
     _spec_floor,
@@ -278,6 +279,32 @@ def test_python_matrix_groups_keeps_declared_spec(synthetic_repo: Path) -> None:
     attests, since the two drive different cells."""
     groups = python_matrix_groups(synthetic_repo)
     assert [g.spec for g in groups] == ["^3.10", ">=3.11"]
+
+
+@pytest.mark.parametrize(
+    ("bounds", "expected"),
+    [
+        # Groups meeting at a minor boundary keep their wildcards.
+        (
+            [("v3.1.0", "v3.1.5"), ("v3.0.0", "v3.0.9"), ("v1.2.0", "v2.4.1")],
+            ["`3.1.x`", "`3.0.x`", "`1.2.x` → `2.4.x`"],
+        ),
+        # A minor split across three groups: each bound on a split shows its
+        # exact version, so no two labels name the same `4.6.x`.
+        (
+            [("v4.6.4", "v4.8.3"), ("v4.6.2", "v4.6.3"), ("v4.2.0", "v4.6.1")],
+            ["`4.6.4` → `4.x`", "`4.6.2` → `4.6.3`", "`4.2.x` → `4.6.1`"],
+        ),
+        # A split start also blocks the full-major collapse: `6.x` would claim
+        # the `6.0.1` release the older group holds.
+        (
+            [("v6.0.2", "v6.4.0"), ("v5.0.0", "v6.0.1")],
+            ["`6.0.2` → `6.x`", "`5.0.x` → `6.0.1`"],
+        ),
+    ],
+)
+def test_range_labels(bounds: list[tuple[str, str]], expected: list[str]) -> None:
+    assert _range_labels(bounds) == expected
 
 
 @pytest.mark.parametrize(
@@ -681,6 +708,10 @@ def test_refresh_directives_cli_without_sphinx(tmp_path, monkeypatch) -> None:
         # Poetry tilde caps at the next minor, whatever its precision.
         ("~8.1", "8.1.9", "8.2.0"),
         ("~8.1.4", "8.1.9", "8.2.0"),
+        # A PEP 440 suffix on a Poetry range stays on its floor and plays no
+        # part in its ceiling.
+        ("^2.0.0.post1", "2.9.0", "2.0.0"),
+        ("~1.2.3rc1", "1.2.3rc1", "1.3.0"),
         # A pre-release floor only matches under prereleases=True, which is
         # how every cell is computed.
         (">=8.0.0rc1", "8.0.0rc2", "7.9"),
@@ -737,6 +768,7 @@ def test_to_specifier_set_empty_matches_everything() -> None:
         (">=8.0,<8.2", ("8.0", False)),
         ("~=8.1.4", ("8.1.4", False)),
         ("^8.1.1", ("8.1.1", False)),
+        ("^2.0.0.post1", ("2.0.0.post1", False)),
         ("~8.1", ("8.1", False)),
         ("~8", ("8", False)),
         ("==8.1.*", ("8.1", False)),
@@ -1030,6 +1062,19 @@ def test_dependency_matrix_table_lone_ceiling(tmp_path: Path) -> None:
     repo = pinned_widget_repo(tmp_path, "ceiling-only", "<2.1")
     table = dependency_matrix_table(repo, "proj", "widget")
     assert "".join(tagged_table_rows(table)["`1.0.0`"][1:]) == "❌"
+
+
+def test_dependency_matrix_table_suffixed_poetry_floor(tmp_path: Path) -> None:
+    """A Poetry caret on a post-release translates like any other caret.
+
+    Its floor keeps the suffix and its ceiling ignores it, so both `2.x`
+    columns read ✅.
+    """
+    repo = pinned_widget_repo(tmp_path, "post-release", "^2.0.0.post1")
+    table = dependency_matrix_table(repo, "proj", "widget")
+    header = [c.strip() for c in table.splitlines()[0].strip().strip("|").split("|")]
+    assert header == ["`proj`", "Released", "`2.4`", "`2.0`"]
+    assert "".join(tagged_table_rows(table)["`1.0.0`"][1:]) == "✅✅"
 
 
 # Every example from Poetry's dependency-specification reference, mapping the

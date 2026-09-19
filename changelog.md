@@ -8,6 +8,9 @@
 - **Deprecated:** Make `select_columns`, `select_row` and `render_columns_markdown_table` importable from `click_extra.table` again, as aliases of their `click_extra.columns` versions until `10.0.0`.
 - Re-export `ArgumentKwargs` and `OptionKwargs` when the installed cloup provides them, as cloup `4.0` does.
 - Stop `import click_extra` from emitting Click deprecation warnings under cloup `4.0`: `BaseCommand`, `MultiCommand`, `OptionParser` and the stream getters now warn only when used.
+- Fix the `matrix` directive rendering an all-❌ row for a Poetry caret or tilde range on a suffixed version, like `^2.0.0.post1`.
+- Fix `matrix` row labels naming the same `X.Y.x` twice when a minor series splits across two rows: the split bound now shows its exact version.
+- Add a Cloup compatibility table to the installation page.
 
 ## [`9.3.1` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.3.0...v9.3.1)
 

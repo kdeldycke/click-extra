@@ -253,7 +253,7 @@ This project uses it for the [Python compatibility table in `install.md`](instal
 ```
 ````
 
-and the updater fills in the table below the options, regenerated from every `vMAJOR.MINOR.PATCH` tag (reading the declared Python support from the `Programming Language :: Python :: X.Y` classifiers in `pyproject.toml`, falling back to `requires-python`, Poetry's `python = "..."`, then `setup.py`'s `python_requires`). Consecutive releases that agree are grouped into one row, and a floor-only declaration is capped at the latest Python released while the range was current:
+and the updater fills in the table below the options, regenerated from every `vMAJOR.MINOR.PATCH` tag (reading the declared Python support from the `Programming Language :: Python :: X.Y` classifiers in `pyproject.toml`, falling back to `requires-python`, Poetry's `python = "..."`, then `setup.py`'s `python_requires`). Consecutive releases that agree are grouped into one row, labeled by minor series (`4.9.x` → `4.10.x`) unless a series is split across two rows, where the split bound shows its exact version (`5.0.x` → `6.0.0`, then `6.0.1` → `6.1.x`). A floor-only declaration is capped at the latest Python released while the range was current:
 
 ````{code-block} markdown
 ```{matrix} python
@@ -262,8 +262,8 @@ and the updater fills in the table below the options, regenerated from every `vM
 | `click-extra`       | Released   | `3.14` | `3.13` | `3.12` | `3.11` | `3.10` | `3.9` | `3.8` | `3.7` |
 | :------------------ | :--------- | :----: | :----: | :----: | :----: | :----: | :---: | :---: | :---: |
 | `6.2.x` → `9.x`     | 2025-11-04 |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `6.0.x` → `6.1.x`   | 2025-10-08 |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `5.0.x` → `6.0.x`   | 2025-05-13 |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `6.0.1` → `6.1.x`   | 2025-10-08 |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `5.0.x` → `6.0.0`   | 2025-05-13 |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
 | `4.11.x` → `4.15.x` | 2024-10-08 |   –    |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
 | `4.9.x` → `4.10.x`  | 2024-07-25 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
 | `4.0.x` → `4.8.x`   | 2023-05-08 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
@@ -289,9 +289,9 @@ The result reads as a staircase: ❌ fills the lower-left as the floor rises ove
 
 `{matrix} <distribution>` tracks a runtime dependency instead. For each release range it reads that distribution's requirement specifier (PEP 621, Poetry, or `setup.py`) and marks ✅ / ❌ for each column version with [`packaging`](https://packaging.pypa.io). An extras bracket and an environment marker are both transparent: `tabulate[widechars]>=0.9` and `tomli>=2; python_version<'3.11'` each track the plain `>=` range. The distribution is matched on its [PEP 503](https://peps.python.org/pep-0503/) normalized name, looked up in the runtime dependencies then in those behind an extra. Development dependency groups ([PEP 735](https://peps.python.org/pep-0735/)) are skipped, since no installer resolves them for a consumer. Columns are auto-derived: a minor series stays a single `X.Y` column unless an open (`>=`) floor pins a specific patch, in which case it splits into `X.Y.0` plus that floor; the left edge is the version resolved in `uv.lock`. Add `:show-spec:` for a `Spec` column with each range's raw specifier, in the release's own spelling. Cells here stay two-valued: unlike Python, a dependency has no informational second declaration to disagree with its specifier, so there is nothing an undeclared cell could mean.
 
-[Poetry's own range syntax](https://python-poetry.org/docs/dependency-specification/) is translated to PEP 440 before evaluation, since a project's older tags usually predate its move to PEP 621. Carets follow Poetry's rule of bumping the leftmost non-zero component, so `^1.2.3` caps at `2.0.0` while `^0.2.3` caps at `0.3.0` and `^0.0.3` at `0.0.4`: under a `0.` prefix every release may break, and a caret there covers far less than the major series. Tilde and wildcard ranges (`~1`, `~1.2`, `1.*`, `1.2.*`) translate the same way.
+[Poetry's own range syntax](https://python-poetry.org/docs/dependency-specification/) is translated to PEP 440 before evaluation, since a project's older tags usually predate its move to PEP 621. Carets follow Poetry's rule of bumping the leftmost non-zero component, so `^1.2.3` caps at `2.0.0` while `^0.2.3` caps at `0.3.0` and `^0.0.3` at `0.0.4`: under a `0.` prefix every release may break, and a caret there covers far less than the major series. Tilde and wildcard ranges (`~1`, `~1.2`, `1.*`, `1.2.*`) translate the same way. A pre-, post- or dev-release suffix stays on the floor and leaves the ceiling alone, so `^2.0.0.post1` becomes `>=2.0.0.post1,<3.0.0`.
 
-This project uses it for the [Click compatibility table](install.md#click-compatibility):
+This project uses it for the [Click](install.md#click-compatibility) and [Cloup](install.md#cloup-compatibility) compatibility tables. The Click one reads:
 
 ````{code-block} markdown
 ```{matrix} click

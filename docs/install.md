@@ -135,8 +135,8 @@ Cells are ✅ for a version the release declares support for, ❌ for one its `r
 | `click-extra`       | Released   | `3.14` | `3.13` | `3.12` | `3.11` | `3.10` | `3.9` | `3.8` | `3.7` |
 | :------------------ | :--------- | :----: | :----: | :----: | :----: | :----: | :---: | :---: | :---: |
 | `6.2.x` → `9.x`     | 2025-11-04 |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `6.0.x` → `6.1.x`   | 2025-10-08 |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `5.0.x` → `6.0.x`   | 2025-05-13 |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `6.0.1` → `6.1.x`   | 2025-10-08 |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `5.0.x` → `6.0.0`   | 2025-05-13 |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
 | `4.11.x` → `4.15.x` | 2024-10-08 |   –    |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
 | `4.9.x` → `4.10.x`  | 2024-07-25 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
 | `4.0.x` → `4.8.x`   | 2023-05-08 |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
@@ -164,6 +164,28 @@ Click Extra wraps Click, so the two are tightly coupled and the matrix of suppor
 | `4.9.x` → `4.15.x`  | 2024-07-25 | `~=8.1.4` |  ❌   |   ❌    |   ❌    |   ❌    |   ❌    |   ❌    |  ❌   |  ✅   |  ❌   |
 | `1.7.x` → `4.8.x`   | 2022-03-31 | `^8.1.1`  |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ❌   |
 | `0.0.x` → `1.6.x`   | 2021-10-18 | `^8.0.2`  |  ✅   |   ✅    |   ✅    |   ✅    |   ✅    |   ✅    |  ✅   |  ✅   |  ✅   |
+
+<!-- matrix-end -->
+
+## Cloup compatibility
+
+Click Extra's commands and groups subclass those of [Cloup](https://github.com/janluke/cloup), which subclass Click's, and its option groups extend Cloup's. Cloup is therefore the other dependency whose supported range matters. The table below shows which Cloup versions each `click-extra` release range accepts at install time, derived from the `cloup` runtime dependency specifier across all release tags. It follows the same column rules as the [Click table](#click-compatibility), with the left edge at the Cloup version resolved in `uv.lock`:
+
+<!-- matrix cloup show-spec -->
+
+| `click-extra`     | Released   | Spec           | `3.1` | `3.0.7` | `3.0.0` | `2.1` | `2.0` | `1.0` | `0.14` | `0.13` | `0.12` |
+| :---------------- | :--------- | :------------- | :---: | :-----: | :-----: | :---: | :---: | :---: | :----: | :----: | :----: |
+| `6.0.x` → `9.x`   | 2025-09-25 | `>=3.0.7`      |  ✅   |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |   ❌   |   ❌   |   ❌   |
+| `4.9.x` → `5.1.x` | 2024-07-25 | `~=3.0.5`      |  ❌   |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |   ❌   |   ❌   |   ❌   |
+| `4.6.4` → `4.8.x` | 2023-08-23 | `^3.0.1`       |  ✅   |   ✅    |   ❌    |  ❌   |  ❌   |  ❌   |   ❌   |   ❌   |   ❌   |
+| `4.6.2` → `4.6.3` | 2023-07-15 | `^3.0.0`       |  ✅   |   ✅    |   ✅    |  ❌   |  ❌   |  ❌   |   ❌   |   ❌   |   ❌   |
+| `4.2.x` → `4.6.1` | 2023-05-23 | `^2.1.0`       |  ❌   |   ❌    |   ❌    |  ✅   |  ❌   |  ❌   |   ❌   |   ❌   |   ❌   |
+| `3.4.x` → `4.1.x` | 2022-12-01 | `^2.0.0.post1` |  ❌   |   ❌    |   ❌    |  ✅   |  ✅   |  ❌   |   ❌   |   ❌   |   ❌   |
+| `3.3.2` → `3.3.4` | 2022-11-14 | `>=1,<3`       |  ❌   |   ❌    |   ❌    |  ✅   |  ✅   |  ✅   |   ❌   |   ❌   |   ❌   |
+| `3.0.x` → `3.3.1` | 2022-08-07 | `^1.0.0`       |  ❌   |   ❌    |   ❌    |  ❌   |  ❌   |  ✅   |   ❌   |   ❌   |   ❌   |
+| `2.1.1` → `2.1.3` | 2022-05-22 | `^0.14.0`      |  ❌   |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |   ✅   |   ❌   |   ❌   |
+| `1.5.x` → `2.1.0` | 2022-02-21 | `^0.13.0`      |  ❌   |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |   ❌   |   ✅   |   ❌   |
+| `0.0.x` → `1.4.x` | 2021-10-18 | `^0.12.1`      |  ❌   |   ❌    |   ❌    |  ❌   |  ❌   |  ❌   |   ❌   |   ❌   |   ✅   |
 
 <!-- matrix-end -->
 
