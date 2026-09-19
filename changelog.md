@@ -8,7 +8,8 @@
 - **Deprecated:** Make `select_columns`, `select_row` and `render_columns_markdown_table` importable from `click_extra.table` again, as aliases of their `click_extra.columns` versions until `10.0.0`.
 - Add `corner_header` to `click_extra.table`, naming both axes of a two-axis table in its top-left cell.
 - Re-export `ArgumentKwargs` and `OptionKwargs` when the installed cloup provides them, as cloup `4.0` does.
-- Name both axes in the top-left cell of `matrix` tables, and move each row's first release date into its label, like `6.0.x (2025-09-25) → 9.x`.
+- Name both axes in the top-left cell of `matrix` tables, like `click-extra ↴ \ cloup →`.
+- Drop the `Released` column of `matrix` tables: add `:show-date:` to follow each row label with its first release date instead.
 - Give the newest release on PyPI its own column in `matrix` dependency tables, next to the `uv.lock` version.
 - Label a `matrix` dependency column covering a whole minor series as `8.2.x` instead of `8.2`, which read as the `8.2.0` release.
 - Keep the first column of a corner-labeled table on one line in Sphinx builds: a narrow screen scrolls the table instead of wrapping its row labels.

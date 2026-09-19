@@ -452,8 +452,8 @@ def test_python_matrix_table_synthetic(synthetic_repo: Path) -> None:
     # Header row must carry the label in backticks and the version columns.
     # The top-left cell names both axes, its backslash escaped for Markdown.
     assert table.startswith("| `my-project` ↴ \\\\ Python → |")
-    # Each label carries the first release date of its range.
-    assert re.search(r"^\| `2\.0\.0` \(\d{4}-\d{2}-\d{2}\) ", table, re.MULTILINE)
+    # Labels carry no release date unless asked for.
+    assert not LABEL_DATE_RE.search(table)
     assert "`3.11`" in table
     assert "`3.12`" in table
     # Columns run newest-first so the current support sits in the upper-left.
@@ -461,6 +461,14 @@ def test_python_matrix_table_synthetic(synthetic_repo: Path) -> None:
     # The table body contains ✅ / ❌ glyphs.
     assert "✅" in table
     assert "❌" in table
+
+
+@pytest.mark.parametrize("show_date", [True, False])
+def test_python_matrix_table_show_date(synthetic_repo: Path, show_date: bool) -> None:
+    """`show_date` follows each row label with its first release date."""
+    table = python_matrix_table(synthetic_repo, "my-project", show_date=show_date)
+    dated = re.search(r"^\| `2\.0\.0` \(\d{4}-\d{2}-\d{2}\) ", table, re.MULTILINE)
+    assert bool(dated) is show_date
 
 
 @pytest.mark.parametrize("column_order", ["newest-first", "oldest-first"])
@@ -1346,6 +1354,19 @@ def test_to_specifier_set_poetry_bare_wildcard() -> None:
     assert spec_set.contains("99.0", prereleases=True)
 
 
+@pytest.mark.parametrize("show_date", [True, False])
+def test_dependency_matrix_table_show_date(
+    synthetic_dep_repo: Path, show_date: bool
+) -> None:
+    """`show_date` dates the rows without changing how they merge."""
+    table = dependency_matrix_table(
+        synthetic_dep_repo, "proj", "widget", show_date=show_date
+    )
+    assert bool(LABEL_DATE_RE.search(table)) is show_date
+    undated = dependency_matrix_table(synthetic_dep_repo, "proj", "widget")
+    assert tagged_table_rows(table) == tagged_table_rows(undated)
+
+
 @pytest.mark.parametrize("column_order", ["newest-first", "oldest-first"])
 def test_dependency_matrix_table_column_order(
     synthetic_dep_repo: Path, column_order: str
@@ -1427,6 +1448,36 @@ def test_update_matrix_blocks_marker_order_options(synthetic_repo, tmp_path) -> 
     text = doc.read_text(encoding="utf-8")
     assert text.index("`3.11`") < text.index("`3.12`")
     assert text.index("`1.0.0`") < text.index("`2.0.0`")
+
+
+@pytest.mark.parametrize("flag", [" show-date", ""])
+def test_update_matrix_blocks_marker_show_date(
+    synthetic_repo, tmp_path, flag: str
+) -> None:
+    """The `show-date` marker flag dates the refreshed rows."""
+    doc = tmp_path / "page.md"
+    doc.write_text(
+        f"<!-- matrix python package=my-project path={synthetic_repo}{flag} -->\n"
+        "<!-- matrix-end -->\n",
+        encoding="utf-8",
+    )
+    assert update_matrix_blocks([doc]) == [doc]
+    dated = LABEL_DATE_RE.search(doc.read_text(encoding="utf-8"))
+    assert bool(dated) is bool(flag)
+
+
+def test_matrix_directive_show_date_option(sphinx_app_myst, synthetic_repo) -> None:
+    """The `:show-date:` directive option dates the rendered rows."""
+    content = dedent(f"""
+        ```{{matrix}} python
+        :package: my-project
+        :path: {synthetic_repo}
+        :show-date:
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    assert re.search(r"\(\d{4}-\d{2}-\d{2}\)", html)
 
 
 def test_marker_form_renders_natively_in_sphinx(sphinx_app_myst) -> None:

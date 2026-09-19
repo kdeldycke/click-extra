@@ -607,6 +607,7 @@ def python_matrix_table(
     version_floor: str = "",
     column_order: str = NEWEST_FIRST,
     row_order: str = NEWEST_FIRST,
+    show_date: bool = False,
     release_dates: dict[str, str] | None = None,
 ) -> str:
     """Render the Python compatibility matrix as a GitHub-flavored markdown table.
@@ -631,6 +632,8 @@ def python_matrix_table(
         {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
     :param row_order: top-to-bottom ordering of the release rows:
         {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
+    :param show_date: follow each row label with the release date of its
+        first tag, like `6.0.x (2025-09-25) → 9.x`.
     :param release_dates: passed to {func}`python_matrix_groups`.
     :return: rendered markdown table, or the empty string when no group
         was collected.
@@ -664,7 +667,7 @@ def python_matrix_table(
     rows = []
     ordered = list(reversed(groups))
     range_labels = _range_labels([
-        (g.first_tag, g.last_tag, g.first_date) for g in ordered
+        (g.first_tag, g.last_tag, g.first_date if show_date else "") for g in ordered
     ])
     for range_label, group in zip(range_labels, ordered, strict=True):
         cells = [_python_cell(v, group) for v in all_versions]
@@ -1103,6 +1106,7 @@ def dependency_matrix_table(
     dep_name: str,
     *,
     show_spec: bool = False,
+    show_date: bool = False,
     tag_pattern: str = DEFAULT_TAG_PATTERN,
     tags_sort: str = DEFAULT_TAGS_SORT,
     version_floor: str = "",
@@ -1125,6 +1129,8 @@ def dependency_matrix_table(
         merged row shows the specifier of its oldest range, so ranges then
         merge only when they also accept the same versions (see
         {func}`_same_spec`).
+    :param show_date: follow each row label with the release date of its
+        first tag, like `6.0.x (2025-09-25) → 9.x`.
     :param column_order: left-to-right ordering of the version columns:
         {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
     :param row_order: top-to-bottom ordering of the release rows:
@@ -1181,7 +1187,9 @@ def dependency_matrix_table(
 
     rows = []
     ordered = list(reversed(merged))
-    range_labels = _range_labels([(group[0], group[1], group[2]) for group in ordered])
+    range_labels = _range_labels([
+        (group[0], group[1], group[2] if show_date else "") for group in ordered
+    ])
     for label_cell, (*_, spec, cells) in zip(range_labels, ordered, strict=True):
         spec_cell = [f"`{spec.replace(' ', '')}`"] if show_spec else []
         rows.append([label_cell, *spec_cell, *cells])
@@ -1262,12 +1270,14 @@ def _render_block(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
             tag_pattern=tag_pattern,
             column_order=column_order,
             row_order=row_order,
+            show_date="show-date" in options,
         )
     return dependency_matrix_table(
         root,
         package,
         axis,
         show_spec="show-spec" in options,
+        show_date="show-date" in options,
         version_floor=version_floor,
         tag_pattern=tag_pattern,
         column_order=column_order,
@@ -1314,6 +1324,7 @@ class MatrixDirective(SphinxDirective):
       `newest-first` (default) or `oldest-first`.
     - `:python-floor:` — (python axis) drop Python columns below `X.Y`.
     - `:show-spec:` — (dependency axis) add a raw-specifier `Spec` column.
+    - `:show-date:` — follow each row label with its first release date.
 
     The git fallback is resilient: a missing git binary, a non-repository path,
     or a tag-less repository logs a build warning and renders nothing rather
@@ -1332,6 +1343,7 @@ class MatrixDirective(SphinxDirective):
         "column-order": _order_option,
         "row-order": _order_option,
         "show-spec": directives.flag,
+        "show-date": directives.flag,
     }
 
     def run(self) -> list[nodes.Node]:
@@ -1396,7 +1408,8 @@ _FENCE_OPEN_RE = re.compile(
 # shared grammar from `blocks.marker_res`. Unlike the directive fence (which
 # GitHub shows as a code block), this marker form renders as a real table on
 # GitHub and natively in Sphinx. Args are the axis followed by
-# whitespace-separated `key=value` pairs and bare flags (like `show-spec`).
+# whitespace-separated `key=value` pairs and bare flags (like `show-spec`
+# or `show-date`).
 _MARKER_OPEN_RE, _MARKER_CLOSE_RE = marker_res("matrix")
 
 
