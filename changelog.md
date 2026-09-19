@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix `from click_extra import *` emitting Click's deprecation warnings for `get_binary_stream` and `get_text_stream` under Click `8.5`.
+
 ## [`9.3.2` (2026-09-19)](https://github.com/kdeldycke/click-extra/compare/v9.3.1...v9.3.2)
 
 - **Deprecated:** Make `select_columns`, `select_row` and `render_columns_markdown_table` importable from `click_extra.table` again, as aliases of their `click_extra.columns` versions until `10.0.0`.

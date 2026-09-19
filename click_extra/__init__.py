@@ -593,8 +593,14 @@ Sorting is enforced by `ruff` via
 
 # custom_version_option is only re-exported on Click >= 8.5.0 (see the guarded
 # import above). Drop it from the public API on older Click so `__all__` matches
-# the names actually bound in this module.
-if not _HAS_CLICK_8_5_EXPORTS:
+# the names actually bound in this module. That same release moved the two stream
+# getters behind Click's module `__getattr__`, so a star import of Click stops
+# binding them: drop them too, or `from click_extra import *` would fetch each
+# through _DEPRECATED_CLICK_EXPORTS and set off Click's deprecation warning.
+if _HAS_CLICK_8_5_EXPORTS:
+    __all__.remove("get_binary_stream")
+    __all__.remove("get_text_stream")
+else:
     __all__.remove("custom_version_option")
 del _HAS_CLICK_8_5_EXPORTS
 

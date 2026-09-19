@@ -121,14 +121,19 @@ def test_deprecated_click_exports_are_forwarded(name):
 
 
 @pytest.mark.once
-def test_import_raises_no_deprecation_warning():
+@pytest.mark.parametrize(
+    "statement", ["import click_extra", "from click_extra import *"]
+)
+def test_import_raises_no_deprecation_warning(statement):
     """Importing the package sets off no deprecation warning.
 
     Cloup 4.0.0 lists Click's deprecated names in its ``__all__``, so a plain star
-    import of cloup fetches each of them, and Click warns once per name.
+    import of cloup fetches each of them, and Click warns once per name. A star
+    import of click-extra would do the same for any such name its own
+    ``__all__`` declared.
     """
     process = run(
-        (sys.executable, "-W", "error::DeprecationWarning", "-c", "import click_extra"),
+        (sys.executable, "-W", "error::DeprecationWarning", "-c", statement),
         capture_output=True,
         text=True,
         check=False,
