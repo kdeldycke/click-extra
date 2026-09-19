@@ -7,12 +7,12 @@
 
 - **Deprecated:** Make `select_columns`, `select_row` and `render_columns_markdown_table` importable from `click_extra.table` again, as aliases of their `click_extra.columns` versions until `10.0.0`.
 - Add `corner_header` to `click_extra.table`, naming both axes of a two-axis table in its top-left cell.
-- Re-export `ArgumentKwargs` and `OptionKwargs` when the installed cloup provides them, as cloup `4.0` does.
 - Name both axes in the top-left cell of `matrix` tables, like `click-extra ↴ \ cloup →`.
-- Drop the `Released` column of `matrix` tables: add `:show-date:` to follow each row label with its first release date instead.
-- Bin the columns of `matrix` dependency tables by release: each covers a run of PyPI releases that every range treats alike, labeled like the rows, like `3.0.1` → `3.0.4`.
 - Keep the first column of a corner-labeled table on one line in Sphinx builds: a narrow screen scrolls the table instead of wrapping its row labels.
-- Stop `import click_extra` from emitting Click deprecation warnings under cloup `4.0`: `BaseCommand`, `MultiCommand`, `OptionParser` and the stream getters now warn only when used.
+- Drop the `Released` column of `matrix` tables: add `:show-date:` to follow each row label with its first release date instead.
+- Bin the columns of `matrix` dependency tables by release: each covers a run of PyPI releases that every range treats alike, labeled like `3.0.1` → `3.0.4`.
+- Support cloup `4.0`: re-export its `ArgumentKwargs` and `OptionKwargs`, and stop `import click_extra` from emitting Click deprecation warnings, which `BaseCommand`, `MultiCommand`, `OptionParser` and the stream getters now emit only when used.
+- Declare Python `3.15` support in the package classifiers.
 - Fix `matrix` tables with a `Spec` column merging release ranges that declare different specifiers into one row, which showed only the oldest one.
 - Fix the `matrix` directive rendering an all-❌ row for a Poetry caret or tilde range on a suffixed version, like `^2.0.0.post1`.
 - Fix `matrix` row labels naming the same `X.Y.x` twice when a minor series splits across two rows: the split bound now shows its exact version.
