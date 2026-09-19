@@ -5,7 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Fix `from click_extra import *` emitting Click's deprecation warnings for `get_binary_stream` and `get_text_stream` under Click `8.5`.
+- Fix `from click_extra import *` emitting Click's deprecation warnings for `get_binary_stream` and `get_text_stream` under Click `8.5`. Like Click's own star import, it no longer binds them: import them by name instead.
 
 ## [`9.3.2` (2026-09-19)](https://github.com/kdeldycke/click-extra/compare/v9.3.1...v9.3.2)
 

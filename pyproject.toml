@@ -773,7 +773,6 @@ test-matrix.full-include = [
   # `released`), each on the floor Python 3.10. Cloup 4.0.0 requires Click
   # 8.5.0, and the Click overlay does not re-resolve the locked Cloup, so these
   # rows pin Cloup 3.1.0: the newest release a Click 8.4 install resolves to.
-  # They are also the only cells that test the Cloup 3.x line.
   { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.1", cloup-version = "v3.1.0" },
   { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.2", cloup-version = "v3.1.0" },
   # Cloup 3.x on the released Click: an install that pins cloup below 4.0.0.
