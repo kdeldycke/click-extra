@@ -268,13 +268,13 @@ class HelpTheme(cloup.HelpTheme):
         Returns the same instance if the provided styles are the same as the current.
 
         ```{todo}
-        Re-scope this override once cloup ships the fix for
-        [janluke/cloup#225](https://github.com/janluke/cloup/issues/225).
-        Cloup's own `with_()` collects its arguments from a fixed `locals()`,
-        so it rejects every slot this subclass adds. That reason expires with
-        the fix; what stays is returning the same instance when a style is
-        unchanged, and the message naming an unrecognized argument. The same
-        issue also fixes `dark()` and `light()`, shadowed below.
+        Re-scope this override once this package's cloup floor reaches `4.0.0`,
+        which fixed [janluke/cloup#225](https://github.com/janluke/cloup/issues/225).
+        Cloup 3.x's own `with_()` collects its arguments from a fixed
+        `locals()`, so it rejects every slot this subclass adds. That reason
+        expires with the floor; what stays is returning the same instance when
+        a style is unchanged, and the message naming an unrecognized argument.
+        The same fix also covers `dark()` and `light()`, shadowed below.
         ```
         """
         # Check for unrecognized arguments.
@@ -301,8 +301,8 @@ class HelpTheme(cloup.HelpTheme):
         """Re-wrap a `cloup.HelpTheme` as this class.
 
         Copies the slots cloup declares and leaves the ones this subclass adds
-        at their default, which is what cloup's own constructors will produce
-        once they take `cls`. Each `cloup.Style` is widened to
+        at their default, which is what cloup's own constructors produce from
+        `4.0.0` on, where they take `cls`. Each `cloup.Style` is widened to
         {class}`~click_extra.styling.Style` on the way, the only class
         {meth}`to_dict` and {meth}`cascade` accept.
         """
@@ -322,12 +322,15 @@ class HelpTheme(cloup.HelpTheme):
         subclass adds, reach for {data}`BUILTIN_THEMES` instead.
 
         ```{todo}
-        Delete this method and {meth}`light`, along with {meth}`_from_cloup`,
-        once cloup ships the fix for
+        Re-scope this method and {meth}`light`, along with {meth}`_from_cloup`,
+        once this package's cloup floor reaches `4.0.0`, which fixed
         [janluke/cloup#225](https://github.com/janluke/cloup/issues/225).
-        Cloup declares both as static methods naming `HelpTheme` in their
+        Cloup 3.x declares both as static methods naming `HelpTheme` in their
         return expression, so the inherited ones hand back a bare
-        `cloup.HelpTheme` carrying none of the slots below.
+        `cloup.HelpTheme` carrying none of the slots below. Their cloup 4.0.0
+        versions build this class, but fill its slots with `cloup.Style`
+        instances, which {meth}`to_dict` and {meth}`cascade` reject: the
+        widening to {class}`~click_extra.styling.Style` stays.
         ```
         """
         return cls._from_cloup(cloup.HelpTheme.dark())

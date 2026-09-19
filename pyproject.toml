@@ -724,14 +724,8 @@ nuitka.nofollow-imports = [ "tkinter" ]
 #     single-runner free-threaded 3.14t probe (ubuntu-26.04-arm) and the
 #     prerelease 3.15 probe held to ubuntu-26.04-arm by the `exclude` rows
 #     below. 10 jobs.
-#   - {8.4.1, 8.4.2} click × released cloup: ubuntu-26.04-arm × Python 3.10
+#   - {8.4.1, 8.4.2} click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.10
 #     (the floor corner), covering the declared >=8.4.1 range. 2 jobs.
-#     ("Python" prefixes the version on purpose: a comment whose text is
-#     indented and then opens on a `N.N` literal panics pyproject-fmt, which
-#     then formats nothing at all. Unfixed through 2.28.2, the version
-#     repomatic 7.15.0 ships; fixed in 2.29.0. The indentation that counts
-#     sits after the `#`, so a continuation line under a bullet is exactly
-#     the shape at risk, as this one is. See claude.md for the whole rule.)
 #   - {stable, main} click × released cloup: ubuntu-26.04-arm × {3.14, 3.14t}.
 #     4 jobs, unstable.
 #   - {released, stable, main} click × master cloup: ubuntu-26.04-arm ×
@@ -774,9 +768,12 @@ test-matrix.exclude = [
 # since they probe dependency behavior rather than cross-platform support.
 test-matrix.full-include = [
   # Every Click release from the >=8.4.1 floor through 8.4.2 (8.5.0 ships as
-  # `released`), each on the floor Python 3.10.
-  { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.1", cloup-version = "released" },
-  { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.2", cloup-version = "released" },
+  # `released`), each on the floor Python 3.10. Cloup 4.0.0 requires Click
+  # 8.5.0, and the Click overlay does not re-resolve the locked Cloup, so these
+  # rows pin Cloup 3.1.0: the newest release a Click 8.4 install resolves to.
+  # They are also the only cells that test the Cloup 3.x line.
+  { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.1", cloup-version = "v3.1.0" },
+  { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.2", cloup-version = "v3.1.0" },
   # Click's stable and main dev branches on released Cloup, latest Pythons.
   { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "stable", cloup-version = "released", state = "unstable" },
   { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "stable", cloup-version = "released", state = "unstable" },

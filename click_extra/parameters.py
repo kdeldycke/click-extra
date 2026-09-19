@@ -449,7 +449,9 @@ class _ParameterMixin:
 
 
 class Argument(_ParameterMixin, cloup.Argument):
-    """Wrap `cloup.Argument`, itself inheriting from `click.Argument`.
+    """Wrap `cloup.Argument`, itself inheriting from `click.Argument` on cloup 3.x.
+
+    From cloup `4.0.0` on, `cloup.Argument` is `click.Argument` itself.
 
     Inherits first from `_ParameterMixin` to allow future overrides of Click's
     `Parameter` methods.

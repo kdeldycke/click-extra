@@ -888,6 +888,19 @@ def _to_specifier_set(spec: str) -> SpecifierSet | None:
         return None
 
 
+def _same_spec(spec: str, other: str) -> bool:
+    """Whether two specifiers accept the same versions, whatever their spelling.
+
+    Both are compared parsed (see {func}`_to_specifier_set`), so Poetry's `^2.0`
+    matches PEP 440's `>=2.0,<3.0.0`. An unparsable specifier only matches the
+    same text, spaces aside.
+    """
+    spec_set = _to_specifier_set(spec)
+    if spec_set is None:
+        return spec.replace(" ", "") == other.replace(" ", "")
+    return spec_set == _to_specifier_set(other)
+
+
 def _spec_floor(spec: str) -> tuple[Version | None, bool]:
     """Return `(floor_version, patch_precise)` for a specifier.
 
@@ -967,19 +980,6 @@ def _latest_pypi_release(dep_name: str) -> str:
     return str(version)
 
 
-def _anchor_versions(project_root: Path, dep_name: str) -> tuple[str, str]:
-    """Return the two versions of `dep_name` that earn a column of their own.
-
-    The newest stable release on PyPI shows what an installer picks today, and
-    the version `uv.lock` resolves shows what the project tests against. They
-    differ while a new release waits out the lockfile's cooldown. Either one is
-    `""` when unknown, like the PyPI release when PyPI cannot answer.
-    """
-    return _latest_pypi_release(dep_name), _latest_locked_version(
-        project_root, dep_name
-    )
-
-
 def _latest_locked_version(project_root: Path, dep_name: str) -> str:
     """Return `dep_name`'s resolved version from `uv.lock`, or `""`.
 
@@ -991,6 +991,19 @@ def _latest_locked_version(project_root: Path, dep_name: str) -> str:
         return ""
     m = re.search(rf'name = "{re.escape(dep_name)}"\nversion = "([^"]+)"', text)
     return m.group(1) if m else ""
+
+
+def _anchor_versions(project_root: Path, dep_name: str) -> tuple[str, str]:
+    """Return the two versions of `dep_name` that earn a column of their own.
+
+    The newest stable release on PyPI shows what an installer picks today, and
+    the version `uv.lock` resolves shows what the project tests against. They
+    differ while a new release waits out the lockfile's cooldown. Either one is
+    `""` when unknown, like the PyPI release when PyPI cannot answer.
+    """
+    return _latest_pypi_release(dep_name), _latest_locked_version(
+        project_root, dep_name
+    )
 
 
 def _minor_intersects(spec_set: SpecifierSet, major: int, minor: int) -> bool:
@@ -1108,7 +1121,10 @@ def dependency_matrix_table(
 
     :param label: header column name (the documented package, in backticks).
     :param dep_name: the tracked distribution (`"click"`).
-    :param show_spec: add a `Spec` column with each range's raw specifier.
+    :param show_spec: add a `Spec` column with each range's raw specifier. A
+        merged row shows the specifier of its oldest range, so ranges then
+        merge only when they also accept the same versions (see
+        {func}`_same_spec`).
     :param column_order: left-to-right ordering of the version columns:
         {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
     :param row_order: top-to-bottom ordering of the release rows:
@@ -1137,7 +1153,10 @@ def dependency_matrix_table(
         columns.reverse()
 
     # Resolve each range's ✅ / ❌ vector, then re-merge consecutive ranges
-    # whose vectors coincide (a floor bump that changes no visible cell).
+    # whose vectors coincide (a floor bump that changes no visible cell). A
+    # merged row shows the Spec cell of its oldest range, so with that column
+    # the ranges must also accept the same versions: `^3.0.1` and `~=3.0.5`
+    # read the same when no column holds 3.1, which only the first accepts.
     merged: list[list] = []
     for group in groups:
         spec_set = _to_specifier_set(group.spec)
@@ -1152,7 +1171,8 @@ def dependency_matrix_table(
             else FORBIDDEN_CELL
             for version, is_minor in columns
         )
-        if merged and merged[-1][4] == cells:
+        same = merged and merged[-1][4] == cells
+        if same and (not show_spec or _same_spec(merged[-1][3], group.spec)):
             merged[-1][1] = group.last_tag
         else:
             merged.append(

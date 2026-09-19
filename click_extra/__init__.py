@@ -616,7 +616,7 @@ def _scrub_foreign_modules() -> None:
 
     click ships no `__all__`, so `from click import *` copies every submodule
     its own `__init__` binds (`click.core`, `click.globals`, `click.termui`,
-    ...), and cloup's `__all__` exports its own `warnings` and `_version`
+    ...), and cloup 3.x's `__all__` exports its own `warnings` and `_version`
     submodules, the first of which shadows the stdlib name (reported at
     [janluke/cloup#204](https://github.com/janluke/cloup/issues/204#issuecomment-5600674392)).
     These bindings are traps: `click_extra.core.Group` would resolve to

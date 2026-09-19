@@ -880,11 +880,11 @@ class HelpFormatter(cloup.HelpFormatter):
     def write_command_help_text(self, cmd: click.Command) -> None:
         """Draw the command's description, with Click's deprecation label.
 
-        Reimplements `cloup.HelpFormatter.write_command_help_text`, which prefixes
-        `(Deprecated) ` to the description. Click 8.2.0 moved that marker to a
-        suffix built by `_format_deprecated_label`, and gave `deprecated` a `str`
-        form carrying a reason the prefix has nowhere to put. See
-        https://github.com/janluke/cloup/issues/211.
+        Reimplements `cloup.HelpFormatter.write_command_help_text`, which on cloup
+        3.x prefixes `(Deprecated) ` to the description. Click 8.2.0 moved that
+        marker to a suffix built by `_format_deprecated_label`, and gave
+        `deprecated` a `str` form carrying a reason the prefix has nowhere to put.
+        See https://github.com/janluke/cloup/issues/211.
 
         Reusing Click's own helper keeps one marker across the whole screen: the
         options already carry it through `Option.get_help_record`, and

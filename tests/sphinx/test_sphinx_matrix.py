@@ -50,6 +50,7 @@ from click_extra.sphinx.matrix import (
     _range_labels,
     _render_block,
     _resolve_root,
+    _same_spec,
     _spec_floor,
     _to_specifier_set,
     dependency_matrix_groups,
@@ -130,6 +131,16 @@ def declare_widget(repo: Path, spec: str) -> None:
     (repo / "pyproject.toml").write_text(body, encoding="utf-8")
 
 
+def table_cells(line: str) -> list[str]:
+    """Split one line of a rendered GFM matrix into its stripped cells."""
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def table_header(table: str) -> list[str]:
+    """Return the header cells of a rendered GFM matrix, corner label first."""
+    return table_cells(table.splitlines()[0])
+
+
 def tagged_table_rows(table: str) -> dict[str, list[str]]:
     """Parse a rendered GFM matrix into ``{row label: [cells…]}``.
 
@@ -141,7 +152,7 @@ def tagged_table_rows(table: str) -> dict[str, list[str]]:
     rows = {}
     # Skip the header and its alignment separator.
     for line in table.splitlines()[2:]:
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        cells = table_cells(line)
         rows[LABEL_DATE_RE.sub("", cells[0])] = cells[1:]
     return rows
 
@@ -805,6 +816,25 @@ def test_to_specifier_set_empty_matches_everything() -> None:
 
 
 @pytest.mark.parametrize(
+    ("spec", "other", "expected"),
+    [
+        # Two spellings of one range match.
+        ("^2.0", ">=2.0,<3.0.0", True),
+        (">= 3.0.7", ">=3.0.7", True),
+        # The caret range reaches 3.1, the compatible-release one stops at 3.0.
+        ("^3.0.1", "~=3.0.5", False),
+        # An unparsable specifier matches its own text only, spaces aside.
+        ("~> 1.2", "~>1.2", True),
+        ("~> 1.2", "~> 1.3", False),
+        ("~> 1.2", ">=1.2", False),
+        (">=1.2", "~> 1.2", False),
+    ],
+)
+def test_same_spec(spec: str, other: str, expected: bool) -> None:
+    assert _same_spec(spec, other) is expected
+
+
+@pytest.mark.parametrize(
     ("spec", "expected"),
     [
         # Open floors accept only part of their minor series, so it splits
@@ -1022,8 +1052,7 @@ def test_dependency_matrix_table_exotic_specs(exotic_spec_repo: Path) -> None:
     5.2 into ``5.2.0`` / ``5.2.1``.
     """
     table = dependency_matrix_table(exotic_spec_repo, "proj", "widget", show_spec=True)
-    header = table.splitlines()[0]
-    assert [cell.strip() for cell in header.strip().strip("|").split("|")] == [
+    assert table_header(table) == [
         WIDGET_CORNER,
         "Spec",
         "`6.0`",
@@ -1075,6 +1104,77 @@ def test_dependency_matrix_table_merges_equivalent_specs(tmp_path: Path) -> None
     assert rows["`1.x`"][0] == "`^2.0`"
 
 
+@pytest.fixture
+def narrowing_floor_repo(tmp_path: Path) -> Path:
+    """A repo whose ``widget`` floor narrows across three tags, locked at 4.0.0.
+
+    The caret range accepts 3.1 and the compatible-release range does not, but
+    no column tells them apart: 3.1 is neither a declared floor nor the locked
+    version.
+    """
+    repo = tmp_path / "narrowing"
+    run = git_repo(repo)
+    (repo / "uv.lock").write_text(
+        'name = "widget"\nversion = "4.0.0"\n',
+        encoding="utf-8",
+    )
+    for tag, spec in (
+        ("v1.0.0", "^3.0.1"),
+        ("v2.0.0", "~=3.0.5"),
+        ("v3.0.0", ">=3.0.7"),
+    ):
+        declare_widget(repo, spec)
+        run("git", "add", "pyproject.toml")
+        run("git", "commit", "-m", tag, "--quiet")
+        run("git", "tag", tag)
+    return repo
+
+
+@pytest.mark.parametrize(
+    ("show_spec", "expected"),
+    [
+        # Each range keeps its own row, so no Spec cell speaks for releases that
+        # declared another range.
+        (
+            True,
+            {
+                "`3.0.0`": ["`>=3.0.7`", "✅", "✅", "❌"],
+                "`2.0.0`": ["`~=3.0.5`", "❌", "✅", "❌"],
+                "`1.0.0`": ["`^3.0.1`", "❌", "✅", "❌"],
+            },
+        ),
+        # Without a Spec column, the two rows reading the same merge.
+        (
+            False,
+            {
+                "`3.0.0`": ["✅", "✅", "❌"],
+                "`1.0.x` → `2.0.x`": ["❌", "✅", "❌"],
+            },
+        ),
+    ],
+)
+def test_dependency_matrix_table_merge_keeps_distinct_specs(
+    narrowing_floor_repo: Path, show_spec: bool, expected: dict[str, list[str]]
+) -> None:
+    """Ranges whose cells coincide merge, unless their specs differ.
+
+    A merged row shows the Spec cell of its oldest range, so merging ``^3.0.1``
+    with ``~=3.0.5`` would claim 3.1 for releases that forbid it.
+    """
+    table = dependency_matrix_table(
+        narrowing_floor_repo, "proj", "widget", show_spec=show_spec
+    )
+    spec_header = ["Spec"] if show_spec else []
+    assert table_header(table) == [
+        WIDGET_CORNER,
+        *spec_header,
+        "`4.0`",
+        "`3.0.7`",
+        "`3.0.0`",
+    ]
+    assert tagged_table_rows(table) == expected
+
+
 def pinned_widget_repo(tmp_path: Path, name: str, spec: str) -> Path:
     """A one-tag repo pinning ``widget`` to ``spec``, locked at 2.4.0."""
     repo = tmp_path / name
@@ -1106,8 +1206,7 @@ def test_dependency_matrix_table_pinned_spec(
 ) -> None:
     repo = pinned_widget_repo(tmp_path, f"pinned{abs(hash(spec))}", spec)
     table = dependency_matrix_table(repo, "proj", "widget")
-    header = [c.strip() for c in table.splitlines()[0].strip().strip("|").split("|")]
-    assert header == [WIDGET_CORNER, *columns]
+    assert table_header(table) == [WIDGET_CORNER, *columns]
     assert "".join(tagged_table_rows(table)["`1.0.0`"]) == cells
 
 
@@ -1131,8 +1230,7 @@ def test_dependency_matrix_table_suffixed_poetry_floor(tmp_path: Path) -> None:
     """
     repo = pinned_widget_repo(tmp_path, "post-release", "^2.0.0.post1")
     table = dependency_matrix_table(repo, "proj", "widget")
-    header = [c.strip() for c in table.splitlines()[0].strip().strip("|").split("|")]
-    assert header == [WIDGET_CORNER, "`2.4`", "`2.0`"]
+    assert table_header(table) == [WIDGET_CORNER, "`2.4`", "`2.0`"]
     assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "✅✅"
 
 
@@ -1148,8 +1246,7 @@ def test_dependency_matrix_table_anchors_on_pypi(
         f"{MATRIX_MODULE}._latest_pypi_release", lambda dep_name: "3.0.0"
     )
     table = dependency_matrix_table(repo, "proj", "widget")
-    header = [c.strip() for c in table.splitlines()[0].strip().strip("|").split("|")]
-    assert header == [WIDGET_CORNER, "`3.0`", "`2.4`", "`2.1`"]
+    assert table_header(table) == [WIDGET_CORNER, "`3.0`", "`2.4`", "`2.1`"]
     assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "✅✅✅"
 
 

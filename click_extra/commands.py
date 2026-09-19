@@ -691,11 +691,11 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
     ) -> tuple[str, str]:
         """Pair a positional argument's metavar with its help text.
 
-        Reimplements `cloup.OptionGroupMixin.get_argument_help_record`, which reads
-        the text off a `cloup.Argument` and hands back an empty string for any other
-        argument. Click 8.5.0 gave `click.Argument` a `help` parameter of its own, so
-        a plain `click.argument(..., help=...)` earns a `Positional arguments` entry
-        and renders blank under that rule.
+        Reimplements `cloup.OptionGroupMixin.get_argument_help_record`, which on
+        cloup 3.x reads the text off a `cloup.Argument` and hands back an empty
+        string for any other argument. Click 8.5.0 gave `click.Argument` a `help`
+        parameter of its own, so a plain `click.argument(..., help=...)` earns a
+        `Positional arguments` entry and renders blank under that rule.
 
         Resolution goes through {func}`~click_extra.parameters.resolve_param_help`,
         the same helper the man page and every other

@@ -422,9 +422,11 @@ def supports_truecolor() -> bool:
     return not os.environ.get("TERM", "").strip().lower().endswith("-16color")
 
 
-def _quantize_color(
-    color: str | tuple[int, int, int] | int | None,
-) -> str | tuple[int, int, int] | int | None:
+_Color = str | tuple[int, int, int] | int | None
+"""A color `click.style` takes: ANSI name, RGB tuple, palette index or `None`."""
+
+
+def _quantize_color(color: _Color) -> _Color:
     """Map a 24-bit RGB `(r, g, b)` color to its nearest 256-palette index.
 
     Any non-tuple color (a named ANSI string, an existing palette `int`, or
@@ -447,29 +449,31 @@ class Style(cloup.Style):
     `with_()`) is otherwise identical to `cloup.Style`.
 
     ```{todo}
-    Re-scope {meth}`__eq__` and {meth}`__hash__` once cloup ships the fix for
-    [janluke/cloup#224](https://github.com/janluke/cloup/issues/224). Cloup
-    declares its lazy `_style_kwargs` cache without `compare=False`, so a
-    `cloup.Style` stops comparing equal to its twin, and `hash()` raises
-    `TypeError`, from its first call onwards. Both methods stay after that fix,
-    for the cross-class comparison against `cloup.Style` the generated ones
-    refuse: only their cache rationale expires.
+    Re-scope {meth}`__eq__` and {meth}`__hash__` once this package's cloup floor
+    reaches `4.0.0`, which drops the lazy `_style_kwargs` cache to fix
+    [janluke/cloup#224](https://github.com/janluke/cloup/issues/224). Cloup 3.x
+    declares that cache without `compare=False`, so a `cloup.Style` stops
+    comparing equal to its twin, and `hash()` raises `TypeError`, from its first
+    call onwards. Both methods stay after that, for the cross-class comparison
+    against `cloup.Style` the generated ones refuse: only their cache rationale
+    expires.
     ```
 
     ```{todo}
-    Drop the `# type: ignore[assignment]` on the `fg` and `bg` re-declarations
-    below once cloup widens its own annotations. It types both `Optional[str]`,
-    while `click.style` takes `int | tuple[int, int, int] | str | None`, so
-    covering a palette index and an RGB tuple here reads as an incompatible
-    override. Asked upstream at
+    Drop the `# type: ignore[assignment, unused-ignore]` on the `fg` and `bg`
+    re-declarations below once this package's cloup floor reaches `4.0.0`,
+    which widens both annotations as asked at
     [janluke/cloup#222](https://github.com/janluke/cloup/issues/222#issuecomment-5600354828).
+    Cloup 3.x types both `Optional[str]`, while `click.style` takes
+    `int | tuple[int, int, int] | str | None`, so covering a palette index and an
+    RGB tuple here reads as an incompatible override there.
     ```
     """
 
-    fg: str | tuple[int, int, int] | int | None = None  # type: ignore[assignment]
+    fg: _Color = None  # type: ignore[assignment, unused-ignore]
     """Foreground color: named ANSI string, `#rrggbb` hex, RGB tuple, or palette index."""
 
-    bg: str | tuple[int, int, int] | int | None = None  # type: ignore[assignment]
+    bg: _Color = None  # type: ignore[assignment, unused-ignore]
     """Background color: named ANSI string, `#rrggbb` hex, RGB tuple, or palette index."""
 
     def __post_init__(self) -> None:

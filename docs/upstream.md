@@ -117,6 +117,13 @@ Issues that click-extra solved with local workarounds first. The fix was later c
 
 - [`#160`](https://github.com/janluke/cloup/issues/160) / [`#162`](https://github.com/janluke/cloup/pull/162) - `cloup.Group` ignored `command_class` for subcommands. click-extra worked around it; Cloup fixed it in a later release.
 - [`#177`](https://github.com/janluke/cloup/issues/177) - `cloup.Color` could not be rendered by Sphinx. click-extra had an exception handler; Cloup fixed the import.
+- [`#225`](https://github.com/janluke/cloup/issues/225) - `HelpTheme` subclasses could not use `with_()`, `dark()` or `light()`. click-extra re-implemented all three; Cloup `4.0.0` fixed the base class.
+- [`#224`](https://github.com/janluke/cloup/issues/224) - `Style` became unhashable and stopped comparing equal after its first call. click-extra could not rely on either; Cloup `4.0.0` dropped the cache that broke both.
+- [`#222`](https://github.com/janluke/cloup/issues/222#issuecomment-5600354828) (comment) - `Style.fg`/`bg` were typed `Optional[str]` while `click.style` takes a wider union. click-extra silenced the mismatch with a type-check override; Cloup `4.0.0` widened the types.
+- [`#211`](https://github.com/janluke/cloup/issues/211) - A deprecated command's help dropped the reason and used Click's pre-8.2 label. click-extra reimplemented the help renderer to reuse Click's own label; Cloup `4.0.0` matched it.
+- [`#210`](https://github.com/janluke/cloup/issues/210) - `cloup.Argument` and `click.Argument` diverged once Click 8.5.0 gave arguments a `help` parameter: a plain `cloup.argument` drew a blank `Positional arguments` entry. click-extra's own argument decorator carried the text through; Cloup `4.0.0` fixed `cloup.argument`.
+- [`#209`](https://github.com/janluke/cloup/issues/209) - Cloup's Arguments page described a Click limitation that `8.5.0` had already removed. Cloup fixed the page in `4.0.0`.
+- [`#204`](https://github.com/janluke/cloup/issues/204#issuecomment-5600674392) (comment) - `__all__` exported cloup's own `warnings` and `_version` submodules, the first shadowing the stdlib name on a star import. Cloup narrowed `__all__` in `4.0.0`; click-extra's namespace scrub stays regardless, since Click's own missing `__all__` leaks other submodules the same way.
 
 ## Addressed by click-extra
 
@@ -368,16 +375,6 @@ PRs and issues still pending upstream.
 ### [`click`](https://github.com/pallets/click)
 
 - [`#3036` - Add support for `set` and `frozenset` as native Click types](https://github.com/pallets/click/issues/3036)
-
-### [`cloup`](https://github.com/janluke/cloup)
-
-- [`#225` - `HelpTheme` subclasses cannot use `with_()`, `dark()` or `light()`](https://github.com/janluke/cloup/issues/225)
-- [`#224` - `Style` becomes unhashable and stops comparing equal after its first call](https://github.com/janluke/cloup/issues/224)
-- [`#222` (comment) - `Style.fg`/`bg` are typed `Optional[str]` while `click.style` takes a wider union](https://github.com/janluke/cloup/issues/222#issuecomment-5600354828)
-- [`#211` - A deprecated command's help drops the reason and uses Click's pre-8.2 label](https://github.com/janluke/cloup/issues/211)
-- [`#210` - `cloup.Argument` and `click.Argument` diverge now that Click 8.5.0 has argument `help`](https://github.com/janluke/cloup/issues/210)
-- [`#209` - Arguments page describes a Click limitation that 8.5.0 removed](https://github.com/janluke/cloup/issues/209)
-- [`#204` (comment) - `__all__` exports `_version` and cloup's own `warnings` submodule, whose name shadows the stdlib one on a star import](https://github.com/janluke/cloup/issues/204#issuecomment-5600674392)
 
 ### [`pygments`](https://github.com/pygments/pygments)
 

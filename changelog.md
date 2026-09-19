@@ -6,17 +6,16 @@
 > This version is **not released yet** and is under active development.
 
 - **Deprecated:** Make `select_columns`, `select_row` and `render_columns_markdown_table` importable from `click_extra.table` again, as aliases of their `click_extra.columns` versions until `10.0.0`.
-- Re-export `ArgumentKwargs` and `OptionKwargs` when the installed cloup provides them, as cloup `4.0` does.
 - Add `corner_header` to `click_extra.table`, naming both axes of a two-axis table in its top-left cell.
-- Name both axes in the top-left cell of `matrix` tables, like `click-extra ↴ \ cloup →`.
-- Move the first release date of each `matrix` row into its label, like `6.0.x (2025-09-25) → 9.x`, and drop the `Released` column.
-- Give the newest release on PyPI its own column in `matrix` dependency tables, next to the `uv.lock` version, so a new release shows up before the lockfile adopts it.
-- Keep the first column of a table with a corner label on one line in Sphinx builds: a narrow screen scrolls the table instead of wrapping its row labels.
+- Re-export `ArgumentKwargs` and `OptionKwargs` when the installed cloup provides them, as cloup `4.0` does.
+- Name both axes in the top-left cell of `matrix` tables, and move each row's first release date into its label, like `6.0.x (2025-09-25) → 9.x`.
+- Give the newest release on PyPI its own column in `matrix` dependency tables, next to the `uv.lock` version.
+- Keep the first column of a corner-labeled table on one line in Sphinx builds: a narrow screen scrolls the table instead of wrapping its row labels.
 - Stop `import click_extra` from emitting Click deprecation warnings under cloup `4.0`: `BaseCommand`, `MultiCommand`, `OptionParser` and the stream getters now warn only when used.
+- Fix `matrix` tables with a `Spec` column merging release ranges that declare different specifiers into one row, which showed only the oldest one.
 - Fix the `matrix` directive rendering an all-❌ row for a Poetry caret or tilde range on a suffixed version, like `^2.0.0.post1`.
 - Fix `matrix` row labels naming the same `X.Y.x` twice when a minor series splits across two rows: the split bound now shows its exact version.
-- Add a Cloup compatibility table to the installation page.
-- Name both axes in the top-left cell of the benchmark, executables and MyST docstring comparison tables.
+- Add a Cloup compatibility table to the installation page, and name both axes of the benchmark, executables and MyST docstring comparison tables.
 
 ## [`9.3.1` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.3.0...v9.3.1)
 

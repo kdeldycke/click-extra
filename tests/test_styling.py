@@ -80,12 +80,12 @@ CLOUP_STYLE_HAS_KWARGS_CACHE = any(
 )
 """True when ``cloup.Style`` still carries its lazy ``_style_kwargs`` cache.
 
-Cloup builds that cache on the first ``__call__`` and declares it without
+Cloup 3.x builds that cache on the first ``__call__`` and declares it without
 ``compare=False``, so a called style stops comparing equal to its twin and
-``hash()`` raises. Cloup removed the cache to fix `janluke/cloup#224
-<https://github.com/janluke/cloup/issues/224>`_, so the field is absent from
-development snapshots. The invariant the cache threatened is checked on both,
-and only the probes reading the field itself are gated on this flag.
+``hash()`` raises. Cloup ``4.0.0`` removed the cache to fix `janluke/cloup#224
+<https://github.com/janluke/cloup/issues/224>`_, so the field is absent from it.
+The invariant the cache threatened is checked on both, and only the probes
+reading the field itself are gated on this flag.
 """
 
 # --- 1. Hex string color shorthand ------------------------------------------
@@ -403,8 +403,8 @@ def test_eq_ignores_style_kwargs_cache():
     b = Style(fg="red")
     a("trigger")  # primes a's _style_kwargs
     if CLOUP_STYLE_HAS_KWARGS_CACHE:
-        assert b._style_kwargs is None
-        assert a._style_kwargs is not None
+        assert b._style_kwargs is None  # type: ignore[attr-defined, unused-ignore]
+        assert a._style_kwargs is not None  # type: ignore[attr-defined, unused-ignore]
     assert a == b
     assert hash(a) == hash(b)
 

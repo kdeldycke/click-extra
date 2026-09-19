@@ -349,7 +349,7 @@ The band is mixed from the chrome it is drawn on rather than stated outright, so
 ```{click:run}
 :screenshot: emphasized-screen
 :screenshot-columns: auto
-:screenshot-emphasize-lines: 9,15-16
+:screenshot-emphasize-lines: 6,12-13
 :screenshot-margin: 16
 :hide-results:
 result = invoke(pantry, args=["--help"])
@@ -401,7 +401,7 @@ Here is the `pantry` screen again, wearing every option above: on a gradient, ca
 :screenshot-columns: auto
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
-:screenshot-emphasize-lines: 9,15-16
+:screenshot-emphasize-lines: 6,12-13
 :screenshot-line-numbers:
 :screenshot-opacity: 0.75
 :screenshot-radius: 12
@@ -426,7 +426,7 @@ assert "--crates" in result.stdout
 :screenshot-columns: auto
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
-:screenshot-emphasize-lines: 9,15-16
+:screenshot-emphasize-lines: 6,12-13
 :screenshot-line-numbers:
 :screenshot-opacity: 0.75
 :screenshot-radius: 12
@@ -526,7 +526,7 @@ Round buttons on the left, Apple's `Pro` and `Basic` palettes, SF Mono, and a `$
 :screenshot-columns: auto
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
-:screenshot-emphasize-lines: 9,15-16
+:screenshot-emphasize-lines: 6,12-13
 :screenshot-line-numbers:
 :screenshot-opacity: 0.75
 :screenshot-padding: 24
@@ -558,7 +558,7 @@ Minimize, maximize and close on the right, square corners, the `Campbell` and `O
 :screenshot-columns: auto
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
-:screenshot-emphasize-lines: 9,15-16
+:screenshot-emphasize-lines: 6,12-13
 :screenshot-line-numbers:
 :screenshot-opacity: 0.75
 :screenshot-padding: 24
@@ -590,7 +590,7 @@ A single close button, the Tango palette GNOME Terminal ships, Ubuntu Mono, and 
 :screenshot-columns: auto
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
-:screenshot-emphasize-lines: 9,15-16
+:screenshot-emphasize-lines: 6,12-13
 :screenshot-line-numbers:
 :screenshot-opacity: 0.75
 :screenshot-padding: 24
@@ -622,7 +622,7 @@ No buttons, no rounded corners, no title bar: for a capture that has to read as 
 :screenshot-columns: auto
 :screenshot-title: 🍎 pantry --help
 :screenshot-backdrop: 'linear-gradient(135deg, #667eea, #764ba2)'
-:screenshot-emphasize-lines: 9,15-16
+:screenshot-emphasize-lines: 6,12-13
 :screenshot-line-numbers:
 :screenshot-opacity: 0.75
 :screenshot-padding: 24

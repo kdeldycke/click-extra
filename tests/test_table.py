@@ -1661,8 +1661,9 @@ def test_sort_by_option_decorator_in_option_group(invoke):
         echo("ok")
 
     sort_opt = next(p for p in cli.params if isinstance(p, SortByOption))
-    assert sort_opt.group is not None  # type: ignore[attr-defined]
-    assert sort_opt.group.title == "Sorting"  # type: ignore[attr-defined]
+    group = sort_opt.group  # type: ignore[attr-defined, unused-ignore]
+    assert group is not None
+    assert group.title == "Sorting"
 
     result = invoke(cli, "--help", color=False)
     assert result.exit_code == 0
