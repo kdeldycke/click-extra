@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Deprecated:** Make `select_columns`, `select_row` and `render_columns_markdown_table` importable from `click_extra.table` again, as aliases of their `click_extra.columns` versions until `10.0.0`.
+
 ## [`9.3.1` (2026-09-18)](https://github.com/kdeldycke/click-extra/compare/v9.3.0...v9.3.1)
 
 - Fix the `--jobs` help and documentation, which said `auto` always leaves one logical CPU free: hosts with fewer than three use all of them.
