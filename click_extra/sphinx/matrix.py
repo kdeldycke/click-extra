@@ -33,8 +33,9 @@ Two axes are supported:
   {data}`UNDECLARED_CELL`).
 - **A dependency** (``{matrix} <distribution>``, like ``{matrix} click``): the
   per-tag constraint is that distribution's requirement specifier; columns are
-  auto-derived from the specifier boundaries plus the `uv.lock` resolved
-  version, and each ✅ / ❌ cell is computed with {mod}`packaging`.
+  auto-derived from the specifier boundaries plus the newest release on PyPI
+  and the `uv.lock` resolved version, and each ✅ / ❌ cell is computed with
+  {mod}`packaging`.
 
 The rendered tables back the always-on `matrix` Sphinx directive (see
 {class}`MatrixDirective`), so a project's `install.md` can embed a live matrix
@@ -46,12 +47,15 @@ public API.
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
 from datetime import datetime, timezone
+from http.client import HTTPException
 from pathlib import Path
 from typing import NamedTuple
+from urllib.request import urlopen
 
 from docutils import nodes
 from docutils.statemachine import StringList
@@ -907,11 +911,61 @@ def _spec_floor(spec: str) -> tuple[Version | None, bool]:
     return floor, "<" not in spec
 
 
+PYPI_JSON_URL: str = "https://pypi.org/pypi/{name}/json"
+"""PyPI's JSON API endpoint for a project, formatted with its normalized name."""
+
+PYPI_TIMEOUT: float = 10
+"""Seconds to wait for PyPI before a table goes without its newest release."""
+
+
+def _latest_pypi_release(dep_name: str) -> str:
+    """Return the newest stable release of `dep_name` on PyPI, or `""`.
+
+    PyPI's JSON API reports it as `info.version`, [ranking releases that are
+    neither yanked nor pre-releases first](https://github.com/pypi/warehouse/blob/6dda362f94296a0b2113746f8a6743f5c44c25cc/warehouse/legacy/api/json.py#L233-L237).
+    It falls back to a yanked release or a pre-release only when nothing else
+    exists, and this function discards that fallback.
+
+    No cooldown applies. The matrix states what an installer accepts, and an
+    installer applies no cooldown by default, so a release is installable as
+    soon as it is published. Reading its version number installs nothing.
+    """
+    url = PYPI_JSON_URL.format(name=canonicalize_name(dep_name))
+    try:
+        with urlopen(url, timeout=PYPI_TIMEOUT) as response:
+            info = json.load(response)["info"]
+        latest, yanked = info["version"], info.get("yanked")
+    except (HTTPException, KeyError, OSError, TypeError, ValueError) as error:
+        logger.warning(
+            "click_extra.sphinx: matrix cannot read the latest %s release "
+            "from PyPI: %s",
+            dep_name,
+            error,
+        )
+        return ""
+    version = _safe_version(str(latest))
+    if version is None or version.is_prerelease or yanked:
+        return ""
+    return str(version)
+
+
+def _anchor_versions(project_root: Path, dep_name: str) -> tuple[str, str]:
+    """Return the two versions of `dep_name` that earn a column of their own.
+
+    The newest stable release on PyPI shows what an installer picks today, and
+    the version `uv.lock` resolves shows what the project tests against. They
+    differ while a new release waits out the lockfile's cooldown. Either one is
+    `""` when unknown, like the PyPI release when PyPI cannot answer.
+    """
+    return _latest_pypi_release(dep_name), _latest_locked_version(
+        project_root, dep_name
+    )
+
+
 def _latest_locked_version(project_root: Path, dep_name: str) -> str:
     """Return `dep_name`'s resolved version from `uv.lock`, or `""`.
 
-    Offline: reads the lockfile in the working tree (not per tag), only to
-    anchor the right-most column at the version the project resolves today.
+    Reads the lockfile in the working tree, not per tag.
     """
     try:
         text = (project_root / "uv.lock").read_text(encoding="utf-8")
@@ -931,20 +985,26 @@ def _minor_intersects(spec_set: SpecifierSet, major: int, minor: int) -> bool:
     )
 
 
-def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bool]]:
+def _dependency_columns(
+    specs: list[str], anchors: Iterable[str]
+) -> list[tuple[Version, bool]]:
     """Derive the ordered `(version, is_minor)` columns for a dependency axis.
 
     A minor series gets a single `X.Y` column unless some spec distinguishes
     releases inside it (an open `>=` floor at patch level, or an exact pin),
-    in which case it is split into `X.Y.0` plus each such version. Columns are
-    sorted newest-first, so the `latest` locked version anchors the left edge.
+    in which case it is split into `X.Y.0` plus each such version. Each of the
+    `anchors` (see {func}`_anchor_versions`) adds its series too, whatever the
+    specs say, and an empty or invalid anchor is skipped. Columns are sorted
+    newest-first, so the newest anchor sits on the left edge.
     """
     floors = [
         (floor, patch_precise)
         for floor, patch_precise in (_spec_floor(spec) for spec in specs)
         if floor is not None
     ]
-    latest_version = _safe_version(latest) if latest else None
+    anchor_versions = [
+        version for version in map(_safe_version, anchors) if version is not None
+    ]
 
     split: dict[tuple[int, int], bool] = {}
     for floor, patch_precise in floors:
@@ -952,8 +1012,8 @@ def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bo
         split.setdefault(key, False)
         if patch_precise and floor.micro > 0:
             split[key] = True
-    if latest_version is not None:
-        split.setdefault((latest_version.major, latest_version.minor), False)
+    for anchor in anchor_versions:
+        split.setdefault((anchor.major, anchor.minor), False)
 
     columns: list[tuple[Version, bool]] = []
     for key in sorted(split, reverse=True):
@@ -967,11 +1027,9 @@ def _dependency_columns(specs: list[str], latest: str) -> list[tuple[Version, bo
             for floor, patch_precise in floors
             if patch_precise and (floor.major, floor.minor) == key
         )
-        if (
-            latest_version is not None
-            and (latest_version.major, latest_version.minor) == key
-        ):
-            patches.add(latest_version)
+        patches.update(
+            anchor for anchor in anchor_versions if (anchor.major, anchor.minor) == key
+        )
         columns.extend((patch, False) for patch in sorted(patches, reverse=True))
     return columns
 
@@ -1023,7 +1081,8 @@ def dependency_matrix_table(
     """Render the `dep_name` compatibility matrix as a markdown table.
 
     Columns are auto-derived from the requirement specifiers across history
-    (see {func}`_dependency_columns`) plus the `uv.lock` resolved version;
+    (see {func}`_dependency_columns`) plus the newest release on PyPI and the
+    `uv.lock` version (see {func}`_anchor_versions`);
     each ✅ / ❌ cell is computed with {mod}`packaging`. Consecutive ranges
     whose cells coincide are re-merged into one row. By default newest
     releases sit on top and newest dependency versions on the left, matching
@@ -1052,7 +1111,7 @@ def dependency_matrix_table(
         return ""
     columns = _dependency_columns(
         [g.spec for g in groups],
-        _latest_locked_version(project_root, dep_name),
+        _anchor_versions(project_root, dep_name),
     )
     if not columns:
         return ""

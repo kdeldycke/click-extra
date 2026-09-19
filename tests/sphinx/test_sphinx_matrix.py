@@ -44,6 +44,7 @@ from click_extra.sphinx.matrix import (
     PythonMatrixGroup,
     _dependency_columns,
     _extract_requirement,
+    _latest_pypi_release,
     _python_cell,
     _range_labels,
     _render_block,
@@ -71,6 +72,24 @@ thing this tree needs, and the only one that is a binary rather than an import,
 so it escaped that guard: a packager shipping the documentation extras without
 git got a wall of ``FileNotFoundError`` naming no cause.
 """
+
+MATRIX_MODULE = "click_extra.sphinx.matrix"
+"""Dotted path the PyPI lookup is patched through.
+
+Importing the module object instead would put a `matrix` name in scope, and
+ruff would then read every `{matrix}` fence in the fixtures as an f-string.
+"""
+
+
+@pytest.fixture(autouse=True)
+def offline_pypi(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Anchor every table on ``uv.lock``, with no call to PyPI.
+
+    The fixtures track a made-up ``widget`` dependency, and a real project of
+    that name on PyPI would move their columns. The tests of the PyPI anchor
+    stub the lookup again with the answer they need.
+    """
+    monkeypatch.setattr(f"{MATRIX_MODULE}._latest_pypi_release", lambda dep_name: "")
 
 
 def git_repo(path: Path) -> Callable[..., None]:
@@ -860,31 +879,39 @@ def test_extract_requirement_from_setup_py() -> None:
 
 
 @pytest.mark.parametrize(
-    ("specs", "latest", "expected"),
+    ("specs", "anchors", "expected"),
     [
         # A minor series stays one column…
-        ([">=1.0"], "1.4.2", ["1.4", "1.0"]),
+        ([">=1.0"], ("1.4.2",), ["1.4", "1.0"]),
         # …unless an open floor pins a patch inside it, which splits it into
         # `X.Y.0` plus that floor.
-        ([">=2.1.3"], "", ["2.1.3", "2.1.0"]),
+        ([">=2.1.3"], (), ["2.1.3", "2.1.0"]),
+        # An anchor inside a split series gets a patch column of its own.
+        ([">=2.1.3"], ("2.1.5",), ["2.1.5", "2.1.3", "2.1.0"]),
         # A capped floor does not split, even at patch precision.
-        (["~=2.1.3"], "", ["2.1"]),
+        (["~=2.1.3"], (), ["2.1"]),
         # Several ranges collapse onto one column per minor series.
-        ([">=8.0,<8.2", "~=8.1.4"], "8.4.2", ["8.4", "8.1", "8.0"]),
+        ([">=8.0,<8.2", "~=8.1.4"], ("8.4.2",), ["8.4", "8.1", "8.0"]),
         # A wildcard pin anchors the series it names.
-        (["==8.1.*"], "8.4.2", ["8.4", "8.1"]),
-        (["==8.1.*"], "", ["8.1"]),
+        (["==8.1.*"], ("8.4.2",), ["8.4", "8.1"]),
+        (["==8.1.*"], (), ["8.1"]),
         # An exact pin splits its series, so the release it accepts is
         # distinguishable from the rest of the minor.
-        (["==8.1.4"], "", ["8.1.4", "8.1.0"]),
+        (["==8.1.4"], (), ["8.1.4", "8.1.0"]),
         # A lone ceiling has no lower bound to place, so it anchors nothing;
-        # only the locked version contributes a column.
-        (["<8.2"], "8.4.2", ["8.4"]),
-        (["<8.2"], "", []),
+        # only the anchor contributes a column.
+        (["<8.2"], ("8.4.2",), ["8.4"]),
+        (["<8.2"], (), []),
+        # A new release on PyPI and the older locked one each keep a column,
+        # while an unknown anchor is skipped.
+        ([">=3.0.7"], ("4.0.0", "3.1.0"), ["4.0", "3.1", "3.0.7", "3.0.0"]),
+        ([">=3.0.7"], ("", "3.1.0"), ["3.1", "3.0.7", "3.0.0"]),
     ],
 )
-def test_dependency_columns(specs: list[str], latest: str, expected: list[str]) -> None:
-    columns = _dependency_columns(specs, latest)
+def test_dependency_columns(
+    specs: list[str], anchors: tuple[str, ...], expected: list[str]
+) -> None:
+    columns = _dependency_columns(specs, anchors)
     assert [str(version) for version, _ in columns] == expected
 
 
@@ -1075,6 +1102,71 @@ def test_dependency_matrix_table_suffixed_poetry_floor(tmp_path: Path) -> None:
     header = [c.strip() for c in table.splitlines()[0].strip().strip("|").split("|")]
     assert header == ["`proj`", "Released", "`2.4`", "`2.0`"]
     assert "".join(tagged_table_rows(table)["`1.0.0`"][1:]) == "✅✅"
+
+
+def test_dependency_matrix_table_anchors_on_pypi(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A release newer than the locked one takes the left-most column.
+
+    The locked version keeps its own column next to it.
+    """
+    repo = pinned_widget_repo(tmp_path, "pypi-anchor", ">=2.1")
+    monkeypatch.setattr(
+        f"{MATRIX_MODULE}._latest_pypi_release", lambda dep_name: "3.0.0"
+    )
+    table = dependency_matrix_table(repo, "proj", "widget")
+    header = [c.strip() for c in table.splitlines()[0].strip().strip("|").split("|")]
+    assert header == ["`proj`", "Released", "`3.0`", "`2.4`", "`2.1`"]
+    assert "".join(tagged_table_rows(table)["`1.0.0`"][1:]) == "✅✅✅"
+
+
+@pytest.fixture
+def pypi(httpserver, monkeypatch: pytest.MonkeyPatch):
+    """Serve PyPI's JSON API from the local test server."""
+    monkeypatch.setattr(
+        f"{MATRIX_MODULE}.PYPI_JSON_URL", httpserver.url_for("/pypi/{name}/json")
+    )
+    return httpserver
+
+
+def test_latest_pypi_release(pypi) -> None:
+    """The lookup asks for the normalized name and returns `info.version`."""
+    pypi.expect_request("/pypi/widget/json").respond_with_json({
+        "info": {"version": "3.0.0", "yanked": False}
+    })
+    assert _latest_pypi_release("Widget") == "3.0.0"
+
+
+@pytest.mark.parametrize(
+    "info",
+    [
+        # PyPI only reports these when a project has no stable, unyanked
+        # release left.
+        {"version": "3.0.0rc1", "yanked": False},
+        {"version": "3.0.0.dev0", "yanked": False},
+        {"version": "3.0.0", "yanked": True},
+        # Malformed answers.
+        {"version": "not a version"},
+        {},
+    ],
+)
+def test_latest_pypi_release_discards(pypi, info: dict) -> None:
+    pypi.expect_request("/pypi/widget/json").respond_with_json({"info": info})
+    assert _latest_pypi_release("widget") == ""
+
+
+@pytest.mark.parametrize(
+    ("body", "status"),
+    [
+        ("Not Found", 404),
+        ("<html>Maintenance</html>", 200),
+    ],
+)
+def test_latest_pypi_release_unreadable(pypi, body: str, status: int) -> None:
+    """An error or a body that is not JSON costs the anchor, not the table."""
+    pypi.expect_request("/pypi/widget/json").respond_with_data(body, status=status)
+    assert _latest_pypi_release("widget") == ""
 
 
 # Every example from Poetry's dependency-specification reference, mapping the

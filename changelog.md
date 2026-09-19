@@ -8,6 +8,7 @@
 - **Deprecated:** Make `select_columns`, `select_row` and `render_columns_markdown_table` importable from `click_extra.table` again, as aliases of their `click_extra.columns` versions until `10.0.0`.
 - Re-export `ArgumentKwargs` and `OptionKwargs` when the installed cloup provides them, as cloup `4.0` does.
 - Add `corner_header` to `click_extra.table`, naming both axes of a two-axis table in its top-left cell.
+- Give the newest release on PyPI its own column in `matrix` dependency tables, next to the `uv.lock` version, so a new release shows up before the lockfile adopts it.
 - Stop `import click_extra` from emitting Click deprecation warnings under cloup `4.0`: `BaseCommand`, `MultiCommand`, `OptionParser` and the stream getters now warn only when used.
 - Fix the `matrix` directive rendering an all-❌ row for a Poetry caret or tilde range on a suffixed version, like `^2.0.0.post1`.
 - Fix `matrix` row labels naming the same `X.Y.x` twice when a minor series splits across two rows: the split bound now shows its exact version.
