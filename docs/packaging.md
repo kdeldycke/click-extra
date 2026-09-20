@@ -24,6 +24,14 @@ The recommended invocation for a hermetic builder is therefore:
 $ pytest -m "not network"
 ```
 
+Run it against the package you just built, not the one the system already carries. `[tool.pytest] addopts` sets `--import-mode=importlib`, and the `pytest` console script puts no working directory on `sys.path`, so a bare `pytest` in the source tree imports `click_extra` from the system `site-packages`: the tests then check the installed version, or fail to collect when the two disagree. Install the wheel into a virtual environment and call that environment's interpreter:
+
+```{code-block} shell-session
+$ python -m venv --system-site-packages test-env
+$ test-env/bin/python -m installer dist/*.whl
+$ test-env/bin/python -m pytest -m "not network"
+```
+
 Several test modules import optional libraries at collection time (`hjson`, `jsonschema`, `pygments`, `tomlkit`, `xmltodict`, and others) to exercise the matching features. Install them to run the full suite, as the [project's own CI](https://github.com/kdeldycke/click-extra/actions) does.
 
 ## Test helpers for downstream projects

@@ -50,6 +50,16 @@ If you have difficulties to use `pip`, see
 $ pipx install click-extra
 ```
 ````
+
+````{tab-item} Arch Linux
+Arch Linux users install [`python-click-extra`](https://aur.archlinux.org/packages/python-click-extra) from the AUR, with the helper of their choice:
+
+```{code-block} shell-session
+$ paru -S python-click-extra
+```
+
+The package needs `python-click` `8.4.1` or newer. Enable `[extra-testing]` while `[extra]` still ships an older Click.
+````
 `````
 
 ## Demo CLI

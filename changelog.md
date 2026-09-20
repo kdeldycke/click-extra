@@ -5,6 +5,9 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add an Arch Linux tab to the installation page: `click-extra` is in the AUR as `python-click-extra`.
+- Tell packagers to run the test suite against the wheel they built: a bare `pytest` imports the `click_extra` the system carries.
+
 ## [`9.3.3` (2026-09-19)](https://github.com/kdeldycke/click-extra/compare/v9.3.2...v9.3.3)
 
 > [!NOTE]
