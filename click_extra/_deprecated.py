@@ -35,20 +35,19 @@ exactly as the `9.0.0` release did with the previous batch.
 
 from __future__ import annotations
 
-import os
 import sys
 import warnings
 from importlib import import_module
 
+from ._utils import CLI_ECOSYSTEM_PACKAGES
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from types import FrameType
     from typing import Any
 
 REMOVAL_VERSION = "10.0.0"
 """The release in which the registered aliases stop resolving."""
-
-_PACKAGE_DIR = os.path.join(os.path.dirname(__file__), "")
-"""This package's directory, trailing separator included, to tell its frames apart."""
 
 DEPRECATED_ALIASES: dict[str, dict[str, str]] = {
     "click_extra.color": {
@@ -95,21 +94,33 @@ def deprecation_message(subject: str, replacement: str) -> str:
 
 
 def _outside_stacklevel() -> int:
-    """The `stacklevel` of the first frame outside this package, for its caller.
+    """The `stacklevel` of the first frame outside the CLI ecosystem, for its caller.
 
     Counted from the function calling this one, which is where
     {func}`warnings.warn` starts counting. A deprecated form can be caught
     several frames deep (a header deep in a table render, an argument
     forwarded by a subclass), and a fixed level would then blame this
     package instead of the code to change.
+
+    Frames are classified by the top-level package of their module, the same
+    `CLI_ECOSYSTEM_PACKAGES` set `VersionOption.cli_frame` walks past: a
+    `functools` or `click` decorator frame between the deprecated form and
+    the caller is plumbing, not the code to change. Click grew the same walk
+    for its own deprecation warnings, one package narrower, in Click 8.5.1
+    ([pallets/click#3866](https://github.com/pallets/click/pull/3866)).
     """
-    frame = sys._getframe(1)
+    frame: FrameType | None = sys._getframe(1)
     level = 1
-    while frame.f_back is not None and frame.f_code.co_filename.startswith(
-        _PACKAGE_DIR
-    ):
+
+    while frame is not None:
+        top_package = frame.f_globals.get("__name__", "").split(".", 1)[0]
+
+        if top_package not in CLI_ECOSYSTEM_PACKAGES:
+            return level
+
         frame = frame.f_back
         level += 1
+
     return level
 
 

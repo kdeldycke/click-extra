@@ -55,7 +55,7 @@ from click import echo, get_current_context
 from click._utils import UNSET
 from extra_platforms import current_architecture, current_platform
 
-from ._utils import memoize_enums
+from ._utils import CLI_ECOSYSTEM_PACKAGES, memoize_enums
 from .color import invocation_color, is_a_tty
 from .context import ACCESSIBLE, _LazyMetaDict, get
 from .layout import cell_width, pad_to
@@ -66,18 +66,6 @@ from .theme import get_current_theme
 MUTED = Style(fg="bright_black")
 """The recessive style the version screen gives its tagline and its fact labels."""
 
-CLI_ECOSYSTEM_PACKAGES = frozenset({"functools", "click_extra", "cloup", "click"})
-"""Top-level packages that never implement the *user's* CLI.
-
-`functools` shows up as the intermediate frames a `@cached_property` adds; the
-other three are the Click ecosystem itself. A frame belonging to one of them is
-plumbing between the `--version` callback and the CLI that declared it, so
-{meth}`VersionOption.cli_frame` walks past it, and both
-{attr}`VersionOption.module` and {attr}`VersionOption.module_version` read
-landing on one as a failed walk. A module {func}`is_main_module` recognizes is
-the exception: it is an entry point, whichever package it sits under.
-"""
-
 
 def is_main_module(module_name: str) -> bool:
     """Is *module_name* a `__main__` entry point, of a package or of a script?
@@ -85,7 +73,7 @@ def is_main_module(module_name: str) -> bool:
     An entry point is where the interpreter started: `python -m package`, a
     console script, or a compiled binary. It is never plumbing a stack walk
     lands on after running out of user frames, so it is exempt from
-    {data}`CLI_ECOSYSTEM_PACKAGES` even when it sits under one of those
+    `CLI_ECOSYSTEM_PACKAGES` even when it sits under one of those
     packages, as `click_extra.__main__` does in Click Extra's own binary.
     """
     return module_name == "__main__" or module_name.endswith(".__main__")

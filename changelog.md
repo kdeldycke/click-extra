@@ -7,6 +7,7 @@
 
 - Add an Arch Linux tab to the installation page: `click-extra` is in the AUR as `python-click-extra`.
 - Tell packagers to run the test suite against the wheel they built: a bare `pytest` imports the `click_extra` the system carries.
+- Point deprecation warnings at the caller's code even when a `click` or `cloup` frame sits in between: the walk behind the warning's `stacklevel` now skips the whole CLI ecosystem.
 
 ## [`9.3.3` (2026-09-19)](https://github.com/kdeldycke/click-extra/compare/v9.3.2...v9.3.3)
 

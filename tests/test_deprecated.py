@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import re
+import types
 from importlib import import_module
 
 import pytest
@@ -78,4 +79,25 @@ def test_warn_deprecated_argument_blames_the_caller():
         ),
     ) as record:
         steep(minutes=4)
+    assert record[0].filename == __file__
+
+
+def test_warn_deprecated_argument_skips_ecosystem_frames():
+    """A warning behind a Click ecosystem frame still blames the code to change.
+
+    The real shape is a parameter construction warning: the user's module
+    calls a `click` decorator, whose frame sits between the code to change and
+    the warning. The funnel below reproduces that frame, in a namespace whose
+    `__name__` classifies it the same way.
+    """
+    fake_click = types.ModuleType("click.decorators")
+    fake_click.warn_deprecated_argument = warn_deprecated_argument
+    exec(
+        "def funnel(**kwargs):\n"
+        "    warn_deprecated_argument('steep', 'minutes', 'duration=')\n",
+        fake_click.__dict__,
+    )
+
+    with pytest.deprecated_call() as record:
+        fake_click.funnel(minutes=4)
     assert record[0].filename == __file__
