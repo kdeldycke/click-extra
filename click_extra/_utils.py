@@ -43,9 +43,11 @@ is plumbing between a stack walk and the CLI that declared it, so both
 `stacklevel` walk in `_deprecated.py` step over them, and
 {attr}`click_extra.version.VersionOption.module` and
 {attr}`click_extra.version.VersionOption.module_version` read landing on one
-as a failed walk. A module {func}`click_extra.version.is_main_module`
-recognizes is the exception: it is an entry point, whichever package it sits
-under.
+as a failed walk. Those three exempt a module
+{func}`click_extra.version.is_main_module` recognizes, since an entry point is
+never plumbing, whichever package it sits under. The `stacklevel` walk needs no
+such exemption: it reads a frame's own `__name__`, which an entry point sets to
+`__main__`, already outside this set.
 """
 
 

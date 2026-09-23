@@ -91,7 +91,11 @@ def test_warn_deprecated_argument_skips_ecosystem_frames():
     `__name__` classifies it the same way.
     """
     fake_click = types.ModuleType("click.decorators")
-    fake_click.warn_deprecated_argument = warn_deprecated_argument
+    # The funnel resolves the helper out of the module's own globals, so seed
+    # them with it. ModuleType declares no __setattr__, so a plain attribute
+    # assignment would be a type error: write through the namespace the exec
+    # below already targets.
+    fake_click.__dict__["warn_deprecated_argument"] = warn_deprecated_argument
     exec(
         "def funnel(**kwargs):\n"
         "    warn_deprecated_argument('steep', 'minutes', 'duration=')\n",

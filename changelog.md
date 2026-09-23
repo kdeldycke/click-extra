@@ -5,10 +5,11 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Add an Arch Linux tab to the installation page: `click-extra` is in the AUR as `python-click-extra`.
-- Tell packagers to run the test suite against the wheel they built: a bare `pytest` imports the `click_extra` the system carries.
+- **Deprecated:** Importing `CLI_ECOSYSTEM_PACKAGES` from `click_extra.version` now warns, and stops working in `10.0.0`. The constant moved to a private module and has no public replacement.
 - Point deprecation warnings at the caller's code even when a `click` or `cloup` frame sits in between: the walk behind the warning's `stacklevel` now skips the whole CLI ecosystem.
 - Kill the descendants of a timed-out or interrupted `run_cli` child that was spawned without `start_new_session`, instead of the child alone. A killed `sudo` no longer leaves the command it escalated running.
+- Add an Arch Linux tab to the installation page: `click-extra` is in the AUR as `python-click-extra`.
+- Tell packagers to run the test suite against the wheel they built: a bare `pytest` imports the `click_extra` the system carries.
 
 ## [`9.3.3` (2026-09-19)](https://github.com/kdeldycke/click-extra/compare/v9.3.2...v9.3.3)
 

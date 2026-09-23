@@ -10,7 +10,7 @@ The wheel is built with [`uv_build`](https://docs.astral.sh/uv/), declared as th
 
 Since `click-extra` `8.6.1`, the PyPI sdist ships `tests/`, `docs/` and the `.github/` files the tests read, so the suite runs straight from the sdist. Earlier releases shipped no tests; those builds must start from [a Git tag tarball](https://github.com/kdeldycke/click-extra/tags) instead.
 
-A plain `pytest` run is friendly to a hermetic build sandbox:
+The suite is friendly to a hermetic build sandbox:
 
 - **Network tests are marked.** Exclude them with `-m "not network"`: the build sandbox has no outbound network.
 - **The local HTTP server binds an address, not a name.** The configuration tests serving a config file over HTTP run against `pytest-httpserver`, whose `httpserver_listen_address` fixture `tests/conftest.py` pins to `127.0.0.1`. Its `localhost` default would need a resolver, which a sandbox is entitled to deny: on macOS the Nix one does, and every such test then errored with `socket.gaierror`. Whether your sandbox also gates the loopback socket itself is a separate question, and may still call for an exemption.
@@ -18,7 +18,7 @@ A plain `pytest` run is friendly to a hermetic build sandbox:
 - **The MkDocs tests self-skip when their extras are missing.** `tests/mkdocs/` needs the MkDocs documentation extras (`mkdocs`, `mkdocs-click`, `pymdown-extensions`); `tests/mkdocs/conftest.py` skips the whole tree through `collect_ignore_glob` when any of them is absent, so no `--ignore=tests/mkdocs` is needed.
 - **The Sphinx tests self-skip too**, when `sphinx` or `myst-parser` is absent. So does `test_blocks_reexported_from_sphinx_package`, the one test outside `tests/sphinx/` importing that package, and so does `tests/sphinx/test_sphinx_matrix.py` when no `git` binary is on `PATH`. That module is the only one needing a command rather than an import: it walks the tags of throwaway repositories it builds with `git init`. Adding `git` to the build inputs runs 155 more tests; leaving it out costs only those.
 
-The recommended invocation for a hermetic builder is therefore:
+So a hermetic builder needs one flag, to leave the network tests out:
 
 ```{code-block} shell-session
 $ pytest -m "not network"

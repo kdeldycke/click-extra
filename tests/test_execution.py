@@ -1179,12 +1179,16 @@ GRANDCHILD_SESSIONS = pytest.mark.parametrize(
 """Run a group-kill test on a grandchild inside the child's group and outside it."""
 
 
-@skip_windows
-@GRANDCHILD_SESSIONS
-def test_run_cli_timeout_new_session_kills_grandchildren(grandchild_session):
-    """A timed-out start_new_session child takes its whole process tree down:
-    the grandchild is reaped along with it instead of surviving as an orphan
-    holding the inherited output pipe open."""
+def _assert_timeout_reaps_grandchild(
+    grandchild_session: bool,
+    start_new_session: bool,
+) -> None:
+    """Time out a child that spawned a grandchild, then assert neither survives.
+
+    The grandchild inherited the stdout pipe, so a surviving orphan would have
+    stalled the drain for the full kill grace: a prompt return doubles as
+    evidence the whole tree died.
+    """
     code = dedent(f"""\
         import subprocess, sys, time
         grandchild = subprocess.Popen(
@@ -1196,15 +1200,25 @@ def test_run_cli_timeout_new_session_kills_grandchildren(grandchild_session):
         """)
     start = monotonic()
     with pytest.raises(subprocess.TimeoutExpired) as excinfo:
-        run_cli((sys.executable, "-c", code), timeout=2, start_new_session=True)
-    # The grandchild inherited the stdout pipe, so a surviving orphan would have
-    # stalled the drain for the full kill grace: a prompt return doubles as
-    # evidence the whole group died.
+        run_cli(
+            (sys.executable, "-c", code),
+            timeout=2,
+            start_new_session=start_new_session,
+        )
     assert monotonic() - start < 15
     match = re.search(r"grandchild=(\d+)", excinfo.value.output or "")
     assert match, "the child never reported its grandchild's PID"
     _assert_process_dies(int(match.group(1)))
     assert not _LIVE_PROCESSES
+
+
+@skip_windows
+@GRANDCHILD_SESSIONS
+def test_run_cli_timeout_new_session_kills_grandchildren(grandchild_session):
+    """A timed-out start_new_session child takes its whole process tree down:
+    the grandchild is reaped along with it instead of surviving as an orphan
+    holding the inherited output pipe open."""
+    _assert_timeout_reaps_grandchild(grandchild_session, start_new_session=True)
 
 
 def test_run_cli_registers_live_process_then_discards_it():
@@ -1316,26 +1330,7 @@ def test_run_cli_timeout_kills_grandchildren_without_a_session(grandchild_sessio
     This is the shape an escalated call takes: `sudo` runs the command under a
     monitor process, so killing `sudo` alone would leave the command running.
     """
-    code = dedent(f"""\
-        import subprocess, sys, time
-        grandchild = subprocess.Popen(
-            (sys.executable, "-c", "import time; time.sleep(30)"),
-            start_new_session={grandchild_session},
-        )
-        print(f"grandchild={{grandchild.pid}}", flush=True)
-        time.sleep(30)
-        """)
-    start = monotonic()
-    with pytest.raises(subprocess.TimeoutExpired) as excinfo:
-        run_cli((sys.executable, "-c", code), timeout=2)
-    # The grandchild inherited the stdout pipe, so a surviving orphan would have
-    # stalled the drain for the full kill grace: a prompt return doubles as
-    # evidence the whole tree died.
-    assert monotonic() - start < 15
-    match = re.search(r"grandchild=(\d+)", excinfo.value.output or "")
-    assert match, "the child never reported its grandchild's PID"
-    _assert_process_dies(int(match.group(1)))
-    assert not _LIVE_PROCESSES
+    _assert_timeout_reaps_grandchild(grandchild_session, start_new_session=False)
 
 
 def test_descendant_pids_walks_the_whole_tree_deepest_first():

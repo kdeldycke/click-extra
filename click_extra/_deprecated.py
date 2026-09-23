@@ -66,6 +66,9 @@ DEPRECATED_ALIASES: dict[str, dict[str, str]] = {
     "click_extra.theme": {
         "nocolor_theme": "theme.NOCOLOR_THEME",
     },
+    "click_extra.version": {
+        "CLI_ECOSYSTEM_PACKAGES": "_utils.CLI_ECOSYSTEM_PACKAGES",
+    },
 }
 """Maps each deprecated symbol to its replacement, keyed by hosting module.
 
@@ -111,16 +114,12 @@ def _outside_stacklevel() -> int:
     """
     frame: FrameType | None = sys._getframe(1)
     level = 1
-
     while frame is not None:
         top_package = frame.f_globals.get("__name__", "").split(".", 1)[0]
-
         if top_package not in CLI_ECOSYSTEM_PACKAGES:
-            return level
-
+            break
         frame = frame.f_back
         level += 1
-
     return level
 
 

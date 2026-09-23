@@ -1045,7 +1045,7 @@ def _escaped_process_groups(
 def _kill_posix_process_group(
     process: subprocess.Popen[str],
     signum: signal.Signals,
-    table: dict[int, tuple[int, int]] | None = None,
+    table: dict[int, tuple[int, int]],
 ) -> bool:
     """Signal the POSIX process group led by `process`, and each group its
     descendants moved to.
@@ -1054,8 +1054,8 @@ def _kill_posix_process_group(
     ID equals its PID. A descendant that left that group (see
     {func}`_escaped_process_groups`) is signalled through its own group, so it dies
     with the child instead of surviving as an orphan that holds the output pipes
-    open. Pass `table` to reuse one {func}`_posix_process_table` read for several
-    children.
+    open. `table` is the caller's {func}`_posix_process_table` read, so one read
+    serves several children and is always taken before the first signal.
 
     Returns `True` when the signal was delivered to the child's group, `False`
     when it could not be (no `killpg` on this platform, or the group is already
@@ -1064,10 +1064,6 @@ def _kill_posix_process_group(
     killpg = getattr(os, "killpg", None)
     if killpg is None:
         return False
-    # Read the tree before any signal: a killed child's descendants are reparented
-    # at once, which cuts the parent links the walk follows.
-    if table is None:
-        table = _posix_process_table()
     escaped = _escaped_process_groups(process.pid, table)
     try:
         # A start_new_session child is its own session and group leader, so its
@@ -1318,31 +1314,32 @@ def run_cli(
         with the always-on `CREATE_NO_WINDOW`. No-op off Windows.
     :param start_new_session: make the child lead its own POSIX session and
         process group ({class}`subprocess.Popen`'s parameter of the same name).
-        Every kill path — the `timeout` overrun, a mid-run
-        {exc}`KeyboardInterrupt`, and {func}`terminate_live_processes` — then
-        signals the whole group in one call, so a grandchild spawned by the
-        child (a shim re-executing the real binary, an installer helper) is
-        reaped along with it instead of surviving as an orphan holding the
-        output pipes open. A descendant that left the group with `setsid()`,
-        like the `make test` run CPAN.pm forks, is signalled through its own
-        group.
+        Every kill path then signals the whole group in one call: the
+        `timeout` overrun, a mid-run {exc}`KeyboardInterrupt`, and
+        {func}`terminate_live_processes`. A grandchild spawned by the child (a
+        shim re-executing the real binary, an installer helper) is reaped along
+        with it instead of surviving as an orphan holding the output pipes
+        open. A descendant that left the group with `setsid()`, like the
+        `make test` run CPAN.pm forks, is signalled through its own group.
         Off by default, and to be left off when a descendant must keep the
         controlling terminal: a new session detaches from it, so an interactive
         prompt raised from inside the child (`sudo` reading `/dev/tty`)
         would fail, and `sudo`'s tty-keyed credential cache would no longer
         match. That costs the atomicity of a single group signal, not the
-        reaping: the `timeout` path then kills the child and walks the tree it
-        led, signalling each descendant by PID (see
-        {func}`_kill_descendants`). No-op on Windows, where the timeout path
-        already kills the full tree. Only the reaping half of this flag has
-        that Windows equivalent, and the other half has none: a POSIX session
-        also detaches the child from the controlling terminal, where a Windows
-        child keeps sharing the parent's console and can still reach back into
-        it. A subprocess-heavy test suite is where that surfaces —
-        `meta-package-manager`'s Windows CI saw a package manager's own
-        teardown land in the parent `pytest` process as a mid-run
-        {exc}`KeyboardInterrupt`, which a console control event on the shared
-        console explains and which no POSIX runner showed.
+        reaping: the `timeout` and {exc}`KeyboardInterrupt` paths then kill the
+        child and walk the tree it led, signalling each descendant by PID (see
+        {func}`_kill_descendants`). {func}`terminate_live_processes` is the one
+        path that still signals the direct child alone, because it sends
+        `SIGTERM` for a clean exit rather than a kill. No-op on Windows, where
+        the timeout path already kills the full tree. Only the reaping half of
+        this flag has that Windows equivalent, and the other half has none: a
+        POSIX session also detaches the child from the controlling terminal,
+        where a Windows child keeps sharing the parent's console and can still
+        reach back into it. A subprocess-heavy test suite is where that
+        surfaces. `meta-package-manager`'s Windows CI saw a package manager's
+        own teardown land in the parent `pytest` process as a mid-run
+        {exc}`KeyboardInterrupt`. A console control event on the shared console
+        explains it, and no POSIX runner showed it.
         The lever there is `windows_creation_flags`
         (`CREATE_NEW_PROCESS_GROUP`), left to the caller because it also
         changes how a real Ctrl-C reaches the child.
@@ -1440,21 +1437,27 @@ def run_cli(
         """Forcibly stop the child and its descendants, reap it and collect what
         its pipes still hold.
 
-        Kills its tree on Windows. On POSIX it kills the process group it leads
-        plus the groups its descendants moved to when session-isolated, and the
-        child followed by each of its descendants otherwise. Either way the tree
-        is read before the first signal, since killing the child reparents its
-        children and cuts the links the walk follows.
+        Kills its whole tree on Windows. On POSIX it kills the process group it
+        leads plus the groups its descendants moved to when session-isolated,
+        and the child followed by each of its descendants otherwise: the process
+        table is read first, because {func}`_descendant_pids` needs the child
+        alive to find them.
         """
         log.debug(f"PID {process.pid} {reason}; sending kill.")
-        _kill_windows_process_tree(process.pid)
-        table = {} if is_windows() else _posix_process_table()
-        if not (
-            start_new_session
-            and _kill_posix_process_group(process, signal.SIGKILL, table)
-        ):
+        if is_windows():
+            # `taskkill /F /T` covers the whole tree and `process.kill()` backs
+            # it up. None of the POSIX branch below can even be evaluated here:
+            # Windows has no `SIGKILL`, and no `os.killpg` to signal a group.
+            _kill_windows_process_tree(process.pid)
             process.kill()
-            _kill_descendants(process.pid, table, signal.SIGKILL)
+        else:
+            table = _posix_process_table()
+            if not (
+                start_new_session
+                and _kill_posix_process_group(process, signal.SIGKILL, table)
+            ):
+                process.kill()
+                _kill_descendants(process.pid, table, signal.SIGKILL)
         process.wait()
         _drain_readers(readers, _KILL_DRAIN_GRACE)
 

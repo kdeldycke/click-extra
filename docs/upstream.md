@@ -307,7 +307,7 @@ The two answer different questions, and only one of them is click-extra's. `wrap
 
 ### Shell completion
 
-click-extra exports any Click command tree to a [Carapace completion spec](carapace.md), so a CLI gets native completion across every shell [Carapace](https://carapace.sh) supports (Bash, Zsh, Fish, Nushell, PowerShell, Elvish, and more) from a single generated file. Click's built-in completion is wired per shell and installed by hand; one spec covers them all:
+click-extra exports any Click command tree to a [Carapace completion spec](carapace.md), so a CLI gets native completion across every shell [Carapace](https://carapace.sh) supports (Bash, Zsh, Fish, Nushell, PowerShell, Elvish, Xonsh and more) from a single generated file. Click's built-in completion is wired per shell and installed by hand; one spec covers them all:
 
 - [`click#3188` - Native Carapace Support](https://github.com/pallets/click/issues/3188): closed as out of scope for the core framework, with the maintainers suggesting a separately-released project. click-extra is that project.
 
