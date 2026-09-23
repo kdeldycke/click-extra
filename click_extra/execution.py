@@ -969,6 +969,56 @@ def _posix_process_table() -> dict[int, tuple[int, int]]:
     return table
 
 
+def _descendant_pids(leader: int, table: dict[int, tuple[int, int]]) -> list[int]:
+    """List every descendant of `leader`, deepest first.
+
+    Descendants are found through their parent PIDs, so `table` must be read
+    while `leader` is alive: once it dies, its children are reparented on to
+    `init` and nothing links them back to it. `leader` itself is left out.
+
+    The deepest-first order lets a caller signal a tree from its leaves up, so a
+    supervisor never outlives the worker it would respawn.
+    """
+    children: dict[int, list[int]] = {}
+    for pid, (ppid, _group) in table.items():
+        children.setdefault(ppid, []).append(pid)
+    found: list[int] = []
+    seen = {leader}
+    pending = [leader]
+    while pending:
+        for child in children.get(pending.pop(), ()):
+            if child in seen:
+                continue
+            seen.add(child)
+            pending.append(child)
+            found.append(child)
+    found.reverse()
+    return found
+
+
+def _kill_descendants(
+    leader: int,
+    table: dict[int, tuple[int, int]],
+    signum: signal.Signals,
+) -> None:
+    """Signal each descendant of `leader`, one PID at a time.
+
+    What a child sharing the caller's own process group gets instead of
+    {func}`_kill_posix_process_group`, which cannot signal that group without
+    hitting the caller too. Killing such a child leaves its own descendants
+    running: `sudo` runs the command under a monitor process whenever `use_pty`
+    is on, the upstream default since `1.9.14`, so a killed `sudo` leaves the
+    escalated command alive and holding whatever lock it took.
+
+    A PID that is already gone, or owned by another user, is skipped.
+    """
+    for pid in _descendant_pids(leader, table):
+        try:
+            os.kill(pid, signum)
+        except OSError:
+            pass
+
+
 def _escaped_process_groups(
     leader: int,
     table: dict[int, tuple[int, int]],
@@ -978,29 +1028,17 @@ def _escaped_process_groups(
     A descendant that calls `setsid()` or `setpgid()` leaves the group `leader`
     heads, so signalling that group misses it and everything it starts. CPAN.pm
     does this for every `make test` run: it forks, and the fork detaches with
-    `setsid()`. Descendants are found through their parent PIDs, so `table` must
-    be read while `leader` is alive: once it dies, its children are reparented and
-    nothing links them back to it.
+    `setsid()`.
 
     The group of the calling process is never returned, nor a group ID below `2`,
     which {func}`os.killpg` does not read as a plain group.
     """
-    children: dict[int, list[int]] = {}
-    for pid, (ppid, _group) in table.items():
-        children.setdefault(ppid, []).append(pid)
     own_group = os.getpgid(0)
     groups: set[int] = set()
-    seen = {leader}
-    pending = [leader]
-    while pending:
-        for child in children.get(pending.pop(), ()):
-            if child in seen:
-                continue
-            seen.add(child)
-            pending.append(child)
-            group = table[child][1]
-            if group not in (leader, own_group) and group > 1:
-                groups.add(group)
+    for child in _descendant_pids(leader, table):
+        group = table[child][1]
+        if group not in (leader, own_group) and group > 1:
+            groups.add(group)
     return groups
 
 
@@ -1126,8 +1164,8 @@ Once the child is killed its pipes normally hit `EOF` at once, so the readers
 finish within milliseconds. The exception is an orphaned grandchild holding an
 inherited pipe handle open: the grace period bounds the wait instead of blocking
 forever, and the daemon reader threads are then abandoned with whatever output
-they collected. A `start_new_session` child normally leaves no such orphan
-behind, since its descendants are killed with it, so its drain completes promptly.
+they collected. A killed child normally leaves no such orphan behind, since
+its descendants are killed with it, so its drain completes promptly.
 """
 
 
@@ -1232,12 +1270,13 @@ def run_cli(
       `stdout` and `stderr` decoded as UTF-8;
     - raises {exc}`subprocess.TimeoutExpired` (with the partial capture attached)
       when the child, or the draining of its output, outlives `timeout`. The
-      child is killed first — its whole process tree on Windows (see
-      {func}`_kill_windows_process_tree`), its POSIX process group and every
-      group its descendants moved to when spawned with `start_new_session`, the
-      direct child alone otherwise;
+      child is killed first, and so is every descendant it left behind: the
+      whole process tree on Windows (see {func}`_kill_windows_process_tree`),
+      the POSIX process group and every group its descendants moved to when
+      spawned with `start_new_session`, the child plus each descendant PID
+      otherwise;
     - a {exc}`KeyboardInterrupt` mid-run kills the child (with the same tree,
-      group or direct scope), then propagates.
+      group or per-PID scope), then propagates.
 
     The child reads from {data}`subprocess.DEVNULL` so it can never block on
     `stdin`, and never opens a console window on Windows.
@@ -1281,24 +1320,29 @@ def run_cli(
         process group ({class}`subprocess.Popen`'s parameter of the same name).
         Every kill path — the `timeout` overrun, a mid-run
         {exc}`KeyboardInterrupt`, and {func}`terminate_live_processes` — then
-        signals the whole group, so a grandchild spawned by the child (a shim
-        re-executing the real binary, an installer helper) is reaped along with
-        it instead of surviving as an orphan holding the output pipes open. A
-        descendant that left the group with `setsid()`, like the `make test`
-        run CPAN.pm forks, is signalled through its own group.
+        signals the whole group in one call, so a grandchild spawned by the
+        child (a shim re-executing the real binary, an installer helper) is
+        reaped along with it instead of surviving as an orphan holding the
+        output pipes open. A descendant that left the group with `setsid()`,
+        like the `make test` run CPAN.pm forks, is signalled through its own
+        group.
         Off by default, and to be left off when a descendant must keep the
         controlling terminal: a new session detaches from it, so an interactive
         prompt raised from inside the child (`sudo` reading `/dev/tty`)
         would fail, and `sudo`'s tty-keyed credential cache would no longer
-        match. No-op on Windows, where the timeout path already kills the full
-        tree. Only the reaping half of this flag has that Windows equivalent,
-        and the other half has none: a POSIX session also detaches the child
-        from the controlling terminal, where a Windows child keeps sharing the
-        parent's console and can still reach back into it. A subprocess-heavy
-        test suite is where that surfaces — `meta-package-manager`'s Windows
-        CI saw a package manager's own teardown land in the parent `pytest`
-        process as a mid-run {exc}`KeyboardInterrupt`, which a console control
-        event on the shared console explains and which no POSIX runner showed.
+        match. That costs the atomicity of a single group signal, not the
+        reaping: the `timeout` path then kills the child and walks the tree it
+        led, signalling each descendant by PID (see
+        {func}`_kill_descendants`). No-op on Windows, where the timeout path
+        already kills the full tree. Only the reaping half of this flag has
+        that Windows equivalent, and the other half has none: a POSIX session
+        also detaches the child from the controlling terminal, where a Windows
+        child keeps sharing the parent's console and can still reach back into
+        it. A subprocess-heavy test suite is where that surfaces —
+        `meta-package-manager`'s Windows CI saw a package manager's own
+        teardown land in the parent `pytest` process as a mid-run
+        {exc}`KeyboardInterrupt`, which a console control event on the shared
+        console explains and which no POSIX runner showed.
         The lever there is `windows_creation_flags`
         (`CREATE_NEW_PROCESS_GROUP`), left to the caller because it also
         changes how a real Ctrl-C reaches the child.
@@ -1393,17 +1437,24 @@ def run_cli(
         )
 
     def abort(reason: str) -> None:
-        """Forcibly stop the child, reap it and collect what its pipes still hold.
+        """Forcibly stop the child and its descendants, reap it and collect what
+        its pipes still hold.
 
-        Kills its tree on Windows, its POSIX process group and the groups its
-        descendants moved to when session-isolated, the direct child otherwise.
+        Kills its tree on Windows. On POSIX it kills the process group it leads
+        plus the groups its descendants moved to when session-isolated, and the
+        child followed by each of its descendants otherwise. Either way the tree
+        is read before the first signal, since killing the child reparents its
+        children and cuts the links the walk follows.
         """
         log.debug(f"PID {process.pid} {reason}; sending kill.")
         _kill_windows_process_tree(process.pid)
+        table = {} if is_windows() else _posix_process_table()
         if not (
-            start_new_session and _kill_posix_process_group(process, signal.SIGKILL)
+            start_new_session
+            and _kill_posix_process_group(process, signal.SIGKILL, table)
         ):
             process.kill()
+            _kill_descendants(process.pid, table, signal.SIGKILL)
         process.wait()
         _drain_readers(readers, _KILL_DRAIN_GRACE)
 

@@ -66,6 +66,7 @@ from click_extra.execution import (
     CPU_COUNT,
     DEFAULT_JOBS,
     PROMPT,
+    _descendant_pids,
     _escaped_process_groups,
     _logical_cpu_count,
     _parse_proc_stat,
@@ -1303,6 +1304,63 @@ def test_parse_proc_stat(stat, expected):
 def test_posix_process_table_lists_this_process():
     table = _posix_process_table()
     assert table[os.getpid()] == (os.getppid(), os.getpgid(0))
+
+
+@skip_windows
+@GRANDCHILD_SESSIONS
+def test_run_cli_timeout_kills_grandchildren_without_a_session(grandchild_session):
+    """A timed-out child sharing the caller's process group still takes its
+    grandchild down, killed one PID at a time since no group can be signalled
+    without hitting the test process too.
+
+    This is the shape an escalated call takes: `sudo` runs the command under a
+    monitor process, so killing `sudo` alone would leave the command running.
+    """
+    code = dedent(f"""\
+        import subprocess, sys, time
+        grandchild = subprocess.Popen(
+            (sys.executable, "-c", "import time; time.sleep(30)"),
+            start_new_session={grandchild_session},
+        )
+        print(f"grandchild={{grandchild.pid}}", flush=True)
+        time.sleep(30)
+        """)
+    start = monotonic()
+    with pytest.raises(subprocess.TimeoutExpired) as excinfo:
+        run_cli((sys.executable, "-c", code), timeout=2)
+    # The grandchild inherited the stdout pipe, so a surviving orphan would have
+    # stalled the drain for the full kill grace: a prompt return doubles as
+    # evidence the whole tree died.
+    assert monotonic() - start < 15
+    match = re.search(r"grandchild=(\d+)", excinfo.value.output or "")
+    assert match, "the child never reported its grandchild's PID"
+    _assert_process_dies(int(match.group(1)))
+    assert not _LIVE_PROCESSES
+
+
+def test_descendant_pids_walks_the_whole_tree_deepest_first():
+    """Every descendant is found whatever group it moved to, and a parent never
+    precedes its own child.
+
+    The IDs sit above the largest PID any platform allocates, so none of them
+    can be a process the test runner owns.
+    """
+    leader = 10_000_000
+    table = {
+        leader: (1, leader),
+        leader + 1: (leader, leader),
+        # A grandchild that called setsid(), and its own child.
+        leader + 2: (leader, leader + 2),
+        leader + 3: (leader + 2, leader + 2),
+        # A great-grandchild of the member that stayed in the group.
+        leader + 4: (leader + 1, leader + 4),
+        # Not a descendant.
+        leader + 5: (1, leader + 5),
+    }
+    walked = _descendant_pids(leader, table)
+    assert set(walked) == {leader + 1, leader + 2, leader + 3, leader + 4}
+    assert walked.index(leader + 3) < walked.index(leader + 2)
+    assert walked.index(leader + 4) < walked.index(leader + 1)
 
 
 @skip_windows
