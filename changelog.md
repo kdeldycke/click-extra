@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.3.5.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.3.4...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.3.4` (2026-09-23)](https://github.com/kdeldycke/click-extra/compare/v9.3.3...v9.3.4)
 
 - **Deprecated:** Importing `CLI_ECOSYSTEM_PACKAGES` from `click_extra.version` now warns, and stops working in `10.0.0`. The constant moved to a private module and has no public replacement.
