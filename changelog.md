@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.3.6.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.3.5` (2026-09-28)](https://github.com/kdeldycke/click-extra/compare/v9.3.4...v9.3.5)
 
 - Honor the `_default_subcommands` and `_prepend_subcommands` configuration keys on any group carrying `@config_option`, not just on `click_extra.group`. Closes [#1976](https://github.com/kdeldycke/click-extra/issues/1976).
