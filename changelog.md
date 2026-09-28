@@ -7,6 +7,9 @@
 
 ## [`9.3.5` (2026-09-28)](https://github.com/kdeldycke/click-extra/compare/v9.3.4...v9.3.5)
 
+> [!NOTE]
+> `9.3.5` is available on [🐍 PyPI](https://pypi.org/project/click-extra/9.3.5/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v9.3.5).
+
 - Honor the `_default_subcommands` and `_prepend_subcommands` configuration keys on any group carrying `@config_option`, not just on `click_extra.group`. Closes [#1976](https://github.com/kdeldycke/click-extra/issues/1976).
 - Honor both reserved keys on a bare invocation of a `click_extra.group`, which used to print the help screen before reading the configuration.
 
