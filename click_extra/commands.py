@@ -1378,27 +1378,27 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         self,
         ctx: click.Context,
         config_option: ConfigOption,
-        args: list[str],
     ) -> list[str]:
         """Settle the reserved subcommand keys ahead of the no-args help screen.
 
         Click raises its `no_args_is_help` error before any parameter runs, so a
         bare invocation never reads the configuration that could name subcommands
         for it. This pre-pass processes `--config` on its own, which loads the
-        document and returns the names to dispatch.
+        document and returns the names to dispatch. The command line is empty by
+        the time the only caller reaches here, so the option is handed no parsed
+        value and falls back to its own auto-discovery.
 
-        Returns `args` untouched when the configuration names nothing, which leaves
-        Click's help screen in place. Every error is deferred to the regular
-        parameter loop, like {meth}`Command._resolve_presentation_eagerly`, so this
-        pre-pass never turns a broken configuration into the only thing a bare
-        invocation prints.
+        Returns an empty list when the configuration names nothing, which leaves
+        Click's help screen in place. A broken configuration is swallowed too, the
+        way {meth}`Command._resolve_presentation_eagerly` defers its own errors: a
+        bare invocation prints the help screen, never a configuration error. The
+        regular parameter loop reports that error on the next invocation naming a
+        subcommand.
         """
-        parser = self.make_parser(ctx)
         try:
-            opts, _, _ = parser.parse_args(args=args.copy())
-            _, injected = config_option.handle_parse_result(ctx, opts, args.copy())
+            _, injected = config_option.handle_parse_result(ctx, {}, [])
         except click.ClickException:
-            return args
+            return []
         return injected
 
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
@@ -1428,7 +1428,7 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
             return super().parse_args(ctx, inject_reserved_subcommands(ctx, args))
 
         if not args and self.no_args_is_help and not ctx.resilient_parsing:
-            args = self._resolve_config_subcommands_eagerly(ctx, config_option, args)
+            args = self._resolve_config_subcommands_eagerly(ctx, config_option)
             if args:
                 # Click reads `no_args_is_help` off the group twice on the way
                 # down, so the flag itself is cleared rather than either check.

@@ -4104,10 +4104,10 @@ SUBCOMMAND_GROUP_FACTORIES = (
         partial(click.group, cls=PlainGroupSubclass), id="click-group-subclass"
     ),
 )
-"""Every group flavour a `--config` option can be attached to.
+"""Every group flavor a `--config` option can be attached to.
 
 The reserved subcommand keys are declared by `config_option`, so they must be
-honoured by whichever group class carries that option, not only by click-extra's
+honored by whichever group class carries that option, not only by click-extra's
 own {class}`~click_extra.commands.Group`.
 """
 
@@ -4117,7 +4117,7 @@ def make_subcommand_group(group_factory, *, chain):
 
     Registers a `debug` and a `sync` subcommand, each echoing its own name.
     click-extra groups already ship `--config`, so the option is only added to
-    the other flavours.
+    the other flavors.
     """
 
     def subcmdcli():

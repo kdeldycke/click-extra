@@ -131,6 +131,7 @@ And every CLI gets these on top:
 - Respect the [default application path](https://kdeldycke.github.io/click-extra/config-discovery.html#default-folder) on each platform (XDG spec. on Linux)
 - [Glob search patterns](https://kdeldycke.github.io/click-extra/config-discovery.html) for configuration files
 - A `--no-config` option to disable configuration file loading
+- [Reserved `_default_subcommands` and `_prepend_subcommands` keys](https://kdeldycke.github.io/click-extra/config.html#default-subcommands) to name which subcommands a bare invocation runs, and which ones always run in front of it
 - Respect of `Prompt` > `CLI` > `Environment` > `Config` > `Defaults` [precedence](https://kdeldycke.github.io/click-extra/config.html#precedence)
 
 ### Types and parameters

@@ -549,7 +549,7 @@ This is useful for CLIs where configuration files are opt-in rather than opt-out
 You can specify which subcommands run by default when a group is invoked without any explicit subcommands on the CLI. This is done via the `_default_subcommands` reserved configuration key.
 
 ```{note}
-Both reserved keys are honoured by whichever group carries the `--config` option, not only by `click_extra.group`. A third-party framework building its own group on `click.Group` or `cloup.Group` gets them too, as long as it attaches `@config_option`. A subgroup reads its own `[my-cli.subgroup]` section, even though only the root group carries the option.
+Both reserved keys are honored by whichever group carries the `--config` option, not only by `click_extra.group`. A third-party framework building its own group on `click.Group` or `cloup.Group` gets them too, as long as it attaches `@config_option`. A `click_extra.group` subgroup reached through an ancestor's `--config` carries no option of its own, and reads its own `[my-cli.subgroup]` section all the same. A subgroup built on plain `click.Group` or `cloup.Group` has no such hook, so neither key fires on it.
 ```
 
 ```{caution}

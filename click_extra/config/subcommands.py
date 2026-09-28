@@ -22,17 +22,21 @@ configuration and turned into subcommand names, which
 the residual arguments Click dispatches on.
 
 ```{note}
-The keys are honoured by whichever group carries the `--config` option, not only
+The keys are honored by whichever group carries the `--config` option, not only
 by click-extra's own {class}`~click_extra.commands.Group`. Injection happens at
 parse time, from the option itself, because a plain `click.Group` offers
 click-extra no other hook: a third-party framework building its group on
-`click.Group` still gets the feature.
+`click.Group` still gets the feature. A click-extra `Group` reached through an
+ancestor's `--config` carries no option of its own, and applies its own section
+from {meth}`~click_extra.commands.Group.parse_args` instead.
 ```
 
 ```{caution}
-A group whose `no_args_is_help` is left on never reaches its parameters when
-invoked with no arguments at all, so neither key fires on a bare invocation.
-Pass at least one option, or declare the group with `no_args_is_help=False`.
+Click prints the `no_args_is_help` screen before it processes any option, so a
+bare invocation reads no configuration. {meth}`~click_extra.commands.Group.parse_args`
+steps around that for click-extra's own groups. A group built on plain
+`click.Group` or `cloup.Group` has no such hook: declare it with
+`no_args_is_help=False` to run the configured subcommands on a bare invocation.
 ```
 """
 
