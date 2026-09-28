@@ -240,7 +240,8 @@ By customizing the `__str__` method of the `Enum`, you have full control over ho
 `EnumChoice` is case-insensitive by default, unlike `click.Choice`, so random casing are recognized:
 
 ```{click:run}
-invoke(cli, args=["--format", "oThER-forMAt"])
+result = invoke(cli, args=["--format", "oThER-forMAt"])
+assert result.exit_code == 0
 ```
 
 If you want to restore case-sensitive matching, you can enable it by setting the `case_sensitive` parameter to `True`:

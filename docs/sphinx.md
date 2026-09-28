@@ -367,7 +367,8 @@ def simple_print():
 ```
 
 ```{click:run}
-invoke(simple_print)
+result = invoke(simple_print)
+assert result.exit_code == 0
 ```
 
 If you want to display the source code used to invoke the CLI in addition to its results, you can add the `:show-source:` option to the `click:run` directive:

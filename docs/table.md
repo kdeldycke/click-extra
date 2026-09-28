@@ -225,252 +225,302 @@ The first command renders the whole style matrix as a colored HTML page you can 
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "aligned"])
+result = invoke(table_command, args=["--table-format", "aligned"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "asciidoc"])
+result = invoke(table_command, args=["--table-format", "asciidoc"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "colon-grid"])
+result = invoke(table_command, args=["--table-format", "colon-grid"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "csv"])
+result = invoke(table_command, args=["--table-format", "csv"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "csv-excel"])
+result = invoke(table_command, args=["--table-format", "csv-excel"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "csv-excel-tab"])
+result = invoke(table_command, args=["--table-format", "csv-excel-tab"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "csv-unix"])
+result = invoke(table_command, args=["--table-format", "csv-unix"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "double-grid"])
+result = invoke(table_command, args=["--table-format", "double-grid"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "double-outline"])
+result = invoke(table_command, args=["--table-format", "double-outline"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "fancy-grid"])
+result = invoke(table_command, args=["--table-format", "fancy-grid"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "fancy-outline"])
+result = invoke(table_command, args=["--table-format", "fancy-outline"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "github"])
+result = invoke(table_command, args=["--table-format", "github"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "grid"])
+result = invoke(table_command, args=["--table-format", "grid"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "heavy-grid"])
+result = invoke(table_command, args=["--table-format", "heavy-grid"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "heavy-outline"])
+result = invoke(table_command, args=["--table-format", "heavy-outline"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "hjson"])
+result = invoke(table_command, args=["--table-format", "hjson"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "html"])
+result = invoke(table_command, args=["--table-format", "html"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "jira"])
+result = invoke(table_command, args=["--table-format", "jira"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "json"])
+result = invoke(table_command, args=["--table-format", "json"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "json5"])
+result = invoke(table_command, args=["--table-format", "json5"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "jsonc"])
+result = invoke(table_command, args=["--table-format", "jsonc"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "latex"])
+result = invoke(table_command, args=["--table-format", "latex"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "latex-booktabs"])
+result = invoke(table_command, args=["--table-format", "latex-booktabs"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "latex-longtable"])
+result = invoke(table_command, args=["--table-format", "latex-longtable"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "latex-raw"])
+result = invoke(table_command, args=["--table-format", "latex-raw"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "mediawiki"])
+result = invoke(table_command, args=["--table-format", "mediawiki"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "mixed-grid"])
+result = invoke(table_command, args=["--table-format", "mixed-grid"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "mixed-outline"])
+result = invoke(table_command, args=["--table-format", "mixed-outline"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "moinmoin"])
+result = invoke(table_command, args=["--table-format", "moinmoin"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "orgtbl"])
+result = invoke(table_command, args=["--table-format", "orgtbl"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "outline"])
+result = invoke(table_command, args=["--table-format", "outline"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "pipe"])
+result = invoke(table_command, args=["--table-format", "pipe"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "plain"])
+result = invoke(table_command, args=["--table-format", "plain"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "presto"])
+result = invoke(table_command, args=["--table-format", "presto"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "pretty"])
+result = invoke(table_command, args=["--table-format", "pretty"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "psql"])
+result = invoke(table_command, args=["--table-format", "psql"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "rounded-grid"])
+result = invoke(table_command, args=["--table-format", "rounded-grid"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "rounded-outline"])
+result = invoke(table_command, args=["--table-format", "rounded-outline"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "rst"])
+result = invoke(table_command, args=["--table-format", "rst"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "simple"])
+result = invoke(table_command, args=["--table-format", "simple"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "simple-grid"])
+result = invoke(table_command, args=["--table-format", "simple-grid"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "simple-outline"])
+result = invoke(table_command, args=["--table-format", "simple-outline"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "textile"])
+result = invoke(table_command, args=["--table-format", "textile"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "toml"])
+result = invoke(table_command, args=["--table-format", "toml"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "tsv"])
+result = invoke(table_command, args=["--table-format", "tsv"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "unsafehtml"])
+result = invoke(table_command, args=["--table-format", "unsafehtml"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "vertical"])
+result = invoke(table_command, args=["--table-format", "vertical"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "xml"])
+result = invoke(table_command, args=["--table-format", "xml"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "yaml"])
+result = invoke(table_command, args=["--table-format", "yaml"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
 :emphasize-result-lines: 1
-invoke(table_command, args=["--table-format", "youtrack"])
+result = invoke(table_command, args=["--table-format", "youtrack"])
+assert result.exit_code == 0
 ```
 
 ## Two-axis tables

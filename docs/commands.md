@@ -288,7 +288,9 @@ The declaration order is untouched underneath:
 
 ```{click:run}
 :show-source:
-print([param.name for param in measured.params])
+declaration_order = [param.name for param in measured.params]
+assert declaration_order == ["sugar", "butter", "flour"]
+print(declaration_order)
 ```
 
 Priorities are floats rather than integers, so a new option can be wedged between two existing ones without renumbering the rest: `1.5` lands between `1` and `2`. See {py:data}`~click_extra.commands.DEFAULT_PRIORITY` for where that convention comes from.

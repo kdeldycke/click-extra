@@ -747,7 +747,8 @@ def version_metadata(ctx):
 ```
 
 ```{click:run}
-invoke(version_metadata, ["--version"])
+result = invoke(version_metadata, ["--version"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
@@ -793,7 +794,8 @@ To fetch the `--version` parameter defined on the command, we rely on {py:func}`
 ```
 
 ```{click:run}
-invoke(template_rendering, ["--version"])
+result = invoke(template_rendering, ["--version"])
+assert result.exit_code == 0
 ```
 
 ```{click:run}
