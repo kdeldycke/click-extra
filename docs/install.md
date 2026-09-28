@@ -75,7 +75,7 @@ $ uvx click-extra
 
 ````{tab-item} Specific version
 ```shell-session
-$ uvx click-extra@9.3.4
+$ uvx click-extra@9.3.5
 ```
 ````
 
