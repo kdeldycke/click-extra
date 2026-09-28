@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Fix the `IndexError` a `{matrix}` dependency block raised when its column bound is a bare major, as a `>=9` floor yields whenever the release list is empty.
+- Leave a `{matrix}` dependency block untouched when PyPI cannot be read, instead of rewriting it from the fallback columns. `refresh-directives --check` no longer reports drift on a network failure.
 
 ## [`9.3.5` (2026-09-28)](https://github.com/kdeldycke/click-extra/compare/v9.3.4...v9.3.5)
 

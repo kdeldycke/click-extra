@@ -942,13 +942,27 @@ PYPI_TIMEOUT: float = 10
 """Seconds to wait for PyPI before a table goes without the columns it adds."""
 
 
-def _pypi_releases(dep_name: str) -> tuple[Version, ...]:
+class ReleasesUnreadable(Exception):
+    """PyPI could not answer for a distribution's releases.
+
+    Raised by {func}`_pypi_releases` only when its caller asked for the read to
+    be required, which {func}`_regenerate` does: a table rendered from the
+    fallback candidates is a legitimate view of the project but not the one a
+    checked-in block holds, so comparing the two reports drift in documents
+    nobody edited. Live rendering never asks, and keeps the fallback.
+    """
+
+
+def _pypi_releases(dep_name: str, *, required: bool = False) -> tuple[Version, ...]:
     """Return every stable release of `dep_name` on PyPI, oldest first.
 
     Reads the `releases` mapping of PyPI's JSON API. A release stays when at
     least one of its files is not yanked, and goes when it is a pre-release, a
     development release, or not a valid version. An error or a malformed answer
     yields no release, and the table goes without the columns they add.
+
+    :param required: raise {class}`ReleasesUnreadable` instead of returning
+        nothing, for a caller that cannot use the fallback table.
 
     No cooldown applies. The matrix states what an installer accepts, and an
     installer applies no cooldown by default, so a release is installable as
@@ -980,6 +994,8 @@ def _pypi_releases(dep_name: str) -> tuple[Version, ...]:
             dep_name,
             error,
         )
+        if required:
+            raise ReleasesUnreadable(dep_name) from error
         return ()
     return tuple(stable)
 
@@ -1085,6 +1101,7 @@ def dependency_matrix_table(
     version_floor: str = "",
     column_order: str = NEWEST_FIRST,
     row_order: str = NEWEST_FIRST,
+    require_releases: bool = False,
 ) -> str:
     """Render the `dep_name` compatibility matrix as a markdown table.
 
@@ -1108,8 +1125,12 @@ def dependency_matrix_table(
         {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
     :param row_order: top-to-bottom ordering of the release rows:
         {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
+    :param require_releases: refuse the offline fallback columns, for a caller
+        comparing the result against a checked-in table.
     :return: rendered markdown table, or `""` when nothing was collected.
     :raises ValueError: on an unrecognized `column_order` or `row_order`.
+    :raises ReleasesUnreadable: under `require_releases`, when PyPI cannot
+        answer for `dep_name`.
     """
     _validate_order(column_order, "column-order")
     _validate_order(row_order, "row-order")
@@ -1126,7 +1147,7 @@ def dependency_matrix_table(
     spec_sets = [_to_specifier_set(spec) for spec in specs]
     candidates = _column_candidates(
         specs,
-        _pypi_releases(dep_name),
+        _pypi_releases(dep_name, required=require_releases),
         _latest_locked_version(project_root, dep_name),
     )
     bins = _dependency_columns(spec_sets, candidates)
@@ -1231,7 +1252,13 @@ def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
     return candidate.resolve()
 
 
-def _render_block(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
+def _render_block(
+    axis: str,
+    options: Mapping[str, str],
+    base_dir: Path,
+    *,
+    require_releases: bool = False,
+) -> str:
     """Render the table for a ``{matrix} <axis>`` block.
 
     Dispatches on `axis`: `"python"` renders the interpreter matrix; any
@@ -1239,6 +1266,9 @@ def _render_block(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
     by {class}`MatrixDirective` (live rendering) and {func}`update_matrix_blocks`
     (offline source refresh) so both resolve the package, path, and floors
     identically.
+
+    `require_releases` reaches the dependency axis alone: the Python axis reads
+    git history and a static table, so it renders the same answer offline.
     """
     root = _resolve_root(options.get("path"), base_dir)
     package = options.get("package") or root.name
@@ -1267,6 +1297,7 @@ def _render_block(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
         tag_pattern=tag_pattern,
         column_order=column_order,
         row_order=row_order,
+        require_releases=require_releases,
     )
 
 
@@ -1408,10 +1439,16 @@ def _parse_marker_options(tokens: Iterable[str]) -> dict[str, str]:
 
 
 def _regenerate(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
-    """Render a block, returning `""` on any git/OS failure (non-destructive)."""
+    """Render a block, returning `""` on any git/OS failure (non-destructive).
+
+    An unreadable PyPI counts as such a failure here, where it does not for
+    live rendering: the caller writes this table into the source, or compares
+    it against what is already there, and the fallback columns would drift
+    every checked-in dependency block whenever the network hiccups.
+    """
     try:
-        return _render_block(axis, options, base_dir)
-    except (OSError, subprocess.SubprocessError):
+        return _render_block(axis, options, base_dir, require_releases=True)
+    except (OSError, ReleasesUnreadable, subprocess.SubprocessError):
         return ""
 
 
