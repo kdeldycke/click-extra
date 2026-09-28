@@ -471,10 +471,15 @@ def _spans_full_major(
     tag of that newer group, or `None`. The `.0` start guards against a
     floored partial major (`4.9.x` onward is not `4.x`), and the higher-major
     successor guards against a major that is split across several groups.
+
+    A bare major carries no minor to read, and `9` starts major 9 just as
+    `9.0` does. {func}`_column_candidates` builds one from a `>=9` floor
+    whenever the release list is empty, which is the documented offline path.
     """
     first = first_tag.lstrip("v").split(".")
     last = last_tag.lstrip("v").split(".")
-    if first[0] != last[0] or first[1] != "0":
+    first_minor = first[1] if len(first) > 1 else "0"
+    if first[0] != last[0] or first_minor != "0":
         return False
     if next_first_tag is None:
         return True

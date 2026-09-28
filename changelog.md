@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix the `IndexError` a `{matrix}` dependency block raised when its column bound is a bare major, as a `>=9` floor yields whenever the release list is empty.
+
 ## [`9.3.5` (2026-09-28)](https://github.com/kdeldycke/click-extra/compare/v9.3.4...v9.3.5)
 
 > [!NOTE]

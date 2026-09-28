@@ -364,6 +364,12 @@ def test_python_matrix_groups_keeps_declared_spec(synthetic_repo: Path) -> None:
             [("v6.0.2", "v6.4.0", "2025-10-08"), ("v5.0.0", "v6.0.1", "2025-05-13")],
             ["`6.0.2` (2025-10-08) → `6.x`", "`5.0.x` (2025-05-13) → `6.0.1`"],
         ),
+        # A bare major reads as that major's start, like the `9` a `>=9` floor
+        # yields for a dependency column when the release list is empty.
+        (
+            [("9", "9.3.5", ""), ("8.8.1", "8.9.5", "")],
+            ["`9.x`", "`8.8.x` → `8.9.x`"],
+        ),
     ],
 )
 def test_range_labels(bounds: list[tuple[str, str, str]], expected: list[str]) -> None:
