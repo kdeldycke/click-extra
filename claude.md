@@ -138,7 +138,9 @@ assert result.exit_code == 0
 
 ### Inline assertions (mandatory)
 
-Every `click:run` block **must** include assertions to verify the CLI output and exit code. This turns documentation into tests — if the CLI behavior changes, the Sphinx build fails, catching regressions early.
+Every `click:run` block **must** include assertions to verify the CLI output and exit code. This turns documentation into tests: the directive execs each body through a bare `exec()`, so a failing assertion aborts `sphinx-build`.
+
+**The build only catches the blocks that raise.** A block asserting nothing renders whatever the CLI printed, so a broken invocation writes its usage error into the published page while the build stays green. `tests/test_docs_directives.py` is the guard for that half: it reads the Markdown as text and fails when a `click:run` block carries no assertion at all.
 
 The `invoke()` function returns a result object with:
 
