@@ -47,7 +47,10 @@ from .config import (
     make_schema_callable,
 )
 from .config.schema import _opaque_paths
-from .config.subcommands import _descend_to_group_config
+from .config.subcommands import (
+    _descend_to_group_config,
+    inject_reserved_subcommands,
+)
 from .context import Context
 from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import TimerOption
@@ -1370,6 +1373,72 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
                         del self._default_section.commands[cmd_name]
                 del self.commands[cmd_name]
         super().add_command(cmd, name, **kwargs)
+
+    def _resolve_config_subcommands_eagerly(
+        self,
+        ctx: click.Context,
+        config_option: ConfigOption,
+        args: list[str],
+    ) -> list[str]:
+        """Settle the reserved subcommand keys ahead of the no-args help screen.
+
+        Click raises its `no_args_is_help` error before any parameter runs, so a
+        bare invocation never reads the configuration that could name subcommands
+        for it. This pre-pass processes `--config` on its own, which loads the
+        document and returns the names to dispatch.
+
+        Returns `args` untouched when the configuration names nothing, which leaves
+        Click's help screen in place. Every error is deferred to the regular
+        parameter loop, like {meth}`Command._resolve_presentation_eagerly`, so this
+        pre-pass never turns a broken configuration into the only thing a bare
+        invocation prints.
+        """
+        parser = self.make_parser(ctx)
+        try:
+            opts, _, _ = parser.parse_args(args=args.copy())
+            _, injected = config_option.handle_parse_result(ctx, opts, args.copy())
+        except click.ClickException:
+            return args
+        return injected
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        """Like parent's `parse_args`, but honoring the reserved subcommand keys.
+
+        A group carrying its own `--config` is served by
+        {meth}`click_extra.config.option.ConfigOption.handle_parse_result`, which
+        splices the names in as that option is processed. Two cases escape it, and
+        this override covers both:
+
+        - A group reached through an ancestor's `--config` never holds that option,
+          so it applies its own `[parent.group]` section here. The document is
+          already loaded by the time a subgroup is parsed.
+        - A bare invocation short-circuits to the help screen before any parameter
+          runs. `no_args_is_help` is suppressed for the invocation once the
+          configuration is known to name subcommands, since the user asking for
+          them outranks the author's help screen.
+        """
+        config_option = next(
+            (p for p in self.get_params(ctx) if isinstance(p, ConfigOption)),
+            None,
+        )
+
+        if config_option is None:
+            # Injecting before delegating also settles no_args_is_help, since an
+            # injected subcommand makes the invocation non-empty.
+            return super().parse_args(ctx, inject_reserved_subcommands(ctx, args))
+
+        if not args and self.no_args_is_help and not ctx.resilient_parsing:
+            args = self._resolve_config_subcommands_eagerly(ctx, config_option, args)
+            if args:
+                # Click reads `no_args_is_help` off the group twice on the way
+                # down, so the flag itself is cleared rather than either check.
+                original, self.no_args_is_help = self.no_args_is_help, False
+                try:
+                    return super().parse_args(ctx, args)
+                finally:
+                    self.no_args_is_help = original
+
+        return super().parse_args(ctx, args)
 
 
 @dataclass(frozen=True)

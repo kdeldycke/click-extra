@@ -4177,6 +4177,116 @@ def test_prepend_subcommands_on_any_group_class(invoke, create_config, group_fac
 
 
 @pytest.mark.parametrize(
+    ("reserved_key", "cli_args"),
+    [
+        pytest.param("_default_subcommands", ("mid",), id="default"),
+        pytest.param("_prepend_subcommands", ("mid", "sync"), id="prepend"),
+    ],
+)
+def test_subcommands_on_a_subgroup(invoke, create_config, reserved_key, cli_args):
+    """A subgroup applies the reserved keys of its own configuration section.
+
+    Only the root group carries `--config`, so a subgroup is never visited as
+    that option is processed. It reads `[parent.subgroup]` itself.
+    """
+    conf_path = create_config(
+        "sg-cli.toml",
+        dedent(f"""\
+            [sg-cli.mid]
+            {reserved_key} = ["debug"]
+            """),
+    )
+
+    @group
+    def sg_cli():
+        pass
+
+    @sg_cli.group(chain=True)
+    def mid():
+        pass
+
+    @mid.command()
+    def debug():
+        echo("debug ran")
+
+    @mid.command()
+    def sync():
+        echo("sync ran")
+
+    result = invoke(sg_cli, "--config", str(conf_path), *cli_args, color=False)
+    assert result.exit_code == 0
+    assert "debug ran" in result.output
+
+
+@pytest.fixture
+def app_dir_conf(tmp_path, monkeypatch):
+    """Point auto-discovery at a temporary app dir, and write a config into it.
+
+    Lets a test invoke a CLI with no argument at all, which is the only way to
+    reach Click's `no_args_is_help` short-circuit: passing `--config` would make
+    the invocation non-empty.
+    """
+    app_dir = tmp_path / "appdir"
+    app_dir.mkdir()
+    monkeypatch.setattr(
+        "click_extra.config.option.get_app_dir", lambda *a, **k: str(app_dir)
+    )
+
+    def _write(content):
+        (app_dir / "conf.toml").write_text(content, encoding="utf-8")
+
+    return _write
+
+
+@pytest.mark.parametrize(
+    "reserved_key", ("_default_subcommands", "_prepend_subcommands")
+)
+def test_subcommands_beat_no_args_is_help(invoke, app_dir_conf, reserved_key):
+    """A configured subcommand outranks Click's no-args help screen."""
+    app_dir_conf(
+        dedent(f"""\
+            [na-cli]
+            {reserved_key} = ["debug"]
+            """),
+    )
+
+    @group(chain=True)
+    def na_cli():
+        pass
+
+    @na_cli.command()
+    def debug():
+        echo("debug ran")
+
+    result = invoke(na_cli, color=False)
+    assert result.exit_code == 0
+    assert "debug ran" in result.output
+
+
+def test_no_args_is_help_survives_a_silent_config(invoke, app_dir_conf):
+    """The help screen stays when the configuration names no subcommand."""
+    app_dir_conf(
+        dedent("""\
+            [quiet-cli]
+            dummy_flag = true
+            """),
+    )
+
+    @group(chain=True)
+    @option("--dummy-flag/--no-flag")
+    def quiet_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    @quiet_cli.command()
+    def debug():
+        echo("debug ran")
+
+    result = invoke(quiet_cli, color=False)
+    assert "debug ran" not in result.output
+    assert "Usage: quiet-cli" in result.output
+
+
+@pytest.mark.parametrize(
     ("cli_subcmd", "expected", "unexpected"),
     [
         pytest.param(None, "backup ran", "sync ran", id="config-default"),

@@ -410,6 +410,16 @@ Written by {class}`~click_extra.config.option.ConfigOption`'s
 {func}`click_extra.config.schema.get_tool_config`.
 """
 
+SUBCOMMANDS_APPLIED: Final[str] = "click_extra.subcommands_applied"
+"""Command paths whose reserved subcommand keys were already spliced in.
+
+Written by {func}`click_extra.config.subcommands.inject_reserved_subcommands` as a
+growing set of `ctx.command_path` strings. This `meta` dict is shared by the whole
+context tree, so the set is what tells one group's injection from another's, and
+what keeps a second pass over the same group from prepending its
+`_prepend_subcommands` twice.
+"""
+
 
 # --- Verbosity / logging ------------------------------------------------------
 

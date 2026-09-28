@@ -549,11 +549,11 @@ This is useful for CLIs where configuration files are opt-in rather than opt-out
 You can specify which subcommands run by default when a group is invoked without any explicit subcommands on the CLI. This is done via the `_default_subcommands` reserved configuration key.
 
 ```{note}
-Both reserved keys are honoured by whichever group carries the `--config` option, not only by `click_extra.group`. A third-party framework building its own group on `click.Group` or `cloup.Group` gets them too, as long as it attaches `@config_option`.
+Both reserved keys are honoured by whichever group carries the `--config` option, not only by `click_extra.group`. A third-party framework building its own group on `click.Group` or `cloup.Group` gets them too, as long as it attaches `@config_option`. A subgroup reads its own `[my-cli.subgroup]` section, even though only the root group carries the option.
 ```
 
 ```{caution}
-A group keeps Click's default `no_args_is_help=True`, so a bare invocation with no argument at all prints the help screen before any option is processed. Neither key fires there. Pass at least one option, or declare the group with `no_args_is_help=False`.
+Click's `no_args_is_help` prints the help screen for a bare invocation before any option is processed, which is before the configuration is read. `click_extra.group` steps around this: it peeks at the configuration first, and suppresses the help screen for that invocation when either key names a subcommand. A group built on plain `click.Group` or `cloup.Group` has no such hook, so a bare invocation still prints help there. Declare it with `no_args_is_help=False` to run the configured subcommands instead.
 ```
 
 Given this CLI:

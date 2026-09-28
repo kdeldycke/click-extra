@@ -198,12 +198,27 @@ def inject_reserved_subcommands(ctx: click.Context, args: list[str]) -> list[str
     subcommand came from the command line or from the defaults. It requires a
     `chain=True` group.
 
+    Applies at most once per group, tracked in
+    {data}`~click_extra.context.SUBCOMMANDS_APPLIED`. A group can be visited
+    twice, by the no-args pre-pass in
+    {meth}`click_extra.commands.Group.parse_args` and then by the regular
+    parameter loop, and prepending the same subcommand on both passes would run
+    it twice.
+
     :raises click.UsageError: on an invalid value, an unknown subcommand, or a
         chain-mode violation.
     """
     group = ctx.command
     if not isinstance(group, click.Group):
         return args
+
+    applied = context.get(ctx, context.SUBCOMMANDS_APPLIED)
+    if applied is None:
+        applied = set()
+        context.set(ctx, context.SUBCOMMANDS_APPLIED, applied)
+    if ctx.command_path in applied:
+        return args
+    applied.add(ctx.command_path)
 
     default_subcmds = resolve_default_subcommands(ctx, group)
     if default_subcmds is not None:
