@@ -106,10 +106,11 @@ from .schema import (
     make_schema_callable,
     run_config_validation,
 )
+from .subcommands import inject_reserved_subcommands
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Mapping, Sequence
     from typing import Any, Literal
 
     import click
@@ -2023,6 +2024,30 @@ class ConfigOption(ExtraOption, ParamStructure):
         context.set(ctx, context.CONF_SOURCE, conf_path)
         context.set(ctx, context.CONF_FULL, user_conf)
         context.set(ctx, context.CONF_SOURCES, tuple(layers))
+
+    def handle_parse_result(
+        self,
+        ctx: click.Context,
+        opts: Mapping[str, Any],
+        args: list[str],
+    ) -> tuple[Any, list[str]]:
+        """Apply the reserved subcommand keys, once the configuration is loaded.
+
+        {meth}`load_conf` runs as this option's callback, from inside the `super()`
+        call below, so the parsed document is already in `ctx.meta` when
+        {func}`~click_extra.config.subcommands.inject_reserved_subcommands` reads it.
+
+        Returning a rewritten `args` is what makes `_default_subcommands` and
+        `_prepend_subcommands` work on any group class: Click threads the residual
+        arguments through each parameter in turn, then hands the final list to
+        `Group.parse_args`, which splits it into the subcommands to dispatch. A
+        plain `click.Group` offers no other hook, so the option carries the feature
+        instead of the group.
+        """
+        value, args = super().handle_parse_result(ctx, opts, args)
+        if not ctx.resilient_parsing:
+            args = inject_reserved_subcommands(ctx, args)
+        return value, args
 
 
 class NoConfigOption(ExtraOption):

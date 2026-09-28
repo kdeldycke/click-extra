@@ -30,6 +30,8 @@ This package gathers the layers behind `--config`, `--no-config`, and
   engine).
 - {mod}`~click_extra.config.option`: the `--config` / `--no-config` /
   `--validate-config` option classes.
+- {mod}`~click_extra.config.subcommands`: resolution of the reserved
+  `_default_subcommands` and `_prepend_subcommands` keys.
 
 Every public symbol is re-exported here so consumers can keep importing from
 `click_extra.config`.
