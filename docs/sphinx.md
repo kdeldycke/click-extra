@@ -1122,7 +1122,7 @@ The build still runs to its end and reports every warning. Then it exits with st
 `myst.xref_missing` is the case this was written for. myst-parser resolves every link to an anchor, on the same page or on another one, against what the build produced. For a link it cannot place, it logs that warning and ships the link as written anyway, so a dead fragment reaches the published site behind a green build. Before you list it:
 
 - Set `myst_heading_anchors`. Without it, myst-parser resolves a fragment only against explicit `(target)=` labels, and warns on every link to a heading, even one that works because docutils emits a matching HTML `id`.
-- myst-parser cannot see a raw-HTML anchor like `<a name="...">`. To keep a link to one without suppressing the whole type, add its target to `nitpick_ignore` as `("myst", "{target}")`.
+- A link to another page resolves against that page's heading slugs only, so it warns on a `(target)=` label there although the browser lands on it. A raw-HTML anchor like `<a name="...">` is invisible to myst-parser on any page. To keep such a link without suppressing the whole type, add its target to `nitpick_ignore` as `("myst", "{target}")`.
 
 Sphinx has an open request for this feature: [sphinx-doc/sphinx#7949](https://github.com/sphinx-doc/sphinx/issues/7949).
 

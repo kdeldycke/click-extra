@@ -211,10 +211,11 @@ suppress_warnings = [
     # index.md opens at H2 (octicon card layout) and a couple of pages skip a
     # heading level; cosmetic, the rendered table of contents is unaffected.
     "myst.header",
-    # Links to explicit raw-HTML anchors (``<a name="...">``), which MyST cannot
-    # see at build time though they render and resolve correctly in HTML.
-    "myst.xref_missing",
 ]
+
+# A fragment link that resolves nowhere fails the build: myst-parser only warns,
+# then ships the link dead. See click_extra/sphinx/fail_on_warnings.py.
+click_extra_fail_on_warnings = ["myst.xref_missing"]
 
 # Cross-reference targets that legitimately have nothing to link to, so nitpicky
 # mode would otherwise flood the build with "reference target not found". These
@@ -273,6 +274,10 @@ nitpick_ignore = [
     # click_extra.decorators. A TYPE_CHECKING-only name that autodoc renders in
     # decorator_factory's return annotation, with no documentable target.
     ("py:obj", "click_extra.decorators.CommandT_co"),
+    # Cross-page links to the explicit `(matrix-directives)=` label. myst-parser
+    # resolves a `page.md#target` link against that page's heading slugs only, so
+    # it warns although the label renders the id the link lands on.
+    ("myst", "matrix-directives"),
 ]
 
 # Concatenates the docstrings of the class and the __init__ method.
