@@ -17,13 +17,18 @@
 
 from __future__ import annotations
 
+import logging
 from io import StringIO
 
 import pytest
 from sphinx.application import Sphinx
 from sphinx.util.docutils import docutils_namespace
+from sphinx.util.logging import NAMESPACE
 
-from click_extra.sphinx.fail_on_warnings import FAIL_ON_WARNINGS_CONFIG
+from click_extra.sphinx.fail_on_warnings import (
+    FAIL_ON_WARNINGS_CONFIG,
+    ListedWarningCollector,
+)
 
 DEAD_LABEL_PAGE = "Orchard\n=======\n\nSee :ref:`the-walled-garden`.\n"
 """A reStructuredText page whose one defect is an undefined label: `ref.ref`."""
@@ -111,7 +116,12 @@ def test_dead_myst_fragment_fails_the_build(tmp_path):
 
 
 def test_collector_does_not_outlive_its_build(tmp_path):
-    """A second build in the same process starts with nothing collected."""
-    first, _ = build(tmp_path / "first", DEAD_LABEL_PAGE, listed=["ref.ref"])
-    second, _ = build(tmp_path / "second", CLEAN_PAGE, listed=["ref.ref"])
-    assert (first, second) == (1, 0)
+    """The collector leaves the `sphinx` logger once its build is over.
+
+    A second build cannot tell: creating its app clears every handler of that
+    logger, a collector left behind included.
+    """
+    status, _ = build(tmp_path, DEAD_LABEL_PAGE, listed=["ref.ref"])
+    assert status == 1
+    handlers = logging.getLogger(NAMESPACE).handlers
+    assert not any(isinstance(handler, ListedWarningCollector) for handler in handlers)

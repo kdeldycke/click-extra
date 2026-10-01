@@ -349,6 +349,12 @@ The `click:*` half of this story remains stuck upstream: the directives still li
 
 The `python:*` half (rendering executed Python output as live document content) is click-extra's own design rather than an answer to a single upstream ticket.
 
+### Failing a Sphinx build on chosen warnings
+
+Sphinx fails a build on every warning or on none. click-extra's [`click_extra_fail_on_warnings`](sphinx.md#failing-on-chosen-warnings) lists the warning types that fail the build, and leaves the others as warnings:
+
+- [`sphinx#7949` - Make it possible to turn *some* warnings into errors](https://github.com/sphinx-doc/sphinx/issues/7949): open since 2020 and labeled `help wanted`.
+
 ## Declined by upstream
 
 PRs and features rejected by upstream maintainers. click-extra provides the functionality regardless.

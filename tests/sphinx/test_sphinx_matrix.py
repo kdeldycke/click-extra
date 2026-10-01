@@ -99,15 +99,8 @@ def offline_pypi(monkeypatch: pytest.MonkeyPatch) -> None:
     The fixtures track a made-up ``widget`` dependency, and a real project of
     that name on PyPI would move their columns. The tests of the PyPI anchor
     stub the lookup again with the releases they need.
-
-    This stands for a read that succeeded and found no stable release, never
-    for one that failed, so it honors `required` by returning rather than
-    raising {class}`ReleasesUnreadable`.
     """
-    monkeypatch.setattr(
-        f"{MATRIX_MODULE}._pypi_releases",
-        lambda dep_name, *, required=False: (),
-    )
+    stub_releases(monkeypatch)
 
 
 def git_repo(path: Path) -> Callable[..., None]:
@@ -700,13 +693,7 @@ def test_update_matrix_blocks_leaves_bad_path_untouched(tmp_path) -> None:
 def test_update_matrix_blocks_leaves_an_unreadable_pypi_untouched(
     synthetic_dep_repo, tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """An unreachable PyPI is a generation failure, not a stale block.
-
-    Rendering would still produce a table, from the range floors standing in
-    for the releases. Writing that table into the source, or comparing it
-    against what is there, would rewrite every checked-in dependency block on
-    a network hiccup and report drift in documents nobody edited.
-    """
+    """An unreachable PyPI is a generation failure, not a stale block."""
 
     # Overrides the autouse `offline_pypi`, which stands for a read that
     # succeeded. This one fails, so it answers `required` the way the real
@@ -724,11 +711,11 @@ def test_update_matrix_blocks_leaves_an_unreadable_pypi_untouched(
         :path: {synthetic_dep_repo}
         ```
     """)
-    doc.write_text(original, encoding="UTF-8")
+    doc.write_text(original, encoding="utf-8")
 
     assert update_matrix_blocks([doc], check=True) == []
     assert update_matrix_blocks([doc]) == []
-    assert doc.read_text(encoding="UTF-8") == original
+    assert doc.read_text(encoding="utf-8") == original
     # The live directive keeps the fallback the docstrings promise.
     assert dependency_matrix_table(synthetic_dep_repo, "proj", "widget")
 
@@ -1419,23 +1406,12 @@ def test_pypi_releases_discards(pypi, tag: str, files: list) -> None:
     ],
 )
 def test_pypi_releases_unreadable(pypi, body: str, status: int) -> None:
-    """An error or a malformed answer costs the columns, not the table."""
+    """An error or a malformed answer costs the columns, not the table.
+
+    A caller that cannot use the fallback columns hears about the failure.
+    """
     pypi.expect_request("/pypi/widget/json").respond_with_data(body, status=status)
     assert _pypi_releases("widget") == ()
-
-
-@pytest.mark.parametrize(
-    ("body", "status"),
-    [
-        ("Not Found", 404),
-        ("<html>Maintenance</html>", 200),
-        ("{}", 200),
-        ('{"releases": []}', 200),
-    ],
-)
-def test_pypi_releases_unreadable_required(pypi, body: str, status: int) -> None:
-    """A caller that cannot use the fallback columns hears about the failure."""
-    pypi.expect_request("/pypi/widget/json").respond_with_data(body, status=status)
     with pytest.raises(ReleasesUnreadable, match="widget"):
         _pypi_releases("widget", required=True)
 

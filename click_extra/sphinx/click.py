@@ -1474,9 +1474,10 @@ class ClickDirective(SphinxDirective):
         would not be. Use `:mirror:` to put the image on the page as well.
 
         Writing during the build keeps the committed asset in step with the CLI
-        without anyone remembering to refresh it, and it is deterministic:
-        `unique_id` is pinned to the asset's name, so an unchanged CLI rewrites
-        byte-identical bytes and leaves the working tree clean.
+        without anyone remembering to refresh it. `unique_id` is pinned to the
+        asset's name, so an unchanged CLI rewrites the same bytes. Only the
+        generator's release stamps and any output that varies by machine can
+        change.
 
         ```{note}
         That refresh only happens when the document carrying the block is

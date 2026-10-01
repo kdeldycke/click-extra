@@ -939,17 +939,15 @@ PYPI_JSON_URL: str = "https://pypi.org/pypi/{name}/json"
 """PyPI's JSON API endpoint for a project, formatted with its normalized name."""
 
 PYPI_TIMEOUT: float = 10
-"""Seconds to wait for PyPI before a table goes without the columns it adds."""
+"""Seconds to wait for PyPI before the release lookup gives up."""
 
 
 class ReleasesUnreadable(Exception):
     """PyPI could not answer for a distribution's releases.
 
     Raised by {func}`_pypi_releases` only when its caller asked for the read to
-    be required, which {func}`_regenerate` does: a table rendered from the
-    fallback candidates is a legitimate view of the project but not the one a
-    checked-in block holds, so comparing the two reports drift in documents
-    nobody edited. Live rendering never asks, and keeps the fallback.
+    be required, which the source refresh in {func}`_regenerate` does. Live
+    rendering never asks, and keeps the fallback columns.
     """
 
 
@@ -961,12 +959,12 @@ def _pypi_releases(dep_name: str, *, required: bool = False) -> tuple[Version, .
     development release, or not a valid version. An error or a malformed answer
     yields no release, and the table goes without the columns they add.
 
-    :param required: raise {class}`ReleasesUnreadable` instead of returning
-        nothing, for a caller that cannot use the fallback table.
-
     No cooldown applies. The matrix states what an installer accepts, and an
     installer applies no cooldown by default, so a release is installable as
     soon as it is published. Reading its version number installs nothing.
+
+    :param required: raise {class}`ReleasesUnreadable` instead of returning
+        nothing, for a caller that cannot use the fallback table.
     """
     url = PYPI_JSON_URL.format(name=canonicalize_name(dep_name))
     try:
@@ -1540,7 +1538,7 @@ def _rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
     table is replaced. The walk is fence-aware: a ``{matrix}`` example nested
     inside a longer code fence is a documented illustration, copied verbatim and
     never refreshed. A block whose generation fails (non-repository path,
-    missing git, no data) is left byte-for-byte untouched.
+    missing git, unreadable PyPI, no data) is left byte-for-byte untouched.
     """
     lines = text.splitlines()
     spans = fence_spans(lines)

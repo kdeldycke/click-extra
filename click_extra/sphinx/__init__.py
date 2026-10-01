@@ -232,6 +232,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     - A one-line first column for every table whose top-left cell names both
       axes, like the `matrix` tables: a narrow screen scrolls the table
       instead of wrapping its labels. See {mod}`click_extra.sphinx.tables`.
+    - The man-page hook, which writes roff man pages for the CLIs a project
+      lists in {data}`click_extra.sphinx.manpages.MANPAGES_CONFIG_KEY` on every
+      HTML build. Inert until a project lists one. See
+      {mod}`click_extra.sphinx.manpages`.
     - A failed build on the warning types a project lists in
       {data}`click_extra.sphinx.fail_on_warnings.FAIL_ON_WARNINGS_CONFIG`,
       where Sphinx can only fail on every warning at once. Inert until a

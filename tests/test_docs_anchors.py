@@ -110,6 +110,11 @@ def lychee_excludes() -> tuple[re.Pattern[str], ...]:
     )
 
 
+def closes_fence(marker: str, opening: str) -> bool:
+    """Tell whether a line's fence `marker` closes the block `opening` started."""
+    return marker.startswith(opening[0]) and len(marker) >= len(opening)
+
+
 def uncoded_lines(
     content: str, keep_directive_bodies: bool = False
 ) -> list[tuple[int, str]]:
@@ -126,12 +131,10 @@ def uncoded_lines(
         close = FENCE_CLOSE.match(line)
         marker = close.group("marker") if close else ""
         if opening:
-            if marker.startswith(opening[0]) and len(marker) >= len(opening):
+            if closes_fence(marker, opening):
                 opening = ""
             continue
-        if directives and (
-            marker.startswith(directives[-1][0]) and len(marker) >= len(directives[-1])
-        ):
+        if directives and closes_fence(marker, directives[-1]):
             directives.pop()
             continue
         fence = FENCE_OPEN.match(line)

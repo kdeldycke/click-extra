@@ -85,7 +85,7 @@ assert result.output == dedent(
 
 <!-- screenshot-end -->
 
-To augment the example above with {ref}`all the bells and whistles <features>` `click-extra` has in store, you only need to change the import. `click-extra` proxies the whole `click` namespace, so aliasing it back leaves every decorator and call exactly as it was:
+To augment the example above with {ref}`all the bells and whistles <index:features>` `click-extra` has in store, you only need to change the import. `click-extra` proxies the whole `click` namespace, so aliasing it back leaves every decorator and call exactly as it was:
 
 ```{click:source}
 :emphasize-lines: 1
@@ -348,7 +348,7 @@ You can target specific versions of Click Extra in your script dependencies:
 :emphasize-lines: 3
 #!/usr/bin/env -S uv run --script
 # /// script
-# dependencies = ["click-extra == 9.3.4"]
+# dependencies = ["click-extra == 9.3.5"]
 # ///
 ```
 ````

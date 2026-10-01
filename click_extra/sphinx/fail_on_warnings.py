@@ -83,13 +83,12 @@ class ListedWarningCollector(logging.Handler):
     def __init__(self, app: Sphinx) -> None:
         super().__init__(level=logging.WARNING)
         self.app = app
-        self.matched: dict[int, tuple[logging.LogRecord, str]] = {}
-        """Each matched record and its `type.subtype` label, keyed by identity.
+        self.matched: dict[logging.LogRecord, str] = {}
+        """The `type.subtype` label of each matched record.
 
         Sphinx buffers the warnings of a build phase and replays them through
         every handler when the phase ends, after this handler saw them live.
-        Keying on the record counts each one once, and holding the record
-        keeps its identity from being reused by a later one.
+        A record hashes by identity, so keying on it counts each one once.
         """
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -98,26 +97,20 @@ class ListedWarningCollector(logging.Handler):
         subtype = getattr(record, "subtype", "") or ""
         if not warning_type:
             return
-        try:
-            listed = getattr(self.app.config, FAIL_ON_WARNINGS_CONFIG)
-            suppressed = self.app.config.suppress_warnings
-        except AttributeError:
-            # The config is not initialized yet: a warning logged while the
-            # extensions load cannot have been listed.
-            return
+        listed = getattr(self.app.config, FAIL_ON_WARNINGS_CONFIG)
+        suppressed = self.app.config.suppress_warnings
         if not is_suppressed_warning(warning_type, subtype, listed):
             return
         if is_suppressed_warning(warning_type, subtype, suppressed):
             return
-        label = f"{warning_type}.{subtype}" if subtype else warning_type
-        self.matched[id(record)] = (record, label)
+        self.matched[record] = f"{warning_type}.{subtype}" if subtype else warning_type
 
     def finish(self, app: Sphinx, exception: Exception | None) -> None:
         """Detach, then fail the build if a listed warning was logged."""
         logging.getLogger(NAMESPACE).removeHandler(self)
         if exception is not None or not self.matched:
             return
-        types = sorted({label for _, label in self.matched.values()})
+        types = sorted(set(self.matched.values()))
         count = len(self.matched)
         logger.error(
             "click_extra.sphinx: %d warning%s of a type listed in %s (%s).",
