@@ -70,7 +70,7 @@ Every other language works the same way: see the [full list of ANSI lexer varian
 [1mbump-my-version[0m [[1;36mOPTIONS[0m] [1;36mCOMMAND[0m [[1;36mARGS[0m]...
 ```
 
-When the `click-extra` plugin is enabled (as shown in [Setup](#setup)) and `mkdocs-click` is installed, the plugin automatically patches `mkdocs-click`'s code-block generators to use the `ansi-output` lexer instead of plain `text`. No extra configuration is needed: the usage and options blocks will render with proper ANSI colors.
+When the `click-extra` plugin is enabled (as shown in [Setup](#setup)) and `mkdocs-click` is installed, the plugin automatically patches `mkdocs-click`'s code-block generators to use the `ansi-output` lexer instead of plain `text`. The usage and options blocks then render with proper ANSI colors.
 
 ## `click_extra.mkdocs` API
 

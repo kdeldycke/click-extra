@@ -201,7 +201,7 @@ manpages_url = "man/{page}.{section}.html"
 
 With that in place, `` :manpage:`my-cli(1)` `` in any docstring or `.md` file resolves to `man/my-cli.1.html` in the rendered docs. The same template covers every subcommand page, since `{page}` matches the full hyphenated name the generator produces (`my-cli`, `my-cli-build`, `my-cli-build-all`).
 
-Leaving `manpages_url` unset is fine. The role still renders as styled text; only the hyperlink target is missing.
+Without `manpages_url`, the role still renders as styled text; only the hyperlink target is missing.
 
 ### `click-extra-manpages` directive
 

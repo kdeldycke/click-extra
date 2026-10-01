@@ -41,7 +41,7 @@ assert result.output == "\x1b[97m\x1b[1mcli\x1b[0m, version \x1b[32m1.2.3\x1b[0m
 ```{hint}
 In the examples of this page the version is hard-coded to `1.2.3` for the sake of demonstration.
 
-In most cases, you do not need to force it, as the version will be automatically [fetched from the package metadata](#variables) of the CLI or the [`__version__` attribute](#standalone-script) of the command.
+Without a hard-coded value, the version is [fetched from the package metadata](#variables) of the CLI or the [`__version__` attribute](#standalone-script) of the command.
 ```
 
 ```{note}
@@ -387,7 +387,7 @@ prebake_dunder(Path("mypackage/__init__.py"), "__git_short_hash__", "abc1234")
 
 {func}`prebake_dunder() <click_extra.prebake.prebake_dunder>` only replaces empty strings, so running it twice is safe (idempotent). It preserves the quoting style and surrounding file content.
 
-{func}`discover_package_init_files() <click_extra.prebake.discover_package_init_files>` can auto-discover `__init__.py` paths from `[project.scripts]` in `pyproject.toml`, so you don't need to hardcode paths in your build scripts.
+{func}`discover_package_init_files() <click_extra.prebake.discover_package_init_files>` can auto-discover `__init__.py` paths from `[project.scripts]` in `pyproject.toml`.
 
 ### Pre-baking build metadata
 

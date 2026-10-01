@@ -29,7 +29,7 @@ The flag is eager, so it is processed before any other option and before help is
 
 ## Automatic background detection
 
-Pass `--theme=auto` to pick between the built-in `dark` and `light` palettes from the terminal's background, mirroring `--color=auto`. Every Click Extra CLI accepts it, no extra wiring required:
+Pass `--theme=auto` to pick between the built-in `dark` and `light` palettes from the terminal's background, mirroring `--color=auto`. Every Click Extra CLI accepts it:
 
 ```{click:run}
 import os
@@ -88,7 +88,7 @@ assert result.exit_code == 0
 assert "--theme" in result.stdout
 ```
 
-`forecast` now defaults to the detected theme: absent a `CLITHEME` override, it runs the live query, which outranks the possibly-stale `COLORFGBG`, and only falls back to `dark` when neither settles the question. The query is a no-op when stdin or stdout is not a terminal (a pipe, a file, a captured test stream), so non-interactive runs are unaffected.
+`forecast` now defaults to the detected theme: absent a `CLITHEME` override, it runs the live query, which outranks the possibly-stale `COLORFGBG`, and only falls back to `dark` when neither settles the question. The query is a no-op when stdin or stdout is not a terminal (a pipe, a file, a captured test stream).
 
 ```{caution}
 Background detection through `COLORFGBG` or the live query is best-effort. `COLORFGBG` is often missing or stale; terminal multiplexers (tmux, screen) cache or mangle the OSC 11 reply; and the query reads stdin. When the choice has to be deterministic, set `--theme` explicitly (on the command line or in your config file), or export `CLITHEME`.
@@ -115,7 +115,7 @@ To settle on one palette for every Click Extra CLI on your machine, export `CLIC
 $ export CLICK_EXTRA_THEME=nord
 ```
 
-There is nothing else to configure and no Python involved: every command built with Click Extra reads it, including the foreign CLIs run through [`click-extra wrap`](wrap.md). It takes the same values as the flag, [`auto`](#automatic-background-detection) included.
+Every command built with Click Extra reads it, including the foreign CLIs run through [`click-extra wrap`](wrap.md). It takes the same values as the flag, [`auto`](#automatic-background-detection) included.
 
 ```{click:run}
 import os

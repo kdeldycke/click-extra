@@ -737,7 +737,7 @@ The `@sort_by_option` decorator adds a `--sort-by` CLI option whose choices are 
 
 The option can be repeated to define a multi-column sort priority: `--sort-by name --sort-by age` sorts by name first, then breaks ties by age.
 
-When active, `SortByOption` publishes the derived sort key on the context, where `ctx.print_table` picks it up, so the command body doesn't need any sorting logic.
+When active, `SortByOption` publishes the derived sort key on the context, where `ctx.print_table` picks it up.
 
 ```{click:source}
 from click_extra import command, pass_context, sort_by_option

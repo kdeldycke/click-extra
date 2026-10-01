@@ -764,7 +764,7 @@ The blink runs on a clock of its own rather than on the animation's. The two dri
 Blinking is motion. The rule sits behind the same [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard as every other animation here, so a reader who asked their system for less of it gets a cursor that is lit and still.
 ```
 
-A still capture takes a cursor too, and leaves it after the last thing the command printed, which is where the shell finds it. `:screenshot-cursor:` asks a documentation block for one, and `:screenshot-blink:` says how fast. A block draws its own invocation already, so nothing else is needed:
+A still capture takes a cursor too, and leaves it after the last thing the command printed, which is where the shell finds it. `:screenshot-cursor:` asks a documentation block for one, and `:screenshot-blink:` says how fast. A block draws its own invocation already:
 
 ```{click:source}
 :hide-source:

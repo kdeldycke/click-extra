@@ -2,7 +2,7 @@
 
 Click Extra's option callbacks publish their resolved values on [Click's `Context.meta` dict](https://click.palletsprojects.com/en/stable/api/#click.Context.meta). That dict is **shared across the parent/child context hierarchy** and lives for the duration of a single CLI invocation, so it doubles as a per-request shared bus between Click Extra's eager callbacks and your own command body.
 
-If you are writing a `@command`- or `@group`-decorated function, you can read any of the entries below at any point: in the function body, in a parameter callback, in a `@pass_context` consumer, or in a subcommand of a group that declared one of the options. Click Extra's default options (`--verbosity`, `--theme`, `--config`, `--time`, etc.) are wired in automatically by `@command` / `@group`, so the corresponding entries are populated without you having to opt in.
+If you are writing a `@command`- or `@group`-decorated function, you can read any of the entries below at any point: in the function body, in a parameter callback, in a `@pass_context` consumer, or in a subcommand of a group that declared one of the options. Click Extra's default options (`--verbosity`, `--theme`, `--config`, `--time`, etc.) are wired in automatically by `@command` / `@group`, so the corresponding entries are always populated.
 
 ## Picking values up from your own callbacks
 

@@ -21,7 +21,7 @@ The Pygments components ship as an optional extra to keep the base install lean:
 $ pip install click_extra[pygments]
 ```
 
-You do not need to use Click, the Click Extra CLI, or the Sphinx/MkDocs integrations to use any of these components: the `pygments` extra pulls in only Pygments and its prerequisites. The package name (`click_extra`) is a historical artifact of where these components first lived; the Pygments components are stable, independent, and have no Click dependency at runtime.
+The `pygments` extra pulls in only Pygments and its prerequisites. The package name (`click_extra`) is a historical artifact of where these components first lived; the Pygments components are stable, independent, and have no Click dependency at runtime.
 
 ## Integration
 

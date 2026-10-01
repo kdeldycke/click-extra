@@ -248,7 +248,7 @@ Each echoed line is kept where it landed and the animation carries on below it, 
 
 ## Parallel work
 
-A `Spinner` drives a single line, so a pool of concurrent tasks does not need one apiece: one spinner can report on them all. The simplest way is to let the main thread update it as the tasks finish, through [`concurrent.futures.as_completed`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.as_completed).
+A `Spinner` drives a single line, and one spinner can report on a whole pool of concurrent tasks. The simplest way is to let the main thread update it as the tasks finish, through [`concurrent.futures.as_completed`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.as_completed).
 
 Update the `label` for a running count:
 

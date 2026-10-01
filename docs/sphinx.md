@@ -75,7 +75,7 @@ Click Extra adds two new directives:
 | `click:source` | Define and show the source code of a Click CLI in Sphinx.                                          |
 | `click:run`    | Invoke the CLI defined above, and display the results as if it was executed in a terminal session. |
 
-Thanks to these, you can directly demonstrate the usage of your CLI in your documentation. You no longer have to maintain screenshots of you CLIs. Or copy and paste their outputs to keep them in sync with the latest revision. Click Extra will do that job for you.
+Thanks to these, you can directly demonstrate the usage of your CLI in your documentation: the outputs stay in sync with the latest revision.
 
 These directives supports both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax.
 
@@ -560,7 +560,7 @@ Two rules of thumb: prefer a command whose output depends only on the CLI, and r
 
 You can also use the `click:run` directive without a preceding `click:source` block. This is useful when you want to demonstrate the usage of a CLI defined elsewhere, for example in your package's source code.
 
-In the example below, we import the `click_extra.cli.demo` function, which is defined in the [`click_extra/cli.py`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/cli.py) source file. There is no need to redefine the CLI in a `click:source` block beforehand:
+In the example below, we import the `click_extra.cli.demo` function, which is defined in the [`click_extra/cli.py`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/cli.py) source file:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown

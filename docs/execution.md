@@ -155,7 +155,7 @@ The resolved (clamped, validated) job count is published on `ctx.meta` as `JOBS`
 
 ## Running jobs in parallel
 
-`run_jobs(func, items)` maps `func` over `items` using the resolved `--jobs` count, so a command with `@jobs_option` parallelizes its work with no extra plumbing. It reads the worker count from the context (or an explicit `jobs=` override), runs sequentially when that count is `1` or there is a single item, and otherwise spreads the work across a thread pool. Results are yielded in submission order, like `map`.
+`run_jobs(func, items)` maps `func` over `items` using the resolved `--jobs` count, so a command with `@jobs_option` parallelizes its work. It reads the worker count from the context (or an explicit `jobs=` override), runs sequentially when that count is `1` or there is a single item, and otherwise spreads the work across a thread pool. Results are yielded in submission order, like `map`.
 
 ```{click:source}
 from click import command, echo
