@@ -124,7 +124,7 @@ Outside an active CLI invocation (for example at import time, in unit tests that
 
 Click's default parser lets options and positional arguments interleave freely (GNU style): `mytool alice --greeting Hi bob` is parsed the same as `mytool --greeting Hi alice bob`. The POSIX convention is stricter: option parsing stops at the first positional argument, and everything after it is treated as a positional, even tokens that look like options.
 
-`Context` honors the standard [`POSIXLY_CORRECT`](https://www.gnu.org/software/libc/manual/html_node/Standard-Environment.html) environment variable that GNU getopt-based tools obey. When it is present in the environment (regardless of its value), Click Extra forces `allow_interspersed_args` to `False`, so any `@command` or `@group` built with Click Extra automatically switches to POSIX parsing.
+`Context` honors the standard [`POSIXLY_CORRECT`](https://sourceware.org/glibc/manual/latest/html_node/Using-Getopt.html) environment variable that GNU getopt-based tools obey. When it is present in the environment (regardless of its value), Click Extra forces `allow_interspersed_args` to `False`, so any `@command` or `@group` built with Click Extra automatically switches to POSIX parsing.
 
 ```{click:source}
 from click_extra import argument, command, echo, option

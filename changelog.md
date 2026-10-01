@@ -9,7 +9,7 @@
 - Fix the `IndexError` a `{matrix}` dependency block raised when its column bound is a bare major, as a `>=9` floor yields whenever the release list is empty.
 - Leave a `{matrix}` dependency block untouched when PyPI cannot be read, instead of rewriting it from the fallback columns. `refresh-directives --check` no longer reports drift on a network failure.
 - Fix the dead links from the `ConfigOption` API documentation to the extra dependencies and `platformdirs` sections.
-- Repoint the version and commands pages at the new setuptools-scm documentation host and at Cloup's `src/` layout.
+- Repoint the version, commands and context pages at setuptools-scm's new documentation host, Cloup's `src/` layout and the glibc getopt manual.
 - Document that a MyST docstring links another page with `{doc}` or `{ref}`, since a `page.md` target ships dead.
 
 ## [`9.3.5` (2026-09-28)](https://github.com/kdeldycke/click-extra/compare/v9.3.4...v9.3.5)
