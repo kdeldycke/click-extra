@@ -7,6 +7,9 @@
 
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 
+> [!NOTE]
+> `9.4.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/9.4.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v9.4.0).
+
 - Add a `click_extra_fail_on_warnings` Sphinx option that fails the build on the listed warning types only, like `myst.xref_missing`.
 - Fix the `IndexError` a `{matrix}` dependency block raised when its column bound is a bare major, as a `>=9` floor yields whenever the release list is empty.
 - Leave a `{matrix}` dependency block untouched when PyPI cannot be read, so `refresh-directives --check` no longer reports drift on a network failure.
