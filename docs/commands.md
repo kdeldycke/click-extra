@@ -111,7 +111,7 @@ Same for the main classes and functions, where some are re-implemented by Click 
 You can inspect the implementation details in:
 
 - [`click_extra.__init__`](https://github.com/kdeldycke/click-extra/blob/main/click_extra/__init__.py)
-- [`cloup.__init__`](https://github.com/janluke/cloup/blob/master/cloup/__init__.py)
+- [`cloup.__init__`](https://github.com/janluke/cloup/blob/master/src/cloup/__init__.py)
 - [`click.__init__`](https://github.com/pallets/click/blob/main/src/click/__init__.py)
 ```
 

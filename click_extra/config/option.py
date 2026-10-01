@@ -387,7 +387,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Whether the format set was inherited instead of chosen by the developer.
 
         `True` when no `file_format_patterns` was provided, so the set is whatever the
-        installed [extra dependencies](install.md#extra-dependencies) enable. It ranges
+        installed {ref}`extra dependencies <extra-dependencies>` enable. It ranges
         from 3 patterns on a bare install to 14 with every extra, which is an artifact
         of the environment rather than a decision the CLI made.
 
@@ -806,7 +806,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         [platformdirs](https://github.com/tox-dev/platformdirs) computes,
         passes its own pattern to `default` instead. That keeps the layout a
         choice of the CLI rather than a dependency of this package: see
-        [the documentation](config-discovery.md#use-platformdirs-instead).
+        {ref}`the documentation <use-platformdirs-instead>`.
         ```
         """
         ctx = get_current_context()

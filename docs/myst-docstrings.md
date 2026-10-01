@@ -126,6 +126,8 @@ Use standard markdown links:
 
 Backticks in link labels are stripped automatically because reST does not support nested markup.
 
+A link keeps its target as written, so `[text](page.md#anchor)` points at a `.md` file that the built site does not serve. Link another page with `` {doc}`/page` ``, and a section of it with `` {ref}`text <label>` `` after you add a `(label)=` target above its heading.
+
 ### Inline code
 
 Use single backticks. The extension doubles them for reST:

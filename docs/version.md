@@ -458,7 +458,7 @@ Git can bake the metadata into such archives at export time. Commit a `.git_arch
 When `git archive` packs the file (GitHub does this for its source tarballs), it replaces each `$Format:…$` token with the real value. Click Extra reads the result and populates `{git_long_hash}`, `{git_short_hash}`, `{git_date}`, `{git_branch}`, `{git_tag}`, `{git_tag_sha}` and `{git_distance}` from it. `{git_dirty}` is not covered: an archive has no work tree, so its state is unknowable.
 
 ```{note}
-This is the schema used by [setuptools-scm](https://setuptools-scm.readthedocs.io/en/latest/usage/#git-archives) and [Dunamai](https://github.com/mtkennerly/dunamai), so a single committed `.git_archival.json` works with all three.
+This is the schema used by [setuptools-scm](https://setuptools-scm.readthedocs.io/latest/usage/#git-archives) and [Dunamai](https://github.com/mtkennerly/dunamai), so a single committed `.git_archival.json` works with all three.
 ```
 
 ```{important}

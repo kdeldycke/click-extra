@@ -70,6 +70,8 @@ The [*XDG base directory specification*](https://specifications.freedesktop.org/
 XDG does not cover other platforms (macOS, Windows, …) or legacy applications. That is why Click Extra lets you customize where configuration is searched.
 ```
 
+(use-platformdirs-instead)=
+
 ### Use platformdirs instead
 
 Click Extra reads the folder from `click.get_app_dir()`, and Click [declined](https://github.com/pallets/click/issues/2620) to hand that job to [platformdirs](https://github.com/tox-dev/platformdirs). To follow the platformdirs layout, compute the folder in your own CLI and pass the pattern to `default`:

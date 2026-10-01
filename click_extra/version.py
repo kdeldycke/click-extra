@@ -416,7 +416,7 @@ def read_archival(path: Path) -> dict[str, str]:
 def archival_field(data: Mapping[str, str], field_id: str) -> str | None:
     """Resolve a `git_*` field from parsed `.git_archival.json` data.
 
-    *data* follows the [setuptools-scm archival schema](https://setuptools-scm.readthedocs.io/en/latest/usage/#git-archives):
+    *data* follows the [setuptools-scm archival schema](https://setuptools-scm.readthedocs.io/latest/usage/#git-archives):
     `node` (full hash), `node-date`, `describe-name` and `ref-names`.
     The same file is read by setuptools-scm and Dunamai, so a single committed
     `.git_archival.json` serves all three.

@@ -218,6 +218,18 @@ def test_cli_reference_anchors(built_docs, anchor):
             "python-directives.html",
             "matrix-directives",
         ),
+        (
+            "click_extra.config.html",
+            "install.html#extra-dependencies",
+            "install.html",
+            "extra-dependencies",
+        ),
+        (
+            "click_extra.config.html",
+            "config-discovery.html#use-platformdirs-instead",
+            "config-discovery.html",
+            "use-platformdirs-instead",
+        ),
     ),
 )
 def test_cross_page_links_resolve(built_docs, source_page, href, target_page, anchor):
