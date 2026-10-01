@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.4.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 
 - Add a `click_extra_fail_on_warnings` Sphinx option that fails the build on the listed warning types only, like `myst.xref_missing`.
