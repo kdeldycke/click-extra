@@ -114,7 +114,7 @@ assert "Brewing tea" in brewing.frame_lines()[0]
 
 ![A spinner cycling the phases of the moon beside a Brewing tea label](assets/moon-spinner.svg)
 
-Because the frames come from a declared spinner rather than from a timed recording, the same expression composes the same lines on every build: the committed asset is rewritten byte for byte and the working tree stays clean.
+Because the frames come from a declared spinner rather than from a timed recording, the same expression composes the same lines on every build. The committed asset keeps the same bytes, and the working tree stays clean, until a new Click Extra version rewrites its `@generated` stamp.
 
 ## Spinner catalog
 

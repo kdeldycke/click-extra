@@ -187,7 +187,7 @@ Every other `click_extra_screenshot_*` value from the [screenshots page](screens
 
 ### Keeping snippets fresh
 
-Nothing in a snippet runs a command or reads a clock, so two builds of one block write the same bytes and a committed asset leaves the working tree clean. That makes a snippet more predictable than a screenshot: a capture goes stale when the CLI changes, and Sphinx only rewrites it when the page carrying it is re-parsed. A snippet's subject is the block itself, so the two move together by construction.
+Nothing in a snippet runs a command or reads a clock. A committed asset thus keeps the same bytes, and the working tree stays clean, until a new Click Extra version rewrites its `@generated` stamp. That makes a snippet more predictable than a screenshot: a capture goes stale when the CLI changes, and Sphinx only rewrites it when the page carrying it is re-parsed. A snippet's subject is the block itself, so the two move together by construction.
 
 The `:mirror:` regions are refreshed offline, without a build:
 
