@@ -656,6 +656,13 @@ exclude = [
   # linkcheck run (see linkcheck_ignore in docs/conf.py).
   "^https://asciinema.org.*$",
   "^https://no-color.org.*$",
+  # gnu.org answers CI runners with 429 Too Many Requests, often from the first
+  # request, for longer than lychee keeps retrying. The Sphinx linkcheck run
+  # waits out the limit and still checks these links.
+  "^https://www\\.gnu\\.org/.*$",
+  # lychee intermittently misses this page's anchor, which the page does carry.
+  # The Sphinx linkcheck run still checks the anchor.
+  "^https://invisible-island\\.net/xterm/ctlseqs/ctlseqs\\.html#.*$",
   # The theme palette anchors (#dark, #light, …) sit under the "Palettes"
   # section of docs/theme.md, where a {python:render} loop over BUILTIN_THEMES
   # emits one heading per theme at Sphinx build time. Lychee only scans the raw
