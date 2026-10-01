@@ -72,6 +72,11 @@ HTML_ANCHOR = re.compile(r"""<a\s[^>]*\b(?:name|id)\s*=\s*["'](?P<anchor>[^"']+)
 # Angle-bracket and title forms are unused in this tree, so they are not parsed.
 FRAGMENT_LINK = re.compile(r"]\((?P<page>[^()\s#]*)#(?P<fragment>[^()\s]+)\)")
 
+# A code span: a run of backticks, closed by the next run of the same length.
+# lychee reads no link and no anchor inside one. A span broken across two lines
+# is left as it is.
+INLINE_CODE = re.compile(r"(?<!`)(?P<ticks>`+)(?!`).+?(?<!`)(?P=ticks)(?!`)")
+
 
 def lychee_excludes() -> tuple[re.Pattern[str], ...]:
     """Read the link patterns `[tool.lychee]` waives, so both checkers agree.
@@ -114,6 +119,15 @@ def uncoded_lines(content: str) -> list[tuple[int, str]]:
     return lines
 
 
+def uncoded_spans(line: str) -> str:
+    """Drop a line's code spans, so a link or anchor quoted in prose is not read.
+
+    Headings are slugged from the raw line instead: GitHub keeps the text of a
+    code span in a heading's slug.
+    """
+    return INLINE_CODE.sub("", line)
+
+
 def github_slug(heading: str) -> str:
     """Slug a heading the way GitHub does, which is what lychee models.
 
@@ -135,7 +149,7 @@ def readable_anchors(path: Path) -> set[str]:
     anchors: set[str] = set()
     seen: dict[str, int] = {}
     for _number, line in uncoded_lines(path.read_text(encoding="utf-8")):
-        anchors.update(HTML_ANCHOR.findall(line))
+        anchors.update(HTML_ANCHOR.findall(uncoded_spans(line)))
         heading = ATX_HEADING.match(line)
         if not heading:
             continue
@@ -157,7 +171,7 @@ def unresolved_fragments(paths=MARKDOWN_FILES) -> list[str]:
     misses = []
     for path in paths:
         for number, line in uncoded_lines(path.read_text(encoding="utf-8")):
-            for link in FRAGMENT_LINK.finditer(line):
+            for link in FRAGMENT_LINK.finditer(uncoded_spans(line)):
                 page, fragment = link.group("page"), link.group("fragment")
                 target = (path.parent / page).resolve() if page else path
                 # Only Markdown pages of this repository are checked: a URL or
@@ -213,3 +227,30 @@ def test_github_slug(heading, expected):
     which is what makes its `<a name="…">` companion necessary.
     """
     assert github_slug(heading) == expected
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    (
+        ("Write `[text](#walled-garden)` to link it.", "Write  to link it."),
+        ("``a ` b`` and `c`", " and "),
+        ("[`pond`](water.md#the-pond)", "[](water.md#the-pond)"),
+        ("A lone ` backtick stays.", "A lone ` backtick stays."),
+    ),
+)
+def test_uncoded_spans(line, expected):
+    """A span goes whatever its backtick count, and a lone backtick stays."""
+    assert uncoded_spans(line) == expected
+
+
+def test_code_spans_hold_no_link_and_no_anchor(tmp_path):
+    """A link or an anchor quoted in a code span is prose, as lychee reads it."""
+    page = tmp_path / "pond.md"
+    page.write_text(
+        "# Pond\n\n"
+        'Quote `<a name="lily"></a>` or `[the reeds](#reeds)` in prose.\n'
+        "Then [go back up](#pond).\n",
+        encoding="utf-8",
+    )
+    assert readable_anchors(page) == {"pond"}
+    assert unresolved_fragments([page]) == []
