@@ -31,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter, [todo-list deduplication](#todo-list-deduplication), a one-line first column for [two-axis tables](table.md#two-axis-tables), and the [man-page hook](man-page.md#from-a-sphinx-build). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter, [todo-list deduplication](#todo-list-deduplication), a one-line first column for [two-axis tables](table.md#two-axis-tables), the [man-page hook](man-page.md#from-a-sphinx-build), and [failing on chosen warnings](#failing-on-chosen-warnings). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -1105,6 +1105,26 @@ Set the flag to get Sphinx's raw output back, one entry per rendering:
 :caption: `conf.py`
 click_extra_dedupe_todos = False
 ```
+
+## Failing on chosen warnings
+
+Sphinx fails a build on warnings all or nothing: `--fail-on-warning` counts every warning, and [`suppress_warnings`](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-suppress_warnings) can hide a type but never make one fatal. A project that lives with some warnings, like unresolved references to third-party names, then cannot stop the build on the ones it does not accept.
+
+List those types in `click_extra_fail_on_warnings`, with the syntax of `suppress_warnings`: `myst` covers every subtype, `myst.xref_missing` only that one.
+
+```{code-block} python
+:caption: `conf.py`
+click_extra_fail_on_warnings = ["myst.xref_missing"]
+```
+
+The build still runs to its end and reports every warning. Then it exits with status `1`, after one error that names the types it matched. A type that `suppress_warnings` also covers stays silent and never fails the build. The list is empty by default, which leaves Sphinx's behavior as it is.
+
+`myst.xref_missing` is the case this was written for. myst-parser resolves every link to an anchor, on the same page or on another one, against what the build produced. For a link it cannot place, it logs that warning and ships the link as written anyway, so a dead fragment reaches the published site behind a green build. Before you list it:
+
+- Set `myst_heading_anchors`. Without it, myst-parser resolves a fragment only against explicit `(target)=` labels, and warns on every link to a heading, even one that works because docutils emits a matching HTML `id`.
+- myst-parser cannot see a raw-HTML anchor like `<a name="...">`. To keep a link to one without suppressing the whole type, add its target to `nitpick_ignore` as `("myst", "{target}")`.
+
+Sphinx has an open request for this feature: [sphinx-doc/sphinx#7949](https://github.com/sphinx-doc/sphinx/issues/7949).
 
 ## ANSI shell sessions
 

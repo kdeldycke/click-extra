@@ -51,7 +51,7 @@ from ..blocks import (
     update_blocks as update_blocks,
 )
 from ..pygments import AnsiHtmlFormatter
-from . import manpages, matrix, tables, todos
+from . import fail_on_warnings, manpages, matrix, tables, todos
 from .alerts import convert_github_alerts
 from .click import ClickDomain, cleanup_runner
 from .python import (
@@ -232,6 +232,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     - A one-line first column for every table whose top-left cell names both
       axes, like the `matrix` tables: a narrow screen scrolls the table
       instead of wrapping its labels. See {mod}`click_extra.sphinx.tables`.
+    - A failed build on the warning types a project lists in
+      {data}`click_extra.sphinx.fail_on_warnings.FAIL_ON_WARNINGS_CONFIG`,
+      where Sphinx can only fail on every warning at once. Inert until a
+      project lists one. See {mod}`click_extra.sphinx.fail_on_warnings`.
 
     Opt-in features (gated behind `click_extra_enable_exec_directives`):
 
@@ -293,6 +297,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # tables.py). Every HTML page links the stylesheet, but only a table with a
     # corner label carries the class it styles.
     tables.setup(app)
+
+    # Fail the build on the warning types a project lists (see
+    # fail_on_warnings.py). Inert until `click_extra_fail_on_warnings` names one.
+    fail_on_warnings.setup(app)
 
     # Register GitHub alerts converter only when myst-parser predates
     # the native "alert" syntax extension (added in 5.1.0). On newer

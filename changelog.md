@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add a `click_extra_fail_on_warnings` Sphinx option that fails the build on the listed warning types only, like `myst.xref_missing`.
 - Fix the `IndexError` a `{matrix}` dependency block raised when its column bound is a bare major, as a `>=9` floor yields whenever the release list is empty.
 - Leave a `{matrix}` dependency block untouched when PyPI cannot be read, instead of rewriting it from the fallback columns. `refresh-directives --check` no longer reports drift on a network failure.
 
