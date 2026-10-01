@@ -360,6 +360,9 @@ linkcheck_ignore = [
     # (see [tool.lychee] in pyproject.toml).
     r"https://asciinema\.org",
     r"https://no-color\.org",
+    # repology.org refuses the linkcheck builder's connections from CI runners,
+    # while the lychee run in the same job checks its badge and page fine.
+    r"https://repology\.org",
     # crates.io blocks automated link checkers.
     r"https://crates\.io/crates/.*",
     # VirusTotal analysis pages are a JS app that rate-limits bots, and the
