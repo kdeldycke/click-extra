@@ -229,11 +229,23 @@ def _check_live(live: str) -> None:
         raise ValueError('live must be "auto", "always" or "never".')
 
 
+def _progress_enabled() -> bool:
+    """Whether the active command's `--progress` flag allows a live display.
+
+    Follows {data}`~click_extra.context.PROGRESS`, which `--no-progress` and
+    `--accessible` turn off. `True` outside a command context, and on a thread the
+    thread-local context does not reach.
+    """
+    ctx = click.get_current_context(silent=True)
+    return ctx is None or bool(context.get(ctx, context.PROGRESS, True))
+
+
 def _can_draw(live: str, stream: IO[str]) -> bool:
     """Resolve whether a cursor-driven display may draw on `stream`.
 
-    `"always"` and `"never"` decide on their own. `"auto"` draws only on an
-    interactive terminal that can move the cursor. That rules out
+    `"always"` and `"never"` decide on their own. `"auto"` draws only when the
+    active command's `--progress` flag allows it (see {func}`_progress_enabled`),
+    and only on an interactive terminal that can move the cursor. That rules out
     non-interactive streams (a pipe, file or captured buffer, which are not a
     TTY) and `TERM=dumb` / `TERM=unknown` terminals, whose lack of cursor
     control would smear the output instead of updating it in place. Shared by
@@ -241,6 +253,8 @@ def _can_draw(live: str, stream: IO[str]) -> bool:
     """
     if live != "auto":
         return live == "always"
+    if not _progress_enabled():
+        return False
     if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
         return False
     return is_a_tty(stream)
@@ -1589,9 +1603,10 @@ class ProgressOption(ExtraOption):
 
     Resolves to a single boolean published at
     {data}`ctx.meta[click_extra.context.PROGRESS] <click_extra.context.PROGRESS>`,
-    which a CLI reads to decide whether to start a {class}`Spinner`. The default is
-    `True`; `--accessible` lowers it to `False` (via `default_map`) so a
-    screen reader is never handed a spinning glyph.
+    which {class}`Spinner`, {class}`OperationTrail` and {func}`progressbar` read on
+    their own when left at their automatic default. The default is `True`;
+    `--accessible` lowers it to `False` (via `default_map`) so a screen reader is
+    never handed a spinning glyph.
 
     ```{note}
     Spinner display is intentionally **decoupled from color**, even though both
@@ -1731,8 +1746,7 @@ def progressbar(
     ```
     """
     if hidden is None:
-        ctx = click.get_current_context(silent=True)
-        hidden = ctx is not None and not context.get(ctx, context.PROGRESS, True)
+        hidden = not _progress_enabled()
     if show_eta is None:
         # The ETA follows --time / --no-time, like a trail's timer, so a bare
         # bar and a trail agree on when to show timing.

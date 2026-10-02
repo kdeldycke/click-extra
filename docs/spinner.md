@@ -609,20 +609,20 @@ Read the elapsed time any moment from the `elapsed_time` property, which freezes
 
 ## The `--progress` option
 
-`click_extra.command` and `click_extra.group` add a `--progress`/`--no-progress` flag to every CLI by default. It resolves to a single boolean at `ctx.meta["click_extra.progress"]`, which a command reads to decide whether to start a `Spinner`:
+`click_extra.command` and `click_extra.group` add a `--progress`/`--no-progress` flag to every CLI by default. It resolves to a single boolean at `ctx.meta["click_extra.progress"]`. A `Spinner` or an `OperationTrail` left at `live="auto"` reads it on its own, so `--no-progress` keeps it from drawing with no wiring in the command:
 
 ```python
-from click_extra import Spinner, command, pass_context
-from click_extra.context import PROGRESS
+from click_extra import Spinner, command
 
 
 @command
-@pass_context
-def harvest(ctx):
-    """Pick apples, showing a spinner when progress is enabled."""
-    with Spinner("Picking apples", live="auto" if ctx.meta[PROGRESS] else "never"):
+def harvest():
+    """Pick apples behind a spinner, unless --no-progress is passed."""
+    with Spinner("Picking apples"):
         sleep(5)
 ```
+
+Pass `live="always"` or `live="never"` to decide regardless of the flag.
 
 Spinner display is **decoupled from color**. A spinner is an interactivity concern, not a color one: it is driven by cursor-control codes, which the [NO_COLOR standard](https://no-color.org) explicitly does not govern. So `--no-color` and `NO_COLOR` strip the spinner's color but keep it spinning, the same way [cargo](https://doc.rust-lang.org/cargo/reference/config.html), npm, pip, [Rich](https://rich.readthedocs.io/en/latest/console.html), [indicatif](https://github.com/console-rs/indicatif) and [ora](https://github.com/sindresorhus/ora) gate progress on the terminal rather than on color.
 

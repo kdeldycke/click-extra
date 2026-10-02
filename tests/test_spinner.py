@@ -409,6 +409,37 @@ def test_progressbar_label_emission_off_tty(invoke, args, label_shown):
     assert ("Brewing tea" in result.output) is label_shown
 
 
+@pytest.mark.parametrize(
+    ("args", "draws"),
+    (
+        ((), True),
+        # The spinner reads the flag on its own, as the progress bar does.
+        (("--no-progress",), False),
+        (("--accessible",), False),
+        # Color stays decoupled from progress.
+        (("--no-color",), True),
+    ),
+)
+def test_auto_spinner_follows_progress_flag(invoke, args, draws):
+    """A `live="auto"` spinner stays still under `--no-progress` and `--accessible`,
+    even on a terminal, with no wiring in the command."""
+    stream = TTYStringIO()
+
+    @command
+    def cli():
+        spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
+        spinner.start()
+        if draws:
+            assert wait_until(lambda: spinner._drawn)
+        else:
+            assert not wait_until(lambda: spinner._drawn, timeout=0.2)
+        spinner.stop()
+
+    result = invoke(cli, *args)
+    assert result.exit_code == 0
+    assert ("Brewing tea" in stream.getvalue()) is draws
+
+
 def test_progressbar_shows_final_position_with_update_min_steps():
     """Work around pallets/click#3571: with show_pos and an update_min_steps that
     does not divide the length, the bar must still land on total/total instead of
