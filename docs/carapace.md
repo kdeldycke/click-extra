@@ -199,7 +199,7 @@ Two strategies cooperate, and the generator picks per parameter:
 
 Dynamic completion therefore needs that class registered in the target process, which a CLI built with Click Extra gets automatically. A plain Click CLI would have to `import click_extra` for the callback to resolve. Static completion has no such requirement.
 
-A click-extra command also carries its [default options](commands.md) (`--version`, `--verbosity`, `--color`, and the rest). On the root command these are emitted as Carapace `persistentflags`, so every subcommand inherits them without the spec repeating them.
+A click-extra command also carries its [default options](commands.md) (`--version`, `--verbosity`, `--color`, and the rest). The spec lists them under the root command only, in its `flags`: Click parses an option at the level of its own command, so `cli --verbose sub` works and `cli sub --verbose` fails. Carapace `persistentflags` would offer them after the subcommand too, where Click rejects them.
 
 ## Programmatic API
 

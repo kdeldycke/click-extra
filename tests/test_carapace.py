@@ -45,12 +45,18 @@ from click_extra.carapace import (
     _flag_key,
     _flag_name,
     dump_carapace_spec,
+    extract_carapace_command,
     to_carapace_spec,
 )
 from click_extra.cli import demo
+from click_extra.parameters import make_resilient_context
 from click_extra.testing import CliRunner
 
 from .conftest import fetch_or_skip
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 CARAPACE_SCHEMA = json.loads(
     (Path(__file__).parent / "carapace-spec.schema.json").read_text(encoding="utf-8")
@@ -197,10 +203,8 @@ def test_required_option_is_marked():
         """Show the weather forecast."""
 
     spec = to_carapace_spec(forecast, prog_name="forecast")
-    assert spec["flags"] == {
-        "--city=!": "City to forecast.",
-        "--maybe=": "Optional.",
-    }
+    assert spec["flags"]["--city=!"] == "City to forecast."
+    assert spec["flags"]["--maybe="] == "Optional."
     jsonschema.validate(spec, CARAPACE_SCHEMA)
 
 
@@ -216,10 +220,9 @@ def test_required_boolean_pair_is_left_unmarked():
     def forecast(ascii):
         """Show the weather forecast."""
 
-    assert set(to_carapace_spec(forecast, prog_name="forecast")["flags"]) == {
-        "--ascii",
-        "--no-ascii",
-    }
+    flags = set(to_carapace_spec(forecast, prog_name="forecast")["flags"])
+    assert {"--ascii", "--no-ascii"} <= flags
+    assert not {"--ascii!", "--no-ascii!"} & flags
 
 
 def test_hidden_option_is_exported_and_marked():
@@ -229,7 +232,7 @@ def test_hidden_option_is_exported_and_marked():
         """Pick the ripe fruit."""
 
     spec = to_carapace_spec(pick, prog_name="pick")
-    assert spec["flags"] == {"--secret=&": "Never shown."}
+    assert spec["flags"]["--secret=&"] == "Never shown."
     jsonschema.validate(spec, CARAPACE_SCHEMA)
 
 
@@ -318,7 +321,7 @@ def test_option_computing_its_help_still_describes_itself():
     def orchard():
         """Tend an orchard."""
 
-    flags = to_carapace_spec(orchard, prog_name="orchard")["persistentflags"]
+    flags = to_carapace_spec(orchard, prog_name="orchard")["flags"]
     assert flags["-v, --verbose*"].startswith("Increase the default")
     assert flags["-q, --quiet*"].startswith("Decrease the default")
 
@@ -383,29 +386,83 @@ def test_dynamic_action_emitted(flag_name):
     assert f"COMP_WORDS=weather forecast $* --{flag_name}" in macro
 
 
-# -- persistentflags ----------------------------------------------------------
+# -- Flag scope ---------------------------------------------------------------
 
 
-def test_root_default_options_are_persistent():
-    persistent = XTOOL_SPEC["persistentflags"]
+def _spec_nodes(node: dict) -> Iterator[dict]:
+    """Every command node of a spec, the root first."""
+    yield node
+    for sub in node.get("commands", ()):
+        yield from _spec_nodes(sub)
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [WEATHER_SPEC, SYNC_SPEC, XTOOL_SPEC],
+    ids=["weather", "sync", "xtool"],
+)
+def test_no_flag_is_persistent(spec):
+    """Click parses an option only at the level of its own command.
+
+    A `persistentflags` entry would offer an option after a subcommand, where Click
+    rejects it, so no node of the spec carries one.
+    """
+    for node in _spec_nodes(spec):
+        assert "persistentflags" not in node, node["name"]
+
+
+def test_root_default_options_stay_on_the_root():
+    flags = XTOOL_SPEC["flags"]
     # A sampling across value, optional-value, count and boolean shapes.
-    assert "--version" in persistent
-    assert "--config=" in persistent
-    assert "--color?" in persistent
-    assert "-v, --verbose*" in persistent
+    assert "--version" in flags
+    assert "--config=" in flags
+    assert "--color?" in flags
+    assert "-v, --verbose*" in flags
 
 
-def test_subcommand_does_not_repeat_persistent_flags():
+def test_subcommand_lists_only_its_own_options():
     hello_spec = next(c for c in XTOOL_SPEC["commands"] if c["name"] == "hello")
-    assert hello_spec["flags"] == {"--name=": "A name."}
-    assert "persistentflags" not in hello_spec
+    assert hello_spec["flags"] == {
+        "--name=": "A name.",
+        "-h, --help": "Show this message and exit.",
+    }
+
+
+def test_spec_agrees_with_click_on_flag_scope(invoke):
+    """The spec offers a root option after a subcommand exactly when Click takes it."""
+    hello_spec = next(c for c in XTOOL_SPEC["commands"] if c["name"] == "hello")
+    # What Carapace completes after `hello`: its own flags plus the root's inherited
+    # ones.
+    offered = {*hello_spec["flags"], *XTOOL_SPEC.get("persistentflags", {})}
+    assert "--version" not in offered
+    result = invoke(xtool, "hello", "--version")
+    assert result.exit_code == 2
+    assert "No such option '--version'" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("argument", "value"),
+    (("is_root", True), ("default_opts", frozenset()), ("inherited_opts", frozenset())),
+)
+def test_extract_carapace_command_routing_arguments_are_deprecated(argument, value):
+    """The arguments that routed default options into `persistentflags` still parse,
+    have no effect, and warn at the caller."""
+    ctx = make_resilient_context(xtool, "xtool")
+    with pytest.warns(
+        DeprecationWarning, match=rf"extract_carapace_command\({argument}="
+    ) as record:
+        node = extract_carapace_command(
+            xtool, ctx, command_path=("xtool",), **{argument: value}
+        )
+    assert not node.persistentflags
+    assert record[0].filename == __file__
 
 
 def test_plain_cli_keeps_own_lookalike_option():
     # weather is a plain cloup group: its only default is --help, so forecast's
     # own -v/--verbose must survive rather than being mistaken for the default.
     assert "-v, --verbose*" in FORECAST["flags"]
-    assert WEATHER_SPEC["persistentflags"] == {"--help": "Show this message and exit."}
+    assert WEATHER_SPEC["flags"] == {"--help": "Show this message and exit."}
 
 
 # -- Schema conformance -------------------------------------------------------

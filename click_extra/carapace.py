@@ -71,8 +71,11 @@ from click.shell_completion import (
 )
 from cloup.constraints import mutually_exclusive
 
+# Imported first for its side effect: context, color and parameters import each other,
+# and only an import chain starting from context resolves that cycle.
+from . import context  # noqa: F401
+from ._deprecated import warn_deprecated_argument
 from ._utils import generator_tag, missing_extra_message
-from .commands import DEFAULT_HELP_NAMES, default_params
 from .parameters import (
     full_short_help,
     is_repeatable,
@@ -80,7 +83,6 @@ from .parameters import (
     iter_subcommands,
     make_resilient_context,
     option_value_kind,
-    param_spellings,
     resolve_param_help,
     short_long_opts,
 )
@@ -392,7 +394,11 @@ class CarapaceCommand:
     """Map of flag key (with shape suffixes) to its description."""
 
     persistentflags: dict[str, str] = field(default_factory=dict)
-    """Flags inherited by every subcommand (the root's default option set)."""
+    """Flags inherited by every subcommand.
+
+    {func}`extract_carapace_command` leaves it empty: Click parses an option only
+    at the level of the command declaring it, so no option is inherited.
+    """
 
     exclusiveflags: list[list[str]] = field(default_factory=list)
     """Groups of mutually-exclusive flag names (from Cloup constraints)."""
@@ -439,20 +445,6 @@ class CarapaceCommand:
 # --- extraction -------------------------------------------------------------
 
 
-def _default_param_opts() -> frozenset[str]:
-    """All option spellings injected on every Click Extra command by default.
-
-    Used to route the root command's default options into `persistentflags`
-    (so Carapace offers them under every subcommand) and to skip the same
-    options on subcommands, where they would otherwise be duplicated. A plain
-    Click CLI carries none of these, so its `persistentflags` stays empty.
-    """
-    opts = set(DEFAULT_HELP_NAMES)
-    for param in default_params():
-        opts.update(param_spellings(param))
-    return frozenset(opts)
-
-
 def _exclusive_flag_groups(command: Command) -> list[list[str]]:
     """Mutually-exclusive flag-name groups from Cloup option-group constraints.
 
@@ -480,10 +472,9 @@ def _add_option(
     param: Parameter,
     ctx: Context,
     *,
-    persistent: bool,
     command_path: tuple[str, ...],
 ) -> None:
-    """Encode one Click option into `flags`/`persistentflags` and completion.
+    """Encode one Click option into `flags` and completion.
 
     A boolean flag with a secondary spelling (`--foo` / `--no-foo`) is split
     into two independent Carapace flags, since the spec has no negation primitive.
@@ -504,7 +495,7 @@ def _add_option(
     marking the positive alone would hide that `--no-foo` answers just as well,
     so the pair is left unmarked rather than described wrongly.
     """
-    flags = node.persistentflags if persistent else node.flags
+    flags = node.flags
     description = _clean_description(resolve_param_help(param, ctx))
     kind = option_value_kind(param)
     value = kind != "flag"
@@ -546,10 +537,10 @@ def extract_carapace_command(
     command: Command,
     ctx: Context,
     *,
-    is_root: bool,
-    default_opts: frozenset[str],
-    inherited_opts: frozenset[str],
     command_path: tuple[str, ...],
+    is_root: bool | None = None,
+    default_opts: frozenset[str] | None = None,
+    inherited_opts: frozenset[str] | None = None,
 ) -> CarapaceCommand:
     """Build a {class}`CarapaceCommand` from a Click command and its context.
 
@@ -557,15 +548,28 @@ def extract_carapace_command(
     {meth}`click.Command.make_context` with `resilient_parsing=True`).
     Subcommands are discovered dynamically and recursed into.
 
-    `default_opts` is the abstract set of spellings Click Extra injects on every
-    command; on the root, options drawn from it become `persistentflags`.
-    `inherited_opts` is what an ancestor actually published as persistent, so a
-    subcommand drops exactly those (Carapace already offers them) and keeps the
-    rest, including a same-named option the root never carried. `command_path`
-    is the chain of command names from the root down to this command, grown by one
-    name per recursion and baked into dynamic callback macros (see
-    {func}`_dynamic_action`).
+    Every option lands in the `flags` of the command declaring it. Click parses an
+    option only at the level of its own command: a group option goes before the
+    subcommand, never after it. Carapace `persistentflags` would offer it after
+    the subcommand too, where Click rejects it.
+
+    `command_path` is the chain of command names from the root down to this
+    command, grown by one name per recursion and baked into dynamic callback
+    macros (see {func}`_dynamic_action`).
+
+    `is_root`, `default_opts` and `inherited_opts` have no effect, and warn: they
+    used to route the default options into `persistentflags`.
     """
+    for argument, value in (
+        ("is_root", is_root),
+        ("default_opts", default_opts),
+        ("inherited_opts", inherited_opts),
+    ):
+        if value is not None:
+            warn_deprecated_argument(
+                "extract_carapace_command", argument, "the call without it"
+            )
+
     node = CarapaceCommand(
         name=ctx.info_name or command.name or "",
         description=full_short_help(command),
@@ -575,7 +579,6 @@ def extract_carapace_command(
 
     positional: list[list[str]] = []
     positional_docs: list[str] = []
-    persistent_spellings = set(inherited_opts)
     for param in iter_params_for_display(command, ctx):
         if isinstance(param, click.Argument):
             action = _param_action(param, command_path)
@@ -591,31 +594,18 @@ def extract_carapace_command(
                 positional_docs.extend([doc] * slots)
             continue
 
-        if is_root and set(param.opts) <= default_opts:
-            # A root default option: publish it once as persistent so every
-            # subcommand inherits it, and remember its spellings to skip below.
-            _add_option(node, param, ctx, persistent=True, command_path=command_path)
-            persistent_spellings.update(param_spellings(param))
-        elif set(param.opts) <= inherited_opts:
-            # Already offered by an ancestor's persistent flags: do not repeat.
-            continue
-        else:
-            _add_option(node, param, ctx, persistent=False, command_path=command_path)
+        _add_option(node, param, ctx, command_path=command_path)
 
     node.completion.positional = positional
     node.documentation.positional = positional_docs
     node.exclusiveflags = _exclusive_flag_groups(command)
 
-    child_inherited = frozenset(persistent_spellings)
     for sub_name, sub in iter_subcommands(command, ctx, skip_hidden=False):
         sub_ctx = make_resilient_context(sub, sub_name, parent=ctx)
         node.commands.append(
             extract_carapace_command(
                 sub,
                 sub_ctx,
-                is_root=False,
-                default_opts=default_opts,
-                inherited_opts=child_inherited,
                 command_path=command_path + (sub_name,),
             )
         )
@@ -640,9 +630,6 @@ def to_carapace_spec(
     node = extract_carapace_command(
         command,
         ctx,
-        is_root=True,
-        default_opts=_default_param_opts(),
-        inherited_opts=frozenset(),
         command_path=(name,),
     )
     # The root node's name follows the program name, not the context's.
