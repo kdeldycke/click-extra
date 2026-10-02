@@ -1102,6 +1102,38 @@ def test_run_cli_timeout_kills_child_and_attaches_partial_output():
 
 
 @skip_windows
+def test_run_cli_kill_survives_a_second_interrupt(monkeypatch):
+    """A Ctrl+C landing while the kill reads the process table waits for the
+    kill to land, so the child never outlives the interrupt."""
+    spawned: list[subprocess.Popen] = []
+
+    class RecordingPopen(subprocess.Popen):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            spawned.append(self)
+
+    def interrupted_table():
+        # The second Ctrl+C arrives between the table read and the signals.
+        signal.raise_signal(signal.SIGINT)
+        return _posix_process_table()
+
+    monkeypatch.setattr(subprocess, "Popen", RecordingPopen)
+    monkeypatch.setattr("click_extra.execution._posix_process_table", interrupted_table)
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            run_cli((sys.executable, "-c", "import time; time.sleep(30)"), timeout=0.5)
+        # The child, spawned first, was killed despite the interrupt: it ends
+        # at once, where a surviving one would sleep through the wait.
+        assert spawned
+        assert spawned[0].wait(timeout=5) == -signal.SIGKILL
+    finally:
+        for process in spawned:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+
+
+@skip_windows
 def test_run_cli_default_shares_process_group():
     """By default the child stays in the caller's process group: it keeps the
     controlling terminal (an interactive ``sudo`` raised from inside the child

@@ -1122,6 +1122,35 @@ def terminate_live_processes() -> None:
             pass
 
 
+@contextmanager
+def _deferred_interrupt() -> Iterator[None]:
+    """Hold back a Ctrl+C for the duration of the block, then deliver it.
+
+    Shields a short critical section that must run whole: the kill in
+    {func}`run_cli` reads the process table, then signals what it found, and an
+    interrupt landing in between would skip the signals and orphan the child.
+    The interrupt is delivered again at the end of the block, to whichever
+    handler was in place, so it is postponed, never lost.
+
+    Only the main thread receives `SIGINT`, so elsewhere the block runs as is.
+    """
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+    received: list[int] = []
+
+    def hold(signum: int, frame: FrameType | None) -> None:
+        received.append(signum)
+
+    previous = signal.signal(signal.SIGINT, hold)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        if received:
+            signal.raise_signal(signal.SIGINT)
+
+
 def install_interrupt_handler(ctx: click.Context) -> None:
     """Make the first Ctrl+C terminate in-flight subprocesses, then abort as usual.
 
@@ -1444,20 +1473,23 @@ def run_cli(
         alive to find them.
         """
         log.debug(f"PID {process.pid} {reason}; sending kill.")
-        if is_windows():
-            # `taskkill /F /T` covers the whole tree and `process.kill()` backs
-            # it up. None of the POSIX branch below can even be evaluated here:
-            # Windows has no `SIGKILL`, and no `os.killpg` to signal a group.
-            _kill_windows_process_tree(process.pid)
-            process.kill()
-        else:
-            table = _posix_process_table()
-            if not (
-                start_new_session
-                and _kill_posix_process_group(process, signal.SIGKILL, table)
-            ):
+        # A second Ctrl+C waits for the kill to land: see _deferred_interrupt.
+        with _deferred_interrupt():
+            if is_windows():
+                # `taskkill /F /T` covers the whole tree and `process.kill()`
+                # backs it up. None of the POSIX branch below can even be
+                # evaluated here: Windows has no `SIGKILL`, and no `os.killpg`
+                # to signal a group.
+                _kill_windows_process_tree(process.pid)
                 process.kill()
-                _kill_descendants(process.pid, table, signal.SIGKILL)
+            else:
+                table = _posix_process_table()
+                if not (
+                    start_new_session
+                    and _kill_posix_process_group(process, signal.SIGKILL, table)
+                ):
+                    process.kill()
+                    _kill_descendants(process.pid, table, signal.SIGKILL)
         process.wait()
         _drain_readers(readers, _KILL_DRAIN_GRACE)
 
