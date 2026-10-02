@@ -12,7 +12,7 @@ Feature comparison between Click Extra and competing CLI frameworks across ecosy
 | Config precedence chain      |       ✓       |             |             |      ✓      |            |             |            |      ~       |       ✓        |            |                   |             |
 | Type-hint-driven params      |               |             |             |             |            |      ✓      |     ✓      |              |       ✓        |     ✓      |                   |      ✓      |
 | Option groups / constraints  |       ✓       |             |      ✓      |             |            |             |     ✓      |              |       ✓        |     ✓      |         ~         |      ✓      |
-| Persistent / inherited flags |               |             |             |      ✓      |    N/A     |             |     ✓      |      ✓       |       ~        |     ✓      |                   |      ✓      |
+| Persistent / inherited flags |               |             |             |      ✓      |    N/A     |             |     ✓      |              |       ~        |     ✓      |                   |      ✓      |
 | Lazy subcommand loading      |       ✓       |             |             |     N/A     |            |             |    N/A     |              |       ✓        |            |                   |     N/A     |
 | Parameter introspection      |       ✓       |             |             |             |            |             |            |              |                |            |                   |             |
 
@@ -23,12 +23,12 @@ Feature comparison between Click Extra and competing CLI frameworks across ecosy
 | Feature ↴ \\ Framework →  | `click-extra` | `Click`[^1] | `Cloup`[^2] | `cobra`[^3] | `Fire`[^4] | `Typer`[^5] | `clap`[^6] | `Cement`[^7] | `Cyclopts`[^8] | `Tyro`[^9] | `rich-click`[^10] | `bpaf`[^11] |
 | ------------------------- | :-----------: | :---------: | :---------: | :---------: | :--------: | :---------: | :--------: | :----------: | :------------: | :--------: | :---------------: | :---------: |
 | Colored help              |       ✓       |             |             |      ~      |     ~      |      ✓      |     ✓      |              |       ✓        |     ✓      |         ✓         |      ✓      |
-| Command suggestions       |       ✓       |             |             |      ✓      |            |             |     ✓      |              |       ✓        |            |                   |             |
+| Command suggestions       |       ✓       |      ✓      |      ✓      |      ~      |            |      ✓      |     ✓      |              |       ✓        |            |         ✓         |      ✓      |
 | Shell completion          |       ~       |      ~      |      ~      |      ✓      |     ~      |      ✓      |     ✓      |              |       ✓        |     ✓      |         ~         |      ✓      |
-| Man page generation       |               |             |             |      ✓      |            |             |            |              |                |            |                   |      ✓      |
+| Man page generation       |       ✓       |             |             |      ✓      |            |             |     ~      |              |                |            |                   |      ✓      |
 | Table / data output       |       ✓       |             |             |             |            |             |            |      ✓       |                |            |                   |             |
 | Timer / profiling         |       ✓       |             |             |             |            |             |            |              |                |     ~      |                   |             |
-| Telemetry control         |       ✓       |             |             |             |            |             |            |              |       ~        |            |         ~         |             |
+| Telemetry control         |       ✓       |             |             |             |            |             |            |              |                |            |                   |             |
 | Version with git metadata |       ✓       |      ~      |      ~      |             |            |      ~      |            |              |       ~        |            |         ~         |             |
 
 click-extra's [colored help](colorize.md) uses [a theme system](theme.md) with semantic highlighting for options, choices, metavars, defaults, env vars, and subcommand names. [Seven built-in themes](theme.md#built-in-themes) ship out of the box (`dark`, `light`, `dracula`, `monokai`, `nord`, `solarized-dark`, plus a monochrome `manpage`); users can [override any slot of an existing palette or define brand-new themes directly in the CLI's `--config` file](theme.md#themes-from-your-config-file) (`[tool.<cli>.themes.<name>]`), with overrides scoped per-invocation so concurrent runs in the same process don't bleed into each other. A machine-wide [`CLICK_EXTRA_THEME`](theme.md#environment-variables) variable, or the per-CLI `<CLI>_THEME` Click derives, picks a palette without touching either. cobra only provides basic ANSI coloring. Cyclopts uses Rich for formatted help output and ships a single style. rich-click also renders through Rich and ships over a hundred themes, which end users select with the `RICH_CLICK_THEME` variable or its wrapper's own flag, but a custom palette is declared in Python rather than in the wrapped CLI's configuration file, and it has no background-detection equivalent of `--theme=auto`. Shell completion in Click and click-extra covers command and option names; clap, cobra, bpaf, Cyclopts, and Typer add dynamic value completion and multi-shell auto-install. click-extra also offers [`--params`](parameters.md#params-option), [`--time`](execution.md#timer), [`--telemetry`/`--no-telemetry`](telemetry.md), [`--table-format`](table.md), and [git-aware `--version`](version.md) out of the box.
@@ -52,6 +52,106 @@ Behavior when placing global flags before vs. after a subcommand:
 | `bpaf`[^11]       |                                |
 
 Click (and click-extra, Cloup, rich-click, Typer) accepts global flags in both positions, the most permissive behavior. bpaf's `#[bpaf(external)]` fields are scoped inside the subcommand variant, so `tool --flag value subcommand` is rejected. Fire uses object traversal rather than subcommand parsing, so flag scoping does not apply.
+
+## clig.dev guidelines
+
+The [Command Line Interface Guidelines](https://clig.dev) are an open-source guide to command-line design. The table grades each framework against the 50 guidelines a framework can implement, out of the guide's 96. The other 46 are advice on what an app prints and how it behaves, listed below the table.
+
+✓ = built in, on by default or behind one documented switch, ~ = partial, opt-in, or in an official companion package, N/A = nothing for the guideline to apply to (no prompts, no color, no animation).
+
+Graded in October 2026 from source code and probes of minimal apps, against click-extra `9.4.0`, Click `8.5.0`, Cloup `4.0.0`, cobra `1.10.2`, Fire `0.7.1`, Typer `0.27.2`, clap `4.6.7`, Cement `3.0.16`, Cyclopts `5.1.1`, Tyro `1.0.16`, rich-click `1.9.9` and bpaf `0.9.28`.
+
+| Guideline ↴ \\ Framework →                                           | `click-extra` | `Click`[^1] | `Cloup`[^2] | `cobra`[^3] | `Fire`[^4]  | `Typer`[^5] | `clap`[^6] | `Cement`[^7] | `Cyclopts`[^8] | `Tyro`[^9] | `rich-click`[^10] | `bpaf`[^11] |
+| -------------------------------------------------------------------- | :-----------: | :---------: | :---------: | :---------: | :---------: | :---------: | :--------: | :----------: | :------------: | :--------: | :---------------: | :---------: |
+| **[The basics](https://clig.dev/#the-basics)**                       |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Non-zero exit code on failure                                        |       ✓       |      ✓      |      ✓      |      ~      |      ✓      |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| Help and version on `stdout`                                         |       ✓       |      ✓      |      ✓      |      ✓      |             |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| Errors on `stderr`                                                   |       ✓       |      ✓      |      ✓      |      ✓      |      ✓      |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| **[Help](https://clig.dev/#help)**                                   |               |             |             |             |             |             |            |              |                |            |                   |             |
+| `--help` on every subcommand                                         |       ✓       |      ✓      |      ✓      |      ✓      |      ✓      |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| Concise help when arguments are missing                              |       ✓       |      ✓      |      ✓      |      ✓      |      ✓      |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| Both `-h` and `--help`                                               |       ✓       |      ~      |      ~      |      ✓      |      ~      |      ~      |     ✓      |      ✓       |       ✓        |     ✓      |         ~         |      ✓      |
+| Support link in help                                                 |       ~       |      ~      |      ~      |      ~      |      ~      |      ~      |     ~      |      ~       |       ~        |     ~      |         ~         |      ~      |
+| Docs link in help                                                    |       ~       |      ~      |      ~      |      ~      |      ~      |      ~      |     ~      |      ~       |       ~        |     ~      |         ~         |      ~      |
+| Examples section                                                     |       ✓       |      ~      |      ~      |      ✓      |      ~      |      ~      |     ~      |      ~       |       ~        |     ~      |         ~         |      ~      |
+| Grouped or ordered help entries                                      |       ✓       |      ~      |      ✓      |      ✓      |      ~      |      ✓      |     ✓      |      ~       |       ✓        |     ✓      |         ✓         |      ✓      |
+| Formatted help                                                       |       ✓       |             |      ~      |             |      ✓      |      ✓      |     ✓      |      ~       |       ✓        |     ✓      |         ✓         |      ~      |
+| Typo suggestions                                                     |       ✓       |      ✓      |      ✓      |      ~      |             |      ✓      |     ✓      |              |       ✓        |     ~      |         ✓         |      ✓      |
+| Help instead of waiting on a TTY `stdin`                             |               |             |             |             |             |             |            |              |                |            |                   |             |
+| **[Documentation](https://clig.dev/#documentation)**                 |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Web docs generation                                                  |       ✓       |             |             |      ✓      |             |      ✓      |            |              |       ✓        |            |         ~         |      ✓      |
+| `help` subcommand                                                    |       ✓       |             |             |      ✓      |             |             |     ✓      |              |       ~        |            |                   |             |
+| Man page generation                                                  |       ✓       |             |             |      ✓      |             |             |     ~      |              |                |            |                   |      ✓      |
+| **[Output](https://clig.dev/#output)**                               |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Machine-readable output                                              |       ✓       |      ~      |      ~      |      ~      |      ~      |             |            |      ~       |                |     ~      |         ~         |             |
+| `--plain` tabular output                                             |       ✓       |             |             |             |             |             |            |      ~       |                |            |                   |             |
+| `--json` output                                                      |       ✓       |             |             |             |             |             |            |      ~       |                |            |                   |             |
+| Color off: no TTY, `NO_COLOR`, `--no-color`                          |       ~       |      ~      |      ~      |     N/A     |      ~      |      ~      |     ~      |      ~       |       ~        |     ~      |         ~         |      ~      |
+| No animation without a TTY                                           |       ✓       |      ✓      |      ✓      |     N/A     |     N/A     |      ✓      |    N/A     |     N/A      |      N/A       |    N/A     |         ✓         |     N/A     |
+| Pager                                                                |       ✓       |      ✓      |      ✓      |             |      ✓      |             |            |              |                |            |         ✓         |             |
+| **[Errors](https://clig.dev/#errors)**                               |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Readable usage errors                                                |       ✓       |      ✓      |      ✓      |      ✓      |      ~      |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| Traceback behind a debug switch                                      |               |             |             |             |             |      ~      |            |              |                |            |                   |             |
+| Bug report helper                                                    |       ✓       |             |             |             |             |             |            |      ~       |                |            |                   |             |
+| **[Arguments and flags](https://clig.dev/#arguments-and-flags)**     |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Long flag names                                                      |       ✓       |      ✓      |      ✓      |      ✓      |      ✓      |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| No auto-generated short flags                                        |       ✓       |      ✓      |      ✓      |      ✓      |             |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| Variadic arguments                                                   |       ✓       |      ✓      |      ✓      |      ✓      |      ✓      |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| Standard flags beyond `--help`                                       |       ✓       |      ~      |      ~      |      ~      |      ~      |             |     ~      |      ~       |       ~        |     ~      |         ~         |      ✓      |
+| Prompt for missing values                                            |       ✓       |      ✓      |      ✓      |             |             |      ✓      |            |      ~       |                |            |         ✓         |             |
+| Prompts bypassable by flags                                          |       ✓       |      ✓      |      ✓      |     N/A     |     N/A     |      ✓      |    N/A     |              |      N/A       |    N/A     |         ✓         |     N/A     |
+| Confirmation with a `--yes` bypass                                   |       ✓       |      ✓      |      ✓      |             |             |      ~      |            |      ~       |                |            |         ✓         |             |
+| `-` for `stdin` and `stdout`                                         |       ✓       |      ✓      |      ✓      |             |             |      ✓      |            |      ✓       |       ✓        |            |         ✓         |             |
+| Parent flags after the subcommand                                    |               |             |             |      ✓      |      ✓      |             |     ✓      |              |       ✓        |     ✓      |                   |      ~      |
+| **[Interactivity](https://clig.dev/#interactivity)**                 |               |             |             |             |             |             |            |              |                |            |                   |             |
+| No prompt when `stdin` is not a TTY                                  |               |             |             |     N/A     |     N/A     |             |    N/A     |              |      N/A       |    N/A     |                   |     N/A     |
+| `--no-input`                                                         |               |             |             |     N/A     |     N/A     |             |    N/A     |              |      N/A       |    N/A     |                   |     N/A     |
+| Hidden password input                                                |       ✓       |      ✓      |      ✓      |     N/A     |     N/A     |      ✓      |    N/A     |      ✓       |      N/A       |    N/A     |         ✓         |     N/A     |
+| **[Robustness](https://clig.dev/#robustness-guidelines)**            |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Input validation                                                     |       ✓       |      ✓      |      ✓      |      ~      |      ~      |      ✓      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ~      |
+| Hello world `--help` under 100 ms                                    |       ~       |      ✓      |      ✓      |      ✓      |      ✓      |      ✓      |     ✓      |      ✓       |       ~        |     ✓      |         ✓         |      ✓      |
+| Progress bar or spinner                                              |       ✓       |      ✓      |      ✓      |             |             |      ✓      |            |              |                |            |         ✓         |             |
+| **[Future-proofing](https://clig.dev/#future-proofing)**             |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Deprecation warnings                                                 |       ✓       |      ✓      |      ✓      |      ✓      |             |      ~      |            |      ~       |                |            |         ✓         |             |
+| Explicit aliases, no prefix matching                                 |       ✓       |      ~      |      ✓      |      ✓      |      ~      |      ~      |     ✓      |      ✓       |       ✓        |     ✓      |         ✓         |      ✓      |
+| **[Signals](https://clig.dev/#signals)**                             |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Clean Ctrl-C exit                                                    |       ✓       |      ✓      |      ✓      |      ✓      |             |      ✓      |     ✓      |              |       ✓        |            |         ✓         |      ✓      |
+| **[Configuration](https://clig.dev/#configuration)**                 |               |             |             |             |             |             |            |              |                |            |                   |             |
+| XDG config location                                                  |       ~       |      ~      |      ~      |             |             |      ~      |            |      ~       |                |            |         ~         |             |
+| Flags, then env vars, then config files                              |       ✓       |      ~      |      ~      |      ~      |             |      ~      |     ~      |      ~       |       ✓        |     ~      |         ~         |      ~      |
+| **[Environment variables](https://clig.dev/#environment-variables)** |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Auto-named env vars                                                  |       ✓       |      ✓      |      ✓      |      ~      |             |      ✓      |     ~      |      ~       |       ~        |            |         ✓         |      ~      |
+| General-purpose env vars                                             |       ✓       |      ~      |      ~      |      ~      |      ~      |      ~      |     ~      |      ✓       |       ✓        |     ~      |         ~         |      ~      |
+| `.env` loading                                                       |               |             |             |      ~      |             |             |            |              |                |            |                   |             |
+| **[Distribution](https://clig.dev/#distribution)**                   |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Single binary                                                        |       ~       |      ~      |      ~      |      ✓      |             |             |     ✓      |              |                |            |         ~         |      ✓      |
+| **[Analytics](https://clig.dev/#analytics)**                         |               |             |             |             |             |             |            |              |                |            |                   |             |
+| Telemetry consent switch                                             |       ✓       |             |             |             |             |             |            |              |                |            |                   |             |
+| **Total ✓ / ~**                                                      |  **38** / 6   | **23** / 13 | **25** / 12 | **20** / 11 | **10** / 12 | **23** / 12 | **20** / 9 | **16** / 17  |   **21** / 8   | **16** / 9 |    **26** / 12    | **19** / 10 |
+
+The 100 ms row times a hello-world `--help` on an Apple Silicon Mac with Python 3.14, as the median of 15 runs: Click 36 ms, Cloup 55 ms, Fire 57 ms, Tyro 59 ms, Cement 66 ms, rich-click 73 ms, Typer 90 ms, Cyclopts 113 ms (on `5.0.0`) and click-extra 141 ms. `~` marks a time between 100 and 200 ms. cobra, clap and bpaf compile to native executables, with no interpreter to start.
+
+click-extra prints JSON and plain tables through the `json` and `plain` values of its [`--table-format`](table.md) option. Its color row is `~` because it reads `NO_COLOR=0` as a request for color, where [no-color.org](https://no-color.org) turns color off for any non-empty value.
+
+No framework skips prompts when `stdin` is not a TTY, accepts `--no-input`, or shows help instead of waiting on a terminal `stdin`. No framework puts a support or documentation link in the help on its own either: all of them leave it to free-form epilog text.
+
+```{dropdown} The 46 guidelines left out
+- The basics: use an argument-parsing library, which every framework is.
+- Help: move a long list of examples out of the help.
+- Output: put humans first, keep success output brief, report state changes, make the state easy to see, suggest the next command, make actions outside the program explicit, add density with ASCII art, use color with intention, use symbols and emoji where they help, hide output only the developers understand, and do not treat `stderr` as a log file.
+- Errors: keep the signal-to-noise ratio high, and put the most important information where the user looks first.
+- Arguments and flags: prefer flags to arguments, avoid two arguments for different things, make the default right for most users, accept a word like `none` for an optional value, and never read secrets from flags.
+- Interactivity: let the user escape.
+- Subcommands: stay consistent across subcommands, name each level consistently, and avoid ambiguous names.
+- Robustness: work in parallel with care, time out, recover from failures, design for crashes, and expect misuse.
+- Future-proofing: keep changes additive, feel free to change human output, avoid a catch-all subcommand, and avoid time bombs.
+- Signals: skip slow clean-up on a second Ctrl-C.
+- Configuration: ask before changing the configuration of another program.
+- Environment variables: use them for context-dependent behavior, keep values on one line, do not take over common names, do not use `.env` as a configuration file, and never read secrets from them.
+- Naming: four rules for the program name.
+- Distribution: make it easy to uninstall.
+- Analytics: consider alternatives to analytics.
+```
 
 ## Unique strengths
 
@@ -158,17 +258,12 @@ A line only bends where that store holds readings to bend it. `click-extra` is r
 
 ## Excluded frameworks
 
-```{note}
-[argh](https://github.com/neithere/argh) (~400 stars) is not included. No commits or releases since July 2024. Recent issues from 2026 have no maintainer responses.
-```
+Sorted by last commit, most recent first:
 
-```{note}
-[Cleo](https://github.com/python-poetry/cleo) (~1,300 stars) is not included. Its last release (`2.1.0`) was October 2023 and the [3.0 rewrite has stalled indefinitely](https://github.com/python-poetry/cleo/issues/415). Recent repository activity is limited to automated pre-commit updates. Cleo is tightly coupled to Poetry and not independently maintained.
-```
-
-```{note}
-[docopt-ng](https://github.com/jazzband/docopt-ng) (the maintained fork of the original [docopt](https://github.com/docopt/docopt) with ~8,000 stars) is not included. The Jazzband organization that maintained the fork [announced its wind-down](https://jazzband.co/news/2026/03/14/sunsetting-jazzband) in March 2026, and [docopt-ng is sunsetting along with it](https://github.com/jazzband/docopt-ng/issues/54). The original docopt has been stale since 2021. While docopt's docstring-driven approach to CLI definition was historically influential, no actively maintained Python implementation remains.
-```
+- [docopt-ng](https://github.com/jazzband/docopt-ng) (~200 stars), last commit July 2026: the maintained fork of docopt has not released since `0.9.0` in May 2023. Jazzband, the organization hosting it, [is winding down](https://jazzband.co/news/2026/03/14/sunsetting-jazzband) and moves its projects to new homes by the end of 2026.
+- [Cleo](https://github.com/python-poetry/cleo) (~1,400 stars), last commit March 2026: only automated pre-commit updates since `2.1.0` in October 2023, and the [3.0 rewrite has stalled](https://github.com/python-poetry/cleo/issues/415). Cleo is maintained as a part of Poetry, not on its own.
+- [docopt](https://github.com/docopt/docopt) (~8,000 stars), last commit June 2025: no release since `0.6.2` in 2014. Its docstring-driven way to declare a CLI was influential, and lives on in docopt-ng above.
+- [argh](https://github.com/neithere/argh) (~400 stars), last commit July 2024: no commit or release since `0.31.3`.
 
 ## Project URLs
 
