@@ -559,6 +559,32 @@ def test_run_lanes_interrupt_aborts_without_blocking():
         release.set()
 
 
+def test_run_lanes_interrupt_stops_each_lane_after_its_current_item():
+    """An interrupt lets each running lane finish its current item, then stop."""
+    started = threading.Event()
+    release = threading.Event()
+    ran: list[int] = []
+    lock = threading.Lock()
+
+    def work(n):
+        with lock:
+            ran.append(n)
+        if n == 0:
+            started.wait(timeout=5)
+            raise KeyboardInterrupt
+        if n == 1:
+            started.set()
+            release.wait(timeout=5)
+        return n
+
+    with pytest.raises(KeyboardInterrupt):
+        list(run_lanes(work, ([0], [1, 2, 3]), jobs=2))
+    release.set()
+    # Leaves the lane worker time to run on, which it must not.
+    sleep(0.3)
+    assert sorted(ran) == [0, 1]
+
+
 def test_invalid_value(invoke):
     """Values that are neither an integer nor a known keyword are rejected."""
 

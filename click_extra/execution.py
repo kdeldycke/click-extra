@@ -423,7 +423,10 @@ def _resolve_worker_cap(ctx: click.Context | None, serial_at_debug: bool) -> int
 
 
 @contextmanager
-def _interruptible_pool(max_workers: int) -> Iterator[ThreadPoolExecutor]:
+def _interruptible_pool(
+    max_workers: int,
+    stop: threading.Event | None = None,
+) -> Iterator[ThreadPoolExecutor]:
     """Yield a thread pool whose teardown honors a prompt interrupt.
 
     Wraps a {class}`~concurrent.futures.ThreadPoolExecutor` for a `with` body
@@ -439,7 +442,8 @@ def _interruptible_pool(max_workers: int) -> Iterator[ThreadPoolExecutor]:
     until they return; a caller that needs them to stop sooner (killing a
     subprocess, say) must arrange that itself. This is why a plain `with` block
     is not used: its `shutdown(wait=True)` teardown would block until every
-    in-flight task finished, defeating the interrupt.
+    in-flight task finished, defeating the interrupt. The `stop` event, set on
+    that same abort, lets a task made of several steps quit between two of them.
 
     Shared by {func}`run_jobs` and {func}`run_lanes`, the two parallel drivers.
     """
@@ -447,6 +451,8 @@ def _interruptible_pool(max_workers: int) -> Iterator[ThreadPoolExecutor]:
     try:
         yield executor
     except (KeyboardInterrupt, GeneratorExit):
+        if stop is not None:
+            stop.set()
         executor.shutdown(wait=False, cancel_futures=True)
         raise
     except BaseException:
@@ -612,12 +618,21 @@ def run_lanes(
     else:
         # Each lane is a serial chain run on one worker; chains run concurrently and
         # their results are yielded in submission order.
+        stop = threading.Event()
+
         def run_chain(lane: list[T]) -> list[R]:
-            return [func(item) for item in lane]
+            results = []
+            for item in lane:
+                # An interrupted or abandoned run stops each running lane after
+                # its current item, instead of running the lane to its end.
+                if stop.is_set():
+                    break
+                results.append(func(item))
+            return results
 
         # The pool teardown drops queued lanes on a prompt interrupt instead of
         # blocking on the in-flight ones (see {func}`_interruptible_pool`).
-        with _interruptible_pool(jobs) as executor:
+        with _interruptible_pool(jobs, stop=stop) as executor:
             for chain_results in _windowed_map(
                 executor,
                 run_chain,
