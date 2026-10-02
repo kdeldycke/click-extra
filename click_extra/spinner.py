@@ -1425,6 +1425,7 @@ class OperationTrail:
         self._lock = threading.Lock()
         self._done = 0
         self._ok = 0
+        self._finished = False
         self._start = time.monotonic()
         self._indicator: _AggregateIndicator | None = None
         self._buffer: list[str] = []
@@ -1479,6 +1480,14 @@ class OperationTrail:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
+        if (
+            exc_type is not None
+            and issubclass(exc_type, KeyboardInterrupt)
+            and not self._finished
+        ):
+            # An interrupted batch still closes with a finisher, so the record
+            # of what completed ends on a line saying it stopped short.
+            self.finish(False, self._interrupted_summary())
         indicator = self._indicator
         if indicator is None:
             return
@@ -1500,6 +1509,12 @@ class OperationTrail:
     def ok_count(self) -> int:
         """How many marked outcomes have succeeded so far."""
         return self._ok
+
+    def _interrupted_summary(self) -> str:
+        """The finisher of a batch a Ctrl+C stopped: how far it got."""
+        count = f"{self._done}/{self.total}" if self.total else str(self._done)
+        summary = _("Interrupted after {count}").format(count=count)
+        return f"{summary} {self.unit}" if self.unit else summary
 
     def _render_line(self, ok: bool, message: str) -> str:
         """Format one `✓`/`✘` line for the trail's stream, plain when color is off.
@@ -1534,7 +1549,13 @@ class OperationTrail:
             self._done += 1
             if ok:
                 self._ok += 1
-            if self._echo:
+            if self._finished:
+                # An outcome landing after the finisher, from a task the batch
+                # waited on after a Ctrl+C: print it plainly, below the finisher,
+                # so the record of what completed stays whole.
+                if self._echo_plain:
+                    self._echo_line(self._render_line(ok, message))
+            elif self._echo:
                 self._echo_line(self._render_line(ok, message))
             elif self._indicator is not None:
                 self._buffer.append(self._render_line(ok, message))
@@ -1565,6 +1586,7 @@ class OperationTrail:
         with the finisher, the way a sequential batch prints them: how fast a
         batch ran must not decide whether its record exists.
         """
+        self._finished = True
         indicator = self._indicator
         if indicator is not None:
             with self._lock:

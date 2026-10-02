@@ -510,6 +510,48 @@ def test_bar_stop_leaves_a_stalled_ticker_behind(monkeypatch):
             releaser.cancel()
 
 
+@pytest.mark.parametrize(
+    ("progress_bar", "jobs", "stream_factory"),
+    (
+        pytest.param(True, 1, TTYStringIO, id="bar"),
+        pytest.param(False, 2, TTYStringIO, id="concurrent-spinner"),
+        pytest.param(False, 1, io.StringIO, id="sequential"),
+    ),
+)
+def test_interrupted_trail_closes_with_a_finisher(progress_bar, jobs, stream_factory):
+    """A Ctrl+C inside the trail still ends it on a `✘` line saying how far it
+    got, and an outcome landing afterwards prints below that line."""
+    stream = stream_factory()
+    trail = OperationTrail(
+        label="Fetching",
+        unit="feeds",
+        total=5,
+        jobs=jobs,
+        progress_bar=progress_bar,
+        live="always",
+        stream=stream,
+        timer=False,
+        delay=0,
+    )
+
+    def interrupted_batch():
+        with trail:
+            trail.mark(True, "feed-a fetched")
+            trail.mark(True, "feed-b fetched")
+            raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        interrupted_batch()
+    # A task the CLI waited on after the Ctrl+C finishes now.
+    trail.mark(True, "feed-c fetched")
+
+    plain = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
+    assert "feed-a fetched" in plain
+    finisher = f"{KO_GLYPH} Interrupted after 2/5 feeds"
+    assert finisher in plain
+    assert plain.index("feed-c fetched") > plain.index(finisher)
+
+
 def test_progressbar_shows_final_position_with_update_min_steps():
     """Work around pallets/click#3571: with show_pos and an update_min_steps that
     does not divide the length, the bar must still land on total/total instead of

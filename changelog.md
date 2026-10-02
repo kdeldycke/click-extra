@@ -22,6 +22,7 @@
 - End the process by `SIGINT` after Click's `Aborted!` on a Ctrl+C, so a calling shell stops its own loop. It used to exit with status `1`.
 - Say that an interrupted run waits for its running tasks, and quit at once on a second Ctrl+C instead of printing a traceback.
 - Send `SIGTERM`, then `SIGKILL` three seconds later, to the commands `run_cli` started when a Ctrl+C aborts the CLI, without calling `install_interrupt_handler`.
+- End an `OperationTrail` interrupted by Ctrl+C on a `✘ Interrupted after 2/5 feeds` finisher, and print the outcomes of tasks finishing after it.
 
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 

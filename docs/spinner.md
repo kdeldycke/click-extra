@@ -447,6 +447,8 @@ assert "Trace a simulated batch of operations" in result.stdout
 assert "--progress-bar" in result.stdout
 ```
 
+A Ctrl+C inside the trail still ends it on a finisher, like `✘ Interrupted after 2/5 roasts`, so the record of the batch says where it stopped. A task already running when the Ctrl+C landed prints its own outcome below that line once it finishes, while the CLI [waits for it](execution.md#interrupting-a-run).
+
 ### A progress bar instead of a spinner
 
 Because the trail knows its `total`, it can carry a *determinate* [progress bar](#progress-bars) rather than an indeterminate spinner. Give the `roast` command above a bar by adding `progress_bar=True` (mutually exclusive with `spinner=`, and requiring a positive `total`), plus the `label` and `unit` its tally reads:
