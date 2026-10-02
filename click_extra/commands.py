@@ -765,10 +765,13 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         `_detect_program_name()` method. This is to avoid the CLI being called
         `python -m <module_name>`, which is not very user-friendly.
 
-        A Ctrl+C still prints Click's `Aborted!`, but then ends the process the
-        way an unhandled Ctrl+C does in Python: by `SIGINT`, once the running
-        threads finish. Click exits with status `1`, which tells a calling shell
-        the program handled the interrupt itself, so a shell loop runs on.
+        A Ctrl+C still prints Click's `Aborted!`, which Click prints on purpose
+        ([pallets/click#2584](https://github.com/pallets/click/issues/2584)), but
+        then ends the process the way an unhandled Ctrl+C does in Python: by
+        `SIGINT`, once the running threads finish. Click
+        [exits with status `1`](https://github.com/pallets/click/blob/8.5.0/src/click/core.py#L1591-L1595)
+        instead, which tells a calling shell the program handled the interrupt
+        itself, so a shell loop runs on.
         """
         if not prog_name and self.name:
             prog_name = self.name
