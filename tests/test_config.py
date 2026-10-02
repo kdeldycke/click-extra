@@ -1267,8 +1267,60 @@ def test_conf_file_overridden_by_cli_param(
         assert result.stdout == (
             "dummy_flag = False\nmy_list = ('super', 'wow')\nint_parameter = 15\n"
         )
-        assert result.stderr == f"Load configuration matching {conf_path}\n"
+        # --verbosity CRITICAL also silences the --config status line.
+        assert not result.stderr
         assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("before", "after", "shown"),
+    (
+        ((), (), True),
+        ((), ("--verbosity", "INFO"), True),
+        ((), ("--verbosity", "ERROR"), False),
+        ((), ("-q",), False),
+        # The level is read ahead, so a flag typed before --config counts too.
+        (("-q",), (), False),
+        # -v cancels -q, back to the default WARNING.
+        ((), ("-q", "-v"), True),
+    ),
+)
+def test_config_status_line_follows_verbosity(
+    invoke, create_config, before, after, shown
+):
+    """`--config` announces the file it loads, unless the command line asks for less
+    than the default verbosity, whatever the position of the verbosity flags."""
+    conf_path = create_config("orchard.toml", "[orchard]\n")
+
+    @command
+    def orchard():
+        echo("Picked.")
+
+    result = invoke(orchard, *before, "--config", str(conf_path), *after)
+    assert result.exit_code == 0
+    assert result.stdout == "Picked.\n"
+    assert ("Load configuration matching" in result.stderr) is shown
+
+
+@pytest.mark.parametrize(
+    ("args", "shown"),
+    (
+        (("--no-config",), True),
+        (("--no-config", "-q"), False),
+        (("--verbosity", "CRITICAL", "--no-config"), False),
+    ),
+)
+def test_no_config_status_line_follows_verbosity(invoke, args, shown):
+    """`--no-config` announces it skips loading, unless asked for quiet output."""
+
+    @command
+    def orchard():
+        echo("Picked.")
+
+    result = invoke(orchard, *args)
+    assert result.exit_code == 0
+    assert result.stdout == "Picked.\n"
+    assert ("Skip configuration file loading altogether." in result.stderr) is shown
 
 
 @all_config_formats

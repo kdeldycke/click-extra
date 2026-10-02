@@ -52,6 +52,7 @@ from logging import (
 
 import click
 from boltons.strutils import strip_ansi
+from click._utils import UNSET
 from click.types import IntRange
 
 from . import context
@@ -421,6 +422,38 @@ def new_logger(
     return logger
 
 
+def _fold_level(
+    base: LogLevel,
+    *,
+    verbosity: LogLevel,
+    verbose: int,
+    quiet: int,
+    debug: bool,
+) -> LogLevel:
+    """Fold the raw verbosity requests into one level.
+
+    See {meth}`_VerbosityOption.resolve_level` for the rule.
+    """
+    # `--debug` asks for the loudest level there is, so no counter and no
+    # `--verbosity` can outrank it. Answered here rather than by writing
+    # VERBOSITY, which would make the winner depend on which option Click
+    # happened to process last.
+    if debug:
+        return LogLevel.DEBUG
+
+    net = verbose - quiet
+    if net == 0:
+        return verbosity
+
+    levels = tuple(LogLevel)
+    # Higher index == more verbose. `-v` raises the index, `-q` lowers it.
+    counter_index = min(max(levels.index(base) + net, 0), len(levels) - 1)
+    counter = levels[counter_index]
+
+    # `min` picks the more verbose (lowest numeric) level, `max` the quieter.
+    return min(counter, verbosity) if net > 0 else max(counter, verbosity)
+
+
 class _VerbosityOption(ExtraOption):
     """A base class implementing all the common helpers to manipulated logger's
     verbosity.
@@ -595,29 +628,14 @@ class _VerbosityOption(ExtraOption):
         up from the default and the loudest request wins), while letting `-q` mirror
         it downwards.
         """
-        # `--debug` asks for the loudest level there is, so no counter and no
-        # `--verbosity` can outrank it. Answered here rather than by writing
-        # VERBOSITY, which would make the winner depend on which option Click
-        # happened to process last.
-        if context.get(ctx, context.DEBUG, False):
-            return LogLevel.DEBUG
-
         base = self.get_base_level(ctx)
-        verbosity: LogLevel = context.get(ctx, context.VERBOSITY, base)
-        net: int = context.get(ctx, context.VERBOSE, 0) - context.get(
-            ctx, context.QUIET, 0
+        return _fold_level(
+            base,
+            verbosity=context.get(ctx, context.VERBOSITY, base),
+            verbose=context.get(ctx, context.VERBOSE, 0),
+            quiet=context.get(ctx, context.QUIET, 0),
+            debug=context.get(ctx, context.DEBUG, False),
         )
-
-        if net == 0:
-            return verbosity
-
-        levels = tuple(LogLevel)
-        # Higher index == more verbose. `-v` raises the index, `-q` lowers it.
-        counter_index = min(max(levels.index(base) + net, 0), len(levels) - 1)
-        counter = levels[counter_index]
-
-        # `min` picks the more verbose (lowest numeric) level, `max` the quieter.
-        return min(counter, verbosity) if net > 0 else max(counter, verbosity)
 
     def apply_verbosity(self, ctx: click.Context) -> None:
         """Reconcile the requested verbosity and apply it to all managed loggers.
@@ -911,3 +929,48 @@ class QuietOption(_CounterOption):
         if not param_decls:
             param_decls = ("--quiet", "-q")
         super().__init__(param_decls=param_decls, **kwargs)
+
+
+def requested_level(
+    ctx: click.Context,
+    opts: Mapping[str, Any],
+) -> LogLevel | None:
+    """The level the verbosity options of `ctx.command` will settle on.
+
+    Read from the parsed `opts`, the environment and the defaults, without running
+    any of the options' callbacks, so an eager option processed before them can
+    honor it. {class}`~click_extra.config.ConfigOption` relies on it: it loads the
+    configuration before any verbosity option applies a level, yet `-q` and a
+    quieter `--verbosity` still silence its status lines.
+
+    Returns `None` when the command carries no verbosity option, or when a value
+    does not convert: the regular parse reports that error in its turn.
+    """
+    options: dict[type[_VerbosityOption], _VerbosityOption | None] = {
+        klass: last_param(ctx.command.params, klass)
+        for klass in (VerbosityOption, VerboseOption, QuietOption, DebugOption)
+    }
+    present = [option for option in options.values() if option is not None]
+    if not present:
+        return None
+
+    def read(klass: type[_VerbosityOption], fallback: Any) -> Any:
+        option = options[klass]
+        if option is None:
+            return fallback
+        value, _ = option.consume_value(ctx, opts)
+        if value is None or value is UNSET:
+            return fallback
+        return option.type_cast_value(ctx, value)
+
+    base = present[0].get_base_level(ctx)
+    try:
+        return _fold_level(
+            base,
+            verbosity=read(VerbosityOption, base),
+            verbose=read(VerboseOption, 0),
+            quiet=read(QuietOption, 0),
+            debug=read(DebugOption, False),
+        )
+    except click.ClickException:
+        return None

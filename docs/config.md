@@ -343,6 +343,8 @@ Default values: {'int_param': 3}
 int_parameter is 999
 ```
 
+The `Load configuration matching` line goes to `stderr`. `-q`, or a `--verbosity` above `WARNING`, silences it, like the `--no-config` line.
+
 ```{hint}
 Variables in `meta` are presented in their original Python type:
 - `click_extra.conf_source` is either a normalized [`Path`](https://docs.python.org/3/library/pathlib.html) or [`URL` object](https://boltons.readthedocs.io/en/latest/urlutils.html#the-url-type)

@@ -72,6 +72,7 @@ from extra_platforms._utils import _remove_blanks
 from wcmatch import fnmatch, glob
 
 from .. import context
+from ..logging import LogLevel, requested_level
 from ..parameters import (
     PARAM_PATH_SEP,
     ExtraOption,
@@ -116,6 +117,14 @@ if TYPE_CHECKING:
     import click
 
 logger = logging.getLogger(__name__)
+
+
+_STATUS_SILENCED: str = f"{context.META_NAMESPACE}_config_status_silenced"
+"""Context key marking that the command line asks for less than `WARNING` output.
+
+Set by {meth}`ConfigOption.handle_parse_result` before the configuration loads, and
+read by {meth}`ConfigOption.load_conf` to keep its status lines quiet.
+"""
 
 
 VCS_DIRS = (".git", ".hg", ".svn", ".bzr", "CVS", ".darcs")
@@ -1882,11 +1891,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         if ctx.resilient_parsing:
             return
 
-        # In this function we would like to inform the user of what we're doing.
-        # In theory we could use logger.info() for that, but the logger is stuck to its
-        # default WARNING level at this point, because the defaults have not been
-        # loaded yet. So we use echo() to print messages to stderr instead.
-        info_msg = partial(echo, err=True)
+        # The status lines below go to stderr through echo(), not the logger: the
+        # logger still sits at its default level here, because the verbosity options
+        # run after this one. handle_parse_result() reads the level they will settle
+        # on ahead of time, so -q and a quieter --verbosity still silence the lines.
+        silenced = context.get(ctx, _STATUS_SILENCED, False)
 
         assert self.name is not None  # Always set for Option subclasses.
 
@@ -1895,7 +1904,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         if path_pattern is NO_CONFIG:
             logger.debug(f"{NO_CONFIG} received.")
             if explicit_conf:
-                info_msg("Skip configuration file loading altogether.")
+                if not silenced:
+                    echo("Skip configuration file loading altogether.", err=True)
             else:
                 logger.debug("Configuration file autodiscovery disabled by default.")
             return
@@ -1908,8 +1918,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         # NO_CONFIG was handled above with an early return. Help mypy see that.
         assert isinstance(path_pattern, str)
         message = f"Load configuration matching {path_pattern}"
-        if explicit_conf:
-            info_msg(message)
+        if explicit_conf and not silenced:
+            echo(message, err=True)
         else:
             logger.debug(message)
 
@@ -2043,7 +2053,18 @@ class ConfigOption(ExtraOption, ParamStructure):
         `Group.parse_args`, which splits it into the subcommands to dispatch. A
         plain `click.Group` offers no other hook, so the option carries the feature
         instead of the group.
+
+        Before loading, it reads the verbosity the command line asks for (see
+        {func}`~click_extra.logging.requested_level`), so {meth}`load_conf` can keep
+        its status lines quiet under `-q` or a `--verbosity` above `WARNING`.
         """
+        if not ctx.resilient_parsing:
+            level = requested_level(ctx, opts)
+            context.set(
+                ctx,
+                _STATUS_SILENCED,
+                level is not None and level > LogLevel.WARNING,
+            )
         value, args = super().handle_parse_result(ctx, opts, args)
         if not ctx.resilient_parsing:
             args = inject_reserved_subcommands(ctx, args)
