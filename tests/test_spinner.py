@@ -78,6 +78,25 @@ class TTYStringIO(io.StringIO):
         return True
 
 
+class StallingTTY(TTYStringIO):
+    """A terminal whose writes block once `stall` is set, until `release` is.
+
+    Stands in for a terminal paused by flow control (Ctrl+S), or a full pipe.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.stall = threading.Event()
+        self.blocked = threading.Event()
+        self.release = threading.Event()
+
+    def write(self, text: str) -> int:
+        if self.stall.is_set() and not self.release.is_set():
+            self.blocked.set()
+            self.release.wait()
+        return super().write(text)
+
+
 def wait_until(predicate: Callable[[], bool], timeout: float = 3.0) -> bool:
     """Poll ``predicate`` until it is true or ``timeout`` seconds elapse.
 
@@ -438,6 +457,57 @@ def test_auto_spinner_follows_progress_flag(invoke, args, draws):
     result = invoke(cli, *args)
     assert result.exit_code == 0
     assert ("Brewing tea" in stream.getvalue()) is draws
+
+
+def test_spinner_stop_leaves_a_stalled_drawing_thread_behind(monkeypatch):
+    """`stop()` gives up on a drawing thread stuck in a write after the grace,
+    instead of hanging the Ctrl+C that asked for the stop."""
+    monkeypatch.setattr("click_extra.spinner._STOP_GRACE", 0.2)
+    stream = StallingTTY()
+    spinner = Spinner("Brewing tea", stream=stream, interval=0.02)
+    spinner.start()
+    assert wait_until(lambda: spinner._drawn)
+    stream.stall.set()
+    assert stream.blocked.wait(3)
+    # Frees an unbounded join after a while, so a regression fails, not hangs.
+    releaser = threading.Timer(3, stream.release.set)
+    releaser.start()
+    try:
+        start = time.monotonic()
+        spinner.stop()
+        assert time.monotonic() - start < 2
+    finally:
+        stream.release.set()
+        releaser.cancel()
+
+
+def test_bar_stop_leaves_a_stalled_ticker_behind(monkeypatch):
+    """The progress bar's elapsed-clock ticker gets the same bounded stop."""
+    monkeypatch.setattr("click_extra.spinner._STOP_GRACE", 0.2)
+    stream = StallingTTY()
+    indicator = _BarIndicator(
+        label="Fetching feeds",
+        unit="feeds",
+        total=3,
+        delay=0,
+        live="always",
+        stream=stream,
+        timer=True,
+    )
+    releaser = threading.Timer(3, stream.release.set)
+    # stop() is idempotent: the exit of the block finds the bar already stopped.
+    with indicator:
+        assert indicator._ticker is not None
+        stream.stall.set()
+        assert stream.blocked.wait(3)
+        releaser.start()
+        try:
+            start = time.monotonic()
+            indicator.stop()
+            assert time.monotonic() - start < 2
+        finally:
+            stream.release.set()
+            releaser.cancel()
 
 
 def test_progressbar_shows_final_position_with_update_min_steps():

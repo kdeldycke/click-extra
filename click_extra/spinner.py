@@ -57,7 +57,7 @@ import sys
 import threading
 import time
 from gettext import gettext as _
-from typing import TypeVar, cast
+from typing import Final, TypeVar, cast
 
 import click
 from click._utils import UNSET
@@ -267,6 +267,17 @@ def _stream_or_stderr(stream: IO[str] | None) -> IO[str]:
     swapped in afterwards (as test harnesses do) is honored.
     """
     return stream if stream is not None else sys.stderr
+
+
+_STOP_GRACE: Final = 1.0
+"""Seconds a stopping display waits for its drawing thread before leaving it behind.
+
+A drawing thread finishes its frame within milliseconds, unless the stream stops
+draining: a terminal paused by flow control (Ctrl+S), or a full pipe. Waiting on
+it without a bound would then hang the stop, and with it the Ctrl+C that asked
+for the stop. The thread is a daemon, so it is left behind, and the clean-up
+writes are skipped: they would block on the same stream.
+"""
 
 
 class Spinner:
@@ -688,8 +699,12 @@ class Spinner:
         if self._thread is None:
             return
         self._stop.set()
-        self._thread.join()
+        self._thread.join(timeout=_STOP_GRACE)
+        stuck = self._thread.is_alive()
         self._thread = None
+        if stuck:
+            # See _STOP_GRACE: the stream does not drain, so skip the clean-up.
+            return
 
         # The animation thread has joined, so the draw lock is now free: take it
         # so a concurrent `echo()` from another thread cannot interleave with the
@@ -1161,12 +1176,19 @@ class _BarIndicator:
                 if self._drawn and not self._finished:
                     self._draw()
 
-    def _stop_ticker(self) -> None:
-        """Stop and join the elapsed-clock ticker. Idempotent."""
-        if self._ticker is not None:
-            self._stop_tick.set()
-            self._ticker.join()
-            self._ticker = None
+    def _stop_ticker(self) -> bool:
+        """Stop and join the elapsed-clock ticker. Idempotent.
+
+        :return: `False` when the ticker is still blocked in a write after
+            {data}`_STOP_GRACE`, so the caller skips its own clean-up writes.
+        """
+        if self._ticker is None:
+            return True
+        self._stop_tick.set()
+        self._ticker.join(timeout=_STOP_GRACE)
+        stuck = self._ticker.is_alive()
+        self._ticker = None
+        return not stuck
 
     def advance(self, done: int) -> None:
         """Step the bar to `done` and redraw it, once past the initial delay."""
@@ -1196,7 +1218,9 @@ class _BarIndicator:
     def finish(self, ok: bool, summary: str) -> None:
         """Replace the bar with a kept `✓`/`✘` ``summary`` line, elapsed included."""
         _deregister_line(self)
-        self._stop_ticker()
+        if not self._stop_ticker():
+            self._finished = True
+            return
         with self._lock:
             self._finished = True
             if not self._drawn:
@@ -1223,7 +1247,9 @@ class _BarIndicator:
         `with` block, where {meth}`finish` never ran).
         """
         _deregister_line(self)
-        self._stop_ticker()
+        if not self._stop_ticker():
+            self._finished = True
+            return
         with self._lock:
             if self._finished or not self._drawn:
                 self._finished = True
