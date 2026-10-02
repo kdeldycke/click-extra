@@ -301,6 +301,27 @@ def test_record_command_recovers_a_foreign_animation():
     assert all(frame.duration > 0 for frame in frames)
 
 
+STUBBORN_SCRIPT = """
+import signal, sys, time
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+sys.stdout.write("ripe")
+sys.stdout.flush()
+time.sleep(6)
+"""
+"""A command that ignores `SIGTERM` and outlives the recording."""
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_record_command_kills_a_command_ignoring_sigterm(monkeypatch):
+    """A command ignoring `SIGTERM` is killed once the grace runs out, so the
+    recording returns instead of waiting for the command to exit on its own."""
+    monkeypatch.setattr("click_extra.recording.TERMINATE_GRACE", 0.2)
+    start = time.monotonic()
+    frames = record_command((sys.executable, "-c", STUBBORN_SCRIPT), duration=0.5)
+    assert time.monotonic() - start < 4
+    assert any("ripe" in frame.text for frame in frames)
+
+
 SPLIT_GLYPH_SCRIPT = """
 import sys, time
 raw = sys.stdout.buffer

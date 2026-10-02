@@ -171,6 +171,14 @@ screen handles a sequence split across two reads regardless, see
 {data}`PARTIAL_CSI_RE`.
 """
 
+TERMINATE_GRACE = 2.0
+"""Seconds a recording waits for the command to exit after `SIGTERM`.
+
+A command still running when the recording ends, by its `duration` or by a
+Ctrl+C, gets `SIGTERM` first, to clean up after itself. One that ignores it is
+killed once this grace runs out, so the recording never waits forever.
+"""
+
 ERASE_IN_LINE = "K"
 """Final letter of the sequence clearing a line from the cursor onward."""
 
@@ -531,6 +539,10 @@ def _record_process(
         os.close(parent)
         if process.poll() is None:
             process.terminate()
+            try:
+                process.wait(timeout=TERMINATE_GRACE)
+            except subprocess.TimeoutExpired:
+                process.kill()
         returncode = process.wait()
 
     return recorder.frames(end=clock()), returncode
