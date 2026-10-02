@@ -86,7 +86,7 @@ Graded in October 2026 from source code and probes of minimal apps, against clic
 | Machine-readable output                                              |       ✓       |      ~      |      ~      |      ~      |      ~      |             |            |      ~       |                |     ~      |         ~         |             |
 | `--plain` tabular output                                             |       ✓       |             |             |             |             |             |            |      ~       |                |            |                   |             |
 | `--json` output                                                      |       ✓       |             |             |             |             |             |            |      ~       |                |            |                   |             |
-| Color off: no TTY, `NO_COLOR`, `--no-color`                          |       ~       |      ~      |      ~      |     N/A     |      ~      |      ~      |     ~      |      ~       |       ~        |     ~      |         ~         |      ~      |
+| Color off: no TTY, `NO_COLOR`, `--no-color`                          |       ✓       |      ~      |      ~      |     N/A     |      ~      |      ~      |     ~      |      ~       |       ~        |     ~      |         ~         |      ~      |
 | No animation without a TTY                                           |       ✓       |      ✓      |      ✓      |     N/A     |     N/A     |      ✓      |    N/A     |     N/A      |      N/A       |    N/A     |         ✓         |     N/A     |
 | Pager                                                                |       ✓       |      ✓      |      ✓      |             |      ✓      |             |            |              |                |            |         ✓         |             |
 | **[Errors](https://clig.dev/#errors)**                               |               |             |             |             |             |             |            |              |                |            |                   |             |
@@ -127,11 +127,11 @@ Graded in October 2026 from source code and probes of minimal apps, against clic
 | Single binary                                                        |       ~       |      ~      |      ~      |      ✓      |             |             |     ✓      |              |                |            |         ~         |      ✓      |
 | **[Analytics](https://clig.dev/#analytics)**                         |               |             |             |             |             |             |            |              |                |            |                   |             |
 | Telemetry consent switch                                             |       ✓       |             |             |             |             |             |            |              |                |            |                   |             |
-| **Total ✓ / ~**                                                      |  **38** / 6   | **23** / 13 | **25** / 12 | **20** / 11 | **10** / 12 | **23** / 12 | **20** / 9 | **16** / 17  |   **21** / 8   | **16** / 9 |    **26** / 12    | **19** / 10 |
+| **Total ✓ / ~**                                                      |  **39** / 5   | **23** / 13 | **25** / 12 | **20** / 11 | **10** / 12 | **23** / 12 | **20** / 9 | **16** / 17  |   **21** / 8   | **16** / 9 |    **26** / 12    | **19** / 10 |
 
 The 100 ms row times a hello-world `--help` on an Apple Silicon Mac with Python 3.14, as the median of 15 runs: Click 36 ms, Cloup 55 ms, Fire 57 ms, Tyro 59 ms, Cement 66 ms, rich-click 73 ms, Typer 90 ms, Cyclopts 113 ms (on `5.0.0`) and click-extra 141 ms. `~` marks a time between 100 and 200 ms. cobra, clap and bpaf compile to native executables, with no interpreter to start.
 
-click-extra prints JSON and plain tables through the `json` and `plain` values of its [`--table-format`](table.md) option. Its color row is `~` because it reads `NO_COLOR=0` as a request for color, where [no-color.org](https://no-color.org) turns color off for any non-empty value.
+click-extra prints JSON and plain tables through the `json` and `plain` values of its [`--table-format`](table.md) option.
 
 No framework skips prompts when `stdin` is not a TTY, accepts `--no-input`, or shows help instead of waiting on a terminal `stdin`. No framework puts a support or documentation link in the help on its own either: all of them leave it to free-form epilog text.
 

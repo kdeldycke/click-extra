@@ -132,47 +132,73 @@ def test_standalone_color_option(
 
 
 @pytest.mark.parametrize(
-    ("env", "env_expect_colors"),
+    ("env", "env_vote"),
     (
-        ({"COLOR": "True"}, True),
+        # NO_COLOR refuses color whatever its value, and never asks for it.
+        ({"NO_COLOR": "1"}, False),
+        ({"NO_COLOR": "True"}, False),
+        ({"NO_COLOR": "0"}, False),
+        ({"NO_COLOR": "false"}, False),
+        # An empty value counts as unset, per no-color.org and force-color.org.
+        ({"NO_COLOR": ""}, None),
+        ({"FORCE_COLOR": ""}, None),
+        # FORCE_COLOR asks for color, except for the falsy words Node.js honors.
+        ({"FORCE_COLOR": "1"}, True),
+        ({"FORCE_COLOR": "3"}, True),
+        ({"FORCE_COLOR": "0"}, False),
+        ({"FORCE_COLOR": "false"}, False),
+        # CLICOLOR allows color on a terminal only, unless it refuses it.
+        ({"CLICOLOR": "1"}, None),
+        ({"CLICOLOR": "0"}, False),
+        ({"CLICOLOR_FORCE": "1"}, True),
+        ({"CLICOLOR_FORCE": "0"}, None),
+        # LLM marks an agent: it refuses color, and a falsy value casts no vote.
+        ({"LLM": "1"}, False),
+        ({"LLM": "true"}, False),
+        ({"LLM": "0"}, None),
+        ({"LLM": "false"}, None),
+        ({"LLM": ""}, None),
+        # COLOR takes the words of --color, and booleans.
         ({"COLOR": "true"}, True),
         ({"COLOR": "1"}, True),
-        ({"COLOR": ""}, True),
-        ({"COLOR": "False"}, False),
+        ({"COLOR": "always"}, True),
+        ({"COLOR": "never"}, False),
         ({"COLOR": "false"}, False),
         ({"COLOR": "0"}, False),
-        ({"NO_COLOR": "True"}, False),
-        ({"NO_COLOR": "true"}, False),
-        ({"NO_COLOR": "1"}, False),
-        ({"NO_COLOR": ""}, False),
-        ({"NO_COLOR": "False"}, True),
-        ({"NO_COLOR": "false"}, True),
-        ({"NO_COLOR": "0"}, True),
-        ({"LLM": "True"}, False),
-        ({"LLM": "true"}, False),
-        ({"LLM": "1"}, False),
-        ({"LLM": ""}, False),
-        ({"LLM": "False"}, True),
-        ({"LLM": "false"}, True),
-        ({"LLM": "0"}, True),
-        (None, True),
+        ({"COLOR": "auto"}, None),
+        ({"COLOR": "256"}, None),
+        ({"COLOR": ""}, None),
+        # A variable asking for color wins over one refusing it.
+        ({"FORCE_COLOR": "1", "NO_COLOR": "1"}, True),
+        # CLICOLOR=1 asks for nothing, so NO_COLOR keeps color off.
+        ({"CLICOLOR": "1", "NO_COLOR": "1"}, False),
+        (None, None),
     ),
 )
+@pytest.mark.parametrize("tty", (True, False), ids=("tty", "pipe"))
 @pytest.mark.parametrize(
     ("param", "param_expect_colors"),
     (
         ("--color", True),
         ("--no-color", False),
-        (None, True),
+        (None, None),
     ),
 )
 def test_no_color_env_convention(
     invoke,
     env,
-    env_expect_colors,
+    env_vote,
+    tty,
     param,
     param_expect_colors,
 ):
+    """Each color variable is read by its own convention, on a terminal and in a pipe.
+
+    A vote of `None` must leave the decision to the output stream: colored on a
+    terminal, plain in a pipe. The pipe case is what tells a variable casting no vote
+    apart from one forcing color.
+    """
+
     @click.command
     @color_option
     @no_color_option
@@ -184,12 +210,16 @@ def test_no_color_env_convention(
     if env is None:
         env = {var: None for var in COLOR_ENVVARS if var in os.environ}
 
-    result = invoke(color_cli7, param, color=True, env=env)
+    # color=None simulates a pipe without scrubbing the captured output.
+    result = invoke(color_cli7, param, color=True if tty else None, env=env)
 
-    # Params always overrides env's expectations.
-    expecting_colors = env_expect_colors
-    if param:
+    # Params always override the environment, which overrides TTY detection.
+    if param_expect_colors is not None:
         expecting_colors = param_expect_colors
+    elif env_vote is not None:
+        expecting_colors = env_vote
+    else:
+        expecting_colors = tty
     if expecting_colors:
         assert result.stdout == "\x1b[33mIt works!\x1b[0m\n"
     else:

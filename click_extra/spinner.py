@@ -64,7 +64,12 @@ from click._utils import UNSET
 
 from . import context
 from ._deprecated import warn_deprecated_argument
-from .color import COLOR_DISABLING_TERMS, invocation_color, is_a_tty
+from .color import (
+    COLOR_DISABLING_TERMS,
+    invocation_color,
+    is_a_tty,
+    resolve_color_env,
+)
 from .humanize import format_duration
 from .layout import cell_width
 from .parameters import ExtraOption
@@ -194,21 +199,15 @@ def _color_enabled(stream: IO[str]) -> bool:
     read through {func}`~click_extra.color.invocation_color`, never `ctx.color`
     alone, because a trail line and a spinner can be rendered on a worker thread
     the thread-local command context does not reach. Outside a CLI it falls back
-    to those two environment variables and a dumb/unknown `TERM` (see
-    {data}`~click_extra.color.COLOR_DISABLING_TERMS`), then to TTY detection.
+    to the color environment variables and a dumb/unknown `TERM`, read by
+    {func}`~click_extra.color.resolve_color_env`, then to TTY detection.
     """
     color = invocation_color()
     if color is not None:
         return color
-    # Mirror resolve_color_env()'s enabling-wins reconciliation outside a command
-    # context: FORCE_COLOR wins, then a dumb/unknown TERM or NO_COLOR forces plain
-    # text, so this fallback agrees with the env path no context has resolved yet.
-    if "FORCE_COLOR" in os.environ:
-        return True
-    if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
-        return False
-    if "NO_COLOR" in os.environ:
-        return False
+    env_color = resolve_color_env()
+    if env_color is not None:
+        return env_color
     return is_a_tty(stream)
 
 

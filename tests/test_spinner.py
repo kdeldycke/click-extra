@@ -489,6 +489,11 @@ def test_bare_decorator_without_parentheses():
         ({}, io.StringIO, False),
         ({"NO_COLOR": "1"}, TTYStringIO, False),
         ({"FORCE_COLOR": "1"}, io.StringIO, True),
+        # An empty value counts as unset, and LLM refuses color: the fallback reads
+        # the variables exactly as resolve_color_env() does.
+        ({"NO_COLOR": ""}, TTYStringIO, True),
+        ({"FORCE_COLOR": ""}, io.StringIO, False),
+        ({"LLM": "1"}, TTYStringIO, False),
         # A dumb terminal strips color even on a TTY, matching resolve_color_env().
         ({"TERM": "dumb"}, TTYStringIO, False),
         ({"TERM": "unknown"}, TTYStringIO, False),

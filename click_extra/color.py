@@ -30,6 +30,7 @@ import select
 import sys
 import weakref
 from collections.abc import Iterator
+from configparser import RawConfigParser
 from contextlib import contextmanager
 from gettext import gettext as _
 
@@ -39,7 +40,7 @@ from click.core import ParameterSource
 from extra_platforms import is_unix
 
 from ._deprecated import warn_deprecated_argument
-from .envvar import parse_envvar_flag, temporary_env
+from .envvar import temporary_env
 from .parameters import ExtraOption
 from .styling import _relative_luminance
 
@@ -83,8 +84,10 @@ COLOR_ENVVARS: dict[str, bool] = {
 """List of environment variables recognized as flags to switch color rendering on or
 off.
 
-The key is the name of the variable and the boolean value the value to pass to
-`--color` option flag when encountered.
+The key is the name of the variable, and the boolean the direction its convention
+leans: `True` for a variable asking for color, `False` for one refusing it. Each value
+is read by the convention of its variable, not as a plain boolean: see
+{func}`resolve_color_env`.
 
 Source:
 
@@ -94,6 +97,52 @@ Source:
 - https://github.com/pallets/click/issues/3022
 - https://blog.codemine.be/posts/2026/20260222-be-quiet/
 """
+
+
+_NO_COLOR_ENVVARS = frozenset({"NO_COLOR", "NO_COLORS", "NOCOLOR", "NOCOLORS"})
+"""Spellings of the [NO_COLOR](https://no-color.org) variable."""
+
+
+_FORCE_COLOR_ENVVARS = frozenset({"FORCE_COLOR", "FORCE_COLORS"})
+"""Spellings of the [FORCE_COLOR](https://force-color.org) variable."""
+
+
+_CLICOLOR_ENVVARS = frozenset({"CLICOLOR", "CLICOLORS"})
+"""Spellings of the [CLICOLOR](https://bixense.com/clicolors/) variable."""
+
+
+_CLICOLOR_FORCE_ENVVARS = frozenset({"CLICOLOR_FORCE", "CLICOLORS_FORCE"})
+"""Spellings of the [CLICOLOR_FORCE](https://bixense.com/clicolors/) variable."""
+
+
+_FALSY_ENVVAR_VALUES = frozenset({"0", "false", "no", "off"})
+"""Values read as an explicit "no" by the color variables that accept one."""
+
+
+def _color_envvar_vote(var: str, value: str) -> bool | None:
+    """Read the value of one {data}`COLOR_ENVVARS` variable by its own convention.
+
+    Returns `True` for color, `False` for no color, and `None` for no opinion. The
+    conventions are listed in {func}`resolve_color_env`.
+    """
+    value = value.strip().lower()
+    if not value:
+        return None
+    falsy = value in _FALSY_ENVVAR_VALUES
+    if var in _NO_COLOR_ENVVARS:
+        return False
+    if var in _FORCE_COLOR_ENVVARS:
+        return not falsy
+    if var in _CLICOLOR_ENVVARS:
+        return False if falsy else None
+    if var in _CLICOLOR_FORCE_ENVVARS:
+        return None if falsy else True
+    if var == "LLM":
+        return None if falsy else False
+    when = _COLOR_WHEN_LOOKUP.get(value)
+    if when is not None:
+        return _WHEN_TO_TRISTATE[when]
+    return RawConfigParser.BOOLEAN_STATES.get(value)
 
 
 COLOR_DISABLING_TERMS = frozenset({"dumb", "unknown"})
@@ -127,38 +176,53 @@ def is_a_tty(stream: IO[str]) -> bool:
 def resolve_color_env() -> bool | None:
     """Reconcile the recognized color environment variables into a tri-state.
 
-    Inspects every variable listed in {data}`COLOR_ENVVARS` and returns:
+    Reads every variable listed in {data}`COLOR_ENVVARS` by its own convention, and
+    returns:
 
-    - `True` if at least one *enabling* variable (`FORCE_COLOR`, `CLICOLOR`, …)
-      is set. Enabling wins over disabling, so a single one is enough to keep colors.
-    - `False` if only *disabling* variables (`NO_COLOR`, `LLM`, …) are set.
-    - `None` when no recognized variable is present, leaving the caller free to
-      apply its own default (typically `auto`).
+    - `True` if at least one variable asks for color. A variable asking for color
+      wins over one refusing it, as in the reference code of
+      [FORCE_COLOR](https://force-color.org).
+    - `False` if variables only refuse color.
+    - `None` if no variable casts a vote, which leaves the caller free to apply its
+      own default (typically `auto`).
 
-    A bare variable (no value), or one whose value cannot be parsed as a boolean,
-    counts as activation, in the permissive spirit of the [NO_COLOR](https://no-color.org) and [FORCE_COLOR](https://force-color.org) conventions.
+    An empty value never votes: both [NO_COLOR](https://no-color.org) and
+    [FORCE_COLOR](https://force-color.org) treat it as unset. Each family then follows
+    its convention:
 
-    A `dumb` or `unknown` `TERM` (see {data}`COLOR_DISABLING_TERMS`) casts a
-    disabling vote as well, so a terminal that cannot render ANSI is treated as
-    color-off even when it still reports as a TTY. Because enabling wins, an explicit
-    `FORCE_COLOR` stays authoritative over it.
+    - `NO_COLOR` refuses color whatever its value, `0` and `false` included. It never
+      asks for color.
+    - `FORCE_COLOR` asks for color, except for `0`, `false`, `no` and `off`, which
+      refuse it, as Node.js tools read them.
+    - [`CLICOLOR`](https://bixense.com/clicolors/) refuses color when falsy. Any other
+      value only allows color on a terminal, which is the `auto` default: it casts no
+      vote.
+    - [`CLICOLOR_FORCE`](https://bixense.com/clicolors/) asks for color unless it is
+      falsy, which casts no vote.
+    - `LLM` refuses color unless it is falsy, which casts no vote: it marks an AI
+      agent, not a color preference.
+    - `COLOR` takes the words of `--color` (see {data}`COLOR_WHEN` and
+      {data}`COLOR_WHEN_ALIASES`) and booleans. Any other value casts no vote.
+
+    The plural and unspaced spellings in {data}`COLOR_ENVVARS` follow the variable
+    they spell.
+
+    A `dumb` or `unknown` `TERM` (see {data}`COLOR_DISABLING_TERMS`) refuses color as
+    well, so a terminal that cannot render ANSI is treated as color-off even when it
+    reports as a TTY. A variable asking for color still wins over it.
     """
-    enabling = set()
-    for var, enables in COLOR_ENVVARS.items():
-        if var in os.environ:
-            # Presence without a value encodes an activation, hence the default to
-            # "true"; an unparsable value counts as activation too, see
-            # parse_envvar_flag.
-            parsed = parse_envvar_flag(os.environ.get(var, "true"))
-            enabling.add(enables ^ (not parsed))
-    # A dumb/unknown terminal cannot render ANSI color: cast a disabling vote that an
-    # explicit enabling variable still overrides, but which beats the auto default
-    # when no recognized color variable is set.
+    votes = set()
+    for var in COLOR_ENVVARS:
+        value = os.environ.get(var)
+        if value is not None:
+            vote = _color_envvar_vote(var, value)
+            if vote is not None:
+                votes.add(vote)
     if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
-        enabling.add(False)
-    if not enabling:
+        votes.add(False)
+    if not votes:
         return None
-    return True in enabling
+    return True in votes
 
 
 @contextmanager

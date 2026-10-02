@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Compare the frameworks on the benchmark page against the 50 [clig.dev](https://clig.dev) guidelines a framework can implement.
+- Read each color variable by its own convention: `NO_COLOR=0` and `CLICOLOR=1` no longer force color into pipes, and an empty value counts as unset.
 
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 

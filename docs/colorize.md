@@ -322,7 +322,18 @@ Click Extra adds a tri-state `--color[=WHEN]` option that follows the [GNU coreu
 
 The resolved choice lands on `ctx.color`, the standard Click attribute that `echo()` reads: `always` keeps ANSI codes, `never` strips them, and `auto` (the default) defers to the output stream: colored on a terminal, stripped when piped.
 
-The `auto` default also respects the [`NO_COLOR`](https://no-color.org), [`FORCE_COLOR`](https://force-color.org), `CLICOLOR` and `CLICOLOR_FORCE` environment variables. When one of these is set, it overrides the default (but an explicit `--color` or `--no-color` on the command line always wins).
+The `auto` default also respects these environment variables, each read by its own convention. An explicit `--color` or `--no-color` on the command line always wins over them.
+
+| Variable                                           | Effect                                                                           |
+| :------------------------------------------------- | :------------------------------------------------------------------------------- |
+| [`NO_COLOR`](https://no-color.org)                 | Turns color off, whatever its value.                                             |
+| [`FORCE_COLOR`](https://force-color.org)           | Turns color on. A falsy value turns it off instead, as Node.js tools read it.    |
+| [`CLICOLOR`](https://bixense.com/clicolors/)       | A falsy value turns color off. Any other value keeps `auto`.                     |
+| [`CLICOLOR_FORCE`](https://bixense.com/clicolors/) | Turns color on. A falsy value keeps `auto`.                                      |
+| `LLM`                                              | Turns color off, for an AI agent reading the output. A falsy value keeps `auto`. |
+| `COLOR`                                            | Takes the values of `--color`, and booleans.                                     |
+
+A falsy value is `0`, `false`, `no` or `off`, and an empty value counts as unset. Each variable also answers to its plural spelling, like `NO_COLORS` or `FORCE_COLORS`, and `NO_COLOR` to `NOCOLOR` too. When variables disagree, the one turning color on wins.
 
 A `dumb` or `unknown` `TERM` counts as a disabling signal at the same tier: under `auto` it strips color even on a terminal that reports as a TTY, since such a terminal cannot render ANSI. An enabling variable like `FORCE_COLOR` still outranks it.
 
