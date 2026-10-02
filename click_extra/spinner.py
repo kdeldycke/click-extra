@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import functools
 import os
+import signal
 import sys
 import threading
 import time
@@ -61,6 +62,7 @@ from typing import Final, TypeVar, cast
 
 import click
 from click._utils import UNSET
+from extra_platforms import is_windows
 
 from . import context
 from ._deprecated import warn_deprecated_argument
@@ -84,7 +86,7 @@ from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
-    from types import TracebackType
+    from types import FrameType, TracebackType
     from typing import IO, Any, Literal, Protocol, TextIO, TypeAlias
 
     from click._termui_impl import ProgressBar
@@ -145,11 +147,50 @@ _ACTIVE_LINES_LOCK = threading.Lock()
 """Guards {data}`_ACTIVE_LINES` against concurrent mutation."""
 
 
+def _restore_cursor_on_sigterm(signum: int, frame: FrameType | None) -> None:
+    """Show the cursor again on every live line's terminal, then die by `SIGTERM`.
+
+    A live line hides the cursor while it draws, and `SIGTERM` kills the process
+    before any clean-up runs, which used to leave the user's terminal with no
+    cursor. The registry is read without its lock: the code this handler
+    interrupted may hold it, and a list copy is atomic.
+    """
+    for line in _ACTIVE_LINES.copy():
+        try:
+            stream = line._resolve_stream()
+            stream.write("\r\x1b[K\x1b[?25h")
+            stream.flush()
+        except (OSError, ValueError):
+            # A closed or broken stream cannot show the cursor anymore.
+            pass
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    os.kill(os.getpid(), signal.SIGTERM)
+
+
+def _guard_cursor(installing: bool) -> None:
+    """Install or remove {func}`_restore_cursor_on_sigterm` for live lines.
+
+    Only from the main thread, the one {func}`signal.signal` accepts, and only
+    over the default action: a program handling `SIGTERM` keeps its handler.
+    Windows has no `SIGTERM` worth guarding: termination there runs no handler.
+    A line stopped from another thread leaves the handler in place, which then
+    finds no live line and only re-delivers the signal.
+    """
+    if is_windows() or threading.current_thread() is not threading.main_thread():
+        return
+    current = signal.getsignal(signal.SIGTERM)
+    if installing and current is signal.SIG_DFL:
+        signal.signal(signal.SIGTERM, _restore_cursor_on_sigterm)
+    elif not installing and current is _restore_cursor_on_sigterm:
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+
+
 def _register_line(line: _LiveLine) -> None:
     """Advertise `line` as a live terminal line. Idempotent."""
     with _ACTIVE_LINES_LOCK:
         if line not in _ACTIVE_LINES:
             _ACTIVE_LINES.append(line)
+    _guard_cursor(installing=True)
 
 
 def _deregister_line(line: _LiveLine) -> None:
@@ -157,6 +198,9 @@ def _deregister_line(line: _LiveLine) -> None:
     with _ACTIVE_LINES_LOCK:
         if line in _ACTIVE_LINES:
             _ACTIVE_LINES.remove(line)
+        empty = not _ACTIVE_LINES
+    if empty:
+        _guard_cursor(installing=False)
 
 
 def _active_line(stream: IO[str] | None = None) -> _LiveLine | None:

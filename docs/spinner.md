@@ -530,7 +530,7 @@ The same `Style` type colors the `ok()` / `fail()` finishers: they default to th
 
 ## Success and failure
 
-Stopping the spinner (or leaving its context) erases it. To leave a result on screen instead, finish with `ok()` or `fail()`: each replaces the final frame with a kept line. The marker defaults to the theme's success/error glyph (`✓` / `✘`), painted with the active theme's `success`/`error` [`Style`](theme.md), so a finished spinner matches the rest of a themed CLI.
+Stopping the spinner (or leaving its context) erases it and shows the cursor it hid, even when `SIGTERM` kills the process, which runs no clean-up of its own. To leave a result on screen instead, finish with `ok()` or `fail()`: each replaces the final frame with a kept line. The marker defaults to the theme's success/error glyph (`✓` / `✘`), painted with the active theme's `success`/`error` [`Style`](theme.md), so a finished spinner matches the rest of a themed CLI.
 
 ```{click:source}
 :hide-source:

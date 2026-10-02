@@ -18,7 +18,10 @@ from __future__ import annotations
 
 import io
 import itertools
+import os
 import re
+import signal
+import subprocess
 import sys
 import threading
 import time
@@ -28,6 +31,7 @@ from pathlib import Path
 
 import click
 import pytest
+from extra_platforms.pytest import skip_windows
 
 import click_extra
 from click_extra import (
@@ -550,6 +554,43 @@ def test_interrupted_trail_closes_with_a_finisher(progress_bar, jobs, stream_fac
     finisher = f"{KO_GLYPH} Interrupted after 2/5 feeds"
     assert finisher in plain
     assert plain.index("feed-c fetched") > plain.index(finisher)
+
+
+SPINNING_SCRIPT = """
+import sys
+import time
+
+from click_extra import Spinner
+
+Spinner("Brewing tea", stream=sys.stdout, live="always", interval=0.02).start()
+time.sleep(30)
+"""
+"""A process spinning until something kills it."""
+
+
+@skip_windows(reason="Windows terminates a process without running any handler")
+def test_sigterm_shows_the_cursor_again(tmp_path):
+    """A spinner killed by `SIGTERM` leaves its terminal with the cursor shown,
+    and the process still dies by `SIGTERM`."""
+    script = tmp_path / "spin.py"
+    script.write_text(SPINNING_SCRIPT, encoding="UTF-8")
+    process = subprocess.Popen((sys.executable, str(script)), stdout=subprocess.PIPE)
+    try:
+        assert process.stdout is not None
+        output = b""
+        deadline = time.monotonic() + 10
+        while b"\x1b[?25l" not in output and time.monotonic() < deadline:
+            output += os.read(process.stdout.fileno(), 4096)
+        assert b"\x1b[?25l" in output
+        process.terminate()
+        rest, _ = process.communicate(timeout=10)
+        output += rest
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+    assert process.returncode == -signal.SIGTERM
+    assert output.rfind(b"\x1b[?25h") > output.rfind(b"\x1b[?25l")
 
 
 def test_progressbar_shows_final_position_with_update_min_steps():
