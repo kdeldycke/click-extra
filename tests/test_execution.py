@@ -680,6 +680,79 @@ def test_second_ctrl_c_quits_while_tasks_finish(tmp_path):
     assert "Traceback" not in stderr
 
 
+STUBBORN_CHILDREN_CLI = """
+import os
+import sys
+import threading
+import time
+
+import click_extra
+from click_extra import execution
+from click_extra.execution import run_cli, run_jobs
+
+execution._TERMINATE_GRACE = 0.5
+
+CHILD = (
+    "import os, signal, sys, time;"
+    "signal.signal(signal.SIGINT, signal.SIG_IGN);"
+    "signal.signal(signal.SIGTERM, signal.SIG_IGN);"
+    "open(sys.argv[1], 'w').write(str(os.getpid()));"
+    "time.sleep(30)"
+)
+PID_FILES = [os.path.join(FOLDER, f"child-{n}.pid") for n in range(2)]
+
+
+def spawn(pid_file):
+    return run_cli((sys.executable, "-c", CHILD, pid_file))
+
+
+def announce():
+    while not all(os.path.exists(path) for path in PID_FILES):
+        time.sleep(0.05)
+    print("ready", flush=True)
+
+
+@click_extra.command
+def stubborn():
+    threading.Thread(target=announce, daemon=True).start()
+    list(run_jobs(spawn, PID_FILES, jobs=2))
+
+
+stubborn()
+"""
+"""A CLI fanning out two children that ignore both `SIGINT` and `SIGTERM`."""
+
+
+@skip_windows
+def test_interrupted_run_kills_children_ignoring_sigterm(tmp_path):
+    """One Ctrl+C is enough: the aborting run sends `SIGTERM` to the children of
+    `run_cli`, then `SIGKILL` to the ones still running after the grace."""
+    script = STUBBORN_CHILDREN_CLI.replace("FOLDER", repr(str(tmp_path)))
+    start = monotonic()
+    try:
+        returncode, _ = interrupt_cli(tmp_path, script)
+        assert returncode == -signal.SIGINT
+        assert monotonic() - start < 10
+        pids = [int(path.read_text()) for path in tmp_path.glob("child-*.pid")]
+        assert len(pids) == 2
+        for pid in pids:
+            deadline = monotonic() + 5
+            while monotonic() < deadline:
+                try:
+                    os.kill(pid, 0)
+                except ProcessLookupError:
+                    break
+                sleep(0.05)
+            else:
+                pytest.fail(f"child {pid} survived the interrupt")
+    finally:
+        for path in tmp_path.glob("child-*.pid"):
+            try:
+                os.kill(int(path.read_text()), signal.SIGKILL)
+            except (ProcessLookupError, ValueError):
+                pass
+
+
 def test_simulated_interrupt_keeps_click_exit_status(invoke):
     """A `KeyboardInterrupt` raised by code, as a test runner does, keeps Click's
     `Aborted!` and status `1`: only a real Ctrl+C ends the process by `SIGINT`."""

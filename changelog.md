@@ -21,6 +21,7 @@
 - Stop each running lane of `run_lanes` after its current item when the run is interrupted, instead of running the lane to its end.
 - End the process by `SIGINT` after Click's `Aborted!` on a Ctrl+C, so a calling shell stops its own loop. It used to exit with status `1`.
 - Say that an interrupted run waits for its running tasks, and quit at once on a second Ctrl+C instead of printing a traceback.
+- Send `SIGTERM`, then `SIGKILL` three seconds later, to the commands `run_cli` started when a Ctrl+C aborts the CLI, without calling `install_interrupt_handler`.
 
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 
