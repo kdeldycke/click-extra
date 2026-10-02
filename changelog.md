@@ -8,6 +8,7 @@
 - **Deprecated:** The `is_root`, `default_opts` and `inherited_opts` arguments of `extract_carapace_command` now warn and have no effect, and stop working in `10.0.0`.
 - Compare the frameworks on the benchmark page against the 50 [clig.dev](https://clig.dev) guidelines a framework can implement.
 - Link every claim of the benchmark page to the documentation or source code that backs it.
+- Mark the benchmark cells with ✅, 🟡 and ❌, a ❌ linking the statement that rules the feature out, and link each row to its documentation.
 - Document the behaviors commands inherit from Click and Cloup: output streams, prompts, confirmation, aliases, deprecation warnings and more.
 - Highlight the row and column under the pointer in every table of the documentation.
 - Read each color variable by its own convention: `NO_COLOR=0` and `CLICOLOR=1` no longer force color into pipes, and an empty value counts as unset.
