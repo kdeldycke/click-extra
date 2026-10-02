@@ -14,6 +14,7 @@
 - List the default options under the root command's `flags` in the Carapace spec, instead of `persistentflags` that offered them after a subcommand, where Click rejects them.
 - Stop `Spinner` and `OperationTrail` from drawing under `--no-progress` and `--accessible` when left at `live="auto"`, as `progressbar` already did.
 - Silence the `--config` and `--no-config` status lines under `-q` or a `--verbosity` above `WARNING`, wherever the flag sits on the command line.
+- Restore every variable `temporary_env` changed when one of the changes fails halfway through, or an interrupt lands between two.
 
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 

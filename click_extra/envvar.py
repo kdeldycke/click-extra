@@ -161,10 +161,12 @@ def temporary_env(
     # Materialized up front: the iterable is consumed twice (snapshot + removal).
     unset_vars = tuple(unset_vars)
     saved = {var: os.environ.get(var) for var in (*set_vars, *unset_vars)}
-    os.environ.update(set_vars)
-    for var in unset_vars:
-        os.environ.pop(var, None)
     try:
+        # Inside the try: an interrupt, or a value os.environ rejects, landing
+        # halfway through the changes still restores the ones already made.
+        os.environ.update(set_vars)
+        for var in unset_vars:
+            os.environ.pop(var, None)
         yield
     finally:
         for var, value in saved.items():
