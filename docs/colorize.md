@@ -333,7 +333,11 @@ The `auto` default also respects these environment variables, each read by its o
 | `LLM`                                              | Turns color off, for an AI agent reading the output. A falsy value keeps `auto`. |
 | `COLOR`                                            | Takes the values of `--color`, and booleans.                                     |
 
-A falsy value is `0`, `false`, `no` or `off`, and an empty value counts as unset. Each variable also answers to its plural spelling, like `NO_COLORS` or `FORCE_COLORS`, and `NO_COLOR` to `NOCOLOR` too. When variables disagree, the one turning color on wins.
+A falsy value is `0`, `false`, `no` or `off`, and an empty value counts as unset, as both [no-color.org](https://no-color.org) and [force-color.org](https://force-color.org) say. Each variable also answers to its plural spelling, like `NO_COLORS` or `FORCE_COLORS`, and `NO_COLOR` to `NOCOLOR` too. When variables disagree, the one turning color on wins.
+
+```{note}
+force-color.org forces color for any non-empty `FORCE_COLOR`, `0` included. Click Extra reads a falsy value as a refusal instead, because that is what users who set `FORCE_COLOR=0` expect: [Node.js](https://nodejs.org/api/cli.html#force_color1-2-3) disables color for any value other than `1`, `2`, `3`, `true` or an empty string, and its [`supports-color`](https://github.com/chalk/supports-color) library, which `chalk` uses, reads `0` and `false` as no color.
+```
 
 Like every option, `--color` and `--no-color` also read the variables Click derives from the CLI name: `MYCLI_COLOR=never` or `MYCLI_NO_COLOR=1` disable color for a CLI named `mycli` only, help and version screens included.
 
