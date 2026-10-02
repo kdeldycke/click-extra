@@ -644,6 +644,42 @@ def test_ctrl_c_ends_the_process_by_sigint(tmp_path):
     assert "Aborted!" in stderr
 
 
+SLOW_JOBS_CLI = """
+import time
+
+import click_extra
+from click_extra.execution import run_jobs
+
+
+def bake(tray):
+    if tray == 0:
+        print("ready", flush=True)
+    time.sleep(30)
+    return tray
+
+
+@click_extra.command
+def oven():
+    list(run_jobs(bake, [0, 1], jobs=2))
+
+
+oven()
+"""
+"""A CLI whose two parallel tasks outlast any reasonable wait."""
+
+
+@skip_windows
+def test_second_ctrl_c_quits_while_tasks_finish(tmp_path):
+    """After a Ctrl+C, the run says it waits for its running tasks, and what a
+    second Ctrl+C does: quit at once, instead of waiting for the tasks."""
+    returncode, stderr = interrupt_cli(tmp_path, SLOW_JOBS_CLI, presses=2)
+    assert returncode == -signal.SIGINT
+    assert "Aborted!" in stderr
+    assert "Waiting for 2 running tasks to finish." in stderr
+    assert "Press Ctrl+C again to quit now." in stderr
+    assert "Traceback" not in stderr
+
+
 def test_simulated_interrupt_keeps_click_exit_status(invoke):
     """A `KeyboardInterrupt` raised by code, as a test runner does, keeps Click's
     `Aborted!` and status `1`: only a real Ctrl+C ends the process by `SIGINT`."""

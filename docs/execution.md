@@ -229,6 +229,12 @@ Concurrency is sized by the number of lanes (one worker per lane), and results a
 
 Lanes are read as lazily as `run_jobs` reads items: a lane is turned into a list only when it is about to be scheduled, and only a window of them is in flight. A stream of lanes never sits in memory all at once.
 
+## Interrupting a run
+
+A Ctrl+C stops a parallel run at once: queued items never start, and each running lane stops after its current item. A task already running cannot be cut short, so the CLI prints `Aborted!`, then waits for the running tasks, and says what a second Ctrl+C does: `Waiting for 2 running tasks to finish. Press Ctrl+C again to quit now.`
+
+Once the tasks finish, or at the second Ctrl+C, the process ends by `SIGINT`, the way Python ends on an unhandled Ctrl+C. A calling shell sees the signal and stops its own loop, where a status, even `130`, would tell it the CLI handled the interrupt itself.
+
 ## Resolving the job count
 
 `run_jobs` and `run_lanes` decide their worker count internally, but a caller that must know it *before* fanning out (for example to pick a progress-rendering mode) can call `resolve_jobs(ctx, count)` directly. It applies the same policy those helpers do: `1` (sequential) when there is no context, a single item, or `--jobs 1`, otherwise the resolved count capped at `count`. Passing `serial_at_debug=True` also collapses to sequential at `DEBUG` verbosity, where coherent per-worker log narration matters more than the speed-up; both helpers forward this flag.

@@ -1203,19 +1203,15 @@ def _interrupted(exc: BaseException) -> bool:
     return False
 
 
-def _exit_interrupted() -> NoReturn:
-    """End the process the way an unhandled Ctrl+C does.
+def _die_by_sigint() -> NoReturn:
+    """End the process at once, the way an unhandled Ctrl+C does.
 
-    Waits for the running threads to finish, as the interpreter would at exit,
-    then dies by `SIGINT` on POSIX, so a calling shell sees the signal and
-    stops its own loop. A process that exits with a status, even `130`, tells
-    the shell it handled the interrupt itself, and the loop goes on. On Windows,
-    exits with {data}`_STATUS_CONTROL_C_EXIT`.
+    Dies by `SIGINT` on POSIX, so a calling shell sees the signal and stops its
+    own loop: a process exiting with a status, even `130`, tells the shell it
+    handled the interrupt itself, and the loop goes on. On Windows, exits with
+    {data}`_STATUS_CONTROL_C_EXIT`. Skips every clean-up but flushing the
+    standard streams.
     """
-    current = threading.current_thread()
-    for thread in threading.enumerate():
-        if thread is not current and not thread.daemon:
-            thread.join()
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.flush()
@@ -1226,6 +1222,47 @@ def _exit_interrupted() -> NoReturn:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         os.kill(os.getpid(), signal.SIGINT)
     os._exit(_STATUS_CONTROL_C_EXIT if is_windows() else 128 + signal.SIGINT)
+
+
+def _second_interrupt(signum: int, frame: FrameType | None) -> None:
+    """Handle a Ctrl+C pressed while an interrupted run waits: exit at once."""
+    _die_by_sigint()
+
+
+_JOIN_POLL: Final = 0.1
+"""Seconds between two checks while an interrupted run waits for its threads.
+
+A bounded join returns to the interpreter that often, so a second Ctrl+C is
+handled at once on every platform.
+"""
+
+
+def _exit_interrupted() -> NoReturn:
+    """End an interrupted run once its running threads finish.
+
+    Waits for them, as the interpreter would at exit, but says so, and says what
+    a second Ctrl+C does: it stops the wait and exits at once. Then ends the
+    process by {func}`_die_by_sigint`.
+    """
+    current = threading.current_thread()
+    running = [
+        thread
+        for thread in threading.enumerate()
+        if thread is not current and not thread.daemon and thread.is_alive()
+    ]
+    if running and current is threading.main_thread():
+        signal.signal(signal.SIGINT, _second_interrupt)
+        echo(
+            _(
+                "Waiting for {count} running tasks to finish. "
+                "Press Ctrl+C again to quit now."
+            ).format(count=len(running)),
+            err=True,
+        )
+        for thread in running:
+            while thread.is_alive():
+                thread.join(timeout=_JOIN_POLL)
+    _die_by_sigint()
 
 
 @contextmanager
