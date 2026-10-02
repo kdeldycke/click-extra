@@ -328,13 +328,14 @@ The `FILES` section documents the files a program reads. Click Extra's `--config
 
 ### `EXIT STATUS`
 
-The `EXIT STATUS` section documents the process return codes. Click Extra inherits Click's conventional scheme:
+The `EXIT STATUS` section documents the process return codes. Click Extra inherits Click's conventional scheme, except for `Ctrl-C`: Click exits with `1`, which tells a calling shell the program handled the interrupt itself, so a shell loop runs on. Click Extra ends the process by `SIGINT` instead, as Python does on an unhandled interrupt.
 
-| Code | Meaning                                                                                          |
-| ---- | ------------------------------------------------------------------------------------------------ |
-| `0`  | Success.                                                                                         |
-| `1`  | A runtime error, or an aborted prompt (`Ctrl-C`, a declined confirmation).                       |
-| `2`  | A usage error: unknown option, invalid value, missing operand, or an unparsable `--config` file. |
+| Code  | Meaning                                                                                          |
+| ----- | ------------------------------------------------------------------------------------------------ |
+| `0`   | Success.                                                                                         |
+| `1`   | A runtime error, an aborted prompt (`Ctrl-D`), or a declined confirmation.                       |
+| `2`   | A usage error: unknown option, invalid value, missing operand, or an unparsable `--config` file. |
+| `130` | Interrupted with `Ctrl-C`: the process ends by `SIGINT`, which a shell reports as `130`.         |
 
 A successful run returns `0`:
 

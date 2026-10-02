@@ -53,7 +53,12 @@ from .config.subcommands import (
 )
 from .context import Context
 from .envvar import clean_envvar_id, param_envvar_ids
-from .execution import TimerOption
+from .execution import (
+    TimerOption,
+    _exit_interrupted,
+    _interrupt_handling,
+    _interrupted,
+)
 from .highlight import HelpKeywords, _HelpColorsMixin, highlight
 from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
 from .parameters import ExtraOption, ShowParamsOption, resolve_param_help
@@ -759,20 +764,30 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         instead of relying on Click's auto-detection via the
         `_detect_program_name()` method. This is to avoid the CLI being called
         `python -m <module_name>`, which is not very user-friendly.
+
+        A Ctrl+C still prints Click's `Aborted!`, but then ends the process the
+        way an unhandled Ctrl+C does in Python: by `SIGINT`, once the running
+        threads finish. Click exits with status `1`, which tells a calling shell
+        the program handled the interrupt itself, so a shell loop runs on.
         """
         if not prog_name and self.name:
             prog_name = self.name
 
-        try:
-            return super().main(args=args, prog_name=prog_name, **kwargs)
-        finally:
-            # The color mirror is scoped to one invocation. Its reset is queued
-            # on the context by `publish_invocation_color()`, but a callback
-            # raising during parameter processing aborts before the context is
-            # entered, so that close callback never fires and the mirror stays
-            # pinned for the rest of the process. Reset here so the scope holds
-            # however the invocation ended.
-            _reset_invocation_color()
+        with _interrupt_handling():
+            try:
+                return super().main(args=args, prog_name=prog_name, **kwargs)
+            except SystemExit as exc:
+                if _interrupted(exc):
+                    _exit_interrupted()
+                raise
+            finally:
+                # The color mirror is scoped to one invocation. Its reset is
+                # queued on the context by `publish_invocation_color()`, but a
+                # callback raising during parameter processing aborts before the
+                # context is entered, so that close callback never fires and the
+                # mirror stays pinned for the rest of the process. Reset here so
+                # the scope holds however the invocation ended.
+                _reset_invocation_color()
 
     def make_context(
         self,

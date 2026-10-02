@@ -47,7 +47,7 @@ from contextlib import contextmanager
 from gettext import gettext as _
 from itertools import chain, islice
 from time import perf_counter
-from typing import Final, TypeVar, cast
+from typing import Final, NoReturn, TypeVar, cast
 
 import click
 from boltons.iterutils import flatten
@@ -1135,6 +1135,97 @@ def terminate_live_processes() -> None:
         except OSError:
             # Reaped between the snapshot and the signal: nothing left to stop.
             pass
+
+
+_STATUS_CONTROL_C_EXIT: Final = 0xC000013A
+"""The exit code Windows reports for a process ended by Ctrl+C.
+
+Python ends with it on an unhandled Ctrl+C, where POSIX dies by `SIGINT`.
+"""
+
+
+_INTERRUPTED = threading.Event()
+"""Set when a Ctrl+C reached the handler {func}`_interrupt_handling` installs.
+
+Tells a `SIGINT` the terminal sent apart from a {exc}`KeyboardInterrupt` raised
+by code, which a test runner does to simulate one. Only the former ends the
+process by `SIGINT`.
+"""
+
+
+def _record_interrupt(signum: int, frame: FrameType | None) -> None:
+    """Record a real Ctrl+C, then raise {exc}`KeyboardInterrupt` as Python does."""
+    _INTERRUPTED.set()
+    raise KeyboardInterrupt
+
+
+@contextmanager
+def _interrupt_handling() -> Iterator[None]:
+    """Track Ctrl+C for the duration of a CLI run.
+
+    Installs a `SIGINT` handler that behaves like Python's default one, but
+    records that a real interrupt arrived, so {func}`_exit_interrupted` can end
+    the process the way an unhandled Ctrl+C would. Only replaces Python's own
+    default handler, in the main thread: a handler the program installed itself,
+    or a call from another thread, leaves Ctrl+C alone.
+    """
+    if (
+        threading.current_thread() is not threading.main_thread()
+        or signal.getsignal(signal.SIGINT) is not signal.default_int_handler
+    ):
+        yield
+        return
+    _INTERRUPTED.clear()
+    signal.signal(signal.SIGINT, _record_interrupt)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, signal.default_int_handler)
+
+
+def _interrupted(exc: BaseException) -> bool:
+    """Whether `exc` ends a run that a real Ctrl+C interrupted.
+
+    True when {func}`_interrupt_handling` saw a `SIGINT` and a
+    {exc}`KeyboardInterrupt` sits in the chain of exceptions that led to `exc`.
+    A program that caught the interrupt and exited on its own terms does not
+    count.
+    """
+    if not _INTERRUPTED.is_set():
+        return False
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        if isinstance(current, KeyboardInterrupt):
+            return True
+        seen.add(id(current))
+        current = current.__cause__ or current.__context__
+    return False
+
+
+def _exit_interrupted() -> NoReturn:
+    """End the process the way an unhandled Ctrl+C does.
+
+    Waits for the running threads to finish, as the interpreter would at exit,
+    then dies by `SIGINT` on POSIX, so a calling shell sees the signal and
+    stops its own loop. A process that exits with a status, even `130`, tells
+    the shell it handled the interrupt itself, and the loop goes on. On Windows,
+    exits with {data}`_STATUS_CONTROL_C_EXIT`.
+    """
+    current = threading.current_thread()
+    for thread in threading.enumerate():
+        if thread is not current and not thread.daemon:
+            thread.join()
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.flush()
+        except (OSError, ValueError):
+            # A closed or broken stream has nothing left to flush.
+            pass
+    if not is_windows():
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        os.kill(os.getpid(), signal.SIGINT)
+    os._exit(_STATUS_CONTROL_C_EXIT if is_windows() else 128 + signal.SIGINT)
 
 
 @contextmanager

@@ -19,6 +19,7 @@
 - Kill a recorded command that ignores `SIGTERM` two seconds after the recording ends, instead of waiting for it to exit on its own.
 - Hold a second Ctrl+C until `run_cli` has killed its child, which the interrupt used to skip, leaving the child running.
 - Stop each running lane of `run_lanes` after its current item when the run is interrupted, instead of running the lane to its end.
+- End the process by `SIGINT` after Click's `Aborted!` on a Ctrl+C, so a calling shell stops its own loop. It used to exit with status `1`.
 
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 

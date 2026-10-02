@@ -585,6 +585,78 @@ def test_run_lanes_interrupt_stops_each_lane_after_its_current_item():
     assert sorted(ran) == [0, 1]
 
 
+NAP_CLI = """
+import time
+
+import click_extra
+
+
+@click_extra.command
+def nap():
+    print("ready", flush=True)
+    time.sleep(30)
+
+
+nap()
+"""
+"""A CLI that announces it is running, then sleeps until interrupted."""
+
+
+def interrupt_cli(tmp_path: Path, script: str, presses: int = 1) -> tuple[int, str]:
+    """Run `script` in a child, press Ctrl+C `presses` times once it is ready.
+
+    The script runs from a file, not through `-c`: the version option of a Click
+    Extra command looks up the file of the module defining it.
+
+    :return: the child's return code and its `stderr`.
+    """
+    script_path = tmp_path / "cli.py"
+    script_path.write_text(script, encoding="UTF-8")
+    process = subprocess.Popen(
+        (sys.executable, str(script_path)),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="UTF-8",
+    )
+    try:
+        assert process.stdout is not None
+        assert process.stdout.readline() == "ready\n"
+        for press in range(presses):
+            if press:
+                sleep(0.3)
+            process.send_signal(signal.SIGINT)
+        _, stderr = process.communicate(timeout=15)
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+    return process.returncode, stderr
+
+
+@skip_windows
+def test_ctrl_c_ends_the_process_by_sigint(tmp_path):
+    """A real Ctrl+C prints Click's `Aborted!`, then ends the process by `SIGINT`,
+    which a calling shell needs to stop its own loop: a status of `1`, or even
+    `130`, tells the shell the program handled the interrupt itself."""
+    returncode, stderr = interrupt_cli(tmp_path, NAP_CLI)
+    assert returncode == -signal.SIGINT
+    assert "Aborted!" in stderr
+
+
+def test_simulated_interrupt_keeps_click_exit_status(invoke):
+    """A `KeyboardInterrupt` raised by code, as a test runner does, keeps Click's
+    `Aborted!` and status `1`: only a real Ctrl+C ends the process by `SIGINT`."""
+
+    @command
+    def nap():
+        raise KeyboardInterrupt
+
+    result = invoke(nap)
+    assert result.exit_code == 1
+    assert "Aborted!" in result.stderr
+
+
 def test_invalid_value(invoke):
     """Values that are neither an integer nor a known keyword are rejected."""
 

@@ -134,7 +134,7 @@ DEFAULT_EXIT_STATUS: tuple[tuple[str, str], ...] = (
     ("0", "Success."),
     (
         "1",
-        "A runtime error, or an aborted prompt (Ctrl-C, a declined confirmation).",
+        "A runtime error, an aborted prompt (Ctrl-D), or a declined confirmation.",
     ),
     (
         "2",
@@ -143,11 +143,16 @@ DEFAULT_EXIT_STATUS: tuple[tuple[str, str], ...] = (
             "unparsable configuration file."
         ),
     ),
+    (
+        "130",
+        "Interrupted with Ctrl-C: the process ends by SIGINT, reported as 130.",
+    ),
 )
 """Conventional exit codes shared by every Click Extra CLI.
 
 Mirrors the EXIT STATUS table in {doc}`/man-page`. Click returns `2` for
-usage errors (`UsageError`), `1` for aborts, and `0` on success.
+usage errors (`UsageError`), `1` for aborts, and `0` on success. A real Ctrl+C
+ends the process by `SIGINT` instead, which a shell reports as `130`.
 """
 
 
