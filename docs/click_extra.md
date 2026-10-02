@@ -180,6 +180,8 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+<a name="click-extra-output-module"></a>
+
 ## click_extra.output module
 
 ```{eval-rst}

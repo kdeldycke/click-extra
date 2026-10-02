@@ -466,6 +466,8 @@ A screen reader is not the only consumer that prefers a linear, minimal-width st
 This is the same reasoning that keeps Click Extra from routing its help screens through [`rich-click`](https://github.com/ewels/rich-click), a good project integrating [Rich](https://github.com/Textualize/rich) with Click whose [help is laid out in a table](https://github.com/ewels/rich-click) spanning the whole terminal width. `--accessible` carries that preference from help screens to colors and tables. The two are not mutually exclusive, though: nothing stops you from using `rich-click` and Click Extra together and taking the best of both.
 ```
 
+<a name="help-h-aliases"></a>
+
 ## `--help`, `-h` aliases
 
 Click Extra defaults `help_option_names` to `("--help", "-h")`, adding the short `-h` alias that Click does not provide out of the box. This applies to all commands and groups created with Click Extra decorators:
@@ -620,6 +622,8 @@ The help-screen keyword highlighting engine (`HelpKeywords`, `HelpFormatter`, `h
    :undoc-members:
    :show-inheritance:
 ```
+
+<a name="click-extra-accessibility-api"></a>
 
 ## `click_extra.accessibility` API
 

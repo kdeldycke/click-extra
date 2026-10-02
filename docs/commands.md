@@ -115,6 +115,287 @@ You can inspect the implementation details in:
 - [`click.__init__`](https://github.com/pallets/click/blob/main/src/click/__init__.py)
 ```
 
+## Inherited behaviors
+
+Everything Click and Cloup do for a command still holds under Click Extra. This section shows the behaviors people most often ask about.
+
+### Streams and exit codes
+
+Help and version screens print to `stdout` and exit with `0`. A usage error prints to `stderr`, with a pointer to `--help`, and exits with `2`. See the [exit status](man-page.md#exit-status) list for the other codes.
+
+```{click:source}
+from click_extra import command, echo, option
+
+@command
+@option("--city", help="City to forecast.")
+def forecast(city):
+    """Show the weather forecast."""
+    echo(f"Sunny in {city}.")
+```
+
+```{click:run}
+result = invoke(forecast, args=["--help"])
+assert result.exit_code == 0
+assert "Show the weather forecast." in result.stdout
+assert not result.stderr
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(forecast, args=["--city"])
+assert result.exit_code == 2
+assert not result.stdout
+assert "Option '--city' requires an argument." in strip_ansi(result.stderr)
+```
+
+### Missing arguments
+
+A command run without a required argument prints its usage line and a pointer to `--help`, then exits with `2`. A group run without a subcommand prints its full help instead.
+
+```{click:source}
+from click_extra import argument, command, echo
+
+@command
+@argument("city")
+def weather(city):
+    """Show the weather in CITY."""
+    echo(f"Rain in {city}.")
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(weather)
+assert result.exit_code == 2
+plain = strip_ansi(result.stderr)
+assert "Usage: weather [OPTIONS] CITY" in plain
+assert "Try 'weather --help' for help." in plain
+assert "Missing argument 'CITY'." in plain
+```
+
+### Help epilog
+
+The `epilog` argument adds text at the end of the help screen: the place for a link to the documentation or to the issue tracker.
+
+```{click:source}
+from click_extra import command
+
+@command(epilog="Report issues at https://example.com/orchard/issues")
+def orchard():
+    """Tend the orchard."""
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(orchard, args=["--help"])
+assert result.exit_code == 0
+assert "Report issues at https://example.com/orchard/issues" in strip_ansi(result.stdout)
+```
+
+### Typo suggestions
+
+A mistyped option or subcommand gets the closest match as a suggestion.
+
+```{click:source}
+from click_extra import argument, echo, group
+
+@group
+def garden():
+    """Tend the garden."""
+
+@garden.command(aliases=["pl"])
+@argument("seed")
+def plant(seed):
+    """Plant a seed."""
+    echo(f"Planted {seed}.")
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(garden, args=["plnat", "tomato"])
+assert result.exit_code == 2
+assert "No such command 'plnat'. Did you mean 'plant'?" in strip_ansi(result.stderr)
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(forecast, args=["--cityy", "Paris"])
+assert result.exit_code == 2
+assert "No such option '--cityy'. Did you mean '--city'?" in strip_ansi(result.stderr)
+```
+
+### Command aliases
+
+[Cloup's `aliases`](https://cloup.readthedocs.io/en/stable/pages/aliases.html) give a subcommand extra names, like the `pl` of `plant` above. A prefix is not an alias: `pla` fails instead of running `plant`, so adding a subcommand never changes what an existing script runs.
+
+```{click:run}
+result = invoke(garden, args=["pl", "tomato"])
+assert result.exit_code == 0
+assert result.stdout == "Planted tomato.\n"
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(garden, args=["pla", "tomato"])
+assert result.exit_code == 2
+assert "No such command 'pla'." in strip_ansi(result.stderr)
+```
+
+### Option position
+
+An option belongs to the command that declares it. A group option therefore goes before the subcommand, never after it.
+
+```{click:source}
+from click_extra import echo, group, option
+
+@group
+@option("--unit", default="celsius", help="Temperature unit.")
+def station(unit):
+    """Run the weather station."""
+
+@station.command
+def read():
+    """Read the temperature."""
+    echo("21 degrees.")
+```
+
+```{click:run}
+result = invoke(station, args=["--unit", "kelvin", "read"])
+assert result.exit_code == 0
+assert result.stdout == "21 degrees.\n"
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(station, args=["read", "--unit", "kelvin"])
+assert result.exit_code == 2
+assert "No such option '--unit'." in strip_ansi(result.stderr)
+```
+
+### Variadic arguments
+
+`nargs=-1` lets an argument take any number of values, which also accepts what a shell glob expands to.
+
+```{click:source}
+from click_extra import argument, command, echo
+
+@command
+@argument("fruits", nargs=-1)
+def basket(fruits):
+    """Fill the basket with FRUITS."""
+    echo(f"{len(fruits)} fruits: {', '.join(fruits)}")
+```
+
+```{click:run}
+result = invoke(basket, args=["apple", "pear", "plum"])
+assert result.exit_code == 0
+assert result.stdout == "3 fruits: apple, pear, plum\n"
+```
+
+### Prompts
+
+`prompt=True` asks for a value the command line did not give. Passing the option skips the question, so a script never has to answer it.
+
+```{click:source}
+from click_extra import command, echo, option
+
+@command
+@option("--city", prompt=True, help="City to forecast.")
+def outlook(city):
+    """Show the outlook."""
+    echo(f"Clouds over {city}.")
+```
+
+```{click:run}
+result = invoke(outlook, input="Lyon\n")
+assert result.exit_code == 0
+assert "City: Lyon" in result.stdout
+assert "Clouds over Lyon." in result.stdout
+```
+
+```{click:run}
+result = invoke(outlook, args=["--city", "Nice"])
+assert result.exit_code == 0
+assert result.stdout == "Clouds over Nice.\n"
+```
+
+### Password input
+
+`password_option` asks twice for a value it does not echo.
+
+```{click:source}
+from click_extra import command, echo, password_option
+
+@command
+@password_option()
+def vault(password):
+    """Open the vault."""
+    echo(f"{len(password)} characters.")
+```
+
+```{click:run}
+result = invoke(vault, input="hunter2\nhunter2\n")
+assert result.exit_code == 0
+assert "hunter2" not in result.stdout
+assert "7 characters." in result.stdout
+```
+
+### Confirmation
+
+`confirmation_option` asks before a dangerous action, and adds a `--yes` flag that skips the question.
+
+```{click:source}
+from click_extra import command, confirmation_option, echo
+
+@command
+@confirmation_option(prompt="Delete the harvest log?")
+def prune():
+    """Delete the harvest log."""
+    echo("Deleted.")
+```
+
+```{click:run}
+result = invoke(prune, input="n\n")
+assert result.exit_code == 1
+assert "Deleted." not in result.stdout
+assert "Aborted!" in result.stderr
+```
+
+```{click:run}
+result = invoke(prune, args=["--yes"])
+assert result.exit_code == 0
+assert result.stdout == "Deleted.\n"
+```
+
+### Deprecation warnings
+
+`deprecated=True` on an option or a command prints a warning on `stderr` each time it is used.
+
+```{click:source}
+from click_extra import command, echo, option
+
+@command
+@option("--fahrenheit", is_flag=True, deprecated=True, help="Use Fahrenheit.")
+def thermometer(fahrenheit):
+    """Read the thermometer."""
+    echo("21 degrees.")
+```
+
+```{click:run}
+from boltons.strutils import strip_ansi
+
+result = invoke(thermometer, args=["--fahrenheit"])
+assert result.exit_code == 0
+assert result.stdout == "21 degrees.\n"
+assert "The option '--fahrenheit' is deprecated." in strip_ansi(result.stderr)
+```
+
 ## Default options
 
 The `@command` and `@group` decorators are pre-configured with a set of {py:func}`default options <click_extra.commands.default_params>`. The `--help`/`-h` option is added separately through `help_option_names`, which is why it survives even when `default_params()` is reset:
