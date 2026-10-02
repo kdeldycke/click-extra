@@ -9,6 +9,7 @@
 - Compare the frameworks on the benchmark page against the 50 [clig.dev](https://clig.dev) guidelines a framework can implement.
 - Link every claim of the benchmark page to the documentation or source code that backs it.
 - Document the behaviors commands inherit from Click and Cloup: output streams, prompts, confirmation, aliases, deprecation warnings and more.
+- Highlight the row and column under the pointer in every table of the documentation.
 - Read each color variable by its own convention: `NO_COLOR=0` and `CLICOLOR=1` no longer force color into pipes, and an empty value counts as unset.
 - Apply the per-CLI `<CLI>_COLOR` and `<CLI>_NO_COLOR` variables to the `--help` and `--version` screens too.
 - List the default options under the root command's `flags` in the Carapace spec, instead of `persistentflags` that offered them after a subcommand, where Click rejects them.
