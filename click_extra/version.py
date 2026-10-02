@@ -1116,7 +1116,11 @@ class VersionOption(ExtraOption):
         """Returns the module in which the CLI resides."""
         frame = self.cli_frame()
 
-        module = inspect.getmodule(frame)
+        # `inspect.getmodule()` matches a frame to a module by file name, and code
+        # run by `python -c` has no file. The frame's globals still name its module.
+        module = inspect.getmodule(frame) or sys.modules.get(
+            frame.f_globals.get("__name__", "")
+        )
         if not module:
             raise RuntimeError(f"Cannot find module of {frame!r}")
 
@@ -1209,8 +1213,11 @@ class VersionOption(ExtraOption):
 
     @cached_property
     def module_file(self) -> str | None:
-        """Returns the module's file full path."""
-        return self.module.__file__
+        """Returns the module's file full path.
+
+        `None` for a module with no file, like the `__main__` of `python -c`.
+        """
+        return getattr(self.module, "__file__", None)
 
     @cached_property
     def module_version(self) -> str | None:
@@ -1345,7 +1352,8 @@ class VersionOption(ExtraOption):
         name.
 
         If not packaged, the CLI is assumed to be a simple standalone script, and the
-        returned name is the script's file name (including its extension).
+        returned name is the script's file name (including its extension). Code with
+        no file, like a CLI run by `python -c`, keeps the `__main__` module name.
         """
         # The CLI has its own module.
         if self.module_name != "__main__":
@@ -1360,10 +1368,7 @@ class VersionOption(ExtraOption):
         if self.module_file:
             return os.path.basename(self.module_file)
 
-        raise RuntimeError(
-            "Could not determine the user-friendly name of the CLI from the frame "
-            "stack."
-        )
+        return self.module_name
 
     @cached_property
     def version(self) -> str | None:

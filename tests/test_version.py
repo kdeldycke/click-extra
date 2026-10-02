@@ -667,6 +667,57 @@ def test_standalone_script(tmp_path, dunder, expected_version):
     )
 
 
+COMMAND_STRING_CLI = dedent("""\
+    from click_extra import command, echo
+
+    __version__ = "1.2.3"
+
+
+    @command
+    def weather():
+        echo("Sunny.")
+
+
+    weather()
+    """)
+"""A Click Extra CLI for `python -c`, which runs it with no file behind it."""
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    (
+        pytest.param((), "Sunny.\n", id="plain_run"),
+        pytest.param(("--version",), "weather, version 1.2.3\n", id="version"),
+        pytest.param(("--verbosity", "DEBUG"), "Sunny.\n", id="debug_fields"),
+    ),
+)
+def test_command_string_cli(tmp_path, args, expected):
+    """A CLI run by `python -c` resolves its version fields without a file.
+
+    The version option of a Click Extra command looks for the CLI's module on
+    every run, not only on `--version`. The debug level renders every field,
+    including the ones read off the module's file: `exec_name` keeps the
+    `__main__` module name.
+    """
+    result = subprocess.run(
+        [sys.executable, "-c", COMMAND_STRING_CLI, *args],
+        capture_output=True,
+        text=True,
+        encoding="UTF-8",
+        cwd=tmp_path,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert strip_ansi(result.stdout) == expected
+    if "DEBUG" in args:
+        assert re.search(
+            r"^debug: \{exec_name\} +: __main__$",
+            strip_ansi(result.stderr),
+            re.MULTILINE,
+        )
+
+
 @pytest.mark.parametrize(
     "params",
     (None, "--help", "blah", ("--config", "random.toml")),

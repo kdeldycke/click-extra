@@ -605,9 +605,6 @@ nap()
 def interrupt_cli(tmp_path: Path, script: str, presses: int = 1) -> tuple[int, str]:
     """Run `script` in a child, press Ctrl+C `presses` times once it is ready.
 
-    The script runs from a file, not through `-c`: the version option of a Click
-    Extra command looks up the file of the module defining it.
-
     :return: the child's return code and its `stderr`.
     """
     script_path = tmp_path / "cli.py"
