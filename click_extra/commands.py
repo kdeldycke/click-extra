@@ -880,7 +880,9 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         look of a rendered screen is worthless if it lands after the screen. Its
         environment variables trigger the pre-pass too, both the machine-wide
         {data}`~click_extra.theme.THEME_ENVVAR` and the per-CLI `<CLI>_THEME` that
-        Click derives, since neither puts a flag on the command line.
+        Click derives, since neither puts a flag on the command line. The per-CLI
+        `<CLI>_COLOR` and `<CLI>_NO_COLOR` variables Click derives for the color
+        options trigger it for the same reason.
 
         Skipping accessible mode here used to be deliberate, on the grounds that it
         matched the scope of the environment pre-seed in
@@ -922,8 +924,8 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             return
 
         # Only pay for a re-parse when one of these flags actually sits on the
-        # command line, or when the environment asks for accessible mode or a
-        # palette.
+        # command line, or when the environment asks for accessible mode, a color
+        # choice or a palette.
         flags = {
             flag
             for param in (*accessible_params, *color_params, *theme_params)
@@ -933,6 +935,8 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         envvars = set()
         if accessible_params:
             envvars.add(ACCESSIBLE_ENVVAR)
+        for color_param in color_params:
+            envvars.update(param_envvar_ids(color_param, ctx))
         for theme_param in theme_params:
             envvars.add(THEME_ENVVAR)
             envvars.update(param_envvar_ids(theme_param, ctx))

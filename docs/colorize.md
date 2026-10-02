@@ -335,6 +335,8 @@ The `auto` default also respects these environment variables, each read by its o
 
 A falsy value is `0`, `false`, `no` or `off`, and an empty value counts as unset. Each variable also answers to its plural spelling, like `NO_COLORS` or `FORCE_COLORS`, and `NO_COLOR` to `NOCOLOR` too. When variables disagree, the one turning color on wins.
 
+Like every option, `--color` and `--no-color` also read the variables Click derives from the CLI name: `MYCLI_COLOR=never` or `MYCLI_NO_COLOR=1` disable color for a CLI named `mycli` only, help and version screens included.
+
 A `dumb` or `unknown` `TERM` counts as a disabling signal at the same tier: under `auto` it strips color even on a terminal that reports as a TTY, since such a terminal cannot render ANSI. An enabling variable like `FORCE_COLOR` still outranks it.
 
 ```mermaid

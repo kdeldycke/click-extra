@@ -622,6 +622,41 @@ def test_color_settles_before_eager_help_and_version(invoke, args, expecting_col
     assert ("\x1b[" in result.output) is expecting_colors
 
 
+@skip_windows_colors
+@pytest.mark.parametrize("screen", ("--help", "--version"))
+@pytest.mark.parametrize(
+    ("env", "tty", "expecting_colors"),
+    (
+        # The per-CLI variables Click derives for the color options reach the eager
+        # screens, like the flags they stand for.
+        ({"ENV_COLOR_CLI_NO_COLOR": "1"}, True, False),
+        ({"ENV_COLOR_CLI_COLOR": "never"}, True, False),
+        ({"ENV_COLOR_CLI_COLOR": "always"}, False, True),
+        # Controls: without them, the screens follow the output stream.
+        ({}, True, True),
+        ({}, False, False),
+    ),
+)
+def test_cli_color_envvars_reach_eager_screens(
+    invoke, screen, env, tty, expecting_colors
+):
+    """`<CLI>_COLOR` and `<CLI>_NO_COLOR` color the `--help` and `--version` screens.
+
+    Neither puts a flag on the command line, so the presentation pre-pass has to be
+    triggered by the variables themselves, as it is for `<CLI>_THEME`.
+    """
+
+    @command
+    def env_color_cli():
+        # Never reached: --help / --version short-circuit before invocation.
+        echo(style("Unreached.", fg="yellow"))
+
+    # color=None simulates a pipe without scrubbing the captured output.
+    result = invoke(env_color_cli, screen, color=True if tty else None, env=env)
+    assert result.exit_code == 0
+    assert ("\x1b[" in result.output) is expecting_colors
+
+
 def test_forced_color_sets_and_restores_env(monkeypatch):
     """``forced_color`` forces ``FORCE_COLOR`` and clears Click Extra's disabling vars.
 
