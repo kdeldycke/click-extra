@@ -62,6 +62,7 @@ from click_extra import (
 )
 from click_extra.execution import (
     _GROUP_LEADERS,
+    _KILL_SIGNAL,
     _LIVE_PROCESSES,
     _LIVE_PROCESSES_LOCK,
     _WORKER_WINDOW_FACTOR,
@@ -867,6 +868,97 @@ def test_interrupted_run_kills_children_ignoring_sigterm(tmp_path):
             try:
                 os.kill(int(path.read_text(encoding="utf-8")), signal.SIGKILL)
             except (ProcessLookupError, ValueError):
+                pass
+
+
+STUBBORN_GRANDCHILDREN_CLI = """
+import os
+import sys
+import threading
+import time
+
+import click_extra
+from click_extra import execution
+from click_extra.execution import run_cli, run_jobs
+
+execution._TERMINATE_GRACE = 0.5
+
+GRANDCHILD = (
+    "import os, signal, sys, time;"
+    "signal.signal(signal.SIGINT, signal.SIG_IGN);"
+    "signal.signal(signal.SIGTERM, signal.SIG_IGN);"
+    "open(sys.argv[1] + '.tmp', 'w', encoding='utf-8').write(str(os.getpid()));"
+    "os.replace(sys.argv[1] + '.tmp', sys.argv[1]);"
+    "time.sleep(30)"
+)
+CHILD = (
+    "import signal, subprocess, sys, time;"
+    "signal.signal(signal.SIGINT, signal.SIG_IGN);"
+    "signal.signal(signal.SIGTERM, signal.CHILD_ON_SIGTERM);"
+    "subprocess.Popen((sys.executable, '-c', sys.argv[2], sys.argv[1]));"
+    "time.sleep(30)"
+)
+PID_FILES = [os.path.join(FOLDER, f"grandchild-{n}.pid") for n in range(2)]
+
+
+def spawn(pid_file):
+    return run_cli(
+        (sys.executable, "-c", CHILD, pid_file, GRANDCHILD),
+        start_new_session=NEW_SESSION,
+    )
+
+
+def announce():
+    while not all(os.path.exists(path) for path in PID_FILES):
+        time.sleep(0.05)
+    print("ready", flush=True)
+
+
+@click_extra.command
+def stubborn():
+    threading.Thread(target=announce, daemon=True).start()
+    list(run_jobs(spawn, PID_FILES, jobs=2))
+
+
+stubborn()
+"""
+"""A CLI fanning out two children, each with a grandchild that ignores both
+`SIGINT` and `SIGTERM` and holds the output its child was given."""
+
+
+@skip_windows
+@pytest.mark.parametrize("new_session", (False, True), ids=("same-group", "session"))
+@pytest.mark.parametrize(
+    "child_on_sigterm",
+    # A child that outlives `SIGTERM` is killed with its grandchild. One that
+    # exits on it leaves the grandchild behind, with no parent to find it by.
+    ("SIG_IGN", "SIG_DFL"),
+    ids=("stubborn-child", "child-exits-first"),
+)
+def test_interrupted_run_kills_grandchildren_ignoring_sigterm(
+    tmp_path, new_session, child_on_sigterm
+):
+    """The `SIGKILL` of an aborting run reaches what the children of `run_cli`
+    started, so no grandchild holds the run open or outlives it."""
+    script = (
+        STUBBORN_GRANDCHILDREN_CLI
+        .replace("FOLDER", repr(str(tmp_path)))
+        .replace("NEW_SESSION", repr(new_session))
+        .replace("CHILD_ON_SIGTERM", child_on_sigterm)
+    )
+    pid_files = [tmp_path / f"grandchild-{n}.pid" for n in range(2)]
+    start = monotonic()
+    try:
+        returncode, _ = interrupt_cli(tmp_path, script)
+        assert returncode == -signal.SIGINT
+        assert monotonic() - start < 10
+        for pid_file in pid_files:
+            _assert_process_dies(int(pid_file.read_text(encoding="utf-8")))
+    finally:
+        for pid_file in pid_files:
+            try:
+                os.kill(int(pid_file.read_text(encoding="utf-8")), signal.SIGKILL)
+            except (OSError, ValueError):
                 pass
 
 
@@ -1885,6 +1977,43 @@ def test_terminate_live_processes_signals_whole_group(tmp_path, grandchild_sessi
     assert not _LIVE_PROCESSES
     assert not _GROUP_LEADERS
     _assert_process_dies(int(pid_file.read_text(encoding="utf-8")))
+
+
+def test_kill_signal_reaches_a_grandchild_holding_the_output(tmp_path):
+    """The kill signal ends what a child started too, on every platform.
+
+    The grandchild holds the pipe `run_cli` reads, so the call returns only once
+    the grandchild is gone: a prompt return is the evidence.
+    """
+    ready = tmp_path / "ready"
+    code = dedent(f"""\
+        import subprocess, sys, time
+        subprocess.Popen(
+            (sys.executable, "-c", "import time; time.sleep(30)"),
+            stdout=sys.stdout,
+        )
+        open({str(ready)!r}, "w", encoding="utf-8").close()
+        time.sleep(30)
+        """)
+
+    def call():
+        run_cli((sys.executable, "-c", code), timeout=30)
+
+    # A daemon, so a grandchild that survives cannot hold the test session.
+    worker = threading.Thread(target=call, daemon=True)
+    worker.start()
+    try:
+        deadline = monotonic() + 10
+        while not ready.exists() and monotonic() < deadline:
+            sleep(0.01)
+        assert ready.exists(), "the child never started its grandchild"
+        terminate_live_processes(_KILL_SIGNAL)
+        worker.join(timeout=10)
+        assert not worker.is_alive()
+    finally:
+        terminate_live_processes(_KILL_SIGNAL)
+        worker.join(timeout=5)
+    assert not _LIVE_PROCESSES
 
 
 @pytest.mark.parametrize(

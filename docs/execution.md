@@ -233,7 +233,7 @@ Lanes are read as lazily as `run_jobs` reads items: a lane is turned into a list
 
 A Ctrl+C stops a parallel run at once: queued items never start, and each running lane stops after its current item. A task already running cannot be cut short, so the CLI prints `Aborted!`, then waits for the running tasks, and says what a second Ctrl+C does: `Waiting for 2 running tasks to finish. Press Ctrl+C again to quit now.`
 
-A task waiting on a command it started with `run_cli` does not wait long: the aborting CLI sends that command `SIGTERM`, so it can clean up, then `SIGKILL` if it is still running three seconds later. Windows has neither signal, so the CLI terminates those commands at once, with no grace. A second Ctrl+C kills those commands at once, so none outlives the CLI.
+A task waiting on a command it started with `run_cli` does not wait long: the aborting CLI sends that command `SIGTERM`, so it can clean up. Three seconds later, it sends `SIGKILL` to the command if it is still running, and to the processes that command started. Windows has neither signal, so the CLI terminates those commands and their process trees at once, with no grace. A second Ctrl+C kills them all at once, so none outlives the CLI.
 
 Once the tasks finish, or at the second Ctrl+C, the process ends by `SIGINT`, the way Python ends on an unhandled Ctrl+C. A calling shell sees the signal and stops its own loop, where a status, even `130`, would tell it the CLI handled the interrupt itself. On Windows, which has no signal to die by, the process exits with status `0xC000013A`, the one Windows reports for an unhandled Ctrl+C.
 

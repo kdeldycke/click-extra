@@ -9,7 +9,7 @@
 - Add the `@progress_option` decorator, to give a plain Click command the `--progress`/`--no-progress` flag.
 - End the process by `SIGINT` after Click's `Aborted!` on a Ctrl+C, so a calling shell stops its own loop. It used to exit with status `1`.
 - Print `Aborted!` before the close callbacks of an aborted run, where it used to print after them.
-- Send `SIGTERM`, then `SIGKILL` three seconds later, to the commands `run_cli` started when a Ctrl+C aborts the CLI, without calling `install_interrupt_handler`.
+- Send `SIGTERM` to the commands `run_cli` started when a Ctrl+C aborts the CLI, then `SIGKILL` three seconds later to them and their descendants, without calling `install_interrupt_handler`.
 - Say that an interrupted run waits for its running tasks, and quit at once on a second Ctrl+C instead of printing a traceback.
 - Stop each running lane of `run_lanes` after its current item when the run is interrupted, instead of running the lane to its end.
 - End an `OperationTrail` interrupted by Ctrl+C on a `✘ Interrupted after 2/5 feeds` finisher, and print the outcomes of tasks finishing after it.
@@ -23,6 +23,7 @@
 - Stop `Spinner` and the progress bar of `OperationTrail` within a second when their stream no longer drains, like a terminal paused with Ctrl+S, instead of hanging.
 - Kill a recorded command that ignores `SIGTERM` two seconds after the recording ends, instead of waiting for it to exit on its own.
 - Hold a second Ctrl+C until `run_cli` has killed its child, which the interrupt used to skip, leaving the child running.
+- Terminate the whole process tree of each command in `terminate_live_processes` on Windows, where a descendant survived and held the command's output.
 - Show the cursor again when `SIGTERM` kills a process with a spinner or progress bar drawing, instead of leaving it hidden in the terminal.
 - Run a Click Extra CLI with `python -c`, which used to crash with `RuntimeError: Cannot find module of <frame …>`.
 - Read the configuration once on a bare invocation running its configured subcommands, which used to load it twice and repeat the `Load configuration matching` line.

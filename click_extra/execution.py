@@ -929,6 +929,27 @@ the same lock.
 """
 
 
+_STRAY_DESCENDANTS: Final[dict[int, int]] = {}
+"""Descendants the children of {func}`run_cli` may leave behind: each PID, with
+the process group it was last seen in.
+
+A child that exits on `SIGTERM` takes with it the only link to what it started
+(see {func}`_descendant_pids`). So {func}`terminate_live_processes` writes down
+the descendants of each child it asks to stop, and reads them back when it is
+told to kill. A descendant leading a group of its own is left out: its group
+alone cannot tell it from an unrelated process that took its PID. Guarded by
+{data}`_LIVE_PROCESSES_LOCK`.
+"""
+
+
+_KILL_SIGNAL: Final = signal.SIGTERM if is_windows() else signal.SIGKILL
+"""The signal that ends the children of {func}`run_cli` at once.
+
+Windows has no `SIGKILL`: {func}`terminate_live_processes` uses its single
+forced termination there, whatever the signal.
+"""
+
+
 def _parse_proc_stat(stat: str) -> tuple[int, int] | None:
     """Read the parent PID and process group ID off a Linux `/proc/<pid>/stat` line.
 
@@ -1117,8 +1138,16 @@ def terminate_live_processes(signum: signal.Signals = signal.SIGTERM) -> None:
     Defaults to `SIGTERM` rather than `SIGKILL` so a child still gets to clean
     up, notably to restore terminal state a `sudo` password prompt may have
     altered. An aborting Click Extra command follows up with `SIGKILL` for a
-    child still running after a grace period. Windows has a single forced
-    termination, used whatever `signum` asks for.
+    child still running after a grace period.
+
+    `SIGTERM` goes to a child sharing the caller's process group alone: stopping
+    what it started is part of its own clean-up. `SIGKILL` cannot be handled, so
+    it also goes to each descendant of that child, one PID at a time (see
+    {func}`_kill_descendants`), and to the descendants an earlier call wrote
+    down (see {data}`_STRAY_DESCENDANTS`), which a child that exited on
+    `SIGTERM` left running. Windows has a single forced termination, which ends
+    the whole process tree of each child whatever `signum` asks for.
+
     The registry is snapshotted under the lock, then signalled outside it, because
     {func}`run_cli` may be discarding its own entries from other threads at the
     same time.
@@ -1126,19 +1155,49 @@ def terminate_live_processes(signum: signal.Signals = signal.SIGTERM) -> None:
     with _LIVE_PROCESSES_LOCK:
         live = tuple(_LIVE_PROCESSES)
         leaders = set(_GROUP_LEADERS)
-    # One read of the process table, taken before any signal, serves every leader.
-    table = _posix_process_table() if leaders and hasattr(os, "killpg") else {}
+        strays = dict(_STRAY_DESCENDANTS)
+    if is_windows():
+        for process in live:
+            _kill_windows_process_tree(process.pid)
+            try:
+                process.terminate()
+            except OSError:
+                # Ended with its tree, or reaped since the snapshot.
+                pass
+        return
+    kill = signum == _KILL_SIGNAL
+    # One read of the process table, taken before any signal, serves every child.
+    table = _posix_process_table() if live or strays else {}
+    # A descendant still in the group it was seen in is the one written down.
+    strays = {
+        pid: group
+        for pid, group in strays.items()
+        if table.get(pid, (0, 0))[1] == group
+    }
     for process in live:
+        for pid in _descendant_pids(process.pid, table):
+            if table[pid][1] != pid:
+                strays[pid] = table[pid][1]
         if process in leaders and _kill_posix_process_group(process, signum, table):
             continue
         try:
-            if is_windows():
-                process.terminate()
-            else:
-                process.send_signal(signum)
+            process.send_signal(signum)
         except OSError:
             # Reaped between the snapshot and the signal: nothing left to stop.
             pass
+        if kill:
+            _kill_descendants(process.pid, table, signum)
+    if kill:
+        for pid in strays:
+            try:
+                os.kill(pid, signum)
+            except OSError:
+                # Gone since the table was read: nothing left to stop.
+                pass
+        strays = {}
+    with _LIVE_PROCESSES_LOCK:
+        _STRAY_DESCENDANTS.clear()
+        _STRAY_DESCENDANTS.update(strays)
 
 
 _STATUS_CONTROL_C_EXIT: Final = 0xC000013A - (1 << 32)
@@ -1261,8 +1320,8 @@ def _die_by_sigint() -> NoReturn:
 def _second_interrupt(signum: int, frame: FrameType | None) -> None:
     """Handle a Ctrl+C pressed while an interrupted run waits: exit at once.
 
-    Kills the children of {func}`run_cli` first, which would otherwise outlive
-    the process.
+    Kills the children of {func}`run_cli` first, with their descendants, which
+    would otherwise outlive the process.
     """
     terminate_live_processes(_KILL_SIGNAL)
     _die_by_sigint()
@@ -1273,14 +1332,6 @@ _TERMINATE_GRACE: Final = 3.0
 
 They get `SIGTERM` as the run aborts, so they can clean up, and
 {data}`_KILL_SIGNAL` once this grace runs out.
-"""
-
-
-_KILL_SIGNAL: Final = signal.SIGTERM if is_windows() else signal.SIGKILL
-"""The signal that ends the children of {func}`run_cli` at once.
-
-Windows has no `SIGKILL`: {func}`terminate_live_processes` uses its single
-forced termination there, whatever the signal.
 """
 
 
@@ -1297,9 +1348,10 @@ def _exit_interrupted() -> NoReturn:
 
     Asks the children of {func}`run_cli` to stop first, so the threads waiting
     on them return: `SIGTERM` at once, {data}`_KILL_SIGNAL` after
-    {data}`_TERMINATE_GRACE`. Waits for the threads, as the interpreter would at
-    exit, but says so, and says what a second Ctrl+C does: it stops the wait and
-    exits at once. Then ends the process by {func}`_die_by_sigint`.
+    {data}`_TERMINATE_GRACE`, to them and to their descendants. Waits for the
+    threads, as the interpreter would at exit, but says so, and says what a
+    second Ctrl+C does: it stops the wait and exits at once. Then ends the
+    process by {func}`_die_by_sigint`.
     """
     terminate_live_processes()
     current = threading.current_thread()
@@ -1565,10 +1617,10 @@ def run_cli(
         match. That costs the atomicity of a single group signal, not the
         reaping: the `timeout` and {exc}`KeyboardInterrupt` paths then kill the
         child and walk the tree it led, signalling each descendant by PID (see
-        {func}`_kill_descendants`). {func}`terminate_live_processes` is the one
-        path that still signals the direct child alone, because it sends
-        `SIGTERM` for a clean exit rather than a kill. No-op on Windows, where
-        the timeout path already kills the full tree. Only the reaping half of
+        {func}`_kill_descendants`). {func}`terminate_live_processes` signals
+        the direct child alone when it sends `SIGTERM`, for a clean exit, and
+        walks the same tree when it sends `SIGKILL`. No-op on Windows, where
+        each of these paths already kills the full tree. Only the reaping half of
         this flag has that Windows equivalent, and the other half has none: a
         POSIX session also detaches the child from the controlling terminal,
         where a Windows child keeps sharing the parent's console and can still
