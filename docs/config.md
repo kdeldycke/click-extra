@@ -551,11 +551,11 @@ This is useful for CLIs where configuration files are opt-in rather than opt-out
 You can specify which subcommands run by default when a group is invoked without any explicit subcommands on the CLI. This is done via the `_default_subcommands` reserved configuration key.
 
 ```{note}
-Both reserved keys are honored by whichever group carries the `--config` option, not only by `click_extra.group`. A third-party framework building its own group on `click.Group` or `cloup.Group` gets them too, as long as it attaches `@config_option`. A `click_extra.group` subgroup reached through an ancestor's `--config` carries no option of its own, and reads its own `[my-cli.subgroup]` section all the same. A subgroup built on plain `click.Group` or `cloup.Group` has no such hook, so neither key fires on it.
+Both reserved keys are honored by whichever group carries the `--config` option, not only by `click_extra.group`. A third-party framework building its own group on `click.Group` or `cloup.Group` gets them too, as long as it attaches `@config_option`. A subgroup reached through an ancestor's `--config` carries no option of its own, and reads its own `[my-cli.subgroup]` section all the same, whatever class it is built on.
 ```
 
 ```{caution}
-Click's `no_args_is_help` prints the help screen for a bare invocation before any option is processed, which is before the configuration is read. Click Extra steps around this on every group carrying `--config`: it reads the configuration first, and runs the subcommands either key names in place of the help screen. A group built on plain `click.Group` or `cloup.Group` offers no hook for that, so the first `@config_option` a process declares replaces `click.Group.parse_args` for the whole process. A group with no `--config` option is left to Click.
+Click's `no_args_is_help` prints the help screen for a bare invocation before any option is processed, which is before the configuration is read. Click Extra steps around this on every group carrying `--config`: it reads the configuration first, and runs the subcommands either key names in place of the help screen. A group built on plain `click.Group` or `cloup.Group` offers no hook for that, nor for the section of a subgroup, so the first `@config_option` a process declares replaces `click.Group.parse_args` for the whole process. A CLI with no `--config` option is left to Click.
 ```
 
 Given this CLI:

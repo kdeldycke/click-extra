@@ -47,10 +47,7 @@ from .config import (
     make_schema_callable,
 )
 from .config.schema import _opaque_paths
-from .config.subcommands import (
-    _descend_to_group_config,
-    inject_reserved_subcommands,
-)
+from .config.subcommands import _descend_to_group_config
 from .context import Context
 from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import (
@@ -1395,26 +1392,6 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
                         del self._default_section.commands[cmd_name]
                 del self.commands[cmd_name]
         super().add_command(cmd, name, **kwargs)
-
-    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
-        """Like parent's `parse_args`, but honoring the reserved subcommand keys of a
-        group reached through an ancestor's `--config`.
-
-        Such a group never holds that option, so
-        {meth}`click_extra.config.option.ConfigOption.handle_parse_result` splices
-        nothing in for it. It applies its own `[parent.group]` section here instead:
-        the document is already loaded by the time a subgroup is parsed.
-
-        A group carrying its own `--config` needs none of this. The option serves
-        it, and the `click.Group.parse_args` that
-        {class}`~click_extra.config.option.ConfigOption` installs serves its bare
-        invocations.
-        """
-        if not any(isinstance(p, ConfigOption) for p in self.get_params(ctx)):
-            # Injecting before delegating also settles no_args_is_help, since an
-            # injected subcommand makes the invocation non-empty.
-            args = inject_reserved_subcommands(ctx, args)
-        return super().parse_args(ctx, args)
 
 
 @dataclass(frozen=True)

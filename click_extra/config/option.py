@@ -318,26 +318,37 @@ def _group_parse_args(
     ctx: click.Context,
     args: list[str],
 ) -> list[str]:
-    """Stand in for `click.Group.parse_args`, reading the configuration first.
+    """Stand in for `click.Group.parse_args`, applying the reserved subcommand keys.
 
-    Click raises its `no_args_is_help` screen before it runs any parameter. A bare
-    invocation therefore never reaches {meth}`ConfigOption.handle_parse_result`,
-    where the subcommands named by the configuration are spliced in. This function
-    asks the group's `ConfigOption` for them ahead of that check, and hands these
-    names to Click in place of the empty command line. An empty answer leaves the
-    help screen in place.
+    {meth}`ConfigOption.handle_parse_result` splices the subcommands named by the
+    configuration into the arguments of the group carrying the option. Two cases
+    never reach it, and this function covers both:
 
-    Every other call goes to Click unchanged: one carrying arguments, one made under
-    resilient parsing, and one on a group declared with `no_args_is_help=False` or
-    holding no `ConfigOption`.
+    - A bare invocation. Click raises its `no_args_is_help` screen before it runs
+      any parameter, so the group's `ConfigOption` is asked for the names ahead of
+      that check. They go to Click in place of the empty command line, and an empty
+      answer leaves the help screen in place.
+    - A group reached through an ancestor's `--config`. It holds no option of its
+      own, so its `[parent.group]` section is applied here. The document is already
+      loaded by the time a subgroup is parsed.
+
+    Every other call goes to Click unchanged. That covers each group of a CLI
+    carrying no `ConfigOption`, since nothing loads a document for it.
     """
-    if not args and self.no_args_is_help and not ctx.resilient_parsing:
-        config_option = next(
-            (p for p in self.get_params(ctx) if isinstance(p, ConfigOption)),
-            None,
-        )
-        if config_option is not None:
-            args = config_option._resolve_subcommands_eagerly(ctx)
+    if not ctx.resilient_parsing:
+        bare = not args and self.no_args_is_help
+        loaded = bool(context.get(ctx, context.CONF_FULL))
+        if bare or loaded:
+            config_option = next(
+                (p for p in self.get_params(ctx) if isinstance(p, ConfigOption)),
+                None,
+            )
+            if config_option is None and loaded:
+                # Injecting before delegating also settles no_args_is_help, since
+                # an injected subcommand makes the invocation non-empty.
+                args = inject_reserved_subcommands(ctx, args)
+            elif config_option is not None and bare:
+                args = config_option._resolve_subcommands_eagerly(ctx)
     # The patch sets the original before it installs this function.
     assert _click_group_parse_args is not None
     return _click_group_parse_args(self, ctx, args)
@@ -350,8 +361,9 @@ def _patch_group_parse_args() -> None:
     leaves Click untouched. The replacement then stays for the life of the process,
     and reaches every `click.Group` in it, whichever library built the group.
 
-    A group class click-extra does not own offers no other way in ahead of the
-    no-args check: Click calls nothing on a parameter before it.
+    A group class click-extra does not own offers no other way in. Click calls
+    nothing on a parameter ahead of the no-args check, and a subgroup holds no
+    parameter of click-extra's.
     """
     global _click_group_parse_args
     with _GROUP_PATCH_LOCK:
@@ -365,11 +377,12 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     ```{caution}
     The first `ConfigOption` a process builds replaces `click.Group.parse_args` for
-    all of it. Click prints its `no_args_is_help` screen before it runs any
-    parameter: the replacement is how a bare invocation still runs the subcommands
-    the configuration names, on a group class click-extra does not own. It acts on
-    that one case, for a group carrying a `ConfigOption`, and leaves every other
-    call to Click.
+    all of it. The replacement is how the subcommands the configuration names still
+    run in the two cases the option never sees, on a group class click-extra does
+    not own. One is a bare invocation, for which Click prints its `no_args_is_help`
+    screen before it runs any parameter. The other is a subgroup, which holds no
+    option of its own. Every other call goes to Click unchanged, as does each group
+    of a CLI carrying no `ConfigOption`.
     ```
     """
 
@@ -2145,10 +2158,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         group can be of a class click-extra does not own, so the option carries the
         feature instead of the group.
 
-        A bare invocation is the one case Click never brings here: it raises the
-        `no_args_is_help` screen before it runs any parameter. The
-        `click.Group.parse_args` this class installs processes the option ahead of
-        that screen.
+        Two cases never come here. On a bare invocation, Click raises the
+        `no_args_is_help` screen before it runs any parameter. A subgroup reached
+        through this option holds no option of its own. The `click.Group.parse_args`
+        this class installs covers both.
 
         Before loading, it reads the verbosity the command line asks for (see
         {func}`~click_extra.logging.requested_level`), so {meth}`load_conf` can keep

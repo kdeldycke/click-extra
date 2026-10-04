@@ -48,6 +48,7 @@ from click_extra import (
     VCS,
     ConfigFormat,
     ConfigOption,
+    Group,
     LazyGroup,
     command,
     config_option,
@@ -4228,6 +4229,21 @@ def test_prepend_subcommands_on_any_group_class(invoke, create_config, group_fac
     assert result.output.index("debug ran") < result.output.index("sync ran")
 
 
+SUBGROUP_CLASSES = (
+    pytest.param(click.Group, id="click-subgroup"),
+    pytest.param(cloup.Group, id="cloup-subgroup"),
+    pytest.param(Group, id="click-extra-subgroup"),
+    pytest.param(PlainGroupSubclass, id="click-subgroup-subclass"),
+)
+"""Every group class a subgroup can be built on.
+
+A subgroup reached through an ancestor's `--config` holds no option of its own, so
+its class is all that could keep it from reading its own section.
+"""
+
+
+@pytest.mark.parametrize("group_factory", SUBCOMMAND_GROUP_FACTORIES)
+@pytest.mark.parametrize("subgroup_class", SUBGROUP_CLASSES)
 @pytest.mark.parametrize(
     ("reserved_key", "cli_args"),
     [
@@ -4235,39 +4251,41 @@ def test_prepend_subcommands_on_any_group_class(invoke, create_config, group_fac
         pytest.param("_prepend_subcommands", ("mid", "sync"), id="prepend"),
     ],
 )
-def test_subcommands_on_a_subgroup(invoke, create_config, reserved_key, cli_args):
+def test_subcommands_on_a_subgroup(
+    invoke, create_config, group_factory, subgroup_class, reserved_key, cli_args
+):
     """A subgroup applies the reserved keys of its own configuration section.
 
     Only the root group carries `--config`, so a subgroup is never visited as
-    that option is processed. It reads `[parent.subgroup]` itself.
+    that option is processed. It reads `[parent.subgroup]` all the same, whatever
+    classes the root and the subgroup are built on.
     """
     conf_path = create_config(
-        "sg-cli.toml",
+        "subcmdcli.toml",
         dedent(f"""\
-            [sg-cli.mid]
+            [subcmdcli.mid]
             {reserved_key} = ["debug"]
             """),
     )
+    cli = make_subcommand_group(group_factory, chain=False)
 
-    @group
-    def sg_cli():
-        pass
-
-    @sg_cli.group(chain=True)
+    @click.group(cls=subgroup_class, chain=True)
     def mid():
         pass
 
+    cli.add_command(mid)
+
     @mid.command()
     def debug():
-        echo("debug ran")
+        echo("mid debug ran")
 
     @mid.command()
     def sync():
-        echo("sync ran")
+        echo("mid sync ran")
 
-    result = invoke(sg_cli, "--config", str(conf_path), *cli_args, color=False)
+    result = invoke(cli, "--config", str(conf_path), *cli_args, color=False)
     assert result.exit_code == 0
-    assert "debug ran" in result.output
+    assert "mid debug ran" in result.output
 
 
 @pytest.fixture

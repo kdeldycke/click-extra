@@ -29,6 +29,7 @@
 - Run a Click Extra CLI with `python -c`, which used to crash with `RuntimeError: Cannot find module of <frame …>`.
 - Honor `_default_subcommands` and `_prepend_subcommands` on a bare invocation of any group defining `@config_option`, where a plain `click.Group` still printed the help screen.
 - Read the configuration once on a bare invocation running its configured subcommands, which used to load it twice and repeat the `Load configuration matching` line.
+- Honor `_default_subcommands` and `_prepend_subcommands` on a subgroup of any class reached through an ancestor's `--config`, which only a `click_extra.group` subgroup did.
 
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 

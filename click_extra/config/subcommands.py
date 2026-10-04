@@ -26,16 +26,16 @@ The keys are honored by whichever group carries the `--config` option, not only
 by click-extra's own {class}`~click_extra.commands.Group`. Injection happens at
 parse time, from the option itself, because a plain `click.Group` offers
 click-extra no other hook: a third-party framework building its group on
-`click.Group` still gets the feature. A click-extra `Group` reached through an
-ancestor's `--config` carries no option of its own, and applies its own section
-from {meth}`~click_extra.commands.Group.parse_args` instead.
+`click.Group` still gets the feature.
 ```
 
 ```{caution}
-Click prints the `no_args_is_help` screen before it processes any option, so the
-option never sees a bare invocation. {class}`~click_extra.config.option.ConfigOption`
-replaces `click.Group.parse_args` for the whole process to read the configuration
-ahead of that screen: see its documentation.
+The option never sees two cases. Click prints the `no_args_is_help` screen of a
+bare invocation before it processes any option, and a group reached through an
+ancestor's `--config` carries no option of its own.
+{class}`~click_extra.config.option.ConfigOption` replaces `click.Group.parse_args`
+for the whole process to cover both, whatever class the group is built on: see its
+documentation.
 ```
 """
 
