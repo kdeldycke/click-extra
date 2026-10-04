@@ -681,14 +681,44 @@ oven()
 """A CLI whose two parallel tasks outlast any reasonable wait."""
 
 
+SLOW_THREAD_CLI = """
+import threading
+import time
+
+import click_extra
+
+
+@click_extra.command
+def kettle():
+    threading.Thread(target=time.sleep, args=(30,)).start()
+    print("ready", flush=True)
+    time.sleep(30)
+
+
+kettle()
+"""
+"""A CLI whose single background thread outlasts any reasonable wait."""
+
+
 @skip_windows
-def test_second_ctrl_c_quits_while_tasks_finish(tmp_path):
+@pytest.mark.parametrize(
+    ("script", "notice"),
+    (
+        pytest.param(
+            SLOW_JOBS_CLI, "Waiting for 2 running tasks to finish.", id="two_tasks"
+        ),
+        pytest.param(
+            SLOW_THREAD_CLI, "Waiting for 1 running task to finish.", id="one_task"
+        ),
+    ),
+)
+def test_second_ctrl_c_quits_while_tasks_finish(tmp_path, script, notice):
     """After a Ctrl+C, the run says it waits for its running tasks, and what a
     second Ctrl+C does: quit at once, instead of waiting for the tasks."""
-    returncode, stderr = interrupt_cli(tmp_path, SLOW_JOBS_CLI, presses=2)
+    returncode, stderr = interrupt_cli(tmp_path, script, presses=2)
     assert returncode == -signal.SIGINT
     assert "Aborted!" in stderr
-    assert "Waiting for 2 running tasks to finish." in stderr
+    assert notice in stderr
     assert "Press Ctrl+C again to quit now." in stderr
     assert "Traceback" not in stderr
 

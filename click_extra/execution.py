@@ -44,7 +44,7 @@ import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from gettext import gettext as _
+from gettext import gettext as _, ngettext
 from itertools import chain, islice
 from time import perf_counter
 from typing import Final, NoReturn, TypeVar, cast
@@ -1271,9 +1271,12 @@ def _exit_interrupted() -> NoReturn:
     if running and current is threading.main_thread():
         signal.signal(signal.SIGINT, _second_interrupt)
         echo(
-            _(
+            ngettext(
+                "Waiting for {count} running task to finish. "
+                "Press Ctrl+C again to quit now.",
                 "Waiting for {count} running tasks to finish. "
-                "Press Ctrl+C again to quit now."
+                "Press Ctrl+C again to quit now.",
+                len(running),
             ).format(count=len(running)),
             err=True,
         )
