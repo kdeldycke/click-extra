@@ -834,14 +834,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         if parent is None:
             meta[context.INVOCATION_NAME] = info_name
         extra.update({"meta": meta})
-        if parent is not None:
-            return super().make_context(info_name, args, parent, **extra)
-        # The run ends on what leaves the root context: its parsing here, then its
-        # closing, since a context that fails to parse never closes.
-        with _run_end_watch():
-            ctx = super().make_context(info_name, args, parent, **extra)
-        ctx.with_resource(_run_end_watch())
-        return ctx
+        return _watched_context(super().make_context, info_name, args, parent, **extra)
 
     def format_examples(
         self,
@@ -1013,6 +1006,27 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             _enhance_short_option_error(exc, original_args, ctx)
 
 
+def _watched_context(
+    make_context: Callable[..., click.Context],
+    info_name: str | None,
+    args: list[str],
+    parent: click.Context | None,
+    **extra: Any,
+) -> click.Context:
+    """Build a context with `make_context`, and watch what a root one ends on.
+
+    The run ends on what leaves the root context: its parsing here, then its
+    closing, since a context that fails to parse never closes. See
+    `click_extra.execution._run_end_watch`.
+    """
+    if parent is not None:
+        return make_context(info_name, args, parent, **extra)
+    with _run_end_watch():
+        ctx = make_context(info_name, args, parent, **extra)
+    ctx.with_resource(_run_end_watch())
+    return ctx
+
+
 def _enhance_short_option_error(
     exc: click.NoSuchOption,
     original_args: list[str],
@@ -1102,6 +1116,20 @@ class ColorizedCommand(_HelpColorsMixin, click.Command):  # type: ignore[misc]
 
     context_class: type[cloup.Context] = Context
 
+    def make_context(
+        self,
+        info_name: str | None,
+        args: list[str],
+        parent: click.Context | None = None,
+        **extra: Any,
+    ) -> click.Context:
+        """Like parent's `make_context`, but watches what the run ends on.
+
+        A patched CLI runs under Click's own `main()`, inside the `wrap` command:
+        the watch is what tells that command a Ctrl+C ended its target.
+        """
+        return _watched_context(super().make_context, info_name, args, parent, **extra)
+
 
 class ColorizedGroup(_HelpColorsMixin, click.Group):  # type: ignore[misc]
     """Click Group with help colorization but no extra params.
@@ -1110,6 +1138,19 @@ class ColorizedGroup(_HelpColorsMixin, click.Group):  # type: ignore[misc]
     """
 
     context_class: type[cloup.Context] = Context
+
+    def make_context(
+        self,
+        info_name: str | None,
+        args: list[str],
+        parent: click.Context | None = None,
+        **extra: Any,
+    ) -> click.Context:
+        """Like parent's `make_context`, but watches what the run ends on.
+
+        See {meth}`ColorizedCommand.make_context`.
+        """
+        return _watched_context(super().make_context, info_name, args, parent, **extra)
 
 
 class HelpCommand(ColorizedCommand):

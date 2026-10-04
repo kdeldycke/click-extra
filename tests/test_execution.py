@@ -624,8 +624,16 @@ stew()
 """A CLI that sleeps while it parses its options, before its context is entered."""
 
 
-def interrupt_cli(tmp_path: Path, script: str, presses: int = 1) -> tuple[int, str]:
+def interrupt_cli(
+    tmp_path: Path,
+    script: str,
+    presses: int = 1,
+    launcher: tuple[str, ...] = (),
+) -> tuple[int, str]:
     """Run `script` in a child, press Ctrl+C `presses` times once it is ready.
+
+    `launcher` holds the interpreter arguments that go before the script, to run
+    it through another CLI.
 
     A further press waits for the child to say what one does, so it lands once
     the child handles it. A child that never says so is killed.
@@ -635,11 +643,14 @@ def interrupt_cli(tmp_path: Path, script: str, presses: int = 1) -> tuple[int, s
     script_path = tmp_path / "cli.py"
     script_path.write_text(script, encoding="UTF-8")
     process = subprocess.Popen(
-        (sys.executable, str(script_path)),
+        (sys.executable, *launcher, str(script_path)),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
         encoding="UTF-8",
+        # Keeps a `-m` launcher on the installed package, not on a checkout the
+        # tests happen to run from.
+        cwd=tmp_path,
     )
     watchdog = threading.Timer(20, process.kill)
     watchdog.start()
@@ -678,6 +689,35 @@ def test_ctrl_c_ends_the_process_by_sigint(tmp_path, script):
     which a calling shell needs to stop its own loop: a status of `1`, or even
     `130`, tells the shell the program handled the interrupt itself."""
     returncode, stderr = interrupt_cli(tmp_path, script)
+    assert returncode == -signal.SIGINT
+    assert "Aborted!" in stderr
+
+
+PLAIN_NAP_CLI = """
+import time
+
+import click
+
+
+@click.command()
+def nap():
+    print("ready", flush=True)
+    time.sleep(30)
+
+
+if __name__ == "__main__":
+    nap()
+"""
+"""A plain Click CLI that sleeps until interrupted, for the `wrap` command to run."""
+
+
+@skip_windows
+def test_ctrl_c_in_a_wrapped_cli_ends_the_process_by_sigint(tmp_path):
+    """A CLI run by `wrap` aborts under Click's own `main()`, and the wrapping
+    process still ends by `SIGINT`."""
+    returncode, stderr = interrupt_cli(
+        tmp_path, PLAIN_NAP_CLI, launcher=("-m", "click_extra", "wrap", "--")
+    )
     assert returncode == -signal.SIGINT
     assert "Aborted!" in stderr
 
