@@ -4164,12 +4164,12 @@ own {class}`~click_extra.commands.Group`.
 """
 
 
-def make_subcommand_group(group_factory, *, chain):
+def make_subcommand_group(group_factory, *, chain, **kwargs):
     """Build a `subcmdcli` group of *group_factory*, carrying `--config`.
 
     Registers a `debug` and a `sync` subcommand, each echoing its own name.
     click-extra groups already ship `--config`, so the option is only added to
-    the other flavors.
+    the other flavors. Extra keyword arguments go to *group_factory*.
     """
 
     def subcmdcli():
@@ -4178,7 +4178,7 @@ def make_subcommand_group(group_factory, *, chain):
     if group_factory is not group:
         subcmdcli = config_option()(subcmdcli)
 
-    cli = group_factory(chain=chain)(subcmdcli)
+    cli = group_factory(chain=chain, **kwargs)(subcmdcli)
 
     @cli.command()
     def debug():
@@ -4331,6 +4331,43 @@ def test_no_args_is_help_survives_a_silent_config(invoke, app_dir_conf, group_fa
     assert "debug ran" not in result.output
     assert "sync ran" not in result.output
     assert "Usage: subcmdcli" in result.output
+
+
+@pytest.mark.parametrize("group_factory", SUBCOMMAND_GROUP_FACTORIES)
+def test_bare_invocation_loads_the_configuration_once(
+    invoke, create_config, group_factory
+):
+    """A bare invocation running a configured subcommand reads its document once.
+
+    `--config` is processed ahead of the no-args help screen, then again by Click's
+    parameter loop. A location set on purpose, here through the environment, makes
+    each load print its status line.
+    """
+    conf_path = create_config(
+        "subcmdcli.toml",
+        dedent("""\
+            [subcmdcli]
+            _default_subcommands = ["backup"]
+
+            [subcmdcli.backup]
+            path = "/home"
+            """),
+    )
+    cli = make_subcommand_group(
+        group_factory,
+        chain=True,
+        context_settings={"auto_envvar_prefix": "SUBCMDCLI"},
+    )
+
+    @cli.command()
+    @option("--path", default="/tmp")
+    def backup(path):
+        echo(f"Backing up {path}")
+
+    result = invoke(cli, color=False, env={"SUBCMDCLI_CONFIG": str(conf_path)})
+    assert result.exit_code == 0
+    assert result.stdout == "Backing up /home\n"
+    assert result.stderr == f"Load configuration matching {conf_path}\n"
 
 
 def test_no_args_is_help_stays_without_a_config_option(invoke, app_dir_conf):

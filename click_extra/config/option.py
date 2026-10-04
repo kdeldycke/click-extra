@@ -119,6 +119,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+_PRELOADED: str = f"{context.META_NAMESPACE}_config_preloaded"
+"""Context key listing the command paths whose configuration is loaded ahead of time.
+
+Filled by {meth}`ConfigOption._resolve_subcommands_eagerly`, which processes the
+option before Click's parameter loop does. That loop then calls
+{meth}`ConfigOption.load_conf` again with the same value: the call removes its entry
+and returns, in place of loading the document a second time.
+"""
+
+
 _STATUS_SILENCED: str = f"{context.META_NAMESPACE}_config_status_silenced"
 """Context key marking that the command line asks for less than `WARNING` output.
 
@@ -1965,6 +1975,13 @@ class ConfigOption(ExtraOption, ParamStructure):
         if ctx.resilient_parsing:
             return
 
+        # A bare invocation already loaded this document ahead of the no-args help
+        # screen: skip the visit Click's parameter loop makes next.
+        preloaded = context.get(ctx, _PRELOADED)
+        if preloaded and ctx.command_path in preloaded:
+            preloaded.remove(ctx.command_path)
+            return
+
         # The status lines below go to stderr through echo(), not the logger: the
         # logger still sits at its default level here, because the verbosity options
         # run after this one. handle_parse_result() reads the level they will settle
@@ -2162,11 +2179,21 @@ class ConfigOption(ExtraOption, ParamStructure):
         key naming an unknown subcommand: the regular parameter loop reports it on
         the next invocation naming a subcommand. A document failing validation still
         ends the CLI from here, as it does on every other invocation.
+
+        Names to dispatch mean Click's parameter loop runs next, and processes this
+        option again with the same value. The context is marked so that
+        {meth}`load_conf` skips that second visit.
         """
         try:
             _, injected = self.handle_parse_result(ctx, {}, [])
         except click.ClickException:
             return []
+        if injected:
+            preloaded = context.get(ctx, _PRELOADED)
+            if preloaded is None:
+                preloaded = set()
+                context.set(ctx, _PRELOADED, preloaded)
+            preloaded.add(ctx.command_path)
         return injected
 
 
