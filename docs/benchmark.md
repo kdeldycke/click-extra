@@ -65,7 +65,7 @@ Behavior when placing global flags before vs. after a subcommand:
 | `rich-click`[^10] |    [✅](https://click.palletsprojects.com/en/stable/commands/#callback-invocation)    |
 | `bpaf`[^11]       |    [✅](https://docs.rs/bpaf/0.9.28/bpaf/struct.OptionParser.html#method.command)     |
 
-Every framework accepts a parent command's flags before the subcommand. Fire gets `~` because a bare boolean flag there takes the subcommand name as its value. The [clig.dev table](#clig-dev-guidelines) covers the other position: Click, and the frameworks built on it, reject a parent's flags after the subcommand.
+Every framework accepts a parent command's flags before the subcommand. Fire gets 🟡 because a bare boolean flag there takes the subcommand name as its value. The [clig.dev table](#clig-dev-guidelines) covers the other position: Click, and the frameworks built on it, reject a parent's flags after the subcommand.
 
 <a name="clig-dev-guidelines"></a>
 
@@ -167,7 +167,7 @@ No framework skips prompts when `stdin` is not a TTY, accepts `--no-input`, or s
 
 ### Startup time
 
-The "under 100 ms" row times a hello-world `--help` on an Apple Silicon Mac with Python 3.14, as the median of 15 runs: Click 36 ms, Cloup 55 ms, Fire 57 ms, Tyro 59 ms, Cement 66 ms, rich-click 73 ms, Typer 90 ms, Cyclopts 113 ms (on `5.0.0`) and click-extra 141 ms. `~` marks a time between 100 and 200 ms. cobra, clap and bpaf compile to native executables, with no interpreter to start.
+The "under 100 ms" row times a hello-world `--help` on an Apple Silicon Mac with Python 3.14, as the median of 15 runs: Click 36 ms, Cloup 55 ms, Fire 57 ms, Tyro 59 ms, Cement 66 ms, rich-click 73 ms, Typer 90 ms, Cyclopts 113 ms (on `5.0.0`) and click-extra 141 ms. 🟡 marks a time between 100 and 200 ms. cobra, clap and bpaf compile to native executables, with no interpreter to start.
 
 ## Unique strengths
 
