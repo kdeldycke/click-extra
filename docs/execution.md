@@ -237,6 +237,26 @@ A task waiting on a command it started with `run_cli` does not wait long: the ab
 
 Once the tasks finish, or at the second Ctrl+C, the process ends by `SIGINT`, the way Python ends on an unhandled Ctrl+C. A calling shell sees the signal and stops its own loop, where a status, even `130`, would tell it the CLI handled the interrupt itself.
 
+The CLI prints `Aborted!` as soon as the interrupt leaves the command: before the close callbacks queued with `ctx.call_on_close()` and `ctx.with_resource()` run, where Click prints it after them. A user who presses Ctrl+C reads it at once, even when the clean-up is slow:
+
+```{click:source}
+from click_extra import command, echo, pass_context
+
+@command
+@pass_context
+def bake(ctx):
+    """Bake a loaf."""
+    ctx.call_on_close(lambda: echo("Oven switched off.", err=True))
+    # Stands for a Ctrl+C pressed while the loaf bakes.
+    raise KeyboardInterrupt
+```
+
+```{click:run}
+result = invoke(bake)
+assert result.exit_code == 1
+assert result.stderr == "\nAborted!\nOven switched off.\n"
+```
+
 ## Resolving the job count
 
 `run_jobs` and `run_lanes` decide their worker count internally, but a caller that must know it *before* fanning out (for example to pick a progress-rendering mode) can call `resolve_jobs(ctx, count)` directly. It applies the same policy those helpers do: `1` (sequential) when there is no context, a single item, or `--jobs 1`, otherwise the resolved count capped at `count`. Passing `serial_at_debug=True` also collapses to sequential at `DEBUG` verbosity, where coherent per-worker log narration matters more than the speed-up; both helpers forward this flag.

@@ -838,6 +838,77 @@ def test_simulated_interrupt_keeps_click_exit_status(invoke):
     assert "Aborted!" in result.stderr
 
 
+@pytest.mark.parametrize(
+    ("abort", "notice"),
+    (
+        pytest.param("interrupt", "\nAborted!\n", id="interrupt"),
+        pytest.param("abort", "Aborted!\n", id="abort"),
+    ),
+)
+def test_abort_notice_precedes_close_callbacks(invoke, abort, notice):
+    """`Aborted!` prints as soon as the abort leaves the command: before the close
+    callbacks of its context and of its parents, where Click prints it after them."""
+
+    @group
+    @pass_context
+    def farm(ctx):
+        ctx.call_on_close(lambda: echo("Barn closed.", err=True))
+
+    @farm.command
+    @pass_context
+    def harvest(ctx):
+        ctx.call_on_close(lambda: echo("Field closed.", err=True))
+        if abort == "interrupt":
+            raise KeyboardInterrupt
+        ctx.abort()
+
+    result = invoke(farm, "harvest")
+    assert result.exit_code == 1
+    assert result.stderr == f"{notice}Field closed.\nBarn closed.\n"
+
+
+def test_abort_caught_around_an_invoked_command_prints_no_notice(invoke):
+    """A command run through `ctx.invoke()` leaves its caller free to catch the
+    abort: a run that goes on prints no `Aborted!`."""
+
+    @group
+    def farm():
+        pass
+
+    @farm.command
+    @pass_context
+    def harvest(ctx):
+        ctx.abort()
+
+    @farm.command
+    @pass_context
+    def visit(ctx):
+        try:
+            ctx.invoke(harvest)
+        except click.Abort:
+            echo("The visit goes on.")
+
+    result = invoke(farm, "visit")
+    assert result.exit_code == 0
+    assert result.stdout == "The visit goes on.\n"
+    assert not result.stderr
+
+
+def test_abort_without_standalone_mode_prints_no_notice(invoke):
+    """Without standalone mode, Click raises the abort to the caller, which reports
+    it its own way: no `Aborted!` is printed."""
+
+    @command
+    @pass_context
+    def nap(ctx):
+        ctx.call_on_close(lambda: echo("Closed.", err=True))
+        raise KeyboardInterrupt
+
+    result = invoke(nap, standalone_mode=False)
+    assert isinstance(result.exception, click.Abort)
+    assert result.stderr == "Closed.\n\n"
+
+
 def test_invalid_value(invoke):
     """Values that are neither an integer nor a known keyword are rejected."""
 

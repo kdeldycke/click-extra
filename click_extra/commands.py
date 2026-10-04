@@ -48,7 +48,7 @@ from .config import (
 )
 from .config.schema import _opaque_paths
 from .config.subcommands import _descend_to_group_config
-from .context import Context
+from .context import Context, _abort_notice, _owning_abort_notice
 from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import (
     TimerOption,
@@ -763,10 +763,13 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         `_detect_program_name()` method. This is to avoid the CLI being called
         `python -m <module_name>`, which is not very user-friendly.
 
-        A Ctrl+C still prints Click's `Aborted!`, which Click prints on purpose
+        An abort still prints Click's `Aborted!`, which Click prints on purpose
         ([pallets/click#2584](https://github.com/pallets/click/issues/2584)), but
-        then ends the process the way an unhandled Ctrl+C does in Python: by
-        `SIGINT`, once the running threads finish. Click
+        prints it as soon as the abort leaves the command: before the close
+        callbacks run, where Click prints it after them.
+
+        A Ctrl+C then ends the process the way an unhandled Ctrl+C does in Python:
+        by `SIGINT`, once the running threads finish. Click
         [exits with status `1`](https://github.com/pallets/click/blob/8.5.0/src/click/core.py#L1591-L1595)
         instead, which tells a calling shell the program handled the interrupt
         itself, so a shell loop runs on.
@@ -774,7 +777,10 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         if not prog_name and self.name:
             prog_name = self.name
 
-        with _interrupt_handling():
+        with (
+            _interrupt_handling(),
+            _owning_abort_notice(self, kwargs.get("standalone_mode", True)),
+        ):
             try:
                 return super().main(args=args, prog_name=prog_name, **kwargs)
             except SystemExit:
@@ -789,6 +795,15 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                 # mirror stays pinned for the rest of the process. Reset here so
                 # the scope holds however the invocation ended.
                 _reset_invocation_color()
+
+    def invoke(self, ctx: click.Context) -> Any:
+        """Like parent's `invoke`, but prints the `Aborted!` of an abort at once.
+
+        Click prints it once the root context has closed, so after every close
+        callback. See `click_extra.context._abort_notice`.
+        """
+        with _abort_notice(ctx):
+            return super().invoke(ctx)
 
     def make_context(
         self,

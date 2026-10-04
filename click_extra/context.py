@@ -51,17 +51,25 @@ from __future__ import annotations
 
 import functools
 import os
+import sys
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
+from gettext import gettext as _
 from typing import Any, ParamSpec, TypeVar, cast
 
 import click
 import cloup
+from click import echo
+from click.exceptions import Abort, Exit
 
 from .color import resolve_color_env
 from .highlight import HelpFormatter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Iterator, Sequence
+    from types import TracebackType
     from typing import Concatenate, Final
 
     from .table import TableFormat, THeader
@@ -78,6 +86,90 @@ matching GNU `getopt` semantics), {class}`Context` forces
 `allow_interspersed_args` to `False` so option parsing stops at the first
 positional argument.
 """
+
+
+_ABORT_EXCEPTIONS: Final = (EOFError, KeyboardInterrupt, Abort)
+"""The exceptions Click's `main()` answers with `Aborted!` and the exit status `1`."""
+
+
+@dataclass
+class _AbortNotice:
+    """The `Aborted!` notice of one standalone run of a Click Extra command.
+
+    Click prints that notice once the root context has closed, so after every
+    close callback of the run. A run that owns its notice prints it as soon as
+    the abort leaves a command, before any context closes: the user reads it at
+    once, even when the clean-up is slow.
+    """
+
+    command: click.Command
+    """The command whose `main()` drives the run."""
+
+    printed_for: BaseException | None = None
+    """The abort the notice is printed for, if any."""
+
+    def covers(self, exc: BaseException | None) -> bool:
+        """Whether the notice is printed for `exc`, or for the abort `exc` stems from.
+
+        An abort keeps its notice on its way up the commands, and when a later
+        exception replaces it, like a second Ctrl+C landing in a close callback.
+        """
+        # A list, as the `set()` of this module shadows the builtin.
+        seen: list[int] = []
+        while exc is not None and id(exc) not in seen:
+            if exc is self.printed_for:
+                return True
+            seen.append(id(exc))
+            exc = exc.__cause__ or exc.__context__
+        return False
+
+
+_ABORT_NOTICE: ContextVar[_AbortNotice | None] = ContextVar(
+    "_ABORT_NOTICE", default=None
+)
+"""The notice of the run in progress, or `None` where Click prints its own."""
+
+
+@contextmanager
+def _owning_abort_notice(command: click.Command, standalone: bool) -> Iterator[None]:
+    """Make the run of `command` in the block print its own abort notice.
+
+    Only a standalone run prints one. Without standalone mode, Click raises the
+    {exc}`~click.exceptions.Abort` to the caller and prints no notice.
+    """
+    token = _ABORT_NOTICE.set(_AbortNotice(command) if standalone else None)
+    try:
+        yield
+    finally:
+        _ABORT_NOTICE.reset(token)
+
+
+@contextmanager
+def _abort_notice(ctx: click.Context) -> Iterator[None]:
+    """Print Click's `Aborted!` as soon as an abort leaves the block.
+
+    Wraps the invocation of a command, which Click runs inside the context of
+    that command. The notice so precedes the close callbacks of every context of
+    the run, the innermost included.
+
+    Code that runs a command through {meth}`click.Context.invoke` never enters
+    this block, so it stays free to catch the abort and carry on.
+    """
+    try:
+        yield
+    except _ABORT_EXCEPTIONS as exc:
+        notice = _ABORT_NOTICE.get()
+        if (
+            notice is not None
+            and ctx.find_root().command is notice.command
+            and not notice.covers(exc)
+        ):
+            notice.printed_for = exc
+            if not isinstance(exc, Abort):
+                # The blank line ends the line of the `^C` the terminal echoed.
+                echo(file=sys.stderr)
+            echo(_("Aborted!"), file=sys.stderr)
+        raise
 
 
 class Context(cloup.Context):
@@ -158,6 +250,41 @@ class Context(cloup.Context):
         # Update the context's meta property with the one provided by user.
         if meta:
             self._meta.update(meta)
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool | None:
+        """Like parent's `__exit__`, but ends an aborted run whose notice is printed.
+
+        {func}`_abort_notice` prints `Aborted!` before the contexts of the run
+        close. Click would print it again once the root context has closed, so
+        that context exits with Click's abort status itself.
+        """
+        notice = _ABORT_NOTICE.get()
+        # Only the exit that closes the root context ends the run.
+        if (
+            notice is None
+            or notice.printed_for is None
+            or self._depth != 1
+            or self.parent is not None
+            or self.command is not notice.command
+        ):
+            return super().__exit__(exc_type, exc_value, tb)
+        try:
+            suppressed = super().__exit__(exc_type, exc_value, tb)
+        except _ABORT_EXCEPTIONS as exc:
+            # A close callback raised an abort, like a second Ctrl+C landing there.
+            if not notice.covers(exc):
+                raise
+            raise Exit(1) from exc
+        if suppressed or not (
+            isinstance(exc_value, _ABORT_EXCEPTIONS) and notice.covers(exc_value)
+        ):
+            return suppressed
+        raise Exit(1) from exc_value
 
     def render_table(
         self,
