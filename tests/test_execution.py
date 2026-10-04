@@ -854,7 +854,7 @@ def test_abort_notice_precedes_close_callbacks(invoke, abort, notice):
     def farm(ctx):
         ctx.call_on_close(lambda: echo("Barn closed.", err=True))
 
-    @farm.command
+    @farm.command()
     @pass_context
     def harvest(ctx):
         ctx.call_on_close(lambda: echo("Field closed.", err=True))
@@ -875,12 +875,12 @@ def test_abort_caught_around_an_invoked_command_prints_no_notice(invoke):
     def farm():
         pass
 
-    @farm.command
+    @farm.command()
     @pass_context
     def harvest(ctx):
         ctx.abort()
 
-    @farm.command
+    @farm.command()
     @pass_context
     def visit(ctx):
         try:
