@@ -626,6 +626,26 @@ def harvest():
 
 Pass `live="always"` or `live="never"` to decide regardless of the flag.
 
+A command that is not a Click Extra one gets the same flag from the `@progress_option` decorator:
+
+```{click:source}
+import click
+from click_extra import Spinner, progress_option
+
+@click.command
+@progress_option
+def press():
+    """Press apples into cider."""
+    with Spinner("Pressing apples"):
+        click.echo("Cider is ready.")
+```
+
+```{click:run}
+result = invoke(press, args=["--help"])
+assert result.exit_code == 0
+assert "--progress / --no-progress" in result.stdout
+```
+
 Spinner display is **decoupled from color**. A spinner is an interactivity concern, not a color one: it is driven by cursor-control codes, which the [NO_COLOR standard](https://no-color.org) explicitly does not govern. So `--no-color` and `NO_COLOR` strip the spinner's color but keep it spinning, the same way [cargo](https://doc.rust-lang.org/cargo/reference/config.html), npm, pip, [Rich](https://rich.readthedocs.io/en/latest/console.html), [indicatif](https://github.com/console-rs/indicatif) and [ora](https://github.com/sindresorhus/ora) gate progress on the terminal rather than on color.
 
 The resolved value is `False` only for **non-interactive output** (a pipe, a `TERM=dumb` terminal, or CI: handled by the widget's own check when you pass `live="auto"`) and for **explicit intent** (`--no-progress` or `--accessible`, the latter so a screen reader is never handed a spinning glyph).

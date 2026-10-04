@@ -46,6 +46,7 @@ from .execution import JobsOption, TimerOption, ZeroExitOption
 from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
 from .multicall import MulticallGroup
 from .parameters import Argument, Option, ShowParamsOption
+from .spinner import ProgressOption
 from .table import ColumnsOption, SortByOption, TableFormatOption
 from .telemetry import TelemetryOption
 from .theme import ThemeOption
@@ -362,6 +363,7 @@ man_option = decorator_factory(dec=option, cls=ManOption)
 no_color_option = decorator_factory(dec=option, cls=NoColorOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
 debug_option = decorator_factory(dec=option, cls=DebugOption)
+progress_option = decorator_factory(dec=option, cls=ProgressOption)
 quiet_option = decorator_factory(dec=option, cls=QuietOption)
 show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)
 table_format_option = decorator_factory(dec=option, cls=TableFormatOption)

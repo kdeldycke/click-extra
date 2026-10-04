@@ -43,9 +43,11 @@ from click_extra import (
     command,
     echo,
     pass_context,
+    progress_option,
 )
 from click_extra.cli import _TRAIL_BATCH, demo
 from click_extra.context import PROGRESS, START_TIME
+from click_extra.pytest import command_decorators
 from click_extra.screenshot import cell_width
 from click_extra.spinner import (
     _TOUR_CAP,
@@ -365,6 +367,32 @@ def test_progress_option_resolution(invoke, args, expected):
 
     result = invoke(cli, *args)
     assert f"progress={expected}" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "cmd_decorator",
+    # Skip click extra's commands, as the progress option is already part of the
+    # default.
+    command_decorators(no_groups=True, no_extra=True),
+)
+@pytest.mark.parametrize("option_decorator", (progress_option, progress_option()))
+def test_standalone_progress_option(invoke, cmd_decorator, option_decorator):
+    @cmd_decorator
+    @option_decorator
+    @pass_context
+    def standalone_progress(ctx):
+        echo(f"progress={ctx.meta[PROGRESS]}")
+
+    result = invoke(standalone_progress, "--help", color=False)
+    assert "--progress / --no-progress" in result.stdout
+    assert not result.stderr
+    assert result.exit_code == 0
+
+    result = invoke(standalone_progress)
+    assert result.stdout == "progress=True\n"
+
+    result = invoke(standalone_progress, "--no-progress")
+    assert result.stdout == "progress=False\n"
 
 
 @pytest.mark.parametrize(

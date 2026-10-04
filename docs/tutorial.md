@@ -240,6 +240,7 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@accessible_option`](colorize.md#accessible-flag)                              | `--accessible`                  | ✅      |
 | [`@color_option`](colorize.md#color-flag)                                        | `--color [auto\|always\|never]` | ✅      |
 | [`@no_color_option`](colorize.md#color-flag)                                     | `--no-color`                    | ✅      |
+| {py:class}`@progress_option <click_extra.spinner.ProgressOption>`                | `--progress / --no-progress`    | ✅      |
 | [`@theme_option`](theme.md)                                                      | `--theme`                       | ✅      |
 | [`@config_option`](config.md#standalone-option)                                  | `--config LOCATION`             | ✅      |
 | [`@no_config_option`](config.md#)                                                | `--no-config`                   | ✅      |

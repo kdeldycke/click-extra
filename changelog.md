@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - **Deprecated:** The `is_root`, `default_opts` and `inherited_opts` arguments of `extract_carapace_command` now warn and have no effect, and stop working in `10.0.0`.
+- Add the `@progress_option` decorator, to give a plain Click command the `--progress`/`--no-progress` flag.
 - End the process by `SIGINT` after Click's `Aborted!` on a Ctrl+C, so a calling shell stops its own loop. It used to exit with status `1`.
 - Print `Aborted!` before the close callbacks of an aborted run, where it used to print after them.
 - Send `SIGTERM`, then `SIGKILL` three seconds later, to the commands `run_cli` started when a Ctrl+C aborts the CLI, without calling `install_interrupt_handler`.

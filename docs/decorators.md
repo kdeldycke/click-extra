@@ -131,7 +131,7 @@ c()
 
 ## The standard decorator suite
 
-Every default option but `--progress`, which has only its `ProgressOption` class, ships with a matching decorator. `decorator_factory` builds each decorator below, except the hand-written `version_option` and `sort_by_option`:
+Every default option ships with a matching decorator. `decorator_factory` builds each decorator below, except the hand-written `version_option` and `sort_by_option`:
 
 | Decorator                | Wraps                                               |
 | ------------------------ | --------------------------------------------------- |
@@ -155,6 +155,7 @@ Every default option but `--progress`, which has only its `ProgressOption` class
 | `help_format_option`     | `option(cls=HelpFormatOption)`                      |
 | `jobs_option`            | `option(cls=JobsOption)`                            |
 | `man_option`             | `option(cls=ManOption)`                             |
+| `progress_option`        | `option(cls=ProgressOption)`                        |
 | `quiet_option`           | `option(cls=QuietOption)`                           |
 | `show_params_option`     | `option(cls=ShowParamsOption)`                      |
 | `sort_by_option`         | hand-written, attaches `SortByOption`               |
