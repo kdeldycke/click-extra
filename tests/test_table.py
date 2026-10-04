@@ -1558,7 +1558,7 @@ def test_print_table_without_table_option(invoke):
     """ctx.print_table works with no --table-format in the chain.
 
     Falls back to the default rendering format, like the module-level
-    :func:`print_table` invoked without an explicit format.
+    :func:`~click_extra.table.print_table` invoked without an explicit format.
     """
 
     @command

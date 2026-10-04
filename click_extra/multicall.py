@@ -83,7 +83,7 @@ Behavioral notes for personality mode:
 
 ```{todo}
 Drop `click_extra._utils.memoize_enums()` and both its call sites, here and in
-{meth}`click_extra.version.VersionOption.__deepcopy__`, once this package's
+`click_extra.version.VersionOption.__deepcopy__()`, once this package's
 Click floor reaches the release carrying
 [pallets/click#3805](https://github.com/pallets/click/pull/3805). That pull
 request gives `Sentinel` its own `__copy__`, `__deepcopy__` and `__reduce_ex__`,
@@ -207,13 +207,13 @@ class MulticallGroup(Group):
 
     The basename is used *unresolved*: resolving through `os.path.realpath()`
     would return the symlink's target and destroy the personality. A trailing
-    {data}`WINDOWS_EXE_SUFFIX` is stripped for Windows console-script shims.
-    Click's own `_detect_program_name()` is deliberately not used: it reads
-    `__main__.__package__` and answers `python -m …` in the module case. See
-    {func}`click_extra.cli_wrapper.invoke_target` for the full trap. A name
-    matching no personality is not an error: it falls through, which is also
-    what keeps the feature inert under test runners, where `argv[0]` is the
-    runner's own binary.
+    {data}`~click_extra.multicall.WINDOWS_EXE_SUFFIX` is stripped for Windows
+    console-script shims. Click's own `_detect_program_name()` is deliberately
+    not used: it reads `__main__.__package__` and answers `python -m …` in the
+    module case. See {func}`click_extra.cli_wrapper.invoke_target` for the full
+    trap. A name matching no personality is not an error: it falls through,
+    which is also what keeps the feature inert under test runners, where
+    `argv[0]` is the runner's own binary.
     """
 
     def __init__(
@@ -261,7 +261,7 @@ class MulticallGroup(Group):
     def list_personalities(self) -> dict[str, tuple[str, ...]]:
         """Every personality name mapped to the tokens it invokes.
 
-        The explicit {attr}`personalities` mapping when one was declared,
+        The explicit `personalities` mapping when one was declared,
         else every non-hidden, non-synthetic subcommand mapped to itself.
         """
         if self.personalities:

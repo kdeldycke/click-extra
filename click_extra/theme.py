@@ -319,7 +319,7 @@ class HelpTheme(cloup.HelpTheme):
         """A theme assuming a dark terminal background color.
 
         Carries cloup's palette unchanged. For a theme coloring the slots this
-        subclass adds, reach for {data}`BUILTIN_THEMES` instead.
+        subclass adds, reach for {data}`~click_extra.theme.BUILTIN_THEMES` instead.
 
         ```{todo}
         Re-scope this method and {meth}`light`, along with {meth}`_from_cloup`,

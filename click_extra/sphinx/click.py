@@ -747,7 +747,8 @@ class ClickDirective(SphinxDirective):
     `False` for a directive that runs something: what is worth committing there
     is the output, and the code producing it is on the page already. `True` for
     one that only declares code, which has no output to picture and whose
-    subject is the code itself. See {meth}`screenshot_lines`.
+    subject is the code itself. See
+    {meth}`~click_extra.sphinx.click.ClickDirective.screenshot_lines`.
     """
 
     show_source_by_default: bool = True
@@ -1049,10 +1050,9 @@ class ClickDirective(SphinxDirective):
 
         A declared subject keeps the committed asset deterministic outright: the
         same expression composes the same lines on every build. A recording
-        cannot, its frames being timed by the wall clock, so it leans on the
-        quantum above and on the `@recording` line
-        {meth}`~RunDirective.recording_moved` compares, which together leave an
-        unchanged animation's committed bytes alone.
+        cannot, its frames being timed by the wall clock, so it is written once:
+        {meth}`~click_extra.sphinx.click.ClickDirective.write_screenshot` leaves
+        an asset that carries an `@recording` line alone.
 
         :return: the frames and how long each is shown, or `None` when the block
             draws a still.

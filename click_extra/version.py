@@ -851,10 +851,11 @@ class VersionOption(ExtraOption):
     `styles` are merged over these defaults.
 
     The name and version fields defer to the active palette through
-    {func}`theme_slot` rather than naming a color. Both slots render exactly what
-    the literals they replaced did under the `dark` default — `invoked_command` is
-    bright white bold, `success` is green — so nothing moves for a CLI that never
-    touches `--theme`, while one that does finally gets a version message to match.
+    {func}`~click_extra.version.theme_slot` rather than naming a color. Both
+    slots render exactly what the literals they replaced did under the `dark`
+    default — `invoked_command` is bright white bold, `success` is green — so
+    nothing moves for a CLI that never touches `--theme`, while one that does
+    finally gets a version message to match.
     """
 
     def __init__(
@@ -889,9 +890,9 @@ class VersionOption(ExtraOption):
         :param message_style: fallback style for the message literals and for
             any field that has no style of its own.
 
-        :param screen: a {class}`VersionScreen` to draw instead of the one-line
-            message, whenever the terminal can take it. Left unset, `--version`
-            behaves exactly as it always has.
+        :param screen: a {class}`~click_extra.version.VersionScreen` to draw instead
+            of the one-line message, whenever the terminal can take it. Left unset,
+            `--version` behaves exactly as it always has.
         """
         if not param_decls:
             param_decls = ("--version",)
@@ -1741,10 +1742,11 @@ class VersionOption(ExtraOption):
         Accepts a custom `template` as parameter, otherwise uses the default
         `self.colored_template()` produced by the instance.
 
-        A CLI carrying a {class}`VersionScreen` gets that drawn instead, whenever
-        three conditions hold. Failing any one of them falls back to the plain
-        template unchanged, which is a deliberate guarantee rather than a default:
-        that form is the one every machine reader parses.
+        A CLI carrying a {class}`~click_extra.version.VersionScreen` gets that
+        drawn instead, whenever three conditions hold. Failing any one of them
+        falls back to the plain template unchanged, which is a deliberate
+        guarantee rather than a default: that form is the one every machine
+        reader parses.
 
         - **Color reaches the output.** Not because a mark needs it — a good one
           survives having its escapes stripped — but because it is the one lever a

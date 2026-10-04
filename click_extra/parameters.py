@@ -218,8 +218,7 @@ def resolve_param_help(param: click.Parameter, ctx: click.Context) -> str | None
     Reading `param.help` covers the options that carry a static string, and
     misses the ones that compute their help from the context: Click Extra's own
     `-v` / `-q` derive theirs from the resolved base verbosity, and leave the
-    attribute at `None` (see
-    {meth}`~click_extra.logging.VerboseOption.get_help_record`). Falling back to
+    attribute at `None` (see `VerboseOption.get_help_record()`). Falling back to
     the help record picks those up.
 
     The record also carries Click's bracket fields (`[default: …]`,

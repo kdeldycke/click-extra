@@ -164,7 +164,9 @@ def test_demo_themes_rejects_an_unknown_palette():
 
 
 def test_theme_meta_key_matches_registry():
-    """:func:`get_current_theme` reads from the same key :class:`ThemeOption` writes."""
+    """:func:`~click_extra.theme.get_current_theme` reads from the same key
+    :class:`~click_extra.theme.ThemeOption` writes.
+    """
     assert context.THEME == "click_extra.theme.active"
 
 
@@ -173,8 +175,8 @@ def test_font_role_slots_are_known_and_disjoint():
 
     The two frozensets encode the man-pages(7) bold/italic font roles by slot
     name and are maintained by hand, so guard against drift: every name must be
-    a real :class:`HelpTheme` field, the two roles must not overlap, and
-    the representative slots must keep their expected role.
+    a real :class:`~click_extra.theme.HelpTheme` field, the two roles must not
+    overlap, and the representative slots must keep their expected role.
     """
     theme_fields = {f.name for f in dataclasses.fields(_theme.HelpTheme)}
 
@@ -281,7 +283,9 @@ def test_builtin_themes_match_toml():
 
 
 def test_builtin_themes_are_helpextratheme_instances():
-    """Every ``BUILTIN_THEMES`` entry is a :class:`HelpTheme` instance."""
+    """Every ``BUILTIN_THEMES`` entry is a :class:`~click_extra.theme.HelpTheme`
+    instance.
+    """
     for name, theme in BUILTIN_THEMES.items():
         assert isinstance(theme, HelpTheme), (
             f"BUILTIN_THEMES[{name!r}] is {type(theme).__name__}, expected HelpTheme."
@@ -413,7 +417,9 @@ def test_cascade_round_trips_through_dict():
 
 
 def test_cascade_rejects_non_theme_base():
-    """``cascade`` rejects anything that is not a :class:`HelpTheme`."""
+    """``cascade`` rejects anything that is not a
+    :class:`~click_extra.theme.HelpTheme`.
+    """
     overlay = HelpTheme()
     with pytest.raises(TypeError, match="not a HelpTheme"):
         overlay.cascade(object())  # type: ignore[arg-type]

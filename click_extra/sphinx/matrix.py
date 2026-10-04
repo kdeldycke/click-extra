@@ -35,7 +35,7 @@ Two axes are supported:
   per-tag constraint is that distribution's requirement specifier; each
   column covers a run of that distribution's releases on PyPI (plus the
   `uv.lock` resolved version) that every range treats alike, and each ✅ / ❌
-  cell is computed with {mod}`packaging`.
+  cell is computed with `packaging`.
 
 The rendered tables back the always-on `matrix` Sphinx directive (see
 {class}`MatrixDirective`), so a project's `install.md` can embed a live matrix
@@ -1106,7 +1106,7 @@ def dependency_matrix_table(
     Each column covers a run of `dep_name` releases that every range treats
     alike (see {func}`_column_candidates` and {func}`_dependency_columns`),
     labeled like the rows; each ✅ / ❌ cell is computed with
-    {mod}`packaging`. Consecutive ranges whose cells coincide are re-merged
+    `packaging`. Consecutive ranges whose cells coincide are re-merged
     into one row. By default newest
     releases sit on top and newest dependency versions on the left, matching
     the Python axis; `row_order` and `column_order` flip either axis.

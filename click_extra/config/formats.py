@@ -386,10 +386,10 @@ def format_from_mime(
     The counterpart of {func}`format_from_path` for a configuration fetched over
     HTTP, whose URL often carries no usable file extension: the `Content-Type`
     header is then the only thing typing the payload. The media type is matched
-    against each format's {attr}`~ConfigFormat.mime_types`, so `application/toml`
-    resolves to `TOML` and `text/yaml` to `YAML`. `formats` restricts and orders
-    the candidates (the first match wins); it defaults to every
-    {class}`ConfigFormat`.
+    against each format's {attr}`~click_extra.config.formats.ConfigFormat.mime_types`,
+    so `application/toml` resolves to `TOML` and `text/yaml` to `YAML`. `formats`
+    restricts and orders the candidates (the first match wins); it defaults to
+    every {class}`~click_extra.config.formats.ConfigFormat`.
 
     Parameters are stripped, so a raw `application/yaml; charset=utf-8` header
     value can be passed as-is, and matching is case-insensitive.

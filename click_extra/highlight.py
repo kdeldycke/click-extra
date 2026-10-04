@@ -83,10 +83,11 @@ class HelpKeywords:
     deprecated: set[str] = field(default_factory=set)
     """Markers a CLI paints with the `deprecated` slot beside Click's own.
 
-    {data}`DEPRECATED_RE` covers the spellings Click writes, and only those. A
-    project marking a parameter in its own vocabulary (`(unmaintained)` for a
-    tool whose upstream is gone, where the option itself is not being retired)
-    otherwise gets no color for it, since the word is the whole pattern.
+    {data}`~click_extra.highlight.DEPRECATED_RE` covers the spellings Click
+    writes, and only those. A project marking a parameter in its own vocabulary
+    (`(unmaintained)` for a tool whose upstream is gone, where the option itself
+    is not being retired) otherwise gets no color for it, since the word is the
+    whole pattern.
 
     Each entry is matched literally, so a marker is written the way it reads on
     the screen, punctuation included.

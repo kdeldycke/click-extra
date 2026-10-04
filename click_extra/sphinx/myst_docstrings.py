@@ -358,7 +358,8 @@ that injects reST markup into docstrings (like `sphinx_autodoc_typehints`).
 def setup(app):
     """Sphinx extension entry point.
 
-    :raises ExtensionError: If `sphinx_autodoc_typehints` is already loaded.
+    :raises sphinx.errors.ExtensionError: If `sphinx_autodoc_typehints` is
+        already loaded.
     """
     if _TYPEHINTS_EXT in app.extensions:
         msg = (

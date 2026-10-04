@@ -871,7 +871,8 @@ def format_cli_prompt(
         show.
     :param prompt: sigil to draw before the command, when the shell being
         pictured is not the one running. A capture mimicking a Windows terminal
-        passes `PS C:\>`; `None` keeps {data}`PROMPT`, which is this platform's.
+        passes `PS C:\>`; `None` keeps {data}`~click_extra.execution.PROMPT`,
+        which is this platform's.
     :return: the styled prompt line.
     """
     active_theme = get_current_theme() if theme is None else theme

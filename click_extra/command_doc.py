@@ -1191,7 +1191,7 @@ def install_manpages(
     """Write the command tree's man pages where `man` can find them.
 
     Targets `$XDG_DATA_HOME/man/man1` when that variable is set, else
-    {data}`MAN_INSTALL_DIR`. Returns the written paths.
+    {data}`~click_extra.command_doc.MAN_INSTALL_DIR`. Returns the written paths.
 
     The environment is read here rather than at import time, so a caller that
     sets `XDG_DATA_HOME` for one invocation (a test, a packaging script staging
@@ -1290,8 +1290,8 @@ def render_help(
     Reuses `ctx` when given (like the live invocation context), otherwise builds
     a throwaway one with `resilient_parsing=True`, exactly like
     {func}`render_manpage`. Keyword overrides are passed through to
-    {func}`extract_command_doc`, and ignored by the `carapace` format, which carries
-    no version or authorship of its own.
+    {func}`~click_extra.command_doc.extract_command_doc`, and ignored by the
+    `carapace` format, which carries no version or authorship of its own.
 
     :raises ValueError: on an unknown format, listing the known ones.
     """
@@ -1378,11 +1378,12 @@ correctly but `man` has to be told where to look.
 def format_manpage(roff: str, width: int | None = None) -> str | None:
     """Typeset *roff* into readable terminal text, or `None` if nothing can.
 
-    Tries each entry of {data}`MAN_FORMATTERS` in turn and returns the output of
-    the first that succeeds. Returns `None` when none of them is installed, which
-    the caller is expected to degrade on rather than fail: a CLI that cannot find
-    a typesetter is a CLI running somewhere that never had man pages to begin
-    with (Windows, a slim container), and that is no reason for `--man` to error.
+    Tries each entry of {data}`~click_extra.command_doc.MAN_FORMATTERS` in turn
+    and returns the output of the first that succeeds. Returns `None` when none
+    of them is installed, which the caller is expected to degrade on rather than
+    fail: a CLI that cannot find a typesetter is a CLI running somewhere that
+    never had man pages to begin with (Windows, a slim container), and that is
+    no reason for `--man` to error.
 
     :param roff: the man page source, as {meth}`CommandDoc.to_roff` renders it.
     :param width: line length in columns. Defaults to the terminal's own, so the

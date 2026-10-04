@@ -449,7 +449,7 @@ class Style(cloup.Style):
     `with_()`) is otherwise identical to `cloup.Style`.
 
     ```{todo}
-    Re-scope {meth}`__eq__` and {meth}`__hash__` once this package's cloup floor
+    Re-scope `__eq__()` and `__hash__()` once this package's cloup floor
     reaches `4.0.0`, which drops the lazy `_style_kwargs` cache to fix
     [janluke/cloup#224](https://github.com/janluke/cloup/issues/224). Cloup 3.x
     declares that cache without `compare=False`, so a `cloup.Style` stops

@@ -19,8 +19,9 @@
 Covers four surfaces the module exposes:
 
 - The registry of ``ctx.meta`` key constants.
-- The :func:`get` / :func:`set` helpers that read and write them.
-- :class:`Context`, Click Extra's :class:`cloup.Context` subclass.
+- The :func:`~click_extra.context.get` / :func:`~click_extra.context.set`
+  helpers that read and write them.
+- :class:`~click_extra.context.Context`, Click Extra's :class:`cloup.Context` subclass.
 - :class:`_LazyMetaDict`, the lazy ``ctx._meta`` proxy used by
   :class:`~click_extra.version.VersionOption`.
 """
@@ -92,7 +93,7 @@ def test_key_constant_value(attr: str, expected: str) -> None:
 
 @pytest.mark.parametrize("key", [v for _, v in KEY_CONSTANTS])
 def test_key_uses_namespace_prefix(key: str) -> None:
-    """Every registered key sits under :data:`META_NAMESPACE`."""
+    """Every registered key sits under :data:`~click_extra.context.META_NAMESPACE`."""
     assert key.startswith(META_NAMESPACE)
 
 
@@ -126,7 +127,7 @@ def test_registry_covers_all_module_constants() -> None:
 
 
 def test_get_returns_default_for_missing_key() -> None:
-    """:func:`context.get` mirrors ``dict.get`` semantics."""
+    """:func:`~click_extra.context.get` mirrors ``dict.get`` semantics."""
 
     @click.command
     @click.pass_context
@@ -140,7 +141,9 @@ def test_get_returns_default_for_missing_key() -> None:
 
 
 def test_set_then_get_round_trip() -> None:
-    """:func:`context.set` is observable through :func:`context.get`."""
+    """:func:`~click_extra.context.set` is observable through
+    :func:`~click_extra.context.get`.
+    """
 
     @click.command
     @click.pass_context
@@ -156,7 +159,9 @@ def test_set_then_get_round_trip() -> None:
 
 
 def test_context_uses_help_formatter() -> None:
-    """:class:`Context` installs Click Extra's colorized formatter."""
+    """:class:`~click_extra.context.Context` installs Click Extra's colorized
+    formatter.
+    """
     assert Context.formatter_class is HelpFormatter
 
 
@@ -196,7 +201,8 @@ def test_context_color(
     child_color: bool | None,
     expected: bool | None,
 ) -> None:
-    """:class:`Context` color resolution covers every parent/child path.
+    """:class:`~click_extra.context.Context` color resolution covers every
+    parent/child path.
 
     Root contexts without an explicit ``color=`` resolve the GNU auto default: with no
     color environment variable they stay at ``None`` (TTY detection). Child contexts

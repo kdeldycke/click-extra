@@ -350,7 +350,8 @@ def test_env_copy_removes_on_none(monkeypatch):
     """A `None` value drops its variable, the way Click's ``CliRunner`` reads it.
 
     The only way to hide an inherited variable from a child: assigning the empty
-    string leaves it set, which :func:`parse_envvar_flag` counts as activation.
+    string leaves it set, which :func:`~click_extra.envvar.parse_envvar_flag`
+    counts as activation.
     """
     envvar = "MPM_DUMMY_ENVVAR_93725"
     monkeypatch.setenv(envvar, "inherited")
