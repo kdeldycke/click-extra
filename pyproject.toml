@@ -651,11 +651,12 @@ exclude = [
   # VirusTotal analysis pages are a JS app that rate-limits bots, and the
   # binaries page links one per released binary.
   "^https://www\\.virustotal\\.com/gui/.*$",
-  # asciinema.org and no-color.org are valid but intermittently fail DNS
-  # resolution or time out from CI runners. Also excluded from the Sphinx
-  # linkcheck run (see linkcheck_ignore in docs/conf.py).
+  # asciinema.org, no-color.org and openclipart.org are valid but
+  # intermittently fail DNS resolution or time out from CI runners. Also
+  # excluded from the Sphinx linkcheck run (see linkcheck_ignore in docs/conf.py).
   "^https://asciinema.org.*$",
   "^https://no-color.org.*$",
+  "^https://openclipart.org.*$",
   # gnu.org answers CI runners with 429 Too Many Requests, often from the first
   # request, for longer than lychee keeps retrying. The Sphinx linkcheck run
   # waits out the limit and still checks these links.

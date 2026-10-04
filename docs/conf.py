@@ -355,11 +355,16 @@ linkcheck_ignore = [
     # These sites return 403 to bots but are valid.
     r"https://docutils\.sourceforge\.io",
     r"https://guix\.gnu\.org",
-    # asciinema.org and no-color.org are valid but intermittently fail DNS
-    # resolution or time out from CI runners. Also excluded from the lychee run
-    # (see [tool.lychee] in pyproject.toml).
+    # asciinema.org, no-color.org and openclipart.org are valid but
+    # intermittently fail DNS resolution or time out from CI runners. Also
+    # excluded from the lychee run (see [tool.lychee] in pyproject.toml).
     r"https://asciinema\.org",
     r"https://no-color\.org",
+    r"https://openclipart\.org",
+    # shields.io intermittently answers a badge with 408 Request Timeout, or
+    # times out, from CI runners. The lychee run in the same job still checks
+    # every badge.
+    r"https://img\.shields\.io/",
     # repology.org refuses the linkcheck builder's connections from CI runners,
     # while the lychee run in the same job checks its badge and page fine.
     r"https://repology\.org",
