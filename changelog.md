@@ -25,6 +25,7 @@
 - Show the cursor again when `SIGTERM` kills a process with a spinner or progress bar drawing, instead of leaving it hidden in the terminal.
 - Run a Click Extra CLI with `python -c`, which used to crash with `RuntimeError: Cannot find module of <frame …>`.
 - Read the configuration once on a bare invocation running its configured subcommands, which used to load it twice and repeat the `Load configuration matching` line.
+- Quote each environment variable in the error hint of an option, which read `(env var: '('WEATHER_UNITS',)')`.
 - Compare the frameworks on the benchmark page against the 50 [clig.dev](https://clig.dev) guidelines a framework can implement.
 - Mark the benchmark cells with ✅, 🟡 and ❌, each linked to the documentation or source code that backs it.
 - Document the behaviors commands inherit from Click and Cloup: output streams, prompts, confirmation, aliases, deprecation warnings and more.

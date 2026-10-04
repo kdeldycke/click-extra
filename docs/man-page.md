@@ -350,6 +350,7 @@ An invalid choice is a usage error, so the command exits `2`:
 ```{click:run}
 result = invoke(weather, args=["--units", "kelvin", "Paris"])
 assert result.exit_code == 2
+assert "Invalid value for '--units' (env var: 'WEATHER_UNITS')" in result.stderr
 ```
 
 ## Other renderings

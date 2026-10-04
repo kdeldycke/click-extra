@@ -2256,6 +2256,30 @@ def test_option_deprecation_notice_names_every_spelling(invoke):
     )
 
 
+@pytest.mark.parametrize(
+    ("envvar", "hint"),
+    (
+        (None, "(env var: 'WEATHER_UNITS')"),
+        ("TEMPERATURE_SCALE", "(env var: 'TEMPERATURE_SCALE', 'WEATHER_UNITS')"),
+    ),
+)
+def test_option_error_hint_names_each_environment_variable(invoke, envvar, hint):
+    """The hint of a failing option quotes each variable that feeds it.
+
+    Click formats the `envvar` attribute as is, which prints the `repr` of the
+    tuple Click Extra stores there.
+    """
+
+    @command(context_settings={"show_envvar": True})
+    @option("--units", type=Choice(["celsius", "fahrenheit"]), envvar=envvar)
+    def weather(units):
+        echo(units)
+
+    result = invoke(weather, "--units", "kelvin", color=False)
+    assert result.exit_code == 2
+    assert f"Invalid value for '--units' {hint}: 'kelvin'" in result.stderr
+
+
 def test_deprecation_notice_reaches_a_configuration_file(invoke, create_config):
     """A file switching a deprecated parameter on gets the notice too.
 
