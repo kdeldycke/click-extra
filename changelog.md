@@ -7,6 +7,9 @@
 
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)
 
+> [!NOTE]
+> `9.4.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/9.4.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v9.4.1).
+
 - **Deprecated:** The `is_root`, `default_opts` and `inherited_opts` arguments of `extract_carapace_command` now warn and have no effect, and stop working in `10.0.0`.
 - Add the `@progress_option` decorator, to give a plain Click command the `--progress`/`--no-progress` flag.
 - End the process by `SIGINT` after Click's `Aborted!` on a Ctrl+C, so a calling shell stops its own loop. It used to exit with status `1`.
