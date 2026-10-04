@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.4.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.4.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)
 
 - **Deprecated:** The `is_root`, `default_opts` and `inherited_opts` arguments of `extract_carapace_command` now warn and have no effect, and stop working in `10.0.0`.
