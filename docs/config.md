@@ -555,7 +555,7 @@ Both reserved keys are honored by whichever group carries the `--config` option,
 ```
 
 ```{caution}
-Click's `no_args_is_help` prints the help screen for a bare invocation before any option is processed, which is before the configuration is read. `click_extra.group` steps around this: it peeks at the configuration first, and suppresses the help screen for that invocation when either key names a subcommand. A group built on plain `click.Group` or `cloup.Group` has no such hook, so a bare invocation still prints help there. Declare it with `no_args_is_help=False` to run the configured subcommands instead.
+Click's `no_args_is_help` prints the help screen for a bare invocation before any option is processed, which is before the configuration is read. Click Extra steps around this on every group carrying `--config`: it reads the configuration first, and runs the subcommands either key names in place of the help screen. A group built on plain `click.Group` or `cloup.Group` offers no hook for that, so the first `@config_option` a process declares replaces `click.Group.parse_args` for the whole process. A group with no `--config` option is left to Click.
 ```
 
 Given this CLI:

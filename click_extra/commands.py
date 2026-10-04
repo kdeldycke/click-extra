@@ -1396,70 +1396,24 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
                 del self.commands[cmd_name]
         super().add_command(cmd, name, **kwargs)
 
-    def _resolve_config_subcommands_eagerly(
-        self,
-        ctx: click.Context,
-        config_option: ConfigOption,
-    ) -> list[str]:
-        """Settle the reserved subcommand keys ahead of the no-args help screen.
-
-        Click raises its `no_args_is_help` error before any parameter runs, so a
-        bare invocation never reads the configuration that could name subcommands
-        for it. This pre-pass processes `--config` on its own, which loads the
-        document and returns the names to dispatch. The command line is empty by
-        the time the only caller reaches here, so the option is handed no parsed
-        value and falls back to its own auto-discovery.
-
-        Returns an empty list when the configuration names nothing, which leaves
-        Click's help screen in place. A broken configuration is swallowed too, the
-        way {meth}`Command._resolve_presentation_eagerly` defers its own errors: a
-        bare invocation prints the help screen, never a configuration error. The
-        regular parameter loop reports that error on the next invocation naming a
-        subcommand.
-        """
-        try:
-            _, injected = config_option.handle_parse_result(ctx, {}, [])
-        except click.ClickException:
-            return []
-        return injected
-
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
-        """Like parent's `parse_args`, but honoring the reserved subcommand keys.
+        """Like parent's `parse_args`, but honoring the reserved subcommand keys of a
+        group reached through an ancestor's `--config`.
 
-        A group carrying its own `--config` is served by
-        {meth}`click_extra.config.option.ConfigOption.handle_parse_result`, which
-        splices the names in as that option is processed. Two cases escape it, and
-        this override covers both:
+        Such a group never holds that option, so
+        {meth}`click_extra.config.option.ConfigOption.handle_parse_result` splices
+        nothing in for it. It applies its own `[parent.group]` section here instead:
+        the document is already loaded by the time a subgroup is parsed.
 
-        - A group reached through an ancestor's `--config` never holds that option,
-          so it applies its own `[parent.group]` section here. The document is
-          already loaded by the time a subgroup is parsed.
-        - A bare invocation short-circuits to the help screen before any parameter
-          runs. `no_args_is_help` is suppressed for the invocation once the
-          configuration is known to name subcommands, since the user asking for
-          them outranks the author's help screen.
+        A group carrying its own `--config` needs none of this. The option serves
+        it, and the `click.Group.parse_args` that
+        {class}`~click_extra.config.option.ConfigOption` installs serves its bare
+        invocations.
         """
-        config_option = next(
-            (p for p in self.get_params(ctx) if isinstance(p, ConfigOption)),
-            None,
-        )
-
-        if config_option is None:
+        if not any(isinstance(p, ConfigOption) for p in self.get_params(ctx)):
             # Injecting before delegating also settles no_args_is_help, since an
             # injected subcommand makes the invocation non-empty.
-            return super().parse_args(ctx, inject_reserved_subcommands(ctx, args))
-
-        if not args and self.no_args_is_help and not ctx.resilient_parsing:
-            args = self._resolve_config_subcommands_eagerly(ctx, config_option)
-            if args:
-                # Click reads `no_args_is_help` off the group twice on the way
-                # down, so the flag itself is cleared rather than either check.
-                original, self.no_args_is_help = self.no_args_is_help, False
-                try:
-                    return super().parse_args(ctx, args)
-                finally:
-                    self.no_args_is_help = original
-
+            args = inject_reserved_subcommands(ctx, args)
         return super().parse_args(ctx, args)
 
 

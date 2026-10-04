@@ -4290,52 +4290,79 @@ def app_dir_conf(tmp_path, monkeypatch):
     return _write
 
 
+@pytest.mark.parametrize("group_factory", SUBCOMMAND_GROUP_FACTORIES)
 @pytest.mark.parametrize(
-    "reserved_key", ("_default_subcommands", "_prepend_subcommands")
+    ("reserved_key", "chain"),
+    [
+        pytest.param("_default_subcommands", False, id="default"),
+        pytest.param("_default_subcommands", True, id="default-chained"),
+        pytest.param("_prepend_subcommands", True, id="prepend-chained"),
+    ],
 )
-def test_subcommands_beat_no_args_is_help(invoke, app_dir_conf, reserved_key):
-    """A configured subcommand outranks Click's no-args help screen."""
+def test_subcommands_beat_no_args_is_help(
+    invoke, app_dir_conf, group_factory, reserved_key, chain
+):
+    """A configured subcommand outranks Click's no-args help screen.
+
+    Click raises that screen before it runs any parameter, so `--config` alone
+    never sees a bare invocation, whatever group class carries it.
+    """
     app_dir_conf(
         dedent(f"""\
-            [na-cli]
+            [subcmdcli]
             {reserved_key} = ["debug"]
             """),
     )
+    cli = make_subcommand_group(group_factory, chain=chain)
 
-    @group(chain=True)
-    def na_cli():
-        pass
-
-    @na_cli.command()
-    def debug():
-        echo("debug ran")
-
-    result = invoke(na_cli, color=False)
+    result = invoke(cli, color=False)
     assert result.exit_code == 0
     assert "debug ran" in result.output
+    assert "sync ran" not in result.output
 
 
-def test_no_args_is_help_survives_a_silent_config(invoke, app_dir_conf):
+@pytest.mark.parametrize("group_factory", SUBCOMMAND_GROUP_FACTORIES)
+def test_no_args_is_help_survives_a_silent_config(invoke, app_dir_conf, group_factory):
     """The help screen stays when the configuration names no subcommand."""
+    app_dir_conf("[subcmdcli]\n")
+    cli = make_subcommand_group(group_factory, chain=True)
+
+    result = invoke(cli, color=False)
+    assert "debug ran" not in result.output
+    assert "sync ran" not in result.output
+    assert "Usage: subcmdcli" in result.output
+
+
+def test_no_args_is_help_stays_without_a_config_option(invoke, app_dir_conf):
+    """A group carrying no `--config` never reads a configuration to dispatch on."""
     app_dir_conf(
         dedent("""\
-            [quiet-cli]
-            dummy_flag = true
+            [bare-cli]
+            _default_subcommands = ["debug"]
             """),
     )
 
-    @group(chain=True)
-    @option("--dummy-flag/--no-flag")
-    def quiet_cli(dummy_flag):
-        echo(f"dummy_flag = {dummy_flag!r}")
+    @click.group(chain=True)
+    def bare_cli():
+        pass
 
-    @quiet_cli.command()
+    @bare_cli.command()
     def debug():
         echo("debug ran")
 
-    result = invoke(quiet_cli, color=False)
+    result = invoke(bare_cli, color=False)
     assert "debug ran" not in result.output
-    assert "Usage: quiet-cli" in result.output
+    assert "Usage: bare-cli" in result.output
+
+
+def test_group_parse_args_is_wrapped_once():
+    """Each new `ConfigOption` leaves the wrapper of `click.Group` as it found it."""
+    ConfigOption()
+    wrapped = click.Group.parse_args
+    assert wrapped.__module__ == ConfigOption.__module__
+
+    ConfigOption()
+    assert click.Group.parse_args is wrapped
 
 
 @pytest.mark.parametrize(

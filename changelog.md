@@ -27,6 +27,7 @@
 - End an `OperationTrail` interrupted by Ctrl+C on a `✘ Interrupted after 2/5 feeds` finisher, and print the outcomes of tasks finishing after it.
 - Show the cursor again when `SIGTERM` kills a process with a spinner or progress bar drawing, instead of leaving it hidden in the terminal.
 - Run a Click Extra CLI with `python -c`, which used to crash with `RuntimeError: Cannot find module of <frame …>`.
+- Honor `_default_subcommands` and `_prepend_subcommands` on a bare invocation of any group defining `@config_option`, where a plain `click.Group` still printed the help screen.
 
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 
