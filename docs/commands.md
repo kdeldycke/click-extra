@@ -69,7 +69,7 @@ Here is some of the main decorators of Click Extra and how they wraps and extend
 | `@lazy_group`                 | `@click_extra.group`  | `click_extra.LazyGroup`         |
 | `@option`                     | `@cloup.option`       | `click_extra.Option`            |
 | `@argument`                   | `@cloup.argument`     | `click_extra.Argument`          |
-| `@version_option`             | `@click_extra.option` | `click_extra.VersionOption`     |
+| `@version_option`             | -                     | `click_extra.VersionOption`     |
 | `@color_option`               | `@click_extra.option` | `click_extra.ColorOption`       |
 | `@config_option`              | `@click_extra.option` | `click_extra.ConfigOption`      |
 | `@no_config_option`           | `@click_extra.option` | `click_extra.NoConfigOption`    |

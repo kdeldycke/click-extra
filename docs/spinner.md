@@ -382,7 +382,7 @@ The rendering adapts to the batch's concurrency, and you pick neither mode by ha
 
 Only the aggregate spinner or bar needs an interactive terminal, since it redraws in place. The `✓`/`✘` lines and the finisher print on any stream, so a pipe or a CI log keeps the batch's record, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.spinner.OperationTrail.ok_count` tally.
 
-Two arguments decide what a trail shows. `live` says where its spinner or bar may draw: `"auto"` (the default) on an interactive terminal only, `"always"` on any stream, and `"never"` nowhere. A CLI maps `--no-progress` to `live="never"`, so the run keeps its lines. `visible=False` silences the whole trail.
+Two arguments decide what a trail shows. `live` says where its spinner or bar may draw: `"auto"` (the default) on an interactive terminal, unless `--no-progress` or `--accessible` turned progress off; `"always"` on any stream; and `"never"` nowhere. A trail that does not draw keeps its lines. `visible=False` silences the whole trail.
 
 This page captures its commands off a terminal, and the trail still prints there. That is how it shows a live sequential run:
 
@@ -524,7 +524,7 @@ Colors accept any form [`click.style`](https://click.palletsprojects.com/en/stab
 
 ### Color follows the terminal, not the spinner
 
-Color is decoupled from the animation: under `--no-color` or `NO_COLOR` the spinner keeps spinning, just in plain text (the `--progress` section below explains the rationale). Inside a Click Extra CLI the color follows the reconciled `--color`/`--no-color` flag; standalone it honors `FORCE_COLOR`, then `NO_COLOR`, then falls back to whether the terminal is interactive.
+Color is decoupled from the animation: under `--no-color` or `NO_COLOR` the spinner keeps spinning, just in plain text (the `--progress` section below explains the rationale). Inside a Click Extra CLI the color follows the reconciled `--color`/`--no-color` flag; standalone it reads the [same environment variables](colorize.md#color-flag) as `--color`, then falls back to whether the terminal is interactive.
 
 The same `Style` type colors the `ok()` / `fail()` finishers: they default to the theme's `success`/`error` style and take a `style=` override, covered in the *Success and failure* section below.
 

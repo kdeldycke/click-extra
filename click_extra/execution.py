@@ -61,6 +61,7 @@ from extra_platforms import is_windows
 
 from . import context
 from ._deprecated import warn_deprecated_argument
+from ._utils import exception_chain
 from .envvar import env_copy
 from .parameters import ExtraOption
 from .theme import get_current_theme
@@ -1140,10 +1141,12 @@ def terminate_live_processes(signum: signal.Signals = signal.SIGTERM) -> None:
             pass
 
 
-_STATUS_CONTROL_C_EXIT: Final = 0xC000013A
+_STATUS_CONTROL_C_EXIT: Final = 0xC000013A - (1 << 32)
 """The exit code Windows reports for a process ended by Ctrl+C.
 
-Python ends with it on an unhandled Ctrl+C, where POSIX dies by `SIGINT`.
+`STATUS_CONTROL_C_EXIT` (`0xC000013A`), written as the signed 32-bit integer
+{func}`os._exit` takes: a parent process reads it back as `0xC000013A`. Python
+ends with it on an unhandled Ctrl+C, where POSIX dies by `SIGINT`.
 """
 
 
@@ -1227,15 +1230,11 @@ def _interrupted() -> bool:
     """
     if not _INTERRUPTED.is_set():
         return False
-    seen: set[int] = set()
-    for exc in _RUN_END.get() or ():
-        current: BaseException | None = exc
-        while current is not None and id(current) not in seen:
-            if isinstance(current, KeyboardInterrupt):
-                return True
-            seen.add(id(current))
-            current = current.__cause__ or current.__context__
-    return False
+    return any(
+        isinstance(link, KeyboardInterrupt)
+        for exc in _RUN_END.get() or ()
+        for link in exception_chain(exc)
+    )
 
 
 def _die_by_sigint() -> NoReturn:
@@ -1265,15 +1264,23 @@ def _second_interrupt(signum: int, frame: FrameType | None) -> None:
     Kills the children of {func}`run_cli` first, which would otherwise outlive
     the process.
     """
-    terminate_live_processes(signal.SIGKILL)
+    terminate_live_processes(_KILL_SIGNAL)
     _die_by_sigint()
 
 
 _TERMINATE_GRACE: Final = 3.0
 """Seconds an interrupted CLI gives the children of {func}`run_cli` to exit.
 
-They get `SIGTERM` as the run aborts, so they can clean up, and `SIGKILL` once
-this grace runs out.
+They get `SIGTERM` as the run aborts, so they can clean up, and
+{data}`_KILL_SIGNAL` once this grace runs out.
+"""
+
+
+_KILL_SIGNAL: Final = signal.SIGTERM if is_windows() else signal.SIGKILL
+"""The signal that ends the children of {func}`run_cli` at once.
+
+Windows has no `SIGKILL`: {func}`terminate_live_processes` uses its single
+forced termination there, whatever the signal.
 """
 
 
@@ -1289,10 +1296,10 @@ def _exit_interrupted() -> NoReturn:
     """End an interrupted run once its running threads finish.
 
     Asks the children of {func}`run_cli` to stop first, so the threads waiting
-    on them return: `SIGTERM` at once, `SIGKILL` after {data}`_TERMINATE_GRACE`.
-    Waits for the threads, as the interpreter would at exit, but says so, and
-    says what a second Ctrl+C does: it stops the wait and exits at once. Then
-    ends the process by {func}`_die_by_sigint`.
+    on them return: `SIGTERM` at once, {data}`_KILL_SIGNAL` after
+    {data}`_TERMINATE_GRACE`. Waits for the threads, as the interpreter would at
+    exit, but says so, and says what a second Ctrl+C does: it stops the wait and
+    exits at once. Then ends the process by {func}`_die_by_sigint`.
     """
     terminate_live_processes()
     current = threading.current_thread()
@@ -1319,7 +1326,7 @@ def _exit_interrupted() -> NoReturn:
             while thread.is_alive():
                 thread.join(timeout=_JOIN_POLL)
                 if not killed and time.monotonic() >= deadline:
-                    terminate_live_processes(signal.SIGKILL)
+                    terminate_live_processes(_KILL_SIGNAL)
                     killed = True
     _die_by_sigint()
 

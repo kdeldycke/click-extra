@@ -246,10 +246,10 @@ unset_env = ["ACCESSIBLE", "CLICK_EXTRA_THEME", "NO_COLOR"]
 exit_code = 0
 stdout_contains = "\u001B[94m\u001B[4mUsage:"
 
-# And with it taken away, the same invocation is plain again. FORCE_COLOR is
-# read by bare presence, so assigning the empty string would still count as
-# activation: removing it is the only way to answer this question, which is the
-# rule that forces `unset_env` to exist beside `env`.
+# And with it taken away, the same invocation is plain again. Only removal
+# asks that question: `env` can assign a variable but not remove it, and a
+# flag read by bare presence, like ACCESSIBLE, takes the empty string as
+# activation. That rule forces `unset_env` to exist beside `env`.
 [[cases]]
 cli_parameters = ["--help"]
 unset_env = ["FORCE_COLOR", "CLICK_EXTRA_THEME"]

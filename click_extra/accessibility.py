@@ -61,8 +61,8 @@ ACCESSIBLE_ENVVAR: Final[str] = "ACCESSIBLE"
 """Environment variable that requests accessible mode.
 
 Global and CLI-agnostic, unlike the `<CLI>_ACCESSIBLE` variable Click derives
-from the option itself. Its bare presence activates the mode whatever its
-value, matching the color environment variables; see
+from the option itself. Its bare presence activates the mode, unless its value
+reads as false (see {func}`~click_extra.envvar.parse_envvar_flag`); see
 {meth}`~click_extra.accessibility.AccessibleOption.set_accessible` for why it
 is read directly instead of being wired through the option's `envvar`.
 """
@@ -131,8 +131,8 @@ class AccessibleOption(ExtraOption):
         if not value:
             raw = os.environ.get(ACCESSIBLE_ENVVAR)
             if raw is not None:
-                # Bare presence (or an unparsable value) counts as activation, in
-                # the same spirit as the color environment variables.
+                # Bare presence (or an unparsable value) counts as activation: see
+                # parse_envvar_flag.
                 value = parse_envvar_flag(raw)
 
         # Publish the resolved intent so output helpers (clear, echo_via_pager)

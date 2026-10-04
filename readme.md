@@ -78,7 +78,7 @@ The colors, and every option below `--name`, come from that one line. Both scree
 Listed in the order they show up in a `--help` screen:
 
 - [`--time`/`--no-time`](https://kdeldycke.github.io/click-extra/execution.html#timer) to measure command execution duration
-- `--color[=WHEN]` tri-state flag (`auto`/`always`/`never`) with a hidden `--no-color` alias, recognizing `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
+- `--color[=WHEN]` tri-state flag (`auto`/`always`/`never`) with a `--no-color` alias, recognizing `NO_COLOR` ([no-color.org](https://no-color.org)), `FORCE_COLOR`, `CLICOLOR`, and `LLM` environment variables
 - [`--params`](https://kdeldycke.github.io/click-extra/parameters.html#params-option) to debug parameter defaults, values, environment variables and provenance
 - [`--table-format`](https://kdeldycke.github.io/click-extra/table.html#table-formats) to switch between fifty table-rendering styles, from terminal grids to machine-readable `json`, `yaml`, `toml`, `csv` and `xml` (uses [`print_table()`](https://kdeldycke.github.io/click-extra/table.html) and [`serialize_data()`](https://kdeldycke.github.io/click-extra/table.html#data-serialization))
 - [Colored `--verbosity` LEVEL and logs](https://kdeldycke.github.io/click-extra/logging.html), plus `-v`/`--verbose` repetition for incremental bumping

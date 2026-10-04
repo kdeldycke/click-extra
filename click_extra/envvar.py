@@ -49,12 +49,12 @@ if TYPE_CHECKING:
 def parse_envvar_flag(value: str) -> bool:
     """Read an environment flag's value as a boolean, permissively.
 
-    The single interpretation shared by every flag-like variable Click Extra
-    reads by hand (`NO_COLOR` and friends, `ACCESSIBLE`, `DO_NOT_TRACK`): the
-    value is parsed through {data}`configparser.RawConfigParser.BOOLEAN_STATES`,
-    and anything unparsable counts as activation, in the permissive spirit of
-    the [NO_COLOR](https://no-color.org) and [FORCE_COLOR](https://force-color.org)
-    conventions where the variable's bare presence is the signal.
+    The single interpretation shared by the flag-like variables Click Extra reads
+    by hand as booleans (`ACCESSIBLE`, `DO_NOT_TRACK`): the value is parsed
+    through {attr}`~configparser.ConfigParser.BOOLEAN_STATES`, and anything
+    unparsable counts as activation, the empty string included: the variable's
+    bare presence is the signal. The color variables are not read this way: each
+    follows its own convention, see {func}`~click_extra.color.resolve_color_env`.
 
     Callers handle presence themselves: pass the value only when the variable
     is set, an unset variable being no vote at all.

@@ -269,6 +269,7 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
     #. `--verbosity LEVEL`
     #. `-v`, `--verbose`
     #. `-q`, `--quiet`
+    #. `--debug`
     #. `--tree`
     #. `--man`
     #. `--help-format FORMAT`
@@ -287,7 +288,7 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
         ```
 
     ```{note}
-    The list below is the *processing* order, and it is the only one these
+    The list above is the *processing* order, and it is the only one these
     edge-cases care about. The help screen reads a separate presentation order,
     which the `option_priorities` argument of `@command` and `@group` reshuffles
     without touching a single callback. See

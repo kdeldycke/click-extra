@@ -798,7 +798,6 @@ def demo_trail(
     each outcome and the summary print as plain lines.
     """
     worker_count = context.get(ctx, context.JOBS, 1)
-    progress_on = context.get(ctx, context.PROGRESS, True)
     total = len(_TRAIL_BATCH)
     # Choosing a clock mode with --eta / --elapsed turns timing on too, so they
     # work without --time; left unset, timing follows --time (timer=None).
@@ -815,8 +814,6 @@ def demo_trail(
         spinner=None if use_bar or spinner_name is None else SPINNERS[spinner_name],
         timer=timer,
         clock="eta" if eta else "elapsed",
-        # --no-progress drops the redrawing indicator, never the outcome lines.
-        live="auto" if progress_on else "never",
     ) as trail:
 
         def roast(item: tuple[str, float, bool]) -> None:

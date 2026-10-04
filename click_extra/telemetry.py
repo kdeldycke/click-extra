@@ -67,8 +67,8 @@ class TelemetryOption(ExtraOption):
 
         An explicit `--telemetry`/`--no-telemetry` on the command line wins.
         Otherwise a truthy `DO_NOT_TRACK` (bare presence, or any value not
-        parseable as false, in the permissive spirit of the color environment
-        variables) forces telemetry off. Read via
+        parseable as false, see {func}`~click_extra.envvar.parse_envvar_flag`)
+        forces telemetry off. Read via
         {func}`click_extra.context.get(ctx, click_extra.context.TELEMETRY)
         <click_extra.context.get>`.
 

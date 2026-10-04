@@ -24,12 +24,7 @@ print(merge_envvar_ids("MYAPP_DEBUG", ["MYAPP_VERBOSE", None], "MYAPP_DEBUG"))
 print(merge_envvar_ids("A", "B", "A", "C", "B"))
 ```
 
-The result is a `tuple[str, ...]` ready to feed Click's `envvar=` parameter on options and arguments. Click Extra uses it internally to combine user-supplied envvar names with conventions like `NO_COLOR`, `DO_NOT_TRACK`, and `FORCE_COLOR`:
-
-```python
-# click_extra/telemetry.py
-envvar = merge_envvar_ids("DO_NOT_TRACK", envvar)
-```
+The result is a `tuple[str, ...]` ready to feed Click's `envvar=` parameter on options and arguments. Click Extra uses it internally to combine the `envvar` an option declares with the one Click derives from the CLI name: see `param_envvar_ids` below.
 
 ## `clean_envvar_id(name)`
 

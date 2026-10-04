@@ -19,10 +19,11 @@ Symbols that were renamed or moved between modules stay importable from their
 original location for one deprecation cycle. Accessing one emits a
 {exc}`DeprecationWarning` pointing at its replacement, through the
 [PEP 562](https://peps.python.org/pep-0562/) module `__getattr__` hooks wired
-into `click_extra/color.py`, `click_extra/parameters.py`, `click_extra/table.py`
-and `click_extra/theme.py`. A renamed argument keeps its old name for the same
-cycle, and passing it warns through {func}`warn_deprecated_argument`, as a
-retired value or shape of a value does through {func}`warn_deprecated_usage`.
+into `click_extra/color.py`, `click_extra/parameters.py`, `click_extra/table.py`,
+`click_extra/theme.py` and `click_extra/version.py`. A renamed argument keeps
+its old name for the same cycle, and passing it warns through
+{func}`warn_deprecated_argument`, as a retired value or shape of a value does
+through {func}`warn_deprecated_usage`.
 
 ```{todo}
 Cut all of it in the release recorded in {data}`REMOVAL_VERSION`: delete this

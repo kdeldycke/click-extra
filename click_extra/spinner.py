@@ -151,9 +151,9 @@ def _restore_cursor_on_sigterm(signum: int, frame: FrameType | None) -> None:
     """Show the cursor again on every live line's terminal, then die by `SIGTERM`.
 
     A live line hides the cursor while it draws, and `SIGTERM` kills the process
-    before any clean-up runs, which used to leave the user's terminal with no
-    cursor. The registry is read without its lock: the code this handler
-    interrupted may hold it, and a list copy is atomic.
+    before any clean-up runs, which leaves the user's terminal with no cursor
+    unless this handler shows it first. The registry is read without its lock:
+    the code this handler interrupted may hold it, and a list copy is atomic.
     """
     for line in _ACTIVE_LINES.copy():
         try:
@@ -258,7 +258,8 @@ def _color_enabled(stream: IO[str]) -> bool:
 LIVE_MODES: tuple[str, ...] = ("auto", "always", "never")
 """The values of the `live` argument of {class}`Spinner` and {class}`OperationTrail`.
 
-- `"auto"`: draw only on an interactive terminal that can move the cursor.
+- `"auto"`: draw only on an interactive terminal that can move the cursor, and
+  only when the `--progress` flag of the active command allows it.
 - `"always"`: draw on any stream, a pipe or a captured buffer included.
 - `"never"`: never draw.
 """
@@ -416,9 +417,9 @@ class Spinner:
         :param stream: where to draw; defaults to {data}`sys.stderr` so the
             spinner never mixes into `stdout` data.
         :param live: where the animation may draw: `"auto"` (the default) on an
-            interactive terminal only, `"always"` on any stream, `"never"`
-            nowhere. A spinner that does not draw still writes its {meth}`ok` /
-            {meth}`fail` line. Map a CLI's `--no-progress` to `"never"`.
+            interactive terminal only, unless `--no-progress` turns it off,
+            `"always"` on any stream, `"never"` nowhere. A spinner that does not
+            draw still writes its {meth}`ok` / {meth}`fail` line.
         :param hide_cursor: hide the text cursor while spinning and restore it on
             stop.
         :param beep: ring the terminal bell once when the spinner stops. It
@@ -1418,9 +1419,9 @@ class OperationTrail:
             lines, the finisher and the aggregate indicator, while
             {attr}`ok_count` keeps counting.
         :param live: where the aggregate indicator may draw: `"auto"` (the
-            default) on an interactive terminal only, `"always"` on any stream,
-            `"never"` nowhere. Where it does not draw, each outcome line prints
-            as it lands. Map a CLI's `--no-progress` here, so the lines stay.
+            default) on an interactive terminal only, unless `--no-progress`
+            turns it off, `"always"` on any stream, `"never"` nowhere. Where it
+            does not draw, each outcome line prints as it lands.
         :param echo_sequential: whether the batch echoes its outcome lines and
             finisher as plain lines at all: in a sequential batch, in a batch
             whose aggregate indicator cannot draw on the stream, and in one that

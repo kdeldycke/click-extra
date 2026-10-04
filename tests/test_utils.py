@@ -23,11 +23,42 @@ from enum import Enum
 import pytest
 
 from click_extra._utils import (
+    exception_chain,
     generator_tag,
     memoize_enums,
     missing_extra_message,
     patch_attr,
 )
+
+
+def test_exception_chain_ends_on_a_loop():
+    """Two exceptions naming each other are each yielded once."""
+    spill = ValueError("spill")
+    alarm = RuntimeError("alarm")
+    alarm.__context__ = spill
+    spill.__context__ = alarm
+    assert list(exception_chain(alarm)) == [alarm, spill]
+
+
+def test_exception_chain_follows_the_context_without_a_cause():
+    spill = ValueError("spill")
+    alarm = RuntimeError("alarm")
+    alarm.__context__ = spill
+    assert list(exception_chain(alarm)) == [alarm, spill]
+
+
+def test_exception_chain_of_nothing_is_empty():
+    assert list(exception_chain(None)) == []
+
+
+def test_exception_chain_prefers_the_cause():
+    """The cause an exception was raised from wins over the one it replaced."""
+    spill = ValueError("spill")
+    burn = KeyError("burn")
+    alarm = RuntimeError("alarm")
+    alarm.__context__ = burn
+    alarm.__cause__ = spill
+    assert list(exception_chain(alarm)) == [alarm, spill]
 
 
 def test_generator_tag():

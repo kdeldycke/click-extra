@@ -542,7 +542,7 @@ With this setup:
 - The `--help` output shows `[default: disabled]` instead of a filesystem path.
 - Running the CLI without `--config` produces no configuration-related output on stderr.
 - Users can still explicitly pass `--config <path>` to load a specific configuration file.
-- The `--no-config` flag (if added via `@no_config_option`) still prints the "Skip configuration file loading altogether." message when used explicitly.
+- The `--no-config` flag (if added via `@no_config_option`) still prints the "Skip configuration file loading altogether." message when used explicitly, unless `-q`, or a `--verbosity` above `WARNING`, silences it.
 
 This is useful for CLIs where configuration files are opt-in rather than opt-out, or when you want to avoid side effects from automatically discovered configuration files during development or testing.
 

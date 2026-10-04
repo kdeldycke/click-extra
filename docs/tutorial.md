@@ -250,12 +250,15 @@ Click Extra provides these additional, pre-configured options decorators you can
 | [`@verbosity_option`](logging.md#colored-verbosity)                              | `--verbosity LEVEL`             | ✅      |
 | {py:class}`@verbose_option <click_extra.logging.VerboseOption>`                  | `-v, --verbose`                 | ✅      |
 | {py:class}`@quiet_option <click_extra.logging.QuietOption>`                      | `-q, --quiet`                   | ✅      |
+| {py:class}`@debug_option <click_extra.logging.DebugOption>`                      | `--debug`                       | ✅      |
 | [`@tree_option`](tree.md)                                                        | `--tree`                        | ✅      |
 | [`@man_option`](man-page.md#reading-a-manual)                                    | `--man`                         | ✅      |
 | [`@help_format_option`](machine-readable.md)                                     | `--help-format FORMAT`          | ✅      |
 | [`@version_option`](version.md)                                                  | `--version`                     | ✅      |
 | {py:class}`@help_option <click_extra.highlight.HelpFormatter>`                   | `-h, --help`                    | ✅      |
+| [`@columns_option`](parameters.md#columns-selection)                             | `--columns COLUMNS`             | ❌      |
 | [`@jobs_option`](execution.md#parallel-jobs)                                     | `--jobs [auto\|max\|INTEGER]`   | ❌      |
+| [`@sort_by_option`](table.md#sorted-tables)                                      | `--sort-by COLUMN`              | ❌      |
 | {py:mod}`@telemetry_option <click_extra.telemetry>`                              | `--telemetry / --no-telemetry`  | ❌      |
 | [`@zero_exit_option`](execution.md#zero-exit-code)                               | `-0, --zero-exit`               | ❌      |
 
@@ -348,7 +351,7 @@ You can target specific versions of Click Extra in your script dependencies:
 :emphasize-lines: 3
 #!/usr/bin/env -S uv run --script
 # /// script
-# dependencies = ["click-extra == 9.3.5"]
+# dependencies = ["click-extra == 9.4.0"]
 # ///
 ```
 ````

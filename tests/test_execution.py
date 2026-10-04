@@ -18,6 +18,7 @@ subprocess-execution primitives (run_cli and the interrupt machinery)."""
 
 from __future__ import annotations
 
+import ast
 import logging
 import os
 import re
@@ -35,6 +36,7 @@ import click
 import cloup
 import pytest
 from boltons.strutils import strip_ansi
+from extra_platforms import is_windows
 from extra_platforms.pytest import skip_windows
 
 from click_extra import (
@@ -808,7 +810,7 @@ CHILD = (
     "import os, signal, sys, time;"
     "signal.signal(signal.SIGINT, signal.SIG_IGN);"
     "signal.signal(signal.SIGTERM, signal.SIG_IGN);"
-    "open(sys.argv[1], 'w').write(str(os.getpid()));"
+    "open(sys.argv[1], 'w', encoding='utf-8').write(str(os.getpid()));"
     "time.sleep(30)"
 )
 PID_FILES = [os.path.join(FOLDER, f"child-{n}.pid") for n in range(2)]
@@ -845,7 +847,10 @@ def test_interrupted_run_kills_children_ignoring_sigterm(tmp_path):
         returncode, _ = interrupt_cli(tmp_path, script)
         assert returncode == -signal.SIGINT
         assert monotonic() - start < 10
-        pids = [int(path.read_text()) for path in tmp_path.glob("child-*.pid")]
+        pids = [
+            int(path.read_text(encoding="utf-8"))
+            for path in tmp_path.glob("child-*.pid")
+        ]
         assert len(pids) == 2
         for pid in pids:
             deadline = monotonic() + 5
@@ -860,9 +865,169 @@ def test_interrupted_run_kills_children_ignoring_sigterm(tmp_path):
     finally:
         for path in tmp_path.glob("child-*.pid"):
             try:
-                os.kill(int(path.read_text()), signal.SIGKILL)
+                os.kill(int(path.read_text(encoding="utf-8")), signal.SIGKILL)
             except (ProcessLookupError, ValueError):
                 pass
+
+
+SELF_INTERRUPT_CLI = """
+import signal
+
+import click_extra
+
+
+@click_extra.command
+def nap():
+    signal.raise_signal(signal.SIGINT)
+
+
+nap()
+"""
+"""A CLI that interrupts itself, as a Ctrl+C does, on every platform."""
+
+
+SECOND_INTERRUPT_SCRIPT = """
+import signal
+
+from click_extra import execution
+
+execution._second_interrupt(signal.SIGINT, None)
+"""
+"""A process handling the Ctrl+C pressed while an interrupted run waits."""
+
+
+OUTLASTED_GRACE_SCRIPT = """
+import threading
+import time
+
+from click_extra import execution
+
+execution._TERMINATE_GRACE = 0.1
+threading.Thread(target=time.sleep, args=(1,)).start()
+execution._exit_interrupted()
+"""
+"""An interrupted run whose only task outlasts the grace given to children."""
+
+
+@pytest.mark.parametrize(
+    ("script", "notice"),
+    (
+        pytest.param(SELF_INTERRUPT_CLI, "Aborted!", id="ctrl_c"),
+        # The handler of a second Ctrl+C exits without a word.
+        pytest.param(SECOND_INTERRUPT_SCRIPT, "", id="second_ctrl_c"),
+        pytest.param(
+            OUTLASTED_GRACE_SCRIPT,
+            "Waiting for 1 running task to finish.",
+            id="kill_after_the_grace",
+        ),
+    ),
+)
+def test_interrupted_run_exits_like_an_unhandled_ctrl_c(tmp_path, script, notice):
+    """An interrupted run ends the way an unhandled Ctrl+C does, on Windows too.
+
+    The process dies by `SIGINT` on POSIX, and exits with the status Windows
+    reports for a Ctrl+C. The tests sending a real Ctrl+C to a child are skipped
+    on Windows, so each script here reaches one step of that exit on its own: the
+    whole path of a command, the second Ctrl+C, and the kill of the children still
+    running after the grace, for which Windows has no `SIGKILL`.
+    """
+    result = subprocess.run(
+        (sys.executable, "-c", script),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        cwd=tmp_path,
+        timeout=20,
+        check=False,
+    )
+    assert "Traceback" not in result.stderr
+    assert notice in result.stderr
+    # 0xC000013A is STATUS_CONTROL_C_EXIT, as a parent process reads it.
+    assert result.returncode == (0xC000013A if is_windows() else -signal.SIGINT)
+
+
+PACKAGE_ROOT = Path(__file__).parent.parent / "click_extra"
+
+PORTABLE_SIGNALS = frozenset({
+    "SIGABRT",
+    "SIGFPE",
+    "SIGILL",
+    "SIGINT",
+    "SIGSEGV",
+    "SIGTERM",
+})
+"""The signal numbers Python defines on every platform, Windows included."""
+
+POSIX_BRANCHES = {"is_windows()": "orelse", "not is_windows()": "body"}
+"""The branch only POSIX takes, for each platform check an `if` can test."""
+
+
+def unguarded_posix_signals(source: str) -> list[int]:
+    """Lines of `source` that read a signal number Windows does not define.
+
+    `signal.SIGKILL` raises `AttributeError` on Windows, as every signal number
+    outside `PORTABLE_SIGNALS` does. So a module may read one only where Windows
+    never goes: in the `else` of an `is_windows()` check, or under a
+    `not is_windows()` one, of an `if` statement or a conditional expression.
+    """
+    lines: list[int] = []
+
+    def scan(node: ast.AST, guarded: bool) -> None:
+        posix_branch = None
+        if isinstance(node, (ast.If, ast.IfExp)):
+            posix_branch = POSIX_BRANCHES.get(ast.unparse(node.test))
+        elif (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "signal"
+            and re.fullmatch(r"SIG[A-Z0-9]+", node.attr)
+            and node.attr not in PORTABLE_SIGNALS
+            and not guarded
+        ):
+            lines.append(node.lineno)
+        for branch, children in ast.iter_fields(node):
+            for child in children if isinstance(children, list) else [children]:
+                if isinstance(child, ast.AST):
+                    scan(child, guarded or branch == posix_branch)
+
+    scan(ast.parse(source), guarded=False)
+    return lines
+
+
+def test_posix_only_signals_are_read_under_a_platform_check():
+    """No module of the package reads a POSIX-only signal number on Windows.
+
+    Windows runs none of the tests that send a real signal, so only the sources
+    can tell. `unguarded_posix_signals` states the rule.
+    """
+    violations = [
+        f"{path.relative_to(PACKAGE_ROOT.parent).as_posix()}:{line}"
+        for path in sorted(PACKAGE_ROOT.rglob("*.py"))
+        for line in unguarded_posix_signals(path.read_text(encoding="utf-8"))
+    ]
+    assert not violations, f"POSIX-only signal read with no guard: {violations}"
+
+
+def test_posix_only_signal_scan_finds_the_package_and_an_unguarded_read():
+    """The scan above reads the package, and tells a guarded read from a bare one."""
+    assert PACKAGE_ROOT / "execution.py" in PACKAGE_ROOT.rglob("*.py")
+
+    for unguarded in (
+        "os.kill(pid, signal.SIGKILL)\n",
+        # The branch Windows takes is no guard.
+        "if is_windows():\n    os.kill(pid, signal.SIGKILL)\n",
+        "signal.SIGKILL if is_windows() else signal.SIGTERM\n",
+    ):
+        assert unguarded_posix_signals(unguarded), unguarded
+
+    for guarded in (
+        "if is_windows():\n    pass\nelse:\n    os.kill(pid, signal.SIGKILL)\n",
+        "if not is_windows():\n    os.kill(pid, signal.SIGKILL)\n",
+        "signal.SIGTERM if is_windows() else signal.SIGKILL\n",
+        # A portable signal number and a handler need no guard.
+        "signal.signal(signal.SIGINT, signal.SIG_DFL)\n",
+    ):
+        assert not unguarded_posix_signals(guarded), guarded
 
 
 def test_simulated_interrupt_keeps_click_exit_status(invoke):

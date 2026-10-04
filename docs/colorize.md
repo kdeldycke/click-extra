@@ -341,7 +341,7 @@ force-color.org forces color for any non-empty `FORCE_COLOR`, `0` included. Clic
 
 Like every option, `--color` and `--no-color` also read the variables Click derives from the CLI name: `MYCLI_COLOR=never` or `MYCLI_NO_COLOR=1` disable color for a CLI named `mycli` only, help and version screens included.
 
-A `dumb` or `unknown` `TERM` counts as a disabling signal at the same tier: under `auto` it strips color even on a terminal that reports as a TTY, since such a terminal cannot render ANSI. An enabling variable like `FORCE_COLOR` still outranks it.
+A `dumb` or `unknown` `TERM` counts as a disabling signal at the same tier: under `auto` it strips color even on a terminal that reports as a TTY, since such a terminal cannot render ANSI. A variable turning color on, like `FORCE_COLOR`, still outranks it.
 
 ```mermaid
 :align: center
@@ -349,8 +349,8 @@ A `dumb` or `unknown` `TERM` counts as a disabling signal at the same tier: unde
 flowchart TD
     start(["echo() must decide: emit ANSI codes?"]) --> cli{"--color=WHEN / --no-color<br/>set on CLI or via config?"}
     cli -->|yes| useflag["always → ON<br/>never → OFF<br/>auto → defer to TTY"]
-    cli -->|"no (built-in default)"| env{"a recognized color signal set?<br/>NO_COLOR, CLICOLOR, CLICOLOR_FORCE,<br/>FORCE_COLOR, LLM, TERM=dumb/unknown, ..."}
-    env -->|yes| envval["ON if any enabling signal,<br/>OFF otherwise (incl. TERM=dumb)"]
+    cli -->|"no (built-in default)"| env{"does a recognized variable cast a vote?<br/>NO_COLOR, FORCE_COLOR, CLICOLOR=0, CLICOLOR_FORCE,<br/>LLM, COLOR, TERM=dumb/unknown, ..."}
+    env -->|yes| envval["ON if any vote asks for color,<br/>OFF otherwise (incl. TERM=dumb)"]
     env -->|no| deflt["default: auto<br/>(ON on a TTY, OFF when piped)"]
     useflag --> ctxcolor(["ctx.color"])
     envval --> ctxcolor

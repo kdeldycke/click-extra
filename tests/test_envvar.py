@@ -234,7 +234,7 @@ def envvars_test_cases():
         #
         # This is the one point where click-extra reads a flag differently:
         # `parse_envvar_flag("")` returns `True`, since the variables it serves
-        # by hand (`NO_COLOR` and friends) follow the convention that bare
+        # by hand (`ACCESSIBLE`, `DO_NOT_TRACK`) follow the convention that bare
         # presence is the signal. Those never route through a Click option.
         "": False,
         "False": False,

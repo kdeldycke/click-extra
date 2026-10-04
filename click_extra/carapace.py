@@ -495,7 +495,6 @@ def _add_option(
     marking the positive alone would hide that `--no-foo` answers just as well,
     so the pair is left unmarked rather than described wrongly.
     """
-    flags = node.flags
     description = _clean_description(resolve_param_help(param, ctx))
     kind = option_value_kind(param)
     value = kind != "flag"
@@ -505,7 +504,7 @@ def _add_option(
     secondary = getattr(param, "secondary_opts", None)
     required = bool(getattr(param, "required", False)) and not secondary
 
-    flags[
+    node.flags[
         _flag_key(
             param.opts,
             value=value,
@@ -517,7 +516,7 @@ def _add_option(
     ] = description
     # Boolean flags expose their negative spelling as a separate switch.
     if secondary:
-        flags[
+        node.flags[
             _flag_key(
                 param.secondary_opts,
                 value=False,

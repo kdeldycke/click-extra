@@ -6,31 +6,29 @@
 > This version is **not released yet** and is under active development.
 
 - **Deprecated:** The `is_root`, `default_opts` and `inherited_opts` arguments of `extract_carapace_command` now warn and have no effect, and stop working in `10.0.0`.
-- Compare the frameworks on the benchmark page against the 50 [clig.dev](https://clig.dev) guidelines a framework can implement.
-- Link every claim of the benchmark page to the documentation or source code that backs it.
-- Mark the benchmark cells with ✅, 🟡 and ❌, a ❌ linking the statement that rules the feature out, and link each row to its documentation.
-- Document the behaviors commands inherit from Click and Cloup: output streams, prompts, confirmation, aliases, deprecation warnings and more.
-- Highlight the row and column under the pointer in every table of the documentation.
+- End the process by `SIGINT` after Click's `Aborted!` on a Ctrl+C, so a calling shell stops its own loop. It used to exit with status `1`.
+- Print `Aborted!` before the close callbacks of an aborted run, where it used to print after them.
+- Send `SIGTERM`, then `SIGKILL` three seconds later, to the commands `run_cli` started when a Ctrl+C aborts the CLI, without calling `install_interrupt_handler`.
+- Say that an interrupted run waits for its running tasks, and quit at once on a second Ctrl+C instead of printing a traceback.
+- Stop each running lane of `run_lanes` after its current item when the run is interrupted, instead of running the lane to its end.
+- End an `OperationTrail` interrupted by Ctrl+C on a `✘ Interrupted after 2/5 feeds` finisher, and print the outcomes of tasks finishing after it.
+- Honor `_default_subcommands` and `_prepend_subcommands` on groups of any class, where only `click_extra.group` did: on a bare invocation, and on a subgroup reached through an ancestor's `--config`.
+- Stop `Spinner` and `OperationTrail` from drawing under `--no-progress` and `--accessible` when left at `live="auto"`, as `progressbar` already did.
 - Read each color variable by its own convention: `NO_COLOR=0` and `CLICOLOR=1` no longer force color into pipes, and an empty value counts as unset.
 - Apply the per-CLI `<CLI>_COLOR` and `<CLI>_NO_COLOR` variables to the `--help` and `--version` screens too.
-- List the default options under the root command's `flags` in the Carapace spec, instead of `persistentflags` that offered them after a subcommand, where Click rejects them.
-- Stop `Spinner` and `OperationTrail` from drawing under `--no-progress` and `--accessible` when left at `live="auto"`, as `progressbar` already did.
 - Silence the `--config` and `--no-config` status lines under `-q` or a `--verbosity` above `WARNING`, wherever the flag sits on the command line.
+- List the default options under the root command's `flags` in the Carapace spec, instead of `persistentflags` that offered them after a subcommand, where Click rejects them.
 - Restore every variable `temporary_env` changed when one of the changes fails halfway through, or an interrupt lands between two.
 - Stop `Spinner` and the progress bar of `OperationTrail` within a second when their stream no longer drains, like a terminal paused with Ctrl+S, instead of hanging.
 - Kill a recorded command that ignores `SIGTERM` two seconds after the recording ends, instead of waiting for it to exit on its own.
 - Hold a second Ctrl+C until `run_cli` has killed its child, which the interrupt used to skip, leaving the child running.
-- Stop each running lane of `run_lanes` after its current item when the run is interrupted, instead of running the lane to its end.
-- End the process by `SIGINT` after Click's `Aborted!` on a Ctrl+C, so a calling shell stops its own loop. It used to exit with status `1`.
-- Print `Aborted!` before the close callbacks of an aborted run, where it used to print after them.
-- Say that an interrupted run waits for its running tasks, and quit at once on a second Ctrl+C instead of printing a traceback.
-- Send `SIGTERM`, then `SIGKILL` three seconds later, to the commands `run_cli` started when a Ctrl+C aborts the CLI, without calling `install_interrupt_handler`.
-- End an `OperationTrail` interrupted by Ctrl+C on a `✘ Interrupted after 2/5 feeds` finisher, and print the outcomes of tasks finishing after it.
 - Show the cursor again when `SIGTERM` kills a process with a spinner or progress bar drawing, instead of leaving it hidden in the terminal.
 - Run a Click Extra CLI with `python -c`, which used to crash with `RuntimeError: Cannot find module of <frame …>`.
-- Honor `_default_subcommands` and `_prepend_subcommands` on a bare invocation of any group defining `@config_option`, where a plain `click.Group` still printed the help screen.
 - Read the configuration once on a bare invocation running its configured subcommands, which used to load it twice and repeat the `Load configuration matching` line.
-- Honor `_default_subcommands` and `_prepend_subcommands` on a subgroup of any class reached through an ancestor's `--config`, which only a `click_extra.group` subgroup did.
+- Compare the frameworks on the benchmark page against the 50 [clig.dev](https://clig.dev) guidelines a framework can implement.
+- Mark the benchmark cells with ✅, 🟡 and ❌, each linked to the documentation or source code that backs it.
+- Document the behaviors commands inherit from Click and Cloup: output streams, prompts, confirmation, aliases, deprecation warnings and more.
+- Highlight the row and column under the pointer in every table of the documentation.
 
 ## [`9.4.0` (2026-10-01)](https://github.com/kdeldycke/click-extra/compare/v9.3.5...v9.4.0)
 

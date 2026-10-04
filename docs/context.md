@@ -29,25 +29,35 @@ You may also reach the same entry through the literal string (`ctx.meta["click_e
 
 ## Available keys
 
-The table below lists every entry Click Extra writes, the option that triggers it, and the value's shape. Entries marked *write-only* are not read back internally: they exist so your code can inspect what the user picked.
+The table below lists every entry Click Extra publishes for your code, the option that triggers it, and the value's shape. Entries marked *write-only* are not read back internally: they exist so your code can inspect what the user picked.
 
 | Constant                  | String key                    | Set by                                                       | Value                                                                   |
 | ------------------------- | ----------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------- |
 | `context.RAW_ARGS`        | `click_extra.raw_args`        | `Command.make_context` (always, on `@command` group)         | `list[str]`: pre-parsed `argv` slice fed to the current command         |
+| `context.INVOCATION_NAME` | `click_extra.invocation_name` | `Command.make_context` (root context only)                   | `str`: the name the CLI was invoked under *(write-only)*                |
 | `context.CONF_SOURCE`     | `click_extra.conf_source`     | `ConfigOption.load_conf` (`@config_option`)                  | `pathlib.Path \| URL \| None`: file the configuration was loaded from   |
 | `context.CONF_FULL`       | `click_extra.conf_full`       | `ConfigOption.load_conf` (`@config_option`)                  | `dict \| None`: full parsed configuration document                      |
 | `context.CONF_SOURCES`    | `click_extra.conf_sources`    | `ConfigOption.load_conf` (`@config_option`)                  | `tuple[(path, dict), ...]`: every loaded file, highest precedence first |
 | `context.TOOL_CONFIG`     | `click_extra.tool_config`     | `ConfigOption._apply_config_schema` (with `config_schema`)   | The deserialised app section (also reachable via `get_tool_config()`)   |
-| `context.VERBOSITY_LEVEL` | `click_extra.verbosity_level` | `--verbosity` / `--verbose` callbacks (reconciled)           | `LogLevel`: the highest level any verbosity option picked               |
-| `context.VERBOSITY`       | `click_extra.verbosity`       | `--verbosity` callback                                       | `LogLevel`: raw value of `--verbosity LEVEL` *(write-only)*             |
-| `context.VERBOSE`         | `click_extra.verbose`         | `--verbose` / `-v` callback                                  | `int`: repetition count *(write-only)*                                  |
+| `context.VERBOSITY_LEVEL` | `click_extra.verbosity_level` | `--verbosity`, `-v`, `-q`, `--debug` callbacks (reconciled)  | `LogLevel`: the level every verbosity option settled on                 |
+| `context.VERBOSITY`       | `click_extra.verbosity`       | `--verbosity` callback                                       | `LogLevel`: raw value of `--verbosity LEVEL`                            |
+| `context.DEBUG`           | `click_extra.debug`           | `--debug` callback                                           | `bool`: `True` when `--debug` was passed, absent otherwise              |
+| `context.VERBOSE`         | `click_extra.verbose`         | `--verbose` / `-v` callback                                  | `int`: repetition count                                                 |
+| `context.QUIET`           | `click_extra.quiet`           | `--quiet` / `-q` callback                                    | `int`: repetition count                                                 |
 | `context.START_TIME`      | `click_extra.start_time`      | `--time` callback (`@timer_option`)                          | `float`: `time.perf_counter()` snapshot                                 |
 | `context.JOBS`            | `click_extra.jobs`            | `--jobs` callback (`@jobs_option`)                           | `int`: effective parallel job count (clamped to >= 1)                   |
 | `context.PROGRESS`        | `click_extra.progress`        | `ProgressOption.set_progress` (always present on `@command`) | `bool`: `True` when progress spinners may display                       |
+| `context.ACCESSIBLE`      | `click_extra.accessible`      | `--accessible` callback (always present on `@command`)       | `bool`: `True` when the user asked for screen-reader-friendly output    |
 | `context.TABLE_FORMAT`    | `click_extra.table_format`    | `--table-format` callback (`@table_format_option`)           | `TableFormat`                                                           |
 | `context.SORT_BY`         | `click_extra.sort_by`         | `--sort-by` callback (`@sort_by_option`)                     | `tuple[str, ...]`: column IDs in priority order                         |
+| `context.TABLE_SORT_KEY`  | `click_extra.table_sort_key`  | `--sort-by` callback (`@sort_by_option`, column definitions) | `Callable`: row sort key, absent when only bare column IDs are given    |
+| `context.COLUMNS`         | `click_extra.columns`         | `--columns` callback (`@columns_option`)                     | `tuple[str, ...]`: column IDs in display order (empty: every column)    |
 | `context.THEME`           | `click_extra.theme.active`    | `--theme` callback (always present on `@command`)            | `HelpTheme`: palette picked for this invocation                         |
+| `context.THEME_OVERRIDES` | `click_extra.theme.overrides` | `ConfigOption` (`[tool.<cli>.themes.<name>]` tables)         | `dict[str, HelpTheme]`: themes declared in the configuration file       |
+| `context.TELEMETRY`       | `click_extra.telemetry`       | `--telemetry` callback (`@telemetry_option`)                 | `bool`: `True` if the user opted into telemetry *(write-only)*          |
 | `context.ZERO_EXIT`       | `click_extra.zero_exit`       | `-0` / `--zero-exit` callback (`@zero_exit_option`)          | `bool`: `True` to always exit 0 *(write-only)*                          |
+
+Click Extra keeps a few more entries for its own bookkeeping, and leaves them out. One example is `context.SUBCOMMANDS_APPLIED`, which stops a group from applying its reserved subcommand keys twice. The `--version` option also publishes each of its template fields as `click_extra.<field>`: see [Get metadata values](version.md#get-metadata-values).
 
 ## Worked examples
 

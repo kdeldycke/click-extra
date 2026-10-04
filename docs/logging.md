@@ -172,7 +172,7 @@ assert "Sky is clear." not in result.stderr
 ```
 
 ```{note}
-`-q` stops at `CRITICAL`, the quietest level: it never suppresses `CRITICAL` messages themselves. It also only lowers the *logging* verbosity, and does not silence regular `echo` output.
+`-q` stops at `CRITICAL`, the quietest level: it never suppresses `CRITICAL` messages themselves. It also does not silence regular `echo` output, apart from the [status lines](config.md#get-configuration-values) of `--config` and `--no-config`, which follow the level.
 ```
 
 ### Shorthand `--debug`

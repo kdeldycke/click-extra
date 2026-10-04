@@ -7,10 +7,10 @@
  */
 
 /* Hovered row and column: subtle wash. The row half is matched on the `tr` the
- * script marks, not on a cell: `td.crosshair-row` selected a cell carrying that
- * class, which nothing ever produced, so the row never painted. Its specificity
- * has to stay level with the column rule above it, hence no leading `table`:
- * one notch higher and it would outrank the hovered cell's own rule below.
+ * script marks, not on a cell: no cell ever carries `crosshair-row`. Its
+ * specificity has to stay level with the column rule above it, hence no leading
+ * `table`: one notch higher and it would outrank the hovered cell's own rule
+ * below.
  */
 table td.crosshair-col,
 table th.crosshair-col,

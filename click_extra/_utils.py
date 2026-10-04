@@ -51,6 +51,20 @@ such exemption: it reads a frame's own `__name__`, which an entry point sets to
 """
 
 
+def exception_chain(exc: BaseException | None) -> Iterator[BaseException]:
+    """Yield `exc`, then each exception it stems from, nearest first.
+
+    Follows the cause an exception was raised from, and failing that the
+    exception it replaced while that one was being handled. Stops at an
+    exception already seen, so a chain that loops back on itself still ends.
+    """
+    seen: set[int] = set()
+    while exc is not None and id(exc) not in seen:
+        yield exc
+        seen.add(id(exc))
+        exc = exc.__cause__ or exc.__context__
+
+
 def generator_tag() -> str:
     """Provenance tag for generated artifacts: `Click Extra <version>`.
 

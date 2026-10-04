@@ -63,6 +63,7 @@ import cloup
 from click import echo
 from click.exceptions import Abort, Exit
 
+from ._utils import exception_chain
 from .color import resolve_color_env
 from .highlight import HelpFormatter
 
@@ -114,14 +115,7 @@ class _AbortNotice:
         An abort keeps its notice on its way up the commands, and when a later
         exception replaces it, like a second Ctrl+C landing in a close callback.
         """
-        # A list, as the `set()` of this module shadows the builtin.
-        seen: list[int] = []
-        while exc is not None and id(exc) not in seen:
-            if exc is self.printed_for:
-                return True
-            seen.append(id(exc))
-            exc = exc.__cause__ or exc.__context__
-        return False
+        return any(link is self.printed_for for link in exception_chain(exc))
 
 
 _ABORT_NOTICE: ContextVar[_AbortNotice | None] = ContextVar(
@@ -692,8 +686,10 @@ PROGRESS: Final[str] = "click_extra.progress"
 
 Written by {class}`click_extra.spinner.ProgressOption.set_progress` from the
 `--progress` / `--no-progress` flag (which `--accessible` lowers to
-`False`). Downstream code reads it to decide whether to start a
-{class}`~click_extra.spinner.Spinner`.
+`False`). {class}`~click_extra.spinner.Spinner`,
+{class}`~click_extra.spinner.OperationTrail` and
+{func}`~click_extra.spinner.progressbar` read it on their own when left at
+their automatic default.
 
 Deliberately independent of color: a spinner is an interactivity concern, so it is
 gated on the terminal (TTY / `TERM=dumb`, handled by the spinner) and on explicit

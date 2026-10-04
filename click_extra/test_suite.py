@@ -185,10 +185,10 @@ class CLITestCase:
     """Environment variables removed from the inherited environment.
 
     The half `env` cannot express. Assigning the empty string leaves a variable
-    *set*, and a flag read by bare presence (`NO_COLOR` and its family) counts
-    that as activation, so hiding one from the command means removing it. This
-    is what keeps a case from answering to whatever the shell running the suite
-    happens to export.
+    *set*, and a flag read by bare presence (like `ACCESSIBLE` or `DO_NOT_TRACK`)
+    counts that as activation, so hiding one from the command means removing it.
+    This is what keeps a case from answering to whatever the shell running the
+    suite happens to export.
 
     A separate directive rather than a `null` value in `env` because TOML has no
     null literal, and a suite is as likely to be written in TOML as in YAML.

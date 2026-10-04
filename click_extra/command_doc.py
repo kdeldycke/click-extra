@@ -67,6 +67,7 @@ from cloup import OptionGroupMixin
 from . import context
 from ._utils import generator_tag
 from .accessibility import echo_via_pager
+from .carapace import dump_carapace_spec
 from .config import ConfigOption
 from .envvar import param_envvar_ids
 from .parameters import (
@@ -1302,10 +1303,6 @@ def render_help(
         raise ValueError(msg) from None
 
     if help_format is HelpFormat.CARAPACE:
-        # Imported here rather than at module level: click_extra.carapace reaches
-        # click_extra.commands, which imports this module for ManOption.
-        from .carapace import dump_carapace_spec
-
         # A spec is keyed on the binary name a shell completes, never on the
         # invocation a synopsis line prints. `prog_name` carries the latter for
         # the document formats (`click-extra wrap` hands it a whole script path),

@@ -131,32 +131,43 @@ c()
 
 ## The standard decorator suite
 
-Every default option ships with a matching decorator built via `decorator_factory`:
+Every default option but `--progress`, which has only its `ProgressOption` class, ships with a matching decorator. `decorator_factory` builds each decorator below, except the hand-written `version_option` and `sort_by_option`:
 
 | Decorator                | Wraps                                               |
 | ------------------------ | --------------------------------------------------- |
 | `command`                | `cloup.command(cls=Command, params=default_params)` |
 | `group`                  | `cloup.group(cls=Group, params=default_params)`     |
 | `lazy_group`             | `group(cls=LazyGroup)`                              |
+| `multicall_group`        | `group(cls=MulticallGroup)`                         |
 | `option`                 | `cloup.option(cls=Option)`                          |
 | `argument`               | `cloup.argument(cls=Argument)`                      |
 | `help_option`            | `click.decorators.help_option(*DEFAULT_HELP_NAMES)` |
-| `version_option`         | `option(cls=VersionOption)`                         |
+| `version_option`         | hand-written, attaches `VersionOption`              |
+| `accessible_option`      | `option(cls=AccessibleOption)`                      |
 | `color_option`           | `option(cls=ColorOption)`                           |
+| `no_color_option`        | `option(cls=NoColorOption)`                         |
+| `columns_option`         | `option(cls=ColumnsOption)`                         |
 | `config_option`          | `option(cls=ConfigOption)`                          |
 | `no_config_option`       | `option(cls=NoConfigOption)`                        |
 | `validate_config_option` | `option(cls=ValidateConfigOption)`                  |
 | `export_config_option`   | `option(cls=ExportConfigOption)`                    |
+| `debug_option`           | `option(cls=DebugOption)`                           |
+| `help_format_option`     | `option(cls=HelpFormatOption)`                      |
 | `jobs_option`            | `option(cls=JobsOption)`                            |
+| `man_option`             | `option(cls=ManOption)`                             |
+| `quiet_option`           | `option(cls=QuietOption)`                           |
 | `show_params_option`     | `option(cls=ShowParamsOption)`                      |
+| `sort_by_option`         | hand-written, attaches `SortByOption`               |
 | `table_format_option`    | `option(cls=TableFormatOption)`                     |
 | `telemetry_option`       | `option(cls=TelemetryOption)`                       |
 | `theme_option`           | `option(cls=ThemeOption)`                           |
 | `timer_option`           | `option(cls=TimerOption)`                           |
+| `tree_option`            | `option(cls=TreeOption)`                            |
 | `verbose_option`         | `option(cls=VerboseOption)`                         |
 | `verbosity_option`       | `option(cls=VerbosityOption)`                       |
+| `zero_exit_option`       | `option(cls=ZeroExitOption)`                        |
 
-Every entry in this list is an `allow_missing_parenthesis`-wrapped factory, so `@theme_option` and `@theme_option()` are both legal, and `@theme_option(default="light")` overrides the default while keeping the click-extra subclass guarantee.
+Every entry in this list but `sort_by_option` is an `allow_missing_parenthesis`-wrapped factory, so `@theme_option` and `@theme_option()` are both legal, and `@theme_option(default="light")` overrides the default while keeping the click-extra subclass guarantee. The two hand-written entries skip the factory because their leading positional argument, a version string or column definitions, conflicts with the `param_decls`-first convention it relies on. Neither checks that a `cls=` override inherits from its option class.
 
 Each factory-built decorator also exposes the constructor signature of its option class, so editors, `help()` and the API reference below show the real parameters instead of an opaque `(*args, **kwargs)`.
 
@@ -200,7 +211,7 @@ print(f"--retries: type={type(retries).__name__}, default={retries.default}")
 print(f"--workers: type={type(workers).__name__}, default={workers.default}")
 ```
 
-This pattern is how click-extra builds every `*_option` decorator listed above, and how downstream projects can extend the suite without re-implementing the subclass-validation / fresh-params machinery.
+This pattern is how click-extra builds every `*_option` decorator listed above but the two hand-written ones, and how downstream projects can extend the suite without re-implementing the subclass-validation / fresh-params machinery.
 
 ## `click_extra.decorators` API
 
