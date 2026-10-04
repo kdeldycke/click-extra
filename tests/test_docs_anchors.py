@@ -20,8 +20,9 @@ Three slug algorithms compete over the same headings. `docutils.nodes.make_id`
 derives the ids Sphinx renders, and `myst_heading_slug_func` in `docs/conf.py`
 points MyST at it, so a link written `parameters.md#params-option` is correct
 on the published site. GitHub, and the `lychee` checker that models it, slug
-the raw Markdown instead: they keep the leading `--`, the dots and the
-underscores that `make_id` strips or folds, so the same link finds nothing
+the raw Markdown instead. They keep the leading `--` and the underscores that
+`make_id` strips or folds, drop a dot where it writes a hyphen, and write one
+hyphen per space where it writes one per run. The same link thus finds nothing
 when the page is read on GitHub.
 
 Neither reader can be dropped, so a heading whose two slugs disagree carries
@@ -165,12 +166,14 @@ def github_slug(heading: str) -> str:
     """Slug a heading the way GitHub does, which is what lychee models.
 
     Lowercase, drop every character that is neither a word character, a space
-    nor a hyphen, then hyphenate the spaces. Backticks vanish with the rest of
-    the punctuation, so a leading `--`, a dot and an underscore all survive.
+    nor a hyphen, then replace each space with a hyphen. Backticks vanish with
+    the rest of the punctuation, so a leading `--` and an underscore survive,
+    and a dot goes with no separator. Each space gives its own hyphen: a `/`
+    dropped from between two spaces leaves `--`, where `make_id` writes one `-`.
     """
     slug = heading.lower()
     slug = re.sub(r"[^\w\s-]", "", slug)
-    return re.sub(r"\s+", "-", slug.strip())
+    return re.sub(r"\s", "-", slug.strip())
 
 
 def readable_anchors(path: Path) -> set[str]:
@@ -287,6 +290,7 @@ def test_fragment_links_resolve_in_raw_markdown():
             "sphinx-clicksource-and-clickrun-directives",
         ),
         ("{octicon}`workflow` Command tree", "octiconworkflow-command-tree"),
+        ("Persistent / inherited flags", "persistent--inherited-flags"),
     ),
 )
 def test_github_slug(heading, expected):

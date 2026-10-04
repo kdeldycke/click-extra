@@ -199,6 +199,8 @@ Close the click-extra-side gaps the sections below identify:
   matching Typer's `--install-completion`.
 ```
 
+<a name="persistent-inherited-flags"></a>
+
 ### Persistent / inherited flags
 
 cobra's persistent flags propagate from a parent command to all subcommands automatically. Click's maintainers have consistently stated that options belong to the command they modify, and positional dependence (`cli --opt subcmd` vs `cli subcmd --opt`) is intentional ([pallets/click#66](https://github.com/pallets/click/issues/66), [pallets/click#1034](https://github.com/pallets/click/issues/1034)). The official workaround is custom decorators that apply the same options to multiple commands.
