@@ -602,6 +602,28 @@ nap()
 """A CLI that announces it is running, then sleeps until interrupted."""
 
 
+PARSE_NAP_CLI = """
+import time
+
+import click_extra
+
+
+def soak(ctx, param, value):
+    print("ready", flush=True)
+    time.sleep(30)
+
+
+@click_extra.command
+@click_extra.option("--beans", expose_value=False, callback=soak)
+def stew():
+    pass
+
+
+stew()
+"""
+"""A CLI that sleeps while it parses its options, before its context is entered."""
+
+
 def interrupt_cli(tmp_path: Path, script: str, presses: int = 1) -> tuple[int, str]:
     """Run `script` in a child, press Ctrl+C `presses` times once it is ready.
 
@@ -644,11 +666,18 @@ def interrupt_cli(tmp_path: Path, script: str, presses: int = 1) -> tuple[int, s
 
 
 @skip_windows
-def test_ctrl_c_ends_the_process_by_sigint(tmp_path):
+@pytest.mark.parametrize(
+    "script",
+    (
+        pytest.param(NAP_CLI, id="in_the_command"),
+        pytest.param(PARSE_NAP_CLI, id="while_parsing"),
+    ),
+)
+def test_ctrl_c_ends_the_process_by_sigint(tmp_path, script):
     """A real Ctrl+C prints Click's `Aborted!`, then ends the process by `SIGINT`,
     which a calling shell needs to stop its own loop: a status of `1`, or even
     `130`, tells the shell the program handled the interrupt itself."""
-    returncode, stderr = interrupt_cli(tmp_path, NAP_CLI)
+    returncode, stderr = interrupt_cli(tmp_path, script)
     assert returncode == -signal.SIGINT
     assert "Aborted!" in stderr
 

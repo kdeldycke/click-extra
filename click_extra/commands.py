@@ -55,6 +55,7 @@ from .execution import (
     _exit_interrupted,
     _interrupt_handling,
     _interrupted,
+    _run_end_watch,
 )
 from .highlight import HelpKeywords, _HelpColorsMixin, highlight
 from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
@@ -776,8 +777,8 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         with _interrupt_handling():
             try:
                 return super().main(args=args, prog_name=prog_name, **kwargs)
-            except SystemExit as exc:
-                if _interrupted(exc):
+            except SystemExit:
+                if _interrupted():
                     _exit_interrupted()
                 raise
             finally:
@@ -818,7 +819,14 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         if parent is None:
             meta[context.INVOCATION_NAME] = info_name
         extra.update({"meta": meta})
-        return super().make_context(info_name, args, parent, **extra)
+        if parent is not None:
+            return super().make_context(info_name, args, parent, **extra)
+        # The run ends on what leaves the root context: its parsing here, then its
+        # closing, since a context that fails to parse never closes.
+        with _run_end_watch():
+            ctx = super().make_context(info_name, args, parent, **extra)
+        ctx.with_resource(_run_end_watch())
+        return ctx
 
     def format_examples(
         self,

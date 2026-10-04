@@ -44,6 +44,7 @@ import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from contextvars import ContextVar
 from gettext import gettext as _, ngettext
 from itertools import chain, islice
 from time import perf_counter
@@ -1155,6 +1156,13 @@ process by `SIGINT`.
 """
 
 
+_RUN_END: ContextVar[list[BaseException] | None] = ContextVar("_RUN_END", default=None)
+"""The exceptions that ended the CLI run in progress, or `None` outside a run.
+
+Written by {func}`_run_end_watch`, read by {func}`_interrupted`.
+"""
+
+
 def _record_interrupt(signum: int, frame: FrameType | None) -> None:
     """Record a real Ctrl+C, then raise {exc}`KeyboardInterrupt` as Python does."""
     _INTERRUPTED.set()
@@ -1163,7 +1171,7 @@ def _record_interrupt(signum: int, frame: FrameType | None) -> None:
 
 @contextmanager
 def _interrupt_handling() -> Iterator[None]:
-    """Track Ctrl+C for the duration of a CLI run.
+    """Track Ctrl+C, and what the run ends on, for the duration of a CLI run.
 
     Installs a `SIGINT` handler that behaves like Python's default one, but
     records that a real interrupt arrived, so {func}`_exit_interrupted` can end
@@ -1171,37 +1179,62 @@ def _interrupt_handling() -> Iterator[None]:
     default handler, in the main thread: a handler the program installed itself,
     or a call from another thread, leaves Ctrl+C alone.
     """
-    if (
-        threading.current_thread() is not threading.main_thread()
-        or signal.getsignal(signal.SIGINT) is not signal.default_int_handler
-    ):
-        yield
-        return
-    _INTERRUPTED.clear()
-    signal.signal(signal.SIGINT, _record_interrupt)
+    token = _RUN_END.set([])
+    try:
+        if (
+            threading.current_thread() is not threading.main_thread()
+            or signal.getsignal(signal.SIGINT) is not signal.default_int_handler
+        ):
+            yield
+            return
+        _INTERRUPTED.clear()
+        signal.signal(signal.SIGINT, _record_interrupt)
+        try:
+            yield
+        finally:
+            signal.signal(signal.SIGINT, signal.default_int_handler)
+    finally:
+        _RUN_END.reset(token)
+
+
+@contextmanager
+def _run_end_watch() -> Iterator[None]:
+    """Record the exception the block raises, as one the run in progress ends on.
+
+    A Click Extra command wraps the two ways out of its run in it: building the
+    root context, and closing it. Click's `main()` handles the exception past
+    that point, then exits with a status that carries no cause: since
+    [pallets/click#3818](https://github.com/pallets/click/pull/3818), the exit
+    happens outside the handler, so it no longer chains to what was handled.
+    """
     try:
         yield
-    finally:
-        signal.signal(signal.SIGINT, signal.default_int_handler)
+    except BaseException as exc:
+        ended_on = _RUN_END.get()
+        if ended_on is not None:
+            ended_on.append(exc)
+        raise
 
 
-def _interrupted(exc: BaseException) -> bool:
-    """Whether `exc` ends a run that a real Ctrl+C interrupted.
+def _interrupted() -> bool:
+    """Whether a real Ctrl+C ended the run in progress.
 
-    True when {func}`_interrupt_handling` saw a `SIGINT` and a
-    {exc}`KeyboardInterrupt` sits in the chain of exceptions that led to `exc`.
-    A program that caught the interrupt and exited on its own terms does not
-    count.
+    True when {func}`_interrupt_handling` saw a `SIGINT`, and
+    {func}`_run_end_watch` saw the run end on a {exc}`KeyboardInterrupt` or on
+    an exception one led to, like the {exc}`click.exceptions.Abort` of an
+    interrupted prompt. A program that caught the interrupt and exited on its
+    own terms does not count.
     """
     if not _INTERRUPTED.is_set():
         return False
     seen: set[int] = set()
-    current: BaseException | None = exc
-    while current is not None and id(current) not in seen:
-        if isinstance(current, KeyboardInterrupt):
-            return True
-        seen.add(id(current))
-        current = current.__cause__ or current.__context__
+    for exc in _RUN_END.get() or ():
+        current: BaseException | None = exc
+        while current is not None and id(current) not in seen:
+            if isinstance(current, KeyboardInterrupt):
+                return True
+            seen.add(id(current))
+            current = current.__cause__ or current.__context__
     return False
 
 
