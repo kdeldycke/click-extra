@@ -605,6 +605,9 @@ nap()
 def interrupt_cli(tmp_path: Path, script: str, presses: int = 1) -> tuple[int, str]:
     """Run `script` in a child, press Ctrl+C `presses` times once it is ready.
 
+    A further press waits for the child to say what one does, so it lands once
+    the child handles it. A child that never says so is killed.
+
     :return: the child's return code and its `stderr`.
     """
     script_path = tmp_path / "cli.py"
@@ -616,15 +619,24 @@ def interrupt_cli(tmp_path: Path, script: str, presses: int = 1) -> tuple[int, s
         text=True,
         encoding="UTF-8",
     )
+    watchdog = threading.Timer(20, process.kill)
+    watchdog.start()
+    stderr = ""
     try:
         assert process.stdout is not None
+        assert process.stderr is not None
         assert process.stdout.readline() == "ready\n"
-        for press in range(presses):
-            if press:
-                sleep(0.3)
+        process.send_signal(signal.SIGINT)
+        for _ in range(presses - 1):
+            for line in process.stderr:
+                stderr += line
+                if "Press Ctrl+C again" in line:
+                    break
             process.send_signal(signal.SIGINT)
-        _, stderr = process.communicate(timeout=15)
+        process.wait()
+        stderr += process.stderr.read()
     finally:
+        watchdog.cancel()
         if process.poll() is None:
             process.kill()
             process.wait()
@@ -642,14 +654,18 @@ def test_ctrl_c_ends_the_process_by_sigint(tmp_path):
 
 
 SLOW_JOBS_CLI = """
+import threading
 import time
 
 import click_extra
 from click_extra.execution import run_jobs
 
+BOTH_IN = threading.Barrier(2)
+
 
 def bake(tray):
-    if tray == 0:
+    # Reports once both trays are in, so the interrupt finds two running tasks.
+    if BOTH_IN.wait(timeout=10) == 0:
         print("ready", flush=True)
     time.sleep(30)
     return tray
