@@ -498,8 +498,9 @@ class Option(_ParameterMixin, cloup.Option):
         Extra command, keeps Click's rendering.
 
         ```{todo}
-        Delete this override once Click names each variable of a sequence
-        `envvar` in `click.Option.get_error_hint`.
+        Delete this override once
+        [pallets/click#3884](https://github.com/pallets/click/pull/3884) ships:
+        Click then names each variable of a sequence `envvar` itself.
         ```
         """
         hint = super().get_error_hint(ctx)
