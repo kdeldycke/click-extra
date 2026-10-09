@@ -1,9 +1,11 @@
 # Changelog
 
-## [`9.4.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.4.1...main)
+## [`9.4.3.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.4.2...main)
 
 > [!WARNING]
 > This version is **not released yet** and is under active development.
+
+## [`9.4.2` (2026-10-09)](https://github.com/kdeldycke/click-extra/compare/v9.4.1...v9.4.2)
 
 - Fix the documentation render tests failing in a new environment, as for a packager: the `docs` group now holds `tomlkit`, and the tests carry the `network` marker.
 
