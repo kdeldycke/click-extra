@@ -292,6 +292,8 @@ docs = [
   "sphinxcontrib-mermaid>=1.2.3",
   # sphinxext-opengraph 0.13 stabilized OpenGraph metadata generation for Sphinx 8+.
   "sphinxext-opengraph>=0.13",
+  # Mirrors the toml extra floor, exercised by config.md's TOML export {click:run} blocks.
+  "tomlkit>=0.13",
   # Mirrors the xml extra floor, exercised by config.md's XML {click:run} blocks.
   "xmltodict>=1",
 ]

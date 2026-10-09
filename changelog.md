@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix the documentation render tests failing in a new environment, as for a packager: the `docs` group now holds `tomlkit`, and the tests carry the `network` marker.
+
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)
 
 > [!NOTE]

@@ -42,8 +42,11 @@ import pytest
 # [tool.uv] dependency-groups.docs). Only build under the same conditions the
 # docs workflow uses: Linux, that Python floor, and uv available to provision
 # the docs environment. The full build is expensive and platform-independent,
-# so it is a run-once test, filtered out of the cross-platform matrix.
+# so it is a run-once test, filtered out of the cross-platform matrix. `uv`
+# downloads the docs environment and Sphinx reads the intersphinx inventories,
+# so the module is a network test too, which a packager deselects.
 pytestmark = [
+    pytest.mark.network,
     pytest.mark.once,
     pytest.mark.skipif(
         not sys.platform.startswith("linux"),

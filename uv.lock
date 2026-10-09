@@ -377,6 +377,7 @@ docs = [
     { name = "sphinx-design", marker = "python_full_version >= '3.14'" },
     { name = "sphinxcontrib-mermaid", marker = "python_full_version >= '3.14'" },
     { name = "sphinxext-opengraph", marker = "python_full_version >= '3.14'" },
+    { name = "tomlkit", marker = "python_full_version >= '3.14'" },
     { name = "xmltodict", marker = "python_full_version >= '3.14'" },
 ]
 test = [
@@ -461,6 +462,7 @@ docs = [
     { name = "sphinx-design", marker = "python_full_version >= '3.14'", specifier = ">=0.6" },
     { name = "sphinxcontrib-mermaid", marker = "python_full_version >= '3.14'", specifier = ">=1.2.3" },
     { name = "sphinxext-opengraph", marker = "python_full_version >= '3.14'", specifier = ">=0.13" },
+    { name = "tomlkit", marker = "python_full_version >= '3.14'", specifier = ">=0.13" },
     { name = "xmltodict", marker = "python_full_version >= '3.14'", specifier = ">=1" },
 ]
 test = [
