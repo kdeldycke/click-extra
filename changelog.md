@@ -12,6 +12,7 @@
 - Keep the format `new_logger()` or `basicConfig()` gave the `root` logger when a command is defined after the call, which used to reset it.
 - Accept the `handlers` argument in `basicConfig()` and `new_logger()`, which always raised `ValueError`.
 - Reset the log levels after a run that fails while parsing, which left the loggers at the requested level for the rest of the process.
+- Label `matrix` tables with the name the project declares in `pyproject.toml` by default: the name of the checkout folder is now the fallback.
 - Warn in the logging documentation that `new_logger()` removes every handler of the logger it sets up, the `root` one by default.
 - Fix the documentation render tests failing in a new environment, as for a packager: the `docs` group now holds `tomlkit`, and the tests carry the `network` marker.
 

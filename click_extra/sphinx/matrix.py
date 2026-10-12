@@ -1250,6 +1250,31 @@ def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
     return candidate.resolve()
 
 
+def _project_name(project_root: Path) -> str:
+    """Read the name a project declares in its working-tree `pyproject.toml`.
+
+    The PEP 621 `[project]` table is read first, then Poetry's `[tool.poetry]`
+    one. Returns the empty string when the file is missing or unreadable, or
+    declares no name, so the caller can fall back on the folder name.
+
+    The folder name alone is not a stable label: a clone, a fork or a git
+    worktree under another name each renders a different table, and
+    `refresh-directives --check` then reports the checked-in one as stale.
+    """
+    try:
+        text = (project_root / "pyproject.toml").read_text(encoding="utf-8")
+        data = tomllib.loads(text)
+    except (OSError, tomllib.TOMLDecodeError, ValueError):
+        return ""
+    tool = data.get("tool")
+    poetry = tool.get("poetry") if isinstance(tool, dict) else None
+    for table in (data.get("project"), poetry):
+        name = table.get("name") if isinstance(table, dict) else None
+        if name and isinstance(name, str):
+            return name
+    return ""
+
+
 def _render_block(
     axis: str,
     options: Mapping[str, str],
@@ -1269,7 +1294,7 @@ def _render_block(
     git history and a static table, so it renders the same answer offline.
     """
     root = _resolve_root(options.get("path"), base_dir)
-    package = options.get("package") or root.name
+    package = options.get("package") or _project_name(root) or root.name
     tag_pattern = options.get("tag-pattern") or DEFAULT_TAG_PATTERN
     version_floor = options.get("version-floor", "")
     column_order = options.get("column-order") or NEWEST_FIRST
@@ -1326,7 +1351,8 @@ class MatrixDirective(SphinxDirective):
 
     Options:
 
-    - `:package:` — header column label. Defaults to the repository name.
+    - `:package:` — header column label. Defaults to the name declared in the
+      project's `pyproject.toml`, then to the name of its folder.
     - `:path:` — git working tree to walk, absolute or relative to the
       documented project's git root. Defaults to that git root.
     - `:version-floor:` — drop release rows below this package version.

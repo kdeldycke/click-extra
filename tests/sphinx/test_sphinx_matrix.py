@@ -1617,6 +1617,77 @@ def test_resolve_root_relative_base_dir(synthetic_repo, monkeypatch) -> None:
     assert root.name == synthetic_repo.name != ""
 
 
+def named_repo(path: Path, pyproject: str | None) -> Path:
+    """Tag one release in a git repository at ``path``, then leave ``pyproject``
+    as its working-tree ``pyproject.toml``, or no such file for ``None``.
+
+    The tagged file declares the Python support a matrix renders. The
+    working-tree file is the one the default package label is read from.
+    """
+    run = git_repo(path)
+    target = path / "pyproject.toml"
+    target.write_text(
+        '[project]\nrequires-python = ">=3.11"\n'
+        'classifiers = ["Programming Language :: Python :: 3.12"]\n',
+        encoding="utf-8",
+    )
+    run("git", "add", "pyproject.toml")
+    run("git", "commit", "-m", "v1.0.0", "--quiet")
+    run("git", "tag", "v1.0.0")
+    if pyproject is None:
+        target.unlink()
+    else:
+        target.write_text(pyproject, encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize(
+    ("pyproject", "options", "expected"),
+    [
+        # The PEP 621 name.
+        ('[project]\nname = "apricot"\n', {}, "apricot"),
+        # The Poetry name.
+        ('[tool.poetry]\nname = "apricot"\n', {}, "apricot"),
+        # The PEP 621 table is read before the Poetry one.
+        (
+            '[project]\nname = "apricot"\n\n[tool.poetry]\nname = "banana"\n',
+            {},
+            "apricot",
+        ),
+        # The option is read before any declared name.
+        ('[project]\nname = "apricot"\n', {"package": "cherry"}, "cherry"),
+        # No name to read: the folder names the package.
+        ('[project]\nrequires-python = ">=3.11"\n', {}, "orchard"),
+        ('[project]\nname = ""\n', {}, "orchard"),
+        ('project = "apricot"\n', {}, "orchard"),
+        ("[project\n", {}, "orchard"),
+        (None, {}, "orchard"),
+    ],
+)
+def test_render_block_default_package_label(
+    tmp_path: Path, pyproject: str | None, options: dict[str, str], expected: str
+) -> None:
+    """Without a ``package`` option, the label is the name the project declares
+    in its ``pyproject.toml``. The folder name is the fallback."""
+    repo = named_repo(tmp_path / "orchard", pyproject)
+    table = _render_block("python", options, repo)
+    assert table_header(table)[0].startswith(f"`{expected}` ")
+
+
+def test_update_matrix_blocks_label_ignores_checkout_name(tmp_path: Path) -> None:
+    """A copy of a project under another folder name agrees with the table
+    refreshed in the first checkout, so its check reports nothing stale."""
+    repo = named_repo(tmp_path / "orchard", '[project]\nname = "apricot"\n')
+    doc = repo / "docs" / "install.md"
+    doc.parent.mkdir()
+    doc.write_text("<!-- matrix python -->\n<!-- matrix-end -->\n", encoding="utf-8")
+    assert update_matrix_blocks([doc]) == [doc]
+    assert "| `apricot` " in doc.read_text(encoding="utf-8")
+
+    copy = shutil.copytree(repo, tmp_path / "grove")
+    assert update_matrix_blocks([copy / "docs" / "install.md"], check=True) == []
+
+
 def test_render_block_raises_without_git(tmp_path, monkeypatch) -> None:
     """With git absent from PATH, generation raises an error the callers catch."""
     monkeypatch.setenv("PATH", "")

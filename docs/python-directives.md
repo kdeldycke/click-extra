@@ -323,17 +323,19 @@ This project uses it for the [Click](install.md#click-compatibility) and [Cloup]
 
 ### Options
 
-| Option            | Effect                                                                           | Default                |
-| ----------------- | -------------------------------------------------------------------------------- | ---------------------- |
-| `:package:`       | Header column label, rendered in backticks.                                      | repository folder name |
-| `:path:`          | Git working tree to walk, absolute or relative to the documented project's root. | project's git root     |
-| `:version-floor:` | Drop release rows below this package version.                                    | none (all tags)        |
-| `:tag-pattern:`   | Regex selecting release tags.                                                    | `^v\d+\.\d+\.\d+$`     |
-| `:column-order:`  | Left-to-right ordering of the version columns: `newest-first` or `oldest-first`. | `newest-first`         |
-| `:row-order:`     | Top-to-bottom ordering of the release rows: `newest-first` or `oldest-first`.    | `newest-first`         |
-| `:python-floor:`  | (`python` axis) Drop Python `X.Y` columns below this version.                    | none (all columns)     |
-| `:show-spec:`     | (dependency axis) Add a `Spec` column with each range's raw specifier.           | off                    |
-| `:show-date:`     | Follow each row label with the release date of its first tag.                    | off                    |
+| Option            | Effect                                                                           | Default               |
+| ----------------- | -------------------------------------------------------------------------------- | --------------------- |
+| `:package:`       | Header column label, rendered in backticks.                                      | declared project name |
+| `:path:`          | Git working tree to walk, absolute or relative to the documented project's root. | project's git root    |
+| `:version-floor:` | Drop release rows below this package version.                                    | none (all tags)       |
+| `:tag-pattern:`   | Regex selecting release tags.                                                    | `^v\d+\.\d+\.\d+$`    |
+| `:column-order:`  | Left-to-right ordering of the version columns: `newest-first` or `oldest-first`. | `newest-first`        |
+| `:row-order:`     | Top-to-bottom ordering of the release rows: `newest-first` or `oldest-first`.    | `newest-first`        |
+| `:python-floor:`  | (`python` axis) Drop Python `X.Y` columns below this version.                    | none (all columns)    |
+| `:show-spec:`     | (dependency axis) Add a `Spec` column with each range's raw specifier.           | off                   |
+| `:show-date:`     | Follow each row label with the release date of its first tag.                    | off                   |
+
+The label defaults to the name the project declares in its `pyproject.toml`: the `[project]` table is read first, then Poetry's `[tool.poetry]`. A clone, a fork or a git worktree under another folder name then renders the same table. A project that declares no name is labeled with the name of its folder.
 
 The `:path:` option makes the directive reusable across repositories: point it at a sibling checkout to render another package's matrix.
 
