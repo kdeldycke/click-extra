@@ -172,8 +172,10 @@ def render_cli_run(
     for label, attr in STREAM_FIELDS.values():
         content = getattr(view, attr)
         if content:
-            trace.append(f"{Style(fg=stream_colors[label])(label)} stream:")
-            trace.append(indent(content, _INDENT))
+            trace.extend((
+                f"{Style(fg=stream_colors[label])(label)} stream:",
+                indent(content, _INDENT),
+            ))
     if view.exit_code is not None:
         trace.append(f"{Style(fg=Color.yellow)(EXIT_CODE_LABEL)}: {view.exit_code}")
     return "\n".join(trace)

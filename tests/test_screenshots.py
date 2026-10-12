@@ -36,15 +36,16 @@ import os
 import re
 import shutil
 import sys
+import warnings
 from html import escape, unescape
 from itertools import combinations, pairwise
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import pytest
 from extra_platforms.pytest import skip_windows
 
-from click_extra import SPINNERS, Spinner, Style, unstyle
+from click_extra import SPINNERS, Spinner, Style, screenshot_presets, unstyle
 from click_extra.cli_capture import deliver_capture, screenshot_cmd
 from click_extra.execution import PROMPT
 from click_extra.layout import PADDING, cell_width, fit_columns, grid, number_lines
@@ -75,12 +76,9 @@ from click_extra.screenshot import (
     render,
     trim_lines,
 )
+from click_extra.screenshot_html import render_html
 from click_extra.screenshot_presets import (
-    CAPTURE_BACKGROUND,
-    CAPTURE_FOREGROUND,
     CAPTURE_PALETTES,
-    LIGHT_CAPTURE_BACKGROUND,
-    LIGHT_CAPTURE_FOREGROUND,
     PRESETS,
     CaptureBackground,
     Cursor,
@@ -204,6 +202,9 @@ the tutorial's own `click:run` blocks at documentation-build time, and guarded
 by `tests/test_sphinx_crossrefs.py` instead.
 """
 
+
+DARK_PALETTE = CAPTURE_PALETTES[CaptureBackground.DARK]
+LIGHT_PALETTE = CAPTURE_PALETTES[CaptureBackground.LIGHT]
 
 SAMPLE_CAPTURE = (
     "\x1b[1mFruit\x1b[0m   Colour\nbanana  yellow\nkiwi    green\n\n2 fruits\n"
@@ -502,8 +503,8 @@ def test_animation_windows_tile_the_cycle(name):
         windows.append((opens, closes))
 
     windows.sort()
-    assert windows[0][0] == 0.0, f"{name}: the cycle opens on no frame"
-    assert windows[-1][1] == 100.0, f"{name}: the cycle ends on no frame"
+    assert windows[0][0] == pytest.approx(0.0), f"{name}: the cycle opens on no frame"
+    assert windows[-1][1] == pytest.approx(100.0), f"{name}: the cycle ends on no frame"
     for (_, closes), (opens, _) in pairwise(windows):
         assert closes == opens, f"{name}: {closes}% to {opens}% is a gap or an overlap"
 
@@ -1659,13 +1660,13 @@ def test_screenshot_does_not_print_a_resolved_dash(invoke):
     (
         (
             CaptureBackground.DARK,
-            (CAPTURE_BACKGROUND, CAPTURE_FOREGROUND),
-            (LIGHT_CAPTURE_BACKGROUND,),
+            (DARK_PALETTE.background, DARK_PALETTE.foreground),
+            (LIGHT_PALETTE.background,),
         ),
         (
             CaptureBackground.LIGHT,
-            (LIGHT_CAPTURE_BACKGROUND, LIGHT_CAPTURE_FOREGROUND),
-            (CAPTURE_BACKGROUND,),
+            (LIGHT_PALETTE.background, LIGHT_PALETTE.foreground),
+            (DARK_PALETTE.background,),
         ),
     ),
     ids=("dark", "light"),
@@ -2099,8 +2100,8 @@ def test_watermark_sits_where_the_margin_is():
     box = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', svg)
     mark = re.search(r'<text class="watermark" x="([\d.]+)" y="([\d.]+)"', svg)
     assert box and mark
-    assert float(mark[1]) == float(box[1]) - WATERMARK_INSET
-    assert float(mark[2]) == float(box[2]) - WATERMARK_INSET
+    assert float(mark[1]) == pytest.approx(float(box[1]) - WATERMARK_INSET)
+    assert float(mark[2]) == pytest.approx(float(box[2]) - WATERMARK_INSET)
 
 
 def test_render_draws_neither_when_asked_for_neither():
@@ -2178,8 +2179,8 @@ def test_render_html_fragment_is_self_contained():
     assert fragment.endswith("</pre>")
     assert "<!doctype" not in fragment.lower()
     # Inline styling means a host page needs to supply no stylesheet.
-    assert CAPTURE_BACKGROUND in fragment
-    assert CAPTURE_FOREGROUND in fragment
+    assert DARK_PALETTE.background in fragment
+    assert DARK_PALETTE.foreground in fragment
 
 
 def test_render_html_document_wraps_the_fragment():
@@ -2535,3 +2536,47 @@ def test_ansi_capture_does_not_animate():
     """There is no frame to hide in a stream a terminal paints as it arrives."""
     with pytest.raises(ValueError, match="do not animate"):
         render("mango", format=CaptureFormat.ANSI, frames=("a", "b"), interval=1)
+
+
+@pytest.mark.parametrize(
+    ("name", "background", "field"),
+    (
+        ("CAPTURE_BACKGROUND", CaptureBackground.DARK, "background"),
+        ("CAPTURE_FOREGROUND", CaptureBackground.DARK, "foreground"),
+        ("LIGHT_CAPTURE_BACKGROUND", CaptureBackground.LIGHT, "background"),
+        ("LIGHT_CAPTURE_FOREGROUND", CaptureBackground.LIGHT, "foreground"),
+    ),
+)
+def test_retired_palette_constants_warn_and_resolve(name, background, field):
+    """Each retired color constant still answers, with a deprecation warning."""
+    with pytest.deprecated_call(
+        match=rf"click_extra\.screenshot_presets\.{name} is deprecated"
+    ):
+        value = getattr(screenshot_presets, name)
+    assert value == getattr(CAPTURE_PALETTES[background], field)
+
+
+def test_screenshot_presets_unknown_attribute_raises():
+    """A name the hook does not serve still raises a standard AttributeError."""
+    with pytest.raises(AttributeError, match="has no attribute 'DOES_NOT_EXIST'"):
+        _ = screenshot_presets.DOES_NOT_EXIST
+
+
+@pytest.mark.parametrize(
+    "argument", ("buttons", "buttons_color", "titlebar", "collapse_titlebar")
+)
+def test_render_html_warns_on_a_window_argument(argument):
+    """The window decorations are the SVG's: passing one to the HTML renderer warns."""
+    window: dict[str, Any] = {argument: None}
+    with pytest.deprecated_call(
+        match=rf"render_html\({argument}=\.\.\.\) is deprecated"
+    ):
+        html = render_html(SAMPLE_CAPTURE, **window)
+    assert html == render_html(SAMPLE_CAPTURE)
+
+
+def test_render_keeps_the_window_arguments_from_html():
+    """A preset dresses the SVG window, and leaves the HTML capture unwarned."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        render(SAMPLE_CAPTURE, format=CaptureFormat.HTML, preset=PRESETS["macos"])

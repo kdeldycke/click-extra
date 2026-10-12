@@ -45,14 +45,18 @@ from click_extra import (
     pass_context,
     progress_option,
 )
-from click_extra.cli import _TRAIL_BATCH, demo
+from click_extra.cli import (
+    _TOUR_CAP,
+    _TOUR_CYCLES,
+    _TOUR_MIN,
+    _TRAIL_BATCH,
+    _tour_duration,
+    demo,
+)
 from click_extra.context import PROGRESS, START_TIME
 from click_extra.pytest import command_decorators
 from click_extra.screenshot import cell_width
 from click_extra.spinner import (
-    _TOUR_CAP,
-    _TOUR_CYCLES,
-    _TOUR_MIN,
     CLEAR_LINE,
     HIDE_CURSOR,
     SHOW_CURSOR,
@@ -61,7 +65,6 @@ from click_extra.spinner import (
     _BarIndicator,
     _resolve_timer,
     _SpinnerIndicator,
-    _tour_duration,
     active_spinner,
     trail_line,
 )
@@ -1078,13 +1081,13 @@ def test_explicit_frames_and_interval_override_preset():
         spinner=SPINNERS["moon"], frames=ASCII_SPINNER_FRAMES, interval=0.5
     )
     assert spinner.frames == ASCII_SPINNER_FRAMES  # Explicit frames win.
-    assert spinner.interval == 0.5  # Explicit interval wins.
+    assert spinner.interval == pytest.approx(0.5)  # Explicit interval wins.
 
 
 def test_defaults_without_frames_or_preset():
     spinner = Spinner()
     assert spinner.frames == SPINNER_FRAMES
-    assert spinner.interval == 0.1
+    assert spinner.interval == pytest.approx(0.1)
 
 
 def test_multichar_preset_renders():

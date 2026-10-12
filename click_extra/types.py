@@ -26,7 +26,7 @@ import click
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
     from typing import Any
 
 
@@ -145,6 +145,41 @@ class MultiChoice(click.ParamType):
 
     def __repr__(self) -> str:
         return f"MultiChoice({list(self.choices)!r}, separator={self.separator!r})"
+
+
+class LazyChoice(click.Choice):
+    """A `Choice` whose values are produced on first use rather than at decoration.
+
+    {class}`click.Choice` freezes its values when the option is declared, which is
+    at import time for a module-level command. Taking a loader instead keeps the
+    module providing the values off the startup path of the CLI: the values are
+    only needed to parse, complete or document the option, never to import it.
+    Every `Choice` method reads `choices`, so the help screen, the generated
+    documents and shell completion see the loaded values like any other.
+    """
+
+    def __init__(
+        self,
+        load: Callable[[], Iterable[str]],
+        case_sensitive: bool = True,
+    ) -> None:
+        """Keep the `load` callable, which is called on each read of `choices`.
+
+        :param load: returns the accepted values. Called on each access of
+            `choices`, so a cheap loader, or a cached one, is expected.
+        :param case_sensitive: as for {class}`click.Choice`.
+        """
+        self._load = load
+        super().__init__((), case_sensitive=case_sensitive)
+
+    @property
+    def choices(self) -> tuple[str, ...]:
+        """The values, read from the loader on each access."""
+        return tuple(self._load())
+
+    @choices.setter
+    def choices(self, value: Iterable[str]) -> None:
+        """Absorb the empty tuple `Choice.__init__` assigns: the loader is the source."""
 
 
 class ChoiceSource(enum.Enum):

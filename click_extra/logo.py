@@ -184,16 +184,18 @@ def faces() -> list[tuple[int, str, Face]]:
         near = (centre, near_y)
         floor = box["body"]
 
-        out.append((slot, "t", [far, right, near, left]))
-        out.append((
-            slot,
-            "r",
-            [near, right, (right[0], right[1] + floor), (near[0], near[1] + floor)],
-        ))
-        out.append((
-            slot,
-            "l",
-            [left, near, (near[0], near[1] + floor), (left[0], left[1] + floor)],
+        out.extend((
+            (slot, "t", [far, right, near, left]),
+            (
+                slot,
+                "r",
+                [near, right, (right[0], right[1] + floor), (near[0], near[1] + floor)],
+            ),
+            (
+                slot,
+                "l",
+                [left, near, (near[0], near[1] + floor), (left[0], left[1] + floor)],
+            ),
         ))
     return out
 

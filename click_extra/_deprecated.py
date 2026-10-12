@@ -24,7 +24,10 @@ into `click_extra/color.py`, `click_extra/command_doc.py`,
 `click_extra/version.py`. A renamed argument keeps
 its old name for the same cycle, and passing it warns through
 {func}`warn_deprecated_argument`, as a retired value or shape of a value does
-through {func}`warn_deprecated_usage`.
+through {func}`warn_deprecated_usage`. `click_extra/screenshot_presets.py`
+serves its retired color constants through a hook of its own, worded by
+{func}`deprecation_message`, since each resolves to a field of a palette rather
+than to a module attribute.
 
 ```{todo}
 Cut all of it in the release recorded in {data}`REMOVAL_VERSION`: delete this

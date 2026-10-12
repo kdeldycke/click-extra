@@ -775,6 +775,20 @@ def emphasize_ansi(
     return "\n".join(painted)
 
 
+_SVG_ONLY_CHROME = frozenset({
+    "buttons",
+    "buttons_color",
+    "titlebar",
+    "collapse_titlebar",
+})
+"""The window decorations {func}`render` hands to the SVG renderer alone.
+
+An HTML capture reflows with the page embedding it, so it carries the text and
+its colors, not a window drawn around them: see
+{func}`~click_extra.screenshot_html.render_html`.
+"""
+
+
 def render(
     text: str = "",
     *,
@@ -884,7 +898,13 @@ def render(
             background=background,
             preset=preset,
             palette=palette,
-            **frame,
+            # The window decorations are drawn by the SVG alone: HTML reflows
+            # with the page embedding it.
+            **{
+                key: value
+                for key, value in frame.items()
+                if key not in _SVG_ONLY_CHROME
+            },
         )
     return render_svg(
         text,

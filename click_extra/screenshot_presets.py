@@ -47,12 +47,15 @@ configured theirs to.
 
 from __future__ import annotations
 
+import warnings
 from enum import Enum
 from typing import NamedTuple
 
+from ._deprecated import deprecation_message
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Final
+    from typing import Any, Final
 
 
 class TerminalPalette(NamedTuple):
@@ -419,33 +422,6 @@ whoever draws it, and the one that reads on white is not the one that reads on
 """
 
 
-CAPTURE_BACKGROUND = CAPTURE_PALETTES[CaptureBackground.DARK].background
-"""Background a dark capture is drawn on.
-
-Stating it is not optional: a help screen colored for a dark terminal is
-unreadable on a page that defaults to white.
-"""
-
-
-CAPTURE_FOREGROUND = CAPTURE_PALETTES[CaptureBackground.DARK].foreground
-"""Color of the text a dark capture leaves unstyled. See {data}`CAPTURE_BACKGROUND`."""
-
-
-LIGHT_CAPTURE_BACKGROUND = CAPTURE_PALETTES[CaptureBackground.LIGHT].background
-"""Background a light capture is drawn on.
-
-See {data}`CAPTURE_BACKGROUND`: an SVG and an HTML capture of the same run have
-to look like the same terminal.
-"""
-
-
-LIGHT_CAPTURE_FOREGROUND = CAPTURE_PALETTES[CaptureBackground.LIGHT].foreground
-"""Color of the text a light capture leaves unstyled.
-
-See {data}`LIGHT_CAPTURE_BACKGROUND`.
-"""
-
-
 def preset_palette(
     preset: TerminalPreset,
     background: CaptureBackground,
@@ -466,6 +442,39 @@ def resolve_palette(
     {func}`~click_extra.screenshot_html.render_html`, so the two formats cannot disagree
     on what a chrome looks like.
     """
-    if preset is None:
-        return CAPTURE_PALETTES[background]
-    return preset_palette(preset, background)
+    return preset_palette(preset or DEFAULT_PRESET, background)
+
+
+_DEPRECATED_PALETTE_COLORS: dict[str, tuple[CaptureBackground, str]] = {
+    "CAPTURE_BACKGROUND": (CaptureBackground.DARK, "background"),
+    "CAPTURE_FOREGROUND": (CaptureBackground.DARK, "foreground"),
+    "LIGHT_CAPTURE_BACKGROUND": (CaptureBackground.LIGHT, "background"),
+    "LIGHT_CAPTURE_FOREGROUND": (CaptureBackground.LIGHT, "foreground"),
+}
+"""The retired color constants, each mapped to the {data}`CAPTURE_PALETTES` entry
+and field it read.
+
+Served by the module `__getattr__` hook with a deprecation warning, for one
+cycle: see {mod}`click_extra._deprecated`.
+"""
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve the deprecated color constants via the PEP 562 `__getattr__` hook.
+
+    Each one is a field of a {data}`CAPTURE_PALETTES` entry, which is where a
+    caller reads it from now. Fires only for names not defined in this module.
+    """
+    if name in _DEPRECATED_PALETTE_COLORS:
+        background, field = _DEPRECATED_PALETTE_COLORS[name]
+        warnings.warn(
+            deprecation_message(
+                f"{__name__}.{name}",
+                f"{__name__}.CAPTURE_PALETTES[CaptureBackground.{background.name}]"
+                f".{field}",
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(CAPTURE_PALETTES[background], field)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

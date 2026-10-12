@@ -1043,7 +1043,7 @@ def test_integrated_show_params_option(invoke, create_config):
 @pytest.mark.parametrize(
     "args_order",
     tuple(permutations(("--params", "--table-format=csv", "--no-color"))),
-    ids=lambda p: " ".join(p),
+    ids=" ".join,
 )
 def test_show_params_table_format_ordering(invoke, args_order):
     """``--params`` respects ``--table-format`` regardless of CLI order."""

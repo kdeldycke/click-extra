@@ -381,11 +381,9 @@ class DocOptionItem:
             # `colon-grid` renders as a copy-pasteable minus sign rather than a
             # typographic hyphen.
             values = ", ".join(_roff_escape(c) for c in self.unlisted_choices)
-            lines.append(".br")
-            lines.append(f"[values: {values}]")
+            lines.extend((".br", f"[values: {values}]"))
         if self.required:
-            lines.append(".br")
-            lines.append("[required]")
+            lines.extend((".br", "[required]"))
         return lines
 
     @property
@@ -422,11 +420,9 @@ class DocOptionItem:
 
         for _filled, verbatim in paragraphs:
             if verbatim:
-                lines.append("")
-                lines.append("  ```text")
+                lines.extend(("", "  ```text"))
                 lines.extend(f"  {line}" for line in verbatim.splitlines())
-                lines.append("  ```")
-                lines.append("")
+                lines.extend(("  ```", ""))
         return lines
 
     def to_dict(self) -> dict[str, Any]:
@@ -497,8 +493,7 @@ class DocOptionGroup:
         """Render an optional heading, group help, then the options."""
         lines: list[str] = []
         if self.title:
-            lines.append("#" * level + " " + self.title)
-            lines.append("")
+            lines.extend(("#" * level + " " + self.title, ""))
         if self.help:
             lines.extend(_markdown_help(self.help))
             lines.append("")
@@ -609,11 +604,12 @@ class CommandDoc:
         # `short_help`: route it through `_render_inline` so inline
         # reST literals show up as bold instead of leaking through as
         # raw backticks rendered as quotes by mandoc.
-        lines.append(
-            f"{name} \\- {_render_inline(self.short_help)}" if self.short_help else name
-        )
-
-        lines.append(".SH SYNOPSIS")
+        lines.extend((
+            f"{name} \\- {_render_inline(self.short_help)}"
+            if self.short_help
+            else name,
+            ".SH SYNOPSIS",
+        ))
         synopsis = _bold(self.name)
         if self.synopsis_pieces:
             synopsis += " " + " ".join(_italic(piece) for piece in self.synopsis_pieces)
@@ -623,8 +619,7 @@ class CommandDoc:
             lines.append(".SH DESCRIPTION")
             lines.extend(_emit_help(self.description))
             for metavar, help_text in self.operands:
-                lines.append(".TP")
-                lines.append(_italic(metavar))
+                lines.extend((".TP", _italic(metavar)))
                 lines.extend(_emit_help(help_text))
 
         if self.option_groups:
@@ -645,8 +640,7 @@ class CommandDoc:
         if self.environment:
             lines.append(".SH ENVIRONMENT")
             for var_name, help_text in self.environment:
-                lines.append(".TP")
-                lines.append(_bold(var_name))
+                lines.extend((".TP", _bold(var_name)))
                 lines.extend(_emit_help(help_text))
 
         if self.files:
@@ -654,15 +648,12 @@ class CommandDoc:
             for index, path in enumerate(self.files):
                 if index > 0:
                     lines.append(".sp")
-                lines.append(".nf")
-                lines.append(_italic(path))
-                lines.append(".fi")
+                lines.extend((".nf", _italic(path), ".fi"))
 
         if self.exit_status:
             lines.append('.SH "EXIT STATUS"')
             for code, meaning in self.exit_status:
-                lines.append(".TP")
-                lines.append(_bold(code))
+                lines.extend((".TP", _bold(code)))
                 lines.extend(_emit_help(meaning))
 
         if self.examples:
@@ -671,11 +662,13 @@ class CommandDoc:
                 if index > 0:
                     lines.append(".PP")
                 lines.extend(_emit_help(description))
-                lines.append(".RS")
-                lines.append(".nf")
-                lines.append(_bold(_roff_escape(command_line)))
-                lines.append(".fi")
-                lines.append(".RE")
+                lines.extend((
+                    ".RS",
+                    ".nf",
+                    _bold(_roff_escape(command_line)),
+                    ".fi",
+                    ".RE",
+                ))
 
         if self.authors:
             lines.append(".SH AUTHORS")

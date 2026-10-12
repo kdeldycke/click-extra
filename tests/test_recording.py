@@ -534,7 +534,7 @@ def test_type_line_holds_the_finished_line_for_the_submit_beat():
     """The pause before the return key, and only on the frame that waits it."""
     typed = type_line(TYPED_PROMPT, typing=0.05, submit=0.4)
     assert {frame.duration for frame in typed[:-1]} == {0.05}
-    assert typed[-1].duration == 0.4
+    assert typed[-1].duration == pytest.approx(0.4)
 
 
 def test_type_line_types_nothing_for_an_empty_line():

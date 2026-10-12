@@ -72,11 +72,9 @@ from .color import (
     resolve_color_env,
 )
 from .humanize import format_duration
-from .layout import cell_width
 from .parameters import ExtraOption
 from .spinner_presets import (
     SPINNER_FRAMES,
-    SPINNERS,
     SpinnerPreset,
 )
 from .styling import Style
@@ -1922,86 +1920,3 @@ def progressbar(
     # Repair the final-position freeze of pallets/click#3571 (harmless otherwise).
     _flush_final_position(bar)
     return bar
-
-
-# Max display width (terminal cells) of the frame preview column.
-_SPINNER_PREVIEW_WIDTH = 56
-
-
-def _spinner_preview(preset: SpinnerPreset) -> str:
-    """Join leading frames into a preview within the display-width budget.
-
-    Frames are measured by terminal cell width
-    ({func}`~click_extra.layout.cell_width`), not by code points, so 1-cell
-    glyphs and 2-cell emoji fill the column consistently rather than letting an
-    emoji-heavy preview balloon it. Emoji variation selectors (`U+FE0F`) are
-    dropped: `wcwidth` sizes the promoted emoji at two cells while many
-    terminals render the bare symbol in one, and that disagreement misaligns
-    the table. Wide animations (`shark`, `pong`, `dots-8bit`, …) stop at the
-    budget with a `… (+N)` tail.
-    """
-    shown: list[str] = []
-    width = 0
-    for frame in preset.frames:
-        glyph = frame.replace("\ufe0f", "")  # Drop emoji variation selectors.
-        cost = cell_width(glyph) + (1 if shown else 0)  # +1 joining space.
-        if width + cost > _SPINNER_PREVIEW_WIDTH:
-            break
-        shown.append(glyph)
-        width += cost
-    preview = " ".join(shown)
-    remaining = len(preset.frames) - len(shown)
-    if remaining:
-        preview += f" … (+{remaining})"
-    return preview
-
-
-# A curated, visually-distinct default selection for the live tour.
-_DEFAULT_SHOWCASE = (
-    "dots",
-    "line",
-    "moon",
-    "clock",
-    "earth",
-    "bouncing-bar",
-    "arc",
-    "pong",
-    "shark",
-    "mindblown",
-)
-
-
-# The live tour aims for _TOUR_CYCLES full cycles per spinner, then bounds the
-# dwell to at least _TOUR_MIN seconds (so a snappy spinner stays watchable) and
-# at most _TOUR_CAP seconds (so a long or slow one does not monopolize the tour).
-_TOUR_CYCLES = 3
-_TOUR_MIN = 2.0
-_TOUR_CAP = 3.0
-
-
-def _tour_duration(preset: SpinnerPreset) -> float:
-    """Seconds the live tour dwells on a spinner.
-
-    Aims for {data}`_TOUR_CYCLES` full cycles (one cycle is a pass through every
-    frame), then clamps to `[_TOUR_MIN, _TOUR_CAP]` seconds: a snappy spinner is
-    held at least {data}`_TOUR_MIN` seconds so it is watchable, while a long or
-    slow one is capped at {data}`_TOUR_CAP`. The cap never trims below a single
-    full cycle, so even a 256-frame spinner completes one loop.
-    """
-    one_cycle = len(preset.frames) * preset.interval
-    capped = min(_TOUR_CYCLES * one_cycle, max(_TOUR_CAP, one_cycle))
-    return max(_TOUR_MIN, capped)
-
-
-def _animate_spinners(names: list[str]) -> None:
-    """Spin each named catalog animation live, with its label and elapsed timer.
-
-    Each spinner runs for its {func}`_tour_duration` (up to {data}`_TOUR_CYCLES`
-    cycles, capped at {data}`_TOUR_CAP` seconds) before moving on, then leaves a
-    `✓` success line behind. Interactive terminals only.
-    """
-    for name in names:
-        preset = SPINNERS[name]
-        with Spinner(name, spinner=preset, timer=True) as spinner:
-            time.sleep(_tour_duration(preset))
-            spinner.ok()

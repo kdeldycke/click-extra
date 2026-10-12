@@ -1780,21 +1780,21 @@ def render_svg(
 
     # The clip and the offset are the window's, not a frame's, so they wrap the
     # whole stack rather than being repeated inside it.
-    body.append(
-        f'<g clip-path="url(#{unique_id}-clip)">'
-        f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})">'
-        f"{stack}"
-        "</g></g>"
-    )
-    body.append(
+    body.extend((
+        (
+            f'<g clip-path="url(#{unique_id}-clip)">'
+            f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})">'
+            f"{stack}"
+            "</g></g>"
+        ),
         watermark_svg(
             watermark,
             width=width,
             height=height,
             paint=watermark_color,
             font_stack=font_stack,
-        )
-    )
+        ),
+    ))
 
     # An animation states what it is, so a rebuild can leave an unchanged
     # one alone instead of rewriting bytes its own clock jitter moved.

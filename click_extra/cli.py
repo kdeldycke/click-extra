@@ -50,18 +50,12 @@ from .decorators import argument, command, group, jobs_option, option
 from .envvar import merge_envvar_ids
 from .execution import run_jobs
 from .highlight import HelpKeywords
-from .layout import center_in_rule
+from .layout import cell_width, center_in_rule
 from .logo import BRAND_SCREEN
 from .myst_converter import convert_directory, detect_source_package
 from .parameters import make_resilient_context
-from .spinner import (
-    _DEFAULT_SHOWCASE,
-    OperationTrail,
-    _animate_spinners,
-    _spinner_preview,
-    _tour_duration,
-)
-from .spinner_presets import SPINNERS
+from .spinner import OperationTrail, Spinner
+from .spinner_presets import SPINNERS, SpinnerPreset
 from .styling import _nearest_256
 from .table import corner_header
 from .test_suite import (
@@ -73,37 +67,7 @@ from .test_suite import (
     run_test_suite,
 )
 from .theme import AUTO_THEME, ThemeChoice, get_theme_registry, resolve_auto_theme
-
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
-
-
-class _LazyChoice(Choice):
-    """A `Choice` whose values are produced on first use rather than at decoration.
-
-    `click.Choice` freezes its values when the option is declared, which is at
-    import time for a module-level command. Taking a loader instead keeps the
-    module providing the values off the startup path of the CLI: the values are
-    only needed to parse, complete or document the option, never to import it.
-    """
-
-    def __init__(
-        self,
-        load: Callable[[], Iterable[str]],
-        case_sensitive: bool = True,
-    ) -> None:
-        self._load = load
-        super().__init__((), case_sensitive=case_sensitive)
-
-    @property
-    def choices(self) -> tuple[str, ...]:
-        """The values, read from the loader on each access."""
-        return tuple(self._load())
-
-    @choices.setter
-    def choices(self, value: Iterable[str]) -> None:
-        """Absorb the empty tuple `Choice.__init__` assigns: the loader is the source."""
+from .types import LazyChoice
 
 
 def _platform_ids() -> list[str]:
@@ -112,6 +76,89 @@ def _platform_ids() -> list[str]:
     from extra_platforms import ALL_IDS
 
     return sorted(ALL_IDS)
+
+
+# Max display width (terminal cells) of the frame preview column.
+_SPINNER_PREVIEW_WIDTH = 56
+
+
+def _spinner_preview(preset: SpinnerPreset) -> str:
+    """Join leading frames into a preview within the display-width budget.
+
+    Frames are measured by terminal cell width
+    ({func}`~click_extra.layout.cell_width`), not by code points, so 1-cell
+    glyphs and 2-cell emoji fill the column consistently rather than letting an
+    emoji-heavy preview balloon it. Emoji variation selectors (`U+FE0F`) are
+    dropped: `wcwidth` sizes the promoted emoji at two cells while many
+    terminals render the bare symbol in one, and that disagreement misaligns
+    the table. Wide animations (`shark`, `pong`, `dots-8bit`, …) stop at the
+    budget with a `… (+N)` tail.
+    """
+    shown: list[str] = []
+    width = 0
+    for frame in preset.frames:
+        glyph = frame.replace("\ufe0f", "")  # Drop emoji variation selectors.
+        cost = cell_width(glyph) + (1 if shown else 0)  # +1 joining space.
+        if width + cost > _SPINNER_PREVIEW_WIDTH:
+            break
+        shown.append(glyph)
+        width += cost
+    preview = " ".join(shown)
+    remaining = len(preset.frames) - len(shown)
+    if remaining:
+        preview += f" … (+{remaining})"
+    return preview
+
+
+# A curated, visually-distinct default selection for the live tour.
+_DEFAULT_SHOWCASE = (
+    "dots",
+    "line",
+    "moon",
+    "clock",
+    "earth",
+    "bouncing-bar",
+    "arc",
+    "pong",
+    "shark",
+    "mindblown",
+)
+
+
+# The live tour aims for _TOUR_CYCLES full cycles per spinner, then bounds the
+# dwell to at least _TOUR_MIN seconds (so a snappy spinner stays watchable) and
+# at most _TOUR_CAP seconds (so a long or slow one does not monopolize the tour).
+_TOUR_CYCLES = 3
+_TOUR_MIN = 2.0
+_TOUR_CAP = 3.0
+
+
+def _tour_duration(preset: SpinnerPreset) -> float:
+    """Seconds the live tour dwells on a spinner.
+
+    Aims for {data}`_TOUR_CYCLES` full cycles (one cycle is a pass through every
+    frame), then clamps to `[_TOUR_MIN, _TOUR_CAP]` seconds: a snappy spinner is
+    held at least {data}`_TOUR_MIN` seconds so it is watchable, while a long or
+    slow one is capped at {data}`_TOUR_CAP`. The cap never trims below a single
+    full cycle, so even a 256-frame spinner completes one loop.
+    """
+    one_cycle = len(preset.frames) * preset.interval
+    capped = min(_TOUR_CYCLES * one_cycle, max(_TOUR_CAP, one_cycle))
+    return max(_TOUR_MIN, capped)
+
+
+def _animate_spinners(names: list[str]) -> None:
+    """Spin each named catalog animation live, with its label and elapsed timer.
+
+    Each spinner runs for its {func}`_tour_duration` (up to {data}`_TOUR_CYCLES`
+    cycles, capped at {data}`_TOUR_CAP` seconds) before moving on, then leaves a
+    `✓` success line behind. Interactive terminals only.
+    """
+    for name in names:
+        preset = SPINNERS[name]
+        with Spinner(name, spinner=preset, timer=True) as spinner:
+            time.sleep(_tour_duration(preset))
+            spinner.ok()
 
 
 _demo_section = cloup.Section(
@@ -223,7 +270,7 @@ Examples:
 @option(
     "-s",
     "--skip-platform",
-    type=_LazyChoice(_platform_ids, case_sensitive=False),
+    type=LazyChoice(_platform_ids, case_sensitive=False),
     # Roughly 180 IDs, which Click would enumerate on one unwrappable line.
     # The `man`, `markdown` and `json` renders list them.
     metavar="PLATFORM",
@@ -523,13 +570,12 @@ def _render_palette() -> str:
     ramp.
     """
     swatch = "\x1b[38;5;{0};48;5;{0}m\u2588\x1b[1m\u2588\x1b[m"
-    lines: list[str] = []
-
-    # Header.
-    lines.append("  + " + "".join(f"{i:2}" for i in range(36)))
-
-    # System colors (indices 0-15).
-    lines.append("  0 " + "".join(swatch.format(i) for i in range(16)))
+    lines: list[str] = [
+        # Header.
+        "  + " + "".join(f"{i:2}" for i in range(36)),
+        # System colors (indices 0-15).
+        "  0 " + "".join(swatch.format(i) for i in range(16)),
+    ]
 
     # 6x6x6 color cube (indices 16-231).
     for row in range(6):

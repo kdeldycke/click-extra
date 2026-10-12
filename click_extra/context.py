@@ -409,7 +409,8 @@ colliding with current or future Click Extra entries.
 """
 
 
-class _LazyMetaDict(dict):
+# A real dict, not a UserDict: Click types `ctx._meta` as one and reads it directly.
+class _LazyMetaDict(dict):  # noqa: FURB189
     """Dict subclass that lazily resolves fields on first access.
 
     Installed as `ctx._meta` so that `ctx.meta["click_extra.<field>"]`
@@ -431,7 +432,7 @@ class _LazyMetaDict(dict):
         """Resolve a lazy key, cache the result, and return it."""
         value = getattr(self._source, self._lazy_keys[key])
         # Store as a regular entry so subsequent reads are plain dict lookups.
-        dict.__setitem__(self, key, value)
+        self[key] = value
         return value
 
     def __getitem__(self, key: str) -> Any:
@@ -444,7 +445,8 @@ class _LazyMetaDict(dict):
 
     def get(self, key: str, default: Any = None) -> Any:
         if key in self._lazy_keys:
-            if dict.__contains__(self, key):
+            # The dict's own test, since `__contains__` above claims every lazy key.
+            if dict.__contains__(self, key):  # noqa: PLC2801
                 return super().__getitem__(key)
             return self._resolve(key)
         return super().get(key, default)

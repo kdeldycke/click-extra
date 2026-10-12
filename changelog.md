@@ -7,6 +7,9 @@
 
 - **Deprecated:** `click_extra.version.visible_width` is `click_extra.layout.cell_width` under its own name, and stops resolving in `10.0.0`.
 - **Deprecated:** `INLINE_LITERAL_RE` moved from `click_extra.command_doc` to `click_extra.parameters`, and stops resolving from its old module in `10.0.0`.
+- **Deprecated:** The `buttons`, `buttons_color`, `titlebar` and `collapse_titlebar` arguments of `render_html()`, which it never read, now warn and stop working in `10.0.0`.
+- **Deprecated:** The `CAPTURE_BACKGROUND`, `CAPTURE_FOREGROUND`, `LIGHT_CAPTURE_BACKGROUND` and `LIGHT_CAPTURE_FOREGROUND` constants of `click_extra.screenshot_presets` are the fields of the `CAPTURE_PALETTES` entries, and stop resolving in `10.0.0`.
+- Add `LazyChoice` to `click_extra.types`, a `Choice` reading its values from a callable on first use, so a module providing them stays off the startup path of the CLI.
 - Add the `DEFAULT_FORMAT` and `DEFAULT_STYLE` constants to `click_extra.logging`.
 - Add `ConfigOption.apply_command_settings()`, which `@command` and `@group` call to hand their configuration settings to the default `--config` option.
 - Keep the built-in themes validator when `@command` or `@group` declares `config_validators`, which used to drop it.

@@ -1128,7 +1128,7 @@ def test_apply_default_native_types_unchanged():
     ),
 )
 def test_apply_default_custom_type_converted(data, expected):
-    result = _apply_default(data, lambda obj: str(obj))
+    result = _apply_default(data, str)
     assert result == expected
 
 

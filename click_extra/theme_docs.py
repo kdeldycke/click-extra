@@ -254,11 +254,13 @@ def inject_slot_example_docstring(
     rendered = _render_slot_ansi(default_theme, slot)
     if not rendered:
         return
-    lines.append("")
-    lines.append("Rendered with the default ``dark`` theme:")
-    lines.append("")
-    lines.append(".. code-block:: ansi-color")
-    lines.append("")
+    lines.extend((
+        "",
+        "Rendered with the default ``dark`` theme:",
+        "",
+        ".. code-block:: ansi-color",
+        "",
+    ))
     lines.extend(f"   {ansi_line}" for ansi_line in rendered.split("\n"))
 
 
