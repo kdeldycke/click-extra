@@ -5,7 +5,47 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Deprecated:** `click_extra.version.visible_width` is `click_extra.layout.cell_width` under its own name, and stops resolving in `10.0.0`.
+- **Deprecated:** `INLINE_LITERAL_RE` moved from `click_extra.command_doc` to `click_extra.parameters`, and stops resolving from its old module in `10.0.0`.
 - Add the `DEFAULT_FORMAT` and `DEFAULT_STYLE` constants to `click_extra.logging`.
+- Add `ConfigOption.apply_command_settings()`, which `@command` and `@group` call to hand their configuration settings to the default `--config` option.
+- Keep the built-in themes validator when `@command` or `@group` declares `config_validators`, which used to drop it.
+- Raise `TypeError` from `VersionOption.pin_field()` for a field the template does not know, as `@command(version_fields=...)` does.
+- Stop reading source files while `--version` locates the CLI module at startup.
+- List under `--params` the environment variables a subcommand reads: a subcommand setting its own `auto_envvar_prefix`, as every Click Extra command does, was listed under a name derived from its parent's prefix, which the CLI never reads.
+- Accept a callable as the `logo` of a `VersionScreen`, called when `--version` draws the screen: the `click-extra` CLI no longer paints its own mark at startup.
+- Add `parse_columns()`, `parse_pause()`, `parse_hold()` and `capture_environment()` to `click_extra.screenshot`, and `emphasis_paint()` and `credit_markup()` to `click_extra.screenshot_svg`.
+- Add the `CLEAR_LINE`, `HIDE_CURSOR`, `SHOW_CURSOR` and `DEFAULT_INTERVAL` constants to `click_extra.spinner`.
+- Render an animated capture faster: a row that stays the same from one frame to the next is drawn once.
+- Report a bad `--hold` value of `click-extra screenshot` as an invalid option value, naming the option, and reject a negative `hold` in `render_svg()` as a negative `blank` already was.
+- Write a capture to a file named `-` when its `--output` path resolves to one: only a bare `-` sends it to the terminal.
+- Add `child_context()`, `clean_help()`, `iter_inline_literals()` and `choice_values()` to `click_extra.parameters`, the helpers every renderer of a CLI reads it through.
+- Add `iter_command_docs()` to `click_extra.command_doc`, which resolves the distribution metadata of a command tree once for all its pages.
+- Add `read_project_scripts()`, `entry_point_package()`, `locate_package_root()` and `prebake_dunders()` to `click_extra.prebake`, and `xdg_dir()` to `click_extra.carapace`.
+- Spell the choices of an `Enum` the way Click completes them in the Carapace spec, the man page and the Markdown and JSON documents: `APPLE`, where `Fruit.APPLE` was listed.
+- Clean the help text of a Carapace spec like the other documents: the `\b` no-rewrap marker no longer leaks into a flag description, and a command description loses its reST backticks as a flag description does.
+- Export the completion variable Click reads for a program whose name holds a dot, like `garden.py`: the spec named `_GARDEN.PY_COMPLETE`, which Click never reads.
+- Name the man page of a subcommand after the name it is registered under, as the `COMMANDS` section of its parent does.
+- Answer to the name of a lazy subcommand in a `MulticallGroup`, which fell back to the group help.
+- Accept a compiled regular expression in the regex directives of a `CLITestCase`, as their type hints allow, which `dataclasses.replace()` on such a case needed too.
+- Run `click-extra prebake all` on a project laid out under `src/`, which found no package to bake.
+- Pass each configuration value to a wrapped CLI as `--key=value`, which keeps a value starting with a dash intact.
+- Start the `click-extra` CLI without loading `extra-platforms` or `boltons`, and without painting its `--version` mark.
+- Resolve each git and build value once per `click-extra prebake all` run and write each file once: the fields it skips are logged at `INFO` instead of being echoed.
+- Resolve the home directory of `install_manpages()` and `install_carapace_spec()` when they are called, through the new `click_extra.carapace.xdg_dir()`, where it was fixed at import.
+- Render the man pages of a command tree faster: the distribution metadata is read once for all its pages.
+- Read the git history of a project once per `matrix` refresh, in two `git` calls, instead of three calls per tag for every block.
+- Highlight ANSI output faster in Sphinx: the Pygments style and the CSS classes of the ANSI tokens are built once per process instead of once per highlighted block.
+- Move the `click_extra_*` configuration constants of the Sphinx extension and their registration to `click_extra.sphinx.click`, which `click_extra.sphinx` still exports.
+- Validate the `:screenshot-columns:`, `:screenshot-blank:`, `:screenshot-blink:` and `:screenshot-hold:` options of the Sphinx directives with the parsers the capture commands use, so a bad value is rejected with the same message.
+- Label the lines of a `matrix` table with their source line, so a diagnostic in an rST page names the right one.
+- Warn about a `click_extra_manpages` entry missing its `script` from the `click-extra-manpages` directive, which skipped it silently.
+- Render faint text in the Pygments HTML output at `opacity: 0.6`, the value `Style.to_css()` writes, instead of `0.5`.
+- Read a truncated or unknown-mode extended color escape, like `38;2;255;128`, in the ANSI Pygments lexer the way `split_ansi()` does: its stray parameters count as attribute codes.
+- Fix the ANSI Pygments lexer dropping an SGR escape with an empty parameter, like `\x1b[;31m`, which now reads as a reset followed by red.
+- Fix `python:run` ignoring its `:screenshot:` option: the directive writes the capture like `click:run` does.
+- Fix an OSC 8 hyperlink left open in the rendered HTML when an SGR reset lands inside the link.
+- Run `convert-to-myst` bare from the root of a project laid out under `src/`, or declaring its console scripts in `setup.cfg`.
 - Halve the import time of `click_extra`: wcwidth, PyYAML, wcmatch, deepmerge, extra-platforms, most of boltons and several standard library modules now load on the code path that uses them.
 - Resolve the `file_pattern_flags` and `search_pattern_flags` of `ConfigOption` on first use: both default to `None`, and the pattern sanity check runs on the first configuration load instead of at decoration.
 - Highlight the keywords of a help screen with one regular expression per style, instead of compiling one per keyword on every render.

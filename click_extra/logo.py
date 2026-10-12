@@ -37,8 +37,11 @@ everywhere else — which is also the form machine readers parse.
 
 from __future__ import annotations
 
+from functools import cache
+
 from click import style
 
+from .styling import _hex_to_rgb
 from .version import VersionScreen, default_facts, dependency_versions
 
 DOCS_URL = "https://kdeldycke.github.io/click-extra"
@@ -219,7 +222,7 @@ def sub_pixels() -> list[list[RGB | None]]:
     # resting on another wins over the lid it covers.
     ordered = list(reversed(faces()))
     palette = {
-        (slot, plane): tuple(int(value[i : i + 2], 16) for i in (1, 3, 5))
+        (slot, plane): _hex_to_rgb(value)
         for slot, planes in enumerate(FACE_COLORS)
         for plane, value in planes.items()
     }
@@ -231,7 +234,7 @@ def sub_pixels() -> list[list[RGB | None]]:
             centre = (column + 0.5, row + 0.5)
             for slot, plane, polygon in ordered:
                 if _inside(centre, polygon):
-                    line.append(palette[(slot, plane)])  # type: ignore[arg-type]
+                    line.append(palette[(slot, plane)])
                     break
             else:
                 line.append(None)
@@ -239,6 +242,7 @@ def sub_pixels() -> list[list[RGB | None]]:
     return grid
 
 
+@cache
 def render_logo() -> tuple[str, ...]:
     """Paint the mark into styled lines, each exactly {data}`LOGO_WIDTH` wide.
 
@@ -249,6 +253,9 @@ def render_logo() -> tuple[str, ...]:
 
     Trailing blanks are kept: {class}`~click_extra.version.VersionScreen` pads a
     ragged logo for us, but a mark that arrives square costs it nothing to measure.
+
+    Cached: the mark never changes, so it is painted on the first call that needs
+    it and read back by every later one.
     """
     grid = sub_pixels()
     lines = []
@@ -297,7 +304,7 @@ def brand_facts() -> dict[str, str]:
 
 
 BRAND_SCREEN = VersionScreen(
-    logo=render_logo(),
+    logo=render_logo,
     tagline=TAGLINE,
     facts=brand_facts,
 )
@@ -315,7 +322,8 @@ def cli():
     pass
 ```
 
-The mark is painted once, here, since it never changes. {func}`brand_facts` is passed
-uncalled so its values are read when `--version` is, not when this module is imported
-— the habit that keeps a costlier fact from being charged to every invocation.
+Both {func}`render_logo` and {func}`brand_facts` are passed uncalled, so the mark is
+painted and the facts are read when `--version` is drawn, not when this module is
+imported: the habit that keeps a costlier value from being charged to every
+invocation. The mark is then cached, since it never changes.
 """

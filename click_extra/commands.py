@@ -35,7 +35,7 @@ from cloup.formatting import ensure_is_cloup_formatter
 
 from . import context
 from .accessibility import ACCESSIBLE_ENVVAR, AccessibleOption
-from .color import ColorOption, NoColorOption, _reset_invocation_color
+from .color import ColorOption, NoColorOption
 from .command_doc import HelpFormatOption, ManOption, normalize_examples
 from .config import (
     ConfigOption,
@@ -43,11 +43,9 @@ from .config import (
     ExportConfigOption,
     NoConfigOption,
     ValidateConfigOption,
-    make_schema_callable,
 )
-from .config.schema import _opaque_paths
 from .config.subcommands import _descend_to_group_config
-from .context import Context, _abort_notice, _owning_abort_notice
+from .context import Context, _abort_notice, _owning_abort_notice, _scoped_run
 from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import (
     TimerOption,
@@ -57,14 +55,14 @@ from .execution import (
     _run_end_watch,
 )
 from .highlight import HelpKeywords, _HelpColorsMixin, highlight
-from .logging import (
-    DebugOption,
-    QuietOption,
-    VerboseOption,
-    VerbosityOption,
-    _scoped_logging,
+from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
+from .parameters import (
+    ExtraOption,
+    ShowParamsOption,
+    child_context,
+    param_spellings,
+    resolve_param_help,
 )
-from .parameters import ExtraOption, ShowParamsOption, resolve_param_help
 from .spinner import ProgressOption
 from .table import TableFormatOption
 from .theme import THEME_ENVVAR, ThemeOption, get_current_theme
@@ -220,7 +218,7 @@ def _assign_option_groups(params: Sequence[click.Parameter]) -> None:
             current = getattr(param, "group", None)
             if current is not None and not isinstance(current, ExtraOptionGroup):
                 continue
-            if wanted.intersection((*param.opts, *param.secondary_opts)):
+            if wanted.intersection(param_spellings(param)):
                 param.group = groups[title]  # type: ignore[attr-defined]
 
 
@@ -332,7 +330,32 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
     return params
 
 
-class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
+class _WatchedContextMixin:
+    """Watches what a run of the command ends on.
+
+    Every context is built through `_watched_context`, which records what leaves
+    a root context: its parsing, then its closing. See
+    `click_extra.execution._run_end_watch` for what reads the record.
+    """
+
+    def make_context(
+        self,
+        info_name: str | None,
+        args: list[str],
+        parent: click.Context | None = None,
+        **extra: Any,
+    ) -> click.Context:
+        """Like parent's `make_context`, but watches what the run ends on."""
+        return _watched_context(
+            super().make_context,  # type: ignore[misc]
+            info_name,
+            args,
+            parent,
+            **extra,
+        )
+
+
+class Command(_HelpColorsMixin, _WatchedContextMixin, cloup.Command):  # type: ignore[misc]
     """Like `cloup.command`, with sane defaults and extra help screen colorization."""
 
     context_class: type[cloup.Context] = Context
@@ -552,12 +575,6 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
             for param in self.params:
                 if isinstance(param, VersionOption):
                     for field_id, field_value in version_fields.items():
-                        if field_id not in param.template_fields:
-                            msg = (
-                                f"Unknown version field {field_id!r}."
-                                f" Must be one of {param.template_fields}."
-                            )
-                            raise TypeError(msg)
                         param.pin_field(field_id, field_value)
 
         # Forward config option parameters to the ConfigOption instance.
@@ -575,51 +592,15 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         ):
             for param in self.params:
                 if isinstance(param, ConfigOption):
-                    if included_params is not None:
-                        param.included_params = frozenset(included_params)
-                        # Schema-only section: see the same inference in
-                        # ConfigOption.__init__.
-                        param.schema_warn_unknown = not param.included_params
-                    if excluded_params is not None:
-                        if param.included_params is not None:
-                            msg = (
-                                "excluded_params conflicts with the config "
-                                "option's own included_params."
-                            )
-                            raise ValueError(msg)
-                        if "excluded_params" in param.__dict__:
-                            # The option carries an explicit blocklist: extend
-                            # the frozen instance value directly.
-                            param.excluded_params = param.excluded_params | (
-                                frozenset(excluded_params)
-                            )
-                        else:
-                            # Stash the additions for the dynamic default
-                            # property to merge at resolution time, when the
-                            # runtime context is available.
-                            param.extra_excluded_params = frozenset(excluded_params)
-                    if config_strict:
-                        param.strict = config_strict
-                    if schema_strict:
-                        param.schema_strict = schema_strict
-                    if config_schema is not None:
-                        param.config_schema = config_schema
-                        param._config_schema_callable = make_schema_callable(
-                            config_schema,
-                            strict=param.schema_strict,
-                            warn_unknown=param.schema_warn_unknown,
-                        )
-                    if fallback_sections:
-                        param.fallback_sections = tuple(fallback_sections)
-                    if config_validators:
-                        param.config_validators = tuple(config_validators)
-                    # Recompute the opaque-path union whenever the schema or
-                    # validators have been forwarded so the strict-check skip
-                    # set stays in sync with the new sources.
-                    if config_schema is not None or config_validators:
-                        param._opaque_paths = _opaque_paths(
-                            param.config_schema, param.config_validators
-                        )
+                    param.apply_command_settings(
+                        config_schema=config_schema,
+                        config_strict=config_strict,
+                        schema_strict=schema_strict,
+                        fallback_sections=fallback_sections,
+                        config_validators=config_validators,
+                        included_params=included_params,
+                        excluded_params=excluded_params,
+                    )
 
         if populate_auto_envvars:
             for param in self.params:
@@ -659,7 +640,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         of the command's grammar, not a matter of presentation.
         """
         if self.option_priorities and not isinstance(param, click.Argument):
-            for key in (*param.opts, *param.secondary_opts, param.name):
+            for key in (*param_spellings(param), param.name):
                 if key is not None and key in self.option_priorities:
                     return self.option_priorities[key]
         return DEFAULT_PRIORITY
@@ -780,16 +761,16 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         instead, which tells a calling shell the program handled the interrupt
         itself, so a shell loop runs on.
 
-        The log handler the options of Click Extra attach to the `root` logger leaves
-        with the run, and the verbosity options reset the level of their loggers, a
-        run that fails while parsing included. See
-        `click_extra.logging._scoped_logging`.
+        The process-wide state the options of Click Extra take for a run leaves
+        with it, a run that fails while parsing included: the log handler they
+        attach to the `root` logger, the levels the verbosity options set, and the
+        color the color options publish. See `click_extra.context._scoped_run`.
         """
         if not prog_name and self.name:
             prog_name = self.name
 
         with (
-            _scoped_logging(),
+            _scoped_run(),
             _interrupt_handling(),
             _owning_abort_notice(self, kwargs.get("standalone_mode", True)),
         ):
@@ -799,14 +780,6 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
                 if _interrupted():
                     _exit_interrupted()
                 raise
-            finally:
-                # The color mirror is scoped to one invocation. Its reset is
-                # queued on the context by `publish_invocation_color()`, but a
-                # callback raising during parameter processing aborts before the
-                # context is entered, so that close callback never fires and the
-                # mirror stays pinned for the rest of the process. Reset here so
-                # the scope holds however the invocation ended.
-                _reset_invocation_color()
 
     def invoke(self, ctx: click.Context) -> Any:
         """Like parent's `invoke`, but prints the `Aborted!` of an abort at once.
@@ -846,7 +819,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         if parent is None:
             meta[context.INVOCATION_NAME] = info_name
         extra.update({"meta": meta})
-        return _watched_context(super().make_context, info_name, args, parent, **extra)
+        return super().make_context(info_name, args, parent, **extra)
 
     def format_examples(
         self,
@@ -972,7 +945,7 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         flags = {
             flag
             for param in (*accessible_params, *color_params, *theme_params)
-            for flag in (*param.opts, *param.secondary_opts)
+            for flag in param_spellings(param)
         }
         on_cli = any(arg.split("=", 1)[0] in flags for arg in args)
         envvars = set()
@@ -1103,11 +1076,12 @@ def _enhance_short_option_error(
         raise exc
 
     # Collect every registered option name for close-match suggestions.
-    all_option_names: list[str] = []
-    for param in ctx.command.params:
-        if isinstance(param, click.Option):
-            all_option_names.extend(param.opts)
-            all_option_names.extend(param.secondary_opts)
+    all_option_names = [
+        name
+        for param in ctx.command.params
+        if isinstance(param, click.Option)
+        for name in param_spellings(param)
+    ]
 
     # Deferred import: keeps difflib off the startup path of every CLI.
     from difflib import get_close_matches
@@ -1117,7 +1091,7 @@ def _enhance_short_option_error(
     raise click.NoSuchOption(original_token, possibilities=possibilities, ctx=ctx)
 
 
-class ColorizedCommand(_HelpColorsMixin, click.Command):  # type: ignore[misc]
+class ColorizedCommand(_HelpColorsMixin, _WatchedContextMixin, click.Command):  # type: ignore[misc]
     """Click Command with help colorization but no extra params.
 
     Mixes in `_HelpColorsMixin` for keyword
@@ -1125,47 +1099,24 @@ class ColorizedCommand(_HelpColorsMixin, click.Command):  # type: ignore[misc]
     formatter, without inheriting from `Command` (which would inject
     `default_params`).
 
+    Watches what its run ends on, like `Command`: a patched CLI runs under
+    Click's own `main()`, inside the `wrap` command, and the watch is what tells
+    that command a Ctrl+C ended its target.
+
     Use this as a base for lightweight subcommands (like `help`) or for
     monkey-patching third-party CLIs (via {func}`~click_extra.cli_wrapper.patch_click`).
     """
 
     context_class: type[cloup.Context] = Context
 
-    def make_context(
-        self,
-        info_name: str | None,
-        args: list[str],
-        parent: click.Context | None = None,
-        **extra: Any,
-    ) -> click.Context:
-        """Like parent's `make_context`, but watches what the run ends on.
 
-        A patched CLI runs under Click's own `main()`, inside the `wrap` command:
-        the watch is what tells that command a Ctrl+C ended its target.
-        """
-        return _watched_context(super().make_context, info_name, args, parent, **extra)
-
-
-class ColorizedGroup(_HelpColorsMixin, click.Group):  # type: ignore[misc]
+class ColorizedGroup(_HelpColorsMixin, _WatchedContextMixin, click.Group):  # type: ignore[misc]
     """Click Group with help colorization but no extra params.
 
     Same as {class}`ColorizedCommand` but for groups.
     """
 
     context_class: type[cloup.Context] = Context
-
-    def make_context(
-        self,
-        info_name: str | None,
-        args: list[str],
-        parent: click.Context | None = None,
-        **extra: Any,
-    ) -> click.Context:
-        """Like parent's `make_context`, but watches what the run ends on.
-
-        See {meth}`ColorizedCommand.make_context`.
-        """
-        return _watched_context(super().make_context, info_name, args, parent, **extra)
 
 
 class HelpCommand(ColorizedCommand):
@@ -1214,11 +1165,7 @@ class HelpCommand(ColorizedCommand):
                     possibilities=get_close_matches(name, target_cmd.commands),
                     ctx=parent_ctx,
                 )
-            target_ctx = click.Context(
-                resolved,
-                parent=target_ctx,
-                info_name=name,
-            )
+            target_ctx = child_context(resolved, target_ctx, name)
             target_cmd = resolved
 
         click.echo(target_cmd.get_help(target_ctx), color=parent_ctx.color)
@@ -1262,11 +1209,7 @@ class HelpCommand(ColorizedCommand):
                 continue
 
             cmd_path = f"{prefix}{sub_name}" if prefix else sub_name
-            sub_ctx = click.Context(
-                sub_cmd,
-                parent=group_ctx,
-                info_name=sub_name,
-            )
+            sub_ctx = child_context(sub_cmd, group_ctx, sub_name)
 
             # Check command docstring.
             if sub_cmd.help and term_lower in sub_cmd.help.lower():

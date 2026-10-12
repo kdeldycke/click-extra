@@ -496,12 +496,7 @@ def flatten_config_keys(
     for key, value in conf.items():
         full_key = f"{_prefix}{sep}{key}" if _prefix else key
         if isinstance(value, dict) and full_key not in opaque_keys:
-            items.update({
-                sub_key: sub_value
-                for sub_key, sub_value in flatten_config_keys(
-                    value, sep, opaque_keys, full_key
-                ).items()
-            })
+            items.update(flatten_config_keys(value, sep, opaque_keys, full_key))
         else:
             items[full_key] = value
     return items
@@ -835,6 +830,15 @@ def _opaque_paths(
     schema_paths = _collect_opaque_paths_from_schema(schema)
     validator_paths = frozenset(v.extension_path for v in validators)
     return schema_paths | validator_paths
+
+
+def _rooted_path(app_name: str, path: str) -> str:
+    """Root a dotted path relative to the app's section at the configuration file.
+
+    An empty `app_name` leaves `path` as it stands: the section is then the
+    document itself.
+    """
+    return f"{app_name}.{path}" if app_name else path
 
 
 def _strip_opaque_subtrees(
@@ -1177,9 +1181,7 @@ def _collect_validator_errors(
         try:
             cv.validator(subtree)
         except ValidationError as exc:
-            prefix = (
-                f"{app_name}.{cv.extension_path}" if app_name else cv.extension_path
-            )
+            prefix = _rooted_path(app_name, cv.extension_path)
             rooted_path = f"{prefix}.{exc.path}" if exc.path else prefix
             yield ValidationError(rooted_path, exc.message, exc.code)
 
@@ -1320,9 +1322,7 @@ def run_config_validation(
 
     # Stage 3: strict-check the CLI-flag-bound part against the template.
     if params_template is not None:
-        prefixed_paths = (
-            f"{app_name}.{path}" if app_name else path for path in opaque_paths
-        )
+        prefixed_paths = (_rooted_path(app_name, path) for path in opaque_paths)
         stripped = _strip_opaque_subtrees(normalized, prefixed_paths)
         # Scope the strict check to the app's own section: foreign sections in
         # a shared file are not ours to police. Stage 2 already resolved the

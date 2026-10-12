@@ -52,6 +52,7 @@ from __future__ import annotations
 import functools
 import os
 import sys
+import weakref
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -164,6 +165,60 @@ def _abort_notice(ctx: click.Context) -> Iterator[None]:
                 echo(file=sys.stderr)
             echo(_("Aborted!"), file=sys.stderr)
         raise
+
+
+_RUN_CLEANUPS: ContextVar[list[Callable[[], None]] | None] = ContextVar(
+    "_RUN_CLEANUPS", default=None
+)
+"""What the runs started within the `_scoped_run` block in progress may leave.
+
+One callable for each piece of process-wide state a run took: its hold on the
+handler of the `root` logger, the log levels it set, the color it published.
+`None` outside such a block. Written by `_queue_run_cleanup`.
+"""
+
+
+def _queue_run_cleanup(ctx: click.Context, cleanup: Callable[[], None]) -> None:
+    """Have `cleanup` called for the run of `ctx`, even when Click never closes it.
+
+    A run that fails while parsing leaves its context never entered, and therefore
+    never closed: its close callbacks do not run. Two mechanisms cover that path:
+
+    - A finalizer, called when Python collects the context. That may be late, and
+      in the middle of a later run.
+    - The `_scoped_run` block {meth}`click_extra.commands.Command.main` runs
+      within, which does not wait for a collection.
+
+    Both also call `cleanup` for a context that did close. It so has to do nothing
+    when called again, and to leave alone what a later run took over. The options
+    taking process-wide state queue their cleanup here beside the close callback
+    they register for the normal path: see `click_extra.logging` and
+    {func}`click_extra.color.publish_invocation_color`.
+    """
+    weakref.finalize(ctx, cleanup)
+    cleanups = _RUN_CLEANUPS.get()
+    if cleanups is not None:
+        cleanups.append(cleanup)
+
+
+@contextmanager
+def _scoped_run() -> Iterator[None]:
+    """Give back on exit the process-wide state of the runs started within the block.
+
+    {meth}`click_extra.commands.Command.main` runs within it. A run that fails
+    while parsing so gives back the handler of the `root` logger, resets the
+    levels of its loggers and clears the color it published, without waiting for
+    a garbage collection. What the run around the block took stays: that run
+    gives it back when it ends.
+    """
+    cleanups: list[Callable[[], None]] = []
+    reset_token = _RUN_CLEANUPS.set(cleanups)
+    try:
+        yield
+    finally:
+        _RUN_CLEANUPS.reset(reset_token)
+        for cleanup in cleanups:
+            cleanup()
 
 
 class Context(cloup.Context):

@@ -1497,7 +1497,7 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✘",
             "",
-            f"SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_{CLICK_HELP_PARAM_NAME.upper()}",
+            f"SHOW_PARAMS_SUB_{CLICK_HELP_PARAM_NAME.upper()}",
             False,
             "✓",
             True,
@@ -1518,7 +1518,7 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✘",
             "",
-            f"SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_SHOW_PARAMS_SUB_SUB_{CLICK_HELP_PARAM_NAME.upper()}",
+            f"SHOW_PARAMS_SUB_SUB_{CLICK_HELP_PARAM_NAME.upper()}",
             False,
             "✓",
             True,
@@ -1539,10 +1539,7 @@ def test_recurse_subcommands(invoke):
             "✘",
             "✓",
             "",
-            (
-                "SHOW_PARAMS_SUB_SUB_INT_PARAM, "
-                "SHOW_PARAMS_CLI_MAIN_SHOW_PARAMS_SUB_SHOW_PARAMS_SUB_SUB_INT_PARAM"
-            ),
+            "SHOW_PARAMS_SUB_SUB_INT_PARAM",
             10,
             "✘",
             "",
@@ -2443,3 +2440,30 @@ def test_options_lend_the_root_logger_a_handler_for_the_run(option_class):
     finally:
         ctx.close()
     assert root.handlers == handlers
+
+
+def test_params_lists_the_envvars_a_subcommand_reads(invoke):
+    """A subcommand setting its own `auto_envvar_prefix` is listed under it.
+
+    The walk behind `--params` builds each subcommand's context the way Click
+    does for a real invocation, context settings included. It used to derive the
+    prefix from the parent's, and listed `GARDEN_PLANT_CROP`, a variable the CLI
+    never reads.
+    """
+
+    @group(help_command=False)
+    def garden():
+        pass
+
+    @garden.command(context_settings={"auto_envvar_prefix": "SOW"})
+    @option("--crop")
+    def plant(crop):
+        echo(f"Planting {crop}")
+
+    result = invoke(garden, "plant", env={"SOW_CROP": "beans"})
+    assert result.output == "Planting beans\n"
+
+    result = invoke(garden, "--params", "--table-format", "json", color=False)
+    assert result.exit_code == 0, result.stderr
+    rows = {row["ID"]: row for row in json.loads(result.stdout)}
+    assert rows["garden.plant.crop"]["Env. vars."] == ["SOW_CROP"]

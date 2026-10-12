@@ -37,12 +37,9 @@ import zlib
 from collections import Counter
 from hashlib import sha256
 from html import escape
-from importlib import metadata
 from math import ceil, cos, hypot, pi, sin
 
-from boltons.strutils import strip_ansi
-
-from ._utils import generator_tag
+from ._utils import generator_tag, package_version
 from .layout import PADDING, cell_width, grid, is_bidirectional
 from .screenshot_presets import (
     CAPTURE_FONT_STACK,
@@ -53,11 +50,11 @@ from .screenshot_presets import (
     TerminalPalette,
     WindowButtons,
 )
-from .styling import _ANSI_INDEX, _ATTR_CSS, _hex_to_rgb, _palette_to_rgb, _rgb_to_hex
+from .styling import _ANSI_INDEX, _ATTR_CSS, _hex_to_rgb, _resolve_rgb, _rgb_to_hex
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Sequence
     from typing import Literal, TypeAlias
 
     from .styling import Style
@@ -181,11 +178,8 @@ def _package_release() -> str:
 
     :return: the release, or an empty string when the package is not installed.
     """
-    try:
-        release = metadata.version(PACKAGE_NAME)
-    except metadata.PackageNotFoundError:
-        return ""
-    return release.split(".dev")[0].split("+")[0]
+    release = package_version()
+    return release.split(".dev")[0].split("+")[0] if release else ""
 
 
 DEFAULT_WATERMARK = f"generated with {PACKAGE_NAME} {_package_release()}".rstrip()
@@ -305,6 +299,18 @@ near enough to leave its text the thing being read.
 """
 
 
+def emphasis_paint(palette: TerminalPalette) -> str:
+    """The color an emphasized line's band is painted, on `palette`.
+
+    {data}`EMPHASIS_RATIO` of the way from the terminal's background toward its
+    ink, see {func}`blend`.
+
+    :param palette: the terminal colors the capture is drawn with.
+    :return: the band's color, as `#rrggbb`.
+    """
+    return blend(palette.background, palette.foreground, EMPHASIS_RATIO)
+
+
 HIDDEN_FRAME_ATTRIBUTES = ' visibility="hidden" opacity="0"'
 """How an animated capture hides the frames its still is not made of.
 
@@ -422,8 +428,27 @@ def auto_hold(text: str) -> float:
     :param text: the final frame's captured text, ANSI escapes included.
     :return: the pause, in seconds.
     """
+    # Deferred import: keeps boltons.strutils off the startup path of every CLI.
+    from boltons.strutils import strip_ansi
+
     lines = sum(1 for line in strip_ansi(text).splitlines() if line.strip())
     return min(AUTO_HOLD_MAX, max(AUTO_HOLD_MIN, lines * AUTO_HOLD_SECONDS_PER_LINE))
+
+
+def _check_pause(seconds: float) -> float:
+    """Pass a pause through, rejecting a negative one.
+
+    The one message every pause an animation takes (a hold, a blank, a blink)
+    is refused with, so the renderer, the command line and a directive agree
+    on it.
+
+    :param seconds: the pause, in seconds. Zero is a pause of no length.
+    :return: `seconds`, unchanged.
+    :raises ValueError: when `seconds` is negative.
+    """
+    if seconds < 0:
+        raise ValueError(f"{seconds} is not a pause, which is never negative.")
+    return seconds
 
 
 _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
@@ -511,25 +536,33 @@ def palette_color(color: object, palette: TerminalPalette) -> str:
     :return: the color, as `#rrggbb`.
     :raises ValueError: when the value names no color.
     """
-    if isinstance(color, str):
-        if color.startswith("#"):
-            return color
-        if color.startswith("bright_"):
-            index = _ANSI_INDEX.get(color.removeprefix("bright_"))
-            if index is not None:
-                return palette.ansi[index + 8]
-        elif color in _ANSI_INDEX:
-            return palette.ansi[_ANSI_INDEX[color]]
+    slot = _palette_slot(color)
+    if slot is not None:
+        return palette.ansi[slot]
     # `bool` is an `int`, and neither `True` nor `False` is a palette index.
-    elif isinstance(color, int) and not isinstance(color, bool):
-        if 0 <= color < 16:
-            return palette.ansi[color]
-        return _rgb_to_hex(_palette_to_rgb(color))
-    elif isinstance(color, tuple) and len(color) == 3:
-        return _rgb_to_hex(color)
-    elif hasattr(color, "name") and not isinstance(color, type):
-        return palette_color(color.name, palette)
+    if not isinstance(color, bool):
+        return _rgb_to_hex(_resolve_rgb(color))
     raise ValueError(f"Cannot resolve color: {color!r}")
+
+
+def _palette_slot(color: object) -> int | None:
+    """The one of the sixteen terminal slots `color` names, or `None`.
+
+    A base name (`red`) or its `bright_` form, a palette index under 16, or an
+    object naming either through its `name` attribute, the way an enum member
+    does. Anything else states its own color and names no slot.
+    """
+    if isinstance(color, int):
+        return color if 0 <= color < 16 else None
+    if isinstance(color, str):
+        name = color.removeprefix("bright_")
+        index = _ANSI_INDEX.get(name)
+        if index is None:
+            return None
+        return index if name == color else index + 8
+    if hasattr(color, "name") and not isinstance(color, type):
+        return _palette_slot(color.name)
+    return None
 
 
 def blend(color: str, into: str, ratio: float) -> str:
@@ -723,6 +756,46 @@ def credit_segments(text: str) -> tuple[str, str, str] | None:
     return (before, name, after) if name else None
 
 
+def credit_markup(
+    text: str,
+    url: str,
+    link: Callable[[str, str], str],
+    *,
+    escape: Callable[[str], str],
+) -> str:
+    """Write a credit line as markup, the package name it credits linked.
+
+    The flow both documents share: the line is escaped, and where it names the
+    package and a `url` is given, the name alone is wrapped by `link`. A line
+    naming no package, or given no URL, is the escaped text and nothing more.
+
+    :param text: the credit line.
+    :param url: where the package name points. Empty links nothing.
+    :param link: draws the anchor around the name, from the URL and the raw
+        name. It escapes both for the document it writes.
+    :param escape: how the rest of the line is escaped for that document.
+    :return: the markup.
+    """
+    segments = credit_segments(text) if url else None
+    if segments is None:
+        return escape(text)
+    before, name, after = segments
+    return f"{escape(before)}{link(url, name)}{escape(after)}"
+
+
+def _watermark_link(url: str, name: str) -> str:
+    """Wrap the credit line's package name in an SVG link.
+
+    Written as a plain `href` rather than the `xlink:href` of SVG 1.1, which
+    every current browser reads and which needs no second namespace on the root
+    element.
+    """
+    return (
+        f'<a href="{escape(url)}" class="watermark-link">'
+        f'<tspan text-decoration="underline">{_xml_escape(name)}</tspan></a>'
+    )
+
+
 def watermark_svg(
     text: str,
     *,
@@ -741,9 +814,8 @@ def watermark_svg(
     Carries a `watermark` class, so a reader taking a capture apart can tell the
     one run the renderer never captured from the ones it did.
 
-    The package name is wrapped in a link, see {data}`WATERMARK_URL`. Written as
-    a plain `href` rather than the `xlink:href` of SVG 1.1, which every current
-    browser reads and which needs no second namespace on the root element.
+    The package name is wrapped in a link, see {data}`WATERMARK_URL` and
+    {func}`credit_markup`.
 
     :param text: the credit to draw. Empty draws nothing.
     :param width: width of the whole image, in pixels.
@@ -755,16 +827,7 @@ def watermark_svg(
     """
     if not text:
         return ""
-    body = _xml_escape(text)
-    segments = credit_segments(text) if url else None
-    if segments:
-        before, name, after = segments
-        body = (
-            f"{_xml_escape(before)}"
-            f'<a href="{escape(url)}" class="watermark-link">'
-            f'<tspan text-decoration="underline">{_xml_escape(name)}</tspan>'
-            f"</a>{_xml_escape(after)}"
-        )
+    body = credit_markup(text, url, _watermark_link, escape=_xml_escape)
     return (
         f'<text class="watermark" x="{_svg_number(width - WATERMARK_INSET)}" '
         f'y="{_svg_number(height - WATERMARK_INSET)}" text-anchor="end" '
@@ -851,9 +914,35 @@ def cursor_svg(
     # Only a blinking cursor wears a class: a steady one needs no rule, and
     # naming a class the stylesheet does not define is what breaks a renderer.
     blinking = f' class="{unique_id}-blink"' if cursor.blink > 0 else ""
+    return _row_rect(paint, left, top, width, height=height, attributes=blinking)
+
+
+def _row_rect(
+    fill: str,
+    x: float,
+    top: float,
+    width: float,
+    *,
+    height: float = LINE_HEIGHT + CELL_BLEED,
+    attributes: str = "",
+) -> str:
+    """Draw a crisp rectangle on the text grid.
+
+    The one shape behind a run's background, a cursor and an emphasis band,
+    which all paint a row's cells and nothing else. Pixel-snapped, so two
+    rectangles meeting on a boundary share it instead of leaving a hairline.
+
+    :param fill: the paint.
+    :param x: where it starts, in pixels.
+    :param top: where the row's cells start, see {data}`CELL_TOP_INSET`.
+    :param width: how wide it is, in pixels.
+    :param height: how tall, a row's cells plus their bleed unless stated.
+    :param attributes: extra attributes, each opening on a space.
+    :return: the SVG markup.
+    """
     return (
-        f'<rect{blinking} fill="{paint}" '
-        f'x="{_svg_number(left)}" y="{_svg_number(top)}" '
+        f'<rect{attributes} fill="{fill}" '
+        f'x="{_svg_number(x)}" y="{_svg_number(top)}" '
         f'width="{_svg_number(width)}" height="{_svg_number(height)}" '
         'shape-rendering="crispEdges"/>'
     )
@@ -951,12 +1040,9 @@ def style_rules(style: Style, palette: TerminalPalette) -> str:
     :param palette: the terminal colors to resolve names against.
     :return: the CSS declarations, semicolon-separated.
     """
-    ink = palette.foreground if style.fg is None else palette_color(style.fg, palette)
-    paper = palette.background if style.bg is None else palette_color(style.bg, palette)
-    if style.reverse:
-        ink, paper = paper, ink
+    ink, paper = _run_colors(style, palette)
     if style.dim:
-        ink = blend(ink, paper, DIM_RATIO)
+        ink = blend(ink, palette.background if paper is None else paper, DIM_RATIO)
     rules = [f"fill: {ink}"]
     if style.bold:
         rules.append("font-weight: bold")
@@ -982,11 +1068,27 @@ def run_paint(style: Style, palette: TerminalPalette) -> str | None:
     :param palette: the terminal colors to resolve names against.
     :return: the background color, as `#rrggbb`, or `None` to paint nothing.
     """
+    return _run_colors(style, palette)[1]
+
+
+def _run_colors(style: Style, palette: TerminalPalette) -> tuple[str, str | None]:
+    """The ink a run is drawn in, and the paint behind it.
+
+    A run naming no foreground takes the terminal's, and one naming no
+    background paints none, showing the terminal's own. `reverse` swaps the
+    two, so the ink moves behind the glyphs and whatever was behind them, the
+    terminal's background when nothing was named, becomes the ink.
+
+    :param style: the run's style.
+    :param palette: the terminal colors to resolve names against.
+    :return: the ink as `#rrggbb`, and the paint as `#rrggbb` or `None` where
+        the run paints nothing behind itself.
+    """
+    ink = palette.foreground if style.fg is None else palette_color(style.fg, palette)
+    paper = None if style.bg is None else palette_color(style.bg, palette)
     if style.reverse:
-        return (
-            palette.foreground if style.fg is None else palette_color(style.fg, palette)
-        )
-    return None if style.bg is None else palette_color(style.bg, palette)
+        return (palette.background if paper is None else paper), ink
+    return ink, paper
 
 
 def _css_number(value: float) -> str:
@@ -1289,8 +1391,8 @@ def render_svg(
     :return: the SVG source.
     :raises ValueError: when `frames` is given without an `interval`, when the
         two disagree on how many frames there are, when no frame is given, when
-        `emphasize` names a line the capture does not have, or when a `cursor`
-        is given a negative blink.
+        `hold` or `blank` is negative, when `emphasize` names a line the
+        capture does not have, or when a `cursor` is given a negative blink.
     """
     animated = frames is not None
     pictures = tuple(frames) if frames is not None else (text,)
@@ -1319,13 +1421,11 @@ def render_svg(
         # option, a CLI argument, anything read from text.
         elif isinstance(hold, str):  # type: ignore[unreachable]
             raise ValueError(f"{hold!r} is not a hold, which is seconds or 'auto'.")
-        if hold:
+        if _check_pause(hold):
             # Spent on the last frame rather than on a pause of its own, so the
             # frame a still falls back to is the one that was held.
             durations = (*durations[:-1], durations[-1] + hold)
-        if blank:
-            if blank < 0:
-                raise ValueError(f"{blank} is not a pause, which is not negative.")
+        if _check_pause(blank):
             # An empty picture, which draws nothing and reads as the cycle
             # turning over. It also leaves no row identical across every frame,
             # so a blank costs the saving a still row would otherwise make.
@@ -1347,6 +1447,52 @@ def render_svg(
     # One dictionary across every frame, so a color two frames share is written
     # as a single rule and no frame can name a class the stylesheet omits.
     classes: dict[str, int] = {}
+    # Each style is resolved against the palette once, however many runs wear
+    # it: a help screen repeats a handful of styles across hundreds of runs.
+    resolved: dict[Style, tuple[str, str | None]] = {}
+    # A row is drawn once per distinct content and read back wherever it
+    # recurs. Most rows of a recording stand still from one frame to the next,
+    # and the drawing is the costly part: measuring, cutting and escaping every
+    # run. Keyed on the row index too, since the markup carries the row's
+    # vertical position.
+    drawn_rows: dict[tuple[int, tuple[tuple[Style, str, int], ...]], tuple[str, str]]
+    drawn_rows = {}
+
+    def draw_row(row: int, runs: Sequence[tuple[Style, str, int]]) -> tuple[str, str]:
+        """Draw one row's cell backgrounds and glyphs, as two markup strings."""
+        baseline = row * LINE_HEIGHT + CELL_HEIGHT
+        top = row * LINE_HEIGHT + CELL_TOP_INSET
+        cells: list[str] = []
+        glyphs: list[str] = []
+        for run_style, run, column in runs:
+            if run_style not in resolved:
+                resolved[run_style] = (
+                    style_rules(run_style, palette),
+                    run_paint(run_style, palette),
+                )
+            css, paint = resolved[run_style]
+            # The paint spans the whole run, padding included: a styled
+            # column keeps its background across the spaces trailing it.
+            if paint is not None:
+                cells.append(
+                    _row_rect(
+                        paint, column * CELL_WIDTH, top, cell_width(run) * CELL_WIDTH
+                    )
+                )
+            # The glyphs do not, see this function's note.
+            if not run.strip(PADDING):
+                continue
+            rule = classes.setdefault(css, len(classes) + 1)
+            for column_text, start in column_segments(run, column):
+                for drawn, at in tile_runs(column_text, start):
+                    glyphs.append(
+                        f'<text class="{unique_id}-r{rule}" '
+                        f"{glyph_offsets(drawn, at)} "
+                        f'y="{_svg_number(baseline)}">'
+                        f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
+                    )
+        return "".join(cells), "".join(glyphs)
+
     painted: list[list[tuple[str, str]]] = []
     # How many rows each frame drew, which is what says whether an
     # emphasized line exists yet in it. A frame holding only blanks (the one
@@ -1362,37 +1508,10 @@ def render_svg(
         text_rows = max(text_rows, len(rows))
         rendered_rows: list[tuple[str, str]] = []
         for row, runs in enumerate(rows):
-            baseline = row * LINE_HEIGHT + CELL_HEIGHT
-            cells: list[str] = []
-            glyphs: list[str] = []
-            for run_style, run, column in runs:
-                # The paint spans the whole run, padding included: a styled
-                # column keeps its background across the spaces trailing it.
-                paint = run_paint(run_style, palette)
-                if paint is not None:
-                    cells.append(
-                        f'<rect fill="{paint}" '
-                        f'x="{_svg_number(column * CELL_WIDTH)}" '
-                        f'y="{_svg_number(row * LINE_HEIGHT + CELL_TOP_INSET)}" '
-                        f'width="{_svg_number(cell_width(run) * CELL_WIDTH)}" '
-                        f'height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}" '
-                        'shape-rendering="crispEdges"/>'
-                    )
-                # The glyphs do not, see this function's note.
-                if not run.strip(PADDING):
-                    continue
-                rule = classes.setdefault(
-                    style_rules(run_style, palette), len(classes) + 1
-                )
-                for column_text, start in column_segments(run, column):
-                    for drawn, at in tile_runs(column_text, start):
-                        glyphs.append(
-                            f'<text class="{unique_id}-r{rule}" '
-                            f"{glyph_offsets(drawn, at)} "
-                            f'y="{_svg_number(baseline)}">'
-                            f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
-                        )
-            rendered_rows.append(("".join(cells), "".join(glyphs)))
+            key = (row, tuple(runs))
+            if key not in drawn_rows:
+                drawn_rows[key] = draw_row(row, runs)
+            rendered_rows.append(drawn_rows[key])
         if cursor is not None:
             standing = cursor_cell(picture, columns)
             if standing is not None:
@@ -1567,12 +1686,11 @@ def render_svg(
         # A row drawn the same in every frame is drawn once, outside them. On a
         # recording where one line moves under twenty that do not, that is the
         # difference between one copy of those twenty and one copy per frame.
-        still = [
-            row
-            for row in range(row_count)
-            if len({frame_rows[row] for frame_rows in padded}) == 1
-        ]
-        moving = [row for row in range(row_count) if row not in set(still)]
+        still: list[int] = []
+        moving: list[int] = []
+        for row in range(row_count):
+            same = len({frame_rows[row] for frame_rows in padded}) == 1
+            (still if same else moving).append(row)
         # Each frame carries its own matrix, so the attribute fallback above
         # reaches the frames a renderer shows after the first one too.
         # The frame a renderer showing no animation is left with. The last one
@@ -1586,15 +1704,16 @@ def render_svg(
             if any(cells or glyphs for cells, glyphs in frame_rows)
         ]
         poster = pictured[-1] if pictured else len(padded) - 1
-        stack = _row_group(padded[0], still, matrix)
+        layers = [_row_group(padded[0], still, matrix)]
         for index, frame_rows in enumerate(padded):
             # Stated as an attribute, not a rule: a renderer free to ignore the
             # stylesheet would otherwise stack every frame on top of the poster.
             hidden = "" if index == poster else HIDDEN_FRAME_ATTRIBUTES
-            stack += (
+            layers.append(
                 f'<g class="{unique_id}-f{index}"{hidden}>'
                 f"{_row_group(frame_rows, moving, matrix)}</g>"
             )
+        stack = "".join(layers)
     else:
         still_cells = "".join(row_cells for row_cells, _ in painted[0])
         still_glyphs = "".join(row_glyphs for _, row_glyphs in painted[0])
@@ -1626,17 +1745,17 @@ def render_svg(
             f'rx="{_svg_number(max(radius - inner, 0))}"/></clipPath>'
         )
 
+        band_paint = emphasis_paint(palette)
+
         def bands(lines: Iterable[int]) -> str:
             """Draw a band across the window on each of the lines given."""
             return "".join(
-                f'<rect fill="'
-                f'{blend(palette.background, palette.foreground, EMPHASIS_RATIO)}"'
-                f' x="{_svg_number(band_x)}"'
-                f' y="'
-                f'{_svg_number(origin_y + (line - 1) * LINE_HEIGHT + CELL_TOP_INSET)}"'
-                f' width="{_svg_number(band_width)}"'
-                f' height="{_svg_number(LINE_HEIGHT + CELL_BLEED)}"'
-                ' shape-rendering="crispEdges"/>'
+                _row_rect(
+                    band_paint,
+                    band_x,
+                    origin_y + (line - 1) * LINE_HEIGHT + CELL_TOP_INSET,
+                    band_width,
+                )
                 for line in lines
             )
 

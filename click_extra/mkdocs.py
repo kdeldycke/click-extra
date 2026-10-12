@@ -40,7 +40,7 @@ This is the MkDocs counterpart of the Sphinx integration in
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from functools import wraps
 from pathlib import Path
 
@@ -81,6 +81,24 @@ def _ansi_lines(gen: Iterator[str]) -> Iterator[str]:
         yield ANSI_OUTPUT_FENCE if line == TEXT_FENCE else line
 
 
+def _wrap_ansi(orig: Callable[..., Iterator[str]]) -> Callable[..., Iterator[str]]:
+    """Wrap an `mkdocs-click` line generator to capture its help in color.
+
+    The generator is drained inside {func}`~click_extra.color.forced_color`, so
+    the escape codes are produced while the override is active rather than once
+    the caller iterates and the environment has been restored, and its `text`
+    fences are swapped for the ANSI-aware one through `_ansi_lines`.
+    """
+
+    @wraps(orig)
+    def ansi_lines(*args, **kwargs):
+        with forced_color():
+            lines = list(orig(*args, **kwargs))
+        return _ansi_lines(iter(lines))
+
+    return ansi_lines
+
+
 def _patch_mkdocs_click() -> None:
     """Patch `mkdocs-click` code blocks to use the `ansi-output` lexer.
 
@@ -102,23 +120,8 @@ def _patch_mkdocs_click() -> None:
     if getattr(_docs, "_click_extra_patched", False):
         return
 
-    orig_usage = _docs._make_usage
-    orig_plain = _docs._make_plain_options
-
-    @wraps(orig_usage)
-    def _ansi_usage(*args, **kwargs):
-        with forced_color():
-            lines = list(orig_usage(*args, **kwargs))
-        return _ansi_lines(iter(lines))
-
-    @wraps(orig_plain)
-    def _ansi_plain_options(*args, **kwargs):
-        with forced_color():
-            lines = list(orig_plain(*args, **kwargs))
-        return _ansi_lines(iter(lines))
-
-    _docs._make_usage = _ansi_usage
-    _docs._make_plain_options = _ansi_plain_options
+    _docs._make_usage = _wrap_ansi(_docs._make_usage)
+    _docs._make_plain_options = _wrap_ansi(_docs._make_plain_options)
     _docs._click_extra_patched = True  # type: ignore[attr-defined]
 
 
@@ -163,18 +166,14 @@ class AnsiColorPlugin(BasePlugin):
         path per page, including under `use_directory_urls`). The file itself is
         written later, in {meth}`on_post_build`.
         """
-        if not issubclass(pymdownx.highlight.BlockHtmlFormatter, AnsiHtmlFormatter):
-            pymdownx.highlight.BlockHtmlFormatter = type(
-                "AnsiBlockHtmlFormatter",
-                (AnsiHtmlFormatter, pymdownx.highlight.BlockHtmlFormatter),
-                {},
-            )
-        if not issubclass(pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter):
-            pymdownx.highlight.InlineHtmlFormatter = type(
-                "AnsiInlineHtmlFormatter",
-                (AnsiHtmlFormatter, pymdownx.highlight.InlineHtmlFormatter),
-                {},
-            )
+        for name in ("BlockHtmlFormatter", "InlineHtmlFormatter"):
+            formatter = getattr(pymdownx.highlight, name)
+            if not issubclass(formatter, AnsiHtmlFormatter):
+                setattr(
+                    pymdownx.highlight,
+                    name,
+                    type(f"Ansi{name}", (AnsiHtmlFormatter, formatter), {}),
+                )
         if ANSI_STYLESHEET not in config["extra_css"]:
             config["extra_css"].append(ANSI_STYLESHEET)
         _patch_mkdocs_click()

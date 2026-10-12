@@ -578,9 +578,9 @@ def test_cli_frame_fallback(monkeypatch):
     saved_names: dict[int, tuple[dict, object]] = {}
     missing = object()
 
-    def patched_stack():
+    def patched_stack(context=1):
         """Make every frame look like it belongs to click_extra."""
-        frames = original_stack()
+        frames = original_stack(context)
         for frame_info in frames:
             frame_globals = frame_info.frame.f_globals
             saved_names.setdefault(

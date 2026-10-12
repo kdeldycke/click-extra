@@ -418,32 +418,35 @@ default_options_colored_help = (
 )
 
 
+def _colored_debug_log(regex: str) -> str:
+    r"""Derive the colored twin of an uncolored debug log regex.
+
+    A colored log line differs from its uncolored twin by the level label alone:
+    the `debug:` prefix is drawn blue. Every regex pair below that follows this
+    rule takes its colored member from here instead of spelling it out twice.
+    """
+    return regex.replace("debug:", r"\x1b\[34mdebug\x1b\[0m:")
+
+
 default_debug_uncolored_logging = (
     r"debug: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
     r"debug: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
 )
-default_debug_colored_logging = (
-    r"\x1b\[34mdebug\x1b\[0m: Set <Logger click_extra \(DEBUG\)> to DEBUG.\n"
-    r"\x1b\[34mdebug\x1b\[0m: Set <RootLogger root \(DEBUG\)> to DEBUG.\n"
-)
+default_debug_colored_logging = _colored_debug_log(default_debug_uncolored_logging)
 
 
 default_debug_uncolored_verbose_log = (
     r"debug: Increased log verbosity by \d+ levels: from WARNING to [A-Z]+.\n"
 )
-default_debug_colored_verbose_log = (
-    r"\x1b\[34mdebug\x1b\[0m: Increased log verbosity "
-    r"by \d+ levels: from WARNING to [A-Z]+.\n"
+default_debug_colored_verbose_log = _colored_debug_log(
+    default_debug_uncolored_verbose_log
 )
 
 
 default_debug_uncolored_quiet_log = (
     r"debug: Decreased log verbosity by \d+ levels: from WARNING to [A-Z]+.\n"
 )
-default_debug_colored_quiet_log = (
-    r"\x1b\[34mdebug\x1b\[0m: Decreased log verbosity "
-    r"by \d+ levels: from WARNING to [A-Z]+.\n"
-)
+default_debug_colored_quiet_log = _colored_debug_log(default_debug_uncolored_quiet_log)
 
 
 default_config_file_pattern = (
@@ -476,17 +479,7 @@ default_debug_uncolored_config = (
     )
     + r"debug: No configuration file found.\n"
 )
-default_debug_colored_config = (
-    rf"\x1b\[34mdebug\x1b\[0m: Load configuration matching .+{default_config_file_pattern}\n"
-    rf"\x1b\[34mdebug\x1b\[0m: Search filesystem for .+{default_config_file_pattern}\n"
-    + (
-        r"\x1b\[34mdebug\x1b\[0m: Windows pattern converted from"
-        rf" .+{default_config_file_pattern} to .+{default_config_file_pattern}\n"
-        if is_windows()
-        else ""
-    )
-    + r"\x1b\[34mdebug\x1b\[0m: No configuration file found.\n"
-)
+default_debug_colored_config = _colored_debug_log(default_debug_uncolored_config)
 
 
 default_debug_uncolored_version_details = (
@@ -566,10 +559,7 @@ default_debug_uncolored_log_end = (
     r"debug: Reset <RootLogger root \(DEBUG\)> to WARNING.\n"
     r"debug: Reset <Logger click_extra \(DEBUG\)> to WARNING.\n"
 )
-default_debug_colored_log_end = (
-    r"\x1b\[34mdebug\x1b\[0m: Reset <RootLogger root \(DEBUG\)> to WARNING.\n"
-    r"\x1b\[34mdebug\x1b\[0m: Reset <Logger click_extra \(DEBUG\)> to WARNING.\n"
-)
+default_debug_colored_log_end = _colored_debug_log(default_debug_uncolored_log_end)
 
 
 @pytest.fixture

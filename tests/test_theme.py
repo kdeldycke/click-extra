@@ -734,6 +734,57 @@ def test_config_theme_validation_error(invoke, create_config):
     assert "optoin" in result.stderr
 
 
+def test_command_validators_keep_the_theme_validator(invoke, create_config):
+    """Validators a command declares join the built-in themes validator.
+
+    `@command(config_validators=...)` forwards them to the default `--config`
+    option, which used to drop the built-in validator on the way: a malformed
+    `[tool.<cli>.themes.<name>]` table then crashed on a `TypeError` instead of
+    being reported as a configuration validation error.
+    """
+
+    def check_orchard(tree: dict) -> None:
+        if "pear" not in tree:
+            raise click_extra.ValidationError("pear", "missing fruit", code="no-pear")
+
+    @click_extra.command(
+        config_validators=(click_extra.ConfigValidator("orchard", check_orchard),),
+    )
+    def palette() -> None:
+        pass
+
+    # The built-in validator still catches a malformed themes table.
+    config_path = create_config(
+        "palette.toml",
+        dedent("""\
+            [palette.orchard]
+            pear = "conference"
+
+            [palette.themes.midnight]
+            optoin = { fg = "blue" }
+            """),
+    )
+    result = invoke(palette, "--config", str(config_path))
+    assert result.exit_code == 1
+    assert "Configuration validation error: palette.themes.midnight" in result.stderr
+    assert "optoin" in result.stderr
+
+    # The command's own validator checks its sub-tree.
+    config_path = create_config(
+        "orchard.toml",
+        dedent("""\
+            [palette.orchard]
+            apple = "fuji"
+            """),
+    )
+    result = invoke(palette, "--config", str(config_path))
+    assert result.exit_code == 1
+    assert (
+        "Configuration validation error: palette.orchard.pear: missing fruit"
+        in result.stderr
+    )
+
+
 def test_config_theme_does_not_leak_across_invocations(invoke, create_config):
     """Themes defined in invocation N are not visible in invocation N+1."""
     captured: dict = {}

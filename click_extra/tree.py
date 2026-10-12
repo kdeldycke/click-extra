@@ -238,7 +238,7 @@ def render_command_tree(
     ```
     """
     if ctx is None:
-        ctx = make_resilient_context(command, prog_name or command.name)
+        ctx = make_resilient_context(command, prog_name)
     if width is None:
         width = ctx.make_formatter().width
 
@@ -334,7 +334,7 @@ class TreeOption(ExtraOption):
             param_decls = ("--tree",)
         kwargs.setdefault("callback", self.print_tree)
         super().__init__(
-            param_decls,
+            param_decls=param_decls,
             is_flag=is_flag,
             expose_value=expose_value,
             is_eager=is_eager,

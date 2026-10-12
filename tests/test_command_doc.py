@@ -20,6 +20,7 @@ import json
 import re
 import shutil
 import subprocess
+from enum import Enum
 
 import pytest
 
@@ -38,6 +39,7 @@ from click_extra.command_doc import (
     MAN_FORMATTERS,
     OVERSTRIKE_RE,
     HelpFormat,
+    install_manpages,
     render_help,
     render_manpage,
     render_manpages,
@@ -786,3 +788,83 @@ def test_dynamic_help_is_extracted():
     assert verbose["help"].startswith("Increase the default")
     # Click's bracket fields belong to structured keys, not to the prose.
     assert "[default:" not in verbose["help"]
+
+
+def test_registered_name_names_the_page():
+    """A subcommand registered under another name is documented under that name.
+
+    The COMMANDS section lists ``predict``, so the page a reader looks for is
+    ``weather-predict.1``, and its NAME line says ``weather predict``: the name
+    the parent registered wins over the command's own.
+    """
+
+    @group
+    def weather():
+        """Weather tools."""
+
+    @command
+    def forecast():
+        """Forecast the weather."""
+
+    weather.add_command(forecast, name="predict")
+
+    pages = render_manpages(weather, prog_name="weather")
+    assert "weather-predict.1" in pages
+    assert "weather-forecast.1" not in pages
+    assert "\\fBweather predict\\fR" in pages["weather-predict.1"]
+    assert "\\fBpredict\\fR" in pages["weather.1"]
+
+
+class Fruit(Enum):
+    """Choices an option can take as ``Enum`` members."""
+
+    APPLE = "apple"
+    BANANA = "banana"
+
+
+@command
+@option("--fruit", type=Choice(Fruit), metavar="FRUIT", help="Fruit to pick.")
+def picker(fruit):
+    """Pick a fruit."""
+
+
+@pytest.mark.parametrize(
+    ("help_format", "expected"),
+    (
+        ("man", "[values: APPLE, BANANA]"),
+        ("markdown", "Values: `APPLE`, `BANANA`."),
+    ),
+)
+def test_enum_choices_are_spelled_as_click_completes_them(help_format, expected):
+    """An ``Enum`` choice lists its member names, the spelling Click accepts.
+
+    ``str()`` of a member reads ``Fruit.APPLE``, which no invocation can type.
+    The short metavar hides the values, so the render adds them back and shows
+    which spelling the document carries.
+    """
+    out = render_help(picker, help_format, prog_name="picker")
+    assert expected in out
+    assert "Fruit.APPLE" not in out
+
+
+def test_json_spells_enum_choices_as_click_completes_them():
+    doc = json.loads(render_help(picker, "json", prog_name="picker"))
+    options = [opt for group in doc["option_groups"] for opt in group["options"]]
+    fruit = next(opt for opt in options if "--fruit" in opt["names"])
+    assert fruit["choices"] == ["APPLE", "BANANA"]
+
+
+def test_install_manpages_resolves_home_at_call_time(tmp_path, monkeypatch):
+    """The pages land under the ``HOME`` in force at the call, not at import.
+
+    With no ``XDG_DATA_HOME`` set, the default directory derives from the home
+    directory. A test fixture or a packaging script pointing ``HOME`` elsewhere
+    for one invocation is honored, which a path expanded at import cannot do.
+    """
+    monkeypatch.delenv("XDG_DATA_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    written = install_manpages(station, prog_name="station")
+    expected_dir = tmp_path / ".local" / "share" / "man" / "man1"
+    assert {path.parent for path in written} == {expected_dir}
+    assert expected_dir / "station.1" in written

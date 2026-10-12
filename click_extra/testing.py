@@ -33,8 +33,6 @@ from textwrap import indent
 
 import click
 import click.testing
-from boltons.strutils import strip_ansi
-from boltons.tbutils import ExceptionInfo
 from cloup import Color
 
 from ._deprecated import warn_deprecated_argument
@@ -235,6 +233,9 @@ class Result(click.testing.Result):
         if self.exception is None:
             return None
         if self.exc_info:
+            # Deferred import: keeps boltons.tbutils off the startup path of the CLI.
+            from boltons.tbutils import ExceptionInfo
+
             return ExceptionInfo.from_exc_info(*self.exc_info).get_formatted()
         return f"Exception occurred: {self.exception}"
 
@@ -412,6 +413,9 @@ class CliRunner(click.testing.CliRunner):
 
         # `color` has been explicitly set to `False`, so strip all ANSI codes.
         if color is False:
+            # Deferred import: keeps boltons.strutils off the startup path of the CLI.
+            from boltons.strutils import strip_ansi
+
             extra_result.stdout_bytes = strip_ansi(extra_result.stdout_bytes)  # type: ignore[assignment,arg-type]
             extra_result.stderr_bytes = strip_ansi(extra_result.stderr_bytes)  # type: ignore[assignment,arg-type]
             extra_result.output_bytes = strip_ansi(extra_result.output_bytes)  # type: ignore[assignment,arg-type]

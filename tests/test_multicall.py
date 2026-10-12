@@ -21,6 +21,7 @@ import copy
 import re
 from collections.abc import Mapping, Sequence
 from enum import Enum
+from textwrap import dedent
 
 import pytest
 
@@ -34,7 +35,12 @@ from click_extra import (
     option,
     pass_context,
 )
-from click_extra.multicall import _deepcopy_params, normalize_personality
+from click_extra.commands import LazyGroup
+from click_extra.multicall import (
+    MulticallGroup,
+    _deepcopy_params,
+    normalize_personality,
+)
 from click_extra.version import VersionOption
 
 
@@ -430,3 +436,39 @@ def test_deepcopy_survives_the_python_310_enum_gap(monkeypatch):
     assert copy.deepcopy(version_option) is not version_option
     # The multicall path seeds the memo before the copy starts.
     assert len(_deepcopy_params(kitchen.params)) == len(kitchen.params)
+
+
+def test_lazy_subcommand_is_a_personality(runner, tmp_path, monkeypatch):
+    """A lazy multicall group answers to a subcommand it has not imported yet.
+
+    Personality dispatch runs before any context exists, so the name is resolved
+    through the lazy registry rather than the subcommands already loaded. Invoked
+    as `bake`, the group imports the subcommand and runs it, instead of falling
+    through to its own usage screen.
+    """
+    (tmp_path / "oven_cmds.py").write_text(
+        dedent(
+            '''
+            from click_extra import command, echo
+
+
+            @command()
+            def bake():
+                """Bake dishes in the oven."""
+                echo("baking")
+            '''
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    class LazyKitchen(MulticallGroup, LazyGroup):  # type: ignore[misc]
+        """A multicall group importing its subcommands on demand."""
+
+    kitchen = LazyKitchen(name="kitchen", lazy_subcommands={"bake": "oven_cmds.bake"})
+
+    assert kitchen.match_personality("bake") == ("bake",)
+    assert kitchen.list_personalities() == {"bake": ("bake",)}
+    result = runner.invoke(kitchen, [], prog_name="bake", color=False)
+    assert result.exit_code == 0
+    assert result.stdout == "baking\n"

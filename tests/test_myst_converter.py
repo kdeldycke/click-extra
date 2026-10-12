@@ -327,7 +327,7 @@ def test_detect_source_package_single(tmp_path):
 
 def test_detect_source_package_no_entry_point(tmp_path):
     _write_pyproject(tmp_path, {})
-    with pytest.raises(ValueError, match="no .project.scripts. entry point"):
+    with pytest.raises(ValueError, match=r"no \[project\.scripts\] entry point"):
         detect_source_package(tmp_path / "pyproject.toml")
 
 
@@ -341,7 +341,7 @@ def test_detect_source_package_multiple(tmp_path):
 
 
 def test_detect_source_package_missing_pyproject(tmp_path):
-    with pytest.raises(ValueError, match="No pyproject.toml"):
+    with pytest.raises(ValueError, match=r"No pyproject\.toml"):
         detect_source_package(tmp_path / "pyproject.toml")
 
 

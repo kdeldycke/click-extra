@@ -13,14 +13,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Our own flavor of `Option`, `Argument` and `parameters`."""
+"""Our own flavor of `Option`, `Argument` and `parameters`.
+
+Also the home of the introspection helpers every renderer of a CLI reads it
+through: the man pages, the Markdown and JSON documents, the Carapace
+completion spec, the `--tree` view and the `--params` table. One helper per
+question keeps their answers from drifting apart: which parameters a command
+lists and in which order, what each one is called, what it accepts, and how its
+help text reads once Click's markers are taken out.
+"""
 
 from __future__ import annotations
 
+import inspect
 import logging
+import re
 from collections import ChainMap
 from contextlib import nullcontext
-from functools import cached_property, reduce
+from enum import Enum
+from functools import cache, cached_property, reduce
 from gettext import gettext as _
 from operator import getitem
 from typing import TypeVar, overload
@@ -73,6 +84,63 @@ they were asked to find."""
 #: Separator joining the keys of a parameter's fully-qualified path
 #: (`cli.subcommand.param`).
 PARAM_PATH_SEP = "."
+
+INLINE_LITERAL_RE = re.compile(r"``([^`]+?)``")
+"""Match a reST inline literal (`"`...`"`) in a docstring.
+
+Click stores docstrings verbatim, so any reST markup the author used to
+render code-like tokens in HTML docs leaks into `Command.help` /
+`Command.short_help`. The roff and HTML man-page paths translate these
+matches into the bold/literal markers their renderers understand; the
+Sphinx index directive translates them into `nodes.literal`.
+"""
+
+
+def iter_inline_literals(text: str) -> Iterator[tuple[str, bool]]:
+    """Walk `text` and yield `(segment, is_literal)` pairs.
+
+    Split on {data}`INLINE_LITERAL_RE` so the consumer can apply
+    different rendering to the literal segments (bold for roff, a
+    `literal` node for docutils) without re-parsing the regex.
+    """
+    pos = 0
+    for match in INLINE_LITERAL_RE.finditer(text):
+        if match.start() > pos:
+            yield text[pos : match.start()], False
+        yield match.group(1), True
+        pos = match.end()
+    if pos < len(text):
+        yield text[pos:], False
+
+
+def clean_help(text: str) -> str:
+    r"""Normalize Click help prose for the backends that carry newlines natively.
+
+    Runs {func}`inspect.cleandoc` and drops Click's `\b` (`\x08`) no-rewrap
+    marker, keeping every line break the marker protected. Markdown, JSON and a
+    completion spec all represent those breaks on their own, so none needs an
+    equivalent of the roff `.nf` / `.fi` pair: only the control character has to
+    go, or it lands in the output as a stray byte.
+    """
+    return inspect.cleandoc(text).replace("\x08\n", "").replace("\x08", "").strip()
+
+
+def choice_values(param_type: click.ParamType) -> tuple[str, ...]:
+    """The values a `click.Choice`-like type accepts, spelled as Click completes them.
+
+    An {class}`~enum.Enum` member is named by its `name`, as
+    {meth}`click.Choice.normalize_choice` does before it folds case, and
+    anything else by `str()`. A type carrying no `choices` attribute, or an
+    empty one, answers an empty tuple. The one spelling every document of a
+    CLI lists a choice under: the help screen, the man page, the completion
+    spec.
+    """
+    choices = getattr(param_type, "choices", None)
+    if not choices:
+        return ()
+    return tuple(
+        choice.name if isinstance(choice, Enum) else str(choice) for choice in choices
+    )
 
 
 @overload
@@ -693,20 +761,7 @@ class ParamStructure:
         See the list of
         [custom types provided by Click](https://click.palletsprojects.com/en/stable/api/#types).
         """
-        # Try to directly map the Click type to a Python type.
-        py_type = ParamStructure.TYPE_MAP.get(click_type.__class__)
-        if py_type is not None:
-            return py_type
-
-        # Try to indirectly map the type by looking at inheritance.
-        for param_type, mapped_type in ParamStructure.TYPE_MAP.items():
-            if isinstance(click_type, param_type):
-                return mapped_type
-
-        # Custom parameters are expected to convert from strings, as that's
-        # the default type of command lines.
-        # See: https://click.palletsprojects.com/en/stable/api/#click.ParamType
-        return str
+        return _python_type_of(type(click_type))
 
     @staticmethod
     def get_param_type(
@@ -790,6 +845,26 @@ class ParamStructure:
         Perfect to parse configuration files and user-provided parameters.
         """
         return self.build_param_trees()
+
+
+@cache
+def _python_type_of(
+    click_type_class: type[ParamType],
+) -> type[str | int | float | bool | list]:
+    """The Python type a class of Click parameter type converts to.
+
+    Answers from {attr}`ParamStructure.TYPE_MAP`: the entry of the class itself,
+    else the first entry the class inherits, else `str`, which is what the command
+    line hands a custom type. Cached by class, since a CLI declares a handful of
+    types and the `--params` table asks once per parameter.
+    """
+    py_type = ParamStructure.TYPE_MAP.get(click_type_class)
+    if py_type is not None:
+        return py_type
+    for param_type, mapped_type in ParamStructure.TYPE_MAP.items():
+        if issubclass(click_type_class, param_type):
+            return mapped_type
+    return str
 
 
 def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
@@ -964,8 +1039,38 @@ def make_resilient_context(
     to materialize a {class}`click.Context` purely to read a command's structure
     (its parameters, env-var prefix and subcommands), shared by the man-page and
     Carapace exporters.
+
+    :param command: the command to build the context of.
+    :param info_name: the name the command goes by in that context. Defaults to
+        the command's own name.
+    :param parent: the context of the command's parent, if any.
     """
+    if info_name is None:
+        info_name = command.name
     return command.make_context(info_name, [], parent=parent, resilient_parsing=True)
+
+
+def child_context(
+    command: click.Command,
+    parent: click.Context,
+    info_name: str,
+) -> click.Context:
+    """Build the context of a subcommand under `parent`, without parsing anything.
+
+    Built the way {meth}`click.Command.make_context` builds one, from the
+    command's own `context_class` and `context_settings`, so the context reads
+    like the one a real invocation gets: a subcommand setting its own
+    `auto_envvar_prefix` names its environment variables after it, where a bare
+    `click.Context` would derive them from the parent's prefix. Unlike
+    {func}`make_resilient_context`, no parameter is processed, so a walk over a
+    live invocation never re-runs a callback.
+    """
+    return command.context_class(
+        command,
+        info_name=info_name,
+        parent=parent,
+        **command.context_settings,
+    )
 
 
 def iter_subcommands(
@@ -1073,10 +1178,11 @@ def walk_command_params(
 
     Yields `(path_keys, param, owning_ctx)` for every parameter found on
     *cmd* and, recursively, on each subcommand. Each subcommand is walked under
-    its own freshly-built child context, so context-sensitive metadata (notably
-    the auto-generated environment variable, which derives from
-    `Context.auto_envvar_prefix`) is computed at the correct nesting level
-    rather than inherited from the root.
+    its own freshly-built child context (see {func}`child_context`), so
+    context-sensitive metadata (notably the auto-generated environment variable,
+    which derives from `Context.auto_envvar_prefix`) is computed at the correct
+    nesting level, with the subcommand's own context settings applied, rather
+    than inherited from the root.
 
     A subcommand whose name collides with a sibling parameter at the same level
     is skipped: a single fully-qualified path cannot address both an option and
@@ -1102,7 +1208,7 @@ def walk_command_params(
             subcmd = cmd.get_command(ctx, subcmd_name)
             if subcmd is None:
                 continue
-            subcmd_ctx = click.Context(subcmd, parent=ctx, info_name=subcmd_name)
+            subcmd_ctx = child_context(subcmd, ctx, subcmd_name)
             yield from walk_command_params(
                 subcmd, subcmd_ctx, (*parent_keys, subcmd_name)
             )

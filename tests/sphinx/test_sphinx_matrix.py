@@ -24,6 +24,7 @@ that surfaces it. Both live under ``tests/sphinx/`` because importing
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -56,6 +57,7 @@ from click_extra.sphinx.matrix import (
     _same_spec,
     _spec_floor,
     _to_specifier_set,
+    _walk_tags,
     dependency_matrix_groups,
     dependency_matrix_table,
     parse_python_spec,
@@ -1543,6 +1545,99 @@ def test_update_matrix_blocks_marker_form(synthetic_repo, tmp_path) -> None:
     assert "```{matrix}" not in text
     # Idempotent.
     assert update_matrix_blocks([doc]) == []
+
+
+def test_walk_tags_dates_an_annotated_tag(tmp_path: Path) -> None:
+    """A tag's date is its commit's author date, through an annotated tag too.
+
+    The tag object of an annotated tag carries a tagger date of its own, which
+    is not the one the row shows.
+    """
+    repo = tmp_path / "annotated"
+    run = git_repo(repo)
+    (repo / "pyproject.toml").write_text(
+        '[project]\nrequires-python = ">=3.12"\n', encoding="utf-8"
+    )
+    run("git", "add", "pyproject.toml")
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_DATE": "2024-02-29T23:30:00+1000",
+        "GIT_COMMITTER_DATE": "2024-03-01T01:00:00+0000",
+    }
+    subprocess.run(
+        ["git", "commit", "-m", "v1.0.0", "--quiet"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=env,
+    )
+    subprocess.run(
+        ["git", "tag", "-a", "v1.0.0", "-m", "release"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env={**env, "GIT_COMMITTER_DATE": "2024-03-05T01:00:00+0000"},
+    )
+    (repo / "pyproject.toml").write_text(
+        '[project]\r\nrequires-python = ">=3.13"\r\n', encoding="utf-8"
+    )
+    run("git", "add", "pyproject.toml")
+    run("git", "commit", "-m", "v1.1.0", "--quiet")
+    run("git", "tag", "v1.1.0")
+
+    walked = _walk_tags(repo)
+    # The lightweight tag is dated today, in whatever timezone git recorded:
+    # `git log` is the oracle, so a run straddling midnight stays green.
+    today = subprocess.run(
+        ["git", "log", "-1", "--format=%as", "v1.1.0"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+    ).stdout.strip()
+    assert [(tag, date) for tag, date, *_ in walked] == [
+        ("v1.0.0", "2024-02-29"),
+        ("v1.1.0", today),
+    ]
+    # Blobs read in one batch keep the newline translation of a text read, and
+    # a file a tag lacks reads as empty.
+    assert walked[1][2] == '[project]\nrequires-python = ">=3.13"\n'
+    assert walked[0][3] == walked[1][3] == ""
+
+
+def test_update_matrix_blocks_reads_git_twice_per_refresh(
+    synthetic_repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One refresh lists the tags and reads their files once, whatever the blocks.
+
+    Two pages carrying three blocks, with floors of their own, share the same
+    history: the tag listing is one `git for-each-ref` and every tag's files one
+    `git cat-file --batch`.
+    """
+    calls: list[list[str]] = []
+    real_run = subprocess.run
+
+    def counting_run(args, *more, **kwargs):
+        calls.append(list(args[:2]))
+        return real_run(args, *more, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", counting_run)
+    first = tmp_path / "first.md"
+    first.write_text(
+        f"<!-- matrix python path={synthetic_repo} -->\n<!-- matrix-end -->\n\n"
+        f"<!-- matrix python path={synthetic_repo} version-floor=2.0 -->\n"
+        "<!-- matrix-end -->\n",
+        encoding="utf-8",
+    )
+    second = tmp_path / "second.md"
+    second.write_text(
+        f"```{{matrix}} python\n:path: {synthetic_repo}\n```\n", encoding="utf-8"
+    )
+    assert update_matrix_blocks([first, second]) == [first, second]
+    assert calls == [["git", "for-each-ref"], ["git", "cat-file"]]
+    # The memo ends with the refresh: a later table reads the history again.
+    assert "`2.0.0`" in python_matrix_table(synthetic_repo, "my-project")
+    assert calls[2:] == [["git", "for-each-ref"], ["git", "cat-file"]]
 
 
 def test_update_matrix_blocks_marker_order_options(synthetic_repo, tmp_path) -> None:

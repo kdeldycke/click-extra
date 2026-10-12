@@ -95,13 +95,7 @@ def _dedupe_subcommands(raw: list[str], key: str) -> list[str]:
     Warns when duplicates are dropped, naming the configuration `key` they
     came from.
     """
-    seen: set[str] = set()
-    deduped: list[str] = []
-    for name in raw:
-        if name in seen:
-            continue
-        seen.add(name)
-        deduped.append(name)
+    deduped = list(dict.fromkeys(raw))
     if len(deduped) < len(raw):
         logger.warning(
             f"Duplicate entries in {key}: {raw!r}. "

@@ -387,7 +387,7 @@ prebake_dunder(Path("mypackage/__init__.py"), "__git_short_hash__", "abc1234")
 
 {func}`prebake_dunder() <click_extra.prebake.prebake_dunder>` only replaces empty strings, so running it twice is safe (idempotent). It preserves the quoting style and surrounding file content.
 
-{func}`discover_package_init_files() <click_extra.prebake.discover_package_init_files>` can auto-discover `__init__.py` paths from `[project.scripts]` in `pyproject.toml`.
+{func}`discover_package_init_files() <click_extra.prebake.discover_package_init_files>` can auto-discover `__init__.py` paths from the console scripts a project declares, in `[project.scripts]` of `pyproject.toml` or `[options.entry_points]` of `setup.cfg`, whether the package sits at the project root or under `src/`.
 
 ### Pre-baking build metadata
 

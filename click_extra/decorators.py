@@ -198,47 +198,41 @@ def decorator_factory(dec, *new_args, **new_defaults):
                 f"{new_defaults['cls'].__name__}, got: {mro_list}"
             )
 
-        # Use a copy of the defaults to avoid modifying the original dict.
-        new_kwargs = new_defaults.copy()
-        new_kwargs.update(kwargs)
+        def merged_kwargs() -> dict[str, Any]:
+            """The defaults under the caller's arguments, the `params` hook called.
 
-        # If the params argument is a callable, we need to call it to get the actual
-        # list of options.
-        params_func = new_kwargs.get("params")
-        if callable(params_func):
-            hook_params = params_func()
-            # Give a help-screen section back to an option the hook swapped for a
-            # subclass of it, the replacement being built after `default_params`
-            # filed the original. See `_assign_option_groups`.
-            _assign_option_groups(hook_params)
-            new_kwargs["params"] = hook_params
+            A callable `params` is called for a fresh list of options each time,
+            so the mutable options are never shared between commands. The hook's
+            output gets its help-screen sections back: an option it swapped for a
+            subclass of it was built after `default_params` filed the original.
+            See `_assign_option_groups`.
+            """
+            merged = {**new_defaults, **kwargs}
+            params = merged.get("params")
+            if callable(params):
+                hook_params = params()
+                _assign_option_groups(hook_params)
+                merged["params"] = hook_params
+            return merged
 
         # Return the original decorator with the new defaults.
-        result = dec(*args, **new_kwargs)
+        result = dec(*args, **merged_kwargs())
 
-        # When the result is a decorator (not a Command), and we have a callable
-        # params function, the decorator captures the evaluated params list in its
-        # closure. Click mutates that list with params.extend() on every application
-        # to a function, so a pre-instantiated decorator (e.g. stored in a pytest
+        # When the result is a decorator (not a Command), and `params` is a hook,
+        # the decorator captures the evaluated params list in its closure. Click
+        # mutates that list with params.extend() on every application to a
+        # function, so a pre-instantiated decorator (like one stored in a pytest
         # parametrize list as `command()`) would accumulate options across uses,
-        # creating duplicate parameters. Wrapping here calls params_func() freshly
-        # on each application to prevent that shared mutation.
-        if callable(params_func) and not isinstance(result, click.Command):
-            _params_func = params_func
-            _dec = dec
-            _args = args
-            _new_defaults = new_defaults
-            _extra_kwargs = kwargs
+        # creating duplicate parameters. Calling the hook again on each application
+        # prevents that shared mutation.
+        if callable({**new_defaults, **kwargs}.get("params")) and not isinstance(
+            result, click.Command
+        ):
 
-            def _with_fresh_params(f):
-                _fresh_kwargs = _new_defaults.copy()
-                _fresh_kwargs.update(_extra_kwargs)
-                fresh_params = _params_func()
-                _assign_option_groups(fresh_params)
-                _fresh_kwargs["params"] = fresh_params
-                return _dec(*_args, **_fresh_kwargs)(f)
+            def apply(f):
+                return dec(*args, **merged_kwargs())(f)
 
-            result = _with_fresh_params
+            return apply
 
         return result
 

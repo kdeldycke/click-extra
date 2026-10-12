@@ -93,15 +93,14 @@ from sphinx.util import logging
 from sphinx.util.osutil import relative_uri
 
 from ..cli_wrapper import resolve_target_command
-from ..command_doc import (
-    iter_command_contexts,
-    iter_inline_literals,
-    write_manpages,
-)
-from ..parameters import full_short_help
+from ..command_doc import MAN_SECTION, iter_command_contexts, write_manpages
+from ..parameters import full_short_help, iter_inline_literals
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator
+    from typing import Any
+
     from click import Command
     from sphinx.application import Sphinx
 
@@ -221,6 +220,52 @@ def _render_html(renderer: tuple[str, tuple[str, ...]], roff_path: Path) -> str 
     return result.stdout
 
 
+def _resolved_entries(
+    entries: Iterable[dict[str, Any]],
+    *,
+    origin: str = "",
+) -> Iterator[tuple[dict[str, Any], Command, str, str]]:
+    """Yield `(entry, command, prog_name, output_dir)` for each usable entry.
+
+    An entry missing its `script`, or naming one that cannot be resolved, is
+    reported as a build warning and skipped: a single broken entry must not
+    abort the build or the page hosting the directive. `prog_name` falls back
+    to the resolved command's own name, then to the script, and `output_dir` to
+    {data}`DEFAULT_OUTPUT_DIR`, the same defaults for the emit hook and the
+    index directive. `origin` prefixes each warning with who walked the entries,
+    which the index directive uses to name itself.
+    """
+    for index, entry in enumerate(entries):
+        script = entry.get("script")
+        if not script:
+            logger.warning(
+                "click_extra.sphinx: %s%s[%d] is missing the required "
+                "'script' key; skipping entry.",
+                origin,
+                MANPAGES_CONFIG_KEY,
+                index,
+            )
+            continue
+        try:
+            cmd, _ = resolve_target_command(script)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "click_extra.sphinx: %scannot resolve %s[%d] script %r: %s",
+                origin,
+                MANPAGES_CONFIG_KEY,
+                index,
+                script,
+                exc,
+            )
+            continue
+        yield (
+            entry,
+            cmd,
+            entry.get("prog_name") or cmd.name or script,
+            entry.get("output_dir") or DEFAULT_OUTPUT_DIR,
+        )
+
+
 def _emit_manpages(app: Sphinx) -> None:
     """Walk `click_extra_manpages` and write each tree under `app.outdir`.
 
@@ -243,35 +288,8 @@ def _emit_manpages(app: Sphinx) -> None:
     renderer = _find_renderer()
     renderer_notice_logged = False
 
-    for index, entry in enumerate(entries):
-        script = entry.get("script")
-        if not script:
-            logger.warning(
-                "click_extra.sphinx: %s[%d] is missing the required "
-                "'script' key; skipping entry.",
-                MANPAGES_CONFIG_KEY,
-                index,
-            )
-            continue
-
-        output_dir = entry.get("output_dir") or DEFAULT_OUTPUT_DIR
+    for entry, cmd, prog_name, output_dir in _resolved_entries(entries):
         target = Path(app.outdir) / output_dir
-
-        # The hook fires once per HTML build, so an unimportable script must
-        # not abort the whole docs build: log and skip it instead.
-        try:
-            cmd, _ = resolve_target_command(script)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "click_extra.sphinx: cannot resolve %s[%d] script %r: %s",
-                MANPAGES_CONFIG_KEY,
-                index,
-                script,
-                exc,
-            )
-            continue
-
-        prog_name = entry.get("prog_name") or cmd.name or script
         written = write_manpages(cmd, target, prog_name=prog_name)
         logger.info(
             "click_extra.sphinx: wrote %d man page(s) for %r into %s",
@@ -357,31 +375,13 @@ class ManpageListDirective(SphinxDirective):
 
     def run(self) -> list[nodes.Node]:
         entries = getattr(self.config, MANPAGES_CONFIG_KEY, None) or ()
-        result: list[nodes.Node] = []
-        for index, entry in enumerate(entries):
-            script = entry.get("script")
-            if not script:
-                continue
-            # Same resilience contract as `_emit_manpages`: a single
-            # broken entry must not break the doc page that hosts the
-            # directive. Log and move on.
-            try:
-                cmd, _ = resolve_target_command(script)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "click_extra.sphinx: %s directive cannot resolve "
-                    "%s[%d] script %r: %s",
-                    MANPAGE_LIST_DIRECTIVE,
-                    MANPAGES_CONFIG_KEY,
-                    index,
-                    script,
-                    exc,
-                )
-                continue
-            output_dir = entry.get("output_dir") or DEFAULT_OUTPUT_DIR
-            prog_name = entry.get("prog_name") or cmd.name or script
-            result.append(self._render_entry(cmd, prog_name, output_dir))
-        return result
+        return [
+            self._render_entry(cmd, prog_name, output_dir)
+            for _entry, cmd, prog_name, output_dir in _resolved_entries(
+                entries,
+                origin=f"{MANPAGE_LIST_DIRECTIVE} directive ",
+            )
+        ]
 
     def _render_entry(
         self,
@@ -395,14 +395,14 @@ class ManpageListDirective(SphinxDirective):
         list_node = nodes.bullet_list()
         for path, sub_cmd, _ctx in iter_command_contexts(cmd, prog_name):
             name = "-".join(path)
-            url = posixpath.join(output_dir, f"{name}.1.html")
+            url = posixpath.join(output_dir, f"{name}.{MAN_SECTION}.html")
 
             # Seed `refuri` with the build-root-relative URI so the node is
             # renderable on its own, then let `_rebase_manpage_links` rewrite
             # it for the page the builder is about to write.
             ref = nodes.reference("", "", refuri=url)
             ref[_MANPAGE_URI_ATTRIBUTE] = url
-            ref += nodes.literal(text=f"{name}(1)")
+            ref += nodes.literal(text=f"{name}({MAN_SECTION})")
 
             para = nodes.paragraph()
             para += ref

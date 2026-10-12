@@ -53,6 +53,9 @@ from click_extra.spinner import (
     _TOUR_CAP,
     _TOUR_CYCLES,
     _TOUR_MIN,
+    CLEAR_LINE,
+    HIDE_CURSOR,
+    SHOW_CURSOR,
     OperationTrail,
     _active_line,
     _BarIndicator,
@@ -64,11 +67,6 @@ from click_extra.spinner import (
 )
 from click_extra.spinner_presets import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
 from click_extra.theme import KO_GLYPH, OK_GLYPH
-
-# Cursor and line control codes the spinner emits, named for readable asserts.
-HIDE_CURSOR = "\x1b[?25l"
-SHOW_CURSOR = "\x1b[?25h"
-CLEAR_LINE = "\x1b[K"
 
 # ANSI styling codes click.style emits, named for readable color asserts.
 GREEN = "\x1b[32m"

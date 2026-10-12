@@ -895,18 +895,20 @@ def _make_wrap_ctx(full_conf):
 @pytest.mark.parametrize(
     "section, script, expected",
     [
-        # String value.
-        ({"name": "Alice"}, "greet", ("--name", "Alice")),
+        # String value, attached to its flag.
+        ({"name": "Alice"}, "greet", ("--name=Alice",)),
         # Boolean true.
         ({"verbose": True}, "greet", ("--verbose",)),
         # Boolean false: skipped (don't pass the flag).
         ({"verbose": False}, "greet", ()),
         # Integer value.
-        ({"count": 3}, "greet", ("--count", "3")),
-        # List value.
-        ({"tag": ["a", "b"]}, "greet", ("--tag", "a", "--tag", "b")),
+        ({"count": 3}, "greet", ("--count=3",)),
+        # List value: one flag per item.
+        ({"tag": ["a", "b"]}, "greet", ("--tag=a", "--tag=b")),
         # Underscore to dash.
         ({"dry_run": True}, "greet", ("--dry-run",)),
+        # A value starting with a dash stays a value, never a flag of its own.
+        ({"offset": "-5"}, "greet", ("--offset=-5",)),
         # Empty section.
         ({}, "greet", ()),
         # Wrong script name.

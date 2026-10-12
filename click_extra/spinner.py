@@ -146,6 +146,20 @@ _ACTIVE_LINES_LOCK = threading.Lock()
 """Guards {data}`_ACTIVE_LINES` against concurrent mutation."""
 
 
+CLEAR_LINE: Final = "\x1b[K"
+"""Erase the line from the cursor to its end.
+
+Written after a carriage return, it clears the row a live line is about to
+redraw, so a shrinking label leaves no stale characters behind.
+"""
+
+HIDE_CURSOR: Final = "\x1b[?25l"
+"""Hide the terminal's cursor, which would otherwise flicker beside a live line."""
+
+SHOW_CURSOR: Final = "\x1b[?25h"
+"""Show the cursor again, once a live line stops drawing."""
+
+
 def _restore_cursor_on_sigterm(signum: int, frame: FrameType | None) -> None:
     """Show the cursor again on every live line's terminal, then die by `SIGTERM`.
 
@@ -157,7 +171,7 @@ def _restore_cursor_on_sigterm(signum: int, frame: FrameType | None) -> None:
     for line in _ACTIVE_LINES.copy():
         try:
             stream = line._resolve_stream()
-            stream.write("\r\x1b[K\x1b[?25h")
+            stream.write(f"\r{CLEAR_LINE}{SHOW_CURSOR}")
             stream.flush()
         except (OSError, ValueError):
             # A closed or broken stream cannot show the cursor anymore.
@@ -205,6 +219,23 @@ def _deregister_line(line: _LiveLine) -> None:
         _guard_cursor(installing=False)
 
 
+def _innermost_line(
+    stream: IO[str] | None,
+    accept: Callable[[_LiveLine], bool],
+) -> _LiveLine | None:
+    """Scan the live lines, innermost first, for one `accept` takes.
+
+    With `stream` given, only a line drawing on that very stream matches. The
+    one locked walk of {data}`_ACTIVE_LINES` both {func}`_active_line` and
+    {func}`active_spinner` perform.
+    """
+    with _ACTIVE_LINES_LOCK:
+        for line in reversed(_ACTIVE_LINES):
+            if accept(line) and (stream is None or line._resolve_stream() is stream):
+                return line
+    return None
+
+
 def _active_line(stream: IO[str] | None = None) -> _LiveLine | None:
     """Return the innermost live terminal line drawing, or `None`.
 
@@ -214,11 +245,7 @@ def _active_line(stream: IO[str] | None = None) -> _LiveLine | None:
     here and routes its records through the line's `echo`, which erases the
     in-progress render, prints the line, and redraws underneath.
     """
-    with _ACTIVE_LINES_LOCK:
-        for line in reversed(_ACTIVE_LINES):
-            if stream is None or line._resolve_stream() is stream:
-                return line
-    return None
+    return _innermost_line(stream, lambda line: True)
 
 
 def active_spinner(stream: IO[str] | None = None) -> Spinner | None:
@@ -228,13 +255,9 @@ def active_spinner(stream: IO[str] | None = None) -> Spinner | None:
     indicator that may own the line instead. With `stream` given, only a
     spinner drawing on that very stream matches.
     """
-    with _ACTIVE_LINES_LOCK:
-        for line in reversed(_ACTIVE_LINES):
-            if isinstance(line, Spinner) and (
-                stream is None or line._resolve_stream() is stream
-            ):
-                return line
-    return None
+    line = _innermost_line(stream, lambda line: isinstance(line, Spinner))
+    assert line is None or isinstance(line, Spinner)
+    return line
 
 
 def _color_enabled(stream: IO[str]) -> bool:
@@ -255,6 +278,17 @@ def _color_enabled(stream: IO[str]) -> bool:
     if env_color is not None:
         return env_color
     return is_a_tty(stream)
+
+
+def _plain_unless(line: str, color: bool) -> str:
+    """Return `line` as it is when `color` is on, stripped of its escapes otherwise.
+
+    A line reaching the stream through a raw write, rather than through
+    {func}`click.echo`, has to drop its own escapes where color is off. The
+    strip takes any escape embedded in a label along with the ones the line
+    added itself.
+    """
+    return line if color else click.unstyle(line)
 
 
 LIVE_MODES: tuple[str, ...] = ("auto", "always", "never")
@@ -327,6 +361,28 @@ writes are skipped: they would block on the same stream.
 """
 
 
+def _halt(thread: threading.Thread, event: threading.Event) -> bool:
+    """Ask a drawing thread to stop, and wait {data}`_STOP_GRACE` for it.
+
+    :param thread: the daemon thread drawing the live line.
+    :param event: the stop event its loop waits on.
+    :return: whether the thread stopped. `False` means it is still blocked in a
+        write, so the caller skips its own clean-up writes, see
+        {data}`_STOP_GRACE`.
+    """
+    event.set()
+    thread.join(timeout=_STOP_GRACE)
+    return not thread.is_alive()
+
+
+DEFAULT_INTERVAL: Final = 0.1
+"""Seconds between two frames of a {class}`Spinner` given no other cadence.
+
+Also how often a progress bar carrying a running clock redraws, so the two live
+lines tick at the same rate.
+"""
+
+
 class Spinner:
     """A thread-animated, indeterminate progress spinner usable as a context
     manager.
@@ -386,8 +442,9 @@ class Spinner:
         :param reverse: cycle the frames backwards, spinning the animation the
             other way. Set it when the rotation runs counter to what you expect;
             it composes with any custom `frames`.
-        :param interval: seconds between two frames. Defaults to `0.1`, or the
-            `spinner` preset's interval when given.
+        :param interval: seconds between two frames. Defaults to
+            {data}`DEFAULT_INTERVAL`, or the `spinner` preset's interval when
+            given.
         :param delay: seconds to wait before drawing the first frame. A non-zero
             delay keeps the spinner silent for calls that finish quickly, so it
             only surfaces once an operation is genuinely slow.
@@ -467,7 +524,7 @@ class Spinner:
         elif spinner is not None:
             self.interval = spinner.interval
         else:
-            self.interval = 0.1
+            self.interval = DEFAULT_INTERVAL
         _check_live(live)
         if enabled is not UNSET:
             warn_deprecated_argument("Spinner", "enabled", "live=")
@@ -595,11 +652,9 @@ class Spinner:
 
         `timer=True` uses {func}`~click_extra.humanize.format_duration`; a
         callable `timer` formats {attr}`elapsed_time` itself. The result is
-        always wrapped the same way.
+        always wrapped the same way, see `_timer_suffix`.
         """
-        if not self.timer:
-            return ""
-        return f" ({_format_timer(self.timer, self.elapsed_time)})"
+        return _timer_suffix(self.timer, self.elapsed_time)
 
     @property
     def _ordered_frames(self) -> tuple[str, ...]:
@@ -643,7 +698,7 @@ class Spinner:
                 )
             )
         enabled = self._color_enabled if color is None else color
-        return line if enabled else click.unstyle(line)
+        return _plain_unless(line, enabled)
 
     def frame_lines(self, *, color: bool = True) -> tuple[str, ...]:
         """Every line this spinner's animation draws, one per frame.
@@ -745,11 +800,9 @@ class Spinner:
         _deregister_line(self)
         if self._thread is None:
             return
-        self._stop.set()
-        self._thread.join(timeout=_STOP_GRACE)
-        stuck = self._thread.is_alive()
+        halted = _halt(self._thread, self._stop)
         self._thread = None
-        if stuck:
+        if not halted:
             # See _STOP_GRACE: the stream does not drain, so skip the clean-up.
             return
 
@@ -764,9 +817,9 @@ class Spinner:
             # disabled or redirected spinner returns above and stays silent.
             cleanup = ""
             if self._drawn:
-                cleanup += "\r\x1b[K"
+                cleanup += f"\r{CLEAR_LINE}"
             if self._cursor_hidden:
-                cleanup += "\x1b[?25h"
+                cleanup += SHOW_CURSOR
             if self.beep:
                 cleanup += "\a"
             if cleanup:
@@ -794,7 +847,7 @@ class Spinner:
         with self._lock:
             # Erase the in-progress frame so the message starts at column 0.
             if self._drawn:
-                stream.write("\r\x1b[K")
+                stream.write(f"\r{CLEAR_LINE}")
             stream.write(f"{message}\n")
             stream.flush()
 
@@ -835,13 +888,6 @@ class Spinner:
         Degrades to a plain line when color is disabled or the spinner was never
         shown, so the outcome is still recorded off a TTY.
         """
-        glyph = symbol if symbol is not None else (OK_GLYPH if success else KO_GLYPH)
-        if style is None:
-            theme = get_current_theme()
-            paint = theme.success if success else theme.error
-        else:
-            paint = style
-
         stream = self._resolve_stream()
         color_enabled = self._resolve_color_enabled(stream)
         self.stop()
@@ -851,10 +897,8 @@ class Spinner:
             color=color_enabled,
         )
         clock = self._paint(self._clock(), self.timer_style, color=color_enabled)
-        marker = paint(glyph) if color_enabled else glyph
-        line = f"{marker}{label}{clock}"
-        if not color_enabled:
-            line = click.unstyle(line)
+        marker = _outcome_marker(success, symbol, style, color=color_enabled)
+        line = _plain_unless(f"{marker}{label}{clock}", color_enabled)
         with self._lock:
             stream.write(f"{line}\n")
             stream.flush()
@@ -876,7 +920,7 @@ class Spinner:
         frames = self._ordered_frames
         try:
             if self.hide_cursor:
-                stream.write("\x1b[?25l")
+                stream.write(HIDE_CURSOR)
                 self._cursor_hidden = True
                 stream.flush()
             index = 0
@@ -887,7 +931,7 @@ class Spinner:
                 # clear to end-of-line so a shrinking label leaves no stale
                 # characters behind.
                 with self._lock:
-                    stream.write(f"\r{content}\x1b[K")
+                    stream.write(f"\r{content}{CLEAR_LINE}")
                     stream.flush()
                     self._drawn = True
                 index += 1
@@ -935,6 +979,33 @@ class Spinner:
         return wrapper
 
 
+def _outcome_marker(
+    ok: bool,
+    symbol: str | None = None,
+    style: Style | None = None,
+    *,
+    color: bool = True,
+) -> str:
+    """The glyph an outcome is marked with, painted for it.
+
+    `symbol` stands in for the themed glyph, {data}`~click_extra.theme.OK_GLYPH`
+    on success and {data}`~click_extra.theme.KO_GLYPH` on failure. `style`
+    stands in for the active theme's `success` or `error` slot, which is what
+    paints it otherwise. With `color` off the glyph goes bare, and the theme is
+    never consulted.
+    """
+    glyph = symbol if symbol is not None else (OK_GLYPH if ok else KO_GLYPH)
+    if not color:
+        return glyph
+    paint: Callable[[str], str]
+    if style is None:
+        theme = get_current_theme()
+        paint = theme.success if ok else theme.error
+    else:
+        paint = style
+    return paint(glyph)
+
+
 def trail_glyph(ok: bool) -> str:
     """Return the themed `✓` or `✘` glyph for a trail line or finisher.
 
@@ -942,8 +1013,7 @@ def trail_glyph(ok: bool) -> str:
     theme's `success` slot, or the failure glyph
     {data}`~click_extra.theme.KO_GLYPH` painted with its `error` slot.
     """
-    theme = get_current_theme()
-    return theme.success(OK_GLYPH) if ok else theme.error(KO_GLYPH)
+    return _outcome_marker(ok)
 
 
 def trail_line(ok: bool, message: str) -> str:
@@ -960,6 +1030,17 @@ def _format_timer(timer: bool | Callable[[float], str], seconds: float) -> str:
     """
     formatter = timer if callable(timer) else format_duration
     return formatter(seconds)
+
+
+def _timer_suffix(timer: bool | Callable[[float], str], seconds: float) -> str:
+    """The ` (elapsed)` suffix a timed line ends on, or empty when timing is off.
+
+    The one spelling of the clock every live line and finisher appends: a
+    space, then the duration {func}`_format_timer` writes, in parentheses.
+    """
+    if not timer:
+        return ""
+    return f" ({_format_timer(timer, seconds)})"
 
 
 def _time_flag_active() -> bool:
@@ -1070,17 +1151,9 @@ class _SpinnerIndicator:
         if self._eta_bar is not None:
             # eta mode runs the spinner's own timer off, so append the batch's
             # total elapsed here (a finished batch has no time remaining).
-            clock = _format_timer(self._timer, self._spinner.elapsed_time)
-            summary = f"{summary} ({clock})"
+            summary += _timer_suffix(self._timer, self._spinner.elapsed_time)
         self._spinner.label = summary
         (self._spinner.ok if ok else self._spinner.fail)()
-
-
-# How often the bar refreshes to keep its running elapsed clock ticking. The bar
-# has no animation thread of its own (unlike the spinner), so a daemon ticker
-# redraws it at this cadence in `clock="elapsed"` mode; matches the spinner's
-# default frame interval.
-_BAR_TICK_INTERVAL = 0.1
 
 
 class _BarIndicator:
@@ -1216,9 +1289,10 @@ class _BarIndicator:
 
         The bar, unlike the spinner, has no animation thread; without this the
         elapsed clock would freeze between outcomes. Runs only in elapsed mode:
-        an ETA needs no ticking, since Click recomputes it on each step.
+        an ETA needs no ticking, since Click recomputes it on each step. The
+        cadence is the spinner's, see {data}`DEFAULT_INTERVAL`.
         """
-        while not self._stop_tick.wait(_BAR_TICK_INTERVAL):
+        while not self._stop_tick.wait(DEFAULT_INTERVAL):
             with self._lock:
                 if self._drawn and not self._finished:
                     self._draw()
@@ -1231,11 +1305,9 @@ class _BarIndicator:
         """
         if self._ticker is None:
             return True
-        self._stop_tick.set()
-        self._ticker.join(timeout=_STOP_GRACE)
-        stuck = self._ticker.is_alive()
+        halted = _halt(self._ticker, self._stop_tick)
         self._ticker = None
-        return not stuck
+        return halted
 
     def advance(self, done: int) -> None:
         """Step the bar to `done` and redraw it, once past the initial delay."""
@@ -1256,7 +1328,7 @@ class _BarIndicator:
         stream = self._resolve_stream()
         with self._lock:
             if self._drawn:
-                stream.write("\r\x1b[K")  # Erase the bar line.
+                stream.write(f"\r{CLEAR_LINE}")  # Erase the bar line.
             stream.write(f"{message}\n")  # Persistent line above.
             if self._drawn:
                 self._draw()  # Redraw the bar below.
@@ -1273,17 +1345,13 @@ class _BarIndicator:
             if not self._drawn:
                 return
             stream = self._resolve_stream()
-            clock = (
-                f" ({_format_timer(self._timer, time.monotonic() - self._start)})"
-                if self._timer
-                else ""
+            clock = _timer_suffix(self._timer, time.monotonic() - self._start)
+            line = _plain_unless(
+                f"{trail_line(ok, summary)}{clock}", _color_enabled(stream)
             )
-            line = f"{trail_line(ok, summary)}{clock}"
-            if not _color_enabled(stream):
-                line = click.unstyle(line)
             # Erase the bar, keep the finisher in its place, restore the cursor
             # Click hid via BEFORE_BAR.
-            stream.write(f"\r\x1b[K{line}\n\x1b[?25h")
+            stream.write(f"\r{CLEAR_LINE}{line}\n{SHOW_CURSOR}")
             stream.flush()
             self._drawn = False
 
@@ -1302,7 +1370,7 @@ class _BarIndicator:
                 self._finished = True
                 return
             stream = self._resolve_stream()
-            stream.write("\r\x1b[K\x1b[?25h")
+            stream.write(f"\r{CLEAR_LINE}{SHOW_CURSOR}")
             stream.flush()
             self._drawn = False
             self._finished = True
@@ -1571,9 +1639,8 @@ class OperationTrail:
         not through {func}`click.echo`'s strip. So the strip happens here, and
         takes any escape embedded in `message` along with the glyph's.
         """
-        line = trail_line(ok, message)
         stream = _stream_or_stderr(self.stream)
-        return line if _color_enabled(stream) else click.unstyle(line)
+        return _plain_unless(trail_line(ok, message), _color_enabled(stream))
 
     def _echo_line(self, message: str) -> None:
         """Print one rendered line to the trail's stream."""
@@ -1590,8 +1657,8 @@ class OperationTrail:
             {meth}`operation` handle fills this in from when it was created;
             pass it yourself when you already hold a duration.
         """
-        if self.timer and seconds is not None:
-            message = f"{message} ({_format_timer(self.timer, seconds)})"
+        if seconds is not None:
+            message += _timer_suffix(self.timer, seconds)
         with self._lock:
             self._done += 1
             if ok:
@@ -1651,9 +1718,7 @@ class OperationTrail:
                 self._echo_line(text)
         elif not self._echo:
             return
-        if self.timer:
-            elapsed = time.monotonic() - self._start
-            summary = f"{summary} ({_format_timer(self.timer, elapsed)})"
+        summary += _timer_suffix(self.timer, time.monotonic() - self._start)
         self._echo_line(self._render_line(ok, summary))
 
     def operation(self) -> _Operation:

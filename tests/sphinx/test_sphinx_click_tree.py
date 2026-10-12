@@ -158,7 +158,7 @@ def test_click_tree_errors_on_non_command(sphinx_app_myst):
         ```{click:tree} not_a_cli
         ```
     """)
-    with pytest.raises(Exception, match="did not yield a click.Command"):
+    with pytest.raises(Exception, match=r"did not yield a click\.Command"):
         sphinx_app_myst.build_document(content)
 
 

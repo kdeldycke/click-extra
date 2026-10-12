@@ -37,12 +37,10 @@ at `DEBUG`/`CRITICAL`.
 
 from __future__ import annotations
 
-import inspect
 import logging
 import sys
 import weakref
-from contextlib import contextmanager, nullcontext
-from contextvars import ContextVar
+from contextlib import nullcontext
 from enum import IntEnum
 from functools import partial
 from gettext import gettext as _
@@ -65,14 +63,7 @@ from .types import EnumChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Generator,
-        Iterable,
-        Iterator,
-        Mapping,
-        Sequence,
-    )
+    from collections.abc import Generator, Iterable, Mapping, Sequence
     from logging import LogRecord
     from typing import IO, Any, ClassVar, Literal
 
@@ -188,16 +179,6 @@ The handler is detached when the last token is released. Counting the holders is
 what keeps the handler in place for a run when the previous one failed while
 parsing: the context of the failed run releases its token late, once it is
 collected, which may happen in the middle of the next run.
-"""
-
-
-_RUN_CLEANUPS: ContextVar[list[Callable[[], None]] | None] = ContextVar(
-    "_RUN_CLEANUPS", default=None
-)
-"""What the runs started within the `_scoped_logging` block in progress may leave.
-
-One callable for each piece of logging state a run took: its hold on the handler,
-the levels it set. `None` outside such a block. Written by `_queue_late_cleanup`.
 """
 
 
@@ -467,13 +448,28 @@ def basicConfig(
     standard library {func}`logging.basicConfig`.
     ```
     """
-    # Collect all arguments that are not None, because basicConfig is testing the
-    # presence of them instead of their values. So we'll add them conditionally to
-    # kwargs.
-    kwargs = {}
-    for arg_id in inspect.signature(basicConfig).parameters:
-        if arg_id in locals() and locals()[arg_id] is not None:
-            kwargs[arg_id] = locals()[arg_id]
+    # Only the arguments that are set are passed on: the standard library tests
+    # their presence, not their value.
+    kwargs: dict[str, Any] = {
+        name: value
+        for name, value in (
+            ("filename", filename),
+            ("filemode", filemode),
+            ("format", format),
+            ("datefmt", datefmt),
+            ("style", style),
+            ("level", level),
+            ("stream", stream),
+            ("handlers", handlers),
+            ("force", force),
+            ("encoding", encoding),
+            ("errors", errors),
+            ("stream_handler_class", stream_handler_class),
+            ("file_handler_class", file_handler_class),
+            ("formatter_class", formatter_class),
+        )
+        if value is not None
+    }
     # The standard library reads filemode for the handler it creates itself, and
     # rejects it as unrecognised beside handlers of the caller.
     if handlers is not None:
@@ -577,7 +573,7 @@ def _hold_invocation_handler(ctx: click.Context) -> None:
     stays for as long as one run needs it.
 
     A run releases its token when its root context closes, and through
-    `_queue_late_cleanup` when it fails while parsing.
+    `click_extra.context._queue_run_cleanup` when it fails while parsing.
     """
     if context.get(ctx, _HANDLER_TOKEN) in _INVOCATION_HOLDERS:
         return
@@ -608,14 +604,15 @@ def _hold_invocation_handler(ctx: click.Context) -> None:
     release = partial(_release_invocation_handler, token)
     root_ctx = ctx.find_root()
     root_ctx.call_on_close(release)
-    _queue_late_cleanup(root_ctx, release)
+    context._queue_run_cleanup(root_ctx, release)
 
 
 def _release_invocation_handler(token: object) -> None:
     """Release the hold of a run, and detach the handler once no run holds it.
 
     Safe to call more than once with the same token: the close callback, the
-    finalizer and `_scoped_logging` may each release the same run.
+    finalizer and the `_scoped_run` block of the command may each release the
+    same run.
 
     A finalizer runs where Python collects the context, so in any thread and in
     the middle of any call, the start of another run included. No lock guards
@@ -678,46 +675,6 @@ def _resulting_level(managed_logger: Logger, level: int) -> str:
     if not level and managed_logger.parent:
         level = managed_logger.parent.getEffectiveLevel()
     return logging.getLevelName(level)
-
-
-def _queue_late_cleanup(ctx: click.Context, cleanup: Callable[[], None]) -> None:
-    """Have `cleanup` called for `ctx` even when Click never closes it.
-
-    A run that fails while parsing leaves its context never entered, and therefore
-    never closed: its close callbacks do not run. Two mechanisms cover that path,
-    as in {func}`click_extra.color.publish_invocation_color`:
-
-    - A finalizer, called when Python collects the context. That may be late, and
-      in the middle of a later run.
-    - The `_scoped_logging` block {meth}`click_extra.commands.Command.main` runs
-      within, which does not wait for a collection.
-
-    Both also call `cleanup` for a context that did close. It so has to do nothing
-    when called again, and to leave alone what a later run took over.
-    """
-    weakref.finalize(ctx, cleanup)
-    cleanups = _RUN_CLEANUPS.get()
-    if cleanups is not None:
-        cleanups.append(cleanup)
-
-
-@contextmanager
-def _scoped_logging() -> Iterator[None]:
-    """Give back on exit the logging state of the runs started within the block.
-
-    {meth}`click_extra.commands.Command.main` runs within it. A run that fails
-    while parsing so gives back the handler of the `root` logger, and resets the
-    levels of its loggers, without waiting for a garbage collection. What the run
-    around the block took stays: that run gives it back when it ends.
-    """
-    cleanups: list[Callable[[], None]] = []
-    reset_token = _RUN_CLEANUPS.set(cleanups)
-    try:
-        yield
-    finally:
-        _RUN_CLEANUPS.reset(reset_token)
-        for cleanup in cleanups:
-            cleanup()
 
 
 def _fold_level(
@@ -1017,7 +974,7 @@ class _VerbosityOption(ExtraOption):
         # once on Context._close_callbacks.
         if not queued:
             ctx.call_on_close(partial(self._reset_on_close, token))
-            _queue_late_cleanup(ctx, partial(_expire_levels, token))
+            context._queue_run_cleanup(ctx, partial(_expire_levels, token))
 
     def set_level(self, ctx: click.Context, param: click.Parameter, value: Any) -> None:
         """Base callback: subclasses record their raw value first, then reconcile.

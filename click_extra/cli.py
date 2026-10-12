@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import colorsys
-import logging
 import os
 import random
 import sys
@@ -37,7 +36,6 @@ from click import (
     style,
 )
 from cloup import Color, dir_path, file_path
-from extra_platforms import ALL_IDS
 
 from . import context
 from ._utils import missing_extra_message
@@ -76,7 +74,44 @@ from .test_suite import (
 )
 from .theme import AUTO_THEME, ThemeChoice, get_theme_registry, resolve_auto_theme
 
-logger = logging.getLogger(__name__)
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
+
+class _LazyChoice(Choice):
+    """A `Choice` whose values are produced on first use rather than at decoration.
+
+    `click.Choice` freezes its values when the option is declared, which is at
+    import time for a module-level command. Taking a loader instead keeps the
+    module providing the values off the startup path of the CLI: the values are
+    only needed to parse, complete or document the option, never to import it.
+    """
+
+    def __init__(
+        self,
+        load: Callable[[], Iterable[str]],
+        case_sensitive: bool = True,
+    ) -> None:
+        self._load = load
+        super().__init__((), case_sensitive=case_sensitive)
+
+    @property
+    def choices(self) -> tuple[str, ...]:
+        """The values, read from the loader on each access."""
+        return tuple(self._load())
+
+    @choices.setter
+    def choices(self, value: Iterable[str]) -> None:
+        """Absorb the empty tuple `Choice.__init__` assigns: the loader is the source."""
+
+
+def _platform_ids() -> list[str]:
+    """Every `extra_platforms` ID, sorted, for the `--skip-platform` choices."""
+    # Deferred import: keeps extra_platforms off the startup path of the CLI.
+    from extra_platforms import ALL_IDS
+
+    return sorted(ALL_IDS)
 
 
 _demo_section = cloup.Section(
@@ -188,7 +223,7 @@ Examples:
 @option(
     "-s",
     "--skip-platform",
-    type=Choice(sorted(ALL_IDS), case_sensitive=False),
+    type=_LazyChoice(_platform_ids, case_sensitive=False),
     # Roughly 180 IDs, which Click would enumerate on one unwrappable line.
     # The `man`, `markdown` and `json` renders list them.
     metavar="PLATFORM",

@@ -27,10 +27,12 @@ from __future__ import annotations
 import sys
 from contextlib import contextmanager
 from enum import Enum
+from functools import cache
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from importlib.metadata import EntryPoint
     from typing import Any
 
 
@@ -77,22 +79,47 @@ def exception_chain(exc: BaseException | None) -> Iterator[BaseException]:
         exc = exc.__cause__ or exc.__context__
 
 
-def generator_tag() -> str:
-    """Provenance tag for generated artifacts: `Click Extra <version>`.
+def console_script(name: str) -> EntryPoint | None:
+    """The `console_scripts` entry point installed under `name`, or `None`.
 
-    Stamped into the header comments of the documents Click Extra generates
-    from a CLI (man pages, Carapace completion specs). This is Click Extra's
-    *own* version (the generator), not the documented CLI's version. Falls back
-    to the bare name when the distribution metadata is unavailable (such as
-    running from an uninstalled source tree).
+    Its `module` and `attr` name the callable the script runs, which is how a
+    generated script in a `bin/` folder is traced back to the package behind it.
+    """
+    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+    from importlib import metadata
+
+    for entry_point in metadata.entry_points(group="console_scripts", name=name):
+        return entry_point
+    return None
+
+
+@cache
+def package_version() -> str | None:
+    """The installed version of Click Extra, or `None` without distribution metadata.
+
+    Metadata is missing from an uninstalled source tree and from a compiled binary
+    shipping none. Cached: the answer holds for the life of the process, and the
+    documents Click Extra generates stamp it on each of their pages.
     """
     # Deferred import: keeps importlib.metadata off the startup path of every CLI.
     from importlib import metadata
 
     try:
-        return f"Click Extra {metadata.version('click-extra')}"
+        return metadata.version("click-extra")
     except metadata.PackageNotFoundError:
-        return "Click Extra"
+        return None
+
+
+def generator_tag() -> str:
+    """Provenance tag for generated artifacts: `Click Extra <version>`.
+
+    Stamped into the header comments of the documents Click Extra generates
+    from a CLI (man pages, Carapace completion specs, captures). This is Click
+    Extra's *own* version (the generator), not the documented CLI's version.
+    Falls back to the bare name when {func}`package_version` answers `None`.
+    """
+    version = package_version()
+    return f"Click Extra {version}" if version else "Click Extra"
 
 
 def memoize_enums(obj: object, memo: dict[int, Any], *also: Enum) -> None:

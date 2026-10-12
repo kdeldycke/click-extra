@@ -30,6 +30,7 @@ import pytest
 from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style, unstyle
+from click_extra.layout import RESET
 from click_extra.recording import (
     DEFAULT_SUBMIT,
     Frame,
@@ -49,16 +50,13 @@ from click_extra.screenshot_svg import (
     animation_digest,
     render_svg,
 )
+from click_extra.spinner import CLEAR_LINE, HIDE_CURSOR, SHOW_CURSOR
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import IO
 
-CLEAR_LINE = "\x1b[K"
-HIDE_CURSOR = "\x1b[?25l"
-SHOW_CURSOR = "\x1b[?25h"
 GREEN = "\x1b[32m"
-RESET = "\x1b[0m"
 
 
 class TTYStringIO(io.StringIO):
@@ -231,6 +229,25 @@ def test_recorder_drops_a_write_that_changed_nothing():
     recorder.write(HIDE_CURSOR)
 
     assert [frame.text for frame in recorder.frames(end=9.0)] == ["fig"]
+
+
+def test_recorder_stores_one_sample_per_distinct_screen():
+    """A write changing nothing stores nothing, so memory follows the screens.
+
+    A spinner redraws the same frame for as long as its label holds, and a long
+    recording would otherwise keep a copy of the whole screen per redraw.
+    """
+    recorder = ScreenRecorder(clock=StepClock(1.0))
+    for _ in range(50):
+        recorder.write(f"\r{CLEAR_LINE}fig")
+    recorder.write(f"\r{CLEAR_LINE}plum")
+
+    assert len(recorder._samples) == 2
+    frames = recorder.frames(end=60.0)
+    assert [frame.text for frame in frames] == ["fig", "plum"]
+    # The clock is read once per kept screen, so the step clock stamps the two
+    # at 0 and 1: each screen is timed from its first appearance.
+    assert [frame.duration for frame in frames] == [1.0, 59.0]
 
 
 def test_recorder_drops_a_screen_holding_only_blanks():

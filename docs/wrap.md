@@ -154,7 +154,7 @@ debug = true
 
 ```shell-session
 $ click-extra -- flask routes
-# Equivalent to: flask --app myapp:create_app --debug routes
+# Equivalent to: flask --app=myapp:create_app --debug routes
 ```
 
 The section name must match the script name you pass on the command line. Multiple targets can each have their own section:

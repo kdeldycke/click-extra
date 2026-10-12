@@ -51,9 +51,9 @@ from __future__ import annotations
 import inspect
 import json
 import logging
-import os
 import re
 import shutil
+from contextlib import nullcontext
 from dataclasses import dataclass
 from enum import Enum
 from gettext import gettext as _
@@ -65,12 +65,15 @@ from cloup import OptionGroupMixin
 from . import context
 from ._utils import generator_tag
 from .accessibility import echo_via_pager
-from .carapace import dump_carapace_spec
+from .carapace import dump_carapace_spec, xdg_dir
 from .config import ConfigOption
 from .envvar import param_envvar_ids
 from .parameters import (
     ExtraOption,
+    choice_values,
+    clean_help,
     full_short_help,
+    iter_inline_literals,
     iter_params_for_display,
     iter_subcommands,
     make_resilient_context,
@@ -85,38 +88,10 @@ from .version import build_moment, resolve_author, resolve_distribution
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Iterator, Mapping, Sequence
     from typing import Any
 
     from click import Command, Context, Parameter
-
-
-INLINE_LITERAL_RE = re.compile(r"``([^`]+?)``")
-"""Match a reST inline literal (`"`...`"`) in a docstring.
-
-Click stores docstrings verbatim, so any reST markup the author used to
-render code-like tokens in HTML docs leaks into `Command.help` /
-`Command.short_help`. The roff and HTML man-page paths translate these
-matches into the bold/literal markers their renderers understand; the
-Sphinx index directive translates them into `nodes.literal`.
-"""
-
-
-def iter_inline_literals(text: str) -> Iterator[tuple[str, bool]]:
-    """Walk `text` and yield `(segment, is_literal)` pairs.
-
-    Split on {data}`INLINE_LITERAL_RE` so the consumer can apply
-    different rendering to the literal segments (bold for roff, a
-    `literal` node for docutils) without re-parsing the regex.
-    """
-    pos = 0
-    for match in INLINE_LITERAL_RE.finditer(text):
-        if match.start() > pos:
-            yield text[pos : match.start()], False
-        yield match.group(1), True
-        pos = match.end()
-    if pos < len(text):
-        yield text[pos:], False
 
 
 CLICK_EXTRA_URL = "https://github.com/kdeldycke/click-extra"
@@ -153,6 +128,31 @@ Mirrors the EXIT STATUS table in {doc}`/man-page`. Click returns `2` for
 usage errors (`UsageError`), `1` for aborts, and `0` on success. A real Ctrl+C
 ends the process by `SIGINT` instead, which a shell reports as `130`.
 """
+
+
+# --- prose helpers ----------------------------------------------------------
+
+
+_PARAGRAPH_BREAK_RE = re.compile(r"\n\s*\n")
+"""Match the blank line separating two paragraphs of help prose."""
+
+
+def _iter_help_paragraphs(text: str) -> Iterator[tuple[str, str]]:
+    r"""Split Click help prose into `(filled, verbatim)` pairs, one per paragraph.
+
+    Runs {func}`inspect.cleandoc` and splits on blank lines. Within a paragraph,
+    everything before Click's `\b` (`\x08`) no-rewrap marker is the filled half,
+    collapsed to one line of single spaces. Everything after the marker is the
+    verbatim half, kept line by line, with only the newlines around the marker
+    dropped so the block stays compact. A paragraph without a marker has an
+    empty verbatim half, and blank paragraphs are skipped. Each backend only
+    decides on markup from here: roff `.nf` / `.fi`, a Markdown fence, or none.
+    """
+    for paragraph in _PARAGRAPH_BREAK_RE.split(inspect.cleandoc(text).strip()):
+        if not paragraph.strip():
+            continue
+        filled, _marker, verbatim = paragraph.partition("\x08")
+        yield " ".join(filled.split()), verbatim.strip("\n")
 
 
 # --- roff helpers -----------------------------------------------------------
@@ -217,29 +217,16 @@ def _emit_help(text: str) -> list[str]:
     only the suffix. Paragraphs without a marker collapse to a single
     filled line, separated from the previous one by `.PP`.
     """
-    text = inspect.cleandoc(text).strip()
-    if not text:
-        return []
-
     out: list[str] = []
-    for index, paragraph in enumerate(re.split(r"\n\s*\n", text)):
-        if not paragraph.strip():
-            continue
-        if index > 0:
+    for filled, verbatim in _iter_help_paragraphs(text):
+        if out:
             out.append(".PP")
-        pre, marker, post = paragraph.partition("\x08")
-        pre = pre.strip()
-        if pre:
-            out.append(_render_inline(" ".join(pre.split())))
-        if marker:
-            # `\b` may sit on its own line: strip the surrounding
-            # newlines so the .nf block is compact, but keep internal
-            # line breaks so the no-fill region looks as written.
-            post = post.strip("\n")
-            if post:
-                out.append(".nf")
-                out.extend(_render_inline(line) for line in post.splitlines())
-                out.append(".fi")
+        if filled:
+            out.append(_render_inline(filled))
+        if verbatim:
+            out.append(".nf")
+            out.extend(_render_inline(line) for line in verbatim.splitlines())
+            out.append(".fi")
     return out
 
 
@@ -276,19 +263,7 @@ def normalize_examples(
     return tuple(normalized)
 
 
-# --- plain-prose helpers ----------------------------------------------------
-
-
-def _clean_help(text: str) -> str:
-    r"""Normalize Click help prose for the backends that carry newlines natively.
-
-    Runs {func}`inspect.cleandoc` and drops Click's `\b` (`\x08`) no-rewrap
-    marker, keeping every line break the marker protected. Markdown and JSON
-    both represent those breaks on their own, so neither needs an equivalent of
-    the roff `.nf` / `.fi` pair {func}`_emit_help` emits: only the control
-    character has to go, or it lands in the output as a stray byte.
-    """
-    return inspect.cleandoc(text).replace("\x08\n", "").replace("\x08", "").strip()
+# --- Markdown helpers -------------------------------------------------------
 
 
 def _markdown_help(text: str) -> list[str]:
@@ -299,28 +274,18 @@ def _markdown_help(text: str) -> list[str]:
     precisely because the author aligned something by hand (a table, a tree, a
     sample session), and Markdown would reflow it into a single line otherwise.
     """
-    text = inspect.cleandoc(text).strip()
-    if not text:
-        return []
-
     out: list[str] = []
-    for paragraph in re.split(r"\n\s*\n", text):
-        if not paragraph.strip():
-            continue
+    for filled, verbatim in _iter_help_paragraphs(text):
         if out:
             out.append("")
-        pre, marker, post = paragraph.partition("\x08")
-        pre = pre.strip()
-        if pre:
-            out.append(" ".join(pre.split()))
-        if marker:
-            post = post.strip("\n")
-            if post:
-                if pre:
-                    out.append("")
-                out.append("```text")
-                out.extend(post.splitlines())
-                out.append("```")
+        if filled:
+            out.append(filled)
+        if verbatim:
+            if filled:
+                out.append("")
+            out.append("```text")
+            out.extend(verbatim.splitlines())
+            out.append("```")
     return out
 
 
@@ -330,7 +295,7 @@ def _markdown_inline(text: str) -> str:
     Inline reST literals become Markdown code spans, mirroring what
     {func}`_render_inline` does for roff.
     """
-    cleaned = " ".join(_clean_help(text).split())
+    cleaned = " ".join(clean_help(text).split())
     return "".join(
         f"`{segment}`" if is_literal else segment
         for segment, is_literal in iter_inline_literals(cleaned)
@@ -446,8 +411,8 @@ class DocOptionItem:
         if self.required:
             item += " *(required)*"
 
-        pre, _marker, post = (self.help or "").partition("\x08")
-        help_text = _markdown_inline(pre)
+        paragraphs = list(_iter_help_paragraphs(self.help or ""))
+        help_text = _markdown_inline(" ".join(filled for filled, _ in paragraphs))
         if help_text:
             item += f": {help_text}"
         if self.unlisted_choices:
@@ -455,13 +420,13 @@ class DocOptionItem:
             item += f" Values: {values}."
         lines = [item]
 
-        post = inspect.cleandoc(post).strip("\n")
-        if post:
-            lines.append("")
-            lines.append("  ```text")
-            lines.extend(f"  {line}" for line in post.splitlines())
-            lines.append("  ```")
-            lines.append("")
+        for _filled, verbatim in paragraphs:
+            if verbatim:
+                lines.append("")
+                lines.append("  ```text")
+                lines.extend(f"  {line}" for line in verbatim.splitlines())
+                lines.append("  ```")
+                lines.append("")
         return lines
 
     def to_dict(self) -> dict[str, Any]:
@@ -471,7 +436,7 @@ class DocOptionItem:
             "spec": self.spec,
             "metavar": self.metavar,
             "choices": list(self.choices) or None,
-            "help": _clean_help(self.help or "") or None,
+            "help": clean_help(self.help or "") or None,
             "required": self.required,
             "optional_value": self.optional_value,
         }
@@ -545,7 +510,7 @@ class DocOptionGroup:
         """Render this group as a JSON-serializable mapping."""
         return {
             "title": self.title,
-            "help": _clean_help(self.help or "") or None,
+            "help": clean_help(self.help or "") or None,
             "options": [option.to_dict() for option in self.options],
         }
 
@@ -836,12 +801,12 @@ class CommandDoc:
         """
         return {
             "name": self.name,
-            "short_help": _clean_help(self.short_help) or None,
+            "short_help": clean_help(self.short_help) or None,
             "version": self.version,
             "synopsis": " ".join((self.name, *self.synopsis_pieces)),
-            "description": _clean_help(self.description) or None,
+            "description": clean_help(self.description) or None,
             "arguments": [
-                {"metavar": metavar, "help": _clean_help(help_text) or None}
+                {"metavar": metavar, "help": clean_help(help_text) or None}
                 for metavar, help_text in self.operands
             ],
             "option_groups": [group.to_dict() for group in self.option_groups],
@@ -849,7 +814,7 @@ class CommandDoc:
                 {
                     "name": sub.name,
                     "aliases": list(sub.aliases),
-                    "short_help": _clean_help(sub.short_help) or None,
+                    "short_help": clean_help(sub.short_help) or None,
                 }
                 for sub in self.subcommands
             ],
@@ -858,12 +823,12 @@ class CommandDoc:
                 for description, command_line in self.examples
             ],
             "environment": [
-                {"variable": name, "help": _clean_help(help_text) or None}
+                {"variable": name, "help": clean_help(help_text) or None}
                 for name, help_text in self.environment
             ],
             "files": list(self.files),
             "exit_status": [
-                {"code": code, "meaning": _clean_help(meaning)}
+                {"code": code, "meaning": clean_help(meaning)}
                 for code, meaning in self.exit_status
             ],
         }
@@ -891,49 +856,69 @@ def _distribution_names(ctx: Context) -> tuple[str, ...]:
     return tuple(dict.fromkeys((root, root.replace("-", "_"), root.replace("_", "-"))))
 
 
-def _resolve_version(ctx: Context) -> str | None:
-    """Best-effort version lookup via {mod}`importlib.metadata`.
+def _resolve_distribution_metadata(ctx: Context) -> tuple[str | None, str | None]:
+    """The `(version, authors)` pair of the distribution behind the program.
 
-    Resolves the distribution from the program name (see
-    {func}`_distribution_names`) and reads its version. Pass `version=` to
-    {func}`render_manpage` to override this.
-    """
-    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
-    from importlib import metadata
-
-    name = resolve_distribution(_distribution_names(ctx))
-    return metadata.version(name) if name else None
-
-
-def _resolve_authors(ctx: Context) -> str | None:
-    """Best-effort AUTHORS lookup from distribution metadata.
-
-    Resolves the distribution from the program name (see
-    {func}`_distribution_names`) and reads its author(s) through the shared
-    {func}`click_extra.version.resolve_author`, so `--man` and `--version`
+    Resolves the distribution once from the root program name (see
+    {func}`_distribution_names`) and reads both off its metadata: the version
+    for the `.TH` header, and the author(s) through the shared
+    {func}`click_extra.version.resolve_author`, so a man page and `--version`
     report the same author string (`Author` / `Maintainer` / email display
-    name, in that order).
+    name, in that order). Both are `None` when no installed distribution answers
+    to the name. Pass `version=` and `authors=` to {func}`render_manpage` to
+    override them.
     """
     # Deferred import: keeps importlib.metadata off the startup path of every CLI.
     from importlib import metadata
 
     name = resolve_distribution(_distribution_names(ctx))
-    return resolve_author(metadata.metadata(name)) if name else None
+    if name is None:
+        return None, None
+    return metadata.version(name), resolve_author(metadata.metadata(name))
 
 
-def _config_default(config_option: ConfigOption, ctx: Context) -> str:
-    """The portable, home-relative `--config` search pattern.
+def _fill_overrides(
+    ctx: Context,
+    *,
+    version: str | None = None,
+    date: str | None = None,
+    manual: str | None = None,
+    authors: str | None = None,
+    copyright: str | None = None,
+) -> dict[str, str | None]:
+    """Fill the header fields left at `None` with what the environment knows.
 
-    The help screen collapses an inherited format set down to its folder, which a
-    `FILES` section does not want: it exists to name the files the command reads,
-    and roff has the room to print them. See
-    {meth}`~click_extra.config.option.ConfigOption.collapse_default`.
+    `version` and `authors` come from the distribution metadata, read in one
+    lookup, and `date` from {func}`_resolve_date`. `manual` and `copyright`
+    have no source to fall back on and pass through as given. The result holds
+    all five, keyed by the name {func}`extract_command_doc` takes them under, so
+    a tree walk resolves them once and extracts every page from the same set.
     """
-    return config_option.render_default(ctx)
+    if version is None or authors is None:
+        resolved_version, resolved_authors = _resolve_distribution_metadata(ctx)
+        if version is None:
+            version = resolved_version
+        if authors is None:
+            authors = resolved_authors
+    if date is None:
+        date = _resolve_date()
+    return {
+        "version": version,
+        "date": date,
+        "manual": manual,
+        "authors": authors,
+        "copyright": copyright,
+    }
 
 
 def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
     """FILES entries from the command's `--config` search pattern, if any.
+
+    The pattern is the portable, home-relative one
+    {meth}`~click_extra.config.option.ConfigOption.render_default` draws. The
+    help screen collapses an inherited format set down to its folder, which a
+    FILES section does not want: it exists to name the files the command reads,
+    and roff has the room to print them.
 
     `ConfigOption.default_pattern` reads {func}`click.get_current_context`, so
     the context is entered when none is active (the build-time path); the live
@@ -943,11 +928,8 @@ def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
     if config_option is None:
         return ()
     try:
-        if click.get_current_context(silent=True) is None:
-            with ctx:
-                default = _config_default(config_option, ctx)
-        else:
-            default = _config_default(config_option, ctx)
+        with ctx if click.get_current_context(silent=True) is None else nullcontext():
+            default = config_option.render_default(ctx)
     # FILES is an optional section: any failure resolving the search pattern
     # (missing context, app-dir lookup errors, …) just drops it silently.
     except Exception:  # noqa: BLE001
@@ -963,18 +945,17 @@ def _option_item(param: Parameter, ctx: Context) -> DocOptionItem:
     The metavar follows {func}`~click_extra.parameters.option_value_kind`: a flag
     or counter takes no value (no metavar), an optional-value option renders the
     attached `[=METAVAR]` form, and a regular option a space-separated metavar.
+    The choices are spelled by {func}`~click_extra.parameters.choice_values`, so
+    an `Enum` member reads the way Click completes it.
     """
     kind = option_value_kind(param)
-    # `Choice` and its subclasses expose the accepted values; every other type
-    # leaves the attribute out, which reads as an empty set here.
-    choices = getattr(param.type, "choices", ()) or ()
     return DocOptionItem(
         names=param_spellings(param),
         metavar=None if kind == "flag" else param.make_metavar(ctx=ctx),
         help=resolve_param_help(param, ctx),
         required=param.required,
         optional_value=kind == "optional",
-        choices=tuple(str(choice) for choice in choices),
+        choices=choice_values(param.type),
     )
 
 
@@ -1055,6 +1036,31 @@ def extract_command_doc(
     The context must have been created for `command` (for example via
     {meth}`click.Command.make_context` with `resilient_parsing=True`), so
     that auto-generated environment-variable prefixes resolve correctly.
+
+    A `version`, `date` or `authors` left at `None` is resolved from the
+    distribution metadata and the build moment, see `_fill_overrides`.
+    """
+    overrides = _fill_overrides(
+        ctx,
+        version=version,
+        date=date,
+        manual=manual,
+        authors=authors,
+        copyright=copyright,
+    )
+    return _build_command_doc(command, ctx, overrides)
+
+
+def _build_command_doc(
+    command: Command,
+    ctx: Context,
+    overrides: Mapping[str, str | None],
+) -> CommandDoc:
+    """Extract `command` into a {class}`CommandDoc`, every header field settled.
+
+    The extraction half of {func}`extract_command_doc`: `overrides` carries the
+    five header fields as `_fill_overrides` leaves them, so a tree walk resolves
+    the distribution metadata once and extracts each of its pages through here.
     """
     operands: list[tuple[str, str]] = []
     environment: list[tuple[str, str]] = []
@@ -1099,11 +1105,11 @@ def extract_command_doc(
         environment=tuple(environment),
         examples=normalize_examples(getattr(command, "examples", None)),
         files=_resolve_files(command, ctx),
-        version=version if version is not None else _resolve_version(ctx),
-        date=date if date is not None else _resolve_date(),
-        manual=manual,
-        authors=authors if authors is not None else _resolve_authors(ctx),
-        copyright=copyright,
+        version=overrides["version"],
+        date=overrides["date"] or "",
+        manual=overrides["manual"],
+        authors=overrides["authors"],
+        copyright=overrides["copyright"],
     )
 
 
@@ -1118,17 +1124,38 @@ def iter_command_contexts(
 
     Subcommands are discovered dynamically ({meth}`click.Group.list_commands` /
     {meth}`~click.Group.get_command`), so dynamically-registered commands are
-    included. Hidden commands are skipped. Each context is built with
+    included, each under the name its parent registered it with rather than its
+    own `name`. Hidden commands are skipped. Each context is built with
     `resilient_parsing=True` to avoid triggering required-argument errors,
     prompts, or eager-option side effects.
     """
-    info_name = (prog_name or command.name or "") if not _path else (command.name or "")
+    info_name = prog_name or command.name or ""
     ctx = make_resilient_context(command, info_name, parent=_parent)
     path = _path + (info_name,)
     yield path, command, ctx
 
     for sub_name, sub in iter_subcommands(command, ctx):
-        yield from iter_command_contexts(sub, _parent=ctx, _path=path)
+        yield from iter_command_contexts(sub, sub_name, _parent=ctx, _path=path)
+
+
+def iter_command_docs(
+    command: Command,
+    prog_name: str | None = None,
+    **overrides: str | None,
+) -> Iterator[tuple[tuple[str, ...], CommandDoc]]:
+    """Extract every visible command of a tree, yielding `(path, doc)` pairs.
+
+    Walks the tree with {func}`iter_command_contexts` and extracts each command
+    into a {class}`CommandDoc`. The header fields the keyword overrides leave
+    unset (`version`, `date`, `authors`) are resolved once, from the root
+    context, and shared by every page: the pages of one tree name the same
+    program, so they look the same distribution up.
+    """
+    settled: dict[str, str | None] | None = None
+    for path, cmd, ctx in iter_command_contexts(command, prog_name):
+        if settled is None:
+            settled = _fill_overrides(ctx, **overrides)
+        yield path, _build_command_doc(cmd, ctx, settled)
 
 
 def render_manpage(
@@ -1145,7 +1172,7 @@ def render_manpage(
     through to {func}`~click_extra.command_doc.extract_command_doc`.
     """
     if ctx is None:
-        ctx = make_resilient_context(command, prog_name or command.name)
+        ctx = make_resilient_context(command, prog_name)
     return extract_command_doc(command, ctx, **overrides).to_roff()
 
 
@@ -1161,8 +1188,7 @@ def render_manpages(
     `weather-forecast.1`).
     """
     pages: dict[str, str] = {}
-    for path, cmd, ctx in iter_command_contexts(command, prog_name):
-        page = extract_command_doc(cmd, ctx, **overrides)
+    for path, page in iter_command_docs(command, prog_name, **overrides):
         pages["{}.{}".format("-".join(path), page.section)] = page.to_roff()
     return pages
 
@@ -1197,14 +1223,14 @@ def install_manpages(
     Targets `$XDG_DATA_HOME/man/man1` when that variable is set, else
     {data}`~click_extra.command_doc.MAN_INSTALL_DIR`. Returns the written paths.
 
-    The environment is read here rather than at import time, so a caller that
-    sets `XDG_DATA_HOME` for one invocation (a test, a packaging script staging
-    into a build root) is honored. This mirrors
+    The environment is read here rather than at import time, through
+    {func}`~click_extra.carapace.xdg_dir`, so a caller that sets `XDG_DATA_HOME`
+    or `HOME` for one invocation (a test, a packaging script staging into a build
+    root) is honored. This mirrors
     {func}`~click_extra.carapace.install_carapace_spec`, whose spec directory
     resolves the same way.
     """
-    xdg = os.environ.get("XDG_DATA_HOME")
-    target = Path(xdg).expanduser() / "man" / "man1" if xdg else MAN_INSTALL_DIR
+    target = xdg_dir("XDG_DATA_HOME", MAN_INSTALL_DIR, "man", "man1")
     return write_manpages(command, target, prog_name, **overrides)
 
 
@@ -1319,8 +1345,7 @@ def render_help(
 
     if help_format in (HelpFormat.JSON_FULL, HelpFormat.MARKDOWN_FULL):
         pages = [
-            extract_command_doc(cmd, sub_ctx, **overrides)
-            for _path, cmd, sub_ctx in iter_command_contexts(command, prog_name)
+            page for _path, page in iter_command_docs(command, prog_name, **overrides)
         ]
         if help_format is HelpFormat.JSON_FULL:
             return (
@@ -1329,14 +1354,15 @@ def render_help(
             )
         return "\n".join(page.to_markdown() for page in pages)
 
+    if help_format is HelpFormat.MAN:
+        return render_manpage(command, prog_name, ctx, **overrides)
+
     if ctx is None:
-        ctx = make_resilient_context(command, prog_name or command.name)
+        ctx = make_resilient_context(command, prog_name)
     page = extract_command_doc(command, ctx, **overrides)
     if help_format is HelpFormat.JSON:
         return page.to_json()
-    if help_format is HelpFormat.MARKDOWN:
-        return page.to_markdown()
-    return page.to_roff()
+    return page.to_markdown()
 
 
 MAN_FORMATTERS: tuple[tuple[str, ...], ...] = (
@@ -1369,11 +1395,13 @@ paging is handled here anyway.
 ```
 """
 
-MAN_INSTALL_DIR: Path = Path("~/.local/share/man/man1").expanduser()
+MAN_INSTALL_DIR: Path = Path("~/.local/share/man/man1")
 """Where `--install` writes man pages: the user's own section-1 directory.
 
 The default of the [XDG base directory spec](https://specifications.freedesktop.org/basedir-spec/latest/), which
-{func}`install_manpages` overrides from `XDG_DATA_HOME` when that is set. Some
+{func}`install_manpages` overrides from `XDG_DATA_HOME` when that is set. The
+`~` is left for {func}`~click_extra.carapace.xdg_dir` to expand at call time,
+so the `HOME` in force when the pages are written is the one that counts. Some
 systems do not carry this path in their `MANPATH`, in which case the pages land
 correctly but `man` has to be told where to look.
 """
@@ -1408,7 +1436,7 @@ def format_manpage(roff: str, width: int | None = None) -> str | None:
                 input=roff,
                 capture_output=True,
                 text=True,
-                encoding="UTF-8",
+                encoding="utf-8",
                 check=False,
             )
         except OSError:
@@ -1590,3 +1618,15 @@ class HelpFormatOption(ExtraOption):
             return
         click.echo(render_help(ctx.command, value, ctx=ctx), color=False)
         ctx.exit()
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve deprecated `command_doc` symbols via the PEP 562 `__getattr__` hook.
+
+    `INLINE_LITERAL_RE` moved to {mod}`click_extra.parameters`, beside the
+    other helpers every renderer of a CLI reads it through. Fires only for names
+    not defined in this module. See {mod}`click_extra._deprecated`.
+    """
+    from ._deprecated import resolve_deprecated
+
+    return resolve_deprecated(__name__, name)

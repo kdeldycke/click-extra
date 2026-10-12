@@ -28,7 +28,6 @@ from __future__ import annotations
 import inspect
 import re
 from dataclasses import dataclass, field, fields
-from enum import Enum
 from functools import lru_cache
 
 import click
@@ -37,6 +36,7 @@ from click.core import _format_deprecated_label
 from cloup._util import identity
 
 from . import theme as _theme
+from .parameters import choice_values, param_spellings
 from .styling import open_ansi
 from .theme import HelpTheme, ThemeChoice
 
@@ -183,8 +183,7 @@ class _HelpColorsMixin:
         for subcommand in subcommand_objs:
             for param in subcommand.get_params(ctx):
                 if isinstance(param, click.Option) and not param.hidden:
-                    options.update(param.opts)
-                    options.update(param.secondary_opts)
+                    options.update(param_spellings(param))
 
         # Static methods are qualified with the class name (not `self`) so
         # `collect_keywords` can be called on commands that don't inherit the
@@ -203,8 +202,7 @@ class _HelpColorsMixin:
         while parent_ctx:
             for param in parent_ctx.command.get_params(parent_ctx):
                 if isinstance(param, click.Option) and not param.hidden:
-                    options.update(param.opts)
-                    options.update(param.secondary_opts)
+                    options.update(param_spellings(param))
                     if isinstance(param.type, (click.Choice, ThemeChoice)):
                         _HelpColorsMixin._collect_choice_keywords(
                             param,
@@ -258,9 +256,7 @@ class _HelpColorsMixin:
             # Custom metavar hides the normalized choice list. Collect
             # original-case values. This is the first step of Click's own
             # `normalize_choice()` before case folding is applied.
-            kw.choices.update(
-                c.name if isinstance(c, Enum) else str(c) for c in param.type.choices
-            )
+            kw.choices.update(choice_values(param.type))
         else:
             # Standard metavar: collect the normalized forms that
             # match what Click renders in `[choice1|choice2]`.
@@ -292,8 +288,7 @@ class _HelpColorsMixin:
             # (like "keys") which would pollute the option keywords and
             # interfere with highlighting of real options like "--list-keys".
             if isinstance(param, click.Option):
-                options.update(param.opts)
-                options.update(param.secondary_opts)
+                options.update(param_spellings(param))
             elif isinstance(param, click.Argument):
                 # Collect argument metavars (like "MY_ARG") as a distinct
                 # category from option metavars.
@@ -760,12 +755,9 @@ class HelpFormatter(cloup.HelpFormatter):
             # split the way the usage line splits it: the command it ends on
             # is the one a parent screen lists under `subcommand`.
             if kw.cli_names:
-                names = "|".join(
-                    re.escape(name) for name in _longest_first(kw.cli_names)
-                )
                 help_text = highlight(
                     help_text,
-                    re.compile(rf"(?<=\s)(?:{names})(?=\s)"),
+                    re.compile(rf"(?<=\s)(?:{_alternation(kw.cli_names)})(?=\s)"),
                     self._style_command_path,
                 )
 

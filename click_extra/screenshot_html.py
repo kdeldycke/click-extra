@@ -26,6 +26,7 @@ so the two documents look like the same terminal.
 
 from __future__ import annotations
 
+from functools import partial
 from html import escape
 
 from .screenshot_presets import (
@@ -45,13 +46,26 @@ from .screenshot_svg import (
     WATERMARK_INSET,
     WATERMARK_SIZE,
     WATERMARK_URL,
-    credit_segments,
+    credit_markup,
 )
 from .styling import ansi_to_html
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from .screenshot_presets import TerminalPalette, TerminalPreset, WindowButtons
+
+
+def _credit_link(url: str, name: str) -> str:
+    """Wrap the credit line's package name in an HTML link.
+
+    The anchor inherits the credit's own gray rather than taking the page's link
+    color, which would make the mark the loudest thing in a capture whose point
+    is the terminal above it.
+    """
+    return (
+        f'<a href="{escape(url)}" style="color: inherit">'
+        f"{escape(name, quote=False)}</a>"
+    )
 
 
 def render_html(
@@ -158,18 +172,12 @@ def render_html(
         f'overflow-x: auto">{ansi_to_html(escape(text, quote=False))}</pre>'
     )
     if watermark:
-        credit = escape(watermark, quote=False)
-        segments = credit_segments(watermark) if watermark_url else None
-        if segments:
-            before, name, after = segments
-            # The anchor inherits the credit's own gray rather than taking the
-            # page's link color, which would make the mark the loudest thing in
-            # a capture whose point is the terminal above it.
-            credit = (
-                f"{escape(before, quote=False)}"
-                f'<a href="{escape(watermark_url)}" style="color: inherit">'
-                f"{escape(name, quote=False)}</a>{escape(after, quote=False)}"
-            )
+        credit = credit_markup(
+            watermark,
+            watermark_url,
+            _credit_link,
+            escape=partial(escape, quote=False),
+        )
         body += (
             f'\n<div style="margin: 0 {margin}px {margin}px; text-align: right; '
             f"color: {watermark_color}; font-family: {font_stack}; "

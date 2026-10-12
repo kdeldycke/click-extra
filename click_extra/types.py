@@ -445,7 +445,7 @@ _DURATION_CALENDAR_REJECT = (
 )
 
 
-def _parse_friendly(text: str, value: Any) -> timedelta | None:
+def _parse_friendly(text: str, value: Any) -> timedelta:
     """Parse a normalized friendly duration, raising `ValueError` on failure.
 
     *text* is the stripped, lower-cased input; *value* is the original, quoted
@@ -464,7 +464,7 @@ def _parse_friendly(text: str, value: Any) -> timedelta | None:
     )
 
 
-def _parse_iso8601(text: str, value: Any) -> timedelta | None:
+def _parse_iso8601(text: str, value: Any) -> timedelta:
     """Parse a normalized ISO 8601 duration, raising `ValueError` on failure.
 
     *text* is the stripped, upper-cased input; *value* is the original, quoted

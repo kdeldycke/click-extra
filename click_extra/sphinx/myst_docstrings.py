@@ -81,14 +81,11 @@ This requires `click-extra[sphinx]` in your docs dependency group.
 
 from __future__ import annotations
 
-import logging
 import re
 
 from sphinx.errors import ExtensionError
 
 from .. import __version__
-
-logger = logging.getLogger(__name__)
 
 # {role}`target` -> {role}`target`
 # Negative lookbehind prevents matching inside double backticks (``{version}``).
@@ -182,16 +179,16 @@ _PROTECTED_RE = re.compile(
 )
 
 
-def _convert_plain_code_fence(match: re.Match[str]) -> str:
-    """Convert a plain triple-backtick code fence to a reST `code-block`."""
-    indent = match.group(1)
-    lang = match.group(2) or ""
-    body = match.group(3)
+def _rst_directive(indent: str, directive: str, argument: str, body: str) -> str:
+    """Write a reST directive at `indent`, its `body` re-indented under it.
 
-    header = f"{indent}.. code-block::"
-    if lang:
-        header += f" {lang}"
-    header += "\n"
+    The body keeps the relative indentation it had in the fence, shifted to the
+    four spaces a reST directive body sits at. A blank line separates the header
+    from the body, as reST requires, and another closes the directive.
+    """
+    header = f"{indent}.. {directive}::"
+    if argument:
+        header += f" {argument}"
 
     body_indent = indent + "    "
     converted_lines: list[str] = []
@@ -203,35 +200,21 @@ def _convert_plain_code_fence(match: re.Match[str]) -> str:
         else:
             converted_lines.append("")
 
-    # reST directives need a blank line between the header and the body.
-    return header + "\n" + "\n".join(converted_lines) + "\n"
+    return header + "\n\n" + "\n".join(converted_lines) + "\n"
+
+
+def _convert_plain_code_fence(match: re.Match[str]) -> str:
+    """Convert a plain triple-backtick code fence to a reST `code-block`."""
+    return _rst_directive(
+        match.group(1), "code-block", match.group(2) or "", match.group(3)
+    )
 
 
 def _convert_fence(match: re.Match[str]) -> str:
-    """Convert a single colon-fenced directive to reST."""
-    indent = match.group(1)
-    directive = match.group(2)
-    title = match.group(3).strip()
-    body = match.group(4)
-
-    header = f"{indent}.. {directive}::"
-    if title:
-        header += f" {title}"
-    header += "\n"
-
-    body_indent = indent + "    "
-    converted_lines: list[str] = []
-    for line in body.split("\n"):
-        if line.strip():
-            # Preserve relative indentation within the body.
-            stripped = line.lstrip()
-            extra_spaces = len(line) - len(stripped) - len(indent)
-            converted_lines.append(body_indent + " " * max(0, extra_spaces) + stripped)
-        else:
-            converted_lines.append("")
-
-    # reST directives need a blank line between the header and the body.
-    return header + "\n" + "\n".join(converted_lines) + "\n"
+    """Convert a single fenced directive, colon or backtick, to reST."""
+    return _rst_directive(
+        match.group(1), match.group(2), match.group(3).strip(), match.group(4)
+    )
 
 
 def _double_inline_code(m: re.Match[str]) -> str:

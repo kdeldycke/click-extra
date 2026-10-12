@@ -49,6 +49,7 @@ from .types import EnumChoice, MultiChoice
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from types import ModuleType
     from typing import Any, Final, TypeAlias
 
     from .columns import ColumnWidth
@@ -72,8 +73,9 @@ if TYPE_CHECKING:
 
 
 @cache
-def _setup_tabulate() -> None:
-    """Import `tabulate`, apply Click Extra's patches, and register its formats.
+def _setup_tabulate() -> ModuleType:
+    """Import `tabulate`, apply Click Extra's patches, register its formats, and
+    return the module.
 
     `tabulate` is a comparatively heavy dependency, only needed when a table
     is actually rendered through it (the CSV, structured and serialization
@@ -133,6 +135,8 @@ def _setup_tabulate() -> None:
     # globally.
     if "colon_grid" not in fmts:
         fmts["colon_grid"] = fmts["grid"]
+
+    return tabulate
 
 
 class TableFormat(Enum):
@@ -486,6 +490,26 @@ def _render_records(
     return serialize_content(fmt, _rows_as_dicts(table_data, headers), **kwargs)
 
 
+def _records_without_none(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[str | None] | None,
+    key: Callable[[str], str] = lambda name: name,
+) -> list[dict[str, str]]:
+    """One mapping per row, keyed by header or by position, `None` cells left out.
+
+    The shape of the formats with no null type, TOML and XML. `key` reshapes a
+    header into the name the format accepts.
+    """
+    records: list[dict[str, str]] = []
+    for row in table_data:
+        if headers:
+            pairs = ((key(k), v) for k, v in zip(headers, row) if k is not None)
+        else:
+            pairs = ((str(i), v) for i, v in enumerate(row))
+        records.append({k: v for k, v in pairs if v is not None})
+    return records
+
+
 def _render_toml(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
@@ -499,19 +523,19 @@ def _render_toml(
     import tomlkit
 
     aot = tomlkit.aot()
-    for row in table_data:
+    for record in _records_without_none(table_data, headers):
         t = tomlkit.table()
-        if headers:
-            for key, value in zip(headers, row):
-                if value is not None and key is not None:
-                    t.add(key, value)
-        else:
-            for i, value in enumerate(row):
-                if value is not None:
-                    t.add(str(i), value)
+        for key, value in record.items():
+            t.add(key, value)
         aot.append(t)
 
     return serialize_content(ConfigFormat.TOML, {RECORD_KEY: aot}, **kwargs)
+
+
+def _xml_safe_name(name: str) -> str:
+    """Replace characters invalid in XML element names."""
+    safe = "".join(c if c.isalnum() or c in "_.-" else "_" for c in name)
+    return safe.lstrip("0123456789.-") or "_"
 
 
 def _render_xml(
@@ -524,27 +548,7 @@ def _render_xml(
     `None` values are omitted. Requires the `xmltodict` package (installable
     via the `[xml]` extra).
     """
-
-    def _xml_safe_name(name: str) -> str:
-        """Replace characters invalid in XML element names."""
-        safe = "".join(c if c.isalnum() or c in "_.-" else "_" for c in name)
-        return safe.lstrip("0123456789.-") or "_"
-
-    if headers:
-        records = [
-            {
-                _xml_safe_name(k): v
-                for k, v in zip(headers, row)
-                if v is not None and k is not None
-            }
-            for row in table_data
-        ]
-    else:
-        records = [
-            {str(i): v for i, v in enumerate(row) if v is not None}
-            for row in table_data
-        ]
-
+    records = _records_without_none(table_data, headers, key=_xml_safe_name)
     return serialize_content(
         ConfigFormat.XML, {XML_ROOT_KEY: {RECORD_KEY: records}}, **kwargs
     )
@@ -845,10 +849,8 @@ def _render_tabulate(
             [_pad_emoji_presentation(cell) for cell in row] for row in table_data
         ]
         headers = [_pad_emoji_presentation(header) for header in headers]
-    _setup_tabulate()
-    import tabulate
-
-    result = tabulate.tabulate(table_data, headers, **defaults)  # type: ignore[arg-type]
+    tabulate = _setup_tabulate()
+    result: str = tabulate.tabulate(table_data, headers, **defaults)
     # Normalize separator rows for GFM-compatible formats so that mdformat
     # treats the output as already canonical and does not re-pad it.
     if table_format in (TableFormat.GITHUB, TableFormat.PIPE):

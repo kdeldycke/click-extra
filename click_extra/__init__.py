@@ -270,13 +270,12 @@ from .rst_to_myst import (
     convert_rst_files_in_directory,
 )
 from .spinner import (  # type: ignore[no-redef]
-    SPINNERS,
     OperationTrail,
     ProgressOption,
     Spinner,
-    SpinnerPreset,
     progressbar,
 )
+from .spinner_presets import SPINNERS, SpinnerPreset
 
 # `Style` shadows the `cloup.Style` bound by the star import above with
 # click-extra's enhanced subclass; relative imports always follow the cloup

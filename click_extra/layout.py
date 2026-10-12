@@ -223,6 +223,10 @@ def is_bidirectional(text: str) -> bool:
     :param text: the text to inspect.
     :return: `True` when at least one character is right-to-left.
     """
+    # ASCII holds no right-to-left character, and most terminal text is ASCII:
+    # the check is asked once per run of glyphs a capture draws.
+    if text.isascii():
+        return False
     return any(bidirectional(char) in RTL_BIDI_CLASSES for char in text)
 
 

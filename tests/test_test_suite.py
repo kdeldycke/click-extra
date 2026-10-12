@@ -29,7 +29,9 @@ fast and platform-neutral.
 
 from __future__ import annotations
 
+import dataclasses
 import os
+import re
 import sys
 
 import pytest
@@ -247,6 +249,47 @@ def test_case_rejects_non_numeric_timeout(value):
         CLITestCase(timeout=value)
 
 
+def test_case_accepts_compiled_regexes():
+    """A regex directive takes a compiled pattern as well as a string.
+
+    The field hints admit both: a compiled pattern is kept as is, a string is
+    compiled with dots matching newlines, and the two mix in one directive.
+    """
+    pattern = re.compile("out.*", re.DOTALL)
+    case = CLITestCase(
+        stdout_regex_matches=(pattern, "err.*"),
+        stdout_regex_fullmatch=pattern,
+    )
+    matches = case.stdout_regex_matches
+    assert isinstance(matches, tuple)
+    assert matches[0] is pattern
+    assert isinstance(matches[1], re.Pattern)
+    assert matches[1].pattern == "err.*"
+    assert case.stdout_regex_fullmatch is pattern
+
+
+def test_case_survives_dataclass_replace():
+    """``dataclasses.replace`` runs the normalization again over normalized values.
+
+    Every field family has to accept its own output for that: compiled regexes,
+    resolved platform sets and split parameters all round-trip unchanged, and
+    only the replaced field moves.
+    """
+    case = CLITestCase(
+        cli_parameters="--version --verbose",
+        exit_code="0",
+        skip_platforms="windows",
+        unset_env="PROBE_VAR",
+        output_regex_matches="out.*",
+        output_regex_fullmatch="out.*",
+    )
+    clone = dataclasses.replace(case, exit_code=1)
+    assert clone.exit_code == 1
+    for field in dataclasses.fields(case):
+        if field.name != "exit_code":
+            assert getattr(clone, field.name) == getattr(case, field.name), field.name
+
+
 # --- output_* combined-stream directives -------------------------------------
 
 # An unbuffered (-u) script that interleaves stdout and stderr in a known order,
@@ -305,7 +348,9 @@ def test_only_platforms_skip_names_required_platforms(monkeypatch):
     contradictory "only runs on platform: macOS" for a case skipped *on* macOS.
     """
     macos = next(iter(extract_members("macos")))
-    monkeypatch.setattr("click_extra.test_suite.current_platform", lambda: macos)
+    # The runner imports `current_platform` when a case runs, so the patch lands
+    # on the `extra_platforms` module it reads it from.
+    monkeypatch.setattr("extra_platforms.current_platform", lambda: macos)
     case = CLITestCase(
         cli_parameters="--version", only_platforms=("freebsd", "windows")
     )
@@ -661,6 +706,25 @@ def test_cli_rejects_non_integer_jobs(invoke):
     )
     assert result.exit_code == 2
     assert "banana" in result.stderr
+
+
+def test_cli_skip_platform_knows_every_platform_id(invoke):
+    """--skip-platform takes any extra_platforms ID and refuses anything else.
+
+    The IDs are loaded when the option is first parsed, so importing the CLI
+    does not load the platform detection, and the check still happens.
+    """
+    result = invoke(
+        demo, ["test-suite", "--command", sys.executable, "--skip-platform", "nowhere"]
+    )
+    assert result.exit_code == 2
+    assert "--skip-platform" in result.stderr
+    assert "nowhere" in result.stderr
+
+    result = invoke(
+        demo, ["test-suite", "--command", sys.executable, "--skip-platform", "linux"]
+    )
+    assert result.exit_code == 0
 
 
 def test_cli_requires_command(invoke):

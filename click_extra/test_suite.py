@@ -51,9 +51,7 @@ from shutil import which
 from subprocess import TimeoutExpired
 
 from boltons.iterutils import flatten
-from boltons.strutils import strip_ansi
 from click import echo
-from extra_platforms import current_platform, extract_members, is_windows
 
 from .config.formats import (
     ConfigFormat,
@@ -61,7 +59,7 @@ from .config.formats import (
     parse_content,
     read_file,
 )
-from .envvar import merge_envvar_ids
+from .envvar import merge_envvar_ids, normalize_envvar_id
 from .execution import CPU_COUNT, args_cleanup, run_cli, run_jobs
 from .spinner import Spinner
 from .testing import (
@@ -102,6 +100,22 @@ if TYPE_CHECKING:
     from typing import Any
 
     from extra_platforms._types import _TNestedReferences
+
+
+def _stream_prefixes(*attrs: str) -> tuple[str, ...]:
+    """The directive prefixes reading the given {class}`~click_extra.testing.StreamView`
+    attributes, as {data}`~click_extra.testing.STREAM_FIELDS` maps them."""
+    return tuple(prefix for prefix, (_, attr) in STREAM_FIELDS.items() if attr in attrs)
+
+
+_STREAM_PREFIXES = _stream_prefixes("output", "stdout", "stderr")
+"""Every directive prefix naming a captured stream."""
+
+_MERGED_STREAM_PREFIXES = _stream_prefixes("output")
+"""The directive prefixes checking the merged stream."""
+
+_SEPARATE_STREAM_PREFIXES = _stream_prefixes("stdout", "stderr")
+"""The directive prefixes checking the separate streams."""
 
 
 class SkippedTest(Exception):
@@ -148,6 +162,79 @@ def _split_args(cli: str) -> list[str]:
 
     # For Unix platforms, we have the dedicated shlex module.
     return shlex.split(cli)
+
+
+def _normalize_strings(field_id: str, value: Any) -> tuple[str, ...]:
+    """Normalize a directive holding one or more strings into a tuple of strings.
+
+    A bare string is wrapped, or split into arguments for `cli_parameters`, any
+    other non-sequence is wrapped as is, and blank items are dropped.
+
+    :raises TypeError: on an item that is not a string.
+    """
+    if not value:
+        return ()
+    if isinstance(value, str):
+        value = _split_args(value) if field_id == "cli_parameters" else (value,)
+    elif not isinstance(value, Sequence):
+        value = (value,)
+    for item in value:
+        if not isinstance(item, str):
+            raise TypeError(f"Invalid string in {field_id}: {item}")
+    return tuple(item for item in value if item.strip())
+
+
+def _normalize_regexes(field_id: str, value: Any) -> tuple[re.Pattern, ...]:
+    """Compile the regexes of a directive, one or many, into a tuple of patterns.
+
+    A bare regex is wrapped, blank strings are dropped, and a pattern already
+    compiled is kept as is: both what a suite author may pass directly and what
+    {func}`dataclasses.replace` hands back. Dots match newlines, so a pattern can
+    span lines.
+
+    :raises TypeError: on an item that is neither a string nor a pattern.
+    :raises ValueError: on a string that does not compile.
+    """
+    if not value:
+        return ()
+    compiled: list[re.Pattern] = []
+    for regex in flatten((value,)):
+        if isinstance(regex, re.Pattern):
+            compiled.append(regex)
+        elif not isinstance(regex, str):
+            raise TypeError(f"Invalid regex in {field_id}: {regex!r}")
+        elif regex.strip():
+            try:
+                compiled.append(re.compile(regex, re.DOTALL))
+            except re.error as ex:
+                raise ValueError(f"Invalid regex in {field_id}: {regex}") from ex
+    return tuple(compiled)
+
+
+def _normalize_env(value: Any) -> dict[str, str]:
+    """Validate the `env` mapping and spell its names the way the platform reads them.
+
+    Windows matches variable names case-insensitively and upper-cases them in
+    `os.environ`, so a suite pinning a mixed-case name would otherwise behave
+    differently there: {func}`~click_extra.envvar.normalize_envvar_id` applies
+    the same normalization as `merge_envvar_ids`.
+
+    :raises TypeError: when the value is not a mapping of strings to strings.
+    """
+    if not value:
+        return {}
+    if not isinstance(value, dict):
+        raise TypeError(f"env is not a mapping: {value}")
+    for name, item in value.items():
+        if not isinstance(name, str):
+            raise TypeError(f"Invalid env variable name: {name}")
+        if not isinstance(item, str):
+            raise TypeError(
+                f"Value of env variable {name} is not a string: "
+                f"{item!r}. Quote it, as an environment only "
+                "holds strings."
+            )
+    return {normalize_envvar_id(name): item for name, item in value.items()}
 
 
 @dataclass(order=True)
@@ -273,7 +360,9 @@ class CLITestCase:
     def has_merged_output_directives(self) -> bool:
         """Whether any `output_*` directive (merged stream) is set."""
         return any(
-            getattr(self, f.name) for f in fields(self) if f.name.startswith("output_")
+            getattr(self, f.name)
+            for f in fields(self)
+            if f.name.startswith(_MERGED_STREAM_PREFIXES)
         )
 
     @property
@@ -283,11 +372,16 @@ class CLITestCase:
         return any(
             getattr(self, f.name)
             for f in fields(self)
-            if f.name.startswith(("stdout_", "stderr_"))
+            if f.name.startswith(_SEPARATE_STREAM_PREFIXES)
         )
 
     def __post_init__(self) -> None:
-        """Normalize all fields.
+        """Normalize all fields, each through the one normalizer of its family.
+
+        Every normalizer accepts its own output, so a case survives
+        {func}`dataclasses.replace`, which runs this method again over values
+        already normalized: a compiled regex stays compiled, a resolved platform
+        set stays a set.
 
         ```{note}
         We iterate with `fields()` + `getattr()` instead of `asdict()`
@@ -299,6 +393,11 @@ class CLITestCase:
         for f in fields(self):
             field_id = f.name
             field_data = getattr(self, field_id)
+
+            # Filled by `run_cli_test`, never a directive to normalize.
+            if field_id == "execution_trace":
+                continue
+
             # Validates and normalize integer properties.
             if field_id == "exit_code":
                 if isinstance(field_data, str):
@@ -329,78 +428,39 @@ class CLITestCase:
 
             # Validates and normalize the environment mapping.
             elif field_id == "env":
-                if not field_data:
-                    field_data = {}
-                elif not isinstance(field_data, dict):
-                    raise TypeError(f"env is not a mapping: {field_data}")
-                else:
-                    for name, value in field_data.items():
-                        if not isinstance(name, str):
-                            raise TypeError(f"Invalid env variable name: {name}")
-                        if not isinstance(value, str):
-                            raise TypeError(
-                                f"Value of env variable {name} is not a string: "
-                                f"{value!r}. Quote it, as an environment only "
-                                "holds strings."
-                            )
-                    # Windows matches variable names case-insensitively and
-                    # upper-cases them in `os.environ`, so a suite pinning a
-                    # mixed-case name would otherwise behave differently there.
-                    # Same normalization as `merge_envvar_ids`.
-                    field_data = {
-                        (name.upper() if is_windows() else name): value
-                        for name, value in field_data.items()
-                    }
-
-            # Validates and normalize tuple of strings.
-            else:
-                if field_data:
-                    # Wraps single string and other types into a tuple.
-                    if isinstance(field_data, str) or not isinstance(
-                        field_data, Sequence
-                    ):
-                        # CLI parameters provided as a long string needs to be split so
-                        # that each argument is a separate item in the final tuple.
-                        if field_id == "cli_parameters":
-                            field_data = _split_args(field_data)
-                        else:
-                            field_data = (field_data,)
-
-                    for item in field_data:
-                        if not isinstance(item, str):
-                            raise TypeError(f"Invalid string in {field_id}: {item}")
-                    # Ignore blank value.
-                    field_data = tuple(i for i in field_data if i.strip())
+                field_data = _normalize_env(field_data)
 
             # Deduplicate the names to unset, and apply the same Windows
             # upper-casing `env` gets above.
-            if field_id == "unset_env" and field_data:
-                field_data = merge_envvar_ids(field_data)
+            elif field_id == "unset_env":
+                field_data = merge_envvar_ids(_normalize_strings(field_id, field_data))
 
-            # Normalize any mishmash of platform and group IDs into a set of platforms.
-            if field_id.endswith("_platforms") and field_data:
-                field_data = frozenset(extract_members(field_data))
+            # Normalize any mishmash of platform and group IDs into a set of
+            # platforms. A set is already resolved and kept as is.
+            elif field_id.endswith("_platforms"):
+                if not isinstance(field_data, frozenset):
+                    references = _normalize_strings(field_id, field_data)
+                    if references:
+                        # Deferred import: keeps extra_platforms off the startup
+                        # path of the CLI, which only a case naming a platform needs.
+                        from extra_platforms import extract_members
 
-            # Validates fields containing one or more regexes.
-            if "_regex_" in field_id and field_data:
-                # Compile all regexes.
-                valid_regexes = []
-                for regex in flatten((field_data,)):
-                    try:
-                        # Let dots in regex match newlines.
-                        valid_regexes.append(re.compile(regex, re.DOTALL))
-                    except re.error as ex:
-                        raise ValueError(
-                            f"Invalid regex in {field_id}: {regex}"
-                        ) from ex
-                # Normalize single regex to a single element.
-                if field_id.endswith("_fullmatch"):
-                    if valid_regexes:
-                        field_data = valid_regexes.pop()
+                        field_data = frozenset(extract_members(references))
                     else:
-                        field_data = None
-                else:
-                    field_data = tuple(valid_regexes)
+                        field_data = ()
+
+            # Validates and compile fields holding one or more regexes.
+            elif field_id.endswith("_regex_matches"):
+                field_data = _normalize_regexes(field_id, field_data)
+
+            # A single regex, the last given when several are: `None` when none is.
+            elif field_id.endswith("_regex_fullmatch"):
+                regexes = _normalize_regexes(field_id, field_data)
+                field_data = regexes[-1] if regexes else None
+
+            # Validates and normalize tuple of strings.
+            else:
+                field_data = _normalize_strings(field_id, field_data)
 
             setattr(self, field_id, field_data)
 
@@ -437,6 +497,11 @@ class CLITestCase:
         which binary is executed, only what a relative path inside the command
         resolves against.
         """
+        # Deferred imports: keep extra_platforms and boltons.strutils off the
+        # startup path of the CLI, which only a running case needs.
+        from boltons.strutils import strip_ansi
+        from extra_platforms import current_platform, extract_members
+
         if self.only_platforms and current_platform() not in self.only_platforms:  # type: ignore[operator]
             required = ", ".join(
                 sorted(trait.id for trait in extract_members(self.only_platforms))
@@ -458,12 +523,11 @@ class CLITestCase:
             args = _split_args(command)
             command = args[0]
             args = args[1:]
-            # Ensure the command to execute is in PATH.
-            if not which(command):
+            # Resolve the command to the absolute path of the binary in PATH.
+            resolved = which(command)
+            if not resolved:
                 raise FileNotFoundError(f"Command not found in PATH: {command!r}")
-            # Resolve the command to an absolute path.
-            command = which(command)  # type: ignore[assignment]
-            assert command is not None
+            command = resolved
 
         # Check the binary exists and is executable. `.absolute()`, not
         # `.resolve()`: resolving a venv interpreter symlink (e.g.
@@ -543,9 +607,7 @@ class CLITestCase:
                 continue
 
             # Ignore non-output fields, and empty test cases.
-            elif not (
-                field_id.startswith(("output_", "stdout_", "stderr_")) and field_data
-            ):
+            elif not (field_id.startswith(_STREAM_PREFIXES) and field_data):
                 continue
 
             # Select the stream and its label from the shared field-prefix table.

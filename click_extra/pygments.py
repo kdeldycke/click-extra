@@ -39,7 +39,9 @@ quantization to the nearest entry in the 256-color palette instead.
 from __future__ import annotations
 
 import re
+from functools import cache
 from io import StringIO
+from typing import cast
 
 from ._utils import missing_extra_message
 
@@ -66,21 +68,26 @@ from pygments.lexers.ruby import RubyConsoleLexer
 from pygments.lexers.shell import ShellSessionBaseLexer
 from pygments.lexers.special import OutputLexer
 from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
-from pygments.style import StyleMeta
+from pygments.style import Style, StyleMeta
 from pygments.token import Generic, Text, Token, string_to_tokentype
 
 from .styling import (
     _ANSI_16_RGB,
     _ANSI_NAMES,
+    _ATTR_CSS,
+    _SGR_ATTRIBUTES,
+    _apply_sgr_codes,
+    _is_rgb,
     _nearest_256,
     _palette_to_rgb,
     _rgb_to_hex,
+    _sgr_params,
 )
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
-    from typing import ClassVar
+    from collections.abc import Iterable, Iterator, Sequence
+    from typing import Any, ClassVar
 
     from pygments.token import _TokenType
 
@@ -112,54 +119,18 @@ cube, and 232-255 the grayscale ramp.
 """
 
 
-_SGR_FG_COLORS: dict[int, str] = {
-    offset + i: prefix + name.capitalize()
-    for prefix, offset in (("", 30), ("Bright", 90))
-    for i, name in enumerate(_ANSI_NAMES)
+_ATTR_COMPONENTS: dict[str, str] = {
+    attr: "Faint" if attr == "dim" else attr.capitalize()
+    for attr in _SGR_ATTRIBUTES.values()
 }
-"""SGR foreground color codes (30-37, 90-97) to named color strings.
+"""`Token.Ansi` component name of each boolean text attribute.
 
-Derived from the canonical {data}`click_extra.styling._ANSI_NAMES` order, the
-same construction as {data}`_NAMED_COLORS`.
-"""
-
-_SGR_BG_COLORS: dict[int, str] = {
-    code + 10: name for code, name in _SGR_FG_COLORS.items()
-}
-"""SGR background color codes (40-47, 100-107) to named color strings.
-
-Derived from `_SGR_FG_COLORS` by offsetting each code by +10.
-"""
-
-_SGR_ATTR_ON: dict[int, str] = {
-    1: "Bold",
-    2: "Faint",
-    3: "Italic",
-    4: "Underline",
-    5: "Blink",
-    7: "Reverse",
-    9: "Strikethrough",
-    53: "Overline",
-}
-"""SGR codes that activate text attributes, mapped to `Token.Ansi` component names.
-
-This mapping is the single source of truth for supported text attributes. The attribute
-names appear in `EXTRA_ANSI_CSS`, the Pygments token hierarchy, and CSS class names.
-"""
-
-_SGR_ATTR_OFF: dict[int, tuple[str, ...]] = {
-    22: ("Bold", "Faint"),
-    23: ("Italic",),
-    24: ("Underline",),
-    25: ("Blink",),
-    27: ("Reverse",),
-    29: ("Strikethrough",),
-    55: ("Overline",),
-}
-"""SGR codes that deactivate text attributes.
-
-Each code maps to one or more attribute names to reset. SGR 22 (normal intensity) resets
-both bold and faint simultaneously.
+Keyed by the {class}`~click_extra.styling.Style` field names the SGR decoder of
+{mod}`click_extra.styling` fills, in SGR code order, so the lexer and
+{meth}`~click_extra.styling.Style.from_ansi` cannot disagree on which code
+switches which attribute on. The component names appear in `EXTRA_ANSI_CSS`,
+the Pygments token hierarchy, and CSS class names. `dim` is spelled `Faint`
+there, the name ECMA-48 gives SGR 2.
 """
 
 
@@ -195,6 +166,49 @@ def _has_safe_scheme(url: str) -> bool:
     """Return `True` if `url` starts with a scheme in `_SAFE_URL_SCHEMES`."""
     colon = url.find(":")
     return colon > 0 and url[:colon].lower() in _SAFE_URL_SCHEMES
+
+
+def _ansi_token(components: Sequence[str]) -> _TokenType:
+    """Build the compound `Token.Ansi.*` token holding `components`, in order.
+
+    Pygments creates a token type on its first attribute access, so walking down
+    from `Ansi` both looks the compound token up and defines it. No component at
+    all collapses to `Text`, which Pygments renders without a surrounding span.
+    """
+    if not components:
+        return Text
+    token: _TokenType = Ansi
+    for component in components:
+        token = getattr(token, component)
+    return token
+
+
+def _color_component(color: object, ground: str, *, true_color: bool) -> str | None:
+    """Name the token component of a color the SGR decoder parsed, or `None`.
+
+    `ground` is `fg` or `bg`, the state key the color sits under. A named ANSI
+    color becomes its capitalized component (`red` to `Red`, `bright_red` to
+    `BrightRed`), a palette index `n` becomes `C{n}`, and an RGB triplet becomes
+    a `FG_{rrggbb}` or `BG_{rrggbb}` hex component under `true_color`, or the
+    `C{n}` of its nearest palette entry otherwise. A background component other
+    than the hex one takes the `BG` prefix.
+
+    A value no terminal would honor, like a palette index or a channel past
+    255, names nothing: the text renders as if that color were never set.
+    """
+    if isinstance(color, str):
+        name = "".join(part.capitalize() for part in color.split("_"))
+    elif _is_rgb(color):
+        if not all(0 <= channel <= 255 for channel in color):
+            return None
+        if true_color:
+            return f"{ground.upper()}_{_rgb_to_hex(color)[1:]}"
+        name = f"C{_nearest_256(*color)}"
+    elif isinstance(color, int) and 0 <= color <= 255:
+        name = f"C{color}"
+    else:
+        return None
+    return name if ground == "fg" else f"BG{name}"
 
 
 # --- Style generation ---
@@ -244,6 +258,14 @@ DEFAULT_TOKEN_TYPE = Generic.Output
 
 Defaults to `Generic.Output` tokens, as this is the token type used by all REPL-like
 and terminal session lexers.
+"""
+
+DEFAULT_TRUE_COLOR = True
+"""Whether 24-bit RGB colors are kept as such, rather than quantized.
+
+The default of the `true_color` option every ANSI lexer and filter of this
+module takes: {class}`AnsiColorLexer`, {class}`AnsiFilter`, and the session
+lexers of {data}`LEXER_MAP`, which hand the option down to the lexers they wrap.
 """
 
 _ANSI_ESCAPE_RE = re.compile(
@@ -297,26 +319,45 @@ class AnsiColorLexer(Lexer):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the lexer.
 
-        :param true_color: Default `True`. 24-bit RGB sequences are preserved as
-            ``Token.Ansi.FG_{rrggbb}`` / ``Token.Ansi.BG_{rrggbb}`` tokens, which
-            `AnsiHtmlFormatter` renders as inline `style="color: #rrggbb"` /
-            `style="background-color: #rrggbb"` attributes (CSS classes cannot
-            enumerate 16.7M colors). Pass `False` to quantize 24-bit RGB to the
-            nearest entry in the 256-color palette and emit ``Token.Ansi.C{n}`` /
-            ``Token.Ansi.BGC{n}`` tokens that map to CSS classes via the style dict.
+        :param true_color: Default {data}`DEFAULT_TRUE_COLOR`. 24-bit RGB sequences
+            are preserved as ``Token.Ansi.FG_{rrggbb}`` / ``Token.Ansi.BG_{rrggbb}``
+            tokens, which `AnsiHtmlFormatter` renders as inline
+            `style="color: #rrggbb"` / `style="background-color: #rrggbb"`
+            attributes (CSS classes cannot enumerate 16.7M colors). Pass `False` to
+            quantize 24-bit RGB to the nearest entry in the 256-color palette and
+            emit ``Token.Ansi.C{n}`` / ``Token.Ansi.BGC{n}`` tokens that map to CSS
+            classes via the style dict.
         """
-        self.true_color = bool(kwargs.pop("true_color", True))
+        self.true_color = bool(kwargs.pop("true_color", DEFAULT_TRUE_COLOR))
         super().__init__(*args, **kwargs)
-        self._cached_token: _TokenType = Text
         self._reset_state()
 
     def _reset_state(self) -> None:
-        """Reset all SGR and link state to defaults."""
-        self._attrs = dict.fromkeys(_SGR_ATTR_ON.values(), False)
-        self.fg_color: str | None = None
-        self.bg_color: str | None = None
-        self._token_dirty = True
+        """Reset the SGR state, the token built from it and the link state."""
+        self._state: dict[str, Any] = {}
+        self._token_state: dict[str, Any] = {}
+        self._cached_token: _TokenType = Text
         self._link_active = False
+
+    def _components(self) -> list[str]:
+        """Name the token components of the current SGR state, attributes first.
+
+        Attributes come in SGR code order, then the foreground, then the
+        background, each through `_color_component`.
+        """
+        components = [
+            component
+            for attr, component in _ATTR_COMPONENTS.items()
+            if self._state.get(attr)
+        ]
+        for ground in ("fg", "bg"):
+            color = self._state.get(ground)
+            if color is None:
+                continue
+            component = _color_component(color, ground, true_color=self.true_color)
+            if component is not None:
+                components.append(component)
+        return components
 
     @property
     def _current_token(self) -> _TokenType:
@@ -326,108 +367,26 @@ class AnsiColorLexer(Lexer):
         example, bold red text on a green background produces
         `Token.Ansi.Bold.Red.BGGreen`.
 
-        Uses a dirty flag to avoid recomputation when the state hasn't changed since the
-        last access (common with stripped non-SGR escapes between text fragments).
+        The token is rebuilt only when the state changed since the last access,
+        which an escape landing back on the same state, or a stripped non-SGR
+        escape between two text fragments, never does.
         """
-        if not self._token_dirty:
-            return self._cached_token
-        components = [name for name, active in self._attrs.items() if active]
-        if self.fg_color:
-            components.append(self.fg_color)
-        if self.bg_color:
-            # `BG_rrggbb` true-color values are already prefixed; named and
-            # palette-indexed values use the conventional `BG` prefix.
-            components.append(
-                self.bg_color
-                if self.bg_color.startswith("BG_")
-                else "BG" + self.bg_color
-            )
-        if not components:
-            self._cached_token = Text
-        else:
-            token = Ansi
-            for c in components:
-                token = getattr(token, c)
-            self._cached_token = token
-        self._token_dirty = False
+        if self._state != self._token_state:
+            self._cached_token = _ansi_token(self._components())
+            self._token_state = dict(self._state)
         return self._cached_token
 
     def _process_sgr(self, params: str) -> None:
-        """Update SGR state from a semicolon-separated parameter string.
+        """Update the SGR state from a semicolon-separated parameter string.
 
-        An empty parameter string is equivalent to SGR 0 (reset all).
+        The decoding is the one of {mod}`click_extra.styling`, so an escape reads
+        the same here as in {func}`~click_extra.styling.split_ansi`: an empty
+        parameter is `0`, a full reset, and `\x1b[;31m` is a reset followed by
+        a red foreground. The state is keyed by
+        {class}`~click_extra.styling.Style` field names, and `_components` maps
+        it onto the token hierarchy.
         """
-        if not params:
-            self._reset_state()
-            return
-
-        try:
-            values = [int(v) for v in params.split(";")]
-        except ValueError:
-            return
-
-        self._token_dirty = True
-        while values:
-            code = values.pop(0)
-
-            # SGR 0: reset all attributes.
-            if code == 0:
-                self._reset_state()
-
-            # Text attributes: set (SGR 1-9, 53) or reset (SGR 22-29, 55).
-            elif code in _SGR_ATTR_ON:
-                self._attrs[_SGR_ATTR_ON[code]] = True
-            elif code in _SGR_ATTR_OFF:
-                for attr in _SGR_ATTR_OFF[code]:
-                    self._attrs[attr] = False
-
-            # SGR 39: default foreground color.
-            elif code == 39:
-                self.fg_color = None
-            # SGR 49: default background color.
-            elif code == 49:
-                self.bg_color = None
-
-            # SGR 30-37, 90-97: named foreground colors.
-            elif code in _SGR_FG_COLORS:
-                self.fg_color = _SGR_FG_COLORS[code]
-            # SGR 40-47, 100-107: named background colors.
-            elif code in _SGR_BG_COLORS:
-                self.bg_color = _SGR_BG_COLORS[code]
-
-            # SGR 38/48: extended color (256-color indexed or 24-bit RGB).
-            elif code in (38, 48):
-                if len(values) < 2:
-                    continue
-                mode = values.pop(0)
-                if mode == 5:
-                    # 256-color indexed: 38;5;n or 48;5;n.
-                    color_idx = values.pop(0)
-                    if 0 <= color_idx <= 255:
-                        if code == 38:
-                            self.fg_color = f"C{color_idx}"
-                        else:
-                            self.bg_color = f"C{color_idx}"
-                elif mode == 2:
-                    # 24-bit RGB: 38;2;r;g;b or 48;2;r;g;b.
-                    # Quantized to the nearest 256-color entry by default; preserved
-                    # as FG_/BG_ hex token components when `true_color` is enabled.
-                    if len(values) < 3:
-                        continue
-                    r, g, b = values.pop(0), values.pop(0), values.pop(0)
-                    if all(0 <= v <= 255 for v in (r, g, b)):
-                        if self.true_color:
-                            hex_value = f"{r:02x}{g:02x}{b:02x}"
-                            if code == 38:
-                                self.fg_color = f"FG_{hex_value}"
-                            else:
-                                self.bg_color = f"BG_{hex_value}"
-                        else:
-                            nearest = _nearest_256(r, g, b)
-                            if code == 38:
-                                self.fg_color = f"C{nearest}"
-                            else:
-                                self.bg_color = f"C{nearest}"
+        _apply_sgr_codes(_sgr_params(params), self._state)
 
     def get_tokens_unprocessed(
         self, text: str
@@ -480,8 +439,8 @@ class AnsiFilter(Filter):
 
         :param true_color: Forwarded to the inner `AnsiColorLexer` to control whether
             24-bit RGB sequences are preserved as `FG_/BG_` hex tokens for inline-style
-            rendering (default `True`) or quantized to the 256-color palette. See
-            {class}`AnsiColorLexer` for details.
+            rendering (default {data}`DEFAULT_TRUE_COLOR`) or quantized to the
+            256-color palette. See {class}`AnsiColorLexer` for details.
 
         ```{note}
         Only one `token_type` is supported. All Pygments session lexers
@@ -494,7 +453,7 @@ class AnsiFilter(Filter):
         related discussions.
         ```
         """
-        true_color = bool(options.pop("true_color", True))
+        true_color = bool(options.pop("true_color", DEFAULT_TRUE_COLOR))
         super().__init__(**options)
         self.ansi_lexer = AnsiColorLexer(true_color=true_color)
         self.token_type = string_to_tokentype(
@@ -541,7 +500,7 @@ def _ansi_input_lexer(inner_cls: type[Lexer]) -> type[Lexer]:
         name = f"ANSI-aware {inner_cls.name}"
 
         def __init__(self, **options) -> None:
-            true_color = bool(options.pop("true_color", True))
+            true_color = bool(options.pop("true_color", DEFAULT_TRUE_COLOR))
             super().__init__(**options)
             self.plain_lexer = inner_cls(**options)
             self.ansi_lexer = AnsiColorLexer(true_color=true_color)
@@ -597,10 +556,11 @@ class _AnsiFilterMixin(Lexer):
         `TokenMergeFilter` consolidates contiguous output lines into a single token,
         then `AnsiFilter` transforms the merged output into ANSI-styled tokens.
 
-        :param true_color: Forwarded to `AnsiFilter`. Default `True`: 24-bit RGB
-            renders via inline styles. Pass `False` to quantize to the 256-color palette.
+        :param true_color: Forwarded to `AnsiFilter`. Default
+            {data}`DEFAULT_TRUE_COLOR`: 24-bit RGB renders via inline styles. Pass
+            `False` to quantize to the 256-color palette.
         """
-        true_color = bool(kwargs.pop("true_color", True))
+        true_color = bool(kwargs.pop("true_color", DEFAULT_TRUE_COLOR))
         super().__init__(*args, **kwargs)
         # Put the option back where Pygments builds the inner lexer from, as
         # ShellSessionBaseLexer instantiates it with `**self.options`.
@@ -657,21 +617,27 @@ for _original_lexer in collect_session_lexers():
 # --- Formatter ---
 
 
+_BLINK_CSS = "animation: ansi-blink 1s step-end infinite"
+"""The declaration animating a `Blink` span, through the `ansi-blink` keyframes.
+
+CSS has no declaration for blinking text, which is why
+{data}`click_extra.styling._ATTR_CSS` leaves the attribute empty. The keyframes
+are emitted beside the token rules by `AnsiHtmlFormatter._extra_ansi_css_lines`.
+"""
+
 EXTRA_ANSI_CSS: dict[str, str] = {
-    "Bold": "font-weight: bold",
-    "Faint": "opacity: 0.5",
-    "Italic": "font-style: italic",
-    "Underline": "text-decoration: underline",
-    "Blink": "animation: ansi-blink 1s step-end infinite",
-    "Reverse": "filter: invert(1)",
-    "Strikethrough": "text-decoration: line-through",
-    "Overline": "text-decoration: overline",
+    component: _BLINK_CSS if attr == "blink" else ": ".join(_ATTR_CSS[attr])
+    for attr, component in _ATTR_COMPONENTS.items()
 }
 """All SGR text attribute CSS declarations.
 
-Maps `Token.Ansi` component names to CSS declarations. These are kept out of the
-Pygments style dict (`_ANSI_STYLES`) to prevent Furo's dark-mode CSS generator from
-injecting `color: #D0D0D0` fallbacks that conflict with foreground color tokens.
+Maps `Token.Ansi` component names to CSS declarations, taken from
+{data}`click_extra.styling._ATTR_CSS` so an attribute renders the same in a
+documentation code block as in the HTML
+{meth}`~click_extra.styling.Style.to_css` writes. `Blink` alone takes
+`_BLINK_CSS`. The rules are kept out of the Pygments style dict (`_ANSI_STYLES`)
+to prevent Furo's dark-mode CSS generator from injecting `color: #D0D0D0`
+fallbacks that conflict with foreground color tokens.
 
 Used by `AnsiHtmlFormatter.get_token_style_defs` to inject CSS rules that both
 standalone `pygmentize` and Furo's dark-mode CSS generator pick up.
@@ -715,6 +681,23 @@ replacement with a `<span style="...">` tag.
 """
 
 
+@cache
+def _ansi_style(base_style: type[Style]) -> type[Style]:
+    """Subclass `base_style` with the ANSI color tokens of `_ANSI_STYLES` added.
+
+    Cached per base style: Sphinx builds a formatter for every highlighted block,
+    and a style class holding the same hundreds of token entries serves them all.
+    """
+    augmented_styles = dict(base_style.styles)
+    augmented_styles.update(_ANSI_STYLES)
+    return cast(
+        "type[Style]",
+        StyleMeta(
+            f"Ansi{base_style.__name__}", (base_style,), {"styles": augmented_styles}
+        ),
+    )
+
+
 class AnsiHtmlFormatter(HtmlFormatter):
     """HTML formatter with ANSI color and hyperlink support.
 
@@ -727,26 +710,26 @@ class AnsiHtmlFormatter(HtmlFormatter):
     name = "ANSI HTML"
     aliases: ClassVar[list[str]] = ["ansi-html"]
 
+    _css_classes: ClassVar[dict[tuple[str, _TokenType], str]] = {}
+    """CSS classes of each token already decomposed, keyed by class prefix.
+
+    Shared by every instance: the classes a token maps to depend on nothing but
+    the formatter's `classprefix` option and the token itself, and the same
+    compound tokens recur in every terminal capture of a build.
+    """
+
     def __init__(self, **kwargs) -> None:
         """Intercept the `style` argument to augment it with ANSI color support.
 
-        Creates a new style instance that inherits from the one provided by the user, but
-        updates its `styles` attribute with ANSI token definitions from
-        `_ANSI_STYLES`.
+        The formatter runs on a subclass of the style provided by the user, whose
+        `styles` attribute is extended with the ANSI token definitions of
+        `_ANSI_STYLES`, see `_ansi_style`.
         """
         # Same default style as Pygments' HtmlFormatter: `default`.
-        base_style_id = kwargs.setdefault("style", "default")
-        base_style = _lookup_style(base_style_id)
-
-        augmented_styles = dict(base_style.styles)
-        augmented_styles.update(_ANSI_STYLES)
-
-        new_name = f"Ansi{base_style.__name__}"
-        ansi_style = StyleMeta(new_name, (base_style,), {"styles": augmented_styles})
-        kwargs["style"] = ansi_style
-
+        kwargs["style"] = _ansi_style(
+            _lookup_style(kwargs.setdefault("style", "default"))
+        )
         super().__init__(**kwargs)
-        self._ansi_css_cache: dict[_TokenType, str] = {}
 
     def format_unencoded(self, tokensource, outfile) -> None:
         """Render tokens to HTML, converting OSC 8 link and 24-bit RGB markers to tags.
@@ -830,11 +813,7 @@ class AnsiHtmlFormatter(HtmlFormatter):
             # Rebuild the token without the RGB components. An empty result collapses
             # to `Text` so Pygments emits no surrounding span: the inline-style span
             # produced by the marker post-processing is the only wrapper needed.
-            new_ttype: _TokenType = Text
-            if kept:
-                new_ttype = Ansi
-                for component in kept:
-                    new_ttype = getattr(new_ttype, component)
+            new_ttype = _ansi_token(kept)
 
             prefix = ""
             suffix = ""
@@ -932,10 +911,11 @@ class AnsiHtmlFormatter(HtmlFormatter):
         re-pins both the Sphinx and the MkDocs HTML output (and their tests).
         ```
 
-        Results are cached per token type since the same compound tokens recur frequently
-        in typical terminal output.
+        Results are cached per class prefix and token type in `_css_classes`,
+        since the same compound tokens recur frequently in typical terminal output.
         """
-        cached = self._ansi_css_cache.get(ttype)
+        key = (self.classprefix, ttype)
+        cached = self._css_classes.get(key)
         if cached is not None:
             return cached
         if ttype and ttype[0] == "Ansi":
@@ -946,5 +926,5 @@ class AnsiHtmlFormatter(HtmlFormatter):
             )
         else:
             classes = super()._get_css_classes(ttype)  # type: ignore[misc]
-        self._ansi_css_cache[ttype] = classes
+        self._css_classes[key] = classes
         return classes

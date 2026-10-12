@@ -32,6 +32,8 @@ import logging
 import re
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 #: RST underline characters mapped to Markdown heading levels.
 _RST_UNDERLINE_LEVELS: dict[str, str] = {
     "=": "#",
@@ -135,14 +137,14 @@ def convert_rst_files_in_directory(directory: Path) -> list[Path]:
 
         # Only process files that contain automodule directives (sphinx-apidoc stubs).
         if ".. automodule::" not in content:
-            logging.debug(f"Skipping {rst_path.name}: no automodule directive found.")
+            logger.debug("Skipping %s: no automodule directive found.", rst_path.name)
             continue
 
         md_path = rst_path.with_suffix(".md")
 
         if md_path.exists():
-            logging.info(
-                f"Deleting {rst_path.name}: MyST equivalent {md_path.name} exists."
+            logger.info(
+                "Deleting %s: MyST equivalent %s exists.", rst_path.name, md_path.name
             )
             rst_path.unlink()
             continue
@@ -151,6 +153,6 @@ def convert_rst_files_in_directory(directory: Path) -> list[Path]:
         md_path.write_text(myst_content, encoding="utf-8")
         rst_path.unlink()
         converted.append(md_path)
-        logging.info(f"Converted {rst_path.name} → {md_path.name}")
+        logger.info("Converted %s → %s", rst_path.name, md_path.name)
 
     return converted

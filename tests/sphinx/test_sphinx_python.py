@@ -89,6 +89,31 @@ def test_python_run_language_override(sphinx_app_myst):
     assert '"sphinx"' in unescape_quotes(html)
 
 
+def test_python_run_screenshot_writes_the_asset(sphinx_app_myst):
+    """``:screenshot:`` on ``python:run`` writes the capture, as on ``click:run``.
+
+    The ``:mirror:`` refresher links the asset below whichever directive names
+    it, so the block has to write it or the page links an image that is not
+    there.
+    """
+    html = sphinx_app_myst.build_document(
+        dedent("""
+            ```{python:run}
+            :screenshot: papaya-screen
+            print("Hello, papaya!")
+            ```
+        """)
+    )
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "papaya-screen.svg"
+    assert asset.exists(), "the capture was not written"
+    svg = asset.read_text(encoding="utf-8")
+    assert "papaya-screen-r1" in svg
+    assert "papaya" in svg
+    # The results block is still rendered, rather than swapped for the image.
+    assert html is not None
+    assert "Hello, papaya!" in html
+
+
 def test_python_run_emphasize_lines_split(sphinx_app_myst):
     """``:emphasize-lines:`` highlights source only; ``:emphasize-result-lines:``
     highlights result only: independently, on the same block."""

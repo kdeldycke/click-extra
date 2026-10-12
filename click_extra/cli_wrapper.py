@@ -33,8 +33,6 @@ import logging
 import runpy
 import shlex
 import sys
-from configparser import ConfigParser
-from importlib import metadata
 from pathlib import Path
 
 import click
@@ -43,6 +41,7 @@ from click.core import ParameterSource
 from click.utils import make_str
 
 from . import context
+from ._utils import console_script
 from .carapace import (
     dump_carapace_spec,
     install_carapace_spec,
@@ -57,6 +56,7 @@ from .command_doc import (
     write_manpages,
 )
 from .commands import ColorizedCommand, ColorizedGroup, Group
+from .config.flags import config_table_to_flags
 from .context import Context
 from .decorators import columns_option, option
 from .highlight import HelpFormatter, HelpKeywords, _HelpColorsMixin
@@ -65,6 +65,7 @@ from .parameters import (
     make_resilient_context,
     render_params_table,
 )
+from .prebake import entry_point_package, locate_package_root, read_project_scripts
 from .table import TableFormat, TableFormatOption
 from .theme import (
     BUILTIN_THEMES,
@@ -75,11 +76,6 @@ from .theme import (
 )
 from .tree import render_command_tree
 from .types import EnumChoice
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -276,66 +272,13 @@ def unpatch_click() -> None:
     set_default_theme(BUILTIN_THEMES.get("dark", NOCOLOR_THEME))
 
 
-def _read_project_scripts(directory: Path) -> dict[str, str]:
-    """Read the console-script entry points declared by a local project.
-
-    Inspects PEP 621 `[project.scripts]` in `pyproject.toml` first, then
-    `console_scripts` under `[options.entry_points]` in `setup.cfg`. The
-    dynamic `setup.py` form cannot be parsed statically and is ignored.
-
-    :returns: a mapping of each console-script name to its `module:function`
-        target. Empty when the project declares none.
-    """
-    pyproject = directory / "pyproject.toml"
-    if pyproject.is_file():
-        data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
-        scripts = data.get("project", {}).get("scripts", {})
-        if scripts:
-            return {str(name): str(target) for name, target in scripts.items()}
-
-    setup_cfg = directory / "setup.cfg"
-    if setup_cfg.is_file():
-        parser = ConfigParser()
-        parser.read(setup_cfg, encoding="utf-8")
-        raw = parser.get("options.entry_points", "console_scripts", fallback="")
-        scripts = {}
-        for line in raw.strip().splitlines():
-            entry = line.strip()
-            if not entry or "=" not in entry:
-                continue
-            name, _, target = entry.partition("=")
-            scripts[name.strip()] = target.strip()
-        return scripts
-
-    return {}
-
-
-def _locate_package_root(directory: Path, top_package: str) -> Path | None:
-    """Find which directory must be on `sys.path` to import *top_package*.
-
-    Handles the two common project layouts: the flat layout (the package sits
-    directly under the project root) and the src layout (under a `src/`
-    subdirectory).
-
-    :returns: the directory to prepend to `sys.path`, or `None` when the
-        package cannot be located on disk.
-    """
-    for root in (directory, directory / "src"):
-        package = root / top_package
-        if (package / "__init__.py").is_file():
-            return root
-        if (root / f"{top_package}.py").is_file():
-            return root
-        if package.is_dir():
-            return root
-    return None
-
-
 def _resolve_project_dir(directory: Path) -> tuple[str, str, Path]:
     """Resolve a local project directory to an importable target.
 
     Reads the project's packaging metadata to find its console-script entry
-    point, then locates the top-level package on disk so it can be imported
+    point, with {func}`~click_extra.prebake.read_project_scripts`, then locates
+    the top-level package on disk, with
+    {func}`~click_extra.prebake.locate_package_root`, so it can be imported
     without an install step. This lets `wrap` target a checked-out project by
     its directory, the way an editable install plus its console script would.
 
@@ -344,7 +287,7 @@ def _resolve_project_dir(directory: Path) -> tuple[str, str, Path]:
     :raises click.ClickException: when no entry point can be determined, or the
         package backing it cannot be found on disk.
     """
-    scripts = _read_project_scripts(directory)
+    scripts = read_project_scripts(directory)
     if not scripts:
         raise click.ClickException(
             f"No console-script entry point found in {directory}. Looked for "
@@ -363,8 +306,8 @@ def _resolve_project_dir(directory: Path) -> tuple[str, str, Path]:
         )
 
     module_path, _, function_name = targets[0].partition(":")
-    top_package = module_path.split(".")[0]
-    syspath_entry = _locate_package_root(directory, top_package)
+    top_package = entry_point_package(targets[0])
+    syspath_entry = locate_package_root(directory, top_package)
     if syspath_entry is None:
         raise click.ClickException(
             f"Found entry point {targets[0]!r} in {directory}, but its top-level "
@@ -401,16 +344,15 @@ def resolve_target(script: str) -> tuple[str, str]:
     logger.debug("Resolving target %r.", script)
 
     # 1. Console scripts entry points.
-    for ep in metadata.entry_points().select(group="console_scripts"):
-        if ep.name == script:
-            module_path, _, function_name = ep.value.partition(":")
-            logger.info(
-                "Resolved %r as console_scripts entry point: %s:%s.",
-                script,
-                module_path,
-                function_name,
-            )
-            return module_path, function_name
+    entry_point = console_script(script)
+    if entry_point is not None:
+        logger.info(
+            "Resolved %r as console_scripts entry point: %s:%s.",
+            script,
+            entry_point.module,
+            entry_point.attr,
+        )
+        return entry_point.module, entry_point.attr
 
     # 2. Local project directory: discover its console-script entry point and
     # make its package importable. Checked before the path/module heuristics so
@@ -896,7 +838,12 @@ def _config_args_for_target(
     Looks for a config section named after the target script under `wrap`.
     For example, `click-extra wrap -- flask` reads `[tool.click-extra.wrap.flask]`
     in `pyproject.toml`. All keys in that section are converted to CLI
-    arguments and prepended to the target's invocation.
+    arguments, through
+    {func}`~click_extra.config.flags.config_table_to_flags`, and prepended to
+    the target's invocation: a key's underscores become dashes, a `true` is a
+    bare `--key`, a `false` is dropped, and any other value is attached as
+    `--key=value`, one flag per item for a list. The attached form keeps a
+    value starting with a dash from being read as a flag of its own.
 
     Invalid options are naturally caught by the target CLI itself, producing
     standard Click error messages like "No such option: --foo".
@@ -928,26 +875,11 @@ def _config_args_for_target(
     if not target_section or not isinstance(target_section, dict):
         return ()
 
-    extra: list[str] = []
-    for key, value in target_section.items():
-        # Convert underscores to dashes for CLI option names.
-        opt_name = f"--{key.replace('_', '-')}"
-        if isinstance(value, bool):
-            # Only pass the flag when true. A false boolean means "don't
-            # pass the flag," which is the default for Click flags. Sending
-            # --no-<name> would fail on plain is_flag=True options that
-            # don't define a --flag/--no-flag pair.
-            if value:
-                extra.append(opt_name)
-        elif isinstance(value, list):
-            for item in value:
-                extra.append(opt_name)
-                extra.append(str(item))
-        else:
-            extra.append(opt_name)
-            extra.append(str(value))
-
-    return tuple(extra)
+    return tuple(
+        config_table_to_flags({
+            key.replace("_", "-"): value for key, value in target_section.items()
+        })
+    )
 
 
 #: Sample invocations closing the `wrap` help screen.

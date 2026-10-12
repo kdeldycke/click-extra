@@ -52,22 +52,23 @@ from ..blocks import (
 )
 from ..pygments import AnsiHtmlFormatter
 from . import fail_on_warnings, manpages, matrix, tables, todos
+from ._base import myst_version
 from .alerts import convert_github_alerts
-from .click import ClickDomain, cleanup_runner
+from .click import (
+    RUN_CAPTURE_CONFIG as RUN_CAPTURE_CONFIG,
+    SCREENSHOT_DIR_CONFIG as SCREENSHOT_DIR_CONFIG,
+    SCREENSHOT_PRESET_CONFIG as SCREENSHOT_PRESET_CONFIG,
+    SCREENSHOT_SYNTAX_STYLE_CONFIG as SCREENSHOT_SYNTAX_STYLE_CONFIG,
+    SCREENSHOT_WATERMARK_CONFIG as SCREENSHOT_WATERMARK_CONFIG,
+    ClickDomain,
+    cleanup_runner,
+    register_config,
+)
 from .python import (
     PythonDomain,
     cleanup_python_runner,
     rewrite_python_mirror_regions,
 )
-
-try:
-    import myst_parser
-except ImportError:
-    # The `sphinx` extra does not declare myst-parser and Sphinx does not pull it
-    # in, so a reST-only project has none installed. Keep this module importable
-    # for it: setup() then skips the GitHub-alerts converter, which would emit
-    # `:::{note}` fences no parser is there to render.
-    myst_parser = None  # type: ignore[assignment]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -105,58 +106,6 @@ Both families `exec` user-supplied Python at build time with full
 Sphinx-process privileges; gating them behind a single explicit flag keeps
 a transitive import or a doc-only pull request from silently expanding
 the build's attack surface.
-"""
-
-
-SCREENSHOT_DIR_CONFIG = "click_extra_screenshot_dir"
-"""Name of the `conf.py` value locating the directory `click:run` writes captures to.
-
-A path relative to the documentation source directory, holding the SVG a
-`click:run` block names with its `:screenshot:` option. Defaults to `assets`,
-matching where a Sphinx project conventionally keeps the images its pages embed,
-and where a README pointing at the repository finds them.
-"""
-
-SCREENSHOT_PRESET_CONFIG = "click_extra_screenshot_preset"
-"""Name of the `conf.py` value naming the terminal every capture is drawn as.
-
-One of {data}`~click_extra.screenshot_presets.PRESETS`, applied to each
-`click:run` block whose `:screenshot:` does not name a preset of its own. Empty
-by default, which keeps the renderer's neutral window: a project wanting all of
-its captures to look like the same desktop states it once here instead of on
-every block.
-"""
-
-SCREENSHOT_SYNTAX_STYLE_CONFIG = "click_extra_screenshot_syntax_style"
-"""Name of the `conf.py` value coloring every capture drawn from source code.
-
-One of the [Pygments styles](https://pygments.org/styles/), applied to each
-source block whose `:screenshot:` does not name a
-`:screenshot-syntax-style:` of its own. Empty by default, which takes the style
-each chrome is drawn for, see
-{data}`~click_extra.snippet.DEFAULT_SYNTAX_STYLES`. Unused by a block picturing
-what a command printed, whose colors that command already chose.
-"""
-
-SCREENSHOT_WATERMARK_CONFIG = "click_extra_screenshot_watermark"
-"""Name of the `conf.py` value crediting every capture a `click:run` writes.
-
-Empty by default, where the `screenshot` command credits click-extra: a capture
-written by a documentation build is rewritten and committed on every build, so a
-mark naming a release would rewrite every image the day that release changes,
-and the page carrying the image already says what drew it. A project wanting one
-anyway states the text here, or per block with `:screenshot-watermark:`.
-"""
-
-RUN_CAPTURE_CONFIG = "click_extra_run_capture"
-"""Name of the `conf.py` value selecting the stream-capture mode for the CLIs that
-`click:run` and `click:tree` execute.
-
-Maps to the `capture` parameter of Click's {class}`~click.testing.CliRunner`,
-`"sys"` or `"fd"` (added in Click 8.4). Defaults to `"fd"` so a command writing
-through `sys.stdout.fileno()` is captured at the file-descriptor level and renders,
-instead of aborting the build with {exc}`io.UnsupportedOperation`. Ignored on Click
-releases older than 8.4, which lack the parameter.
 """
 
 
@@ -270,16 +219,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # the project's conf.py opts in. Default is `False`: build-time
     # arbitrary Python execution is off unless explicitly turned on.
     app.add_config_value(EXEC_DIRECTIVES_OPT_IN, False, "env", types=[bool])
-    # Stream-capture mode for executed click:run/click:tree CLIs (see click.py).
-    app.add_config_value(RUN_CAPTURE_CONFIG, "fd", "env", types=[str])
-    # Where a `click:run` `:screenshot:` capture is written (see click.py).
-    app.add_config_value(SCREENSHOT_DIR_CONFIG, "assets", "env", types=[str])
-    # Terminal every capture is drawn as, unless a block says otherwise.
-    app.add_config_value(SCREENSHOT_PRESET_CONFIG, "", "env", types=[str])
-    # Pygments style every source capture is colored with (see snippet.py).
-    app.add_config_value(SCREENSHOT_SYNTAX_STYLE_CONFIG, "", "env", types=[str])
-    # Credit line every capture carries, off unless a project asks for one.
-    app.add_config_value(SCREENSHOT_WATERMARK_CONFIG, "", "env", types=[str])
+    # The conf.py values the click:* directives read (see click.py).
+    register_config(app)
     app.connect("config-inited", _register_exec_directives)
 
     # Wire the man-page emit hook (see manpages.py). No-op until a project
@@ -312,8 +253,9 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # projects should add "alert" to myst_enable_extensions to use
     # myst-parser's native rendering instead. With no myst-parser at all
     # there is no MyST document to convert, so it is skipped silently.
-    if myst_parser is not None:
-        if Version(myst_parser.__version__) < MYST_NATIVE_ALERTS_VERSION:
+    installed_myst = myst_version()
+    if installed_myst is not None:
+        if installed_myst < MYST_NATIVE_ALERTS_VERSION:
             app.connect("source-read", convert_github_alerts)
             app.connect("include-read", convert_github_alerts)
         else:
@@ -322,7 +264,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
                 "(myst-parser %s ships the native 'alert' syntax extension). "
                 "Add 'alert' to myst_enable_extensions to render "
                 "'> [!NOTE]' blockquotes as Sphinx admonitions.",
-                myst_parser.__version__,
+                installed_myst,
             )
 
     return {

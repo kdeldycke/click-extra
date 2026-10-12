@@ -47,10 +47,12 @@ public API.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 import subprocess
 import sys
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from http.client import HTTPException
 from pathlib import Path
@@ -58,22 +60,23 @@ from typing import NamedTuple
 from urllib.request import urlopen
 
 from docutils import nodes
-from docutils.statemachine import StringList
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
-from sphinx.directives import SphinxDirective, directives
+from sphinx.directives import directives
 from sphinx.util import logging
 
 from ..blocks import (
     FenceSpan,
     fence_spans,
     marker_res,
+    region_markers,
     split_options,
     update_blocks,
 )
 from ..table import TableFormat, corner_header, render_table
+from ._base import ContentOffsetMixin, parse_into_section
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -199,6 +202,12 @@ def _validate_order(value: str, option: str) -> None:
         raise ValueError(msg)
 
 
+def _validate_orders(column_order: str, row_order: str) -> None:
+    """Reject an unrecognized axis ordering before any history is read."""
+    _validate_order(column_order, "column-order")
+    _validate_order(row_order, "row-order")
+
+
 def _version_sort_key(version: str) -> tuple[int, ...]:
     """Numeric sort key for `X.Y` version strings.
 
@@ -301,9 +310,136 @@ def _git(project_root: Path, *args: str, check: bool = True) -> str:
     ).stdout
 
 
-def _tag_date(project_root: Path, tag: str) -> str:
-    """Return the ISO date of a tag's commit."""
-    return _git(project_root, "log", "-1", "--format=%as", tag).strip()
+_RELEASE_FILES: tuple[str, ...] = ("pyproject.toml", "setup.py")
+"""The files of a release tag the two axes read their declarations from."""
+
+
+@dataclass
+class _HistoryMemo:
+    """The git reads of one refresh, kept for the blocks that repeat them."""
+
+    tags: dict[tuple[Path, str], list[tuple[str, str]]] = field(default_factory=dict)
+    """Each working tree's tag listing, with its dates, per sort order."""
+
+    files: dict[tuple[Path, str], tuple[str, str]] = field(default_factory=dict)
+    """Each tag's `(pyproject, setup_py)` content, per working tree."""
+
+
+_history_memo: _HistoryMemo | None = None
+"""Memo of the git reads of the refresh under way, `None` outside one.
+
+Installed by `_memoized_history`. Outside a refresh every read goes to git, and
+a throwaway memo stands in so the readers below have one shape of code.
+"""
+
+
+def _memo() -> _HistoryMemo:
+    """The memo of the refresh under way, or a fresh one nothing keeps."""
+    return _history_memo if _history_memo is not None else _HistoryMemo()
+
+
+@contextlib.contextmanager
+def _memoized_history() -> Iterator[None]:
+    """Serve every git read made inside from one memo.
+
+    A refresh renders a block per axis on every page of a project, and each
+    block walks the same tags of the same working tree. Inside this context the
+    tag listing and each tag's release files are read once, whatever the floor
+    or pattern each block applies. The memo lives no longer than the context: a
+    tag pushed between two refreshes is seen by the second. Nesting reuses the
+    outer memo.
+    """
+    global _history_memo
+    if _history_memo is not None:
+        yield
+        return
+    _history_memo = _HistoryMemo()
+    try:
+        yield
+    finally:
+        _history_memo = None
+
+
+def _tag_history(project_root: Path, tags_sort: str) -> list[tuple[str, str]]:
+    """Return `(tag, iso_date)` for every tag of `project_root`, in `tags_sort` order.
+
+    One `git for-each-ref` call lists the tags with the author date of the commit
+    each points at, read through the tag object of an annotated tag: the date
+    `git log -1 --format=%as` prints for the tag.
+    """
+    memo = _memo()
+    history = memo.tags.get((project_root, tags_sort))
+    if history is None:
+        listing = _git(
+            project_root,
+            "for-each-ref",
+            f"--sort={tags_sort}",
+            "--format=%(refname:strip=2)%09%(authordate:short)%09%(*authordate:short)",
+            "refs/tags",
+        )
+        history = []
+        for line in listing.splitlines():
+            tag, date, peeled_date = line.split("\t")
+            history.append((tag, peeled_date or date))
+        memo.tags[project_root, tags_sort] = history
+    return history
+
+
+def _read_release_files(
+    project_root: Path, tags: Sequence[str]
+) -> list[tuple[str, str]]:
+    """Return the `(pyproject, setup_py)` content of each tag, empty when absent.
+
+    One `git cat-file --batch` call answers every blob. The batch is read as
+    bytes, since each blob is sized in bytes before it is decoded, and a blob
+    then gets the UTF-8 decoding and newline translation `git show` would have
+    given it in text mode. A tag lacking a file answers `missing`, which reads
+    as the empty string `git show` prints with its error discarded.
+    """
+    requests = "".join(f"{tag}:{name}\n" for tag in tags for name in _RELEASE_FILES)
+    output = subprocess.run(
+        ["git", "cat-file", "--batch"],
+        input=requests.encode("utf-8"),
+        capture_output=True,
+        check=True,
+        cwd=project_root,
+    ).stdout
+    contents: list[str] = []
+    position = 0
+    for _ in range(len(tags) * len(_RELEASE_FILES)):
+        end = output.index(b"\n", position)
+        header = output[position:end]
+        position = end + 1
+        if header.endswith((b" missing", b" ambiguous")):
+            contents.append("")
+            continue
+        size = int(header.rsplit(b" ", 1)[1])
+        blob = output[position : position + size].decode("utf-8")
+        contents.append(blob.replace("\r\n", "\n").replace("\r", "\n"))
+        position += size + 1
+    # The answers come in request order: the two files of a tag, tag after tag.
+    return [
+        (contents[index], contents[index + 1])
+        for index in range(0, len(contents), len(_RELEASE_FILES))
+    ]
+
+
+def _release_files(
+    project_root: Path, tags: Sequence[str]
+) -> dict[str, tuple[str, str]]:
+    """Map each of `tags` to the content of its release files.
+
+    Reads only the tags the memo of the refresh under way does not hold yet, in
+    one batch, so a second block walking the same history reads nothing.
+    """
+    memo = _memo()
+    missing = [tag for tag in tags if (project_root, tag) not in memo.files]
+    if missing:
+        for tag, files in zip(
+            missing, _read_release_files(project_root, missing), strict=True
+        ):
+            memo.files[project_root, tag] = files
+    return {tag: memo.files[project_root, tag] for tag in tags}
 
 
 def _walk_tags(
@@ -315,25 +451,40 @@ def _walk_tags(
 ) -> list[tuple[str, str, str, str]]:
     """Return `(tag, iso_date, pyproject, setup_py)` for each release tag.
 
-    Walks `git tag` in `tags_sort` order, keeps the tags matching
-    `tag_pattern` and at or above `version_floor`, and fetches each tag's
-    `pyproject.toml` and `setup.py` blobs (empty string when absent). Shared
-    by the Python and dependency axes so both read history identically.
+    Lists the tags in `tags_sort` order, keeps the ones matching `tag_pattern`
+    and at or above `version_floor`, and reads each kept tag's `pyproject.toml`
+    and `setup.py` (empty string when absent). Shared by the Python and
+    dependency axes so both read history identically, and in two git calls
+    whatever the number of tags: see `_tag_history` and `_release_files`.
     """
     tag_re = re.compile(tag_pattern)
     floor_key = _version_sort_key(version_floor) if version_floor else None
-    walked: list[tuple[str, str, str, str]] = []
-    for tag in _git(project_root, "tag", f"--sort={tags_sort}").split():
-        if not tag_re.match(tag):
-            continue
-        # Drop tags below the package-version floor before any git show / date
-        # lookup: no point paying that cost for excluded releases.
-        if floor_key is not None and _version_sort_key(tag) < floor_key:
-            continue
-        pyproject = _git(project_root, "show", f"{tag}:pyproject.toml", check=False)
-        setup_py = _git(project_root, "show", f"{tag}:setup.py", check=False)
-        walked.append((tag, _tag_date(project_root, tag), pyproject, setup_py))
-    return walked
+    # Drop tags below the package-version floor before any blob is read: no
+    # point paying that cost for excluded releases.
+    selected = [
+        (tag, iso_date)
+        for tag, iso_date in _tag_history(project_root, tags_sort)
+        if tag_re.match(tag)
+        and (floor_key is None or _version_sort_key(tag) >= floor_key)
+    ]
+    files = _release_files(project_root, [tag for tag, _ in selected])
+    return [(tag, iso_date, *files[tag]) for tag, iso_date in selected]
+
+
+_PYTHON_CLASSIFIER_RE = re.compile(r"Programming Language :: Python :: ([23]\.\d+)")
+"""A `Programming Language :: Python :: X.Y` trove classifier, its version captured."""
+
+_REQUIRES_PYTHON_RE = re.compile(r'requires-python\s*=\s*["\']([^"\']+)["\']')
+"""A PEP 621 `requires-python` declaration, its specifier captured."""
+
+_POETRY_PYTHON_RE = re.compile(
+    r'\[tool\.poetry\.dependencies\][^\[]*?python\s*=\s*["\']([^"\']+)["\']',
+    re.DOTALL,
+)
+"""The `python` entry of Poetry's `[tool.poetry.dependencies]` table."""
+
+_PYTHON_REQUIRES_RE = re.compile(r'python_requires\s*=\s*["\']([^"\']+)["\']')
+"""A `setup.py` `python_requires` keyword, its specifier captured."""
 
 
 def python_matrix_groups(
@@ -362,13 +513,6 @@ def python_matrix_groups(
     """
     if release_dates is None:
         release_dates = PYTHON_RELEASE_DATES
-    classifier_re = re.compile(r"Programming Language :: Python :: ([23]\.\d+)")
-    reqpy_pep = re.compile(r'requires-python\s*=\s*["\']([^"\']+)["\']')
-    reqpy_poetry = re.compile(
-        r'\[tool\.poetry\.dependencies\][^\[]*?python\s*=\s*["\']([^"\']+)["\']',
-        re.DOTALL,
-    )
-    reqpy_setup = re.compile(r'python_requires\s*=\s*["\']([^"\']+)["\']')
 
     # Pass 1: per-tag (tag, iso_date, classifiers, spec).
     tag_data: list[tuple[str, str, tuple[str, ...], str]] = []
@@ -379,13 +523,15 @@ def python_matrix_groups(
         version_floor=version_floor,
     ):
         classifiers = tuple(
-            sorted(set(classifier_re.findall(pyproject)), key=_version_sort_key),
+            sorted(
+                set(_PYTHON_CLASSIFIER_RE.findall(pyproject)), key=_version_sort_key
+            ),
         )
         spec = ""
         for pat, content in (
-            (reqpy_pep, pyproject),
-            (reqpy_poetry, pyproject),
-            (reqpy_setup, setup_py),
+            (_REQUIRES_PYTHON_RE, pyproject),
+            (_POETRY_PYTHON_RE, pyproject),
+            (_PYTHON_REQUIRES_RE, setup_py),
         ):
             if not content:
                 continue
@@ -578,6 +724,47 @@ def _corner_cell(label: str, axis: str) -> str:
     return corner_header(f"`{label}`", axis).replace("\\", "\\\\")
 
 
+def _render_matrix(
+    label: str,
+    axis: str,
+    groups: Sequence[tuple[str, str, str, Sequence[str]]],
+    column_labels: Sequence[str],
+    *,
+    row_order: str,
+    leading_headers: Sequence[str] = (),
+) -> str:
+    """Render the release ranges of a matrix as a GitHub-flavored markdown table.
+
+    `groups` come oldest first, each a `(first_tag, last_tag, first_date, cells)`
+    whose `cells` are the row's cells after its label: a `Spec` cell when the
+    dependency axis shows one, then one cell per column. An empty `first_date`
+    leaves the label undated, see `_range_labels`. `column_labels` head the
+    version columns, centered, and `leading_headers` the cells before them,
+    left-aligned like the label. Rows sit newest first unless `row_order` is
+    {data}`OLDEST_FIRST`.
+    """
+    ordered = list(reversed(groups))
+    labels = _range_labels([(first, last, date) for first, last, date, _ in ordered])
+    rows = [
+        [row_label, *cells]
+        for row_label, (*_, cells) in zip(labels, ordered, strict=True)
+    ]
+    if row_order == OLDEST_FIRST:
+        rows.reverse()
+    headers = [_corner_cell(label, axis), *leading_headers, *column_labels]
+    colalign = (
+        "left",
+        *("left",) * len(leading_headers),
+        *("center",) * len(column_labels),
+    )
+    return render_table(
+        rows,
+        headers=headers,
+        table_format=TableFormat.GITHUB,
+        colalign=colalign,
+    )
+
+
 def _python_cell(version: str, group: PythonMatrixGroup) -> str:
     """Classify one Python version against one release range.
 
@@ -644,8 +831,7 @@ def python_matrix_table(
         was collected.
     :raises ValueError: on an unrecognized `column_order` or `row_order`.
     """
-    _validate_order(column_order, "column-order")
-    _validate_order(row_order, "row-order")
+    _validate_orders(column_order, row_order)
     groups = python_matrix_groups(
         project_root,
         tag_pattern=tag_pattern,
@@ -669,23 +855,20 @@ def python_matrix_table(
     if not all_versions:
         return ""
 
-    rows = []
-    ordered = list(reversed(groups))
-    range_labels = _range_labels([
-        (g.first_tag, g.last_tag, g.first_date if show_date else "") for g in ordered
-    ])
-    for range_label, group in zip(range_labels, ordered, strict=True):
-        cells = [_python_cell(v, group) for v in all_versions]
-        rows.append([range_label, *cells])
-    if row_order == OLDEST_FIRST:
-        rows.reverse()
-    headers = [_corner_cell(label, "Python"), *(f"`{v}`" for v in all_versions)]
-    colalign = ("left", *("center",) * len(all_versions))
-    return render_table(
-        rows,
-        headers=headers,
-        table_format=TableFormat.GITHUB,
-        colalign=colalign,
+    return _render_matrix(
+        label,
+        "Python",
+        [
+            (
+                group.first_tag,
+                group.last_tag,
+                group.first_date if show_date else "",
+                [_python_cell(version, group) for version in all_versions],
+            )
+            for group in groups
+        ],
+        [f"`{version}`" for version in all_versions],
+        row_order=row_order,
     )
 
 
@@ -741,25 +924,34 @@ def _requirement_spec(requirement: str, dep_name: str) -> str:
     return head[m.start() :].strip().rstrip(")") if m else ""
 
 
-def _iter_declared_requirements(pyproject: str, setup_py: str) -> Iterator[str]:
+def _pyproject_data(pyproject: str) -> dict[str, Any]:
+    """Parse a release's `pyproject.toml`, an unparsable one reading as empty.
+
+    An unparsable file only costs its tag the row, the same as a tag that never
+    declared the dependency at all.
+    """
+    try:
+        data: dict[str, Any] = tomllib.loads(pyproject)
+    except (tomllib.TOMLDecodeError, ValueError):
+        return {}
+    return data
+
+
+def _iter_declared_requirements(
+    data: Mapping[str, Any], setup_py: str
+) -> Iterator[str]:
     """Yield every PEP 508 requirement string declared by a release.
 
-    Covers a project's runtime dependencies and the optional ones behind an
-    extra, in that order. Dependency groups
-    ([PEP 735](https://peps.python.org/pep-0735/)) are deliberately skipped:
-    they hold development tooling, which no installer resolves for a consumer
-    and which therefore says nothing about the release's compatibility.
+    `data` is the release's parsed `pyproject.toml`. Covers a project's runtime
+    dependencies and the optional ones behind an extra, in that order.
+    Dependency groups ([PEP 735](https://peps.python.org/pep-0735/)) are
+    deliberately skipped: they hold development tooling, which no installer
+    resolves for a consumer and which therefore says nothing about the
+    release's compatibility.
 
     `setup.py` is Python source rather than a table, so its string literals
     are harvested wholesale and left for {func}`_requirement_spec` to sort out.
     """
-    data: dict[str, Any] = {}
-    try:
-        data = tomllib.loads(pyproject)
-    except (tomllib.TOMLDecodeError, ValueError):
-        # An unparsable pyproject.toml only costs this tag its row, the same
-        # as a tag that never declared the dependency at all.
-        pass
     project = data.get("project", {})
     yield from project.get("dependencies", [])
     for extra_deps in project.get("optional-dependencies", {}).values():
@@ -776,16 +968,13 @@ def _extract_requirement(pyproject: str, setup_py: str, dep_name: str) -> str:
     Poetry's caret and tilde ranges are not PEP 508, so they are returned raw
     for {func}`_to_specifier_set` to translate.
     """
-    for requirement in _iter_declared_requirements(pyproject, setup_py):
+    data = _pyproject_data(pyproject)
+    for requirement in _iter_declared_requirements(data, setup_py):
         spec = _requirement_spec(requirement, dep_name)
         if spec:
             return spec
-    try:
-        poetry = tomllib.loads(pyproject)
-    except (tomllib.TOMLDecodeError, ValueError):
-        return ""
     canonical = canonicalize_name(dep_name)
-    poetry_deps = poetry.get("tool", {}).get("poetry", {}).get("dependencies", {})
+    poetry_deps = data.get("tool", {}).get("poetry", {}).get("dependencies", {})
     for name, declaration in poetry_deps.items():
         if canonicalize_name(name) != canonical:
             continue
@@ -1130,8 +1319,7 @@ def dependency_matrix_table(
     :raises ReleasesUnreadable: under `require_releases`, when PyPI cannot
         answer for `dep_name`.
     """
-    _validate_order(column_order, "column-order")
-    _validate_order(row_order, "row-order")
+    _validate_orders(column_order, row_order)
     groups = dependency_matrix_groups(
         project_root,
         dep_name,
@@ -1189,32 +1377,21 @@ def dependency_matrix_table(
                 [group.first_tag, group.last_tag, group.first_date, group.spec, cells],
             )
 
-    rows = []
-    ordered = list(reversed(merged))
-    range_labels = _range_labels([
-        (group[0], group[1], group[2] if show_date else "") for group in ordered
-    ])
-    for label_cell, (*_, spec, cells) in zip(range_labels, ordered, strict=True):
-        spec_cell = [f"`{spec.replace(' ', '')}`"] if show_spec else []
-        rows.append([label_cell, *spec_cell, *cells])
-    if row_order == OLDEST_FIRST:
-        rows.reverse()
-    spec_header = ["Spec"] if show_spec else []
-    headers = [
-        _corner_cell(label, f"`{dep_name}`"),
-        *spec_header,
-        *(column_label for column_label, _ in columns),
-    ]
-    colalign = (
-        "left",
-        *(("left",) if show_spec else ()),
-        *("center",) * len(columns),
-    )
-    return render_table(
-        rows,
-        headers=headers,
-        table_format=TableFormat.GITHUB,
-        colalign=colalign,
+    return _render_matrix(
+        label,
+        f"`{dep_name}`",
+        [
+            (
+                first_tag,
+                last_tag,
+                first_date if show_date else "",
+                [*([f"`{spec.replace(' ', '')}`"] if show_spec else []), *cells],
+            )
+            for first_tag, last_tag, first_date, spec, cells in merged
+        ],
+        [column_label for column_label, _ in columns],
+        row_order=row_order,
+        leading_headers=["Spec"] if show_spec else [],
     )
 
 
@@ -1329,7 +1506,7 @@ def _order_option(argument: str) -> str:
     return directives.choice(argument, ORDER_CHOICES)  # type: ignore[no-any-return]
 
 
-class MatrixDirective(SphinxDirective):
+class MatrixDirective(ContentOffsetMixin):
     """Render a package's compatibility matrix for a given axis.
 
     ``{matrix} python`` renders the interpreter matrix (release ranges × Python
@@ -1418,14 +1595,7 @@ class MatrixDirective(SphinxDirective):
         # Parse the table with the host document's parser (MyST inside .md,
         # reST inside .rst) so it lands as a real table node rather than a
         # literal code block.
-        container = nodes.section()
-        source_file, _ = self.get_source_info()
-        self.state.nested_parse(
-            StringList(table_lines, source_file),
-            self.content_offset,
-            container,
-        )
-        return container.children
+        return parse_into_section(self, table_lines)
 
 
 def setup(app: Sphinx) -> None:
@@ -1451,6 +1621,7 @@ _FENCE_OPEN_RE = re.compile(
 # whitespace-separated `key=value` pairs and bare flags (like `show-spec`
 # or `show-date`).
 _MARKER_OPEN_RE, _MARKER_CLOSE_RE = marker_res("matrix")
+_MARKER_CLOSE = region_markers("matrix")[1]
 
 
 def _parse_marker_options(tokens: Iterable[str]) -> dict[str, str]:
@@ -1551,7 +1722,7 @@ def _refresh_marker_region(
 
     out = [lines[index], ""]
     out.extend(f"{indent}{row}" if row else row for row in table.splitlines())
-    out.extend(["", f"{indent}<!-- matrix-end -->"])
+    out.extend(["", f"{indent}{_MARKER_CLOSE}"])
     return out, close + 1
 
 
@@ -1611,11 +1782,16 @@ def update_matrix_blocks(paths: Iterable[Path], *, check: bool = False) -> list[
     See {func}`click_extra.blocks.update_blocks` for the walk, write, and
     `check`-mode contract.
 
+    Every block of the refresh reads the git history through one memo, see
+    `_memoized_history`: a project's tags are listed once, and each tag's
+    release files read once, however many pages and axes render them.
+
     :return: the files whose ``{matrix}`` blocks were (or, under `check`,
         would be) updated.
     """
-    return update_blocks(
-        paths,
-        lambda text, path: _rewrite_matrix_blocks(text, base_dir=path.parent),
-        check=check,
-    )
+    with _memoized_history():
+        return update_blocks(
+            paths,
+            lambda text, path: _rewrite_matrix_blocks(text, base_dir=path.parent),
+            check=check,
+        )

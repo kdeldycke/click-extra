@@ -19,8 +19,9 @@ Symbols that were renamed or moved between modules stay importable from their
 original location for one deprecation cycle. Accessing one emits a
 {exc}`DeprecationWarning` pointing at its replacement, through the
 [PEP 562](https://peps.python.org/pep-0562/) module `__getattr__` hooks wired
-into `click_extra/color.py`, `click_extra/parameters.py`, `click_extra/table.py`,
-`click_extra/theme.py` and `click_extra/version.py`. A renamed argument keeps
+into `click_extra/color.py`, `click_extra/command_doc.py`,
+`click_extra/parameters.py`, `click_extra/table.py`, `click_extra/theme.py` and
+`click_extra/version.py`. A renamed argument keeps
 its old name for the same cycle, and passing it warns through
 {func}`warn_deprecated_argument`, as a retired value or shape of a value does
 through {func}`warn_deprecated_usage`.
@@ -54,6 +55,9 @@ DEPRECATED_ALIASES: dict[str, dict[str, str]] = {
     "click_extra.color": {
         "color_envvars": "color.COLOR_ENVVARS",
     },
+    "click_extra.command_doc": {
+        "INLINE_LITERAL_RE": "parameters.INLINE_LITERAL_RE",
+    },
     "click_extra.parameters": {
         "generator_tag": "_utils.generator_tag",
         "missing_extra_message": "_utils.missing_extra_message",
@@ -69,6 +73,7 @@ DEPRECATED_ALIASES: dict[str, dict[str, str]] = {
     },
     "click_extra.version": {
         "CLI_ECOSYSTEM_PACKAGES": "_utils.CLI_ECOSYSTEM_PACKAGES",
+        "visible_width": "layout.cell_width",
     },
 }
 """Maps each deprecated symbol to its replacement, keyed by hosting module.

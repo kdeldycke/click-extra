@@ -39,6 +39,7 @@ from ._utils import missing_extra_message
 from .color import invocation_color
 from .decorators import argument, command, option
 from .highlight import HelpKeywords
+from .output import is_stdout, prep_path
 from .recording import (
     DEFAULT_RECORDING_BLANK,
     DEFAULT_RECORDING_HOLD,
@@ -54,12 +55,12 @@ from .screenshot import (
     DEFAULT_MARGIN,
     DEFAULT_PADDING,
     DEFAULT_TRUNCATION,
-    MIN_COLUMNS,
-    STDOUT_PATH,
     CaptureFormat,
     Chrome,
     capture,
     format_from_path,
+    parse_columns,
+    parse_hold,
 )
 from .screenshot_presets import (
     PRESETS,
@@ -105,17 +106,13 @@ def _parse_columns(
 
     A width and {data}`~click_extra.screenshot.AUTO_COLUMNS` are the two things
     the capture pipeline accepts, and Click has no type spelling "an integer or
-    that one word".
+    that one word". {func}`~click_extra.screenshot.parse_columns` reads it, and
+    its complaint is reported against the option.
     """
-    if value.strip().lower() == AUTO_COLUMNS:
-        return AUTO_COLUMNS
     try:
-        width = int(value)
-    except ValueError:
-        raise BadParameter(f"{value!r} is neither an integer nor {AUTO_COLUMNS!r}.")
-    if width < MIN_COLUMNS:
-        raise BadParameter(f"{width} is narrower than the {MIN_COLUMNS}-column floor.")
-    return width
+        return parse_columns(value)
+    except ValueError as error:
+        raise BadParameter(str(error)) from None
 
 
 def _parse_emphasis(
@@ -151,24 +148,24 @@ def _parse_emphasis(
 def deliver_capture(document: str, output: Path) -> None:
     """Write a rendered capture where `--output` points.
 
-    {data}`~click_extra.screenshot.STDOUT_PATH` prints it instead, through
-    {func}`click.echo` rather than a bare write: that is what strips the escape
-    sequences when the terminal turns out to be a pipe, and what lets `--color`,
-    `--no-color`, `--accessible` and `NO_COLOR` reach a capture, since
-    {func}`~click_extra.color.invocation_color` carries the tri-state all four
-    of them resolve to.
+    A bare `-` prints it instead, see {func}`~click_extra.output.is_stdout`,
+    through {func}`click.echo` rather than a bare write: that is what strips the
+    escape sequences when the terminal turns out to be a pipe, and what lets
+    `--color`, `--no-color`, `--accessible` and `NO_COLOR` reach a capture,
+    since {func}`~click_extra.color.invocation_color` carries the tri-state all
+    four of them resolve to.
 
     :param document: the rendered capture.
     :param output: where it goes.
     """
-    if output.name == STDOUT_PATH:
+    if is_stdout(output):
         # Exactly one closing newline, whether or not the capture brought its
         # own: a picture is a file and may end however it likes, but a terminal
         # left mid-line puts the next prompt on top of the last row.
         echo(document, nl=not document.endswith("\n"), color=invocation_color())
         return
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(document, encoding="utf-8")
+    with prep_path(output) as stream:
+        stream.write(document)
     echo(f"Wrote {output}")
 
 
@@ -411,20 +408,17 @@ def _parse_hold(
     param: click.Parameter,
     value: str | None,
 ) -> THold | None:
-    """Read `--hold` into seconds or the `auto` sentinel, keeping unset as-is."""
+    """Read `--hold` into seconds or the `auto` sentinel, keeping unset as-is.
+
+    {func}`~click_extra.screenshot.parse_hold` reads it, and its complaint is
+    reported against the option.
+    """
     if value is None:
         return None
-    if value.strip().lower() == AUTO_HOLD:
-        return AUTO_HOLD
     try:
-        hold = float(value)
-    except ValueError:
-        raise click.UsageError(
-            f"{value!r} is not a hold, which is seconds or 'auto'."
-        ) from None
-    if hold < 0:
-        raise click.UsageError(f"{value} is not a pause, which is never negative.")
-    return hold
+        return parse_hold(value)
+    except ValueError as error:
+        raise BadParameter(str(error)) from None
 
 
 #: Sample invocations closing the `screenshot` help screen.
@@ -852,6 +846,9 @@ def snippet_cmd(
 
     Highlighting needs the pygments extra.
     """
+    # Deferred import: keeps Pygments, the optional extra behind the snippet
+    # module, off the startup path of every CLI, and lets a trimmed install
+    # fail here, on the one command that needs it.
     try:
         from .snippet import render_snippet
     except ImportError as error:

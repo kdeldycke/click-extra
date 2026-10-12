@@ -24,7 +24,7 @@ root command.
 
 from __future__ import annotations
 
-from functools import partial
+from functools import cache, partial
 from pathlib import Path
 
 from click import ClickException, echo
@@ -32,16 +32,16 @@ from click import ClickException, echo
 from .config import get_tool_config
 from .decorators import argument, group, option
 from .prebake import (
-    _find_dunder_str,
     discover_package_init_files,
     prebake_dunder,
+    prebake_dunders,
     prebake_version,
 )
-from .version import BUILD_RESOLVERS, GIT_FIELDS, GIT_RESOLVERS, run_git
+from .version import BUILD_RESOLVERS, GIT_RESOLVERS, dunder_name
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable
 
 
 def _resolve_paths(module: Path | None) -> list[Path]:
@@ -63,52 +63,6 @@ def _resolve_paths(module: Path | None) -> list[Path]:
             "pyproject.toml."
         )
     return paths
-
-
-def _to_dunder(name: str) -> str:
-    """Ensure *name* has `__` prefix and suffix."""
-    if not name.startswith("__"):
-        name = f"__{name}"
-    if not name.endswith("__"):
-        name = f"{name}__"
-    return name
-
-
-def _bake_dunder_fields(
-    init_path: Path,
-    fields: Iterable[tuple[str, Callable[[], str | None]]],
-) -> bool:
-    """Fill every empty `__<field>__` placeholder of `init_path` that resolves.
-
-    Each field is resolved only when its placeholder is present and still
-    empty, so a value already baked is never recomputed and a resolver that
-    cannot answer (no git repository, no tag) leaves its placeholder alone.
-
-    :param fields: `(field name, resolver)` pairs, each resolver answering the
-        value to bake, or `None` when it has none.
-    :return: whether the file was written.
-    """
-    changed = False
-    source = init_path.read_text(encoding="utf-8")
-    for field_name, resolve in fields:
-        dunder_name = f"__{field_name}__"
-        node = _find_dunder_str(source, dunder_name)
-        if node is None:
-            continue
-        if node.value:
-            echo(f"Skipped {init_path}: {dunder_name} already set")
-            continue
-        value = resolve()
-        if not value:
-            echo(f"Skipped {init_path}: {dunder_name} (no value)")
-            continue
-        baked = prebake_dunder(init_path, dunder_name, value)
-        if baked:
-            echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
-            changed = True
-            # Re-read the source after each write so AST offsets stay valid.
-            source = init_path.read_text(encoding="utf-8")
-    return changed
 
 
 _module_option = option(
@@ -143,7 +97,7 @@ def version(git_hash: str | None, module: Path | None) -> None:
     Release versions and already pre-baked versions are left untouched.
     """
     if git_hash is None:
-        git_hash = run_git(*GIT_FIELDS["git_short_hash"])
+        git_hash = GIT_RESOLVERS["git_short_hash"](None)
         if not git_hash:
             raise ClickException(
                 "No --hash provided and Git hash auto-detection failed. "
@@ -174,11 +128,13 @@ def field(name: str, module: Path | None, value: str) -> None:
     Only modifies variables that are currently empty. Already-populated
     values are left untouched (idempotent).
     """
-    dunder_name = _to_dunder(name)
+    # The dunders are stripped before being added back, so both spellings of
+    # NAME resolve to the one the version option reads.
+    dunder = dunder_name(name.removeprefix("__").removesuffix("__"))
     for init_path in _resolve_paths(module):
-        baked = prebake_dunder(init_path, dunder_name, value)
+        baked = prebake_dunder(init_path, dunder, value)
         if baked:
-            echo(f"Pre-baked {init_path}: {dunder_name} = {baked!r}")
+            echo(f"Pre-baked {init_path}: {dunder} = {baked!r}")
         else:
             echo(f"No changes to {init_path}")
 
@@ -212,22 +168,31 @@ def all_fields(module: Path | None) -> None:
     # The field-to-resolver tables live in click_extra.version, so adding a
     # field there needs no matching edit here. A git resolver runs in the
     # current directory; a build resolver describes the host running this
-    # command, so it takes no directory and always answers.
-    fields: list[tuple[str, Callable[[], str | None]]] = [
-        *((name, partial(resolve, None)) for name, resolve in GIT_RESOLVERS.items()),
-        *BUILD_RESOLVERS.items(),
-    ]
+    # command, so it takes no directory and always answers. Each resolver is
+    # cached: a value is computed once per run, however many files are baked.
+    fields: dict[str, Callable[[], str | None]] = {
+        **{
+            dunder_name(field_id): cache(partial(resolve, None))
+            for field_id, resolve in GIT_RESOLVERS.items()
+        },
+        **{
+            dunder_name(field_id): cache(resolve)
+            for field_id, resolve in BUILD_RESOLVERS.items()
+        },
+    }
+    git_hash = fields[dunder_name("git_short_hash")]()
 
     changed = False
     for init_path in _resolve_paths(module):
         # Pre-bake __version__ with git short hash.
-        git_hash = run_git(*GIT_FIELDS["git_short_hash"])
         if git_hash:
             baked = prebake_version(init_path, local_version=git_hash)
             if baked:
                 echo(f"Pre-baked {init_path}: __version__ = {baked!r}")
                 changed = True
-        changed |= _bake_dunder_fields(init_path, fields)
+        for name, value in prebake_dunders(init_path, fields).items():
+            echo(f"Pre-baked {init_path}: {name} = {value!r}")
+            changed = True
 
     if not changed:
         echo("No changes made.")

@@ -69,38 +69,40 @@ from __future__ import annotations
 import ast
 import io
 import re
-import sys
 import tokenize
 from pathlib import Path
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
+from .blocks import fence_spans
+from .prebake import entry_point_package, locate_package_root, read_project_scripts
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from .blocks import FenceSpan
 
 
 def detect_source_package(pyproject_path: Path | None = None) -> Path:
     """Locate the project's single source package from its script entry points.
 
-    Reads `[project.scripts]` from `pyproject.toml` and derives the top-level
+    Reads the console scripts the project declares, through
+    {func}`~click_extra.prebake.read_project_scripts`, and derives the top-level
     package of each entry point target (`"pkg.cli:main"` gives `pkg`), so the
-    `convert-to-myst` command can run bare from a project root.
+    `convert-to-myst` command can run bare from a project root. The package is
+    located under the project root or its `src/` folder, see
+    {func}`~click_extra.prebake.locate_package_root`.
 
     :param pyproject_path: Path of the `pyproject.toml` to inspect. Defaults
         to the one in the current working directory.
     :return: Path of the single detected package directory.
-    :raises ValueError: When `pyproject.toml` is missing, declares no script
-        entry point, or several distinct packages are detected.
+    :raises ValueError: When `pyproject.toml` is missing, the project declares
+        no script entry point, or several distinct packages are detected.
     """
     if pyproject_path is None:
         pyproject_path = Path("pyproject.toml")
     if not pyproject_path.is_file():
         raise ValueError(f"No pyproject.toml found at {pyproject_path}.")
 
-    data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
-    scripts: dict[str, str] = data.get("project", {}).get("scripts", {})
-    # "pkg.cli:main" -> "pkg"; a bare "pkg:main" target maps to "pkg" too.
-    source_dirs = {target.split(":", 1)[0].split(".")[0] for target in scripts.values()}
+    scripts = read_project_scripts(pyproject_path.parent)
+    source_dirs = {entry_point_package(target) for target in scripts.values()}
 
     if not source_dirs:
         raise ValueError(
@@ -112,7 +114,9 @@ def detect_source_package(pyproject_path: Path | None = None) -> Path:
             f"Multiple source packages detected: {', '.join(sorted(source_dirs))}."
             " Specify a directory argument."
         )
-    return pyproject_path.parent / source_dirs.pop()
+    package = source_dirs.pop()
+    root = locate_package_root(pyproject_path.parent, package) or pyproject_path.parent
+    return root / package
 
 
 # ---------------------------------------------------------------------------
@@ -192,24 +196,11 @@ def convert_inline_code(text: str) -> str:
 # ---------------------------------------------------------------------------
 DIRECTIVE_RE = re.compile(r"^(\s*)\.\. ([\w-]+)::\s*(.*)")
 
-# A MyST fence opener: three or more backticks at the start of the line
-# (after indentation), with or without a directive or language tag.
-FENCE_OPEN_RE = re.compile(r"(`{3,})")
 
-
-def _fence_open_length(line: str) -> int | None:
-    """Return the backtick-run length when *line* opens a fence, else `None`."""
-    match = FENCE_OPEN_RE.match(line.lstrip())
-    return len(match.group(1)) if match else None
-
-
-def _is_fence_close(line: str, fence_length: int) -> bool:
-    """Check whether *line* closes a fence opened with *fence_length* backticks.
-
-    Per MyST, a closer is a bare backtick run at least as long as the opener.
-    """
-    stripped = line.strip()
-    return len(stripped) >= fence_length and set(stripped) == {"`"}
+def _fence_end(lines: list[str], span: FenceSpan) -> int:
+    """Index just past the fence `span` covers, which is the text's end when
+    the fence never closes."""
+    return len(lines) if span.close is None else span.close + 1
 
 
 def convert_directives(text: str) -> str:
@@ -234,20 +225,17 @@ def convert_directives(text: str) -> str:
     break idempotency and nest same-level fences.
     """
     lines = text.split("\n")
+    spans = fence_spans(lines)
     result: list[str] = []
     i = 0
 
     while i < len(lines):
         # Emit fences and their interiors verbatim.
-        fence_length = _fence_open_length(lines[i])
-        if fence_length is not None:
-            result.append(lines[i])
-            i += 1
-            while i < len(lines):
-                result.append(lines[i])
-                i += 1
-                if _is_fence_close(lines[i - 1], fence_length):
-                    break
+        span = spans.get(i)
+        if span is not None:
+            end = _fence_end(lines, span)
+            result.extend(lines[i:end])
+            i = end
             continue
 
         m = DIRECTIVE_RE.match(lines[i])
@@ -424,6 +412,7 @@ def _convert_inline_outside_fences(block: str) -> str:
     multi-line constructs (like wrapped reST links) still match.
     """
     lines = block.split("\n")
+    spans = fence_spans(lines)
     result: list[str] = []
     outside: list[str] = []
 
@@ -434,19 +423,15 @@ def _convert_inline_outside_fences(block: str) -> str:
 
     i = 0
     while i < len(lines):
-        fence_length = _fence_open_length(lines[i])
-        if fence_length is None:
+        span = spans.get(i)
+        if span is None:
             outside.append(lines[i])
             i += 1
             continue
         _flush()
-        result.append(lines[i])
-        i += 1
-        while i < len(lines):
-            result.append(lines[i])
-            i += 1
-            if _is_fence_close(lines[i - 1], fence_length):
-                break
+        end = _fence_end(lines, span)
+        result.extend(lines[i:end])
+        i = end
     _flush()
     return "\n".join(result)
 

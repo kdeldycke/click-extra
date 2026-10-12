@@ -287,3 +287,14 @@ def test_screen_fits_an_eighty_column_terminal():
     )
     assert needed <= 80, f"the screen wants {needed} columns"
     assert BRAND_SCREEN.width == 12 * UNIT
+
+
+def test_mark_is_painted_on_demand_and_once():
+    """The screen holds the painter, not the painting, and the painter caches.
+
+    Importing the module costs no rasterization: the mark is painted by the
+    first `--version` that draws the screen, and every later draw reads it back.
+    """
+    assert BRAND_SCREEN.logo is render_logo
+    assert render_logo() is render_logo()
+    assert BRAND_SCREEN.lines == render_logo()

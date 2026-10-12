@@ -77,6 +77,8 @@ if TYPE_CHECKING:
 
     from cloup.styling import IStyle
 
+logger = logging.getLogger(__name__)
+
 
 THEME_ENVVAR: Final[str] = "CLICK_EXTRA_THEME"
 """Environment variable naming the help-screen palette of every Click Extra CLI.
@@ -792,7 +794,7 @@ class ThemeChoice(click.ParamType):
         lookup = {self._normalize(name): name for name in registry}
         canonical = lookup.get(self._normalize(value))
         if canonical is None:
-            choices = "|".join(sorted({AUTO_THEME, *registry}))
+            choices = "|".join(_theme_choices(ctx))
             self.fail(
                 f"{value!r} is not one of [{choices}].",
                 param,
@@ -895,7 +897,7 @@ class ThemeOption(ExtraOption):
                 try:
                     value = param.type.convert(raw, param, ctx)
                 except click.BadParameter:
-                    logging.getLogger("click_extra").warning(
+                    logger.warning(
                         "Ignoring %s=%r: not one of [%s].",
                         THEME_ENVVAR,
                         raw,
@@ -982,7 +984,7 @@ def _load_builtin_themes() -> dict[str, HelpTheme]:
                 .read_text(encoding="utf-8")
             )
         except OSError as error:
-            logging.getLogger("click_extra").warning(
+            logger.warning(
                 "Could not read the packaged %r data file (%s). Built-in themes "
                 "are unavailable: falling back to the no-color theme. The file "
                 "was likely dropped by a packaging or distribution step. You can "

@@ -41,8 +41,9 @@ NO_MYST_PARSER_SCRIPT = dedent("""
     sys.meta_path.insert(0, MystParserBlocker())
 
     import click_extra.sphinx
+    from click_extra.sphinx._base import myst_version
 
-    assert click_extra.sphinx.myst_parser is None
+    assert myst_version() is None
 """)
 
 

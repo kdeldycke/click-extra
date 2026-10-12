@@ -41,11 +41,11 @@ from click_extra.snippet import DEFAULT_SYNTAX_STYLES
 from click_extra.sphinx.click import (
     SCREENSHOT_MARKER_END,
     SCREENSHOT_MARKER_START,
+    ClickDirective,
     ClickRunner,
     _code_fence,
     _rewrite_screenshot_regions,
     _screenshot_background,
-    _screenshot_columns,
     _screenshot_opacity,
     program_from_command_line,
 )
@@ -1033,7 +1033,7 @@ def test_generated_block_is_attributed_to_the_directive_body(
     than the document.
 
     The last two cases pin the ``content_offset`` inflation
-    ``click_extra.sphinx.click.MYST_CONTENT_OFFSET_INFLATED_MAX`` documents,
+    ``click_extra.sphinx._base.MYST_CONTENT_OFFSET_INFLATED_MAX`` documents,
     which only fires on a directive carrying both an option block and a body
     ending in blank lines.
     """
@@ -2024,9 +2024,13 @@ def test_click_run_screenshot_columns_auto(sphinx_app_myst):
 
 @pytest.mark.parametrize("value", ("beige", "0", "-3", "12"))
 def test_click_run_screenshot_columns_rejects_an_unusable_width(value):
-    """A width narrower than the floor, or no width at all, is a build error."""
+    """A width narrower than the floor, or no width at all, is a build error.
+
+    The option reads through the parser the capture commands share, so the two
+    reject the same widths with the same words.
+    """
     with pytest.raises(ValueError):
-        _screenshot_columns(value)
+        ClickDirective.option_spec["screenshot-columns"](value)
 
 
 def test_click_run_screenshot_frame_options(sphinx_app_myst):

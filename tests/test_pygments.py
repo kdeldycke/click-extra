@@ -39,9 +39,9 @@ from click_extra import pygments as extra_pygments
 from click_extra.cli import demo
 from click_extra.pygments import (
     _ANSI_STYLES,
+    _ATTR_COMPONENTS,
     _NAMED_COLORS,
     _PALETTE_256,
-    _SGR_ATTR_ON,
     DEFAULT_TOKEN_TYPE,
     EXTRA_ANSI_CSS,
     LEXER_MAP,
@@ -53,7 +53,7 @@ from click_extra.pygments import (
     _AnsiLinkStart,
     collect_session_lexers,
 )
-from click_extra.styling import _nearest_256
+from click_extra.styling import _ATTR_CSS, _nearest_256
 
 from .conftest import fetch_or_skip, walk_commands
 
@@ -615,9 +615,13 @@ def test_truecolor_invalid_range_ignored():
 
 
 def test_truecolor_truncated_params_ignored():
-    """Truncated RGB params are skipped in true-color mode too."""
+    """Truncated RGB params set no color in true-color mode either.
+
+    The stray ``2`` reads as SGR 2 (faint), as in the quantized mode: see
+    `test_24bit_truncated_params`.
+    """
     tokens = lex_truecolor("\x1b[38;2;255;128mtext\x1b[0m")
-    assert tokens[0] == (Text, "text")
+    assert tokens[0] == (Ansi.Faint, "text")
 
 
 def test_truecolor_filter_forwards_flag():
@@ -738,8 +742,23 @@ def test_nearest_256_quantization(r, g, b, expected):
 
 
 def test_extra_css_matches_sgr_attributes():
-    """EXTRA_ANSI_CSS keys match the attribute names in _SGR_ATTR_ON."""
-    assert set(EXTRA_ANSI_CSS.keys()) == set(_SGR_ATTR_ON.values())
+    """EXTRA_ANSI_CSS keys match the attribute component names."""
+    assert set(EXTRA_ANSI_CSS.keys()) == set(_ATTR_COMPONENTS.values())
+
+
+def test_extra_css_follows_the_style_table():
+    """Every attribute but blink renders with the declaration `Style.to_css` writes.
+
+    `Faint` in particular dims to the same `opacity` as a `dim` style, where the
+    two tables used to disagree. Blink has no CSS declaration of its own and takes
+    the keyframe animation instead.
+    """
+    for attr, component in _ATTR_COMPONENTS.items():
+        if attr == "blink":
+            assert EXTRA_ANSI_CSS[component].startswith("animation: ansi-blink")
+        else:
+            assert EXTRA_ANSI_CSS[component] == ": ".join(_ATTR_CSS[attr])
+    assert EXTRA_ANSI_CSS["Faint"] == "opacity: 0.6"
 
 
 # --- Escape sequence stripping ---
@@ -909,6 +928,20 @@ def test_osc8_close_without_open():
     assert tokens == [(Text, "visible\n")]
 
 
+def test_osc8_survives_a_full_reset():
+    """SGR 0 inside a link resets the styling alone: the link closes at its OSC 8."""
+    tokens = lex(
+        "\x1b]8;;https://example.com\x07\x1b[31mred\x1b[0m plain\x1b]8;;\x07after"
+    )
+    assert tokens == [
+        (_AnsiLinkStart, "https://example.com"),
+        (Ansi.Red, "red"),
+        (Text, " plain"),
+        (_AnsiLinkEnd, ""),
+        (Text, "after\n"),
+    ]
+
+
 # --- State persistence across multiple sequences ---
 
 
@@ -945,26 +978,27 @@ def test_independent_fg_bg():
 
 
 def test_sgr_with_trailing_semicolons():
-    """Trailing semicolons in SGR parameters produce zero codes, which are resets."""
-    # \x1b[31;m is "31" then empty "m", but this is one sequence with params "31;".
-    # The ";" splits into ["31", ""], and int("") raises ValueError, so the whole
-    # sequence is ignored.
+    """An empty trailing parameter is a `0`, which resets the color set before it."""
+    # \x1b[31;m carries the params "31;", read as 31 (red) then 0 (reset).
     tokens = lex("\x1b[31;mtext")
-    # The trailing ";" makes int("") fail, so color is not applied.
     assert tokens[0] == (Text, "text\n")
 
 
 def test_sgr_leading_semicolons():
-    """Leading semicolons produce 0 values (resets)."""
-    # \x1b[;31m splits into ["", "31"]. int("") fails, sequence is skipped.
+    """An empty leading parameter is a `0`: a reset, then the color after it.
+
+    `split_ansi` has always read `\\x1b[;31m` as red, and the lexer shares its
+    decoder, so a page renders what a terminal shows.
+    """
     tokens = lex("\x1b[;31mtext")
-    assert tokens[0] == (Text, "text\n")
+    assert tokens[0] == (Ansi.Red, "text\n")
 
 
 def test_sgr_double_semicolons():
-    """Double semicolons produce empty strings that cause the sequence to be skipped."""
+    """An empty parameter between two codes is a reset between them."""
+    # 1 (bold), then 0 (reset, dropping the bold), then 31 (red).
     tokens = lex("\x1b[1;;31mtext")
-    assert tokens[0] == (Text, "text\n")
+    assert tokens[0] == (Ansi.Red, "text\n")
 
 
 def test_sgr_unknown_codes_ignored():
@@ -992,10 +1026,15 @@ def test_256color_out_of_range():
 
 
 def test_24bit_truncated_params():
-    """Truncated 24-bit RGB sequence (missing channels) is ignored."""
-    # 38;2;255;128: missing the blue channel.
+    """A truncated 24-bit RGB sequence sets no color.
+
+    ``38;2;255;128`` misses the blue channel, so the decoder skips ``38`` without
+    consuming anything after it: ``2`` is then read as SGR 2 (faint), and the
+    two channel values are unknown codes. The same reading
+    `split_ansi` gives the sequence.
+    """
     tokens = lex("\x1b[38;2;255;128mtext\x1b[0m")
-    assert tokens[0] == (Text, "text")
+    assert tokens[0] == (Ansi.Faint, "text")
 
 
 def test_24bit_out_of_range():
@@ -1005,14 +1044,14 @@ def test_24bit_out_of_range():
 
 
 def test_extended_color_unknown_mode():
-    """Extended color with unknown mode (not 5 or 2) skips the mode byte.
+    """Extended color with unknown mode (not 5 or 2) sets no color.
 
-    ``38;3;100``: code 38 triggers extended color handling, mode 3 is unknown so
-    mode and nothing else are consumed, then 100 is processed as SGR 100 (bright
-    black background).
+    ``38;3;100``: code 38 is skipped on its own, since neither of the two color
+    modes follows it. ``3`` is then read as SGR 3 (italic) and ``100`` as SGR 100
+    (bright black background), the reading `split_ansi` gives the sequence.
     """
     tokens = lex("\x1b[38;3;100mtext\x1b[0m")
-    assert tokens[0] == (Ansi.BGBrightBlack, "text")
+    assert tokens[0] == (Ansi.Italic.BGBrightBlack, "text")
 
 
 def test_non_numeric_sgr_params():
@@ -1092,7 +1131,7 @@ def test_ansi_styles_excludes_all_attributes():
     tokens when the attribute rule appears later in the CSS cascade. All attribute
     styling is handled by ``EXTRA_ANSI_CSS`` / ``custom.css`` instead.
     """
-    for attr in _SGR_ATTR_ON.values():
+    for attr in _ATTR_COMPONENTS.values():
         assert getattr(Ansi, attr) not in _ANSI_STYLES
 
 
@@ -1205,6 +1244,29 @@ def test_formatter_style_defs_contain_ansi_colors():
     assert "-Ansi-Red" in css
     assert "-Ansi-Bold" in css
     assert "-Ansi-C154" in css
+
+
+def test_formatter_shares_the_augmented_style():
+    """Two formatters on the same base style run on one augmented style class."""
+    assert AnsiHtmlFormatter().style is AnsiHtmlFormatter().style
+    assert AnsiHtmlFormatter(style="monokai").style is not AnsiHtmlFormatter().style
+    assert AnsiHtmlFormatter().style.__name__ == "AnsiDefaultStyle"
+
+
+def test_formatter_css_classes_cache_keyed_on_prefix():
+    """The shared class cache tells formatters with different prefixes apart."""
+    plain = AnsiHtmlFormatter(nowrap=True)
+    prefixed = AnsiHtmlFormatter(nowrap=True, classprefix="hl")
+    assert plain._get_css_classes(Ansi.Bold.Red) == "-Ansi -Ansi-Bold -Ansi-Red"
+    assert (
+        prefixed._get_css_classes(Ansi.Bold.Red) == "hl-Ansi hl-Ansi-Bold hl-Ansi-Red"
+    )
+    assert AnsiHtmlFormatter._css_classes[("", Ansi.Bold.Red)] == (
+        "-Ansi -Ansi-Bold -Ansi-Red"
+    )
+    assert AnsiHtmlFormatter._css_classes[("hl", Ansi.Bold.Red)] == (
+        "hl-Ansi hl-Ansi-Bold hl-Ansi-Red"
+    )
 
 
 # --- AnsiHtmlFormatter hyperlink rendering ---

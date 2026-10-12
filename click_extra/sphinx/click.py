@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import ast
 import contextlib
-import logging as stdlib_logging
+import logging
 import re
 import subprocess
 import sys
@@ -47,14 +47,21 @@ from pathlib import Path
 import click
 from click.testing import CliRunner, EchoingStdin
 from docutils import nodes
-from packaging.version import Version
 from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
-from sphinx.util import logging, parselinenos
+from sphinx.util import parselinenos
 
-from ..blocks import rewrite_fenced_regions, split_options, update_blocks
+from .._utils import patch_attr
+from ..blocks import (
+    region_markers,
+    rewrite_fenced_regions,
+    split_options,
+    update_blocks,
+)
 from ..color import forced_color
-from ..execution import format_cli_prompt
+from ..config.option import ConfigOption
+from ..config.schema import schema_field_infos
+from ..execution import format_cli_prompt, is_windows
 from ..layout import number_lines
 from ..logging import DEFAULT_LEVEL
 from ..recording import (
@@ -67,12 +74,13 @@ from ..recording import (
     type_line,
 )
 from ..screenshot import (
-    AUTO_COLUMNS,
     AUTO_CURSOR,
     DEFAULT_COLUMNS,
-    MIN_COLUMNS,
     Chrome,
     append_prompt,
+    parse_columns,
+    parse_hold,
+    parse_pause,
     prompt_line,
     render,
 )
@@ -83,13 +91,16 @@ from ..screenshot_presets import (
     CursorShape,
     TerminalPreset,
 )
-from ..screenshot_svg import AUTO_HOLD, OPAQUE, animation_metadata
+from ..screenshot_svg import OPAQUE, animation_metadata
 from ..snippet import highlight_code, resolve_style, style_palette
 from ..spinner import Spinner
+from ..table import TableFormat, render_table
 from ..testing import isolated_filesystem
 from ..theme import NOCOLOR_THEME
 from ..version import reset_version_resolution
 from ._base import (
+    PLACEHOLDER_FILE,
+    ContentOffsetMixin,
     StatelessDomain,
     compile_directive,
     directive_source,
@@ -102,14 +113,12 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
     from typing import Any, ClassVar, Literal
 
+    from sphinx.application import Sphinx
     from sphinx.util.typing import OptionSpec
 
     from ..screenshot import TColumns
     from ..screenshot_presets import TerminalPalette
     from ..screenshot_svg import THold
-
-
-logger = logging.getLogger(__name__)
 
 
 RST_INDENT = " " * 3
@@ -135,10 +144,85 @@ DEFAULT_SCREENSHOT_DIR = "assets"
 """Directory a `click:run` `:screenshot:` capture is written to by default.
 
 Relative to the documentation source root. Overridden by the
-`click_extra_screenshot_dir` `conf.py` value.
+`click_extra_screenshot_dir` `conf.py` value, see {data}`SCREENSHOT_DIR_CONFIG`.
 """
 
-SCREENSHOT_MARKER_START = "<!-- screenshot -->"
+RUN_CAPTURE_CONFIG = "click_extra_run_capture"
+"""Name of the `conf.py` value selecting the stream-capture mode for the CLIs that
+`click:run` and `click:tree` execute.
+
+Maps to the `capture` parameter of Click's {class}`~click.testing.CliRunner`,
+`"sys"` or `"fd"` (added in Click 8.4). Defaults to `"fd"` so a command writing
+through `sys.stdout.fileno()` is captured at the file-descriptor level and renders,
+instead of aborting the build with {exc}`io.UnsupportedOperation`. Ignored on Click
+releases older than 8.4, which lack the parameter.
+"""
+
+SCREENSHOT_DIR_CONFIG = "click_extra_screenshot_dir"
+"""Name of the `conf.py` value locating the directory `click:run` writes captures to.
+
+A path relative to the documentation source directory, holding the SVG a
+`click:run` block names with its `:screenshot:` option. Defaults to
+{data}`DEFAULT_SCREENSHOT_DIR`, matching where a Sphinx project conventionally
+keeps the images its pages embed, and where a README pointing at the repository
+finds them.
+"""
+
+SCREENSHOT_PRESET_CONFIG = "click_extra_screenshot_preset"
+"""Name of the `conf.py` value naming the terminal every capture is drawn as.
+
+One of {data}`~click_extra.screenshot_presets.PRESETS`, applied to each
+`click:run` block whose `:screenshot:` does not name a preset of its own. Empty
+by default, which keeps the renderer's neutral window: a project wanting all of
+its captures to look like the same desktop states it once here instead of on
+every block.
+"""
+
+SCREENSHOT_SYNTAX_STYLE_CONFIG = "click_extra_screenshot_syntax_style"
+"""Name of the `conf.py` value coloring every capture drawn from source code.
+
+One of the [Pygments styles](https://pygments.org/styles/), applied to each
+source block whose `:screenshot:` does not name a
+`:screenshot-syntax-style:` of its own. Empty by default, which takes the style
+each chrome is drawn for, see
+{data}`~click_extra.snippet.DEFAULT_SYNTAX_STYLES`. Unused by a block picturing
+what a command printed, whose colors that command already chose.
+"""
+
+SCREENSHOT_WATERMARK_CONFIG = "click_extra_screenshot_watermark"
+"""Name of the `conf.py` value crediting every capture a `click:run` writes.
+
+Empty by default, where the `screenshot` command credits click-extra: a capture
+written by a documentation build is rewritten and committed on every build, so a
+mark naming a release would rewrite every image the day that release changes,
+and the page carrying the image already says what drew it. A project wanting one
+anyway states the text here, or per block with `:screenshot-watermark:`.
+"""
+
+
+def register_config(app: Sphinx) -> None:
+    """Declare the `conf.py` values the `click:*` directives read.
+
+    Called by {func}`click_extra.sphinx.setup` beside the opt-in flag gating the
+    directives, and whether or not the project opts in: a `conf.py` naming one of
+    these values is then valid on every project loading the extension.
+    """
+    # Stream-capture mode for the CLIs click:run and click:tree execute, see
+    # ClickRunner.
+    app.add_config_value(RUN_CAPTURE_CONFIG, "fd", "env", types=[str])
+    # Where a `click:run` `:screenshot:` capture is written.
+    app.add_config_value(
+        SCREENSHOT_DIR_CONFIG, DEFAULT_SCREENSHOT_DIR, "env", types=[str]
+    )
+    # Terminal every capture is drawn as, unless a block says otherwise.
+    app.add_config_value(SCREENSHOT_PRESET_CONFIG, "", "env", types=[str])
+    # Pygments style every source capture is colored with, see snippet.py.
+    app.add_config_value(SCREENSHOT_SYNTAX_STYLE_CONFIG, "", "env", types=[str])
+    # Credit line every capture carries, off unless a project asks for one.
+    app.add_config_value(SCREENSHOT_WATERMARK_CONFIG, "", "env", types=[str])
+
+
+SCREENSHOT_MARKER_START = region_markers("screenshot")[0]
 """Opening marker of a `click:run` `:mirror:` region.
 
 Written on its own line, directly below the fence, and paired with
@@ -153,7 +237,7 @@ anything: it goes stale only when the capture is renamed, which is why no
 build-time pass regenerates it in memory.
 """
 
-SCREENSHOT_MARKER_END = "<!-- screenshot-end -->"
+SCREENSHOT_MARKER_END = region_markers("screenshot")[1]
 """Closing marker of a `:mirror:` region. See {data}`SCREENSHOT_MARKER_START`."""
 
 _INTERPRETER_RE = re.compile(r"(?:^|/)(?:python|pypy)[\d.]*$")
@@ -179,69 +263,6 @@ generated, and {func}`~click_extra.sphinx.python.update_mirror_blocks` owns
 that region. Two refreshers writing one region would each undo the other on
 alternate runs.
 """
-
-
-MYST_CONTENT_OFFSET_INFLATED_MAX = Version("5.1.0")
-"""Last `myst-parser` release that miscomputes a directive's `content_offset`.
-
-Up to and including this version, `myst-parser` over-counts `content_offset`
-by one whenever an option block is followed by a body ending in blank
-line(s): the parsed body is rebuilt through a string round-trip that drops
-one trailing blank line, so the option-block line count comes out one too
-high. This shifts the reported source line of every body element down by one.
-
-This fix is not yet upstream: the open rework in
-[`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) does not
-include it, and also makes `content_offset` document-relative. So the release
-that eventually lands the fix requires
-{attr}`ClickDirective.abs_content_offset` to converge on the rST branch it
-already carries, not merely drop this compensation. See `docs/upstream.md`.
-
-```{todo}
-Retire the MyST `content_offset` workaround once the pinned `myst-parser`
-floor rises past the release carrying the fix:
-
-- delete {func}`_myst_content_offset_inflation` and this constant, and
-  collapse {attr}`ClickDirective.abs_content_offset` onto its rST branch
-  (`content_offset` verbatim);
-- drop the `directive.content` fallback in
-  `click_extra.sphinx._base.directive_source()`, which stays off `block_text`
-  only because that attribute is body-only in `myst-parser <= 5.1.0`
-  ([`#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164) is
-  merged but unreleased). A released `block_text` anchors a robust
-  line-number computation and retires the workaround from both sides.
-
-The single-trailing-blank-line case documented on
-{func}`_myst_content_offset_inflation` stays off by one until then, and no
-local fix can reach it: the round-trip consumes that line without a trace.
-```
-"""
-
-
-def _myst_content_offset_inflation(directive: SphinxDirective) -> int:
-    """Lines to subtract from the MyST error-line computation (`0` or `1`).
-
-    Works around the {data}`MYST_CONTENT_OFFSET_INFLATED_MAX` bug so the
-    variable-conflict error points at the true source line. Only engages on an
-    affected `myst-parser`, and only when the directive carries both an option
-    block and a body ending in a blank line: the two conditions that together
-    trigger the inflation.
-
-    ```{caution}
-    The round-trip behind the bug consumes the *first* trailing blank line, so
-    a body ending in exactly one blank line inflates `content_offset` without
-    leaving a trace in `directive.content`. That single-blank case therefore
-    stays off by one until the upstream fix is adopted; bodies ending in two or
-    more blank lines are corrected.
-    ```
-    """
-    myst = sys.modules.get("myst_parser")
-    if myst is None or Version(myst.__version__) > MYST_CONTENT_OFFSET_INFLATED_MAX:
-        return 0
-    body = list(directive.content)
-    if directive.options and body and not body[-1].strip():
-        return 1
-    return 0
 
 
 class TerminatedEchoingStdin(EchoingStdin):
@@ -286,7 +307,6 @@ def patch_subprocess():
     `subprocess.call`.
     ```
     """
-    old_call = subprocess.call
 
     def dummy_call(*args, **kwargs):
         with tempfile.TemporaryFile("wb+") as f:
@@ -297,12 +317,8 @@ def patch_subprocess():
             click.echo(f.read().decode("utf-8", "replace").rstrip())
         return rv
 
-    subprocess.call = dummy_call
-
-    try:
+    with patch_attr(subprocess, "call", dummy_call):
         yield
-    finally:
-        subprocess.call = old_call
 
 
 def program_from_command_line(command_line: str) -> str:
@@ -350,14 +366,12 @@ class ClickRunner(CliRunner):
         # duplication that got it reverted as a Click default (pallets/click#3391).
         # Windows does not support fd-backed streams (no Unix file descriptors), so
         # fall back to "sys" when the caller has not pinned a mode explicitly.
-        default_capture: Literal["sys", "fd"] = (
-            "sys" if sys.platform == "win32" else "fd"
-        )
+        default_capture: Literal["sys", "fd"] = "sys" if is_windows() else "fd"
         super().__init__(echo_stdin=True, capture=capture or default_capture)
-        self.namespace = {"click": click, "__file__": "dummy.py"}
+        self.namespace = {"click": click, "__file__": PLACEHOLDER_FILE}
         # How the root logger is set up before the document runs any code belongs
         # to the build. See `without_build_logging`.
-        root = stdlib_logging.getLogger()
+        root = logging.getLogger()
         self.build_handlers = tuple(root.handlers)
         self.build_level = root.level
 
@@ -381,7 +395,7 @@ class ClickRunner(CliRunner):
         A handler the code of the document attached itself, or a level it set, is
         not of the build, and stays in place.
         """
-        root = stdlib_logging.getLogger()
+        root = logging.getLogger()
         hidden = [h for h in self.build_handlers if h in root.handlers]
         for handler in hidden:
             root.removeHandler(handler)
@@ -563,8 +577,9 @@ class ClickRunner(CliRunner):
                     f"Line: {python_line}"
                 )
 
-        code = compile_directive(directive)
-        exec(code, self.namespace, local_vars)
+        # The tree the conflict check walked is the code to run, so the source
+        # is parsed once.
+        exec(compile(tree, location, "exec"), self.namespace, local_vars)
         return buffer
 
 
@@ -584,24 +599,9 @@ def _resolve_run_capture(
     A direct `ClickRunner(capture="fd")` call still honors the explicit pin (and
     raises on Windows); only the config-derived preference degrades here.
     """
-    if configured == "fd" and sys.platform == "win32":
+    if configured == "fd" and is_windows():
         return "sys"
     return configured
-
-
-def _screenshot_columns(argument: str) -> TColumns:
-    """Read the `:screenshot-columns:` option into a width, or into `auto`.
-
-    The block's own text is wrapped by Click at its fixed width whatever this
-    says: what it decides is the width the *image* is laid out at, which is what
-    a line the CLI does not wrap on its own needs to stay on one line.
-    """
-    if argument.strip().lower() == AUTO_COLUMNS:
-        return AUTO_COLUMNS
-    width = int(directives.positive_int(argument))
-    if width < MIN_COLUMNS:
-        raise ValueError(f"{width} is narrower than the {MIN_COLUMNS}-column floor.")
-    return width
 
 
 def _screenshot_opacity(argument: str) -> float:
@@ -610,14 +610,6 @@ def _screenshot_opacity(argument: str) -> float:
     if not 0.0 <= opacity <= OPAQUE:
         raise ValueError(f"{argument} is not an opacity, between 0 and {OPAQUE}.")
     return opacity
-
-
-def _screenshot_pause(argument: str) -> float:
-    """Read a pause option into seconds, zero included."""
-    pause = float(argument)
-    if pause < 0:
-        raise ValueError(f"{argument} is not a pause, which is never negative.")
-    return pause
 
 
 def _screenshot_cursor(argument: str | None) -> CursorShape | None:
@@ -638,17 +630,6 @@ def _screenshot_cursor(argument: str | None) -> CursorShape | None:
         raise ValueError(
             f"{argument} is not a cursor shape: name one of {known}, or {AUTO_CURSOR}."
         ) from None
-
-
-def _screenshot_hold(argument: str) -> THold:
-    """Read the `:screenshot-hold:` option into seconds, or into `auto`.
-
-    `auto` scales the pause to the final frame's own line count, see
-    {func}`click_extra.screenshot_svg.auto_hold`.
-    """
-    if argument.strip().lower() == AUTO_HOLD:
-        return AUTO_HOLD
-    return _screenshot_pause(argument)
 
 
 def _screenshot_interval(argument: str) -> float:
@@ -690,11 +671,12 @@ def _code_fence(lines: Iterable[str]) -> str:
     return "`" * max(3, longest + 1)
 
 
-class ClickDirective(SphinxDirective):
+class ClickDirective(ContentOffsetMixin):
     """Base class of every `click:*` directive.
 
     The two directive parsers count `content_offset` from different places, so
-    anything naming a document line goes through {attr}`abs_content_offset`
+    anything naming a document line goes through
+    {attr}`~click_extra.sphinx._base.ContentOffsetMixin.abs_content_offset`
     rather than reading `content_offset` directly.
     """
 
@@ -721,14 +703,14 @@ class ClickDirective(SphinxDirective):
         "screenshot-background": _screenshot_background,
         "screenshot-interval": _screenshot_interval,
         "screenshot-border": directives.unchanged_required,
-        "screenshot-blank": _screenshot_pause,
+        "screenshot-blank": parse_pause,
         "screenshot-border-width": directives.nonnegative_int,
-        "screenshot-blink": _screenshot_pause,
+        "screenshot-blink": parse_pause,
         "screenshot-closing-prompt": directives.flag,
-        "screenshot-columns": _screenshot_columns,
+        "screenshot-columns": parse_columns,
         "screenshot-cursor": _screenshot_cursor,
         "screenshot-emphasize-lines": directives.unchanged_required,
-        "screenshot-hold": _screenshot_hold,
+        "screenshot-hold": parse_hold,
         "screenshot-line-numbers": directives.flag,
         "screenshot-margin": directives.nonnegative_int,
         "screenshot-opacity": _screenshot_opacity,
@@ -783,6 +765,16 @@ class ClickDirective(SphinxDirective):
     recognized.
     """
 
+    source_language: str | None = None
+    """Language the source block is highlighted in, when it is not `language`.
+
+    `None` for a directive showing code of the language it names: the source
+    block of a `click:source` follows its `:language:` option. A directive that
+    *runs* a block names the language of its results instead, so it states the
+    language of the code producing them here, `python` for every runner of this
+    package.
+    """
+
     screenshots_source: bool = False
     """Whether a `:screenshot:` on this directive pictures the block's own code.
 
@@ -827,7 +819,9 @@ class ClickDirective(SphinxDirective):
         runner = getattr(self.state.document, self.runner_attr, None)
         if runner is None:
             runner = self.runner_factory(
-                capture=_resolve_run_capture(self.env.config.click_extra_run_capture)
+                capture=_resolve_run_capture(
+                    getattr(self.env.config, RUN_CAPTURE_CONFIG),
+                ),
             )
             setattr(self.state.document, self.runner_attr, runner)
         return runner
@@ -923,43 +917,27 @@ class ClickDirective(SphinxDirective):
         """
         return self._toggle("prompt", self.show_prompt_by_default)
 
-    @cached_property
-    def is_myst_syntax(self) -> bool:
-        """Check if the current directive is written with MyST syntax."""
-        return bool(self.state.__module__.split(".", 1)[0] == "myst_parser")
-
-    @cached_property
-    def abs_content_offset(self) -> int:
-        """0-based offset of the directive's first content line in the document.
-
-        Both parsers expose a `content_offset` and they count it from
-        different places: docutils from the top of the document, `myst-parser`
-        from the directive's own first line. Everything naming a document line
-        reads this property instead, so the two conventions are reconciled in
-        one place: the variable-conflict error of {meth}`ClickRunner.run_cli`,
-        and the source-line labels
-        {func}`~click_extra.sphinx._base.parse_into_section` attaches to a
-        generated block.
-
-        Named after docutils' `abs_line_offset()`, whose convention it
-        follows.
-        """
-        # Both attributes reach mypy as Any, since the [tool.mypy] overrides
-        # skip following `sphinx.*`. Restate the contract docutils declares.
-        content_offset: int = self.content_offset
-        if not self.is_myst_syntax:
-            return content_offset
-        lineno: int = self.lineno
-        # Correct a myst-parser <= 5.1.0 bug that inflates content_offset by
-        # one when an option block precedes a body ending in blank line(s).
-        # See the mechanism and the single-trailing-blank caveat in
-        # _myst_content_offset_inflation().
-        return lineno + content_offset - _myst_content_offset_inflation(self)
-
     @staticmethod
     def _slug(value: str) -> str:
         """Lower-case + non-alphanumeric → `-`, mirroring docutils' `make_id`."""
         return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+
+    def evaluate(self, expression: str, subject: str) -> Any:
+        """Evaluate `expression` in the runner namespace of the document.
+
+        The namespace is the one the earlier blocks of the page filled, so an
+        expression names what a `click:source` above built. `subject` opens the
+        error, naming what asked for the evaluation: a directive, like
+        `click:tree`, or one of its options, like `click:run: :screenshot-animate:`.
+
+        :raises RuntimeError: when the expression cannot be evaluated.
+        """
+        try:
+            return eval(expression, self.runner.namespace)
+        except Exception as exc:
+            raise RuntimeError(
+                f"{subject}: failed to evaluate {expression!r}: {exc}",
+            ) from exc
 
     def _surrounding_section_depth(self) -> int:
         """Return the heading level of the section wrapping this directive.
@@ -1103,12 +1081,7 @@ class ClickDirective(SphinxDirective):
         :raises ValueError: when a bare sequence of frames states no interval.
         """
         interval = self.options.get("screenshot-interval")
-        try:
-            subject = eval(expression, self.runner.namespace)
-        except Exception as exc:
-            raise RuntimeError(
-                f"click:run: {option}: failed to evaluate {expression!r}: {exc}",
-            ) from exc
+        subject = self.evaluate(expression, f"click:run: {option}")
 
         if isinstance(subject, Spinner):
             return (subject.frame_lines(), interval or subject.interval)
@@ -1244,7 +1217,7 @@ class ClickDirective(SphinxDirective):
         """
         return resolve_style(
             self.options.get("screenshot-syntax-style")
-            or self.env.config.click_extra_screenshot_syntax_style
+            or getattr(self.env.config, SCREENSHOT_SYNTAX_STYLE_CONFIG)
             or None,
             self.screenshot_background,
         )
@@ -1349,7 +1322,7 @@ class ClickDirective(SphinxDirective):
         # carry a release number without being rewritten by every release.
         decoration.setdefault(
             "watermark",
-            self.env.config.click_extra_screenshot_watermark,
+            getattr(self.env.config, SCREENSHOT_WATERMARK_CONFIG),
         )
         frame: dict[str, Any] = {
             name: self.options[f"screenshot-{name}"]
@@ -1362,13 +1335,11 @@ class ClickDirective(SphinxDirective):
                 shape=self.options["screenshot-cursor"],
                 blink=self.options.get("screenshot-blink", Cursor().blink),
             )
-        # Spelled out rather than imported from the package declaring it, as
-        # the screenshot directory next door is: the name is the conf.py API.
-        default_preset = self.env.config.click_extra_screenshot_preset
+        default_preset = getattr(self.env.config, SCREENSHOT_PRESET_CONFIG)
         if default_preset and "preset" not in frame:
             if default_preset not in PRESETS:
                 raise ValueError(
-                    "click_extra_screenshot_preset names no terminal Click "
+                    f"{SCREENSHOT_PRESET_CONFIG} names no terminal Click "
                     f"Extra knows: {default_preset!r} is not one of "
                     f"{', '.join(sorted(PRESETS))}."
                 )
@@ -1532,7 +1503,7 @@ class ClickDirective(SphinxDirective):
         assert self.screenshot
         path = (
             Path(self.env.srcdir)
-            / self.env.config.click_extra_screenshot_dir
+            / getattr(self.env.config, SCREENSHOT_DIR_CONFIG)
             / f"{self.screenshot}.svg"
         )
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1610,11 +1581,7 @@ class ClickDirective(SphinxDirective):
 
         lines = []
         if self.show_source:
-            language = self.language
-            # If we are running a CLI, we force rendering the source code as a
-            # Python code block.
-            if self.runner_method == "run_cli":
-                language = SourceDirective.default_language
+            language = self.source_language or self.language
             lines.extend(self.render_code_block(self.content, language, "source"))
         if self.show_results:
             lines.extend(self.render_code_block(results, self.language, "results"))
@@ -1650,6 +1617,7 @@ class RunDirective(ClickDirective):
     show_source_by_default = False
     show_results_by_default = True
     runner_method = "run_cli"
+    source_language = SourceDirective.default_language
 
 
 ClickDirective.runner_factory = ClickRunner
@@ -1705,7 +1673,64 @@ def update_screenshot_blocks(
     return update_blocks(paths, rewrite, check=check)
 
 
-class TreeDirective(ClickDirective):
+def _short_description(command: click.Command) -> str:
+    """The one-line summary of `command` for a table cell, without its final period."""
+    return (command.get_short_help_str() or "").rstrip(".")
+
+
+class ReferenceDirective(ClickDirective):
+    """Base of the directives expanding a Python expression into a MyST reference.
+
+    `click:tree` and `click:config` both take one required argument, an
+    expression evaluated in the per-document runner namespace, and an optional
+    body of Python run in that namespace first. Both write MyST headings under
+    the section hosting them, so both refuse an rST host.
+    """
+
+    has_content = True
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = False
+
+    def resolve_argument(self) -> tuple[str, Any]:
+        """Run the body, then evaluate the argument in the runner namespace.
+
+        The body lets a page inline `from mypkg.cli import mycli` instead of
+        seeding the namespace with a separate `click:source` `:hide-source:`
+        block. Hard errors (not `self.error()`) so the build fails fast: a
+        partially rendered reference page hides bugs in what the directive was
+        meant to document.
+
+        :return: the expression as written, and what it evaluated to.
+        :raises RuntimeError: on an rST host, or when the expression cannot be
+            evaluated.
+        """
+        if not self.is_myst_syntax:
+            raise RuntimeError(
+                f"{self.name} currently only supports MyST syntax. "
+                "Place the directive in a .md document with myst_parser enabled.",
+            )
+        if self.content:
+            self.runner.execute_source(self)
+        expression = self.arguments[0].strip()
+        return expression, self.evaluate(expression, self.name)
+
+    @cached_property
+    def heading_offset(self) -> int:
+        """Levels the generated headings are shifted down by.
+
+        Set by `:heading-offset:`. Without it, the headings nest one level below
+        the surrounding section, so the document outline stays consistent
+        wherever the directive is placed: at the document's top level this
+        resolves to `1`, a root rendered at `h2` under a document title at `h1`.
+        """
+        return self.options.get(  # type: ignore[no-any-return]
+            "heading-offset",
+            self._surrounding_section_depth(),
+        )
+
+
+class TreeDirective(ReferenceDirective):
     """Render a complete CLI reference for a Click command and all its subcommands.
 
     Walks the Click command tree at build time and emits, in MyST syntax:
@@ -1730,11 +1755,6 @@ class TreeDirective(ClickDirective):
     `myst_parser` enabled.
     ```
     """
-
-    has_content = True
-    required_arguments = 1
-    optional_arguments = 0
-    final_argument_whitespace = False
 
     option_spec: ClassVar[OptionSpec] = {
         "max-depth": directives.positive_int,
@@ -1762,12 +1782,6 @@ class TreeDirective(ClickDirective):
     `no-root` skips the root `--help` block.
     """
 
-    # The runner_attr, runner property, is_myst_syntax cached-property, and
-    # the _slug/_surrounding_section_depth helpers are inherited unchanged
-    # from ClickDirective. Sharing the "click_runner" attribute means a
-    # click:source that ran earlier on the same document has already
-    # populated the namespace with the CLI variable this directive resolves.
-
     def _walk(
         self,
         root: click.Command,
@@ -1794,28 +1808,7 @@ class TreeDirective(ClickDirective):
         return entries
 
     def run(self) -> list[nodes.Node]:
-        # Hard errors (RuntimeError, not self.error()) so the build fails
-        # fast: a partially rendered reference page hides bugs in the CLI
-        # tree the directive was meant to document.
-        if not self.is_myst_syntax:
-            raise RuntimeError(
-                "click:tree currently only supports MyST syntax. "
-                "Place the directive in a .md document with myst_parser enabled.",
-            )
-
-        # Execute the optional body in the runner namespace so callers can
-        # inline `from mypkg.cli import mycli` instead of seeding the
-        # namespace with a separate `click:source :hide-source:` block.
-        if self.content:
-            self.runner.execute_source(self)
-
-        cli_expr = self.arguments[0].strip()
-        try:
-            cli = eval(cli_expr, self.runner.namespace)
-        except Exception as exc:
-            raise RuntimeError(
-                f"click:tree: failed to evaluate {cli_expr!r}: {exc}",
-            ) from exc
+        cli_expr, cli = self.resolve_argument()
         if not isinstance(cli, click.Command):
             raise TypeError(
                 f"click:tree: {cli_expr!r} did not yield a click.Command "
@@ -1823,26 +1816,23 @@ class TreeDirective(ClickDirective):
             )
 
         max_depth = self.options.get("max-depth", 10)
-        # Without an explicit override, nest the generated headings one
-        # level below the surrounding section so the document outline stays
-        # consistent regardless of where the directive is placed. At the
-        # document's top level this resolves to the historical default of 1
-        # (root rendered at h2 under a document title at h1).
-        heading_offset = self.options.get(
-            "heading-offset",
-            self._surrounding_section_depth(),
-        )
         label_prefix = self.options.get("label-prefix") or cli.name or cli_expr
         anchor_prefix = self.options.get("anchor-prefix") or self._slug(label_prefix)
         root_label = self.options.get("root-label", "Help screen")
         include_table = "no-table" not in self.options
         include_root = "no-root" not in self.options
 
-        entries = self._walk(cli, max_depth)
-
-        # Local import to avoid a circular import: click_extra.table is part
-        # of the same package and pulls in optional rendering deps.
-        from ..table import TableFormat, render_table
+        # Each command's heading label and anchor, shared by the row linking to
+        # its section and the section itself.
+        entries = [
+            (
+                path,
+                cmd,
+                f"{label_prefix} {' '.join(path)}".strip(),
+                "-".join([anchor_prefix, *(self._slug(p) for p in path)]),
+            )
+            for path, cmd in self._walk(cli, max_depth)
+        ]
 
         lines: list[str] = []
 
@@ -1850,50 +1840,52 @@ class TreeDirective(ClickDirective):
         if include_table:
             rows: list[list[str]] = []
             if include_root:
-                desc = (cli.get_short_help_str() or "").rstrip(".")
-                rows.append([f"[`{label_prefix}`](#{anchor_prefix})", desc])
-            for path, cmd in entries:
-                label = f"{label_prefix} {' '.join(path)}".strip()
-                anchor = "-".join([anchor_prefix, *(self._slug(p) for p in path)])
-                desc = (cmd.get_short_help_str() or "").rstrip(".")
-                rows.append([f"[`{label}`](#{anchor})", desc])
+                rows.append([
+                    f"[`{label_prefix}`](#{anchor_prefix})",
+                    _short_description(cli),
+                ])
+            rows.extend(
+                [f"[`{label}`](#{anchor})", _short_description(cmd)]
+                for _path, cmd, label, anchor in entries
+            )
             if rows:
-                lines.append(
+                lines.extend((
                     render_table(
                         rows,
                         headers=["Command", "Description"],
                         table_format=TableFormat.GITHUB,
                     ),
-                )
-                lines.append("")
+                    "",
+                ))
 
         # Root help block. Placed at the same heading level as top-level
         # commands so subcommands always nest one level deeper than their
         # parent, matching the repomatic convention.
         if include_root:
-            heading = "#" * (heading_offset + 1)
-            lines.append(f"({anchor_prefix})=")
-            lines.append(f"{heading} {root_label}")
-            lines.append("")
-            lines.append("```{click:run}")
-            lines.append(f"invoke({cli_expr}, args=['--help'])")
-            lines.append("```")
-            lines.append("")
+            heading = "#" * (self.heading_offset + 1)
+            lines.extend((
+                f"({anchor_prefix})=",
+                f"{heading} {root_label}",
+                "",
+                "```{click:run}",
+                f"invoke({cli_expr}, args=['--help'])",
+                "```",
+                "",
+            ))
 
         # Per-command sections.
-        for path, _cmd in entries:
-            heading = "#" * (heading_offset + len(path))
-            anchor = "-".join([anchor_prefix, *(self._slug(p) for p in path)])
-            label = f"{label_prefix} {' '.join(path)}".strip()
+        for path, _cmd, label, anchor in entries:
+            heading = "#" * (self.heading_offset + len(path))
             args_repr = ", ".join(repr(a) for a in [*path, "--help"])
-
-            lines.append(f"({anchor})=")
-            lines.append(f"{heading} `{label}`")
-            lines.append("")
-            lines.append("```{click:run}")
-            lines.append(f"invoke({cli_expr}, args=[{args_repr}])")
-            lines.append("```")
-            lines.append("")
+            lines.extend((
+                f"({anchor})=",
+                f"{heading} `{label}`",
+                "",
+                "```{click:run}",
+                f"invoke({cli_expr}, args=[{args_repr}])",
+                "```",
+                "",
+            ))
 
         # Nested `{click:run}` directives execute during the shared parse and
         # resolve the CLI variable from the same runner namespace.
@@ -1951,7 +1943,7 @@ def _toml_value(value: object) -> str | None:
     return None
 
 
-class ConfigDirective(ClickDirective):
+class ConfigDirective(ReferenceDirective):
     """Render the configuration reference of a CLI's `config_schema`.
 
     Introspects a configuration schema dataclass at build time and expands,
@@ -1993,11 +1985,6 @@ class ConfigDirective(ClickDirective):
     ```
     """
 
-    has_content = True
-    required_arguments = 1
-    optional_arguments = 0
-    final_argument_whitespace = False
-
     option_spec: ClassVar[OptionSpec] = {
         "heading-offset": directives.nonnegative_int,
         "section": directives.unchanged,
@@ -2018,34 +2005,7 @@ class ConfigDirective(ClickDirective):
     """
 
     def run(self) -> list[nodes.Node]:
-        # Hard errors (RuntimeError, not self.error()) so the build fails
-        # fast: a partially rendered reference page hides bugs in the schema
-        # the directive was meant to document.
-        if not self.is_myst_syntax:
-            raise RuntimeError(
-                "click:config currently only supports MyST syntax. "
-                "Place the directive in a .md document with myst_parser enabled.",
-            )
-
-        # Execute the optional body in the runner namespace so callers can
-        # inline `from mypkg.cli import mycli` instead of seeding the
-        # namespace with a separate `click:source :hide-source:` block.
-        if self.content:
-            self.runner.execute_source(self)
-
-        target_expr = self.arguments[0].strip()
-        try:
-            target = eval(target_expr, self.runner.namespace)
-        except Exception as exc:
-            raise RuntimeError(
-                f"click:config: failed to evaluate {target_expr!r}: {exc}",
-            ) from exc
-
-        # Local import to avoid a circular import: click_extra.config is part
-        # of the same package and is imported after click_extra.sphinx from
-        # the package __init__.
-        from ..config.option import ConfigOption
-        from ..config.schema import schema_field_infos
+        target_expr, target = self.resolve_argument()
 
         section = self.options.get("section")
         if isinstance(target, click.Command):
@@ -2074,16 +2034,8 @@ class ConfigDirective(ClickDirective):
 
         infos = schema_field_infos(schema)
 
-        heading_offset = self.options.get(
-            "heading-offset",
-            self._surrounding_section_depth(),
-        )
         include_table = "no-table" not in self.options
         include_examples = "no-examples" not in self.options
-
-        # Local import to avoid a circular import: click_extra.table is part
-        # of the same package and pulls in optional rendering deps.
-        from ..table import TableFormat, render_table
 
         lines: list[str] = []
 
@@ -2099,52 +2051,48 @@ class ConfigDirective(ClickDirective):
                 ]
                 for info in infos
             ]
-            lines.append(
+            lines.extend((
                 render_table(
                     rows,
                     headers=["Option", "Description", "Default"],
                     table_format=TableFormat.GITHUB,
                 ),
-            )
-            lines.append("")
+                "",
+            ))
 
         # Per-option sections: lead with the summary, then type and default,
         # then the rest of the docstring, and finally a TOML example pinned
         # to the field's default value.
-        heading = "#" * (heading_offset + 1)
+        heading = "#" * (self.heading_offset + 1)
         for info in infos:
             # Strip the summary (already shown first) from the full docstring.
             _head, _sep, tail = info.description.partition("\n\n")
             rest = tail.strip()
 
-            lines.append(f"{heading} `{info.key}`")
-            lines.append("")
+            lines.extend((f"{heading} `{info.key}`", ""))
             if info.summary:
-                lines.append(info.summary)
-                lines.append("")
+                lines.extend((info.summary, ""))
             # The "| None" half of an optional type is noise here: the
             # Default line right next to it already says whether the option
             # defaults to nothing.
             type_hint = info.type_hint.replace(" | None", "")
-            lines.append(
-                f"**Type:** `{type_hint}` | **Default:** "
-                f"{_format_default(info.default)}",
-            )
-            lines.append("")
+            default = _format_default(info.default)
+            lines.extend((f"**Type:** `{type_hint}` | **Default:** {default}", ""))
             if rest:
-                lines.extend(rest.splitlines())
-                lines.append("")
+                lines.extend((*rest.splitlines(), ""))
             example = _toml_value(info.default) if include_examples else None
             if example is not None:
                 example_lines = [f"[{section}]"] if section else []
                 example_lines.extend(f"{info.key} = {example}".splitlines())
                 fence = _code_fence(example_lines)
-                lines.append("**Example:**")
-                lines.append("")
-                lines.append(f"{fence}toml")
-                lines.extend(example_lines)
-                lines.append(fence)
-                lines.append("")
+                lines.extend((
+                    "**Example:**",
+                    "",
+                    f"{fence}toml",
+                    *example_lines,
+                    fence,
+                    "",
+                ))
 
         # Hand the generated MyST source back to the parser, like click:tree.
         return parse_into_section(self, lines)

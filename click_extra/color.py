@@ -28,15 +28,16 @@ import os
 import re
 import select
 import sys
-import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
+from functools import partial
 from gettext import gettext as _
 
 import click
 from click._utils import UNSET
 from click.core import ParameterSource
 
+from . import context
 from ._deprecated import warn_deprecated_argument
 from .envvar import temporary_env
 from .parameters import ExtraOption
@@ -593,29 +594,27 @@ def publish_invocation_color(ctx: click.Context) -> None:
     whichever fires last leaves the final tri-state in the mirror.
 
     The first call ties the mirror to `ctx`'s own lifetime, so the value does not
-    leak into a later invocation in the same process. Two mechanisms cover the
-    two ways an invocation ends:
-
-    - A close callback, for the normal path.
-    - A finalizer, for the abort path: a callback raising during parameter
-      processing leaves the context never entered, and therefore never closed.
-      Click's `UsageError` holds that context, and the traceback holds the
-      error, so the pair sits in a reference cycle and the finalizer runs at the
-      next collection rather than immediately. Ordinary allocation churn reaches
-      it within a few hundred objects, but it is not deterministic.
+    leak into a later invocation in the same process. A close callback resets it
+    on the normal path, and `click_extra.context._queue_run_cleanup` on the
+    abort path: a callback raising during parameter processing leaves the
+    context never entered, and therefore never closed. Click's `UsageError`
+    holds that context, and the traceback holds the error, so the pair sits in a
+    reference cycle and the finalizer of that path runs at the next collection
+    rather than immediately. Ordinary allocation churn reaches it within a few
+    hundred objects, but it is not deterministic.
 
     {class}`~click_extra.commands.Command` does not depend on that timing: its
-    `main()` resets the mirror in a `finally`, which covers every Click Extra
-    command. The finalizer is what carries a plain `click.command` that merely
-    borrows the color options.
+    `main()` runs within the `_scoped_run` block that calls the cleanup as the
+    run ends, which covers every Click Extra command. The finalizer is what
+    carries a plain `click.command` that merely borrows the color options.
     """
     global _invocation_color, _invocation_token
     _invocation_color = ctx.color
-    if not ctx.meta.get(_COLOR_PUBLISHED_KEY):
-        ctx.meta[_COLOR_PUBLISHED_KEY] = True
+    if not context.get(ctx, _COLOR_PUBLISHED_KEY):
+        context.set(ctx, _COLOR_PUBLISHED_KEY, True)
         _invocation_token = token = object()
         ctx.call_on_close(_reset_invocation_color)
-        weakref.finalize(ctx, _expire_invocation_color, token)
+        context._queue_run_cleanup(ctx, partial(_expire_invocation_color, token))
 
 
 def _expire_invocation_color(token: object) -> None:
@@ -806,8 +805,8 @@ class ColorOption(ExtraOption):
             # coming from the command line, a configuration file or --accessible. An
             # explicit --no-color (recorded by NoColorOption) is a
             # command-line choice and therefore outranks the environment too.
-            if source == ParameterSource.DEFAULT and not ctx.meta.get(
-                _COLOR_CLI_OVERRIDE_KEY,
+            if source == ParameterSource.DEFAULT and not context.get(
+                ctx, _COLOR_CLI_OVERRIDE_KEY
             ):
                 env_color = resolve_color_env()
                 if env_color is not None:
@@ -894,7 +893,7 @@ class NoColorOption(ExtraOption):
             ctx.color = False
             # Flag the explicit choice so ColorOption keeps the environment from
             # overriding it (the environment may only override the built-in default).
-            ctx.meta[_COLOR_CLI_OVERRIDE_KEY] = True
+            context.set(ctx, _COLOR_CLI_OVERRIDE_KEY, True)
             # Mirror the pin process-wide for background-thread output.
             publish_invocation_color(ctx)
 

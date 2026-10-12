@@ -107,6 +107,7 @@ from click._utils import UNSET
 from ._utils import memoize_enums
 from .commands import ColorizedCommand, Command, Group, HelpCommand
 from .context import Context
+from .parameters import param_spellings
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +167,7 @@ class PersonalitiesCommand(ColorizedCommand):
 
         rows: list[tuple[str, str, str]] = []
         for name, tokens in group.list_personalities().items():
-            sub = group.commands.get(tokens[0])
+            sub = group._get_personality_subcommand(tokens[0])
             short_help = sub.get_short_help_str() if sub is not None else ""
             rows.append((name, " ".join(tokens), short_help))
 
@@ -258,20 +259,42 @@ class MulticallGroup(Group):
             name = name[: -len(WINDOWS_EXE_SUFFIX)]
         return name or None
 
+    def _is_default_personality(self, name: str) -> bool:
+        """Whether `name` is a personality when no explicit mapping is declared.
+
+        Every visible, non-synthetic subcommand is one. A hidden subcommand is
+        not, nor are the `help` and `personalities` commands Click Extra
+        injects, nor a name no subcommand answers to. A lazy subcommand is
+        imported on the way, through `_get_personality_subcommand`: whether it
+        is hidden is only known once it is loaded.
+        """
+        cmd = self._get_personality_subcommand(name)
+        return (
+            cmd is not None
+            and not cmd.hidden
+            and not isinstance(cmd, (HelpCommand, PersonalitiesCommand))
+        )
+
     def list_personalities(self) -> dict[str, tuple[str, ...]]:
         """Every personality name mapped to the tokens it invokes.
 
-        The explicit `personalities` mapping when one was declared,
-        else every non-hidden, non-synthetic subcommand mapped to itself.
+        The explicit `personalities` mapping when one was declared, else every
+        subcommand `_is_default_personality` admits, mapped to itself. The lazy
+        subcommands of a lazy group are imported to be judged, which a listing
+        has to pay for.
         """
         if self.personalities:
             return dict(self.personalities)
-        return {
-            name: (name,)
-            for name, cmd in self.commands.items()
-            if not cmd.hidden
-            and not isinstance(cmd, (HelpCommand, PersonalitiesCommand))
-        }
+        # Eagerly registered subcommands first, in registration order, then the
+        # lazy ones in declaration order. The names are collected before any
+        # import, since importing a lazy subcommand registers it in `commands`.
+        names = list(self.commands)
+        names.extend(
+            name
+            for name in getattr(self, "lazy_subcommands", {})
+            if name not in self.commands
+        )
+        return {name: (name,) for name in names if self._is_default_personality(name)}
 
     def match_personality(self, name: str | None) -> tuple[str, ...] | None:
         """Tokens to invoke when called under *name*, or `None` to fall through."""
@@ -279,12 +302,7 @@ class MulticallGroup(Group):
             return None
         if self.personalities:
             return self.personalities.get(name)
-        cmd = self.commands.get(name)
-        if (
-            cmd is None
-            or cmd.hidden
-            or isinstance(cmd, (HelpCommand, PersonalitiesCommand))
-        ):
+        if not self._is_default_personality(name):
             return None
         return (name,)
 
@@ -443,7 +461,7 @@ def _param_keys(param: click.Parameter) -> set[str]:
     """The names a parameter claims: its destination and, for an option, its flags."""
     keys: set[str] = {param.name} if param.name else set()
     if isinstance(param, click.Option):
-        keys.update(param.opts, param.secondary_opts)
+        keys.update(param_spellings(param))
     return keys
 
 

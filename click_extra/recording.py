@@ -45,21 +45,20 @@ import io
 import os
 import re
 import select
+import struct
 import subprocess
 import time
-from typing import NamedTuple
-
-from extra_platforms import is_unix
+from typing import NamedTuple, cast
 
 from .color import forced_color
+from .envvar import env_copy
 from .execution import args_cleanup
-from .layout import cell_width, number_lines
+from .layout import RESET, cell_width, number_lines
 from .screenshot import (
-    CAPTURE_HIDDEN_TERMINAL_VARS,
-    CAPTURE_TERMINAL_HINTS,
     DEFAULT_COLUMNS,
     Chrome,
     append_prompt,
+    capture_environment,
     fold_chrome_arguments,
     prompt_line,
     render,
@@ -71,13 +70,18 @@ from .screenshot_svg import AUTO_HOLD
 
 # A pseudo-terminal is what makes a CLI checking `isatty` animate for a
 # recorder, and `pty` reaches for `termios`, which Windows does not ship. The
-# import is conditional rather than buried in the function needing it, so the
-# platform this module is narrower on stays readable from its head.
-if is_unix():
+# import is attempted rather than buried in the function needing it, so the
+# platform this module is narrower on stays readable from its head, and it is
+# the import itself that is asked rather than a platform probe, which would
+# charge every CLI the whole platform detection on startup.
+try:
     import fcntl
     import pty
-    import struct
     import termios
+except ImportError:  # pragma: no cover
+    fcntl = None  # type: ignore[assignment]
+    pty = None  # type: ignore[assignment]
+    termios = None  # type: ignore[assignment]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -350,21 +354,29 @@ class ScreenRecorder(io.TextIOBase):
     def write(self, text: str) -> int:
         """Replay what was written and note the screen it leaves behind.
 
+        A write changing nothing on screen is not noted: a cursor hidden or a
+        style opened leaves the picture as it was, and the screen it did not
+        change keeps the time it first appeared. What is kept is one sample per
+        distinct screen, so a long animation costs as much memory as it has
+        screens rather than as many as it has writes.
+
         :param text: the stream, control sequences and all.
         :return: how much was written, as a stream is expected to report.
         """
         self._screen.feed(text)
-        self._samples.append((self._clock(), self._screen.display))
+        display = self._screen.display
+        if not self._samples or self._samples[-1][1] != display:
+            self._samples.append((self._clock(), display))
         return len(text)
 
     def frames(self, *, end: float | None = None) -> tuple[Frame, ...]:
         """Coalesce what was recorded into the frames the screen held.
 
-        A write changing nothing on screen is not a frame, and neither is a
-        screen holding nothing but blanks: an animation erases its line before
-        printing the result underneath, and neither that erasure nor the newline
-        ending it is a picture. What is left is one frame per distinct screen,
-        each lasting until the next replaced it.
+        A write changing nothing on screen is not a frame, see {meth}`write`,
+        and neither is a screen holding nothing but blanks: an animation erases
+        its line before printing the result underneath, and neither that erasure
+        nor the newline ending it is a picture. What is left is one frame per
+        distinct screen, each lasting until the next replaced it.
 
         ```{caution}
         The durations are wall-clock, so they answer to how busy the machine was
@@ -376,12 +388,7 @@ class ScreenRecorder(io.TextIOBase):
             lasted. Defaults to now.
         :return: the frames, in the order they were drawn.
         """
-        kept: list[tuple[float, str]] = []
-        for at, display in self._samples:
-            if kept and kept[-1][1] == display:
-                continue
-            kept.append((at, display))
-
+        kept = self._samples
         finish = self._clock() if end is None else end
         frames = []
         for index, (at, display) in enumerate(kept):
@@ -478,6 +485,9 @@ def _record_process(
     file wants to relay how the command it pictured ended, while the public
     frame recorder keeps its single-value return.
     """
+    # Deferred import: keeps extra_platforms off the startup path of every CLI.
+    from extra_platforms import is_unix
+
     if not is_unix():
         raise NotImplementedError(
             "Recording a command needs a pseudo-terminal, which this platform "
@@ -485,13 +495,13 @@ def _record_process(
             "anywhere through a ScreenRecorder stream."
         )
 
+    # The height is stated beside the width: a pseudo-terminal has one, where
+    # a capture through a pipe only ever pins the width.
     with forced_color():
-        environment = dict(os.environ)
-    environment.update(CAPTURE_TERMINAL_HINTS[background])
-    for hidden in CAPTURE_HIDDEN_TERMINAL_VARS:
-        environment.pop(hidden, None)
-    environment["COLUMNS"] = str(columns)
-    environment["LINES"] = str(rows)
+        environment = env_copy({
+            **capture_environment(background, columns),
+            "LINES": str(rows),
+        })
 
     recorder = ScreenRecorder(clock=clock)
     # Decoded incrementally rather than chunk by chunk: a pseudo-terminal
@@ -508,7 +518,7 @@ def _record_process(
         stdin=child,
         stdout=child,
         stderr=child,
-        env=environment,
+        env=cast("subprocess._ENV", environment),
         close_fds=True,
     )
     # The parent holds the only reading end from here on: leaving the child's
@@ -610,7 +620,7 @@ def ansi_prefix(text: str, count: int) -> str:
         kept.append(text[index])
         printed += 1
         index += 1
-    return "".join(kept) + "\x1b[0m"
+    return "".join(kept) + RESET
 
 
 def type_line(

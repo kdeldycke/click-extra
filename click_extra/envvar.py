@@ -65,6 +65,16 @@ def parse_envvar_flag(value: str) -> bool:
     return RawConfigParser.BOOLEAN_STATES.get(value.lower(), True)
 
 
+def normalize_envvar_id(envvar_id: str) -> str:
+    """Spell an environment variable name the way the running platform reads it.
+
+    Windows looks variables up case-insensitively, and the standard library
+    upper-cases every name it stores: see {func}`merge_envvar_ids`. Every other
+    platform keeps the name as given.
+    """
+    return envvar_id.upper() if IS_WINDOWS else envvar_id
+
+
 def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ...]:
     """Merge and deduplicate environment variables.
 
@@ -80,15 +90,12 @@ def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ..
     Returns a tuple of strings. The result is ready to be used as the `envvar`
     parameter for Click's options or arguments.
     """
-    ids = []
-    for envvar in flatten_iter(envvar_ids):
-        if envvar:
-            if IS_WINDOWS:
-                envvar = envvar.upper()
-            # Deduplicate names.
-            if envvar not in ids:
-                ids.append(envvar)
-    return tuple(ids)
+    # A dict keeps the first occurrence of each name, in order.
+    return tuple(
+        dict.fromkeys(
+            normalize_envvar_id(envvar) for envvar in flatten_iter(envvar_ids) if envvar
+        )
+    )
 
 
 def clean_envvar_id(envvar_id: str) -> str:

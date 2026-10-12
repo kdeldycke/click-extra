@@ -56,6 +56,7 @@ import os
 import re
 from dataclasses import dataclass, fields, replace
 from functools import lru_cache
+from typing import TypeGuard
 
 import cloup
 
@@ -151,6 +152,57 @@ _BOOL_ATTRS: tuple[str, ...] = tuple(_ATTR_CSS)
 # Match a single ANSI SGR escape: `\x1b[...m`. The parameter substring may be
 # empty: `\x1b[m` is a valid, parameter-less full reset.
 _ANSI_SGR_RE: re.Pattern[str] = re.compile(r"\x1b\[([0-9;]*)m")
+
+_SGR_ATTRIBUTES: dict[int, str] = {
+    1: "bold",
+    2: "dim",
+    3: "italic",
+    4: "underline",
+    5: "blink",
+    7: "reverse",
+    9: "strikethrough",
+    53: "overline",
+}
+"""The SGR code switching each boolean style attribute on."""
+
+_SGR_RESETS: dict[int, tuple[str, ...]] = {
+    22: ("bold", "dim"),
+    23: ("italic",),
+    24: ("underline",),
+    25: ("blink",),
+    27: ("reverse",),
+    29: ("strikethrough",),
+    39: ("fg",),
+    49: ("bg",),
+    55: ("overline",),
+}
+"""The style fields each selective SGR reset code switches off.
+
+`22` ends both the bold and the faint intensity, as ECMA-48 defines it. The full
+reset, `0`, clears every field and is handled apart.
+"""
+
+_SGR_COLOR_RANGES: tuple[tuple[int, int, str, str], ...] = (
+    (30, 37, "fg", ""),
+    (40, 47, "bg", ""),
+    (90, 97, "fg", "bright_"),
+    (100, 107, "bg", "bright_"),
+)
+"""The SGR code ranges naming one of the 16 ANSI colors.
+
+Each entry gives the first and last code of the range, the field it sets and the
+prefix of the color name: the standard colors are named after
+{data}`_ANSI_NAMES`, the bright ones take a `bright_` prefix.
+"""
+
+
+def _is_rgb(color: object) -> TypeGuard[tuple[int, int, int]]:
+    """Whether `color` is a 24-bit `(r, g, b)` triplet.
+
+    The one shape of color this module computes on: a named ANSI color, a palette
+    index or a hex string is resolved to it first.
+    """
+    return isinstance(color, tuple) and len(color) == 3
 
 
 # --- Shared dict round-trip helpers ------------------------------------------
@@ -318,7 +370,7 @@ def _resolve_rgb(color: object) -> tuple[int, int, int]:
     palette indices (`int`), and `Color`-enum-like objects with a
     `.name` attribute.
     """
-    if isinstance(color, tuple) and len(color) == 3:
+    if _is_rgb(color):
         return color
     if isinstance(color, str):
         if color.startswith("#"):
@@ -340,7 +392,7 @@ def _resolve_rgb(color: object) -> tuple[int, int, int]:
 
 def _color_repr(value: object) -> str:
     """Compact human-readable form of a color value for `__repr__`."""
-    if isinstance(value, tuple) and len(value) == 3:
+    if _is_rgb(value):
         return _rgb_to_hex(value)
     if hasattr(value, "name") and not isinstance(value, str):
         return value.name  # type: ignore[no-any-return]
@@ -349,7 +401,7 @@ def _color_repr(value: object) -> str:
 
 def _color_to_css(color: object) -> str:
     """Render a color value as a CSS color string."""
-    if isinstance(color, tuple) and len(color) == 3:
+    if _is_rgb(color):
         return _rgb_to_hex(color)
     if isinstance(color, str):
         if color.startswith("#"):
@@ -431,7 +483,7 @@ def _quantize_color(color: _Color) -> _Color:
     Any non-tuple color (a named ANSI string, an existing palette `int`, or
     `None`) is returned untouched: only true-color values need quantizing.
     """
-    if isinstance(color, tuple) and len(color) == 3:
+    if _is_rgb(color):
         return _nearest_256(*color)
     return color
 
@@ -496,18 +548,17 @@ class Style(cloup.Style):
         the terminal does not advertise truecolor, RGB colors are downsampled to the
         nearest `38;5;n` 256-color index so a branded theme degrades instead of
         relying on the terminal to convert. Named and palette-index colors are
-        unaffected either way.
+        unaffected either way, and a style carrying no RGB color never reads the
+        environment: this method runs for every styled token of a help screen.
         """
-        if supports_truecolor():
-            return super().__call__(text)
-        fg = _quantize_color(self.fg)
-        bg = _quantize_color(self.bg)
-        if fg is self.fg and bg is self.bg:
-            return super().__call__(text)
-        # Quantize on a transient copy. `replace` resets cloup's lazy
-        # `_style_kwargs` cache (the field is `init=False`), so the singleton
-        # theme styles keep their truecolor cache intact for the next call.
-        return replace(self, fg=fg, bg=bg)(text)
+        if (_is_rgb(self.fg) or _is_rgb(self.bg)) and not supports_truecolor():
+            # Quantize on a transient copy. `replace` resets cloup's lazy
+            # `_style_kwargs` cache (the field is `init=False`), so the singleton
+            # theme styles keep their truecolor cache intact for the next call.
+            return replace(
+                self, fg=_quantize_color(self.fg), bg=_quantize_color(self.bg)
+            )(text)
+        return super().__call__(text)
 
     def __repr__(self) -> str:
         """Compact repr that lists only the attributes actually set."""
@@ -599,7 +650,7 @@ class Style(cloup.Style):
         RGB tuples become `#rrggbb` strings; enum-shaped objects with a
         `.name` are serialized by name; everything else passes through.
         """
-        if isinstance(value, tuple) and len(value) == 3:
+        if _is_rgb(value):
             return _rgb_to_hex(value)
         if hasattr(value, "name") and not isinstance(value, str):
             return value.name
@@ -771,30 +822,8 @@ def _apply_sgr_codes(
     total = len(codes)
     while i < total:
         code = codes[i]
-        if code == 1:
-            state["bold"] = True
-        elif code == 2:
-            state["dim"] = True
-        elif code == 3:
-            state["italic"] = True
-        elif code == 4:
-            state["underline"] = True
-        elif code == 5:
-            state["blink"] = True
-        elif code == 7:
-            state["reverse"] = True
-        elif code == 9:
-            state["strikethrough"] = True
-        elif code == 53:
-            state["overline"] = True
-        elif 30 <= code <= 37:
-            state["fg"] = _ANSI_NAMES[code - 30]
-        elif 40 <= code <= 47:
-            state["bg"] = _ANSI_NAMES[code - 40]
-        elif 90 <= code <= 97:
-            state["fg"] = "bright_" + _ANSI_NAMES[code - 90]
-        elif 100 <= code <= 107:
-            state["bg"] = "bright_" + _ANSI_NAMES[code - 100]
+        if code in _SGR_ATTRIBUTES:
+            state[_SGR_ATTRIBUTES[code]] = True
         elif code in (38, 48):
             key = "fg" if code == 38 else "bg"
             if i + 2 < total and codes[i + 1] == 5:
@@ -803,28 +832,16 @@ def _apply_sgr_codes(
             elif i + 4 < total and codes[i + 1] == 2:
                 state[key] = (codes[i + 2], codes[i + 3], codes[i + 4])
                 i += 4
-        elif resets:
-            if code == 0:
-                state.clear()
-            elif code == 22:
-                state.pop("bold", None)
-                state.pop("dim", None)
-            elif code == 23:
-                state.pop("italic", None)
-            elif code == 24:
-                state.pop("underline", None)
-            elif code == 25:
-                state.pop("blink", None)
-            elif code == 27:
-                state.pop("reverse", None)
-            elif code == 29:
-                state.pop("strikethrough", None)
-            elif code == 39:
-                state.pop("fg", None)
-            elif code == 49:
-                state.pop("bg", None)
-            elif code == 55:
-                state.pop("overline", None)
+        elif resets and code == 0:
+            state.clear()
+        elif resets and code in _SGR_RESETS:
+            for field_name in _SGR_RESETS[code]:
+                state.pop(field_name, None)
+        else:
+            for first, last, key, prefix in _SGR_COLOR_RANGES:
+                if first <= code <= last:
+                    state[key] = prefix + _ANSI_NAMES[code - first]
+                    break
         i += 1
 
 

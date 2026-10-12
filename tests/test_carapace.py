@@ -23,6 +23,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+from enum import Enum
 from pathlib import Path
 
 import click
@@ -40,12 +41,15 @@ jsonschema = pytest.importorskip("jsonschema")
 import click_extra
 from click_extra.carapace import (
     CARAPACE_DOCS_URL,
+    CARAPACE_SPECS_DIR,
     CarapaceComplete,
     _flag_key,
     _flag_name,
     dump_carapace_spec,
     extract_carapace_command,
+    install_carapace_spec,
     to_carapace_spec,
+    xdg_dir,
 )
 from click_extra.cli import demo
 from click_extra.parameters import make_resilient_context
@@ -255,6 +259,39 @@ def test_root_description():
     assert WEATHER_SPEC["description"] == "Weather tools."
 
 
+def test_description_drops_the_no_rewrap_marker():
+    """Click's ``\b`` marker never reaches the YAML.
+
+    It is a control character telling Click's own formatter not to rewrap, not
+    prose: a description carrying it would hand Carapace a stray byte.
+    """
+
+    @click.command()
+    @click.option("--layout", help="\b\nrows: top to bottom\ncolumns: left to right")
+    def table(layout):
+        """Draw a table."""
+
+    spec = to_carapace_spec(table, prog_name="table")
+    assert spec["flags"]["--layout="] == "rows: top to bottom columns: left to right"
+
+
+def test_command_description_loses_its_backticks_like_a_flag_does():
+    """A command's description and its flags share one normalizer.
+
+    A reST inline literal reads the same in both: its text is kept, and the
+    backticks that only HTML docs render are dropped.
+    """
+
+    @click.command()
+    @click.option("--bed", help="Plan a ``raised`` bed.")
+    def garden(bed):
+        """Plan a ``garden`` bed."""
+
+    spec = to_carapace_spec(garden, prog_name="garden")
+    assert spec["description"] == "Plan a garden bed."
+    assert spec["flags"]["--bed="] == "Plan a raised bed."
+
+
 def test_count_flag_is_repeatable():
     assert "-v, --verbose*" in FORECAST["flags"]
 
@@ -340,6 +377,28 @@ def test_choice_inlined():
     assert FORECAST["completion"]["flag"]["unit"] == ["celsius", "fahrenheit"]
 
 
+def test_enum_choice_completes_by_member_name():
+    """An ``Enum`` choice completes by the member names Click accepts.
+
+    ``str()`` of a member reads ``Fruit.APPLE``, which Click rejects as a value:
+    the spec has to carry the spelling the shell can type.
+    """
+
+    class Fruit(Enum):
+        APPLE = "apple"
+        BANANA = "banana"
+
+    @click.command()
+    @click.option("--fruit", type=click.Choice(Fruit))
+    @click.argument("side", type=click.Choice(Fruit))
+    def pick(fruit, side):
+        """Pick a fruit."""
+
+    spec = to_carapace_spec(pick, prog_name="pick")
+    assert spec["completion"]["flag"]["fruit"] == ["APPLE", "BANANA"]
+    assert spec["completion"]["positional"] == [["APPLE", "BANANA"]]
+
+
 def test_path_file_vs_directory():
     assert FORECAST["completion"]["flag"]["out"] == ["$files"]
     assert FORECAST["completion"]["flag"]["into"] == ["$directories"]
@@ -383,6 +442,25 @@ def test_dynamic_action_emitted(flag_name):
     # action without putting the flag in those words. Both are restored so Click
     # resolves the right option's value under the right subcommand.
     assert f"COMP_WORDS=weather forecast $* --{flag_name}" in macro
+
+
+def test_completion_variable_follows_clicks_derivation():
+    """The callback exports the variable Click reads for the program name.
+
+    Click turns both ``-`` and ``.`` into ``_`` before upper-casing, so a script
+    run as ``garden.py`` listens to ``_GARDEN_PY_COMPLETE``. Any other spelling
+    is a variable nothing reads, and the callback silently completes nothing.
+    """
+
+    @click.command()
+    @click.option("--city", shell_complete=complete_city)
+    def garden(city):
+        """Tend a garden."""
+
+    spec = to_carapace_spec(garden, prog_name="garden.py")
+    (action,) = spec["completion"]["flag"]["city"]
+    assert "_GARDEN_PY_COMPLETE=carapace_complete" in action
+    assert "GARDEN.PY" not in action
 
 
 # -- Flag scope ---------------------------------------------------------------
@@ -621,6 +699,44 @@ def test_wrap_carapace_install(runner, greet_script, tmp_path, monkeypatch):
     written = tmp_path / "carapace" / "specs" / "greet.yaml"
     assert written.exists()
     assert str(written) in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("environ", "expected"),
+    (
+        pytest.param(
+            {"XDG_CONFIG_HOME": "{tmp}/xdg"}, "{tmp}/xdg/carapace/specs", id="set"
+        ),
+        pytest.param(
+            {"XDG_CONFIG_HOME": ""}, "{tmp}/.config/carapace/specs", id="empty"
+        ),
+        pytest.param({}, "{tmp}/.config/carapace/specs", id="unset"),
+    ),
+)
+def test_xdg_dir_resolves_at_call_time(tmp_path, monkeypatch, environ, expected):
+    """The variable wins when set and non-empty, else the default under ``HOME``."""
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    for name, value in environ.items():
+        monkeypatch.setenv(name, value.format(tmp=tmp_path))
+    resolved = xdg_dir("XDG_CONFIG_HOME", CARAPACE_SPECS_DIR, "carapace", "specs")
+    assert resolved == Path(expected.format(tmp=tmp_path))
+
+
+def test_install_resolves_home_at_call_time(tmp_path, monkeypatch):
+    """The spec lands under the ``HOME`` in force at the call, not at import.
+
+    With no ``XDG_CONFIG_HOME`` set, the spec directory derives from the home
+    directory. A test fixture or a packaging script pointing ``HOME`` elsewhere
+    for one invocation is honored, which a path expanded at import cannot do.
+    """
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    written = install_carapace_spec(weather, prog_name="weather")
+    assert written == tmp_path / ".config" / "carapace" / "specs" / "weather.yaml"
+    assert written.is_file()
 
 
 @pytest.mark.parametrize(

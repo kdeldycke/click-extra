@@ -52,7 +52,11 @@ from click._utils import UNSET
 # namespace does not resurrect the moved constant: its canonical home is
 # click_extra._utils, and the public `version.CLI_ECOSYSTEM_PACKAGES` spelling
 # resolves through the deprecation hook below.
-from ._utils import CLI_ECOSYSTEM_PACKAGES as _CLI_ECOSYSTEM_PACKAGES, memoize_enums
+from ._utils import (
+    CLI_ECOSYSTEM_PACKAGES as _CLI_ECOSYSTEM_PACKAGES,
+    console_script,
+    memoize_enums,
+)
 from .color import invocation_color, is_a_tty
 from .context import ACCESSIBLE, _LazyMetaDict, get
 from .layout import cell_width, pad_to
@@ -61,7 +65,12 @@ from .styling import Style
 from .theme import get_current_theme
 
 MUTED = Style(fg="bright_black")
-"""The recessive style the version screen gives its tagline and its fact labels."""
+"""The recessive style of what a version message says beside its name and version.
+
+The tagline and the fact labels of a {class}`VersionScreen` take it, and so do
+the template fields that locate a build rather than identify it: the repository
+path, the commit date, the build facts and the environment profile.
+"""
 
 
 def is_main_module(module_name: str) -> bool:
@@ -394,6 +403,16 @@ Adding a field here is a one-line edit, with no matching change in the CLI.
 """
 
 
+def dunder_name(field_id: str) -> str:
+    """The module-level name a pre-baked template field is stored under.
+
+    `git_branch` is baked as `__git_branch__`: the one spelling
+    {class}`VersionOption` reads back, and `click-extra prebake` writes. Keeping
+    the contract in one place is what lets the two sides stay agreed.
+    """
+    return f"__{field_id}__"
+
+
 def find_archival_file(start: Path) -> Path | None:
     """Walk up from *start* to find a `.git_archival.json` file.
 
@@ -634,15 +653,6 @@ def default_facts() -> dict[str, str]:
     }
 
 
-def visible_width(text: str) -> int:
-    """Cells *text* occupies once its escape sequences are discounted.
-
-    Kept as the name this module has always measured with;
-    {func}`~click_extra.layout.cell_width` is where the measure lives.
-    """
-    return cell_width(text)
-
-
 @dataclass(frozen=True)
 class VersionScreen:
     """A logo, and the facts to seat beside it, as `--version` should draw them.
@@ -654,8 +664,13 @@ class VersionScreen:
     `default_params(screen=…)`.
     """
 
-    logo: str | Sequence[str]
-    """The mark, pre-rendered. A string is split on newlines."""
+    logo: str | Sequence[str] | Callable[[], str | Sequence[str]]
+    """The mark, pre-rendered, or a callable producing it. A string is split on newlines.
+
+    A callable defers the rendering to the first `--version` that draws the
+    screen, as {attr}`facts` does for its values: a mark painted by code, from
+    an image say, then costs nothing to the invocations that never ask for it.
+    """
 
     tagline: str = ""
     """One line under the program name. Omitted, with its blank line, when empty."""
@@ -671,6 +686,11 @@ class VersionScreen:
     gutter: str = "   "
     """Blank columns between the mark and the facts, and between label and value."""
 
+    def _artwork(self) -> list[str]:
+        """The lines of the mark, as its renderer produced them."""
+        logo = self.logo() if callable(self.logo) else self.logo
+        return logo.split("\n") if isinstance(logo, str) else list(logo)
+
     @property
     def lines(self) -> tuple[str, ...]:
         """The mark's lines, every one padded out to {attr}`width`.
@@ -681,15 +701,14 @@ class VersionScreen:
         cannot repair that afterwards: {func}`~click_extra.layout.pad_to` is
         what measures a styled line right and closes the style it left open.
         """
-        raw = self.logo.split("\n") if isinstance(self.logo, str) else list(self.logo)
-        width = self.width
+        raw = self._artwork()
+        width = max((cell_width(line) for line in raw), default=0)
         return tuple(pad_to(line, width) for line in raw)
 
     @property
     def width(self) -> int:
         """Columns the mark occupies, taken from its widest line."""
-        raw = self.logo.split("\n") if isinstance(self.logo, str) else self.logo
-        return max((visible_width(line) for line in raw), default=0)
+        return max((cell_width(line) for line in self._artwork()), default=0)
 
     def rows(self, prog_name: str, version: str, styles: Mapping[str, IStyle | None]):
         """The column of facts, as (plain, styled) pairs.
@@ -854,21 +873,21 @@ class VersionOption(ExtraOption):
         "package_version": theme_slot("success"),
         "exec_name": theme_slot("invoked_command"),
         "version": theme_slot("success"),
-        "git_repo_path": Style(fg="bright_black"),
+        "git_repo_path": MUTED,
         "git_branch": Style(fg="cyan"),
         "git_long_hash": Style(fg="yellow"),
         "git_short_hash": Style(fg="yellow"),
-        "git_date": Style(fg="bright_black"),
+        "git_date": MUTED,
         "git_tag": Style(fg="cyan"),
         "git_tag_sha": Style(fg="yellow"),
         "git_distance": theme_slot("success"),
         "git_dirty": Style(fg="red"),
-        "build_time": Style(fg="bright_black"),
-        "build_os": Style(fg="bright_black"),
-        "build_target": Style(fg="bright_black"),
-        "build_target_arch": Style(fg="bright_black"),
+        "build_time": MUTED,
+        "build_os": MUTED,
+        "build_target": MUTED,
+        "build_target_arch": MUTED,
         "prog_name": theme_slot("invoked_command"),
-        "env_info": Style(fg="bright_black"),
+        "env_info": MUTED,
     }
     """Default style for each template field.
 
@@ -986,7 +1005,14 @@ class VersionOption(ExtraOption):
 
         :param field_id: Name of the template field to pin.
         :param value: Value the field reports from now on.
+        :raises TypeError: when `field_id` names no template field.
         """
+        if field_id not in self.template_fields:
+            msg = (
+                f"Unknown version field {field_id!r}."
+                f" Must be one of {self.template_fields}."
+            )
+            raise TypeError(msg)
         setattr(self, field_id, value)
         self._field_overrides = self._field_overrides | {field_id}
 
@@ -1055,8 +1081,10 @@ class VersionOption(ExtraOption):
 
         candidate: FrameType | None = None
 
-        # Walk the execution stack from bottom to top.
-        for frame_info in inspect.stack():
+        # Walk the execution stack from bottom to top. No source context is
+        # asked for: the walk reads each frame's module and function name only,
+        # and `--version` is eager, so every CLI pays for this walk at startup.
+        for frame_info in inspect.stack(0):
             frame = frame_info.frame
 
             # Get the current package name from the frame's globals.
@@ -1104,7 +1132,7 @@ class VersionOption(ExtraOption):
             logger.debug(f"Frame {counter:<{count_size}} # {p_name}:{f_name}")
 
         # The outermost frame is the last one returned by inspect.stack().
-        outermost = inspect.stack()[-1].frame
+        outermost = inspect.stack(0)[-1].frame
         logger.debug(
             "cli_frame heuristics exhausted, falling back to outermost frame: "
             f"{outermost.f_globals.get('__name__')}:{outermost.f_code.co_name}"
@@ -1206,23 +1234,13 @@ class VersionOption(ExtraOption):
     @staticmethod
     def _resolve_entry_point_module(script_name: str) -> ModuleType | None:
         """Resolve the module from a console_scripts entry point name."""
-        # Deferred import: keeps importlib.metadata off the startup path of every CLI.
-        from importlib import metadata
-
-        # Search through all entry points in the 'console_scripts' group.
-        eps = metadata.entry_points()
-
-        console_scripts = eps.select(group="console_scripts")
-
-        for ep in console_scripts:
-            if ep.name == script_name:
-                # ep.value is like "click_extra.__main__:main".
-                module_name = ep.value.split(":")[0]
-                if module_name in sys.modules:
-                    return sys.modules[module_name]
-                return importlib.import_module(module_name)
-
-        return None
+        entry_point = console_script(script_name)
+        if entry_point is None:
+            return None
+        module_name = entry_point.module
+        if module_name in sys.modules:
+            return sys.modules[module_name]
+        return importlib.import_module(module_name)
 
     @staticmethod
     def _resolve_module_from_frame(frame: FrameType) -> ModuleType | None:
@@ -1434,21 +1452,29 @@ class VersionOption(ExtraOption):
                 return f"{ver}+{git_hash}"
         return ver or None
 
+    @property
+    def _search_start(self) -> Path:
+        """Where the walks for a Git repository and an archival file start.
+
+        The directory of the CLI module, or the working directory for a module
+        with no file, like the `__main__` of `python -c`. Read on each call
+        rather than cached: the working directory is free to change between two.
+        """
+        if self.module_file:
+            return Path(self.module_file).parent
+        return Path.cwd()
+
     @cached_property
     def git_repo_path(self) -> Path | None:
-        """Find the Git repository root directory."""
-        if self.module_file:
-            # Start from the module's directory.
-            current_path = Path(self.module_file).parent
-        else:
-            # Fallback to current working directory.
-            current_path = Path.cwd()
+        """Find the Git repository root directory.
 
-        # Walk up the directory tree to find .git.
-        for path in [current_path] + list(current_path.parents):
+        Walks up from `_search_start` to the first directory holding a `.git`
+        entry.
+        """
+        start = self._search_start
+        for path in (start, *start.parents):
             if (path / ".git").exists():
                 return path
-
         return None
 
     def _run_git_command(self, *args: str) -> str | None:
@@ -1463,8 +1489,7 @@ class VersionOption(ExtraOption):
         Returns the dunder's value if it is a non-empty string, otherwise
         `None`.
         """
-        dunder_name = f"__{field_id}__"
-        value = getattr(self.module, dunder_name, None)
+        value = getattr(self.module, dunder_name(field_id), None)
         # `isinstance` first so mypy narrows `value` from `Any` to `str`
         # for the return; the `and value` keeps only non-empty strings.
         if isinstance(value, str) and value:
@@ -1482,11 +1507,7 @@ class VersionOption(ExtraOption):
         checkout holds the raw placeholders and yields nothing here, so live
         `git` calls take precedence and this is consulted only as a fallback.
         """
-        if self.module_file:
-            start = Path(self.module_file).parent
-        else:
-            start = Path.cwd()
-        path = find_archival_file(start)
+        path = find_archival_file(self._search_start)
         return read_archival(path) if path else {}
 
     def _resolve_uniform_git_field(self, field_id: str) -> str | None:
@@ -1924,8 +1945,10 @@ def __getattr__(name: str) -> Any:
     """Resolve deprecated `version` symbols via the PEP 562 `__getattr__` hook.
 
     The `CLI_ECOSYSTEM_PACKAGES` constant moved to {mod}`click_extra._utils`,
-    which the deprecation `stacklevel` walk reads it from too. Fires only for
-    names not defined in this module. See {mod}`click_extra._deprecated`.
+    which the deprecation `stacklevel` walk reads it from too, and
+    `visible_width` is {func}`click_extra.layout.cell_width`, the measure every
+    line of terminal text is sized with. Fires only for names not defined in
+    this module. See {mod}`click_extra._deprecated`.
     """
     from ._deprecated import resolve_deprecated
 

@@ -96,6 +96,7 @@ from .schema import (
     _merge_into_template,
     _normalize_conf,
     _opaque_paths,
+    _rooted_path,
     _scope_app_sections,
     _select_app_section,
     _strip_opaque_subtrees,
@@ -731,6 +732,79 @@ class ConfigOption(ExtraOption, ParamStructure):
         # The group this option lands on is not built yet, and may be of a class
         # click-extra does not own.
         _patch_group_parse_args()
+
+    def apply_command_settings(
+        self,
+        *,
+        config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
+        config_strict: bool = False,
+        schema_strict: bool = False,
+        fallback_sections: Sequence[str] = (),
+        config_validators: Sequence[ConfigValidator] = (),
+        included_params: Iterable[str] | None = None,
+        excluded_params: Iterable[str] | None = None,
+    ) -> None:
+        """Take over the configuration settings a command was built with.
+
+        {class}`~click_extra.commands.Command` accepts the settings of its default
+        `--config` option as keyword arguments of its own, so a CLI tunes that
+        option without replacing the whole default parameter list, and hands them
+        over here once its parameters are known. Each argument defaults to the
+        value meaning "leave the option as it is".
+
+        `excluded_params` is additive, where the option's own argument replaces
+        the default blocklist: the forwarded IDs join it, through
+        {attr}`extra_excluded_params` while the blocklist is still the dynamic
+        default, and straight into the frozen value otherwise. The
+        `config_validators` join click-extra's built-in ones the same way, as they
+        do when passed to the option itself.
+
+        :raises ValueError: when `excluded_params` is forwarded to an option
+            carrying its own `included_params`, the two filters being mutually
+            exclusive.
+        """
+        if included_params is not None:
+            self.included_params = frozenset(included_params)
+            # Schema-only section: see the same inference in `__init__`.
+            self.schema_warn_unknown = not self.included_params
+        if excluded_params is not None:
+            if self.included_params is not None:
+                msg = (
+                    "excluded_params conflicts with the config option's own "
+                    "included_params."
+                )
+                raise ValueError(msg)
+            if "excluded_params" in self.__dict__:
+                # The option carries an explicit blocklist: extend the frozen
+                # instance value directly.
+                self.excluded_params = self.excluded_params | frozenset(excluded_params)
+            else:
+                # Stash the additions for the dynamic default property to merge
+                # at resolution time, when the runtime context is available.
+                self.extra_excluded_params = frozenset(excluded_params)
+        if config_strict:
+            self.strict = config_strict
+        if schema_strict:
+            self.schema_strict = schema_strict
+        if config_schema is not None:
+            self.config_schema = config_schema
+            self._config_schema_callable = make_schema_callable(
+                config_schema,
+                strict=self.schema_strict,
+                warn_unknown=self.schema_warn_unknown,
+            )
+        if fallback_sections:
+            self.fallback_sections = tuple(fallback_sections)
+        if config_validators:
+            self.config_validators = _builtin_config_validators() + tuple(
+                config_validators
+            )
+        # Recompute the opaque-path union whenever the schema or validators have
+        # been forwarded, so the strict-check skip set stays in sync with them.
+        if config_schema is not None or config_validators:
+            self._opaque_paths = _opaque_paths(
+                self.config_schema, self.config_validators
+            )
 
     @cached_property
     def file_pattern_flags(self) -> int:
@@ -1833,9 +1907,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         if not self._opaque_paths:
             return normalized_conf
         app_name = self._app_section_name(ctx)
-        prefixed_paths = (
-            f"{app_name}.{path}" if app_name else path for path in self._opaque_paths
-        )
+        prefixed_paths = (_rooted_path(app_name, path) for path in self._opaque_paths)
         return _strip_opaque_subtrees(normalized_conf, prefixed_paths)
 
     def _resolve_app_section(
@@ -1896,6 +1968,24 @@ class ConfigOption(ExtraOption, ParamStructure):
         overrides = themes_from_config(themes_subtree)
         if overrides:
             context.set(ctx, context.THEME_OVERRIDES, overrides)
+
+    def _publish_report(
+        self,
+        ctx: click.Context,
+        report: ValidationReport,
+        user_conf: dict[str, Any],
+    ) -> None:
+        """Publish on `ctx.meta` what a passing validation of `user_conf` produced.
+
+        The typed instance the schema callable built, under
+        {data}`~click_extra.context.TOOL_CONFIG`, when a schema is configured, and
+        the themes the document defines, under
+        {data}`~click_extra.context.THEME_OVERRIDES`. The pipeline validated the
+        themes table already, so building it here cannot surface a user error.
+        """
+        if self._config_schema_callable is not None:
+            context.set(ctx, context.TOOL_CONFIG, report.schema_instance)
+        self._apply_theme_overrides(ctx, user_conf)
 
     def merge_default_map(self, ctx: click.Context, user_conf: dict) -> None:
         """Save the user configuration into the context's `default_map`.
@@ -1973,11 +2063,11 @@ class ConfigOption(ExtraOption, ParamStructure):
             assert report.merged_conf is not None  # params_template is always set.
             per_file_conf.append(report.merged_conf)
 
-        # Deep-merge the raw documents, highest-precedence layer winning, for
-        # the schema and the extension validators. Merging starts from the
         # Deferred import: keeps deepmerge off the startup path of every CLI.
         from deepmerge import always_merger
 
+        # Deep-merge the raw documents, highest-precedence layer winning, for
+        # the schema and the extension validators. Merging starts from the
         # lowest-precedence file so each later merge overwrites it.
         merged_view: dict[str, Any] = {}
         for _location, conf in reversed(layers):
@@ -2002,9 +2092,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             self._install_default_map(ctx, merged_conf)
         logger.debug(f"New defaults: {ctx.default_map}")
 
-        if self._config_schema_callable is not None:
-            context.set(ctx, context.TOOL_CONFIG, report.schema_instance)
-        self._apply_theme_overrides(ctx, merged_view)
+        self._publish_report(ctx, report, merged_view)
         return merged_view
 
     def _install_default_map(
@@ -2192,18 +2280,13 @@ class ConfigOption(ExtraOption, ParamStructure):
                 _exit_on_validation_error(ctx, report)
 
                 # Validation passed. Install the recognized values into default_map,
-                # publish the typed schema instance built by the pipeline, then apply
-                # theme overrides (the [tool.<cli>.themes.<name>] table was already
-                # validated above, so building it here cannot surface user error).
-                # The pipeline already filtered user_conf against the template, so the
-                # merged result is installed directly instead of recomputing it via
-                # merge_default_map.
+                # then publish what the pipeline built. It already filtered
+                # user_conf against the template, so the merged result is installed
+                # directly instead of recomputing it via merge_default_map.
                 assert report.merged_conf is not None  # params_template is always set.
                 self._install_default_map(ctx, report.merged_conf)
                 logger.debug(f"New defaults: {ctx.default_map}")
-                if self._config_schema_callable is not None:
-                    context.set(ctx, context.TOOL_CONFIG, report.schema_instance)
-                self._apply_theme_overrides(ctx, user_conf)
+                self._publish_report(ctx, report, user_conf)
 
         # When a schema is configured but no config file was found, still
         # produce the default instance so get_tool_config() never returns None.
