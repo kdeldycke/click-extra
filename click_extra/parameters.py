@@ -62,6 +62,7 @@ if TYPE_CHECKING:
 
     from boltons.urlutils import URL
     from click._utils import T_UNSET
+    from click.parser import _OptionParser
 
 logger = logging.getLogger(__name__)
 
@@ -565,6 +566,33 @@ class ExtraOption(Option):
     a sibling `--config` option exists.
     ```
     """
+
+    def add_to_parser(self, parser: _OptionParser, ctx: click.Context) -> None:
+        """Register the option, then give the `root` logger its handler for the run.
+
+        Any of these options may log, and reports through its records: the level
+        changes of the verbosity options, the status lines and the validation
+        errors of `ConfigOption`, the warnings of `JobsOption`. A command that
+        carries one of them so prints log records in the style of Click Extra
+        while it runs.
+
+        Click calls this method on every parameter of a command before it processes
+        any of them, so the handler is in place for the records the first callbacks
+        emit. It is also a step an option goes through on a command of any class,
+        which is what lets one of these options work on a plain `click.command`.
+
+        Nothing is attached while Click only completes or inspects a command line
+        (`ctx.resilient_parsing`). See
+        `click_extra.logging._hold_invocation_handler` for the other rules, and
+        for how the handler leaves.
+        """
+        super().add_to_parser(parser, ctx)
+        if not ctx.resilient_parsing:
+            # Imported here to avoid a circular import with the logging module,
+            # which imports from this one.
+            from .logging import _hold_invocation_handler
+
+            _hold_invocation_handler(ctx)
 
 
 class ParamStructure:

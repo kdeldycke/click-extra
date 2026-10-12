@@ -589,6 +589,12 @@ assert dedent("""\
 
 If you want to change the global configuration of all loggers, you can rely on `new_logger`. Because the latter defaults to the `root` logger, any default logger propagating their messages to it will be affected:
 
+```{warning}
+{py:func}`~click_extra.logging.new_logger` removes and closes every handler of the logger it sets up, the ones Click Extra did not attach included. Left without a name, it sets up the `root` logger, which the whole process shares.
+
+In a module another program imports, call it from the entry point instead of at import time. With `force=False` the handlers stay, and nothing is set up on a logger that already has one.
+```
+
 ```{click:source}
 :emphasize-lines: 5, 8
 import logging
@@ -629,6 +635,65 @@ assert dedent("""\
     \x1b[33mwarning\x1b[0m | my_logger | Custom warning
     """
 ) in result.output
+
+# The root logger keeps the handler new_logger() gave it. Take it off, so the
+# examples below print in the default format again.
+for handler in root_logger.handlers[:]:
+    root_logger.removeHandler(handler)
+```
+
+### Handlers of your application
+
+A CLI is not always alone on the `root` logger. An application that embeds the command has its own handlers there, and so does a test runner that captures log records.
+
+Click Extra never removes one of these handlers. Nothing happens to the `root` logger when a command is defined. When the command runs, its options add the handler of Click Extra beside the others, and take it off when the run ends:
+
+```{click:source}
+:emphasize-lines: 6-12
+import logging
+from click_extra import command
+
+notebook = []
+
+class Notebook(logging.Handler):
+    """The handler of an application: it keeps every message."""
+
+    def emit(self, record):
+        notebook.append(record.getMessage())
+
+logging.getLogger().addHandler(Notebook())
+
+@command
+def forecast():
+    logging.warning("Frost tonight.")
+```
+
+```{click:run}
+import logging
+from click_extra.logging import StreamHandler
+
+result = invoke(forecast)
+assert result.stderr == "\x1b[33mwarning\x1b[0m: Frost tonight.\n"
+
+# The handler of the application is still attached, and received the record.
+root = logging.getLogger()
+handler_types = [type(handler) for handler in root.handlers]
+assert Notebook in handler_types
+assert notebook == ["Frost tonight."]
+
+# The handler of Click Extra left with the run.
+assert StreamHandler not in handler_types
+
+# Leave the root logger of the build as this example found it.
+for handler in root.handlers[:]:
+    if isinstance(handler, Notebook):
+        root.removeHandler(handler)
+```
+
+The handler of the application receives each record too. If it also prints to the console, a record shows twice during a run. To keep the handler of Click Extra off the `root` logger, set that logger up yourself with `new_logger(handlers=[...])`: a command adds nothing to a logger that `new_logger()` or `basicConfig()` set up.
+
+```{note}
+Any option of Click Extra brings that handler, not only the verbosity ones: a plain Click command with a standalone `@config_option` prints its configuration errors the same way.
 ```
 
 ### Verbose base level

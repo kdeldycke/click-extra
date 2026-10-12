@@ -599,6 +599,10 @@ assert "Usage:" in result.stdout
 `{package_name}` is a separate matter and still reports `click_extra.sphinx` for a CLI a page defines inline: such a command belongs to no importable module, so the walk correctly names the runner's. The [version page](version.md#get-metadata-values) shows it.
 ```
 
+```{note}
+Log records print once in a `click:run` block, as in a reader's own shell. A build shares its process with Sphinx, its extensions and its theme, and any of them can give the `root` logger a handler: the Furo theme does, through `accessible-pygments`. The runner takes the handlers it found there off the `root` logger while a documented command runs, then puts them back. A handler the code of the page attaches itself stays in place.
+```
+
 ### Capture mode
 
 `click:run` and `click:tree` execute the documented CLI through Click's test runner. On Click `8.4` and later, the output is captured at the file-descriptor level (Click's `capture="fd"` mode), so a CLI that writes through its `stdout` descriptor, such as one re-opening `sys.stdout.fileno()` to force UTF-8 output, renders normally instead of aborting the build with `io.UnsupportedOperation`.

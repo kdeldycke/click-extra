@@ -16,8 +16,10 @@
 
 from __future__ import annotations
 
+import gc
 import inspect
 import json
+import logging
 import re
 from collections.abc import Sequence
 from itertools import permutations
@@ -68,6 +70,7 @@ from click_extra import (
 )
 from click_extra.commands import default_params
 from click_extra.config import NO_CONFIG
+from click_extra.logging import StreamHandler
 from click_extra.parameters import (
     canonical_param_name,
     iter_params_for_display,
@@ -2388,3 +2391,51 @@ def test_option_constructors_share_one_shape(option_class):
         assert parameter.annotation is not inspect.Parameter.empty, parameter.name
     assert parameters[-1].kind is inspect.Parameter.VAR_KEYWORD
     assert parameters[-1].annotation == "Any"
+
+
+@pytest.mark.parametrize(
+    "option_class", _option_classes(), ids=lambda cls: cls.__qualname__
+)
+def test_option_constructors_leave_the_root_logger_alone(option_class):
+    """Building an option changes neither the handlers nor the level of ``root``.
+
+    An option is built when its command is decorated, so when the module of the
+    command is imported. The root logger belongs to the whole process by then: an
+    application importing the CLI, or pytest collecting it, has its handlers there.
+    """
+    root = logging.getLogger()
+    handlers, level = root.handlers[:], root.level
+    try:
+        option_class()
+        assert root.handlers == handlers
+        assert root.level == level
+    finally:
+        root.handlers[:] = handlers
+        root.setLevel(level)
+
+
+@pytest.mark.parametrize(
+    "option_class", _option_classes(), ids=lambda cls: cls.__qualname__
+)
+def test_options_lend_the_root_logger_a_handler_for_the_run(option_class):
+    """Each option gives ``root`` the handler of Click Extra when Click prepares
+    to parse a command line, and takes it back when the context closes.
+
+    Any of these options may report through log records: none may count on
+    another option of the command to bring the handler that prints them.
+    """
+    # A run of a plain Click command that failed while parsing, in an earlier
+    # test, holds that handler until its context is collected.
+    gc.collect()
+    root = logging.getLogger()
+    handlers = root.handlers[:]
+    cli = click.Command("orchard", params=[option_class()])
+    ctx = click.Context(cli, info_name="orchard")
+    try:
+        # Click registers every parameter on the parser before it processes any.
+        cli.make_parser(ctx)
+        (lent,) = [h for h in root.handlers if h not in handlers]
+        assert isinstance(lent, StreamHandler)
+    finally:
+        ctx.close()
+    assert root.handlers == handlers

@@ -58,7 +58,13 @@ from .execution import (
     _run_end_watch,
 )
 from .highlight import HelpKeywords, _HelpColorsMixin, highlight
-from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
+from .logging import (
+    DebugOption,
+    QuietOption,
+    VerboseOption,
+    VerbosityOption,
+    _scoped_invocation_handler,
+)
 from .parameters import ExtraOption, ShowParamsOption, resolve_param_help
 from .spinner import ProgressOption
 from .table import TableFormatOption
@@ -774,11 +780,16 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         [exits with status `1`](https://github.com/pallets/click/blob/8.5.0/src/click/core.py#L1591-L1595)
         instead, which tells a calling shell the program handled the interrupt
         itself, so a shell loop runs on.
+
+        The log handler the options of Click Extra attach to the `root` logger leaves
+        with the run, a run that fails while parsing included. See
+        `click_extra.logging._scoped_invocation_handler`.
         """
         if not prog_name and self.name:
             prog_name = self.name
 
         with (
+            _scoped_invocation_handler(),
             _interrupt_handling(),
             _owning_abort_notice(self, kwargs.get("standalone_mode", True)),
         ):

@@ -17,17 +17,21 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import sys
+from logging.handlers import BufferingHandler
 from pathlib import Path
 from textwrap import dedent
 
 import click
 import pytest
+from boltons.strutils import strip_ansi
 from docutils import nodes
 from pygments.styles import get_style_by_name
 
+from click_extra import verbosity_option
 from click_extra.screenshot_presets import (
     CAPTURE_BACKGROUND,
     LIGHT_CAPTURE_BACKGROUND,
@@ -1149,6 +1153,46 @@ def test_clickrunner_forces_color(monkeypatch):
     # ...and the build environment is restored afterwards.
     assert os.environ.get("FORCE_COLOR") is None
     assert os.environ["NO_COLOR"] == "1"
+
+
+def test_clickrunner_sets_the_handlers_of_the_build_aside():
+    """``ClickRunner`` takes the handlers it found on the root logger off it while
+    a documented command runs, then puts them back.
+
+    A build shares its process with Sphinx, its extensions and its theme. A
+    handler one of them gave the root logger would print each record of the
+    command a second time, which the shell of a reader never does.
+    """
+    root = logging.getLogger()
+    build_handler = BufferingHandler(capacity=10)
+    document_handler = BufferingHandler(capacity=10)
+    seen = []
+
+    @click.command()
+    @verbosity_option
+    def forecast():
+        seen.extend(root.handlers)
+        logging.getLogger("almanac").warning("Frost tonight.")
+
+    root.addHandler(build_handler)
+    try:
+        runner = ClickRunner()
+        # A handler the code of a document attaches is not one of the build.
+        root.addHandler(document_handler)
+
+        result = runner.invoke(forecast, [])
+
+        assert result.exit_code == 0
+        assert strip_ansi(result.stderr) == "warning: Frost tonight.\n"
+        assert build_handler not in seen
+        assert not build_handler.buffer
+        assert document_handler in seen
+        assert [r.getMessage() for r in document_handler.buffer] == ["Frost tonight."]
+        # The build gets its handler back.
+        assert build_handler in root.handlers
+    finally:
+        root.removeHandler(build_handler)
+        root.removeHandler(document_handler)
 
 
 @pytest.mark.parametrize(

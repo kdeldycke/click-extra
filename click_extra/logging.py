@@ -40,7 +40,9 @@ from __future__ import annotations
 import inspect
 import logging
 import sys
-from contextlib import nullcontext
+import weakref
+from contextlib import contextmanager, nullcontext
+from contextvars import ContextVar
 from enum import IntEnum
 from gettext import gettext as _
 from logging import (
@@ -63,7 +65,7 @@ from .types import EnumChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Mapping, Sequence
+    from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
     from logging import LogRecord
     from typing import IO, Any, ClassVar, Literal
 
@@ -95,12 +97,27 @@ class LogLevel(IntEnum):
         return self.name
 
 
+DEFAULT_FORMAT = "{levelname}: {message}"
+"""Format of a log record, written in the style of {data}`DEFAULT_STYLE`.
+
+The default of {func}`basicConfig`, and the format of the handler an option of Click
+Extra attaches to the `root` logger for the time of a run.
+"""
+
+
 DEFAULT_LEVEL: LogLevel = LogLevel.WARNING
 """{data}`WARNING <logging.WARNING>` is the default level we expect any loggers to starts their lives at.
 
 {data}`WARNING <logging.WARNING>` has been chosen as it is [the level at which the default Python's global root logger is set up](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1997).
 
 This value is also used as the default level for {class}`VerbosityOption` .
+"""
+
+
+DEFAULT_STYLE: Literal["%", "{", "$"] = "{"
+"""Style of the format strings: ``{`` is the one of {meth}`str.format`.
+
+The default of {func}`basicConfig`, where {func}`logging.basicConfig` defaults to `%`.
 """
 
 
@@ -123,6 +140,53 @@ reads the raw `--verbose`/`--quiet` repetition counts from the parsed
 way the option that fires first already reconciles the full counter and never
 applies an intermediate, louder level that a later `-q` would have to lower
 (which would leak its `Set ... DEBUG` debug trace).
+"""
+
+
+_CONFIGURED_HANDLERS: weakref.WeakSet[Handler] = weakref.WeakSet()
+"""Handlers {func}`basicConfig` attached, so the ones of {func}`new_logger` too.
+
+A logger holding one of them is set up the way its owner asked, whatever the
+classes involved, and `_hold_invocation_handler` leaves it alone. The set holds
+its handlers weakly, so it never keeps a discarded one alive.
+"""
+
+
+_HANDLER_TOKEN: str = f"{context.META_NAMESPACE}_log_handler_token"
+"""Internal `ctx.meta` slot for the token a run holds the log handler with.
+
+`ctx.meta` is shared down the context hierarchy, so the options of a command and
+of its subcommands find the same token there, and a run takes one hold however
+many of them it carries. See `_hold_invocation_handler`.
+"""
+
+
+_INVOCATION_HANDLERS: dict[str, Handler] = {}
+"""The handler the options of Click Extra gave a logger for the runs in progress.
+
+Keyed by logger name. Only the `root` logger gets one, and every run shares it:
+a run started from within another one prints its records once.
+
+A dict, for the two operations that keep it consistent when runs start and end
+at the same time, in several threads or from a finalizer: `setdefault()`
+installs a handler unless one is there, and `pop()` hands it to a single taker.
+"""
+
+
+_INVOCATION_HOLDERS: set[object] = set()
+"""One token for each run holding the handler of `_INVOCATION_HANDLERS`.
+
+The handler is detached when the last token is released. Counting the holders is
+what keeps the handler in place for a run when the previous one failed while
+parsing: the context of the failed run releases its token late, once it is
+collected, which may happen in the middle of the next run.
+"""
+
+
+_RUN_HOLDS: ContextVar[list[object] | None] = ContextVar("_RUN_HOLDS", default=None)
+"""The tokens taken within the `_scoped_invocation_handler` block in progress.
+
+`None` outside such a block. Written by `_hold_invocation_handler`.
 """
 
 
@@ -262,9 +326,9 @@ def basicConfig(
     # Arguments from Python's standard library's basicConfig:
     filename: str | None = None,
     filemode: str = "a",
-    format: str | None = "{levelname}: {message}",
+    format: str | None = DEFAULT_FORMAT,
     datefmt: str | None = None,
-    style: Literal["%", "{", "$"] = "{",
+    style: Literal["%", "{", "$"] = DEFAULT_STYLE,
     level: int | str | None = None,
     stream: IO[Any] | None = None,
     handlers: Iterable[Handler] | None = None,
@@ -363,9 +427,17 @@ def basicConfig(
     for arg_id in inspect.signature(basicConfig).parameters:
         if arg_id in locals() and locals()[arg_id] is not None:
             kwargs[arg_id] = locals()[arg_id]
+    # The standard library reads filemode for the handler it creates itself, and
+    # rejects it as unrecognised beside handlers of the caller.
+    if handlers is not None:
+        kwargs.pop("filemode", None)
 
     call_str = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
     logger.debug(f"Call basicConfig({call_str})")
+
+    # The standard library sets handlers up when told to replace the existing ones,
+    # or when there is none. Every handler found afterwards is then one it attached.
+    configures = force or not logging.root.handlers
 
     # Consume along the way each kwargs' parameter not recognized by basicConfig.
     with (
@@ -374,6 +446,9 @@ def basicConfig(
         patch_attr(logging, "Formatter", kwargs.pop("formatter_class")),
     ):
         logging.basicConfig(**kwargs)
+
+    if configures:
+        _CONFIGURED_HANDLERS.update(logging.root.handlers)
 
 
 def new_logger(
@@ -396,9 +471,26 @@ def new_logger(
 
     This function is a wrapper around {func}`basicConfig` and takes the same keywords arguments.
 
-    :param name: ID of the logger to setup. If `None`, Python's `root`
-        logger will be used. If a logger with the provided name is not found in the
-        global registry, a new logger with that name will be created.
+    ```{warning}
+    The removal reaches every handler of the logger, not only the ones Click Extra
+    attached. Left on its default `name`, this function sets up the `root`
+    logger, which the whole process shares: the handlers an application or a test
+    runner attached to it are removed and closed.
+
+    Call it from the entry point of a program instead of at import time, or name
+    a logger of your own. With `force=False` the handlers stay, and the function
+    sets nothing up on a logger that already has one.
+    ```
+
+    ```{note}
+    The options of Click Extra do not call this function for the `root` logger.
+    They attach their handler beside the others, for the time of a run. See
+    {meth}`~click_extra.parameters.ExtraOption.add_to_parser`.
+    ```
+
+    :param name: ID of the logger to setup. Defaults to the name of Python's `root`
+        logger. If a logger with the provided name is not found in the global
+        registry, a new logger with that name will be created.
     :param propagate: Sets the logger's {attr}`propagate <logging.Logger.propagate>` attribute. Defaults to `False`.
     :param force: Same as the *force* parameter from {func}`logging.basicConfig` and {func}`basicConfig`. Defaults to `True`.
     :param kwargs: Any other keyword parameters supported by {func}`logging.basicConfig` and {func}`basicConfig`.
@@ -420,6 +512,109 @@ def new_logger(
         basicConfig(force=force, **kwargs)
 
     return logger
+
+
+def _hold_invocation_handler(ctx: click.Context) -> None:
+    """Give the `root` logger Click Extra's handler for the run `ctx` belongs to.
+
+    The handler goes beside the ones already attached, which stay in place. The
+    `root` logger belongs to the whole process: an application that embeds the
+    CLI, or a test runner that captures log records, has its own handlers there.
+
+    Nothing is attached when {func}`basicConfig` or {func}`new_logger` set the
+    `root` logger up already: the handlers and the format chosen there are kept.
+
+    One handler serves every run in progress, and each run holds it with a token
+    of its own: the subcommands of a run share its token, and a run started from
+    within another one adds a second. A record so prints once, and the handler
+    stays for as long as one run needs it.
+
+    A run releases its token when its root context ends. Two mechanisms cover the
+    two ways it ends, as in {func}`click_extra.color.publish_invocation_color`:
+
+    - A close callback, for the normal path.
+    - A finalizer, for a run that fails while parsing: its context is never
+      entered, and therefore never closed.
+
+    {class}`~click_extra.commands.Command` does not wait for that finalizer: its
+    `main()` runs within `_scoped_invocation_handler`.
+    """
+    if context.get(ctx, _HANDLER_TOKEN) in _INVOCATION_HOLDERS:
+        return
+
+    root = getLogger()
+    if any(handler in _CONFIGURED_HANDLERS for handler in tuple(root.handlers)):
+        return
+
+    token = object()
+    # Hold first: from here on, no release can take the handler away.
+    _INVOCATION_HOLDERS.add(token)
+    handler = _INVOCATION_HANDLERS.get(root.name)
+    if handler is None:
+        handler = StreamHandler()
+        handler.setFormatter(Formatter(fmt=DEFAULT_FORMAT, style=DEFAULT_STYLE))
+        # Another run may have installed one in the meantime: that one is used.
+        handler = _INVOCATION_HANDLERS.setdefault(root.name, handler)
+    # A no-op when a run in progress attached it. A handler somebody else took off
+    # the logger in the meantime is put back.
+    root.addHandler(handler)
+
+    context.set(ctx, _HANDLER_TOKEN, token)
+    run_holds = _RUN_HOLDS.get()
+    if run_holds is not None:
+        run_holds.append(token)
+    root_ctx = ctx.find_root()
+    root_ctx.call_on_close(lambda: _release_invocation_handler(token))
+    weakref.finalize(root_ctx, _release_invocation_handler, token)
+
+
+def _release_invocation_handler(token: object) -> None:
+    """Release the hold of a run, and detach the handler once no run holds it.
+
+    Safe to call more than once with the same token: the close callback, the
+    finalizer and `_scoped_invocation_handler` may each release the same run.
+
+    A finalizer runs where Python collects the context, so in any thread and in
+    the middle of any call, the start of another run included. No lock guards
+    against that: a finalizer waiting for a lock its own thread holds never gets
+    it. Each step below is a single operation of a set or of a dict instead, in
+    an order that leaves a run starting at that moment with its handler.
+    """
+    _INVOCATION_HOLDERS.discard(token)
+    if _INVOCATION_HOLDERS:
+        return
+    root = getLogger()
+    handler = _INVOCATION_HANDLERS.pop(root.name, None)
+    if handler is None:
+        return
+    # A run that started since the check above may count on this handler. It is
+    # put back, unless that run installed one of its own.
+    if (
+        _INVOCATION_HOLDERS
+        and _INVOCATION_HANDLERS.setdefault(root.name, handler) is handler
+    ):
+        return
+    root.removeHandler(handler)
+    handler.close()
+
+
+@contextmanager
+def _scoped_invocation_handler() -> Iterator[None]:
+    """Release on exit the holds taken by the runs started within the block.
+
+    {meth}`click_extra.commands.Command.main` runs within it, so a run that fails
+    while parsing does not keep the handler on the `root` logger until a garbage
+    collection. A hold taken before the block, by the run around it, stays: it is
+    released when that run ends.
+    """
+    run_holds: list[object] = []
+    reset_token = _RUN_HOLDS.set(run_holds)
+    try:
+        yield
+    finally:
+        _RUN_HOLDS.reset(reset_token)
+        for token in run_holds:
+            _release_invocation_handler(token)
 
 
 def _fold_level(
@@ -690,21 +885,28 @@ class _VerbosityOption(ExtraOption):
     ) -> None:
         """Set up a verbosity-altering option.
 
-        :param default_logger: If a {class}`logging.Logger` object is provided, that's
-            the instance to which we will set the level to. If the parameter is a string
-            and is found in the global registry, we will use it as the logger's ID.
-            Otherwise, we will create a new logger with {func}`new_logger`
-            Default to the global `root` logger.
+        :param default_logger: The logger the option sets the level of:
+
+            - A {class}`logging.Logger` object is used as it is.
+            - The name of the `root` logger, which is the default, selects it.
+            - A name found in the global registry selects that logger as it is.
+            - Any other name creates the logger with {func}`new_logger`.
+
+            Building the option never touches the `root` logger, which the whole
+            process shares. Whichever logger is selected, the `root` one gets Click
+            Extra's handler for the time of each run of the command: see
+            {meth}`~click_extra.parameters.ExtraOption.add_to_parser`.
         """
         # A logger object has been provided, fetch its name.
         if isinstance(default_logger, Logger):
             self.logger_name = default_logger.name
+        # The root logger is never found in Logger.manager.loggerDict.
+        elif default_logger in (None, logging.root.name):
+            self.logger_name = logging.root.name
         # Use the provided string if it is found in the registry.
         elif default_logger in Logger.manager.loggerDict:
             self.logger_name = default_logger
         # Create a new logger with Click Extra's default configuration.
-        # XXX That's also the case in which the root logger will fall into, because as
-        # a special case, it is not registered in Logger.manager.loggerDict.
         else:
             logger = new_logger(name=default_logger)
             self.logger_name = logger.name

@@ -5,6 +5,13 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Add the `DEFAULT_FORMAT` and `DEFAULT_STYLE` constants to `click_extra.logging`.
+- Stop the verbosity options from removing the handlers of the `root` logger: a command adds its own handler for the time of a run. Call `new_logger()` to keep one outside a run. Closes [#1998](https://github.com/kdeldycke/click-extra/issues/1998).
+- Print log records in the style of Click Extra during the run of any command that carries one of its options, like a standalone `@config_option`.
+- Set the log handlers of a Sphinx build aside while a `click:run` block runs its command, so a record prints once in the rendered session.
+- Keep the format `new_logger()` or `basicConfig()` gave the `root` logger when a command is defined after the call, which used to reset it.
+- Accept the `handlers` argument in `basicConfig()` and `new_logger()`, which always raised `ValueError`.
+- Warn in the logging documentation that `new_logger()` removes every handler of the logger it sets up, the `root` one by default.
 - Fix the documentation render tests failing in a new environment, as for a packager: the `docs` group now holds `tomlkit`, and the tests carry the `network` marker.
 
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)

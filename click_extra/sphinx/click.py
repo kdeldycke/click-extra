@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import ast
 import contextlib
+import logging as stdlib_logging
 import re
 import subprocess
 import sys
@@ -97,7 +98,7 @@ from ._base import (
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
     from typing import Any, ClassVar, Literal
 
     from sphinx.util.typing import OptionSpec
@@ -353,6 +354,33 @@ class ClickRunner(CliRunner):
         )
         super().__init__(echo_stdin=True, capture=capture or default_capture)
         self.namespace = {"click": click, "__file__": "dummy.py"}
+        # What the root logger holds before the document runs any code belongs to
+        # the build. See `without_build_handlers`.
+        self.build_handlers = tuple(stdlib_logging.getLogger().handlers)
+
+    @contextlib.contextmanager
+    def without_build_handlers(self) -> Iterator[None]:
+        """Take the log handlers of the build off the `root` logger for the block.
+
+        A build is one process, shared with Sphinx, its extensions and its theme,
+        and any of them may give the `root` logger a handler: the Furo theme
+        depends on `accessible-pygments`, which calls `logging.basicConfig()` when
+        imported. A documented command adds the handler of Click Extra beside the
+        ones it finds, so each of its records would print a second time, in the
+        format of the build. The shell of a reader has none of these handlers.
+
+        A handler the code of the document attached itself is not one of them, and
+        stays in place.
+        """
+        root = stdlib_logging.getLogger()
+        hidden = [h for h in self.build_handlers if h in root.handlers]
+        for handler in hidden:
+            root.removeHandler(handler)
+        try:
+            yield
+        finally:
+            for handler in hidden:
+                root.addHandler(handler)
 
     @contextlib.contextmanager
     def isolation(self, *args, **kwargs):
@@ -444,7 +472,7 @@ class ClickRunner(CliRunner):
         # system that ignores `should_strip_ansi` and only honors `FORCE_COLOR`, so
         # `forced_color()` sets that too. Together they cover both color systems a
         # documented CLI might use.
-        with forced_color():
+        with forced_color(), self.without_build_handlers():
             result = super().invoke(
                 cli=cli,
                 args=args,
