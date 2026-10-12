@@ -158,7 +158,7 @@ def test_no_rewrap_marker_does_not_leak_into_surrounding_paragraphs():
         original line breaks.
 
         Trailing paragraph that should also render as filled prose.
-        """  # noqa: D301  Click reads the \b backspace as a no-rewrap marker.
+        """
 
     roff = render_manpage(harbor)
     # Scope the assertions to the DESCRIPTION block: the FILES section

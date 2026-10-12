@@ -380,6 +380,12 @@ lint.extend-select = [ "PLW1514" ]
 # B008: Do not perform function call in argument defaults.
 #   Click's API requires function calls in defaults (e.g. `_()` for i18n,
 #   `EnumChoice()`, `Style()`, `ClickPath()`). This is intentional.
+# D301: Use `r"""` if any backslashes in a docstring.
+#   A Click command's docstring is its `--help` text, and `\b` marks a paragraph
+#   Click must not rewrap. The raw prefix this rule asks for turns that backspace
+#   character into two printable ones, so the marker stops working and shows up
+#   in the help output.
+#   See: https://docs.astral.sh/ruff/rules/escape-sequence-in-docstring/
 # D400: First line should end with a period.
 #   Allows docstrings to end up with any punctuation, not just a period.
 #   See: https://github.com/astral-sh/ruff/issues/1858#issuecomment-1382640623
@@ -389,7 +395,7 @@ lint.extend-select = [ "PLW1514" ]
 # LOG015: Root logger call.
 #   Tests intentionally call root logger methods to verify capture behavior.
 #   Utility functions also use root logger as a convenience.
-lint.ignore = [ "B008", "D400", "ERA001", "LOG015" ]
+lint.ignore = [ "B008", "D301", "D400", "ERA001", "LOG015" ]
 lint.isort.combine-as-imports = true
 # Allow rules to add `from __future__ import annotations` in cases where
 # this would simplify a fix or enable a new diagnostic.
