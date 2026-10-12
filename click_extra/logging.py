@@ -203,11 +203,20 @@ the levels it set. `None` outside such a block. Written by `_queue_late_cleanup`
 
 
 _level_owner: object | None = None
-"""The token of the run that set the current log levels, until they are reset.
+"""The token of the run that set the current log levels, until it gives them back.
 
-Compared by `_expire_levels`. The context of a run that failed while parsing is
-collected late, possibly in the middle of a later run, whose levels it must not
-reset.
+Compared by `_take_saved_levels`. The context of a run that failed while parsing
+is collected late, possibly in the middle of a later run, whose levels it must
+not touch.
+"""
+
+
+_level_saved: dict[str, int] = {}
+"""The level each logger had before a run changed it, by logger name.
+
+Filled by the run of `_level_owner`, which gives these levels back when it ends.
+A run that takes the levels over from another one keeps its entries: the levels
+to give back are the ones found before the first of the two.
 """
 
 
@@ -286,6 +295,21 @@ class StreamHandler(logging.StreamHandler):
         # If exception occurs, dump the traceback to stderr.
         except Exception:  # noqa: BLE001
             self.handleError(record)
+
+
+class _InvocationHandler(StreamHandler):
+    """The handler the options of Click Extra lend the `root` logger for a run.
+
+    It prints nothing once the last run let go of it. Code that saves the handlers
+    of a logger and puts them back later, as a fixture does to isolate a test, may
+    attach it again by then: each record of a later run would otherwise print a
+    second time, beside the handler of that run.
+    """
+
+    def emit(self, record: LogRecord) -> None:
+        """Print the record for as long as a run holds the handler."""
+        if self in _INVOCATION_HANDLERS.values():
+            super().emit(record)
 
 
 class Formatter(logging.Formatter):
@@ -565,10 +589,15 @@ def _hold_invocation_handler(ctx: click.Context) -> None:
     _INVOCATION_HOLDERS.add(token)
     handler = _INVOCATION_HANDLERS.get(root.name)
     if handler is None:
-        handler = StreamHandler()
+        handler = _InvocationHandler()
         handler.setFormatter(Formatter(fmt=DEFAULT_FORMAT, style=DEFAULT_STYLE))
         # Another run may have installed one in the meantime: that one is used.
         handler = _INVOCATION_HANDLERS.setdefault(root.name, handler)
+    # Take off the handler of an earlier run, which somebody put back after that
+    # run let go of it.
+    for other in tuple(root.handlers):
+        if isinstance(other, _InvocationHandler) and other is not handler:
+            root.removeHandler(other)
     # A no-op when a run in progress attached it. A handler somebody else took off
     # the logger in the meantime is put back.
     root.addHandler(handler)
@@ -610,22 +639,43 @@ def _release_invocation_handler(token: object) -> None:
     handler.close()
 
 
-def _expire_levels(token: object, names: tuple[str, ...]) -> None:
-    """Reset the levels of the loggers a run set, if they are still its own.
+def _take_saved_levels(token: object) -> dict[str, int] | None:
+    """Hand the levels to give back over to the run that owns them.
+
+    `None` for any other run: one whose levels a later run took over, or one that
+    gave them back already. The owner so gets them once, however many of its
+    cleanups ask.
+    """
+    global _level_owner, _level_saved
+    if _level_owner is not token:
+        return None
+    _level_owner = None
+    saved, _level_saved = _level_saved, {}
+    return saved
+
+
+def _expire_levels(token: object) -> None:
+    """Give the loggers of a run their levels back, if that run still owns them.
 
     Called for a run whose context Click never closed, so whose
-    {meth}`_VerbosityOption.reset_loggers` never ran. A no-op when the context
-    did close, and when a later run set levels of its own in the meantime.
+    {meth}`_VerbosityOption.reset_loggers` never ran.
 
     Silent, unlike that method: the call may come from a finalizer, in the middle
     of a later run, and a debug record emitted there would print in its output.
     """
-    global _level_owner
-    if _level_owner is not token:
-        return
-    _level_owner = None
-    for name in names:
-        getLogger(name).setLevel(DEFAULT_LEVEL.value)
+    for name, level in (_take_saved_levels(token) or {}).items():
+        getLogger(name).setLevel(level)
+
+
+def _resulting_level(managed_logger: Logger, level: int) -> str:
+    """Name the level `managed_logger` works at once its own is set to `level`.
+
+    A logger given back {data}`NOTSET <logging.NOTSET>` follows its parent again,
+    as the representation of a logger shows it: `<Logger almanac (WARNING)>`.
+    """
+    if not level and managed_logger.parent:
+        level = managed_logger.parent.getEffectiveLevel()
+    return logging.getLevelName(level)
 
 
 def _queue_late_cleanup(ctx: click.Context, cleanup: Callable[[], None]) -> None:
@@ -790,9 +840,11 @@ class _VerbosityOption(ExtraOption):
         for name in ("click_extra", self.logger_name):
             yield getLogger(name)
 
-    def reset_loggers(self) -> None:
-        """Forces all loggers managed by the option to be reset to
-        {const}`DEFAULT_LEVEL`.
+    def reset_loggers(self, levels: Mapping[str, int] | None = None) -> None:
+        """Gives all loggers managed by the option their level back.
+
+        At the end of a run, that is the level each logger had before the run: an
+        application that set its own level on the `root` logger finds it again.
 
         ```{important}
         Loggers are reset in reverse order to ensure the internal logger is changed
@@ -805,21 +857,35 @@ class _VerbosityOption(ExtraOption):
         global, loggers have tendency to leak and pollute their state between
         multiple test calls.
         ```
+
+        :param levels: The level to give back to each logger, by logger name. A
+            logger it does not name is reset to {const}`DEFAULT_LEVEL`, and so is
+            every logger when it is not provided.
         """
+        levels = levels or {}
         for managed_logger in list(self.all_loggers)[::-1]:
-            logger.debug(f"Reset {managed_logger} to {DEFAULT_LEVEL}.")
-            managed_logger.setLevel(DEFAULT_LEVEL.value)
+            level = levels.get(managed_logger.name, DEFAULT_LEVEL.value)
+            target = _resulting_level(managed_logger, level)
+            logger.debug(f"Reset {managed_logger} to {target}.")
+            managed_logger.setLevel(level)
 
     def _reset_on_close(self, token: object) -> None:
-        """Reset the loggers when the context of the run closes, then let go of them.
+        """Give the loggers their levels back when the context of the run closes.
 
-        The close callback of a run that set levels. See `_expire_levels` for a run
-        whose context never closes.
+        The close callback of a run that set levels. Does nothing for a run whose
+        levels a later run took over, and gave back. See `_expire_levels` for a
+        run whose context never closes.
         """
-        global _level_owner
-        self.reset_loggers()
-        if _level_owner is token:
-            _level_owner = None
+        saved = _take_saved_levels(token)
+        if saved is None:
+            return
+        self.reset_loggers(saved)
+        # The loggers of an earlier run that failed while parsing, whose levels
+        # this run took over: none of them is one this option reports on.
+        managed = {managed_logger.name for managed_logger in self.all_loggers}
+        for name, level in saved.items():
+            if name not in managed:
+                getLogger(name).setLevel(level)
 
     def handle_parse_result(
         self,
@@ -903,9 +969,15 @@ class _VerbosityOption(ExtraOption):
         {data}`~click_extra.context.VERBOSITY_LEVEL` and only (re)applied when it
         actually changes, to keep the debug trace free of redundant `Set` lines.
 
-        The loggers go back to {const}`DEFAULT_LEVEL` when the run ends: through
+        The loggers get the level they had before the run back when it ends: through
         {meth}`reset_loggers` when its context closes, and through `_expire_levels`
         when it fails while parsing, which leaves the context never closed.
+
+        ```{note}
+        A run started from within another one gives back the levels found before
+        the outer run, not the ones the outer run set: the outer run works at
+        those for the rest of its time.
+        ```
         """
         global _level_owner
         # Skip logger reconfiguration during help rendering, shell completion,
@@ -922,8 +994,8 @@ class _VerbosityOption(ExtraOption):
 
         context.set(ctx, context.VERBOSITY_LEVEL, new_level)
 
-        # Own the levels before setting them. The late reset of an earlier run that
-        # failed while parsing, if it comes now, then leaves them alone.
+        # Own the levels before setting them. An earlier run that failed while
+        # parsing, if it gives its levels back now, then leaves these alone.
         token = context.get(ctx, _LEVEL_TOKEN)
         queued = token is not None
         if not queued:
@@ -932,6 +1004,9 @@ class _VerbosityOption(ExtraOption):
         _level_owner = token
 
         for managed_logger in self.all_loggers:
+            # Keep the level to give back, unless a run before this one did: the
+            # level found now is then one that run set.
+            _level_saved.setdefault(managed_logger.name, managed_logger.level)
             managed_logger.setLevel(new_level.value)
             logger.debug(f"Set {managed_logger} to {new_level}.")
 
@@ -940,8 +1015,7 @@ class _VerbosityOption(ExtraOption):
         # once on Context._close_callbacks.
         if not queued:
             ctx.call_on_close(partial(self._reset_on_close, token))
-            names = tuple(managed_logger.name for managed_logger in self.all_loggers)
-            _queue_late_cleanup(ctx, partial(_expire_levels, token, names))
+            _queue_late_cleanup(ctx, partial(_expire_levels, token))
 
     def set_level(self, ctx: click.Context, param: click.Parameter, value: Any) -> None:
         """Base callback: subclasses record their raw value first, then reconcile.

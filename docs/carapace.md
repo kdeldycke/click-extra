@@ -61,13 +61,6 @@ from click_extra.cli import demo
 ```{click:run}
 :screenshot: wrap-carapace-screen
 :screenshot-columns: auto
-import logging
-
-# A documentation build leaves the ambient root logger at INFO, which this page
-# reaches before any CLI has set a level of its own: the resolver would then
-# narrate which entry point it picked, into a committed capture.
-logging.getLogger("click_extra").setLevel(logging.WARNING)
-
 result = invoke(
     demo, args=["wrap", "--help-format", "carapace", "--", "flask", "routes"]
 )

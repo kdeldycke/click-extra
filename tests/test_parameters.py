@@ -2403,6 +2403,10 @@ def test_option_constructors_leave_the_root_logger_alone(option_class):
     command is imported. The root logger belongs to the whole process by then: an
     application importing the CLI, or pytest collecting it, has its handlers there.
     """
+    # A run of a plain Click command that failed while parsing, in an earlier
+    # test, holds a handler until its context is collected. Collect first: a
+    # handler released in the middle of the test must not be put back after it.
+    gc.collect()
     root = logging.getLogger()
     handlers, level = root.handlers[:], root.level
     try:

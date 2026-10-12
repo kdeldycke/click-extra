@@ -600,7 +600,7 @@ assert "Usage:" in result.stdout
 ```
 
 ```{note}
-Log records print once in a `click:run` block, as in a reader's own shell. A build shares its process with Sphinx, its extensions and its theme, and any of them can give the `root` logger a handler: the Furo theme does, through `accessible-pygments`. The runner takes the handlers it found there off the `root` logger while a documented command runs, then puts them back. A handler the code of the page attaches itself stays in place.
+Log records print in a `click:run` block as in a reader's own shell: once, and from the `WARNING` level up. A build shares its process with Sphinx, its extensions and its theme, and any of them can set the `root` logger up: the Furo theme gives it a handler and the `INFO` level, through `accessible-pygments`. The runner takes that handler and that level off the `root` logger while a documented command runs, then puts them back. A handler the code of the page attaches itself, or a level it sets, stays in place.
 ```
 
 ### Capture mode

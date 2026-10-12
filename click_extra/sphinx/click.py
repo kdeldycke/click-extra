@@ -56,6 +56,7 @@ from ..blocks import rewrite_fenced_regions, split_options, update_blocks
 from ..color import forced_color
 from ..execution import format_cli_prompt
 from ..layout import number_lines
+from ..logging import DEFAULT_LEVEL
 from ..recording import (
     DEFAULT_QUANTUM,
     DEFAULT_RECORDING_BLANK,
@@ -354,31 +355,44 @@ class ClickRunner(CliRunner):
         )
         super().__init__(echo_stdin=True, capture=capture or default_capture)
         self.namespace = {"click": click, "__file__": "dummy.py"}
-        # What the root logger holds before the document runs any code belongs to
-        # the build. See `without_build_handlers`.
-        self.build_handlers = tuple(stdlib_logging.getLogger().handlers)
+        # How the root logger is set up before the document runs any code belongs
+        # to the build. See `without_build_logging`.
+        root = stdlib_logging.getLogger()
+        self.build_handlers = tuple(root.handlers)
+        self.build_level = root.level
 
     @contextlib.contextmanager
-    def without_build_handlers(self) -> Iterator[None]:
-        """Take the log handlers of the build off the `root` logger for the block.
+    def without_build_logging(self) -> Iterator[None]:
+        """Take the logging setup of the build off the `root` logger for the block.
 
         A build is one process, shared with Sphinx, its extensions and its theme,
-        and any of them may give the `root` logger a handler: the Furo theme
-        depends on `accessible-pygments`, which calls `logging.basicConfig()` when
-        imported. A documented command adds the handler of Click Extra beside the
-        ones it finds, so each of its records would print a second time, in the
-        format of the build. The shell of a reader has none of these handlers.
+        and any of them may set the `root` logger up: the Furo theme depends on
+        `accessible-pygments`, which calls `logging.basicConfig()` when imported,
+        and so gives the `root` logger a handler and the `INFO` level.
 
-        A handler the code of the document attached itself is not one of them, and
-        stays in place.
+        A documented command adds the handler of Click Extra beside the ones it
+        finds, so each of its records would print a second time, in the format of
+        the build. It also leaves the `root` logger the level it found, so the one
+        of the build would let through the records a command logs before its
+        verbosity options apply. The shell of a reader has none of this: the
+        `root` logger holds no handler there, at
+        {data}`~click_extra.logging.DEFAULT_LEVEL`.
+
+        A handler the code of the document attached itself, or a level it set, is
+        not of the build, and stays in place.
         """
         root = stdlib_logging.getLogger()
         hidden = [h for h in self.build_handlers if h in root.handlers]
         for handler in hidden:
             root.removeHandler(handler)
+        level = root.level
+        if level == self.build_level:
+            root.setLevel(DEFAULT_LEVEL.value)
         try:
             yield
         finally:
+            if level == self.build_level:
+                root.setLevel(level)
             for handler in hidden:
                 root.addHandler(handler)
 
@@ -472,7 +486,7 @@ class ClickRunner(CliRunner):
         # system that ignores `should_strip_ansi` and only honors `FORCE_COLOR`, so
         # `forced_color()` sets that too. Together they cover both color systems a
         # documented CLI might use.
-        with forced_color(), self.without_build_handlers():
+        with forced_color(), self.without_build_logging():
             result = super().invoke(
                 cli=cli,
                 args=args,

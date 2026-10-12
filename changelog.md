@@ -8,10 +8,10 @@
 - Add the `DEFAULT_FORMAT` and `DEFAULT_STYLE` constants to `click_extra.logging`.
 - Stop the verbosity options from removing the handlers of the `root` logger: a command adds its own handler for the time of a run. Call `new_logger()` to keep one outside a run. Closes [#1998](https://github.com/kdeldycke/click-extra/issues/1998).
 - Print log records in the style of Click Extra during the run of any command that carries one of its options, like a standalone `@config_option`.
-- Set the log handlers of a Sphinx build aside while a `click:run` block runs its command, so a record prints once in the rendered session.
+- Set the log handlers and the log level of a Sphinx build aside while a `click:run` block runs its command, as in a reader's own shell.
 - Keep the format `new_logger()` or `basicConfig()` gave the `root` logger when a command is defined after the call, which used to reset it.
 - Accept the `handlers` argument in `basicConfig()` and `new_logger()`, which always raised `ValueError`.
-- Reset the log levels after a run that fails while parsing, which left the loggers at the requested level for the rest of the process.
+- Give each logger the level it had before a run back when the run ends, a failed parse included: it was reset to `WARNING`, or left changed after a failed parse.
 - Label `matrix` tables with the name the project declares in `pyproject.toml` by default: the name of the checkout folder is now the fallback.
 - Warn in the logging documentation that `new_logger()` removes every handler of the logger it sets up, the `root` one by default.
 - Fix the documentation render tests failing in a new environment, as for a packager: the `docs` group now holds `tomlkit`, and the tests carry the `network` marker.

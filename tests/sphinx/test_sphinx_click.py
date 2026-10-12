@@ -1196,6 +1196,56 @@ def test_clickrunner_sets_the_handlers_of_the_build_aside():
 
 
 @pytest.mark.parametrize(
+    ("document_level", "expected"),
+    (
+        # The level of the build gives way to the default one of Python.
+        pytest.param(None, logging.WARNING, id="level-of-the-build"),
+        # A level the code of a document set is not one of the build.
+        pytest.param(logging.DEBUG, logging.DEBUG, id="level-of-the-document"),
+    ),
+)
+def test_clickrunner_sets_the_level_of_the_build_aside(document_level, expected):
+    """``ClickRunner`` gives the root logger the default level while a documented
+    command runs, where the build left another one, then gives that one back.
+
+    A command leaves the root logger at the level it found. The level of the
+    build would so let through what a command logs before its verbosity options
+    apply, which the shell of a reader never prints.
+    """
+    root = logging.getLogger()
+    saved_level = root.level
+    seen = []
+
+    def note(ctx, param, value):
+        seen.append(root.level)
+
+    # An eager option typed on the command line is processed before the eager
+    # options left out of it, the verbosity one included.
+    @click.command()
+    @click.option(
+        "--note", is_flag=True, is_eager=True, expose_value=False, callback=note
+    )
+    @verbosity_option
+    def forecast():
+        pass
+
+    root.setLevel(logging.INFO)
+    try:
+        runner = ClickRunner()
+        if document_level is not None:
+            root.setLevel(document_level)
+        level = root.level
+
+        result = runner.invoke(forecast, ["--note"])
+
+        assert result.exit_code == 0
+        assert seen == [expected]
+        assert root.level == level
+    finally:
+        root.setLevel(saved_level)
+
+
+@pytest.mark.parametrize(
     ("capture", "renders"),
     (
         # No argument: defaults to "fd" on Unix (renders) and "sys" on Windows (no render).

@@ -30,6 +30,7 @@ from boltons.strutils import strip_ansi
 from click_extra import (
     LogLevel,
     Spinner,
+    VerbosityOption,
     command,
     echo,
     group,
@@ -1239,15 +1240,19 @@ def test_new_logger_with_a_name_leaves_the_root_logger_alone(app_handler):
 
 
 @pytest.fixture
-def restored_levels(restored_root_logger):
-    """Put the level of the ``click_extra`` logger back too.
+def application_levels(restored_root_logger):
+    """Give the loggers the levels of an application for the time of a test.
 
-    A verbosity option sets it along with the level of its own logger.
+    The ``root`` logger works at ``INFO``, and the ``click_extra`` one follows
+    it, as it does from the start. None of the two is at the level the verbosity
+    options default to: a test can so tell a level given back from one reset.
     """
     package_logger = logging.getLogger("click_extra")
     saved_level = package_logger.level
+    restored_root_logger.setLevel(logging.INFO)
+    package_logger.setLevel(logging.NOTSET)
     try:
-        yield
+        yield logging.INFO, logging.NOTSET
     finally:
         package_logger.setLevel(saved_level)
 
@@ -1264,15 +1269,15 @@ def levels():
         pytest.param(("--end", "raise"), 1, True, id="exception"),
         pytest.param(("--end", "exit"), 3, True, id="exit"),
         # The run fails while parsing, once the verbosity option set the levels:
-        # Click never closes its context, and the reset comes without a trace.
+        # Click never closes its context, and the levels come back without a trace.
         pytest.param(("--baskets", "many"), 2, False, id="invalid-value"),
     ),
 )
-def test_levels_are_reset_however_the_run_ends(
-    invoke, restored_levels, args, exit_code, traced
+def test_levels_are_given_back_however_the_run_ends(
+    invoke, application_levels, args, exit_code, traced
 ):
-    """A Click Extra command puts its loggers back to the default level the
-    moment its run ends, whatever the run ends on."""
+    """A Click Extra command gives its loggers the levels they had before the run
+    back the moment it ends, whatever it ends on."""
 
     @command
     @click.option("--baskets", type=int)
@@ -1287,12 +1292,45 @@ def test_levels_are_reset_however_the_run_ends(
     result = invoke(orchard, "--verbosity", "DEBUG", *args, color=False)
     assert result.exit_code == exit_code
     assert "debug: Set <RootLogger root (DEBUG)> to DEBUG.\n" in result.stderr
-    assert ("Reset <RootLogger root (DEBUG)> to WARNING." in result.stderr) is traced
+    # The trace names the level each logger works at from then on: the
+    # ``click_extra`` one follows ``root`` again.
+    trace = (
+        "debug: Reset <RootLogger root (DEBUG)> to INFO.\n"
+        "debug: Reset <Logger click_extra (DEBUG)> to INFO.\n"
+    )
+    assert (trace in result.stderr) is traced
+    assert levels() == application_levels
+
+
+def test_logger_of_the_option_gets_its_own_level_back(invoke, application_levels):
+    """An option given a logger of its own leaves the level of ``root`` alone, and
+    gives that logger the level it had."""
+    cellar = logging.getLogger("cellar")
+    cellar.setLevel(logging.ERROR)
+
+    @click.command
+    @verbosity_option(default_logger=cellar)
+    def orchard():
+        pass
+
+    try:
+        result = invoke(orchard, "--verbosity", "DEBUG", color=False)
+        assert result.exit_code == 0
+        assert "debug: Reset <Logger cellar (DEBUG)> to ERROR.\n" in result.stderr
+        assert cellar.level == logging.ERROR
+        assert levels() == application_levels
+    finally:
+        cellar.setLevel(logging.NOTSET)
+
+
+def test_reset_loggers_falls_back_on_the_default_level(application_levels):
+    """Called with no level to give back, ``reset_loggers()`` sets the default one."""
+    VerbosityOption().reset_loggers()
     assert levels() == (logging.WARNING, logging.WARNING)
 
 
-def test_levels_are_reset_when_a_subcommand_fails_while_parsing(
-    invoke, restored_levels
+def test_levels_are_given_back_when_a_subcommand_fails_while_parsing(
+    invoke, application_levels
 ):
     """The context of the group closes, the one of its subcommand never does.
 
@@ -1316,14 +1354,14 @@ def test_levels_are_reset_when_a_subcommand_fails_while_parsing(
     )
     assert result.exit_code == 2
     assert "debug: Set <RootLogger root (DEBUG)> to DEBUG.\n" in result.stderr
-    assert levels() == (logging.WARNING, logging.WARNING)
+    assert levels() == application_levels
 
 
-def test_failed_run_of_a_click_command_resets_its_levels_when_collected(
-    invoke, restored_levels
+def test_failed_run_of_a_click_command_gives_its_levels_back_when_collected(
+    invoke, application_levels
 ):
     """A plain Click command has no hook on a run that fails while parsing: the
-    levels are reset once Python collects the context of that run."""
+    levels come back once Python collects the context of that run."""
 
     @click.command
     @verbosity_option
@@ -1337,15 +1375,12 @@ def test_failed_run_of_a_click_command_resets_its_levels_when_collected(
 
     del result
     gc.collect()
-    assert levels() == (logging.WARNING, logging.WARNING)
+    assert levels() == application_levels
 
 
-def test_run_keeps_its_levels_when_a_failed_run_is_collected(invoke, restored_levels):
-    """The context of a failed run may be collected in the middle of a later run:
-    the levels are by then the ones of that later run, and stay."""
-    contexts = []
-    holders = []
-    seen = []
+def failing_click_command(contexts, body=None):
+    """A plain Click command that keeps the context of each of its runs alive, and
+    fails while parsing when given an invalid ``--baskets``."""
 
     def keep_context(ctx, param, value):
         contexts.append(ctx)
@@ -1361,6 +1396,22 @@ def test_run_keeps_its_levels_when_a_failed_run_is_collected(invoke, restored_le
     )
     @click.option("--baskets", type=int, expose_value=False)
     def orchard():
+        if body:
+            body()
+
+    return orchard
+
+
+def test_run_keeps_its_levels_when_a_failed_run_is_collected(
+    invoke, application_levels
+):
+    """The context of a failed run may be collected in the middle of a later run:
+    the levels are by then the ones of that later run, and stay."""
+    contexts: list[click.Context] = []
+    holders = []
+    seen = []
+
+    def body():
         seen.append(levels())
         holders.append(len(_INVOCATION_HOLDERS))
         contexts.clear()
@@ -1368,20 +1419,84 @@ def test_run_keeps_its_levels_when_a_failed_run_is_collected(invoke, restored_le
         holders.append(len(_INVOCATION_HOLDERS))
         seen.append(levels())
 
+    orchard = failing_click_command(contexts, body)
+
     # The eager option keeps the context of the run, which then fails on the
     # value of the other one.
     failed = invoke(orchard, "--verbosity", "DEBUG", "--baskets", "many", color=False)
     assert failed.exit_code == 2
     del failed
-    # Nothing reset the levels yet: the context of the failed run is still alive.
+    # Nothing gave the levels back yet: the context of the failed run is alive.
     assert levels() == (logging.DEBUG, logging.DEBUG)
 
-    result = invoke(orchard, "--verbosity", "INFO", color=False)
+    result = invoke(orchard, "--verbosity", "ERROR", color=False)
     assert result.exit_code == 0
     # The failed run was collected in the middle of this run.
     assert holders[0] - holders[1] == 1
-    assert seen == [(logging.INFO, logging.INFO), (logging.INFO, logging.INFO)]
-    assert levels() == (logging.WARNING, logging.WARNING)
+    assert seen == [(logging.ERROR, logging.ERROR), (logging.ERROR, logging.ERROR)]
+    assert levels() == application_levels
+
+
+def test_levels_found_before_a_failed_run_are_the_ones_given_back(
+    invoke, application_levels
+):
+    """A run that starts on the levels a failed run left behind gives back the
+    ones found before that failed run, not the ones it left."""
+    contexts: list[click.Context] = []
+    orchard = failing_click_command(contexts)
+
+    failed = invoke(orchard, "--verbosity", "DEBUG", "--baskets", "many", color=False)
+    assert failed.exit_code == 2
+    del failed
+    assert levels() == (logging.DEBUG, logging.DEBUG)
+
+    result = invoke(orchard, color=False)
+    assert result.exit_code == 0
+    assert levels() == application_levels
+
+    # The failed run has nothing left to give back once it is collected.
+    contexts.clear()
+    gc.collect()
+    assert levels() == application_levels
+
+
+def test_released_handler_put_back_on_the_root_logger_prints_nothing(
+    invoke, app_handler, capsys
+):
+    """Code that saves the handlers of the root logger and puts them back later
+    may attach again a handler its run let go of in between. That handler prints
+    nothing, and the next run takes it off.
+
+    A fixture isolating a test does that around a plain Click command that failed
+    while parsing: Python collects the context of that run, and so releases its
+    handler, whenever it sees fit.
+    """
+    root = logging.getLogger()
+    contexts: list[click.Context] = []
+    orchard = failing_click_command(
+        contexts, lambda: logging.getLogger("orchard").warning("apples are ripe")
+    )
+
+    failed = invoke(orchard, "--baskets", "many", color=False)
+    assert failed.exit_code == 2
+    del failed
+    (lent,) = run_handlers()
+
+    saved = root.handlers[:]
+    contexts.clear()
+    gc.collect()
+    assert not run_handlers()
+    root.handlers[:] = saved
+    assert run_handlers() == [lent]
+
+    capsys.readouterr()
+    logging.getLogger("orchard").warning("pears are ripe")
+    assert not capsys.readouterr().err
+
+    result = invoke(orchard, color=False)
+    assert result.exit_code == 0
+    assert result.stderr == "warning: apples are ripe\n"
+    assert lent not in root.handlers
 
 
 @pytest.mark.once

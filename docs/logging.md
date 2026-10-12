@@ -22,7 +22,7 @@ assert "Set <Logger click_extra (DEBUG)> to DEBUG." in result.stderr, "missing D
 assert "Set <RootLogger root (DEBUG)> to DEBUG." in result.stderr, "missing DEBUG message"
 ```
 
-Each logger's level prints as a debug message. They are set to `DEBUG` at the start of the command and reset back to their default `WARNING` at the end. The `--verbosity` flag also surfaces in `--help`:
+Each logger's level prints as a debug message. They are set to `DEBUG` at the start of the command, and get the level they had before back at the end: `WARNING` here. The `--verbosity` flag also surfaces in `--help`:
 
 ```{click:run}
 :emphasize-result-lines: 35-36
@@ -453,7 +453,7 @@ assert dedent("""\
 ) in result.output
 ```
 
-But changing the verbosity level only affects `root`, in the opposite of the previous example:
+Changing the verbosity level now reaches both loggers. `app_logger` has no level of its own, so like any logger it works at the level of `root`:
 
 ```{click:run}
 from textwrap import dedent
@@ -462,6 +462,7 @@ assert dedent("""\
     \x1b[33mwarning\x1b[0m: Root logger warning
     info: Root logger info
     \x1b[33mwarning\x1b[0m | app_logger | Custom warning
+    info | app_logger | Custom info
     """
 ) in result.output
 ```
@@ -471,7 +472,7 @@ By design, [new loggers are always created as sub-loggers](https://github.com/py
 
 But {py:func}`~click_extra.logging.new_logger` always creates new loggers by setting their `propagate` attribute to `False`. This means that messages of new loggers won't be propagated to their parents.
 
-This is the reason why, in the example above, the `root` and `app_logger` loggers are independent.
+This is the reason why, in the examples above, a message of `app_logger` prints once, in its own format.
 
 To see that property at work, set the `propagate` attribute to `True`:
 
@@ -691,6 +692,8 @@ for handler in root.handlers[:]:
 ```
 
 The handler of the application receives each record too. If it also prints to the console, a record shows twice during a run. To keep the handler of Click Extra off the `root` logger, set that logger up yourself with `new_logger(handlers=[...])`: a command adds nothing to a logger that `new_logger()` or `basicConfig()` set up.
+
+Levels follow the same rule. The verbosity options give each logger the level it had before the run back when the run ends, so an application that set the `root` logger to `INFO` finds it at `INFO` again.
 
 ```{note}
 Any option of Click Extra brings that handler, not only the verbosity ones: a plain Click command with a standalone `@config_option` prints its configuration errors the same way.
