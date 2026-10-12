@@ -35,25 +35,18 @@ import inspect
 import json
 import logging
 import os
-import platform
 import re
 import shutil
-import subprocess
 import sys
-import sysconfig
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from email.utils import getaddresses
 from functools import cached_property
 from gettext import gettext as _
-from importlib import metadata
 from pathlib import Path
 
 import click
-from boltons.formatutils import BaseFormatField, tokenize_format_str
 from click import echo, get_current_context
 from click._utils import UNSET
-from extra_platforms import current_architecture, current_platform
 
 # CLI_ECOSYSTEM_PACKAGES is bound under a private name so this module's
 # namespace does not resurrect the moved constant: its canonical home is
@@ -99,6 +92,9 @@ def distribution_of(package_name: str | None) -> str | None:
     if not package_name:
         logger.debug("No package name provided.")
         return None
+
+    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+    from importlib import metadata
 
     # `package_name` already matches an installed distribution.
     try:
@@ -203,6 +199,9 @@ def run_git(
     commands use meaningfully: `git status --porcelain` prints nothing for a
     clean work tree, and that is distinct from the command failing.
     """
+    # Deferred import: keeps subprocess off the startup path of every CLI.
+    import subprocess
+
     try:
         result = subprocess.run(
             ["git", *args],
@@ -342,6 +341,9 @@ def resolve_build_time() -> str:
 
 def resolve_build_os() -> str:
     """The operating system the build runs on."""
+    # Deferred import: keeps extra_platforms off the startup path of every CLI.
+    from extra_platforms import current_platform
+
     return current_platform().name
 
 
@@ -354,11 +356,17 @@ def resolve_build_target() -> str:
     `macosx-15.0-arm64` says the binary needs macOS 15, where
     {func}`~click_extra.version.resolve_build_os` only says it was built on macOS.
     """
+    # Deferred import: keeps sysconfig off the startup path of every CLI.
+    import sysconfig
+
     return sysconfig.get_platform()
 
 
 def resolve_build_target_arch() -> str:
     """The CPU architecture the build runs on."""
+    # Deferred import: keeps extra_platforms off the startup path of every CLI.
+    from extra_platforms import current_architecture
+
     return current_architecture().name
 
 
@@ -481,6 +489,9 @@ def resolve_distribution(names: Iterable[str]) -> str | None:
     pick a distribution from a set of plausible spellings (for example the
     program name with `-` / `_` variants) before reading its metadata.
     """
+    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+    from importlib import metadata
+
     for name in names:
         if not name:
             continue
@@ -526,6 +537,9 @@ def resolve_author(meta: PackageMetadata | None) -> str | None:
     # back to the raw value when no name part is present.
     contact = meta_value(meta, "Author-email", "Maintainer-email")
     if contact:
+        # Deferred import: keeps email.utils off the startup path of every CLI.
+        from email.utils import getaddresses
+
         names = [n for n, _addr in getaddresses([contact]) if n]
         return ", ".join(names) if names else contact
 
@@ -561,6 +575,9 @@ def resolve_license(meta: PackageMetadata | None) -> str | None:
 
 def platform_label() -> str:
     """Current platform and CPU architecture, as displayed to the user."""
+    # Deferred import: keeps extra_platforms off the startup path of every CLI.
+    from extra_platforms import current_architecture, current_platform
+
     return f"{current_platform().name} {current_architecture().name}"
 
 
@@ -571,6 +588,9 @@ def env_summary() -> str:
     a CLI that would rather spend one line of its plain `--version` on them than
     draw a screen at all: `@version_option(fields={"env_info": env_summary()})`.
     """
+    # Deferred import: keeps platform off the startup path of every CLI.
+    import platform
+
     return f"Python {platform.python_version()}, {platform_label()}"
 
 
@@ -585,6 +605,9 @@ def dependency_versions() -> str:
     Read from the installed distributions rather than the packages' own
     `__version__`, which Click deprecated in `8.4.0` and removes in `9.1`.
     """
+    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+    from importlib import metadata
+
     return ", ".join(
         f"{name.capitalize()} {metadata.version(name)}" for name in ("click", "cloup")
     )
@@ -602,6 +625,9 @@ def default_facts() -> dict[str, str]:
     default_facts() | {"Docs": DOCS_URL}           # appends, at the end
     ```
     """
+    # Deferred import: keeps platform off the startup path of every CLI.
+    import platform
+
     return {
         "Python": platform.python_version(),
         "Platform": platform_label(),
@@ -1180,6 +1206,9 @@ class VersionOption(ExtraOption):
     @staticmethod
     def _resolve_entry_point_module(script_name: str) -> ModuleType | None:
         """Resolve the module from a console_scripts entry point name."""
+        # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+        from importlib import metadata
+
         # Search through all entry points in the 'console_scripts' group.
         eps = metadata.entry_points()
 
@@ -1307,6 +1336,9 @@ class VersionOption(ExtraOption):
         Returns `None` if the package is not installed or cannot be
         resolved.
         """
+        # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+        from importlib import metadata
+
         name = self._distribution_name
         return metadata.version(name) if name else None
 
@@ -1319,6 +1351,9 @@ class VersionOption(ExtraOption):
         resolved distribution (see `_distribution_name`). Returns
         `None` when the package is not installed or cannot be resolved.
         """
+        # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+        from importlib import metadata
+
         name = self._distribution_name
         return metadata.metadata(name) if name else None
 
@@ -1701,6 +1736,9 @@ class VersionOption(ExtraOption):
 
         default_style = self.field_style()
 
+        # Deferred import: keeps boltons.formatutils off the startup path of every CLI.
+        from boltons.formatutils import BaseFormatField, tokenize_format_str
+
         # Split the template semantically between fields and literals.
         segments = tokenize_format_str(template, resolve_pos=False)
 
@@ -1772,6 +1810,9 @@ class VersionOption(ExtraOption):
 
         if template is None:
             template = self.colored_template()
+
+        # Deferred import: keeps boltons.formatutils off the startup path of every CLI.
+        from boltons.formatutils import BaseFormatField, tokenize_format_str
 
         # Only resolve fields that actually appear in the template, so unused
         # properties (git calls, env_info, etc.) are never evaluated.

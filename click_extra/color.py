@@ -30,14 +30,12 @@ import select
 import sys
 import weakref
 from collections.abc import Iterator
-from configparser import RawConfigParser
 from contextlib import contextmanager
 from gettext import gettext as _
 
 import click
 from click._utils import UNSET
 from click.core import ParameterSource
-from extra_platforms import is_unix
 
 from ._deprecated import warn_deprecated_argument
 from .envvar import temporary_env
@@ -142,6 +140,9 @@ def _color_envvar_vote(var: str, value: str) -> bool | None:
     when = _COLOR_WHEN_LOOKUP.get(value)
     if when is not None:
         return _WHEN_TO_TRISTATE[when]
+    # Deferred import: keeps configparser off the startup path of every CLI.
+    from configparser import RawConfigParser
+
     return RawConfigParser.BOOLEAN_STATES.get(value)
 
 
@@ -380,6 +381,9 @@ def query_osc_background(
     {class}`~click_extra.theme.ThemeOption`'s `query_background`).
     ```
     """
+    # Deferred import: keeps extra_platforms off the startup path of every CLI.
+    from extra_platforms import is_unix
+
     if not is_unix() or termios is None or tty is None:
         return None
 

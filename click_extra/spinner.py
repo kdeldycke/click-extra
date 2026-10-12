@@ -62,7 +62,6 @@ from typing import Final, TypeVar, cast
 
 import click
 from click._utils import UNSET
-from extra_platforms import is_windows
 
 from . import context
 from ._deprecated import warn_deprecated_argument
@@ -176,6 +175,9 @@ def _guard_cursor(installing: bool) -> None:
     A line stopped from another thread leaves the handler in place, which then
     finds no live line and only re-delivers the signal.
     """
+    # Deferred import: keeps extra_platforms off the startup path of every CLI.
+    from extra_platforms import is_windows
+
     if is_windows() or threading.current_thread() is not threading.main_thread():
         return
     current = signal.getsignal(signal.SIGTERM)

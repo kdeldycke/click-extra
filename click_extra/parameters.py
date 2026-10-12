@@ -35,7 +35,6 @@ from click.core import (
     _format_deprecated_label,
     _format_deprecated_suffix,
 )
-from deepmerge import always_merger
 
 from . import context
 from ._deprecated import warn_deprecated_argument
@@ -750,6 +749,9 @@ class ParamStructure:
                 PARAM_PATH_SEP.join(keys) for keys, _ in self.walk_params()
             )
             self.excluded_params = all_param_ids - self.included_params
+
+        # Deferred import: keeps deepmerge off the startup path of every CLI.
+        from deepmerge import always_merger
 
         objects: dict[str, Any] = {}
 

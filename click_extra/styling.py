@@ -58,7 +58,6 @@ from dataclasses import dataclass, fields, replace
 from functools import lru_cache
 
 import cloup
-from boltons.strutils import strip_ansi
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -838,6 +837,9 @@ def _strip_unsupported_ansi(text: str) -> str:
     other escape (cursor movements, screen clearing, other OSC commands) has
     no markup equivalent and is dropped.
     """
+    # Deferred import: keeps boltons.strutils off the startup path of every CLI.
+    from boltons.strutils import strip_ansi
+
     return strip_ansi(_OSC_HYPERLINK_RE.sub("", text))
 
 

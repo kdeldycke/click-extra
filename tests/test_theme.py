@@ -19,6 +19,7 @@ and ``[tool.<cli>.themes.<name>]`` config integration."""
 from __future__ import annotations
 
 import dataclasses
+import importlib.resources
 import logging
 import re
 import sys
@@ -526,10 +527,15 @@ class _MissingResource:
         raise FileNotFoundError("simulated missing themes.toml")
 
 
-def test_load_builtin_themes_tolerates_missing_file(caplog, monkeypatch):
-    """A dropped themes.toml degrades to an empty mapping plus a warning."""
+def test_load_builtin_themes_tolerates_missing_file(caplog, monkeypatch, tmp_path):
+    """A dropped themes.toml degrades to an empty mapping plus a warning.
+
+    Both reads must miss: the file beside the module, then the import system
+    the loader falls back to.
+    """
+    monkeypatch.setattr(theme_mod, "__file__", str(tmp_path / "theme.py"))
     monkeypatch.setattr(
-        theme_mod.resources, "files", lambda package: _MissingResource()
+        importlib.resources, "files", lambda package: _MissingResource()
     )
 
     with caplog.at_level(logging.WARNING, logger="click_extra"):

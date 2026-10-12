@@ -207,6 +207,77 @@ def test_no_debugger_ballast_on_import():
 
 
 @pytest.mark.once
+def test_no_heavy_dependency_ballast_on_startup():
+    """Importing the package and rendering a ``--help`` must not load the
+    dependencies the package defers.
+
+    Each module below is imported where it is used rather than at module scope,
+    so that a CLI pays for it only on the code path that needs it: see the
+    deferred-imports house rule in ``CLAUDE.md``. The probe runs a hello-world
+    through decoration and ``--help`` in a pristine interpreter, since pytest
+    itself has most of these loaded already.
+
+    ``importlib.metadata`` and the ``email`` tree it drags in are missing from
+    the list on purpose: cloup still imports them at module scope, until the
+    release carrying janluke/cloup#242 becomes the floor.
+    """
+    ballast = (
+        "boltons.formatutils",
+        "boltons.strutils",
+        "boltons.urlutils",
+        "concurrent.futures",
+        "configparser",
+        "deepmerge",
+        "difflib",
+        "extra_platforms",
+        "plistlib",
+        "requests",
+        "sqlite3",
+        "sysconfig",
+        "tabulate",
+        "wcmatch",
+        "wcwidth",
+        "xml",
+        "xmltodict",
+        "yaml",
+    )
+    probe = (
+        "import sys\n"
+        "from click_extra import command\n"
+        "@command\n"
+        "def hello():\n"
+        "    pass\n"
+        "hello.main(['--help'], prog_name='hello', standalone_mode=False)\n"
+        "loaded = set(sys.modules)\n"
+        f"leaked = [m for m in {ballast!r} "
+        "if m in loaded or any(n.startswith(m + '.') for n in loaded)]\n"
+        "assert not leaked, f'loaded at startup: {leaked}'\n"
+    )
+    process = run(
+        (sys.executable, "-c", probe), capture_output=True, text=True, check=False
+    )
+    assert process.returncode == 0, process.stderr
+
+
+@pytest.mark.once
+def test_import_module_budget():
+    """``import click_extra`` stays within a module-count budget.
+
+    A coarse net under the denylist above: a new eager import of a dependency
+    with a deep tree shows up here as a jump of tens of modules, whichever
+    package it comes from. Measured at 277 modules on Python 3.14; the budget
+    leaves room for the platform and version differences of the stdlib.
+    """
+    probe = "import sys; import click_extra; print(len(sys.modules))"
+    process = run(
+        (sys.executable, "-c", probe), capture_output=True, text=True, check=False
+    )
+    assert process.returncode == 0, process.stderr
+    loaded = int(process.stdout)
+    assert loaded <= 300, f"import click_extra loaded {loaded} modules"
+
+
+@pytest.mark.once
 def test_lazy_test_tooling_exports():
     """The lazy test-tooling names resolve, cache, and show up in ``dir()``."""
     assert "CliRunner" in dir(click_extra)

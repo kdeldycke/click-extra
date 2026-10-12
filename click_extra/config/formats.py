@@ -36,24 +36,34 @@ from __future__ import annotations
 import importlib.util
 import json
 import logging
-import plistlib
 import sys
 from enum import Enum
 from fnmatch import fnmatch
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
-
+from typing import cast
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
+    from types import ModuleType
     from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def _tomllib() -> ModuleType:
+    """Return the TOML parser: `tomllib` from Python 3.11 on, `tomli` before.
+
+    Deferred import: keeps the parser off the startup path of every CLI, which
+    only pays for it when a TOML configuration file is read.
+    """
+    if sys.version_info >= (3, 11):
+        import tomllib
+
+        return tomllib
+    import tomli  # type: ignore[import-not-found]
+
+    return cast("ModuleType", tomli)
 
 
 _OPTIONAL_PARSERS: tuple[tuple[str, str, str], ...] = (
@@ -227,7 +237,7 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
     """
     match fmt:
         case ConfigFormat.TOML:
-            return tomllib.loads(content)
+            return _tomllib().loads(content)
 
         case ConfigFormat.YAML:
             import yaml
@@ -258,10 +268,12 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
             return xmltodict.parse(content)
 
         case ConfigFormat.PLIST:
+            import plistlib
+
             return plistlib.loads(content.encode("utf-8"))
 
         case ConfigFormat.PYPROJECT_TOML:
-            return tomllib.loads(content).get("tool", {})
+            return _tomllib().loads(content).get("tool", {})
 
     raise ValueError(f"{fmt!r} is not handled by parse_content().")
 
@@ -354,6 +366,8 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
             )
             return result + "\n"
         case ConfigFormat.PLIST:
+            import plistlib
+
             return plistlib.dumps(data, **kwargs).decode("utf-8") + "\n"
     raise ValueError(f"{fmt!r} is not handled by serialize_content().")
 

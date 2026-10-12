@@ -158,6 +158,7 @@ Documentation:
 
 ### [`cloup`](https://github.com/janluke/cloup)
 
+- [`#242` - Remove unused Click version helpers from `cloup._util`](https://github.com/janluke/cloup/pull/242)
 - [`#153` - Use the same `(Deprecated)` label as in Click](https://github.com/janluke/cloup/pull/153)
 
 ### [`pallets-sphinx-themes`](https://github.com/pallets/pallets-sphinx-themes)

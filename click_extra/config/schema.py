@@ -35,7 +35,6 @@ from functools import partial
 from typing import NamedTuple, get_origin, get_type_hints
 
 from click import get_current_context
-from deepmerge import always_merger
 
 from .. import context
 from ..parameters import PARAM_PATH_SEP, ParamStructure, canonical_param_name
@@ -265,6 +264,9 @@ def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
     In strict mode, raises `ValueError` on type conflicts and invalid
     dotted keys (empty segments).
     """
+    # Deferred import: keeps deepmerge off the startup path of every CLI.
+    from deepmerge import always_merger
+
     expanded: dict = {}
     for key, value in conf.items():
         if isinstance(value, dict):

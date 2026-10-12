@@ -25,6 +25,12 @@ The inventory in § Documented exemptions is repomatic's own. Here it holds two 
 
 `repomatic init` moves the inline pin with the `uses:` refs and adds a missing exemption back, and `lint-repo` reports a pin without one as an error.
 
+### Heavy dependencies are imported where they are used
+
+§ Imports forbids local imports. This repository makes one exception, for startup time: importing the package is the fixed cost of every CLI built on it, so a dependency that only one code path needs is imported inside that function, under a `# Deferred import:` comment naming the package it keeps off the startup path. `tests/test_commands.py::test_no_heavy_dependency_ballast_on_startup` lists the modules concerned and fails when a hello-world `--help` loads one of them, and `test_import_module_budget` caps the module count. Add a new dependency to the list in the same change that defers it.
+
+Two places cannot wait for a deferred import of `extra-platforms`: the module-level prompt sigil of `click_extra/execution.py`, and the environment variable names every option computes at decoration time. Both read `IS_WINDOWS` from `click_extra/_utils.py`, the one constant mirroring the `sys.platform` test behind `extra_platforms.is_windows()`. Every other platform check keeps going through `extra-platforms`.
+
 ### Package internals import from their source module
 
 § Imports tells consumers, docs and tests to import from the root package. Inside `click_extra` the rule inverts: import each symbol from its concrete source module (`from .types import EnumChoice`, `from .styling import Style`, `from click import echo`, `from click._utils import UNSET`), never from the root package (`from . import X`). Root-symbol imports read attributes off the partially-initialized package, which makes `__init__.py`'s import order load-bearing during package initialization. Importing a sibling module as a namespace (`from . import context`) is fine: Python resolves it through `sys.modules` without depending on the root's binding order.

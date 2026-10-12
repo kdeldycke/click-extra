@@ -54,7 +54,6 @@ from logging import (
 )
 
 import click
-from boltons.strutils import strip_ansi
 from click._utils import UNSET
 from click.types import IntRange
 
@@ -285,6 +284,9 @@ class StreamHandler(logging.StreamHandler):
             if line is not None:
                 # The live line's echo writes raw: strip what click.echo would.
                 if color is False:
+                    # Deferred import: keeps boltons off the startup path of every CLI.
+                    from boltons.strutils import strip_ansi
+
                     message = strip_ansi(message)
                 line.echo(message)
             else:

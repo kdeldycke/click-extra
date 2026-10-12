@@ -38,7 +38,6 @@ from cloup.constraints import mutually_exclusive
 jsonschema = pytest.importorskip("jsonschema")
 
 import click_extra
-from click_extra import carapace as carapace_module
 from click_extra.carapace import (
     CARAPACE_DOCS_URL,
     CarapaceComplete,
@@ -497,7 +496,9 @@ def test_dump_records_invocation():
 
 
 def test_dump_requires_pyyaml(monkeypatch):
-    monkeypatch.setattr(carapace_module, "yaml", None)
+    """A missing PyYAML surfaces as a pointed error at dump time, not at import."""
+    # A None entry makes `import yaml` raise ImportError, as a missing package does.
+    monkeypatch.setitem(sys.modules, "yaml", None)
     with pytest.raises(ImportError, match=r"click-extra\[carapace\]"):
         dump_carapace_spec(weather, prog_name="weather")
 

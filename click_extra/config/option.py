@@ -43,11 +43,9 @@ import copy
 import json
 import logging
 import os
-import plistlib
 import shlex
 from collections import ChainMap
 from collections.abc import Iterable
-from configparser import ConfigParser, ExtendedInterpolation
 from enum import Enum
 from functools import cached_property, partial
 from gettext import gettext as _
@@ -57,7 +55,6 @@ from threading import Lock
 import click
 from boltons.iterutils import flatten, unique
 from boltons.pathutils import shrinkuser
-from boltons.urlutils import URL
 from click import (
     UNPROCESSED,
     Choice,
@@ -68,10 +65,6 @@ from click import (
 from click._utils import UNSET
 from click.core import ParameterSource
 from click.parser import _split_opt
-from deepmerge import always_merger
-from extra_platforms import is_windows
-from extra_platforms._utils import _remove_blanks
-from wcmatch import fnmatch, glob
 
 from .. import context
 from ..logging import LogLevel, requested_level
@@ -115,6 +108,8 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
     from typing import Any, Literal
+
+    from boltons.urlutils import URL
 
 logger = logging.getLogger(__name__)
 
@@ -259,6 +254,9 @@ def _coerce_scalar(target_type: type | None, raw_value: str, subject: str) -> An
     :raises ValueError: when `target_type` has no conversion, or `raw_value`
         does not read as one.
     """
+    # Deferred import: keeps configparser off the startup path of every CLI.
+    from configparser import ConfigParser
+
     try:
         if target_type in (None, str):
             return raw_value
@@ -402,17 +400,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         | Iterable[ConfigFormat]
         | ConfigFormat
         | None = None,
-        file_pattern_flags: int = fnmatch.NEGATE | fnmatch.SPLIT,
+        file_pattern_flags: int | None = None,
         show_file_patterns: bool | None = None,
         roaming: bool = True,
         force_posix: bool = False,
-        search_pattern_flags: int = glob.GLOBSTAR
-        | glob.FOLLOW
-        | glob.DOTGLOB
-        | glob.BRACE
-        | glob.SPLIT
-        | glob.GLOBTILDE
-        | glob.NODIR,
+        search_pattern_flags: int | None = None,
         search_parents: bool = False,
         stop_at: Path | str | Literal[Sentinel.VCS] | None = Sentinel.VCS,
         cascade: bool = False,
@@ -515,22 +507,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         if not self.file_format_patterns:
             raise ValueError("No configuration format is enabled.")
 
-        # Validate file pattern flags.
-        if not file_pattern_flags & glob.SPLIT:
-            logger.warning("Forcing SPLIT flag for file patterns.")
-            file_pattern_flags |= glob.SPLIT
-
-        self.file_pattern_flags = file_pattern_flags
-        """Flags provided to all calls of `wcmatch.fnmatch`.
-
-        Applies to the matching of file names against supported format patterns
-        specified in `file_format_patterns`.
-
-        ```{important}
-        The `SPLIT` flag is always forced, as our multi-pattern design relies on
-        it.
-        ```
-        """
+        # Validated and defaulted on first use by the `file_pattern_flags`
+        # property, which is what keeps wcmatch out of every CLI's startup.
+        self._file_pattern_flags = file_pattern_flags
 
         self.show_file_patterns = show_file_patterns
         """Whether the help screen prints the file patterns of the default.
@@ -557,28 +536,9 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         kwargs.setdefault("default", self.default_pattern)
 
-        # Force BRACE to ensure multi-format default patterns expand correctly.
-        if not search_pattern_flags & glob.BRACE:
-            logger.warning("Forcing BRACE flag for search patterns.")
-            search_pattern_flags |= glob.BRACE
-
-        # Force NODIR to optimize search for files only.
-        if not search_pattern_flags & glob.NODIR:
-            logger.warning("Forcing NODIR flag for search patterns.")
-            search_pattern_flags |= glob.NODIR
-
-        self.search_pattern_flags = search_pattern_flags
-        """Flags provided to all calls of `wcmatch.glob`.
-
-        Applies to both the default pattern and any user-provided pattern.
-
-        ```{important}
-        The `BRACE` flag is always forced, so that multi-format default
-        patterns using ``{pat1,pat2,...}`` syntax expand correctly.
-
-        The `NODIR` flag is always forced, to optimize the search for files only.
-        ```
-        """
+        # Validated and defaulted on first use by the `search_pattern_flags`
+        # property, for the same reason as the file pattern flags above.
+        self._search_pattern_flags = search_pattern_flags
 
         self.search_parents = search_parents
         """Indicates whether to walk back the tree of parent folders when searching for
@@ -764,11 +724,93 @@ class ConfigOption(ExtraOption, ParamStructure):
             **kwargs,
         )
 
-        self._check_pattern_sanity()
+        # Run by the first `load_conf` call rather than here: its checks need
+        # wcmatch, which stays off the startup path of every CLI.
+        self._pattern_sanity_checked = False
 
         # The group this option lands on is not built yet, and may be of a class
         # click-extra does not own.
         _patch_group_parse_args()
+
+    @cached_property
+    def file_pattern_flags(self) -> int:
+        """Flags provided to all calls of `wcmatch.fnmatch`.
+
+        Applies to the matching of file names against supported format patterns
+        specified in `file_format_patterns`. `None` at construction picks
+        `NEGATE | SPLIT`.
+
+        ```{important}
+        The `SPLIT` flag is always forced, as our multi-pattern design relies on
+        it.
+        ```
+
+        Resolved on first use rather than in `__init__`, so building the option
+        imports nothing from wcmatch.
+        """
+        # Deferred import: keeps wcmatch off the startup path of every CLI.
+        from wcmatch import fnmatch
+
+        flags = self._file_pattern_flags
+        if flags is None:
+            return fnmatch.NEGATE | fnmatch.SPLIT
+        if not flags & fnmatch.SPLIT:
+            logger.warning("Forcing SPLIT flag for file patterns.")
+            flags |= fnmatch.SPLIT
+        return flags
+
+    @cached_property
+    def search_pattern_flags(self) -> int:
+        """Flags provided to all calls of `wcmatch.glob`.
+
+        Applies to both the default pattern and any user-provided pattern. `None`
+        at construction picks `GLOBSTAR | FOLLOW | DOTGLOB | BRACE | SPLIT |
+        GLOBTILDE | NODIR`.
+
+        ```{important}
+        The `BRACE` flag is always forced, so that multi-format default
+        patterns using ``{pat1,pat2,...}`` syntax expand correctly.
+
+        The `NODIR` flag is always forced, to optimize the search for files only.
+        ```
+
+        Resolved on first use rather than in `__init__`, so building the option
+        imports nothing from wcmatch.
+        """
+        # Deferred import: keeps wcmatch off the startup path of every CLI.
+        from wcmatch import glob
+
+        flags = self._search_pattern_flags
+        if flags is None:
+            return (
+                glob.GLOBSTAR
+                | glob.FOLLOW
+                | glob.DOTGLOB
+                | glob.BRACE
+                | glob.SPLIT
+                | glob.GLOBTILDE
+                | glob.NODIR
+            )
+        if not flags & glob.BRACE:
+            logger.warning("Forcing BRACE flag for search patterns.")
+            flags |= glob.BRACE
+        if not flags & glob.NODIR:
+            logger.warning("Forcing NODIR flag for search patterns.")
+            flags |= glob.NODIR
+        return flags
+
+    def _tilde_in_search_flags(self) -> bool:
+        """Whether the search flags carry `GLOBTILDE`.
+
+        The default set does, which the help screen can know without resolving
+        the flags: that keeps wcmatch off the `--help` path of every CLI.
+        """
+        if self._search_pattern_flags is None:
+            return True
+        # Deferred import: keeps wcmatch off the startup path of every CLI.
+        from wcmatch import glob
+
+        return bool(self.search_pattern_flags & glob.GLOBTILDE)
 
     def _check_pattern_sanity(self) -> None:
         """Emit DEBUG-level logs for common `ConfigOption` misconfigurations.
@@ -803,6 +845,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                             f"extension {ext!r} is canonically associated with "
                             f"{canonical_names}."
                         )
+
+        # Deferred import: keeps wcmatch off the startup path of every CLI.
+        from wcmatch import fnmatch, glob
 
         # --- Checks 1, 2, 4 require an explicit default ---
         if not isinstance(self.default, str):
@@ -966,7 +1011,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         default = self.get_default(ctx)
         if default is NO_CONFIG:
             return "disabled"
-        if self.search_pattern_flags & glob.GLOBTILDE:
+        if self._tilde_in_search_flags():
             # When the default already starts with `~` (user-supplied tilde
             # pattern), use it as-is. Passing through `Path()` would
             # normalize forward slashes to backslashes on Windows.
@@ -1082,6 +1127,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         Stops when reaching the root folder, the `stop_at` boundary, or an
         inaccessible directory.
         """
+        # Deferred import: keeps wcmatch off the startup path of every CLI.
+        from wcmatch import glob
 
         # Normalize path separators for magic detection: on Windows, backslashes
         # in paths are mistaken for glob escape characters by wcmatch.
@@ -1156,6 +1203,12 @@ class ConfigOption(ExtraOption, ParamStructure):
         Raises `FileNotFoundError` if no file was found after searching all locations.
         """
         files_found = 0
+
+        # Deferred imports: keep boltons.urlutils, extra_platforms and wcmatch off
+        # the startup path of every CLI.
+        from boltons.urlutils import URL
+        from extra_platforms import is_windows
+        from wcmatch import glob
 
         # Check if the pattern is an URL.
         location = URL(pattern)
@@ -1410,6 +1463,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         Returns `None` when the file matches no format or no parse attempt
         produces a non-empty structure.
         """
+        # Deferred imports: keep boltons.urlutils and wcmatch off the startup path
+        # of every CLI.
+        from boltons.urlutils import URL
+        from wcmatch import fnmatch
+
         if isinstance(location, URL):
             filename = location.path_parts[-1]
         else:
@@ -1493,6 +1551,12 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Returns a ready-to-use data structure.
         """
+        # Deferred imports: keep configparser and deepmerge off the startup path of
+        # every CLI.
+        from configparser import ConfigParser, ExtendedInterpolation
+
+        from deepmerge import always_merger
+
         ini_config = ConfigParser(interpolation=ExtendedInterpolation())
         ini_config.read_string(content)
 
@@ -1698,6 +1762,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         finally:
             connection.close()
 
+        # Deferred import: keeps deepmerge off the startup path of every CLI.
+        from deepmerge import always_merger
+
         conf: dict[str, Any] = {}
         for key, raw_value in rows:
             conf = always_merger.merge(
@@ -1721,6 +1788,9 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Returns a ready-to-use data structure.
         """
+        # Deferred import: keeps plistlib off the startup path of every CLI.
+        import plistlib
+
         conf: dict[str, Any] = plistlib.loads(path.read_bytes())
         return conf
 
@@ -1905,6 +1975,9 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         # Deep-merge the raw documents, highest-precedence layer winning, for
         # the schema and the extension validators. Merging starts from the
+        # Deferred import: keeps deepmerge off the startup path of every CLI.
+        from deepmerge import always_merger
+
         # lowest-precedence file so each later merge overwrites it.
         merged_view: dict[str, Any] = {}
         for _location, conf in reversed(layers):
@@ -1945,6 +2018,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         layer wins on key lookup, which makes parameter-source precedence explicit
         and future-proofs for multi-file config loading.
         """
+        # Deferred import: keeps extra_platforms off the startup path of every CLI.
+        from extra_platforms._utils import _remove_blanks
+
         # Clean-up the conf by removing all blank values left-over by the template
         # structure.
         clean_conf = _remove_blanks(filtered_conf, remove_str=False)
@@ -1987,6 +2063,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         # completion, and any `make_context(resilient_parsing=True)` path.
         if ctx.resilient_parsing:
             return
+
+        if not self._pattern_sanity_checked:
+            self._pattern_sanity_checked = True
+            self._check_pattern_sanity()
 
         # A bare invocation already loaded this document ahead of the no-args help
         # screen: skip the visit Click's parameter loop makes next.
@@ -2633,6 +2713,11 @@ class ExportConfigOption(ExtraOption):
                 "inherit from Command; dumping defaults.",
             )
 
+        # Deferred imports: keep deepmerge and extra_platforms off the startup path
+        # of every CLI.
+        from deepmerge import always_merger
+        from extra_platforms._utils import _remove_blanks
+
         tree: dict[str, Any] = {}
         for keys, target in config_option.walk_params():
             if PARAM_PATH_SEP.join(keys) in excluded:
@@ -2670,6 +2755,9 @@ class ExportConfigOption(ExtraOption):
         value: str | None,
     ) -> None:
         """Render the resolved configuration to `<stdout>` and exit."""
+        # Deferred import: keeps extra_platforms off the startup path of every CLI.
+        from extra_platforms._utils import _remove_blanks
+
         # Stay dormant during help rendering and shell completion, like Click's
         # own eager callbacks, so a typed `--export-config FORMAT` does not
         # export and exit mid-completion.

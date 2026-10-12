@@ -96,6 +96,7 @@ dependencies = [
   # __init__.py and highlight.py.
   "click>=8.4.1",
   # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
+  # XXX Raise to the release carrying https://github.com/janluke/cloup/pull/242.
   "cloup>=3.0.7",
   # always_merger (recursive dict merge) available since deepmerge 1.0.1.
   "deepmerge>=1.0.1",

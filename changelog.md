@@ -6,6 +6,9 @@
 > This version is **not released yet** and is under active development.
 
 - Add the `DEFAULT_FORMAT` and `DEFAULT_STYLE` constants to `click_extra.logging`.
+- Halve the import time of `click_extra`: wcwidth, PyYAML, wcmatch, deepmerge, extra-platforms, most of boltons and several standard library modules now load on the code path that uses them.
+- Resolve the `file_pattern_flags` and `search_pattern_flags` of `ConfigOption` on first use: both default to `None`, and the pattern sanity check runs on the first configuration load instead of at decoration.
+- Highlight the keywords of a help screen with one regular expression per style, instead of compiling one per keyword on every render.
 - Stop the verbosity options from removing the handlers of the `root` logger: a command adds its own handler for the time of a run. Call `new_logger()` to keep one outside a run. Closes [#1998](https://github.com/kdeldycke/click-extra/issues/1998).
 - Print log records in the style of Click Extra during the run of any command that carries one of its options, like a standalone `@config_option`.
 - Set the log handlers and the log level of a Sphinx build aside while a `click:run` block runs its command, as in a reader's own shell.

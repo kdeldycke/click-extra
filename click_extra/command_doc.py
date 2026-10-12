@@ -54,11 +54,9 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from gettext import gettext as _
-from importlib import metadata
 from pathlib import Path
 
 import click
@@ -900,6 +898,9 @@ def _resolve_version(ctx: Context) -> str | None:
     {func}`_distribution_names`) and reads its version. Pass `version=` to
     {func}`render_manpage` to override this.
     """
+    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+    from importlib import metadata
+
     name = resolve_distribution(_distribution_names(ctx))
     return metadata.version(name) if name else None
 
@@ -913,6 +914,9 @@ def _resolve_authors(ctx: Context) -> str | None:
     report the same author string (`Author` / `Maintainer` / email display
     name, in that order).
     """
+    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+    from importlib import metadata
+
     name = resolve_distribution(_distribution_names(ctx))
     return resolve_author(metadata.metadata(name)) if name else None
 
@@ -1389,6 +1393,9 @@ def format_manpage(roff: str, width: int | None = None) -> str | None:
     :param width: line length in columns. Defaults to the terminal's own, so the
         result matches what `man` would have produced in the same window.
     """
+    # Deferred import: keeps subprocess off the startup path of every CLI.
+    import subprocess
+
     if width is None:
         width = shutil.get_terminal_size().columns
     for template in MAN_FORMATTERS:

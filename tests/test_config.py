@@ -3568,12 +3568,19 @@ def test_multiple_files_matching_glob(invoke, create_config, tmp_path):
 
 
 def test_forced_flags_warnings(caplog):
-    """Warnings fire when SPLIT, BRACE or NODIR flags are missing."""
+    """Warnings fire when SPLIT, BRACE or NODIR flags are missing.
+
+    The flags resolve on first use, not at construction, so reading them is
+    what fires the warnings.
+    """
+    option = ConfigOption(
+        file_pattern_flags=fnmatch.NEGATE,  # missing SPLIT
+        search_pattern_flags=glob.GLOBSTAR | glob.FOLLOW,  # missing BRACE and NODIR
+    )
     with caplog.at_level(logging.WARNING, logger="click_extra"):
-        ConfigOption(
-            file_pattern_flags=fnmatch.NEGATE,  # missing SPLIT
-            search_pattern_flags=glob.GLOBSTAR | glob.FOLLOW,  # missing BRACE and NODIR
-        )
+        assert option.file_pattern_flags & fnmatch.SPLIT
+        assert option.search_pattern_flags & glob.BRACE
+        assert option.search_pattern_flags & glob.NODIR
 
     assert "Forcing SPLIT flag" in caplog.text
     assert "Forcing BRACE flag" in caplog.text
@@ -5108,8 +5115,9 @@ def test_sanity_checks(caplog, default, file_format_patterns, flags, present, ab
     if default is not _NO_DEFAULT:
         kwargs["default"] = default
 
+    # The check runs on the first configuration load, not at construction.
     with caplog.at_level(logging.DEBUG, logger="click_extra"):
-        ConfigOption(**kwargs)
+        ConfigOption(**kwargs)._check_pattern_sanity()
 
     for fragment in present:
         assert fragment in caplog.text

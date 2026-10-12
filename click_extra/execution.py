@@ -42,7 +42,6 @@ import sys
 import threading
 import time
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from contextvars import ContextVar
 from gettext import gettext as _, ngettext
@@ -52,16 +51,14 @@ from typing import Final, NoReturn, TypeVar, cast
 
 import click
 from boltons.iterutils import flatten
-from boltons.strutils import strip_ansi
 from click import echo
 from click._utils import UNSET
 from click.core import ParameterSource
 from click.shell_completion import CompletionItem
-from extra_platforms import is_windows
 
 from . import context
 from ._deprecated import warn_deprecated_argument
-from ._utils import exception_chain
+from ._utils import IS_WINDOWS, exception_chain
 from .envvar import env_copy
 from .parameters import ExtraOption
 from .theme import get_current_theme
@@ -69,7 +66,7 @@ from .theme import get_current_theme
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
-    from concurrent.futures import Future
+    from concurrent.futures import Future, ThreadPoolExecutor
     from pathlib import Path
     from types import FrameType
     from typing import IO, Any
@@ -90,6 +87,19 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 R = TypeVar("R")
+
+
+def is_windows() -> bool:
+    """Whether the running platform is Windows, per `extra_platforms`.
+
+    A thin wrapper around `extra_platforms.is_windows()` with a deferred
+    import, which keeps extra_platforms off the startup path of every CLI.
+    Kept under the same name so the POSIX-only signal reads below stay under a
+    guard `tests/test_execution.py` recognizes.
+    """
+    from extra_platforms import is_windows as platform_is_windows
+
+    return platform_is_windows()
 
 
 def _logical_cpu_count() -> int | None:
@@ -449,6 +459,9 @@ def _interruptible_pool(
 
     Shared by {func}`run_jobs` and {func}`run_lanes`, the two parallel drivers.
     """
+    # Deferred import: keeps concurrent.futures off the startup path of every CLI.
+    from concurrent.futures import ThreadPoolExecutor
+
     executor = ThreadPoolExecutor(max_workers=max_workers)
     try:
         yield executor
@@ -783,7 +796,7 @@ class ZeroExitOption(ExtraOption):
 # make Ctrl+C abort in-flight children instead of hanging a concurrent fan-out.
 
 
-PROMPT = (">" if is_windows() else "$") + " "
+PROMPT = (">" if IS_WINDOWS else "$") + " "
 """Prompt used to simulate the CLI execution.
 
 ```{hint}
@@ -943,7 +956,7 @@ alone cannot tell it from an unrelated process that took its PID. Guarded by
 """
 
 
-_KILL_SIGNAL: Final = signal.SIGTERM if is_windows() else signal.SIGKILL
+_KILL_SIGNAL: Final = getattr(signal, "SIGKILL", signal.SIGTERM)
 """The signal that ends the children of {func}`run_cli` at once.
 
 Windows has no `SIGKILL`: {func}`terminate_live_processes` uses its single
@@ -1494,6 +1507,9 @@ def _pump_stream(
     (`debug:mas: ...`) rather than polluting the message text itself.
     """
     extra = {"label": label} if label else None
+    # Deferred import: keeps boltons.strutils off the startup path of every CLI.
+    from boltons.strutils import strip_ansi
+
     for line in pipe:
         sink.append(line)
         text = strip_ansi(line).rstrip()

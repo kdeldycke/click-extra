@@ -33,7 +33,6 @@ from functools import cache
 from unicodedata import bidirectional
 
 from click import style
-from wcwidth import width as wcwidth_width, wrap as wcwidth_wrap
 
 from .styling import Style, split_ansi
 
@@ -90,7 +89,10 @@ def cell_width(text: str, term_program: str | None = None) -> int:
         tables say.
     :return: the number of cells it occupies, never negative.
     """
-    return wcwidth_width(text, term_program=term_program or False)
+    # Deferred import: keeps wcwidth off the startup path of every CLI.
+    from wcwidth import width
+
+    return width(text, term_program=term_program or False)
 
 
 def pad_to(text: str, width: int) -> str:
@@ -325,7 +327,10 @@ def wrap_ansi(text: str, width: int) -> list[str]:
     :param width: cells each returned line occupies at most.
     :return: the wrapped lines, empty `text` yielding a single empty one.
     """
+    # Deferred import: keeps wcwidth off the startup path of every CLI.
+    from wcwidth import wrap
+
     # Tab expansion would change the visible width of the text. Disabled,
     # `replace_whitespace` still substitutes a single space for each whitespace
     # character, which preserves it.
-    return wcwidth_wrap(text, width, expand_tabs=False) or [""]
+    return wrap(text, width, expand_tabs=False) or [""]

@@ -760,12 +760,12 @@ class HelpFormatter(cloup.HelpFormatter):
             # split the way the usage line splits it: the command it ends on
             # is the one a parent screen lists under `subcommand`.
             if kw.cli_names:
+                names = "|".join(
+                    re.escape(name) for name in _longest_first(kw.cli_names)
+                )
                 help_text = highlight(
                     help_text,
-                    (
-                        re.compile(rf"(?<=\s){re.escape(name)}(?=\s)")
-                        for name in _longest_first(kw.cli_names)
-                    ),
+                    re.compile(rf"(?<=\s)(?:{names})(?=\s)"),
                     self._style_command_path,
                 )
 
@@ -788,19 +788,25 @@ class HelpFormatter(cloup.HelpFormatter):
 
                 help_text = option_value_re.sub(style_option_value, help_text)
 
-                # Highlight options (long and short combined). Per-keyword
-                # lookbehind excludes the option's own leading symbol to prevent
-                # matching repeated prefixes (for example, "---debug" should not
-                # match "--debug").
+                # Highlight options (long and short combined). The lookbehind
+                # excludes the option's own leading symbol to prevent matching
+                # repeated prefixes (for example, "---debug" should not match
+                # "--debug"), so the options are folded into one alternation per
+                # leading symbol, longest first: that flags the same spans as
+                # one pattern per option would, for a compilation per symbol
+                # instead of one per option.
+                by_symbol: dict[str, list[str]] = {}
+                for option in all_options:
+                    by_symbol.setdefault(option[0], []).append(option)
                 help_text = highlight(
                     help_text,
                     (
                         re.compile(
-                            rf"(?<=[^\w{re.escape(kw[0])}])"
-                            rf"{_escape_for_help_screen(kw)}"
+                            rf"(?<=[^\w{re.escape(symbol)}])"
+                            rf"(?:{'|'.join(_escape_for_help_screen(o) for o in options)})"
                             rf"(?=[^\w\-])"
                         )
-                        for kw in all_options
+                        for symbol, options in by_symbol.items()
                     ),
                     self.theme.option,
                 )
@@ -818,28 +824,28 @@ class HelpFormatter(cloup.HelpFormatter):
                 (kw.metavars, self.theme.metavar),
             ):
                 if keywords:
-                    # Transform keywords into regex patterns.
-                    patterns = (
-                        # Negative lookbehind rejects matches preceded by:
-                        # - a word character (\w),
-                        # - a dot: "pyproject.toml" (\.),
-                        # - a hyphen: "rounded-outline" (\-),
-                        # - a slash: "https://github.com" (\/),
-                        # - an exclamation mark: "[!WARNING]" (!),
-                        # - an ANSI escape: already-styled text (\x1b).
-                        # Negative lookahead rejects matches followed by:
-                        # - a word character (\w),
-                        # - a hyphen: "github-actions" (\-).
-                        re.compile(
-                            rf"(?<![\w\.\x1b\-/!])"
-                            rf"{_escape_for_help_screen(keyword)}"
-                            rf"(?![\w\-])"
-                        )
-                        for keyword in sorted(keywords, reverse=True)
+                    # Negative lookbehind rejects matches preceded by:
+                    # - a word character (\w),
+                    # - a dot: "pyproject.toml" (\.),
+                    # - a hyphen: "rounded-outline" (\-),
+                    # - a slash: "https://github.com" (\/),
+                    # - an exclamation mark: "[!WARNING]" (!),
+                    # - an ANSI escape: already-styled text (\x1b).
+                    # Negative lookahead rejects matches followed by:
+                    # - a word character (\w),
+                    # - a hyphen: "github-actions" (\-).
+                    # One alternation for the whole set, longest keyword first,
+                    # flags the same spans as one pattern per keyword would, for
+                    # one compilation per style instead of one per keyword.
+                    alternation = "|".join(
+                        _escape_for_help_screen(keyword)
+                        for keyword in _longest_first(keywords)
                     )
                     help_text = highlight(
                         content=help_text,
-                        patterns=patterns,
+                        patterns=re.compile(
+                            rf"(?<![\w\.\x1b\-/!])(?:{alternation})(?![\w\-])"
+                        ),
                         styling_func=style_func,
                     )
 
@@ -990,17 +996,32 @@ def highlight(
     # Character spans flagged for highlighting, as (start, end) intervals.
     spans: list[tuple[int, int]] = []
 
-    # Normalize patterns into regular expressions and find matches.
+    # Normalize patterns into regular expressions. Literal strings are escaped
+    # and folded into a single alternation, longest first: at any position the
+    # alternation then matches the longest literal starting there, which is
+    # what the union of one search per literal would have flagged, at the
+    # cost of one compilation instead of one per keyword on every help screen.
+    regexes: list[re.Pattern] = []
+    literals: set[str] = set()
     for pattern in pattern_list:
         # Pattern is already a compiled regex.
         if isinstance(pattern, re.Pattern):
-            regex = pattern
+            regexes.append(pattern)
         # Treat as literal string and escape for regex.
         elif isinstance(pattern, str):
-            regex = re.compile(re.escape(pattern), re.IGNORECASE if ignore_case else 0)
+            if pattern:
+                literals.add(pattern)
         else:
             raise TypeError(f"Unsupported pattern type: {pattern!r}")
+    if literals:
+        alternation = "|".join(
+            re.escape(literal)
+            for literal in sorted(literals, key=lambda s: (-len(s), s))
+        )
+        regexes.append(re.compile(alternation, re.IGNORECASE if ignore_case else 0))
 
+    # Find matches.
+    for regex in regexes:
         # Force IGNORECASE flag if not already compiled with it.
         if ignore_case and not (regex.flags & re.IGNORECASE):
             regex = re.compile(regex.pattern, regex.flags | re.IGNORECASE)

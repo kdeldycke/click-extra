@@ -26,7 +26,6 @@ import importlib
 import logging
 import os
 from dataclasses import dataclass
-from difflib import get_close_matches
 from gettext import gettext as _
 
 import click
@@ -1110,6 +1109,9 @@ def _enhance_short_option_error(
             all_option_names.extend(param.opts)
             all_option_names.extend(param.secondary_opts)
 
+    # Deferred import: keeps difflib off the startup path of every CLI.
+    from difflib import get_close_matches
+
     possibilities = get_close_matches(original_token, all_option_names)
 
     raise click.NoSuchOption(original_token, possibilities=possibilities, ctx=ctx)
@@ -1204,6 +1206,9 @@ class HelpCommand(ColorizedCommand):
                 )
             resolved = target_cmd.get_command(target_ctx, name)
             if resolved is None:
+                # Deferred import: keeps difflib off the startup path of every CLI.
+                from difflib import get_close_matches
+
                 raise click.NoSuchCommand(
                     name,
                     possibilities=get_close_matches(name, target_cmd.commands),

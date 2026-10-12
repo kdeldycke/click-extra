@@ -13,7 +13,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Expose package-wide elements."""
+"""Expose package-wide elements.
+
+Importing this package is the startup cost of every CLI built on it, so the
+dependencies a code path may never need (wcwidth, PyYAML, wcmatch, deepmerge,
+extra-platforms, most of boltons) are imported where they are used, and
+`tests/test_commands.py` checks that a hello-world `--help` loads none of them.
+
+```{todo}
+Raise the cloup floor to the release carrying
+[janluke/cloup#242](https://github.com/janluke/cloup/pull/242), which removes
+cloup's import-time `importlib.metadata` probe, then add `importlib.metadata`
+and `email` to the startup ballast list of `tests/test_commands.py`.
+```
+"""
 
 from __future__ import annotations
 

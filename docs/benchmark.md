@@ -167,7 +167,7 @@ No framework skips prompts when `stdin` is not a TTY, accepts `--no-input`, or s
 
 ### Startup time
 
-The "under 100 ms" row times a hello-world `--help` on an Apple Silicon Mac with Python 3.14, as the median of 15 runs: Click 36 ms, Cloup 55 ms, Fire 57 ms, Tyro 59 ms, Cement 66 ms, rich-click 73 ms, Typer 90 ms, Cyclopts 113 ms (on `5.0.0`) and click-extra 141 ms. 🟡 marks a time between 100 and 200 ms. cobra, clap and bpaf compile to native executables, with no interpreter to start.
+The "under 100 ms" row times a hello-world `--help` on an Apple Silicon Mac with Python 3.14, as the median of 15 runs: Click 36 ms, Cloup 55 ms, Fire 57 ms, Tyro 59 ms, Cement 66 ms, rich-click 73 ms, Typer 90 ms, Cyclopts 113 ms (on `5.0.0`) and click-extra 102 ms (on `9.5.0.dev0`, measured on 2026-10-12 with Click at 40 ms in the same session; `9.4.1` took 141 ms). 🟡 marks a time between 100 and 200 ms. cobra, clap and bpaf compile to native executables, with no interpreter to start.
 
 ## Unique strengths
 

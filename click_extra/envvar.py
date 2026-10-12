@@ -24,12 +24,12 @@ from __future__ import annotations
 
 import os
 import re
-from configparser import RawConfigParser
 from contextlib import contextmanager
 
 import click
 from boltons.iterutils import flatten_iter
-from extra_platforms import is_windows
+
+from ._utils import IS_WINDOWS
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -59,6 +59,9 @@ def parse_envvar_flag(value: str) -> bool:
     Callers handle presence themselves: pass the value only when the variable
     is set, an unset variable being no vote at all.
     """
+    # Deferred import: keeps configparser off the startup path of every CLI.
+    from configparser import RawConfigParser
+
     return RawConfigParser.BOOLEAN_STATES.get(value.lower(), True)
 
 
@@ -80,7 +83,7 @@ def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ..
     ids = []
     for envvar in flatten_iter(envvar_ids):
         if envvar:
-            if is_windows():
+            if IS_WINDOWS:
                 envvar = envvar.upper()
             # Deduplicate names.
             if envvar not in ids:
