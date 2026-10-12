@@ -1238,6 +1238,152 @@ def test_new_logger_with_a_name_leaves_the_root_logger_alone(app_handler):
     assert not app_handler.closed
 
 
+@pytest.fixture
+def restored_levels(restored_root_logger):
+    """Put the level of the ``click_extra`` logger back too.
+
+    A verbosity option sets it along with the level of its own logger.
+    """
+    package_logger = logging.getLogger("click_extra")
+    saved_level = package_logger.level
+    try:
+        yield
+    finally:
+        package_logger.setLevel(saved_level)
+
+
+def levels():
+    """The levels a verbosity option sets: of ``root`` and of ``click_extra``."""
+    return logging.getLogger().level, logging.getLogger("click_extra").level
+
+
+@pytest.mark.parametrize(
+    ("args", "exit_code", "traced"),
+    (
+        pytest.param((), 0, True, id="return"),
+        pytest.param(("--end", "raise"), 1, True, id="exception"),
+        pytest.param(("--end", "exit"), 3, True, id="exit"),
+        # The run fails while parsing, once the verbosity option set the levels:
+        # Click never closes its context, and the reset comes without a trace.
+        pytest.param(("--baskets", "many"), 2, False, id="invalid-value"),
+    ),
+)
+def test_levels_are_reset_however_the_run_ends(
+    invoke, restored_levels, args, exit_code, traced
+):
+    """A Click Extra command puts its loggers back to the default level the
+    moment its run ends, whatever the run ends on."""
+
+    @command
+    @click.option("--baskets", type=int)
+    @click.option("--end", default="return")
+    @click.pass_context
+    def orchard(ctx, baskets, end):
+        if end == "raise":
+            raise RuntimeError("frost")
+        if end == "exit":
+            ctx.exit(3)
+
+    result = invoke(orchard, "--verbosity", "DEBUG", *args, color=False)
+    assert result.exit_code == exit_code
+    assert "debug: Set <RootLogger root (DEBUG)> to DEBUG.\n" in result.stderr
+    assert ("Reset <RootLogger root (DEBUG)> to WARNING." in result.stderr) is traced
+    assert levels() == (logging.WARNING, logging.WARNING)
+
+
+def test_levels_are_reset_when_a_subcommand_fails_while_parsing(
+    invoke, restored_levels
+):
+    """The context of the group closes, the one of its subcommand never does.
+
+    The group carries no verbosity option of its own here: one that does queues
+    the reset on its own context, which closes.
+    """
+
+    @group(params=None)
+    def farm():
+        pass
+
+    # Parenthesized: the group is Cloup-based, which rejects the naked form.
+    @farm.command()
+    @verbosity_option
+    @click.option("--baskets", type=int)
+    def orchard(baskets):
+        pass
+
+    result = invoke(
+        farm, "orchard", "--verbosity", "DEBUG", "--baskets", "many", color=False
+    )
+    assert result.exit_code == 2
+    assert "debug: Set <RootLogger root (DEBUG)> to DEBUG.\n" in result.stderr
+    assert levels() == (logging.WARNING, logging.WARNING)
+
+
+def test_failed_run_of_a_click_command_resets_its_levels_when_collected(
+    invoke, restored_levels
+):
+    """A plain Click command has no hook on a run that fails while parsing: the
+    levels are reset once Python collects the context of that run."""
+
+    @click.command
+    @verbosity_option
+    @click.option("--baskets", type=int)
+    def orchard(baskets):
+        pass
+
+    result = invoke(orchard, "--verbosity", "DEBUG", "--baskets", "many", color=False)
+    assert result.exit_code == 2
+    assert "debug: Set <RootLogger root (DEBUG)> to DEBUG.\n" in result.stderr
+
+    del result
+    gc.collect()
+    assert levels() == (logging.WARNING, logging.WARNING)
+
+
+def test_run_keeps_its_levels_when_a_failed_run_is_collected(invoke, restored_levels):
+    """The context of a failed run may be collected in the middle of a later run:
+    the levels are by then the ones of that later run, and stay."""
+    contexts = []
+    holders = []
+    seen = []
+
+    def keep_context(ctx, param, value):
+        contexts.append(ctx)
+
+    @click.command
+    @verbosity_option
+    @click.option(
+        "--keep",
+        is_flag=True,
+        is_eager=True,
+        expose_value=False,
+        callback=keep_context,
+    )
+    @click.option("--baskets", type=int, expose_value=False)
+    def orchard():
+        seen.append(levels())
+        holders.append(len(_INVOCATION_HOLDERS))
+        contexts.clear()
+        gc.collect()
+        holders.append(len(_INVOCATION_HOLDERS))
+        seen.append(levels())
+
+    # The eager option keeps the context of the run, which then fails on the
+    # value of the other one.
+    failed = invoke(orchard, "--verbosity", "DEBUG", "--baskets", "many", color=False)
+    assert failed.exit_code == 2
+    del failed
+    # Nothing reset the levels yet: the context of the failed run is still alive.
+    assert levels() == (logging.DEBUG, logging.DEBUG)
+
+    result = invoke(orchard, "--verbosity", "INFO", color=False)
+    assert result.exit_code == 0
+    # The failed run was collected in the middle of this run.
+    assert holders[0] - holders[1] == 1
+    assert seen == [(logging.INFO, logging.INFO), (logging.INFO, logging.INFO)]
+    assert levels() == (logging.WARNING, logging.WARNING)
+
+
 @pytest.mark.once
 def test_importing_a_cli_leaves_the_root_logger_alone():
     """In a new interpreter, importing Click Extra and defining a command leave

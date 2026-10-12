@@ -11,6 +11,7 @@
 - Set the log handlers of a Sphinx build aside while a `click:run` block runs its command, so a record prints once in the rendered session.
 - Keep the format `new_logger()` or `basicConfig()` gave the `root` logger when a command is defined after the call, which used to reset it.
 - Accept the `handlers` argument in `basicConfig()` and `new_logger()`, which always raised `ValueError`.
+- Reset the log levels after a run that fails while parsing, which left the loggers at the requested level for the rest of the process.
 - Warn in the logging documentation that `new_logger()` removes every handler of the logger it sets up, the `root` one by default.
 - Fix the documentation render tests failing in a new environment, as for a packager: the `docs` group now holds `tomlkit`, and the tests carry the `network` marker.
 

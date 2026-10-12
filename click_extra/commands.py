@@ -63,7 +63,7 @@ from .logging import (
     QuietOption,
     VerboseOption,
     VerbosityOption,
-    _scoped_invocation_handler,
+    _scoped_logging,
 )
 from .parameters import ExtraOption, ShowParamsOption, resolve_param_help
 from .spinner import ProgressOption
@@ -782,14 +782,15 @@ class Command(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
         itself, so a shell loop runs on.
 
         The log handler the options of Click Extra attach to the `root` logger leaves
-        with the run, a run that fails while parsing included. See
-        `click_extra.logging._scoped_invocation_handler`.
+        with the run, and the verbosity options reset the level of their loggers, a
+        run that fails while parsing included. See
+        `click_extra.logging._scoped_logging`.
         """
         if not prog_name and self.name:
             prog_name = self.name
 
         with (
-            _scoped_invocation_handler(),
+            _scoped_logging(),
             _interrupt_handling(),
             _owning_abort_notice(self, kwargs.get("standalone_mode", True)),
         ):

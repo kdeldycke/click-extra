@@ -44,6 +44,7 @@ import weakref
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 from enum import IntEnum
+from functools import partial
 from gettext import gettext as _
 from logging import (
     FileHandler,
@@ -65,7 +66,14 @@ from .types import EnumChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
+    from collections.abc import (
+        Callable,
+        Generator,
+        Iterable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
     from logging import LogRecord
     from typing import IO, Any, ClassVar, Literal
 
@@ -121,13 +129,14 @@ The default of {func}`basicConfig`, where {func}`logging.basicConfig` defaults t
 """
 
 
-_RESET_REGISTERED: str = f"{context.META_NAMESPACE}_verbosity_reset_registered"
-"""Internal sentinel marking that `reset_loggers` was queued on the context.
+_LEVEL_TOKEN: str = f"{context.META_NAMESPACE}_log_level_token"
+"""Internal `ctx.meta` slot for the token a run owns its log levels with.
 
-Lives in `ctx.meta` so the verbosity inheritance chain
+Set by the first verbosity option that applies a level, which also queues the
+reset of the loggers. It lives in `ctx.meta` so the verbosity inheritance chain
 (`_VerbosityOption` / `VerbosityOption` / `VerboseOption` / `QuietOption`)
-registers the close callback at most once per invocation, even when several
-verbosity options are passed.
+queues that reset at most once per invocation, even when several verbosity
+options are passed. See `_level_owner`.
 """
 
 
@@ -183,10 +192,22 @@ collected, which may happen in the middle of the next run.
 """
 
 
-_RUN_HOLDS: ContextVar[list[object] | None] = ContextVar("_RUN_HOLDS", default=None)
-"""The tokens taken within the `_scoped_invocation_handler` block in progress.
+_RUN_CLEANUPS: ContextVar[list[Callable[[], None]] | None] = ContextVar(
+    "_RUN_CLEANUPS", default=None
+)
+"""What the runs started within the `_scoped_logging` block in progress may leave.
 
-`None` outside such a block. Written by `_hold_invocation_handler`.
+One callable for each piece of logging state a run took: its hold on the handler,
+the levels it set. `None` outside such a block. Written by `_queue_late_cleanup`.
+"""
+
+
+_level_owner: object | None = None
+"""The token of the run that set the current log levels, until they are reset.
+
+Compared by `_expire_levels`. The context of a run that failed while parsing is
+collected late, possibly in the middle of a later run, whose levels it must not
+reset.
 """
 
 
@@ -529,15 +550,8 @@ def _hold_invocation_handler(ctx: click.Context) -> None:
     within another one adds a second. A record so prints once, and the handler
     stays for as long as one run needs it.
 
-    A run releases its token when its root context ends. Two mechanisms cover the
-    two ways it ends, as in {func}`click_extra.color.publish_invocation_color`:
-
-    - A close callback, for the normal path.
-    - A finalizer, for a run that fails while parsing: its context is never
-      entered, and therefore never closed.
-
-    {class}`~click_extra.commands.Command` does not wait for that finalizer: its
-    `main()` runs within `_scoped_invocation_handler`.
+    A run releases its token when its root context closes, and through
+    `_queue_late_cleanup` when it fails while parsing.
     """
     if context.get(ctx, _HANDLER_TOKEN) in _INVOCATION_HOLDERS:
         return
@@ -560,19 +574,17 @@ def _hold_invocation_handler(ctx: click.Context) -> None:
     root.addHandler(handler)
 
     context.set(ctx, _HANDLER_TOKEN, token)
-    run_holds = _RUN_HOLDS.get()
-    if run_holds is not None:
-        run_holds.append(token)
+    release = partial(_release_invocation_handler, token)
     root_ctx = ctx.find_root()
-    root_ctx.call_on_close(lambda: _release_invocation_handler(token))
-    weakref.finalize(root_ctx, _release_invocation_handler, token)
+    root_ctx.call_on_close(release)
+    _queue_late_cleanup(root_ctx, release)
 
 
 def _release_invocation_handler(token: object) -> None:
     """Release the hold of a run, and detach the handler once no run holds it.
 
     Safe to call more than once with the same token: the close callback, the
-    finalizer and `_scoped_invocation_handler` may each release the same run.
+    finalizer and `_scoped_logging` may each release the same run.
 
     A finalizer runs where Python collects the context, so in any thread and in
     the middle of any call, the start of another run included. No lock guards
@@ -598,23 +610,62 @@ def _release_invocation_handler(token: object) -> None:
     handler.close()
 
 
-@contextmanager
-def _scoped_invocation_handler() -> Iterator[None]:
-    """Release on exit the holds taken by the runs started within the block.
+def _expire_levels(token: object, names: tuple[str, ...]) -> None:
+    """Reset the levels of the loggers a run set, if they are still its own.
 
-    {meth}`click_extra.commands.Command.main` runs within it, so a run that fails
-    while parsing does not keep the handler on the `root` logger until a garbage
-    collection. A hold taken before the block, by the run around it, stays: it is
-    released when that run ends.
+    Called for a run whose context Click never closed, so whose
+    {meth}`_VerbosityOption.reset_loggers` never ran. A no-op when the context
+    did close, and when a later run set levels of its own in the meantime.
+
+    Silent, unlike that method: the call may come from a finalizer, in the middle
+    of a later run, and a debug record emitted there would print in its output.
     """
-    run_holds: list[object] = []
-    reset_token = _RUN_HOLDS.set(run_holds)
+    global _level_owner
+    if _level_owner is not token:
+        return
+    _level_owner = None
+    for name in names:
+        getLogger(name).setLevel(DEFAULT_LEVEL.value)
+
+
+def _queue_late_cleanup(ctx: click.Context, cleanup: Callable[[], None]) -> None:
+    """Have `cleanup` called for `ctx` even when Click never closes it.
+
+    A run that fails while parsing leaves its context never entered, and therefore
+    never closed: its close callbacks do not run. Two mechanisms cover that path,
+    as in {func}`click_extra.color.publish_invocation_color`:
+
+    - A finalizer, called when Python collects the context. That may be late, and
+      in the middle of a later run.
+    - The `_scoped_logging` block {meth}`click_extra.commands.Command.main` runs
+      within, which does not wait for a collection.
+
+    Both also call `cleanup` for a context that did close. It so has to do nothing
+    when called again, and to leave alone what a later run took over.
+    """
+    weakref.finalize(ctx, cleanup)
+    cleanups = _RUN_CLEANUPS.get()
+    if cleanups is not None:
+        cleanups.append(cleanup)
+
+
+@contextmanager
+def _scoped_logging() -> Iterator[None]:
+    """Give back on exit the logging state of the runs started within the block.
+
+    {meth}`click_extra.commands.Command.main` runs within it. A run that fails
+    while parsing so gives back the handler of the `root` logger, and resets the
+    levels of its loggers, without waiting for a garbage collection. What the run
+    around the block took stays: that run gives it back when it ends.
+    """
+    cleanups: list[Callable[[], None]] = []
+    reset_token = _RUN_CLEANUPS.set(cleanups)
     try:
         yield
     finally:
-        _RUN_HOLDS.reset(reset_token)
-        for token in run_holds:
-            _release_invocation_handler(token)
+        _RUN_CLEANUPS.reset(reset_token)
+        for cleanup in cleanups:
+            cleanup()
 
 
 def _fold_level(
@@ -759,6 +810,17 @@ class _VerbosityOption(ExtraOption):
             logger.debug(f"Reset {managed_logger} to {DEFAULT_LEVEL}.")
             managed_logger.setLevel(DEFAULT_LEVEL.value)
 
+    def _reset_on_close(self, token: object) -> None:
+        """Reset the loggers when the context of the run closes, then let go of them.
+
+        The close callback of a run that set levels. See `_expire_levels` for a run
+        whose context never closes.
+        """
+        global _level_owner
+        self.reset_loggers()
+        if _level_owner is token:
+            _level_owner = None
+
     def handle_parse_result(
         self,
         ctx: click.Context,
@@ -840,7 +902,12 @@ class _VerbosityOption(ExtraOption):
         {meth}`resolve_level`. The reconciled level is published on `ctx.meta` under
         {data}`~click_extra.context.VERBOSITY_LEVEL` and only (re)applied when it
         actually changes, to keep the debug trace free of redundant `Set` lines.
+
+        The loggers go back to {const}`DEFAULT_LEVEL` when the run ends: through
+        {meth}`reset_loggers` when its context closes, and through `_expire_levels`
+        when it fails while parsing, which leaves the context never closed.
         """
+        global _level_owner
         # Skip logger reconfiguration during help rendering, shell completion,
         # and any `make_context(resilient_parsing=True)` path.
         if ctx.resilient_parsing:
@@ -855,16 +922,26 @@ class _VerbosityOption(ExtraOption):
 
         context.set(ctx, context.VERBOSITY_LEVEL, new_level)
 
+        # Own the levels before setting them. The late reset of an earlier run that
+        # failed while parsing, if it comes now, then leaves them alone.
+        token = context.get(ctx, _LEVEL_TOKEN)
+        queued = token is not None
+        if not queued:
+            token = object()
+            context.set(ctx, _LEVEL_TOKEN, token)
+        _level_owner = token
+
         for managed_logger in self.all_loggers:
             managed_logger.setLevel(new_level.value)
             logger.debug(f"Set {managed_logger} to {new_level}.")
 
-        # Register the close callback at most once per ctx. All verbosity options flow
-        # through this method, so without a guard the same `reset_loggers` would be
-        # queued more than once on Context._close_callbacks.
-        if not context.get(ctx, _RESET_REGISTERED):
-            ctx.call_on_close(self.reset_loggers)
-            context.set(ctx, _RESET_REGISTERED, True)
+        # Queue the reset at most once per ctx. All verbosity options flow through
+        # this method, so without a guard the same reset would be queued more than
+        # once on Context._close_callbacks.
+        if not queued:
+            ctx.call_on_close(partial(self._reset_on_close, token))
+            names = tuple(managed_logger.name for managed_logger in self.all_loggers)
+            _queue_late_cleanup(ctx, partial(_expire_levels, token, names))
 
     def set_level(self, ctx: click.Context, param: click.Parameter, value: Any) -> None:
         """Base callback: subclasses record their raw value first, then reconcile.
