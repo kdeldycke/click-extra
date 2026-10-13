@@ -48,6 +48,7 @@ When a trailing `# type: ignore[...]` comment would push a line past 88 characte
 - **The suite is not `pytest-xdist`-safe.** Some tests depend on process-global state (logging configuration, default theme) and fail when run in isolation or reordered. Do not add `--numprocesses` or otherwise parallelize the suite without fixing that isolation first, which is why the `--numprocesses` entry in § Testing guidelines does not apply here.
 - **`[tool.pytest].addopts` carries no coverage flag.** It holds only what applies everywhere (`--durations`, `--import-mode=importlib`), so a local `uv run pytest` stays fast, coverage-free and ungated. `--cov` and `--cov-report=term` are passed by the matrix `tests` job in `tests.yaml`, the only job that runs the whole suite and therefore the only one that can clear the floor. The `once-tests` job deliberately passes none: measuring its slice would gate nothing.
 - Coverage is gated by the `[tool.coverage] report.fail_under` ratchet, with no external coverage service behind it.
+- **A test that a Click or Cloup development branch can break stays on the matrix, never under `once`.** The cells tracking those branches run `-m "not once"`, so a `once` test never meets the next Click or Cloup.
 
 ### Benchmark and comparison table ordering
 
