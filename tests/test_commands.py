@@ -284,8 +284,9 @@ def test_import_module_budget():
 
     A coarse net under the denylist above: a new eager import of a dependency
     with a deep tree shows up here as a jump of tens of modules, whichever
-    package it comes from. Measured at 277 modules on Python 3.14; the budget
-    leaves room for the platform and version differences of the stdlib.
+    package it comes from. Measured at 264 modules on Python 3.14 and cloup
+    4.0.0; the budget leaves room for the platform and version differences of
+    the stdlib.
     """
     probe = "import sys; import click_extra; print(len(sys.modules))"
     process = run(
