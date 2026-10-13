@@ -427,14 +427,15 @@ def _alternation(names: Iterable[str]) -> str:
 
 
 class HelpFormatter(cloup.HelpFormatter):
-    """Extends Cloup's custom HelpFormatter to highlights options, choices, metavars and
+    """Extends Cloup's custom HelpFormatter to highlight options, choices, metavars and
     default values.
 
-    This is being discussed for upstream integration at:
-
-    - https://github.com/janluke/cloup/issues/97
-    - https://github.com/click-contrib/click-help-colors/issues/17
-    - https://github.com/janluke/cloup/issues/95
+    Cloup does not integrate this highlighting. It closed
+    [janluke/cloup#95](https://github.com/janluke/cloup/issues/95), which proposed the
+    regex-based approach used here, as not suitable. It then closed the follow-up
+    [janluke/cloup#97](https://github.com/janluke/cloup/issues/97#issuecomment-5647207045)
+    as not planned, and entered maintenance mode. The same proposal is still open at
+    [click-contrib/click-help-colors#17](https://github.com/click-contrib/click-help-colors/issues/17).
     """
 
     theme: HelpTheme

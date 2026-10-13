@@ -503,6 +503,10 @@ PRs and issues still pending upstream.
 - [`#3827` - Require a parameter name to be a non-keyword Python identifier](https://github.com/pallets/click/pull/3827)
 - [`#3036` - Add support for `set` and `frozenset` as native Click types](https://github.com/pallets/click/issues/3036)
 
+### [`cloup`](https://github.com/janluke/cloup)
+
+- [`#243` - Announce maintenance mode](https://github.com/janluke/cloup/pull/243)
+
 ### [`pygments`](https://github.com/pygments/pygments)
 
 - [`#2716` - Add examples to all lexers](https://github.com/pygments/pygments/pull/2716)
