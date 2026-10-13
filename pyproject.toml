@@ -155,8 +155,10 @@ optional-dependencies.pytest = [
 optional-dependencies.sphinx = [
   # docutils 0.20 is the minimal version for Sphinx 8.0.0.
   "docutils>=0.20",
-  # Pygments 2.14.0 is the first version with lexers.algebra.GAPConsoleLexer that is referenced in our code.
-  "pygments>=2.14",
+  # Pygments 2.18.0 added `Formatter.__class_getitem__`. Sphinx 8.0.0 evaluates
+  # `HtmlFormatter[str]` at import, which raises a `TypeError` on any older
+  # Pygments.
+  "pygments>=2.18",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
 ]
@@ -221,8 +223,10 @@ test = [
   "jsonschema>=4.18",
   # MkDocs 1.4.0 is the first version with the on_startup plugin event.
   "mkdocs>=1.4",
-  # mkdocs-click 0.8.0 stabilized the _make_usage/_make_plain_options API.
-  "mkdocs-click>=0.8",
+  # mkdocs-click 0.8.1 labels its usage and options fences `text`, the fences
+  # `click_extra.mkdocs` rewrites to `ansi-output`. An older release emits bare
+  # fences, which stay unpatched.
+  "mkdocs-click>=0.8.1",
   # myst-parser 4.0 added colon_fence extension for GitHub-style alert syntax.
   # Pinned to >=4 (not >=5) because myst-parser 5 requires Python 3.11+ and tests run on 3.10+.
   "myst-parser>=4",
@@ -230,8 +234,10 @@ test = [
   "pymdown-extensions>=10",
   # pytest 9.0.0 is the first supporting native TOML configuration files.
   "pytest>=9",
-  # pytest-cov 4.0 stabilized the modern pytest plugin interface.
-  "pytest-cov>=4",
+  # pytest-cov 7.0.0 stopped measuring child processes through its `.pth` hook.
+  # Before it, each Python a test starts writes statement-only data, and the run
+  # ends on `DataError: Can't combine statement coverage data with branch data`.
+  "pytest-cov>=7",
   # pytest-github-actions-annotate-failures CI annotation interface is stable across 0.x.
   "pytest-github-actions-annotate-failures>=0.2",
   # pytest-httpserver 1.1 added ordered request handlers used in config URL tests.

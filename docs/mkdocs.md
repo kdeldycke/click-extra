@@ -72,6 +72,8 @@ Every other language works the same way: see the [full list of ANSI lexer varian
 
 When the `click-extra` plugin is enabled (as shown in [Setup](#setup)) and `mkdocs-click` is installed, the plugin automatically patches `mkdocs-click`'s code-block generators to use the `ansi-output` lexer instead of plain `text`. The usage and options blocks then render with proper ANSI colors.
 
+The patch needs `mkdocs-click` `0.8.1` or newer. An older release writes these blocks behind a bare fence, which the plugin leaves as is.
+
 ## `click_extra.mkdocs` API
 
 ```{eval-rst}

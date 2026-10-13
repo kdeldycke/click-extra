@@ -342,6 +342,18 @@ def unescape_quotes(text: str) -> str:
     return text.replace("&quot;", '"').replace("&#39;", "'")
 
 
+def plain_whitespace(text: str) -> str:
+    """Replace whitespace tokens with bare spaces, so both lexings compare equal.
+
+    Pygments 2.19.0 made the Python lexer emit some blanks of a ``def`` or
+    ``from`` statement as whitespace tokens, where older releases leave them as
+    bare text. Both forms render the same, and the ``sphinx`` extra declares a
+    floor below that release, so HTML fragments are compared with these tokens
+    flattened.
+    """
+    return text.replace('<span class="w"> </span>', " ")
+
+
 def python_block(*lines: str) -> str:
     """Build expected Python highlight block."""
     return HTML["python_highlight"] + "".join(lines) + "</pre></div>\n"

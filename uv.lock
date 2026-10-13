@@ -12,6 +12,9 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1W"
 
+[options.exclude-newer-package]
+nuitka = "2026-10-12T00:00:00Z"
+
 [[package]]
 name = "accessible-pygments"
 version = "0.0.5"
@@ -426,7 +429,7 @@ requires-dist = [
     { name = "mkdocs", marker = "extra == 'mkdocs'", specifier = ">=1.4" },
     { name = "pygments", marker = "extra == 'mkdocs'", specifier = ">=2.14" },
     { name = "pygments", marker = "extra == 'pygments'", specifier = ">=2.14" },
-    { name = "pygments", marker = "extra == 'sphinx'", specifier = ">=2.14" },
+    { name = "pygments", marker = "extra == 'sphinx'", specifier = ">=2.18" },
     { name = "pymdown-extensions", marker = "extra == 'mkdocs'", specifier = ">=10" },
     { name = "pytest", marker = "extra == 'pytest'", specifier = ">=9" },
     { name = "pyyaml", marker = "extra == 'carapace'", specifier = ">=6.0.3" },
@@ -471,11 +474,11 @@ test = [
     { name = "extra-platforms", extras = ["pytest"], specifier = ">=13.4" },
     { name = "jsonschema", specifier = ">=4.18" },
     { name = "mkdocs", specifier = ">=1.4" },
-    { name = "mkdocs-click", specifier = ">=0.8" },
+    { name = "mkdocs-click", specifier = ">=0.8.1" },
     { name = "myst-parser", specifier = ">=4" },
     { name = "pymdown-extensions", specifier = ">=10" },
     { name = "pytest", specifier = ">=9" },
-    { name = "pytest-cov", specifier = ">=4" },
+    { name = "pytest-cov", specifier = ">=7" },
     { name = "pytest-github-actions-annotate-failures", specifier = ">=0.2" },
     { name = "pytest-httpserver", specifier = ">=1.1" },
     { name = "pytest-randomly", specifier = ">=3" },

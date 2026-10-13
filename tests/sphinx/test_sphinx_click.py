@@ -56,6 +56,7 @@ from .conftest import (
     DirectiveTestCase,
     FormatType,
     format_params,
+    plain_whitespace,
     unescape_quotes,
 )
 
@@ -510,7 +511,9 @@ def test_directive_functionality(sphinx_app_for_format, test_case):
 
     # Assert all expected fragments are present.
     for fragment in test_case.html_matches:
-        assert unescape_quotes(fragment) in unescape_quotes(html_output)
+        assert plain_whitespace(unescape_quotes(fragment)) in plain_whitespace(
+            unescape_quotes(html_output)
+        )
 
 
 def test_directive_option_format(sphinx_app_rst):
@@ -581,7 +584,9 @@ def test_directive_option_language_override(sphinx_app):
         + '<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Joe&#39;</span><span class="p">;</span>\n'
         + "</pre></div>\n"
     )
-    assert unescape_quotes(expected) in unescape_quotes(html_output)
+    assert plain_whitespace(unescape_quotes(expected)) in plain_whitespace(
+        unescape_quotes(html_output)
+    )
 
 
 def test_sphinx_directive_state_persistence(sphinx_app):
