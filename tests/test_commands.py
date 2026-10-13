@@ -120,7 +120,6 @@ def test_deprecated_click_exports_are_forwarded(name):
         assert getattr(click_extra, name) is getattr(click, name)
 
 
-@pytest.mark.once
 @pytest.mark.parametrize(
     "statement", ["import click_extra", "from click_extra import *"]
 )
@@ -131,6 +130,11 @@ def test_import_raises_no_deprecation_warning(statement):
     import of cloup fetches each of them, and Click warns once per name. A star
     import of click-extra would do the same for any such name its own
     ``__all__`` declared.
+
+    Runs on every cell of the matrix, not as a ``once`` test: a deprecation
+    shows first on the cells tracking the development branches of Click and
+    Cloup, like the warning Click raises when a class is created with an
+    override of a member it retired.
     """
     process = run(
         (sys.executable, "-W", "error::DeprecationWarning", "-c", statement),
