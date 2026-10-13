@@ -33,7 +33,7 @@ from ._utils import IS_WINDOWS
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Mapping
+    from collections.abc import Generator, Iterable, Mapping
     from typing import Any
 
     TEnvVarID = str | None
@@ -156,7 +156,7 @@ def param_envvar_ids(
 def temporary_env(
     set_vars: Mapping[str, str] | None = None,
     unset_vars: Iterable[str] = (),
-) -> Iterator[None]:
+) -> Generator[None, None, None]:
     """Apply environment variable changes for the block's duration, then restore.
 
     *set_vars* are written into {data}`os.environ` and *unset_vars* removed. On

@@ -110,7 +110,7 @@ from ._base import (
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Generator, Iterable
     from typing import Any, ClassVar, Literal
 
     from sphinx.application import Sphinx
@@ -376,7 +376,7 @@ class ClickRunner(CliRunner):
         self.build_level = root.level
 
     @contextlib.contextmanager
-    def without_build_logging(self) -> Iterator[None]:
+    def without_build_logging(self) -> Generator[None, None, None]:
         """Take the logging setup of the build off the `root` logger for the block.
 
         A build is one process, shared with Sphinx, its extensions and its theme,

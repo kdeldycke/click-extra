@@ -31,7 +31,7 @@ from functools import cache
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator, Iterator
     from importlib.metadata import EntryPoint
     from typing import Any
 
@@ -182,7 +182,7 @@ def missing_extra_message(
 
 
 @contextmanager
-def patch_attr(obj: object, name: str, value: Any) -> Iterator[None]:
+def patch_attr(obj: object, name: str, value: Any) -> Generator[None, None, None]:
     """Temporarily set `obj.name` to `value`, restoring the original on exit.
 
     A minimal, dependency-free stand-in for `unittest.mock.patch.object` for

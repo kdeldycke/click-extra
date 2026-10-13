@@ -28,7 +28,7 @@ import os
 import re
 import select
 import sys
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from functools import partial
 from gettext import gettext as _
@@ -228,7 +228,7 @@ def resolve_color_env() -> bool | None:
 
 
 @contextmanager
-def forced_color() -> Iterator[None]:
+def forced_color() -> Generator[None, None, None]:
     """Force ANSI color while Click Extra captures CLI text for documentation.
 
     Click Extra renders CLI help and output into docs from both the MkDocs plugin

@@ -70,7 +70,7 @@ from .highlight import HelpFormatter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Sequence
+    from collections.abc import Callable, Generator, Sequence
     from types import TracebackType
     from typing import Concatenate, Final
 
@@ -126,7 +126,9 @@ _ABORT_NOTICE: ContextVar[_AbortNotice | None] = ContextVar(
 
 
 @contextmanager
-def _owning_abort_notice(command: click.Command, standalone: bool) -> Iterator[None]:
+def _owning_abort_notice(
+    command: click.Command, standalone: bool
+) -> Generator[None, None, None]:
     """Make the run of `command` in the block print its own abort notice.
 
     Only a standalone run prints one. Without standalone mode, Click raises the
@@ -140,7 +142,7 @@ def _owning_abort_notice(command: click.Command, standalone: bool) -> Iterator[N
 
 
 @contextmanager
-def _abort_notice(ctx: click.Context) -> Iterator[None]:
+def _abort_notice(ctx: click.Context) -> Generator[None, None, None]:
     """Print Click's `Aborted!` as soon as an abort leaves the block.
 
     Wraps the invocation of a command, which Click runs inside the context of
@@ -202,7 +204,7 @@ def _queue_run_cleanup(ctx: click.Context, cleanup: Callable[[], None]) -> None:
 
 
 @contextmanager
-def _scoped_run() -> Iterator[None]:
+def _scoped_run() -> Generator[None, None, None]:
     """Give back on exit the process-wide state of the runs started within the block.
 
     {meth}`click_extra.commands.Command.main` runs within it. A run that fails

@@ -65,7 +65,7 @@ from .theme import get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
+    from collections.abc import Callable, Generator, Iterable, Sequence
     from concurrent.futures import Future, ThreadPoolExecutor
     from pathlib import Path
     from types import FrameType
@@ -438,7 +438,7 @@ def _resolve_worker_cap(ctx: click.Context | None, serial_at_debug: bool) -> int
 def _interruptible_pool(
     max_workers: int,
     stop: threading.Event | None = None,
-) -> Iterator[ThreadPoolExecutor]:
+) -> Generator[ThreadPoolExecutor, None, None]:
     """Yield a thread pool whose teardown honors a prompt interrupt.
 
     Wraps a {class}`~concurrent.futures.ThreadPoolExecutor` for a `with` body
@@ -1246,7 +1246,7 @@ def _record_interrupt(signum: int, frame: FrameType | None) -> None:
 
 
 @contextmanager
-def _interrupt_handling() -> Iterator[None]:
+def _interrupt_handling() -> Generator[None, None, None]:
     """Track Ctrl+C, and what the run ends on, for the duration of a CLI run.
 
     Installs a `SIGINT` handler that behaves like Python's default one, but
@@ -1274,7 +1274,7 @@ def _interrupt_handling() -> Iterator[None]:
 
 
 @contextmanager
-def _run_end_watch() -> Iterator[None]:
+def _run_end_watch() -> Generator[None, None, None]:
     """Record the exception the block raises, as one the run in progress ends on.
 
     A Click Extra command wraps the two ways out of its run in it: building the
@@ -1398,7 +1398,7 @@ def _exit_interrupted() -> NoReturn:
 
 
 @contextmanager
-def _deferred_interrupt() -> Iterator[None]:
+def _deferred_interrupt() -> Generator[None, None, None]:
     """Hold back a Ctrl+C for the duration of the block, then deliver it.
 
     Shields a short critical section that must run whole: the kill in

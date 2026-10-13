@@ -85,7 +85,7 @@ else:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Mapping, Sequence
+    from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
     from typing import Any, ClassVar
 
     from sphinx.application import Sphinx
@@ -339,7 +339,7 @@ def _memo() -> _HistoryMemo:
 
 
 @contextlib.contextmanager
-def _memoized_history() -> Iterator[None]:
+def _memoized_history() -> Generator[None, None, None]:
     """Serve every git read made inside from one memo.
 
     A refresh renders a block per axis on every page of a project, and each

@@ -52,7 +52,7 @@ from .styling import Style
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Generator, Iterable
     from contextlib import AbstractContextManager
     from typing import IO, Any, Literal
 
@@ -251,7 +251,7 @@ class Result(click.testing.Result):
 @contextmanager
 def isolated_filesystem(
     temp_dir: str | os.PathLike[str] | None = None,
-) -> Iterator[str]:
+) -> Generator[str, None, None]:
     """Create a temporary directory and change the working directory to it.
 
     Reimplements {meth}`click.testing.CliRunner.isolated_filesystem`, which Click
@@ -436,7 +436,7 @@ class CliRunner(click.testing.CliRunner):
     @contextmanager
     def isolated_filesystem(
         self, temp_dir: str | os.PathLike[str] | None = None
-    ) -> Iterator[str]:
+    ) -> Generator[str, None, None]:
         """Same as {func}`isolated_filesystem`, minus Click's deprecation warning.
 
         Overrides {meth}`click.testing.CliRunner.isolated_filesystem` so a runner
