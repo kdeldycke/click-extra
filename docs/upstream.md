@@ -31,6 +31,7 @@ Default and sentinel handling:
 
 Parameter declarations:
 
+- [`#3877` - Add `Parameter.spec` and deprecate `human_readable_name`](https://github.com/pallets/click/pull/3877)
 - [`#3866` - Deprecate parameter names that are: not a Python identifier, or a Python Keyword, or not lower-cased](https://github.com/pallets/click/pull/3866)
 - [`#3861` - Move common `help` argument from `Option` and `Argument` to `Parameter`](https://github.com/pallets/click/pull/3861)
 - [`#3678` - Fix parsing when a parameter is named `help`](https://github.com/pallets/click/pull/3678)
@@ -499,7 +500,6 @@ PRs and issues still pending upstream.
 
 - [`#3880` - Split `PAGER` and `EDITOR` with a Windows-specific `shlex` equivalent](https://github.com/pallets/click/pull/3880)
 - [`#3878` - Add `CliRunner.echo_stdin_class` to override the `<stdin>` echo wrapper](https://github.com/pallets/click/pull/3878)
-- [`#3877` - Add `Parameter.spec` and deprecate `human_readable_name`](https://github.com/pallets/click/pull/3877)
 - [`#3827` - Require a parameter name to be a non-keyword Python identifier](https://github.com/pallets/click/pull/3827)
 - [`#3036` - Add support for `set` and `frozenset` as native Click types](https://github.com/pallets/click/issues/3036)
 

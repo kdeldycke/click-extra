@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import gc
+import importlib.metadata
 import inspect
 import json
 import logging
@@ -2236,11 +2237,29 @@ def test_help_column_paints_the_deprecation_marker(invoke):
     assert rows["weather.city"] == "Where to look up. (DEPRECATED)"
 
 
-def test_option_deprecation_notice_names_every_spelling(invoke):
-    """The notice names the flags a user types, not the identifier Click derived.
+PARAMETER_SPEC_CLICK_VERSION = (8, 6)
+"""Click release naming a parameter by `Parameter.spec` in a deprecation notice.
 
-    Click reports `human_readable_name`, which for an option is `self.name`: the
-    one spelling that appears nowhere on the command line.
+From that release on, Click prints the flag with the longest prefix: `--apt-cyg`
+for `--apt-cyg/--no-apt-cyg`. Below it Click prints the `apt_cyg` identifier,
+which Click Extra replaces with every spelling.
+"""
+
+DEPRECATED_FLAG_NAME = (
+    "--apt-cyg"
+    if tuple(int(p) for p in importlib.metadata.version("click").split(".")[:2])
+    >= PARAMETER_SPEC_CLICK_VERSION
+    else "--apt-cyg / --no-apt-cyg"
+)
+"""How a notice names `--apt-cyg/--no-apt-cyg` on the installed Click."""
+
+
+def test_option_deprecation_notice_names_its_flags(invoke):
+    """The notice names a flag a user types, not the identifier Click derived.
+
+    Below `PARAMETER_SPEC_CLICK_VERSION`, Click reports `human_readable_name`,
+    which for an option is `self.name`: the one spelling that appears nowhere
+    on the command line.
     """
 
     @command
@@ -2251,7 +2270,7 @@ def test_option_deprecation_notice_names_every_spelling(invoke):
     result = invoke(weather, "--apt-cyg", color=False)
     assert result.exit_code == 0
     assert (
-        "DeprecationWarning: The option '--apt-cyg / --no-apt-cyg' is deprecated."
+        f"DeprecationWarning: The option {DEPRECATED_FLAG_NAME!r} is deprecated."
         " upstream is gone" in result.stderr
     )
 
@@ -2299,7 +2318,7 @@ def test_deprecation_notice_reaches_a_configuration_file(invoke, create_config):
     assert result.stdout.endswith("True\n")
     assert result.stderr.count("DeprecationWarning") == 1
     assert (
-        "DeprecationWarning: The option '--apt-cyg / --no-apt-cyg' is deprecated."
+        f"DeprecationWarning: The option {DEPRECATED_FLAG_NAME!r} is deprecated."
         " upstream is gone" in result.stderr
     )
 

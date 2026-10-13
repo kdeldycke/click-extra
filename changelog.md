@@ -59,6 +59,7 @@
 - Accept the `handlers` argument in `basicConfig()` and `new_logger()`, which always raised `ValueError`.
 - Give each logger the level it had before a run back when the run ends, a failed parse included: it was reset to `WARNING`, or left changed after a failed parse.
 - Label `matrix` tables with the name the project declares in `pyproject.toml` by default: the name of the checkout folder is now the fallback.
+- Name a deprecated option by Click's `Parameter.spec` on Click `8.6` and later, where `Option` no longer overrides the deprecated `human_readable_name`.
 - Warn in the logging documentation that `new_logger()` removes every handler of the logger it sets up, the `root` one by default.
 - Fix the documentation render tests failing in a new environment, as for a packager: the `docs` group now holds `tomlkit`, and the tests carry the `network` marker.
 

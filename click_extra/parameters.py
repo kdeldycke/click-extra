@@ -95,6 +95,13 @@ matches into the bold/literal markers their renderers understand; the
 Sphinx index directive translates them into `nodes.literal`.
 """
 
+_CLICK_HAS_PARAMETER_SPEC = hasattr(click.Parameter, "spec")
+"""Whether Click names a parameter by `Parameter.spec`, as it does from `8.6.0` on.
+
+Click then reads `spec` everywhere it read `human_readable_name`, and warns
+about a subclass that still overrides the old property.
+"""
+
 
 def iter_inline_literals(text: str) -> Iterator[tuple[str, bool]]:
     """Walk `text` and yield `(segment, is_literal)` pairs.
@@ -460,7 +467,8 @@ class _ParameterMixin:
         lines of parsing internals that would have to be copied to reach it.
         `process_value` runs once per parse, right after that check, with the
         source already recorded. The wording is Click's own, down to the suffix
-        helper, so the two notices read as one feature.
+        helper and the property naming the parameter, so the two notices read
+        as one feature.
         """
         if (
             self.deprecated
@@ -472,7 +480,11 @@ class _ParameterMixin:
                 "{extra_message}"
             ).format(
                 param_type=self.param_type_name,
-                name=self.human_readable_name,  # type: ignore[attr-defined]
+                name=(
+                    self.spec  # type: ignore[attr-defined]
+                    if _CLICK_HAS_PARAMETER_SPEC
+                    else self.human_readable_name  # type: ignore[attr-defined]
+                ),
                 extra_message=_format_deprecated_suffix(self.deprecated),
             )
             echo(style(message, fg="red"), err=True)
@@ -530,25 +542,40 @@ class Option(_ParameterMixin, cloup.Option):
 
     Inherits first from `_ParameterMixin` to allow future overrides of Click's
     `Parameter` methods.
+
+    ```{todo}
+    Delete the `human_readable_name` override and `_CLICK_HAS_PARAMETER_SPEC`
+    once this package's Click floor reaches `8.6.0`. From that release on,
+    Click names a parameter by `Parameter.spec`, added by
+    [pallets/click#3877](https://github.com/pallets/click/pull/3877): a
+    deprecation notice then names the option by its longest-prefixed flag.
+    ```
     """
 
-    @property
-    def human_readable_name(self) -> str:
-        """Every spelling of the option, joined the way Click hints at one.
+    if not _CLICK_HAS_PARAMETER_SPEC:
 
-        Click returns `self.name` here: the Python identifier it derived from
-        the declarations, which is the one spelling that appears nowhere on the
-        command line. A deprecated `--apt-cyg / --no-apt-cyg` announced itself
-        as `'apt_cyg'`, naming a flag no user can type and none of the two they
-        did. `click.Argument` already overrides the property for its own
-        reasons, leaving `click.Option` re-declaring the inherited body
-        verbatim.
+        @property
+        def human_readable_name(self) -> str:
+            """Every spelling of the option, joined the way Click hints at one.
 
-        `" / "` is the separator `click.Parameter.get_error_hint` joins the same
-        spellings with, so a message naming an option reads the same whichever
-        of the two produced it.
-        """
-        return " / ".join(param_spellings(self))
+            Declared below Click `8.6.0` only: from that release on, Click
+            reads `Parameter.spec` in its place, and warns about a subclass
+            that overrides this property.
+
+            Below it, Click returns `self.name` here: the Python identifier it
+            derived from the declarations, which is the one spelling that
+            appears nowhere on the command line. Left alone, a deprecated
+            `--apt-cyg / --no-apt-cyg` announces itself as `'apt_cyg'`, naming
+            a flag no user can type and none of the two they did.
+            `click.Argument` already overrides the property for its own
+            reasons, leaving `click.Option` re-declaring the inherited body
+            verbatim.
+
+            `" / "` is the separator `click.Parameter.get_error_hint` joins the
+            same spellings with, so a message naming an option reads the same
+            whichever of the two produced it.
+            """
+            return " / ".join(param_spellings(self))
 
     def get_error_hint(self, ctx: click.Context | None) -> str:
         """Like parent's `get_error_hint`, but naming each environment variable.
