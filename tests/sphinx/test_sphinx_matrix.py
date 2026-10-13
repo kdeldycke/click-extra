@@ -1578,8 +1578,10 @@ def test_walk_tags_dates_an_annotated_tag(tmp_path: Path) -> None:
         capture_output=True,
         env={**env, "GIT_COMMITTER_DATE": "2024-03-05T01:00:00+0000"},
     )
-    (repo / "pyproject.toml").write_text(
-        '[project]\r\nrequires-python = ">=3.13"\r\n', encoding="utf-8"
+    # Bytes, not text: a text-mode write on Windows expands the `\n` of each
+    # `\r\n` a second time, which leaves `\r\r\n` in the file.
+    (repo / "pyproject.toml").write_bytes(
+        b'[project]\r\nrequires-python = ">=3.13"\r\n'
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v1.1.0", "--quiet")
