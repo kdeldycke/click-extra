@@ -2361,7 +2361,8 @@ def _option_classes() -> list[type[click.Option]]:
     """Every option class click-extra defines with a constructor of its own."""
 
     def walk(cls: type) -> list[type]:
-        return [c for sub in cls.__subclasses__() for c in (sub, *walk(sub))]
+        subclasses: list[type] = cls.__subclasses__()
+        return [c for sub in subclasses for c in (sub, *walk(sub))]
 
     return sorted(
         {
