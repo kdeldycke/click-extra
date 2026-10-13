@@ -499,7 +499,7 @@ PRs and issues still pending upstream.
 ### [`click`](https://github.com/pallets/click)
 
 - [`#3880` - Split `PAGER` and `EDITOR` with a Windows-specific `shlex` equivalent](https://github.com/pallets/click/pull/3880)
-- [`#3878` - Add `CliRunner.echo_stdin_class` to override the `<stdin>` echo wrapper](https://github.com/pallets/click/pull/3878)
+- [`#3878` - Print `\x04` and `\x1a` input bytes as `^D` and `^Z` in `CliRunner`](https://github.com/pallets/click/pull/3878)
 - [`#3827` - Require a parameter name to be a non-keyword Python identifier](https://github.com/pallets/click/pull/3827)
 - [`#3036` - Add support for `set` and `frozenset` as native Click types](https://github.com/pallets/click/issues/3036)
 
