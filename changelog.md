@@ -1,9 +1,6 @@
 # Changelog
 
-## [`9.5.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.4.1...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`9.5.0` (2026-10-13)](https://github.com/kdeldycke/click-extra/compare/v9.4.1...v9.5.0)
 
 - **Deprecated:** `click_extra.version.visible_width` is `click_extra.layout.cell_width` under its own name, and stops resolving in `10.0.0`.
 - **Deprecated:** `INLINE_LITERAL_RE` moved from `click_extra.command_doc` to `click_extra.parameters`, and stops resolving from its old module in `10.0.0`.
