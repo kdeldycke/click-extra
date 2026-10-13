@@ -502,7 +502,8 @@ class CLITestCase:
         from boltons.strutils import strip_ansi
         from extra_platforms import current_platform, extract_members
 
-        if self.only_platforms and current_platform() not in self.only_platforms:  # type: ignore[operator]
+        # type: ignore[operator]
+        if self.only_platforms and current_platform() not in self.only_platforms:
             required = ", ".join(
                 sorted(trait.id for trait in extract_members(self.only_platforms))
             )
