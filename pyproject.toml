@@ -325,6 +325,10 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the sync-uv-lock autofix job reverts
 # uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
+# nuitka 4.3 is the release the repomatic registry pins. It clears the cooldown
+# on 2026-10-17: without the entry, `repomatic run nuitka` cannot install it and
+# every binary build fails. `sync-uv-lock` prunes the entry afterwards.
+exclude-newer-package = { nuitka = "2026-10-12T00:00:00Z" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 build-backend.source-exclude = [
@@ -416,8 +420,8 @@ output-prefer-rule-codes = true
 # suppresses either, since the checker never sees the whole word. Any acronym
 # carrying a lowercase suffix needs its own entry here.
 default.extend-identifiers = { Github = "GitHub", IOS = "iOS", Javascript = "JavaScript", MacOS = "macOS", PATCHed = "PATCHed", PNGs = "PNGs", PyPi = "PyPI", Typescript = "TypeScript" }
-# False positives: "astroid" is a Python AST library (not "asteroid"); "oject" appears when "pyproject.toml" is split across line breaks in CLI help output; "sur" is macOS 11 Big Sur and Homebrew's big_sur bottle tag (not "sure").
-default.extend-words = { astroid = "astroid", oject = "oject", sur = "sur" }
+# False positives: "astroid" is a Python AST library (not "asteroid"); "certifi" is the CA bundle package a dependency graph lists under requests (not "certify"); "oject" appears when "pyproject.toml" is split across line breaks in CLI help output; "sur" is macOS 11 Big Sur and Homebrew's big_sur bottle tag (not "sure").
+default.extend-words = { astroid = "astroid", certifi = "certifi", oject = "oject", sur = "sur" }
 # Skip content between <!-- typos:off --> and <!-- typos:on --> markers.
 default.extend-ignore-re = [
   "(?s)<!-- typos:off -->.*?<!-- typos:on -->",
@@ -460,12 +464,6 @@ default.extend-ignore-identifiers-re = [
   # 890 │             "H\x1b[32mey\x1b[0m-xx-xxx-\x1b[32mhe\x1b[0mY-xXxXxxxxx-\x1b[32mhey\x1b[0m",
   #     ╰╴                     ━━━
   "mey",
-  # error: `certifi` should be `certify`, `certifies`, `certified`
-  #     ╭▸ ./docs/assets/dependencies.mmd:5:5
-  #     │
-  # 5   │     certifi["certifi\n2025.11.12"]
-  #     ╰╴    ━━━━━━━
-  "certifi",
   # error: `optoin` should be `option`
   #     ╭▸ ./docs/theme.md:112:54
   #     │
@@ -699,6 +697,12 @@ dependency-graph.all-groups = false
 # extra, so left in the graph it greedily claims all optional packages into a
 # single `--extra all` box and the per-extra subgraphs render empty.
 dependency-graph.no-extras = [ "all" ]
+# Entries of the bundled `pytest.toml` that `[tool.pytest]` leaves out on
+# purpose, each mapped to its reason: see § Test suite specifics in claude.md.
+# `lint-repo` reports the reason in place of a warning. Read by repomatic
+# >= 7.18.0.
+lint-repo.declined.pytest.addopts."--cov-report=term" = "The matrix job of tests.yaml passes the coverage flags."
+lint-repo.declined.pytest.addopts."--numprocesses=auto" = "The suite is not pytest-xdist-safe."
 # Render the Click command tree as roff `.1` files and attach a
 # `click-extra-manpages.tar.gz` asset to every GitHub release. The script
 # target mirrors `click_extra_manpages` in `docs/conf.py`, so the release
