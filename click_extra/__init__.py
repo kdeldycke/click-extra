@@ -21,10 +21,12 @@ extra-platforms, most of boltons) are imported where they are used, and
 `tests/test_commands.py` checks that a hello-world `--help` loads none of them.
 
 ```{todo}
-Raise the cloup floor to the release carrying
-[janluke/cloup#242](https://github.com/janluke/cloup/pull/242), which removes
-cloup's import-time `importlib.metadata` probe, then add `importlib.metadata`
-and `email` to the startup ballast list of `tests/test_commands.py`.
+Drop `CLOUP_METADATA_PROBE_VERSION` from `tests/test_commands.py` once this
+package's cloup floor is above `4.0.0`. That release is the last to import
+`importlib.metadata` at module scope, which
+[janluke/cloup#242](https://github.com/janluke/cloup/pull/242) removes. The
+startup ballast list then names `importlib.metadata` and `email`
+unconditionally.
 ```
 """
 

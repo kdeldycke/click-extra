@@ -206,6 +206,16 @@ def test_no_debugger_ballast_on_import():
     assert process.returncode == 0, process.stderr
 
 
+CLOUP_METADATA_PROBE_VERSION = (4, 0, 0)
+"""Last cloup release importing `importlib.metadata` at module scope.
+
+Up to this release, cloup reads Click's version at import time, which loads
+`importlib.metadata` and the `email` tree behind it.
+[janluke/cloup#242](https://github.com/janluke/cloup/pull/242) removes that
+probe, so any later cloup keeps both off the startup path.
+"""
+
+
 @pytest.mark.once
 def test_no_heavy_dependency_ballast_on_startup():
     """Importing the package and rendering a ``--help`` must not load the
@@ -217,11 +227,11 @@ def test_no_heavy_dependency_ballast_on_startup():
     through decoration and ``--help`` in a pristine interpreter, since pytest
     itself has most of these loaded already.
 
-    ``importlib.metadata`` and the ``email`` tree it drags in are missing from
-    the list on purpose: cloup still imports them at module scope, until the
-    release carrying janluke/cloup#242 becomes the floor.
+    ``importlib.metadata`` and the ``email`` tree it drags in join the list
+    above ``CLOUP_METADATA_PROBE_VERSION`` only: up to that release, cloup
+    imports them at module scope itself.
     """
-    ballast = (
+    ballast: tuple[str, ...] = (
         "boltons.formatutils",
         "boltons.strutils",
         "boltons.urlutils",
@@ -241,6 +251,11 @@ def test_no_heavy_dependency_ballast_on_startup():
         "xmltodict",
         "yaml",
     )
+    if (
+        tuple(int(p) for p in importlib.metadata.version("cloup").split(".")[:3])
+        > CLOUP_METADATA_PROBE_VERSION
+    ):
+        ballast += ("email", "importlib.metadata")
     probe = (
         "import sys\n"
         "from click_extra import command\n"
