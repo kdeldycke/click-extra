@@ -355,7 +355,9 @@ class _WatchedContextMixin:
         )
 
 
-class Command(_HelpColorsMixin, _WatchedContextMixin, cloup.Command):  # type: ignore[misc]
+class Command(  # type: ignore[misc]
+    _HelpColorsMixin, _WatchedContextMixin, cloup.Command
+):
     """Like `cloup.command`, with sane defaults and extra help screen colorization."""
 
     context_class: type[cloup.Context] = Context
@@ -1091,7 +1093,9 @@ def _enhance_short_option_error(
     raise click.NoSuchOption(original_token, possibilities=possibilities, ctx=ctx)
 
 
-class ColorizedCommand(_HelpColorsMixin, _WatchedContextMixin, click.Command):  # type: ignore[misc]
+class ColorizedCommand(  # type: ignore[misc]
+    _HelpColorsMixin, _WatchedContextMixin, click.Command
+):
     """Click Command with help colorization but no extra params.
 
     Mixes in `_HelpColorsMixin` for keyword
@@ -1110,7 +1114,9 @@ class ColorizedCommand(_HelpColorsMixin, _WatchedContextMixin, click.Command):  
     context_class: type[cloup.Context] = Context
 
 
-class ColorizedGroup(_HelpColorsMixin, _WatchedContextMixin, click.Group):  # type: ignore[misc]
+class ColorizedGroup(  # type: ignore[misc]
+    _HelpColorsMixin, _WatchedContextMixin, click.Group
+):
     """Click Group with help colorization but no extra params.
 
     Same as {class}`ColorizedCommand` but for groups.
