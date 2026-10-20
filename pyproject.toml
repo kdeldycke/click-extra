@@ -332,10 +332,6 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the sync-uv-lock autofix job reverts
 # uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
-# nuitka 4.3 is the release the repomatic registry pins. It clears the cooldown
-# on 2026-10-17: without the entry, `repomatic run nuitka` cannot install it and
-# every binary build fails. `sync-uv-lock` prunes the entry afterwards.
-exclude-newer-package = { nuitka = "2026-10-12T00:00:00Z" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 build-backend.source-exclude = [
