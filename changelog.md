@@ -66,6 +66,8 @@
 - Raise the `mkdocs-click` floor of the `test` dependency group from `0.8` to `0.8.1`, and its `pytest-cov` floor from `4` to `7`.
 - Run the test suite with every direct dependency at its declared floor, in a `lowest-direct` cell of the full test matrix.
 - Fix `--version` printing `None` in a binary Nuitka compiles with `--main-entry-point`, which starts in a runner importing the entry point module.
+- Read the git and build fields baked into a package's `__init__.py` when the CLI sits in another module of that package, like `__main__`.
+- Name a CLI started from a package's `__main__` module after the package in `{exec_name}`, for a console script and a binary as for `python -m`.
 
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)
 

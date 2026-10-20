@@ -22,9 +22,9 @@ message template.
 
 Git fields (`git_branch`, `git_short_hash`, ...) are resolved at runtime by
 shelling out to `git`, with two fallbacks for `git`-less environments: a
-pre-baked `__<field>__` dunder in the CLI module (injected before build by
-{mod}`click_extra.prebake`), then a committed `.git_archival.json` populated
-by `git archive`.
+pre-baked `__<field>__` dunder in the CLI module or its package (injected before
+build by {mod}`click_extra.prebake`), then a committed `.git_archival.json`
+populated by `git archive`.
 """
 
 from __future__ import annotations
@@ -1123,10 +1123,10 @@ class VersionOption(ExtraOption):
             return frame
 
         # Our heuristics to locate the CLI implementation failed. Fall back to
-        # the outermost frame in the stack. This happens in Nuitka-compiled
-        # binaries where the entry point module's `__name__` may be a
-        # submodule of the Click ecosystem package (like
-        # `click_extra.__main__`) and all frames get skipped.
+        # the outermost frame in the stack. This happens when every frame belongs
+        # to the Click ecosystem, as in a binary Nuitka compiles from
+        # `click_extra/__main__.py` with `--python-flag=-m`: its entry point keeps
+        # the `click_extra.__main__` name, and all frames get skipped.
         count_size = len(str(len(frame_chain)))
         for counter, (p_name, f_name) in enumerate(frame_chain):
             logger.debug(f"Frame {counter:<{count_size}} # {p_name}:{f_name}")
@@ -1224,7 +1224,7 @@ class VersionOption(ExtraOption):
         # `distribution_of()` answers `None` for the CLI's own package too.
         # Click Extra's own binary resolves to `click_extra.__main__`, and trading
         # that for the callback's module costs it the {func}`is_main_module`
-        # exemption `module_version` needs to read the pre-baked `__version__`
+        # exemption `_package_dunder()` needs to read the pre-baked `__version__`
         # off the parent package.
         if (
             not is_main_module(module.__name__)
@@ -1323,25 +1323,10 @@ class VersionOption(ExtraOption):
                     callback_globals = getattr(callback, "__globals__", {})
                     version = callback_globals.get("__version__")
 
-        # If still not found, check the parent package. This handles
-        # `__main__` entry points where `__version__` is defined in
-        # the package's `__init__.py` (like Nuitka-compiled binaries).
-        # Skip modules belonging to the Click ecosystem because
-        # `cli_frame()` may resolve to a CliRunner frame instead of
-        # the user's module, producing false-positive lookups. `__main__`
-        # modules are always entry points (never CliRunner artifacts), so
-        # they are exempt from the exclusion.
-        if (
-            version is None
-            and self.package_name
-            and (
-                is_main_module(self.module_name)
-                or self.module_name.split(".", 1)[0] not in _CLI_ECOSYSTEM_PACKAGES
-            )
-        ):
-            parent = sys.modules.get(self.package_name)
-            if parent:
-                version = getattr(parent, "__version__", None)
+        # If still not found, read it off the package, whose `__init__.py` holds
+        # it for a CLI that sits in a sibling module.
+        if version is None:
+            version = self._package_dunder("__version__")
 
         if version is not None and not isinstance(version, str):
             raise ValueError(
@@ -1353,6 +1338,27 @@ class VersionOption(ExtraOption):
     def package_name(self) -> str | None:
         """Returns the package name."""
         return self.module.__package__
+
+    def _package_dunder(self, name: str) -> Any:
+        """Read *name* off the package of the CLI module, or `None`.
+
+        `__version__` and the dunders `click-extra prebake all` writes live in the
+        `__init__.py` of the package, while the CLI usually sits in a module beside
+        it, like `__main__` or `cli`.
+
+        The package is read only when the walk found the CLI's own module: an entry
+        point {func}`is_main_module` recognizes, or any module outside
+        `CLI_ECOSYSTEM_PACKAGES`. A walk that stops on the `invoke()` of a
+        `CliRunner` lands in the ecosystem, and reading the package there would
+        report Click Extra's own values for the CLI under test.
+        """
+        if not self.package_name or not (
+            is_main_module(self.module_name)
+            or self.module_name.split(".", 1)[0] not in _CLI_ECOSYSTEM_PACKAGES
+        ):
+            return None
+        parent = sys.modules.get(self.package_name)
+        return getattr(parent, name, None) if parent else None
 
     @cached_property
     def _distribution_name(self) -> str | None:
@@ -1428,15 +1434,16 @@ class VersionOption(ExtraOption):
     def exec_name(self) -> str:
         """User-friendly name of the executed CLI.
 
-        Returns the module name. But if the later is `__main__`, returns the package
-        name.
+        Returns the module name. But if the module is a `__main__` entry point,
+        returns the package name: `python -m` runs it as `__main__`, while a console
+        script or a compiled binary imports it as `package.__main__`.
 
         If not packaged, the CLI is assumed to be a simple standalone script, and the
         returned name is the script's file name (including its extension). Code with
         no file, like a CLI run by `python -c`, keeps the `__main__` module name.
         """
         # The CLI has its own module.
-        if self.module_name != "__main__":
+        if not is_main_module(self.module_name):
             return self.module_name
 
         # The CLI module is a `__main__` entry-point, so returns its package name.
@@ -1510,16 +1517,18 @@ class VersionOption(ExtraOption):
         return run_git(*args, cwd=self.git_repo_path)
 
     def _get_prebaked(self, field_id: str) -> str | None:
-        """Check the CLI module for a pre-baked `__<field_id>__` dunder.
+        """Read a pre-baked `__<field_id>__` dunder of the CLI.
 
-        Returns the dunder's value if it is a non-empty string, otherwise
-        `None`.
+        Checks the CLI module, then its package, where `click-extra prebake all`
+        writes the dunders: see {meth}`_package_dunder`. Returns the first
+        non-empty string, otherwise `None`.
         """
-        value = getattr(self.module, dunder_name(field_id), None)
-        # `isinstance` first so mypy narrows `value` from `Any` to `str`
-        # for the return; the `and value` keeps only non-empty strings.
-        if isinstance(value, str) and value:
-            return value
+        name = dunder_name(field_id)
+        for value in (getattr(self.module, name, None), self._package_dunder(name)):
+            # `isinstance` first so mypy narrows `value` from `Any` to `str`
+            # for the return; the `and value` keeps only non-empty strings.
+            if isinstance(value, str) and value:
+                return value
         return None
 
     @cached_property

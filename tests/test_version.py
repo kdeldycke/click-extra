@@ -473,10 +473,10 @@ def test_main_entry_point_survives_absent_distribution_metadata(monkeypatch):
 
     A Nuitka standalone binary ships no distribution metadata, so
     ``distribution_of()`` answers ``None`` for the CLI's own package just as it
-    does for ecosystem plumbing, and the walk lands on ``click_extra.__main__``.
-    That entry point must survive: traded for the root command's callback
-    module, it loses the ``__main__`` exemption and ``--version`` renders
-    nothing at all.
+    does for ecosystem plumbing, and the CLI module resolves to
+    ``click_extra.__main__``. That entry point must survive: traded for the root
+    command's callback module, it loses the ``__main__`` exemption and
+    ``--version`` renders nothing at all.
     """
     fake_main = types.ModuleType("click_extra.__main__")
     fake_main.__package__ = "click_extra"
@@ -506,6 +506,68 @@ def test_main_entry_point_survives_absent_distribution_metadata(monkeypatch):
         # The pre-baked ``__version__`` of the parent package, which is the only
         # place a metadata-less binary can read a version from.
         assert option.module_version == __version__
+
+
+@pytest.mark.parametrize("module_name", ("orchard.__main__", "orchard.cli"))
+def test_prebaked_fields_read_from_the_package(monkeypatch, module_name):
+    """A field baked into the package `__init__.py` reaches the CLI module beside it.
+
+    `click-extra prebake all` writes its dunders into the `__init__.py` of each
+    package a console script enters, while the CLI sits in a sibling module.
+    """
+    package = types.ModuleType("orchard")
+    package.__package__ = "orchard"
+    vars(package).update({"__git_tag__": "v1.2.3", "__build_os__": "Linux 6.1"})
+    cli = types.ModuleType(module_name)
+    cli.__package__ = "orchard"
+    monkeypatch.setitem(sys.modules, "orchard", package)
+    monkeypatch.setitem(sys.modules, module_name, cli)
+
+    option = VersionOption(["--version"])
+    option.pin_field("module", cli)
+    # No live Git and no archive: the baked value is the only source left.
+    option.pin_field("git_repo_path", None)
+    option.__dict__["_archival_data"] = {}
+
+    assert option.git_tag == "v1.2.3"
+    assert option.build_os == "Linux 6.1"
+
+
+def test_prebaked_fields_skip_the_package_of_ecosystem_plumbing(monkeypatch):
+    """A walk ending on a `CliRunner` never reads Click Extra's own baked fields."""
+    monkeypatch.setattr("click_extra.__git_tag__", "v9.9.9", raising=False)
+
+    option = VersionOption(["--version"])
+    option.pin_field("module", sys.modules["click_extra.testing"])
+    option.pin_field("git_repo_path", None)
+    option.__dict__["_archival_data"] = {}
+
+    assert option.git_tag is None
+
+
+@pytest.mark.parametrize(
+    ("module_name", "package", "expected"),
+    (
+        pytest.param("orchard.__main__", "orchard", "orchard", id="package_main"),
+        pytest.param("__main__", "orchard", "orchard", id="python_m"),
+        pytest.param("orchard.cli", "orchard", "orchard.cli", id="package_module"),
+        pytest.param("__main__", "", "weather.py", id="script"),
+    ),
+)
+def test_exec_name(module_name, package, expected):
+    """A `__main__` entry point is named after its package, however it started.
+
+    `python -m orchard` runs the entry point under the `__main__` name, while a
+    console script or a compiled binary imports it as `orchard.__main__`.
+    """
+    module = types.ModuleType(module_name)
+    module.__package__ = package
+    module.__file__ = "/fruits/weather.py"
+
+    option = VersionOption(["--version"])
+    option.pin_field("module", module)
+
+    assert option.exec_name == expected
 
 
 def test_package_version_resolves_import_name_to_distribution(monkeypatch):

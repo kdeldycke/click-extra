@@ -31,7 +31,7 @@ def main():
 
     - `python -m click_extra`
     - entry point script: `click-extra`
-    - Nuitka: `python -m nuitka (...) click_extra/__main__.py`
+    - Nuitka: `python -m nuitka (...) --main-entry-point=click-extra=click_extra.__main__:main`
 
     See [poetry#5981](https://github.com/python-poetry/poetry/issues/5981).
     """

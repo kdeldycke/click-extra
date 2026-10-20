@@ -97,7 +97,7 @@ You can customize the message template with the following variables:
 ```{note}
 The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (like standalone Nuitka binaries or Docker containers without Git).
 
-All ``git_*`` fields can be [pre-baked at build time](#pre-baking-git-metadata) by defining ``__<field>__`` dunder variables in the CLI module. Pre-baked values take priority over subprocess calls.
+All ``git_*`` fields can be [pre-baked at build time](#pre-baking-git-metadata) by defining ``__<field>__`` dunder variables in the CLI module, or in the `__init__.py` of its package. Pre-baked values take priority over subprocess calls.
 
 The hash, date, branch, tag and distance fields also fall back to a [`.git_archival.json`](#git-metadata-in-archives) file, so they keep working when a CLI runs from a `git archive` export (like a GitHub source tarball) that has no `.git` directory.
 ```
@@ -106,7 +106,7 @@ The hash, date, branch, tag and distance fields also fall back to a [`.git_archi
 The `{version}` variable is resolved in this order:
 
 1. A `__version__` variable defined alongside your CLI (see [standalone scripts](#standalone-script)).
-2. A `__version__` variable in the parent package's `__init__.py` (for `__main__` entry points, like Nuitka-compiled binaries).
+2. A `__version__` variable in the parent package's `__init__.py`, for a CLI that sits in a sibling module (like a `__main__` entry point, or the CLI of a compiled binary).
 3. The version from package metadata via [`importlib.metadata`](https://docs.python.org/3/library/importlib.metadata.html#distribution-versions): this is the most common source for installed packages.
 4. `None` if none of the above succeeds (like unpackaged scripts without `__version__`).
 ```
@@ -119,7 +119,7 @@ Both `{exec_name}` and `{version}` are derived through a short fallback chain (`
 flowchart TD
     subgraph EXEC["{exec_name}"]
         direction TB
-        x1["{module_name}"] -->|"is __main__"| x2["{package_name}"]
+        x1["{module_name}"] -->|"a __main__ entry point"| x2["{package_name}"]
         x2 -->|"not packaged"| x3["script filename"]
     end
     subgraph VER["{version}"]
