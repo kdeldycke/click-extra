@@ -1266,7 +1266,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         `media_type` is the bare `type/subtype` the server advertised in its
         `Content-Type` header, and is `None` for a local file, whose format is
         derived from its name. Only files are returned, directories are silently
-        skipped.
+        skipped. A non-regular file that exists, like the `/dev/null` character
+        device, is returned as an empty source: it holds no text configuration.
 
         This method returns the raw content of all matching patterns, without trying to
         parse them. If the content is empty, it is still returned as-is.
@@ -1330,6 +1331,24 @@ class ConfigOption(ExtraOption, ParamStructure):
                 win_path = Path(pattern)
                 pattern = str(win_path.as_posix())
                 logger.debug(f"Windows pattern converted from {win_path} to {pattern}")
+
+            # A plain path pointing at a non-regular file (a character device
+            # like /dev/null, a FIFO, a socket) cannot be discovered by the
+            # glob search below: wcmatch enumerates directory entries, and a
+            # device is not one of them. Yield it directly as an empty
+            # source: it exists, but holds no text to read.
+            if not glob.is_magic(
+                pattern.replace("\\", "/"), flags=self.search_pattern_flags
+            ):
+                direct_path = Path(pattern).resolve()
+                if (
+                    direct_path.exists()
+                    and not direct_path.is_dir()
+                    and not direct_path.is_file()
+                ):
+                    logger.debug(f"Found non-regular file: {direct_path}")
+                    files_found += 1
+                    yield direct_path, "", None
 
             for root_dir, file_pattern in self.parent_patterns(pattern):
                 # Sort matches within each directory: iglob yields in filesystem
@@ -1537,6 +1556,18 @@ class ConfigOption(ExtraOption, ParamStructure):
         Returns `None` when the file matches no format or no parse attempt
         produces a non-empty structure.
         """
+        # A non-regular file (a character device like /dev/null, a FIFO, a
+        # socket) is the canonical way to point at an empty configuration:
+        # it exists, its name matches no format pattern, and its content is
+        # empty. Parse it as an empty configuration instead of dropping the
+        # source.
+        if isinstance(location, Path) and not location.is_file() and location.exists():
+            logger.debug(
+                f"{location} is not a regular file; parsing it as an empty "
+                "configuration."
+            )
+            return {}
+
         # Deferred imports: keep boltons.urlutils and wcmatch off the startup path
         # of every CLI.
         from boltons.urlutils import URL

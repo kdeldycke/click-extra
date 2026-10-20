@@ -48,6 +48,7 @@
 - Fix the ANSI Pygments lexer dropping an SGR escape with an empty parameter, like `\x1b[;31m`, which now reads as a reset followed by red.
 - Fix `python:run` ignoring its `:screenshot:` option: the directive writes the capture like `click:run` does.
 - Fix an OSC 8 hyperlink left open in the rendered HTML when an SGR reset lands inside the link.
+- Fix an explicit `--config` pointing at an existing non-regular file, like the `/dev/null` character device, exiting with `No configuration file found`: `Path.is_file()` is False for a device and the glob search cannot discover one, so it is now loaded as an empty configuration. Closes [#2005](https://github.com/kdeldycke/click-extra/issues/2005).
 - Run `convert-to-myst` bare from the root of a project laid out under `src/`, or declaring its console scripts in `setup.cfg`.
 - Halve the import time of `click_extra`: wcwidth, PyYAML, wcmatch, deepmerge, extra-platforms, most of boltons and several standard library modules now load on the code path that uses them.
 - Resolve the `file_pattern_flags` and `search_pattern_flags` of `ConfigOption` on first use: both default to `None`, and the pattern sanity check runs on the first configuration load instead of at decoration.

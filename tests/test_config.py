@@ -730,6 +730,27 @@ def test_conf_empty_file(invoke, simple_config_cli, create_config):
     assert result.exit_code == 2
 
 
+def test_conf_devnull(invoke, simple_config_cli):
+    """Explicit --config pointing to the null device.
+
+    The null device is the canonical way to override any configuration file
+    otherwise discovered: it exists, but holds no content. It is not a
+    regular file, so `Path.is_file()` is False for it and the glob search
+    cannot discover it either. It is loaded as an empty configuration, with
+    every parameter keeping its default. Closes #2005.
+    """
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        os.devnull,
+        "default",
+        color=False,
+    )
+    assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
+    assert f"Load configuration matching {os.devnull}\n" in result.stderr
+    assert result.exit_code == 0
+
+
 def test_no_config_option(invoke, simple_config_cli, create_config):
     conf_path = create_config("dummy.toml", TOML_FILE)
 
