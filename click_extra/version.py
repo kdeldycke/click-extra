@@ -1199,6 +1199,14 @@ class VersionOption(ExtraOption):
                     if actual_module:
                         return actual_module
 
+            # A binary Nuitka compiles with `--main-entry-point` starts in a
+            # runner it writes outside any `bin/`: `import package.__main__ as
+            # user_main`, then `user_main.main()`. The runner carries no
+            # `__version__`, the entry point module it binds is the CLI's.
+            actual_module = self._resolve_main_module_from_frame(frame)
+            if actual_module:
+                return actual_module
+
         # The walk ended on ecosystem plumbing that no installed distribution
         # provides, so it never found the CLI at all: it ran out of user frames
         # and stopped on the runner that invoked an imported command. Defer to
@@ -1214,7 +1222,7 @@ class VersionOption(ExtraOption):
         # An entry point is excluded outright, because the distribution test
         # cannot see it: a Nuitka binary ships no metadata at all, so
         # `distribution_of()` answers `None` for the CLI's own package too.
-        # Click Extra's own binary starts in `click_extra.__main__`, and trading
+        # Click Extra's own binary resolves to `click_extra.__main__`, and trading
         # that for the callback's module costs it the {func}`is_main_module`
         # exemption `module_version` needs to read the pre-baked `__version__`
         # off the parent package.
@@ -1252,6 +1260,24 @@ class VersionOption(ExtraOption):
                     actual_module = sys.modules[actual_module_name]
                     if getattr(actual_module, "__package__", None):
                         return actual_module
+        return None
+
+    @staticmethod
+    def _resolve_main_module_from_frame(frame: FrameType) -> ModuleType | None:
+        """Find the entry point module a launcher binds in its globals.
+
+        A launcher that imports the `__main__` module of a package and calls
+        its function is a packageless `__main__` holding the module it
+        delegates to, as the runner Nuitka writes for `--main-entry-point`.
+        Returns the first such module among the frame's globals.
+        """
+        for obj in frame.f_globals.values():
+            if (
+                inspect.ismodule(obj)
+                and is_main_module(obj.__name__)
+                and getattr(obj, "__package__", None)
+            ):
+                return obj
         return None
 
     @cached_property

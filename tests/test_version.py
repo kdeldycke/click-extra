@@ -718,6 +718,46 @@ def test_command_string_cli(tmp_path, args, expected):
         )
 
 
+NUITKA_RUNNER = dedent("""\
+    import sys
+    import click_extra.__main__ as user_main
+    sys.exit(user_main.main())
+    """)
+"""The program Nuitka compiles for `--main-entry-point=click-extra=click_extra.__main__:main`.
+
+A `__main__` with no package and no `__version__`, which binds the entry point
+module and calls its function: Click Extra's own binary starts here.
+"""
+
+
+def test_nuitka_runner_resolves_the_entry_point_version(tmp_path):
+    """The runner of a compiled binary prints the version `python -m` prints.
+
+    The stack walk ends on the runner, since every frame below it belongs to
+    the Click ecosystem. The version then comes from the entry point module the
+    runner imports, whose parent package carries the pre-baked `__version__`.
+    """
+    runner = tmp_path / "click-extra.py"
+    runner.write_text(NUITKA_RUNNER, encoding="UTF-8")
+
+    outputs = []
+    for argv in ((str(runner),), ("-m", "click_extra")):
+        result = subprocess.run(
+            [sys.executable, *argv, "--version"],
+            capture_output=True,
+            text=True,
+            encoding="UTF-8",
+            cwd=tmp_path,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+        outputs.append(strip_ansi(result.stdout))
+
+    assert outputs[1].startswith("Click Extra, version ")
+    assert "None" not in outputs[1]
+    assert outputs[0] == outputs[1]
+
+
 @pytest.mark.parametrize(
     "params",
     (None, "--help", "blah", ("--config", "random.toml")),

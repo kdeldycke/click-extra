@@ -65,6 +65,7 @@
 - Raise the Pygments floor of the `sphinx` extra from `2.14` to `2.18`, the oldest release Sphinx `8.0.0` imports with.
 - Raise the `mkdocs-click` floor of the `test` dependency group from `0.8` to `0.8.1`, and its `pytest-cov` floor from `4` to `7`.
 - Run the test suite with every direct dependency at its declared floor, in a `lowest-direct` cell of the full test matrix.
+- Fix `--version` printing `None` in a binary Nuitka compiles with `--main-entry-point`, which starts in a runner importing the entry point module.
 
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)
 
