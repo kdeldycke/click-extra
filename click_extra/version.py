@@ -30,7 +30,6 @@ populated by `git archive`.
 from __future__ import annotations
 
 import copy
-import importlib
 import inspect
 import json
 import logging
@@ -54,7 +53,6 @@ from click._utils import UNSET
 # resolves through the deprecation hook below.
 from ._utils import (
     CLI_ECOSYSTEM_PACKAGES as _CLI_ECOSYSTEM_PACKAGES,
-    console_script,
     memoize_enums,
 )
 from .color import invocation_color, is_a_tty
@@ -1113,8 +1111,13 @@ class VersionOption(ExtraOption):
                 return candidate
 
             # Skip the intermediate frames added by the `@cached_property` decorator
-            # and the Click ecosystem.
-            if frame_name and frame_name.split(".", 1)[0] in _CLI_ECOSYSTEM_PACKAGES:
+            # and the Click ecosystem. An entry point is never plumbing, whichever
+            # package it sits under: `click_extra.__main__` is Click Extra's own CLI.
+            if (
+                frame_name
+                and frame_name.split(".", 1)[0] in _CLI_ECOSYSTEM_PACKAGES
+                and not is_main_module(frame_name)
+            ):
                 continue
 
             # We found a frame that is not part of the Click ecosystem, and is not an
@@ -1122,11 +1125,9 @@ class VersionOption(ExtraOption):
             # which the user's CLI is implemented.
             return frame
 
-        # Our heuristics to locate the CLI implementation failed. Fall back to
-        # the outermost frame in the stack. This happens when every frame belongs
-        # to the Click ecosystem, as in a binary Nuitka compiles from
-        # `click_extra/__main__.py` with `--python-flag=-m`: its entry point keeps
-        # the `click_extra.__main__` name, and all frames get skipped.
+        # Our heuristics to locate the CLI implementation failed: every frame
+        # belongs to the Click ecosystem, and none is an entry point. Fall back to
+        # the outermost frame in the stack.
         count_size = len(str(len(frame_chain)))
         for counter, (p_name, f_name) in enumerate(frame_chain):
             logger.debug(f"Frame {counter:<{count_size}} # {p_name}:{f_name}")
@@ -1155,6 +1156,10 @@ class VersionOption(ExtraOption):
         owned the runner (`None`, once `click_extra.sphinx` resolved to no
         installed distribution) in place of the CLI's own.
 
+        A launcher is the other shape. A console script or a compiled binary whose
+        entry point is a command object, like `orchard.cli:cli`, leaves no frame of
+        that module on the stack: the walk ends on the launcher itself.
+
         A command's callback names its defining module directly and needs no
         stack, so it settles the case the walk cannot see. Returns `None` when the
         command has no callback (a bare {class}`click.Group`) or its module is not
@@ -1179,58 +1184,37 @@ class VersionOption(ExtraOption):
         if not module:
             raise RuntimeError(f"Cannot find module of {frame!r}")
 
-        # If the module is a generated entry point script (like .venv/bin/cli-name),
-        # try to find the actual CLI module.
-        if module.__name__ == "__main__" and not module.__package__:
-            module_file = getattr(module, "__file__", None)
-            if module_file:
-                module_path = Path(module_file)
-                # Entry points are typically in bin/ or Scripts/ directories.
-                if module_path.parent.name in ("bin", "Scripts"):
-                    script_name = module_path.name
-
-                    # Try to find the package via entry_points API.
-                    actual_module = self._resolve_entry_point_module(script_name)
-                    if actual_module:
-                        return actual_module
-
-                    # Fallback: inspect frame globals for imported callables.
-                    actual_module = self._resolve_module_from_frame(frame)
-                    if actual_module:
-                        return actual_module
-
-            # A binary Nuitka compiles with `--main-entry-point` starts in a
-            # runner it writes outside any `bin/`: `import package.__main__ as
-            # user_main`, then `user_main.main()`. The runner carries no
-            # `__version__`, the entry point module it binds is the CLI's.
-            actual_module = self._resolve_main_module_from_frame(frame)
-            if actual_module:
-                return actual_module
-
-        # The walk ended on ecosystem plumbing that no installed distribution
-        # provides, so it never found the CLI at all: it ran out of user frames
-        # and stopped on the runner that invoked an imported command. Defer to
-        # that command's own callback module, which needs no stack.
+        # The walk can stop on a frame that only leads to the CLI. Defer then to
+        # the module of the root command's callback, which needs no stack.
         #
-        # Both halves of the test matter. A runner living in a real distribution
-        # (`click.testing`, `click_extra.testing`) still answers as it always
-        # has, which is what a CLI declared in the module driving the runner
-        # relies on. Only a runner under a subpackage that resolves to nothing
-        # (`click_extra.sphinx`, which the `click:run` directive invokes through)
-        # reaches the fallback.
+        # A packageless `__main__` is such a frame when it launches a command
+        # object of another module: a console script in a `bin/` folder, or the
+        # runner Nuitka compiles for `--main-entry-point`. A standalone script
+        # declares its command in that same `__main__`, and gets it back.
         #
-        # An entry point is excluded outright, because the distribution test
+        # Ecosystem plumbing that no installed distribution provides is the other
+        # case: the walk ran out of user frames and stopped on the runner that
+        # invoked an imported command. Both halves of that test matter. A runner
+        # living in a real distribution (`click.testing`, `click_extra.testing`)
+        # still answers as it always has, which is what a CLI declared in the
+        # module driving the runner relies on. Only a runner under a subpackage
+        # that resolves to nothing (`click_extra.sphinx`, which the `click:run`
+        # directive invokes through) reaches the fallback.
+        #
+        # An entry point with a package is never deferred. The distribution test
         # cannot see it: a Nuitka binary ships no metadata at all, so
         # `distribution_of()` answers `None` for the CLI's own package too.
         # Click Extra's own binary resolves to `click_extra.__main__`, and trading
         # that for the callback's module costs it the {func}`is_main_module`
         # exemption `_package_dunder()` needs to read the pre-baked `__version__`
         # off the parent package.
-        if (
+        launcher = module.__name__ == "__main__" and not module.__package__
+        plumbing = (
             not is_main_module(module.__name__)
             and module.__name__.split(".", 1)[0] in _CLI_ECOSYSTEM_PACKAGES
             and distribution_of(module.__package__) is None
-        ):
+        )
+        if launcher or plumbing:
             ctx = click.get_current_context(silent=True)
             if ctx is not None:
                 from_command = self.command_module(ctx)
@@ -1238,47 +1222,6 @@ class VersionOption(ExtraOption):
                     return from_command
 
         return module
-
-    @staticmethod
-    def _resolve_entry_point_module(script_name: str) -> ModuleType | None:
-        """Resolve the module from a console_scripts entry point name."""
-        entry_point = console_script(script_name)
-        if entry_point is None:
-            return None
-        module_name = entry_point.module
-        if module_name in sys.modules:
-            return sys.modules[module_name]
-        return importlib.import_module(module_name)
-
-    @staticmethod
-    def _resolve_module_from_frame(frame: FrameType) -> ModuleType | None:
-        """Fallback: find module from callables in frame's globals."""
-        for obj in frame.f_globals.values():
-            if callable(obj) and hasattr(obj, "__module__"):
-                actual_module_name = obj.__module__
-                if actual_module_name in sys.modules:
-                    actual_module = sys.modules[actual_module_name]
-                    if getattr(actual_module, "__package__", None):
-                        return actual_module
-        return None
-
-    @staticmethod
-    def _resolve_main_module_from_frame(frame: FrameType) -> ModuleType | None:
-        """Find the entry point module a launcher binds in its globals.
-
-        A launcher that imports the `__main__` module of a package and calls
-        its function is a packageless `__main__` holding the module it
-        delegates to, as the runner Nuitka writes for `--main-entry-point`.
-        Returns the first such module among the frame's globals.
-        """
-        for obj in frame.f_globals.values():
-            if (
-                inspect.ismodule(obj)
-                and is_main_module(obj.__name__)
-                and getattr(obj, "__package__", None)
-            ):
-                return obj
-        return None
 
     @cached_property
     def module_name(self) -> str:

@@ -782,25 +782,34 @@ def test_command_string_cli(tmp_path, args, expected):
 
 NUITKA_RUNNER = dedent("""\
     import sys
-    import click_extra.__main__ as user_main
-    sys.exit(user_main.main())
+    import {module} as user_main
+    sys.exit(user_main.{function}())
     """)
-"""The program Nuitka compiles for `--main-entry-point=click-extra=click_extra.__main__:main`.
+"""The program Nuitka compiles for `--main-entry-point={{name}}={{module}}:{{function}}`.
 
 A `__main__` with no package and no `__version__`, which binds the entry point
-module and calls its function: Click Extra's own binary starts here.
+module and calls its function: a compiled binary starts here.
 """
 
 
-def test_nuitka_runner_resolves_the_entry_point_version(tmp_path):
+@pytest.mark.parametrize(
+    ("module", "function"),
+    (
+        pytest.param("click_extra.__main__", "main", id="main_function"),
+        pytest.param("click_extra.cli", "demo", id="command_object"),
+    ),
+)
+def test_nuitka_runner_resolves_the_entry_point_version(tmp_path, module, function):
     """The runner of a compiled binary prints the version `python -m` prints.
 
-    The stack walk ends on the runner, since every frame below it belongs to
-    the Click ecosystem. The version then comes from the entry point module the
-    runner imports, whose parent package carries the pre-baked `__version__`.
+    An entry point function stops the stack walk in its own module. A command
+    object leaves no frame of its module on the stack, and the walk ends on the
+    runner: the module of the command's callback then names the CLI.
     """
     runner = tmp_path / "click-extra.py"
-    runner.write_text(NUITKA_RUNNER, encoding="UTF-8")
+    runner.write_text(
+        NUITKA_RUNNER.format(module=module, function=function), encoding="UTF-8"
+    )
 
     outputs = []
     for argv in ((str(runner),), ("-m", "click_extra")):
@@ -818,6 +827,45 @@ def test_nuitka_runner_resolves_the_entry_point_version(tmp_path):
     assert outputs[1].startswith("Click Extra, version ")
     assert "None" not in outputs[1]
     assert outputs[0] == outputs[1]
+
+
+def test_nuitka_runner_of_a_package_without_metadata(tmp_path):
+    """A binary whose entry point is a command object reads its package version.
+
+    The runner imports a package no distribution provides, as in a compiled
+    binary, so the version can only come from the `__version__` of its
+    `__init__.py`.
+    """
+    package = tmp_path / "orchard"
+    package.mkdir()
+    (package / "__init__.py").write_text('__version__ = "1.2.3"\n', encoding="UTF-8")
+    (package / "cli.py").write_text(
+        dedent("""\
+            from click_extra import command, echo
+
+
+            @command
+            def cli():
+                echo("Sunny.")
+            """),
+        encoding="UTF-8",
+    )
+    runner = tmp_path / "orchard-runner.py"
+    runner.write_text(
+        NUITKA_RUNNER.format(module="orchard.cli", function="cli"), encoding="UTF-8"
+    )
+
+    result = subprocess.run(
+        [sys.executable, str(runner), "--version"],
+        capture_output=True,
+        text=True,
+        encoding="UTF-8",
+        cwd=tmp_path,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert strip_ansi(result.stdout) == "cli, version 1.2.3\n"
 
 
 @pytest.mark.parametrize(
