@@ -346,11 +346,11 @@ The version resolution adapts to the runtime environment:
 | **Nuitka binary** (not pre-baked) | `1.0.0.dev0`            | No             | `1.0.0.dev0`         |
 | **Release**                       | `1.0.0`                 | N/A            | `1.0.0`              |
 
-For Nuitka binaries, the recommended workflow is to inject the commit hash into `__version__` **before** compilation. [Repomatic](https://github.com/kdeldycke/repomatic) automates this via its `prebake-version` command.
+For Nuitka binaries, the recommended workflow is to inject the commit hash into `__version__` **before** compilation. The release workflow of [Repomatic](https://github.com/kdeldycke/repomatic) runs `click-extra prebake all` before compiling its binaries.
 
 ### Pre-baking git metadata
 
-All `git_*` template fields support pre-baking. If the CLI module defines a `__<field>__` dunder variable with a non-empty string value, that value is used instead of calling `git` at runtime. This is the recommended approach for compiled binaries (Nuitka, PyInstaller) where `git` is unavailable.
+All `git_*` template fields support pre-baking. If the CLI module, or the `__init__.py` of its package, defines a `__<field>__` dunder variable with a non-empty string value, that value is used instead of calling `git` at runtime. This is the recommended approach for compiled binaries (Nuitka, PyInstaller) where `git` is unavailable.
 
 The supported dunders are:
 
@@ -427,7 +427,7 @@ $ click-extra prebake field git_tag_sha abc123def456...
 $ click-extra prebake field git_branch main --module mypackage/__init__.py
 ```
 
-All subcommands resolve the target file by precedence: an explicit `--module`, then the `module` key of the `[tool.click-extra.prebake]` configuration, then auto-discovery from `[project.scripts]` in `pyproject.toml`. Pin the target once to drop `--module` from repeated build invocations:
+All subcommands resolve the target file by precedence: an explicit `--module`, then the `module` key of the `[tool.click-extra.prebake]` configuration, then auto-discovery from the console scripts the project declares, in `[project.scripts]` of `pyproject.toml` or `[options.entry_points]` of `setup.cfg`. Pin the target once to drop `--module` from repeated build invocations:
 
 ```toml
 [tool.click-extra.prebake]
@@ -617,7 +617,7 @@ assert re.fullmatch((
 
 `--version` can draw a screen instead of a line: a logo, with the facts worth pasting into a bug report seated beside it. Click Extra's own CLI does it, and the machinery is yours to point at any artwork.
 
-{class}`~click_extra.version.VersionScreen` owns the layout and nothing else. The mark arrives already rendered — a string, or the lines of one — so it can be ASCII line art, half-blocks, or whatever your renderer produces:
+{class}`~click_extra.version.VersionScreen` owns the layout and nothing else. The mark arrives already rendered, as a string or the lines of one, so it can be ASCII line art, half-blocks, or whatever your renderer produces. Pass a callable returning either, and it runs when `--version` draws the screen:
 
 ```{click:source}
 :emphasize-lines: 13
@@ -663,7 +663,7 @@ default_facts() | {"Docs": DOCS_URL}           # appends, at the end
 
 {func}`~click_extra.version.default_facts` carries the interpreter and the platform. {func}`~click_extra.version.dependency_versions` is there for the Click and Cloup releases underneath you, opt-in rather than default. Labels get a column sized to the longest of them, separated from their values by the same gutter that separates the whole block from the logo.
 
-**Passing `facts` a callable defers it to render time.** Values that cost something to compute — a plugin count, a registry probe — should be charged to the invocation that asks for `--version`, not to every invocation that might have.
+**Passing `facts` or `logo` a callable defers it to render time.** Values that cost something to compute should be charged to the invocation that asks for `--version`, not to every invocation that might have: a plugin count, a registry probe, or a mark painted from its geometry.
 
 ### When the screen is skipped
 
@@ -675,7 +675,7 @@ Three conditions gate it, and failing any one falls back to the plain `message` 
 
 ### Click Extra's own screen
 
-{data}`~click_extra.logo.BRAND_SCREEN` is the worked example: the six cubes of `docs/assets/logo-square.svg`, flat-shaded and painted with half blocks, two sub-pixels to a line.
+{data}`~click_extra.logo.BRAND_SCREEN` is the worked example: the six cubes of `docs/assets/logo-square.svg`, flat-shaded and painted with half blocks, two sub-pixels to a line. Its `logo` is the {func}`~click_extra.logo.render_logo` callable, so the mark is painted when `--version` asks for it, not when the CLI starts.
 
 ```{click:run}
 from boltons.strutils import strip_ansi

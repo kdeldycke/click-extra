@@ -738,9 +738,9 @@ def test_command_validators_keep_the_theme_validator(invoke, create_config):
     """Validators a command declares join the built-in themes validator.
 
     `@command(config_validators=...)` forwards them to the default `--config`
-    option, which used to drop the built-in validator on the way: a malformed
-    `[tool.<cli>.themes.<name>]` table then crashed on a `TypeError` instead of
-    being reported as a configuration validation error.
+    option, which keeps the built-in validator beside them: a malformed
+    `[tool.<cli>.themes.<name>]` table is reported as a configuration validation
+    error, not a `TypeError`.
     """
 
     def check_orchard(tree: dict) -> None:

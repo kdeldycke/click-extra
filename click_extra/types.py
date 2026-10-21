@@ -179,7 +179,7 @@ class LazyChoice(click.Choice):
 
     @choices.setter
     def choices(self, value: Iterable[str]) -> None:
-        """Absorb the empty tuple `Choice.__init__` assigns: the loader is the source."""
+        """Drop the empty tuple `Choice.__init__` assigns: the loader is the source."""
 
 
 class ChoiceSource(enum.Enum):

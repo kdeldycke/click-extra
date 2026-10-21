@@ -441,8 +441,8 @@ class Spinner:
             other way. Set it when the rotation runs counter to what you expect;
             it composes with any custom `frames`.
         :param interval: seconds between two frames. Defaults to
-            {data}`DEFAULT_INTERVAL`, or the `spinner` preset's interval when
-            given.
+            {data}`~click_extra.spinner.DEFAULT_INTERVAL`, or the `spinner`
+            preset's interval when given.
         :param delay: seconds to wait before drawing the first frame. A non-zero
             delay keeps the spinner silent for calls that finish quickly, so it
             only surfaces once an operation is genuinely slow.
@@ -1288,7 +1288,7 @@ class _BarIndicator:
         The bar, unlike the spinner, has no animation thread; without this the
         elapsed clock would freeze between outcomes. Runs only in elapsed mode:
         an ETA needs no ticking, since Click recomputes it on each step. The
-        cadence is the spinner's, see {data}`DEFAULT_INTERVAL`.
+        cadence is the spinner's, see {data}`~click_extra.spinner.DEFAULT_INTERVAL`.
         """
         while not self._stop_tick.wait(DEFAULT_INTERVAL):
             with self._lock:

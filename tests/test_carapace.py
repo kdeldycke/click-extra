@@ -720,8 +720,21 @@ def test_xdg_dir_resolves_at_call_time(tmp_path, monkeypatch, environ, expected)
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
     for name, value in environ.items():
         monkeypatch.setenv(name, value.format(tmp=tmp_path))
-    resolved = xdg_dir("XDG_CONFIG_HOME", CARAPACE_SPECS_DIR, "carapace", "specs")
+    resolved = xdg_dir(
+        "XDG_CONFIG_HOME", "~/.config/carapace/specs", "carapace", "specs"
+    )
     assert resolved == Path(expected.format(tmp=tmp_path))
+
+
+def test_carapace_specs_dir_is_expanded():
+    """The public default is an absolute path, as `9.4.1` shipped it.
+
+    A consumer joining a file name onto it gets a usable path, where a `~` left
+    for a later expansion would give a relative one.
+    """
+    assert CARAPACE_SPECS_DIR.is_absolute()
+    assert "~" not in CARAPACE_SPECS_DIR.parts
+    assert CARAPACE_SPECS_DIR.parts[-3:] == (".config", "carapace", "specs")
 
 
 def test_install_resolves_home_at_call_time(tmp_path, monkeypatch):

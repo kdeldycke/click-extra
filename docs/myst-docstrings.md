@@ -52,7 +52,7 @@ For a one-time migration of an existing reST codebase, run the bundled converter
 $ click-extra convert-to-myst
 ```
 
-The command auto-detects the source package directory from the `[project.scripts]` entry points in `pyproject.toml`. You can also pass an explicit path:
+The command auto-detects the source package directory from the console scripts the project declares, in `[project.scripts]` of `pyproject.toml` or `[options.entry_points]` of `setup.cfg`, whether the package sits at the project root or under `src/`. You can also pass an explicit path:
 
 ```shell-session
 $ click-extra convert-to-myst src/mypackage

@@ -136,6 +136,30 @@ def declare_widget(repo: Path, spec: str) -> None:
     (repo / "pyproject.toml").write_text(body, encoding="utf-8")
 
 
+def named_repo(path: Path, pyproject: str | None) -> Path:
+    """Tag one release in a git repository at ``path``, then leave ``pyproject``
+    as its working-tree ``pyproject.toml``, or no such file for ``None``.
+
+    The tagged file declares the Python support a matrix renders. The
+    working-tree file is the one the default package label is read from.
+    """
+    run = git_repo(path)
+    target = path / "pyproject.toml"
+    target.write_text(
+        '[project]\nrequires-python = ">=3.11"\n'
+        'classifiers = ["Programming Language :: Python :: 3.12"]\n',
+        encoding="utf-8",
+    )
+    run("git", "add", "pyproject.toml")
+    run("git", "commit", "-m", "v1.0.0", "--quiet")
+    run("git", "tag", "v1.0.0")
+    if pyproject is None:
+        target.unlink()
+    else:
+        target.write_text(pyproject, encoding="utf-8")
+    return path
+
+
 def table_cells(line: str) -> list[str]:
     """Split one line of a rendered GFM matrix into its stripped cells."""
     return [cell.strip() for cell in line.strip().strip("|").split("|")]
@@ -1712,30 +1736,6 @@ def test_resolve_root_relative_base_dir(synthetic_repo, monkeypatch) -> None:
     root = _resolve_root(None, Path("."))
     assert root == synthetic_repo.resolve()
     assert root.name == synthetic_repo.name != ""
-
-
-def named_repo(path: Path, pyproject: str | None) -> Path:
-    """Tag one release in a git repository at ``path``, then leave ``pyproject``
-    as its working-tree ``pyproject.toml``, or no such file for ``None``.
-
-    The tagged file declares the Python support a matrix renders. The
-    working-tree file is the one the default package label is read from.
-    """
-    run = git_repo(path)
-    target = path / "pyproject.toml"
-    target.write_text(
-        '[project]\nrequires-python = ">=3.11"\n'
-        'classifiers = ["Programming Language :: Python :: 3.12"]\n',
-        encoding="utf-8",
-    )
-    run("git", "add", "pyproject.toml")
-    run("git", "commit", "-m", "v1.0.0", "--quiet")
-    run("git", "tag", "v1.0.0")
-    if pyproject is None:
-        target.unlink()
-    else:
-        target.write_text(pyproject, encoding="utf-8")
-    return path
 
 
 @pytest.mark.parametrize(

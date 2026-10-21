@@ -9,71 +9,72 @@
 - **Deprecated:** `INLINE_LITERAL_RE` moved from `click_extra.command_doc` to `click_extra.parameters`, and stops resolving from its old module in `10.0.0`.
 - **Deprecated:** The `buttons`, `buttons_color`, `titlebar` and `collapse_titlebar` arguments of `render_html()`, which it never read, now warn and stop working in `10.0.0`.
 - **Deprecated:** The `CAPTURE_BACKGROUND`, `CAPTURE_FOREGROUND`, `LIGHT_CAPTURE_BACKGROUND` and `LIGHT_CAPTURE_FOREGROUND` constants of `click_extra.screenshot_presets` are the fields of the `CAPTURE_PALETTES` entries, and stop resolving in `10.0.0`.
+- **Deprecated:** `click_extra.screenshot.STDOUT_PATH` is `click_extra.output.STDOUT_SENTINEL` under its own name, and stops resolving in `10.0.0`.
+- **Deprecated:** `FENCE_OPEN_RE` of `click_extra.myst_converter` warns and stops resolving in `10.0.0`: read fences with `click_extra.blocks.fence_spans()`.
 - Add `LazyChoice` to `click_extra.types`, a `Choice` reading its values from a callable on first use, so a module providing them stays off the startup path of the CLI.
-- Add the `DEFAULT_FORMAT` and `DEFAULT_STYLE` constants to `click_extra.logging`.
 - Add `ConfigOption.apply_command_settings()`, which `@command` and `@group` call to hand their configuration settings to the default `--config` option.
 - Add `ParamStructure.is_excluded()`, and a `descend` argument to `walk_params()` and `walk_command_params()` that skips a subcommand without importing it.
+- Accept a callable as the `logo` of a `VersionScreen`, called when `--version` draws the screen: the `click-extra` CLI no longer paints its own mark at startup.
+- Add `child_context()`, `clean_help()`, `iter_inline_literals()` and `choice_values()` to `click_extra.parameters`, the helpers every renderer of a CLI reads it through.
+- Add `normalize_envvar_id()` to `click_extra.envvar`, which spells an environment variable name the way the platform reads it.
+- Add `ReferenceDirective`, the base class of `click:tree` and `click:config`, and the `ClickDirective.evaluate()` and `ClickRunner.without_build_logging()` methods to `click_extra.sphinx.click`.
+- Add `iter_command_docs()` to `click_extra.command_doc`, which resolves the distribution metadata of a command tree once for all its pages, so their man pages render faster.
+- Add `read_project_scripts()`, `entry_point_package()`, `locate_package_root()` and `prebake_dunders()` to `click_extra.prebake`, `dunder_name()` to `click_extra.version`, and `xdg_dir()` to `click_extra.carapace`.
+- Add `parse_columns()`, `parse_pause()`, `parse_hold()` and `capture_environment()` to `click_extra.screenshot`, and `emphasis_paint()` and `credit_markup()` to `click_extra.screenshot_svg`.
+- Add the `DEFAULT_FORMAT` and `DEFAULT_STYLE` constants to `click_extra.logging`, `CLEAR_LINE`, `HIDE_CURSOR`, `SHOW_CURSOR` and `DEFAULT_INTERVAL` to `click_extra.spinner`, and `DEFAULT_TRUE_COLOR` to `click_extra.pygments`.
+- Halve the import time of `click_extra`: wcwidth, PyYAML, wcmatch, deepmerge, extra-platforms, most of boltons and several standard library modules now load on the code path that uses them.
+- Stop reading source files while `--version` locates the CLI module at startup.
+- Resolve the `file_pattern_flags` and `search_pattern_flags` of `ConfigOption` on first use: both default to `None`, and the pattern sanity check runs on the first configuration load instead of at decoration.
+- Load a configuration file without importing the lazy subcommands an `included_params` allowlist leaves out: `included_params=()` imports none of them.
+- Stop the verbosity options from removing the handlers of the `root` logger: a command adds its own handler for the time of a run. Call `new_logger()` to keep one outside a run. Closes [#1998](https://github.com/kdeldycke/click-extra/issues/1998).
+- Print log records in the style of Click Extra during the run of any command that carries one of its options, like a standalone `@config_option`.
+- Give each logger the level it had before a run back when the run ends, a failed parse included: it was reset to `WARNING`, or left changed after a failed parse.
+- Keep the format `new_logger()` or `basicConfig()` gave the `root` logger when a command is defined after the call, which used to reset it.
+- Set the log handlers and the log level of a Sphinx build aside while a `click:run` block runs its command, as in a reader's own shell.
+- Highlight the keywords of a help screen with one regular expression per style, instead of compiling one per keyword on every render.
+- Highlight ANSI output faster in Sphinx: the Pygments style and the CSS classes of the ANSI tokens are built once per process instead of once per highlighted block.
+- Render an animated capture faster: a row that stays the same from one frame to the next is drawn once.
+- Read the git history of a project once per `matrix` refresh, in two `git` calls, instead of three calls per tag for every block.
+- Resolve each git and build value once per `click-extra prebake all` run and write each file once: the fields it skips are logged at `INFO` instead of being echoed.
+- Spell the choices of an `Enum` the way Click completes them in the Carapace spec, the man page and the Markdown and JSON documents: `APPLE`, where `Fruit.APPLE` was listed.
+- Clean the help text of a Carapace spec like the other documents: no `\b` no-rewrap marker in a flag description, and no reST backticks in a command description.
+- Pass each configuration value to a wrapped CLI as `--key=value`, which keeps a value starting with a dash intact.
+- Label `matrix` tables with the name the project declares in `pyproject.toml` by default: the name of the checkout folder is now the fallback.
+- Label the lines of a `matrix` table with their source line, so a diagnostic in an rST page names the right one.
+- Move the `click_extra_*` configuration constants of the Sphinx extension and their registration to `click_extra.sphinx.click`, which `click_extra.sphinx` still exports.
+- Validate the `:screenshot-columns:`, `:screenshot-blank:`, `:screenshot-blink:` and `:screenshot-hold:` options of the Sphinx directives with the parsers the capture commands use, so a bad value is rejected with the same message.
+- Render faint text in the Pygments HTML output at `opacity: 0.6`, the value `Style.to_css()` writes, instead of `0.5`.
+- Name a deprecated option by Click's `Parameter.spec` on Click `8.6` and later, where `Option` no longer overrides the deprecated `human_readable_name`.
+- Raise the Pygments floor of the `sphinx` extra from `2.14` to `2.18`, the oldest release Sphinx `8.0.0` imports with.
+- Raise the `mkdocs-click` floor of the `test` dependency group from `0.8` to `0.8.1`, and its `pytest-cov` floor from `4` to `7`.
 - Keep the built-in themes validator when `@command` or `@group` declares `config_validators`, which used to drop it.
 - Raise `TypeError` from `VersionOption.pin_field()` for a field the template does not know, as `@command(version_fields=...)` does.
-- Stop reading source files while `--version` locates the CLI module at startup.
-- List under `--params` the environment variables a subcommand reads: a subcommand setting its own `auto_envvar_prefix`, as every Click Extra command does, was listed under a name derived from its parent's prefix, which the CLI never reads.
-- Accept a callable as the `logo` of a `VersionScreen`, called when `--version` draws the screen: the `click-extra` CLI no longer paints its own mark at startup.
-- Add `parse_columns()`, `parse_pause()`, `parse_hold()` and `capture_environment()` to `click_extra.screenshot`, and `emphasis_paint()` and `credit_markup()` to `click_extra.screenshot_svg`.
-- Add the `CLEAR_LINE`, `HIDE_CURSOR`, `SHOW_CURSOR` and `DEFAULT_INTERVAL` constants to `click_extra.spinner`.
-- Render an animated capture faster: a row that stays the same from one frame to the next is drawn once.
+- List under `--params` the environment variables a subcommand with its own `auto_envvar_prefix` reads, where names derived from its parent's prefix were listed.
 - Report a bad `--hold` value of `click-extra screenshot` as an invalid option value, naming the option, and reject a negative `hold` in `render_svg()` as a negative `blank` already was.
 - Write a capture to a file named `-` when its `--output` path resolves to one: only a bare `-` sends it to the terminal.
-- Add `child_context()`, `clean_help()`, `iter_inline_literals()` and `choice_values()` to `click_extra.parameters`, the helpers every renderer of a CLI reads it through.
-- Add `iter_command_docs()` to `click_extra.command_doc`, which resolves the distribution metadata of a command tree once for all its pages.
-- Add `read_project_scripts()`, `entry_point_package()`, `locate_package_root()` and `prebake_dunders()` to `click_extra.prebake`, and `xdg_dir()` to `click_extra.carapace`.
-- Spell the choices of an `Enum` the way Click completes them in the Carapace spec, the man page and the Markdown and JSON documents: `APPLE`, where `Fruit.APPLE` was listed.
-- Clean the help text of a Carapace spec like the other documents: the `\b` no-rewrap marker no longer leaks into a flag description, and a command description loses its reST backticks as a flag description does.
 - Export the completion variable Click reads for a program whose name holds a dot, like `garden.py`: the spec named `_GARDEN.PY_COMPLETE`, which Click never reads.
 - Name the man page of a subcommand after the name it is registered under, as the `COMMANDS` section of its parent does.
 - Answer to the name of a lazy subcommand in a `MulticallGroup`, which fell back to the group help.
 - Accept a compiled regular expression in the regex directives of a `CLITestCase`, as their type hints allow, which `dataclasses.replace()` on such a case needed too.
-- Run `click-extra prebake all` on a project laid out under `src/`, which found no package to bake.
-- Pass each configuration value to a wrapped CLI as `--key=value`, which keeps a value starting with a dash intact.
-- Start the `click-extra` CLI without loading `extra-platforms` or `boltons`, and without painting its `--version` mark.
-- Resolve each git and build value once per `click-extra prebake all` run and write each file once: the fields it skips are logged at `INFO` instead of being echoed.
-- Resolve the home directory of `install_manpages()` and `install_carapace_spec()` when they are called, through the new `click_extra.carapace.xdg_dir()`, where it was fixed at import.
-- Render the man pages of a command tree faster: the distribution metadata is read once for all its pages.
-- Read the git history of a project once per `matrix` refresh, in two `git` calls, instead of three calls per tag for every block.
-- Highlight ANSI output faster in Sphinx: the Pygments style and the CSS classes of the ANSI tokens are built once per process instead of once per highlighted block.
-- Move the `click_extra_*` configuration constants of the Sphinx extension and their registration to `click_extra.sphinx.click`, which `click_extra.sphinx` still exports.
-- Validate the `:screenshot-columns:`, `:screenshot-blank:`, `:screenshot-blink:` and `:screenshot-hold:` options of the Sphinx directives with the parsers the capture commands use, so a bad value is rejected with the same message.
-- Label the lines of a `matrix` table with their source line, so a diagnostic in an rST page names the right one.
+- Run `click-extra prebake all` and a bare `convert-to-myst` on a project laid out under `src/`, or declaring its console scripts in `setup.cfg`, which found no package.
+- Resolve the home directory of `install_manpages()` and `install_carapace_spec()` when they are called, where it was fixed at import.
+- Accept the `handlers` argument in `basicConfig()` and `new_logger()`, which always raised `ValueError`.
 - Warn about a `click_extra_manpages` entry missing its `script` from the `click-extra-manpages` directive, which skipped it silently.
-- Render faint text in the Pygments HTML output at `opacity: 0.6`, the value `Style.to_css()` writes, instead of `0.5`.
 - Read a truncated or unknown-mode extended color escape, like `38;2;255;128`, in the ANSI Pygments lexer the way `split_ansi()` does: its stray parameters count as attribute codes.
 - Fix the ANSI Pygments lexer dropping an SGR escape with an empty parameter, like `\x1b[;31m`, which now reads as a reset followed by red.
 - Fix `python:run` ignoring its `:screenshot:` option: the directive writes the capture like `click:run` does.
 - Fix an OSC 8 hyperlink left open in the rendered HTML when an SGR reset lands inside the link.
-- Run `convert-to-myst` bare from the root of a project laid out under `src/`, or declaring its console scripts in `setup.cfg`.
-- Halve the import time of `click_extra`: wcwidth, PyYAML, wcmatch, deepmerge, extra-platforms, most of boltons and several standard library modules now load on the code path that uses them.
-- Resolve the `file_pattern_flags` and `search_pattern_flags` of `ConfigOption` on first use: both default to `None`, and the pattern sanity check runs on the first configuration load instead of at decoration.
-- Highlight the keywords of a help screen with one regular expression per style, instead of compiling one per keyword on every render.
-- Stop the verbosity options from removing the handlers of the `root` logger: a command adds its own handler for the time of a run. Call `new_logger()` to keep one outside a run. Closes [#1998](https://github.com/kdeldycke/click-extra/issues/1998).
-- Print log records in the style of Click Extra during the run of any command that carries one of its options, like a standalone `@config_option`.
-- Set the log handlers and the log level of a Sphinx build aside while a `click:run` block runs its command, as in a reader's own shell.
-- Keep the format `new_logger()` or `basicConfig()` gave the `root` logger when a command is defined after the call, which used to reset it.
-- Accept the `handlers` argument in `basicConfig()` and `new_logger()`, which always raised `ValueError`.
-- Give each logger the level it had before a run back when the run ends, a failed parse included: it was reset to `WARNING`, or left changed after a failed parse.
-- Label `matrix` tables with the name the project declares in `pyproject.toml` by default: the name of the checkout folder is now the fallback.
-- Name a deprecated option by Click's `Parameter.spec` on Click `8.6` and later, where `Option` no longer overrides the deprecated `human_readable_name`.
-- Warn in the logging documentation that `new_logger()` removes every handler of the logger it sets up, the `root` one by default.
-- Fix the documentation render tests failing in a new environment, as for a packager: the `docs` group now holds `tomlkit`, and the tests carry the `network` marker.
-- Raise the Pygments floor of the `sphinx` extra from `2.14` to `2.18`, the oldest release Sphinx `8.0.0` imports with.
-- Raise the `mkdocs-click` floor of the `test` dependency group from `0.8` to `0.8.1`, and its `pytest-cov` floor from `4` to `7`.
-- Run the test suite with every direct dependency at its declared floor, in a `lowest-direct` cell of the full test matrix.
 - Fix `--version` printing `None` in a binary Nuitka compiles with `--main-entry-point`, whether the entry point is a function or a command object.
 - Read the git and build fields baked into a package's `__init__.py` when the CLI sits in another module of that package, like `__main__`.
 - Name a CLI started from a package's `__main__` module after the package in `{exec_name}`, for a console script and a binary as for `python -m`.
 - Fix a Ctrl+C that could hang the process instead of ending it, when it landed while Click Extra updated its list of running subprocesses.
-- Load a configuration file without importing the lazy subcommands an `included_params` allowlist leaves out: `included_params=()` imports none of them.
+- Fix a Ctrl+C ignored until a running task ended, when it landed as `run_jobs()` or `run_lanes()` started to wait for that task.
 - Load an empty configuration from an explicit `--config` with nothing to read, like `/dev/null`, `nul` on Windows or an empty file, which exited with code `2`. Closes [#2005](https://github.com/kdeldycke/click-extra/issues/2005).
 - Read a named pipe given to `--config` like a file, which reported that no configuration file was found.
 - Name the format of a `--config` file that parses to nothing, like a TOML file of comments only, where it reported a parse error.
+- Warn in the logging documentation that `new_logger()` removes every handler of the logger it sets up, the `root` one by default.
+- Fix the documentation render tests failing in a new environment, as for a packager: the `docs` group now holds `tomlkit`, and the tests carry the `network` marker.
+- Run the test suite with every direct dependency at its declared floor, in a `lowest-direct` cell of the full test matrix.
 
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)
 

@@ -972,8 +972,8 @@ def _load_builtin_themes() -> dict[str, HelpTheme]:
         payload = Path(__file__).with_name("themes.toml").read_text(encoding="utf-8")
     except OSError:
         # A zipped or compiled package has no file beside this module: ask
-        # the import system instead. Deferred, since importlib.resources only
-        # matters on that path and costs every CLI's startup otherwise.
+        # the import system instead.
+        # Deferred import: keeps importlib.resources off the startup path of every CLI.
         from importlib import resources
 
         try:

@@ -1646,8 +1646,8 @@ def test_deliver_capture_writes_a_file_named_dash(tmp_path, capsys):
 def test_screenshot_does_not_print_a_resolved_dash(invoke):
     """`--output ./-` is a file in the working directory, which names no format.
 
-    Resolved by Click to an absolute path, it used to be mistaken for the bare
-    `-` and printed the capture to the terminal instead.
+    Click resolves it to an absolute path whose last component is `-`, which is
+    not the bare `-` naming the terminal.
     """
     result = invoke(screenshot_cmd, ["--output", "./-", "--", "echo", "pear"])
     assert result.exit_code != 0
@@ -1903,10 +1903,14 @@ def test_palette_color(color, expected):
     assert palette_color(color, PRESETS["windows"].dark) == expected
 
 
-def test_palette_color_rejects_a_value_naming_no_color():
-    """A value that is not a color cannot silently paint something."""
+@pytest.mark.parametrize("color", (object(), True, False))
+def test_palette_color_rejects_a_value_naming_no_color(color):
+    """A value that is not a color cannot silently paint something.
+
+    A `bool` is an `int`, and names no palette slot for all that.
+    """
     with pytest.raises(ValueError, match="Cannot resolve color"):
-        palette_color(object(), PRESETS["windows"].dark)
+        palette_color(color, PRESETS["windows"].dark)
 
 
 @pytest.mark.parametrize(

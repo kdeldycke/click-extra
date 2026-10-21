@@ -377,7 +377,7 @@ class AnsiColorLexer(Lexer):
         return self._cached_token
 
     def _process_sgr(self, params: str) -> None:
-        """Update the SGR state from a semicolon-separated parameter string.
+        r"""Update the SGR state from a semicolon-separated parameter string.
 
         The decoding is the one of {mod}`click_extra.styling`, so an escape reads
         the same here as in {func}`~click_extra.styling.split_ansi`: an empty
@@ -621,7 +621,7 @@ _BLINK_CSS = "animation: ansi-blink 1s step-end infinite"
 """The declaration animating a `Blink` span, through the `ansi-blink` keyframes.
 
 CSS has no declaration for blinking text, which is why
-{data}`click_extra.styling._ATTR_CSS` leaves the attribute empty. The keyframes
+`click_extra.styling._ATTR_CSS` leaves the attribute empty. The keyframes
 are emitted beside the token rules by `AnsiHtmlFormatter._extra_ansi_css_lines`.
 """
 
@@ -632,7 +632,7 @@ EXTRA_ANSI_CSS: dict[str, str] = {
 """All SGR text attribute CSS declarations.
 
 Maps `Token.Ansi` component names to CSS declarations, taken from
-{data}`click_extra.styling._ATTR_CSS` so an attribute renders the same in a
+`click_extra.styling._ATTR_CSS` so an attribute renders the same in a
 documentation code block as in the HTML
 {meth}`~click_extra.styling.Style.to_css` writes. `Blink` alone takes
 `_BLINK_CSS`. The rules are kept out of the Pygments style dict (`_ANSI_STYLES`)

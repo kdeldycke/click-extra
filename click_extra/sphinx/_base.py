@@ -13,30 +13,38 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Shared scaffolding for the `click:*` and `python:*` directive families.
+"""Shared scaffolding of the `click:*`, `python:*` and `matrix` directives.
 
-Holds the small bits of plumbing that both {mod}`click_extra.sphinx.click` and
-{mod}`click_extra.sphinx.python` need verbatim: directive-content compilation,
-the line-offset arithmetic of {class}`ContentOffsetMixin`, per-document runner
-cleanup, and the stateless `Domain` boilerplate Sphinx demands of any domain
-that ships only directives (no roles or objects).
+Holds the small bits of plumbing that {mod}`click_extra.sphinx.click`,
+{mod}`click_extra.sphinx.python` and {mod}`click_extra.sphinx.matrix` need
+verbatim: directive-content compilation, the line-offset arithmetic of
+{class}`ContentOffsetMixin`, per-document runner cleanup, and the stateless
+`Domain` boilerplate Sphinx demands of any domain that ships only directives
+(no roles or objects).
 
 The offline self-updating block toolkit those directives share (fence-aware
 Markdown scanning, the `<!-- name … --> / <!-- name-end -->` marker grammar,
 and the walk-rewrite-write loop behind the `click-extra refresh-directives`
-command) now lives in the dependency-light {mod}`click_extra.blocks` module, so
-it stays importable without the `sphinx` extra.
+command) lives in the dependency-light {mod}`click_extra.blocks` module, so it
+stays importable without the `sphinx` extra.
 """
 
 from __future__ import annotations
 
-from functools import cache, cached_property
+from functools import cached_property
 
 from docutils import nodes
 from docutils.statemachine import StringList
 from packaging.version import Version
 from sphinx.directives import SphinxDirective
 from sphinx.domains import Domain
+
+# The `sphinx` extra does not declare `myst-parser` and Sphinx does not pull it
+# in, so a reST-only project has none: the extension stays importable for it.
+try:
+    import myst_parser
+except ImportError:
+    myst_parser = None  # type: ignore[assignment]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -60,20 +68,13 @@ offline refresh of a `:mirror:` region.
 """
 
 
-@cache
 def myst_version() -> Version | None:
     """The installed `myst-parser` release, or `None` when there is none.
 
-    The `sphinx` extra does not declare `myst-parser` and Sphinx does not pull it
-    in, so a reST-only project has none: the extension stays importable for it,
-    and every MyST-specific behavior is keyed on this answer. Cached, since the
-    installed release cannot change during a build.
+    Every MyST-specific behavior of the extension is keyed on this answer, so a
+    reST-only project, which has no `myst-parser`, takes none of them.
     """
-    try:
-        import myst_parser
-    except ImportError:
-        return None
-    return Version(myst_parser.__version__)
+    return None if myst_parser is None else Version(myst_parser.__version__)
 
 
 MYST_CONTENT_OFFSET_INFLATED_MAX = Version("5.1.0")
@@ -90,26 +91,9 @@ This fix is not yet upstream: the open rework in
 include it, and also makes `content_offset` document-relative. So the release
 that eventually lands the fix requires
 {attr}`ContentOffsetMixin.abs_content_offset` to converge on the rST branch it
-already carries, not merely drop this compensation. See `docs/upstream.md`.
-
-```{todo}
-Retire the MyST `content_offset` workaround once the pinned `myst-parser`
-floor rises past the release carrying the fix:
-
-- delete `_myst_content_offset_inflation` and this constant, and
-  collapse {attr}`ContentOffsetMixin.abs_content_offset` onto its rST branch
-  (`content_offset` verbatim);
-- drop the `directive.content` fallback in {func}`directive_source`, which
-  stays off `block_text` only because that attribute is body-only in
-  `myst-parser <= 5.1.0`
-  ([`#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164) is
-  merged but unreleased). A released `block_text` anchors a robust
-  line-number computation and retires the workaround from both sides.
-
-The single-trailing-blank-line case documented on
-`_myst_content_offset_inflation` stays off by one until then, and no local fix
-can reach it: the round-trip consumes that line without a trace.
-```
+already carries, not merely drop this compensation. See `docs/upstream.md`. The
+steps that retire the workaround are the `{todo}` of the `click_extra.sphinx.click`
+module, where Sphinx renders them.
 """
 
 

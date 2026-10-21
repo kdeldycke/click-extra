@@ -463,7 +463,7 @@ def __getattr__(name: str) -> Any:
     """Resolve the deprecated color constants via the PEP 562 `__getattr__` hook.
 
     Each one is a field of a {data}`CAPTURE_PALETTES` entry, which is where a
-    caller reads it from now. Fires only for names not defined in this module.
+    caller reads it. Fires only for names not defined in this module.
     """
     if name in _DEPRECATED_PALETTE_COLORS:
         background, field = _DEPRECATED_PALETTE_COLORS[name]

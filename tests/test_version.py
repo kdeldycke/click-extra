@@ -785,7 +785,7 @@ NUITKA_RUNNER = dedent("""\
     import {module} as user_main
     sys.exit(user_main.{function}())
     """)
-"""The program Nuitka compiles for `--main-entry-point={{name}}={{module}}:{{function}}`.
+"""What Nuitka compiles for `--main-entry-point={{name}}={{module}}:{{function}}`.
 
 A `__main__` with no package and no `__version__`, which binds the entry point
 module and calls its function: a compiled binary starts here.

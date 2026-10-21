@@ -28,6 +28,29 @@ Compared to the latter, it:
 - Removes the `println` function which was used to explicitly print a blank
   line. This is no longer needed as it is now handled natively.
 ```
+
+```{todo}
+Retire the MyST `content_offset` workaround of `click_extra.sphinx._base` once
+the pinned `myst-parser` floor rises past the release carrying the fix for the
+inflated `content_offset`, which the open rework
+[`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) does not
+include:
+
+- delete `_myst_content_offset_inflation` and
+  `MYST_CONTENT_OFFSET_INFLATED_MAX`, and collapse
+  `ContentOffsetMixin.abs_content_offset` onto its rST branch
+  (`content_offset` verbatim);
+- drop the `directive.content` fallback in `directive_source`, which stays off
+  `block_text` only because that attribute is body-only in
+  `myst-parser <= 5.1.0`
+  ([`#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164) is
+  merged but unreleased). A released `block_text` anchors a robust
+  line-number computation and retires the workaround from both sides.
+
+The single-trailing-blank-line case documented on
+`_myst_content_offset_inflation` stays off by one until then, and no local fix
+can reach it: the round-trip consumes that line without a trace.
+```
 """
 
 from __future__ import annotations
@@ -676,7 +699,7 @@ class ClickDirective(ContentOffsetMixin):
 
     The two directive parsers count `content_offset` from different places, so
     anything naming a document line goes through
-    {attr}`~click_extra.sphinx._base.ContentOffsetMixin.abs_content_offset`
+    `ContentOffsetMixin.abs_content_offset`
     rather than reading `content_offset` directly.
     """
 

@@ -416,9 +416,10 @@ def _longest_first(names: Iterable[str]) -> list[str]:
     """Order names so a regex alternation tries the longest one first.
 
     An alternation matches the first branch that fits, so `--color` listed
-    before `--color-mode` would leave the `-mode` tail unpainted.
+    before `--color-mode` would leave the `-mode` tail unpainted. Names of one
+    length sort alphabetically, so two runs build the same pattern.
     """
-    return sorted(names, key=len, reverse=True)
+    return sorted(names, key=lambda name: (-len(name), name))
 
 
 def _alternation(names: Iterable[str]) -> str:
@@ -796,7 +797,7 @@ class HelpFormatter(cloup.HelpFormatter):
                     (
                         re.compile(
                             rf"(?<=[^\w{re.escape(symbol)}])"
-                            rf"(?:{'|'.join(_escape_for_help_screen(o) for o in options)})"
+                            rf"(?:{'|'.join(map(_escape_for_help_screen, options))})"
                             rf"(?=[^\w\-])"
                         )
                         for symbol, options in by_symbol.items()
@@ -1007,11 +1008,9 @@ def highlight(
         else:
             raise TypeError(f"Unsupported pattern type: {pattern!r}")
     if literals:
-        alternation = "|".join(
-            re.escape(literal)
-            for literal in sorted(literals, key=lambda s: (-len(s), s))
+        regexes.append(
+            re.compile(_alternation(literals), re.IGNORECASE if ignore_case else 0)
         )
-        regexes.append(re.compile(alternation, re.IGNORECASE if ignore_case else 0))
 
     # Find matches.
     for regex in regexes:

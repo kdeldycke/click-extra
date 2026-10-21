@@ -1213,8 +1213,9 @@ def install_manpages(
 ) -> list[Path]:
     """Write the command tree's man pages where `man` can find them.
 
-    Targets `$XDG_DATA_HOME/man/man1` when that variable is set, else
-    {data}`~click_extra.command_doc.MAN_INSTALL_DIR`. Returns the written paths.
+    Targets `$XDG_DATA_HOME/man/man1` when that variable is set, else the default
+    behind {data}`~click_extra.command_doc.MAN_INSTALL_DIR`, expanded against the
+    `HOME` in force at the call. Returns the written paths.
 
     The environment is read here rather than at import time, through
     {func}`~click_extra.carapace.xdg_dir`, so a caller that sets `XDG_DATA_HOME`
@@ -1223,7 +1224,7 @@ def install_manpages(
     {func}`~click_extra.carapace.install_carapace_spec`, whose spec directory
     resolves the same way.
     """
-    target = xdg_dir("XDG_DATA_HOME", MAN_INSTALL_DIR, "man", "man1")
+    target = xdg_dir("XDG_DATA_HOME", _MAN_INSTALL_DIR, "man", "man1")
     return write_manpages(command, target, prog_name, **overrides)
 
 
@@ -1388,15 +1389,19 @@ paging is handled here anyway.
 ```
 """
 
-MAN_INSTALL_DIR: Path = Path("~/.local/share/man/man1")
+_MAN_INSTALL_DIR = Path("~/.local/share/man/man1")
+"""The `~` form of {data}`MAN_INSTALL_DIR`, for {func}`~click_extra.carapace.xdg_dir`
+to expand at call time."""
+
+MAN_INSTALL_DIR: Path = _MAN_INSTALL_DIR.expanduser()
 """Where `--install` writes man pages: the user's own section-1 directory.
 
-The default of the [XDG base directory spec](https://specifications.freedesktop.org/basedir-spec/latest/), which
-{func}`install_manpages` overrides from `XDG_DATA_HOME` when that is set. The
-`~` is left for {func}`~click_extra.carapace.xdg_dir` to expand at call time,
-so the `HOME` in force when the pages are written is the one that counts. Some
-systems do not carry this path in their `MANPATH`, in which case the pages land
-correctly but `man` has to be told where to look.
+The default of the [XDG base directory spec](https://specifications.freedesktop.org/basedir-spec/latest/),
+expanded against the `HOME` of the process at import. {func}`install_manpages`
+reads `XDG_DATA_HOME` and `HOME` at call time instead, through
+{func}`~click_extra.carapace.xdg_dir`. Some systems do not carry this path in
+their `MANPATH`, in which case the pages land correctly but `man` has to be told
+where to look.
 """
 
 
@@ -1617,8 +1622,10 @@ def __getattr__(name: str) -> Any:
     """Resolve deprecated `command_doc` symbols via the PEP 562 `__getattr__` hook.
 
     `INLINE_LITERAL_RE` moved to {mod}`click_extra.parameters`, beside the
-    other helpers every renderer of a CLI reads it through. Fires only for names
-    not defined in this module. See {mod}`click_extra._deprecated`.
+    other helpers every renderer of a CLI reads it through. `iter_inline_literals`
+    moved with it and needs no alias: this module imports it for its own use.
+    Fires only for names not defined in this module. See
+    {mod}`click_extra._deprecated`.
     """
     from ._deprecated import resolve_deprecated
 

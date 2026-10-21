@@ -56,14 +56,13 @@ import os
 import re
 from dataclasses import dataclass, fields, replace
 from functools import lru_cache
-from typing import TypeGuard
 
 import cloup
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Sequence
-    from typing import Any
+    from typing import Any, TypeGuard
 
 
 # --- Color conversion utilities ----------------------------------------------

@@ -451,6 +451,15 @@ def _check_pause(seconds: float) -> float:
     return seconds
 
 
+def _not_a_hold(value: object) -> str:
+    """The one message a hold that is neither seconds nor `auto` is refused with.
+
+    Shared by {func}`render_svg` and {func}`~click_extra.screenshot.parse_hold`,
+    so the renderer and the command line agree on it.
+    """
+    return f"{value!r} is not a hold, which is seconds or 'auto'."
+
+
 _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 """Characters a CSS class name cannot carry, as written into `unique_id`."""
 
@@ -550,9 +559,10 @@ def _palette_slot(color: object) -> int | None:
 
     A base name (`red`) or its `bright_` form, a palette index under 16, or an
     object naming either through its `name` attribute, the way an enum member
-    does. Anything else states its own color and names no slot.
+    does. Anything else states its own color and names no slot: a `bool` is an
+    `int`, and names none for all that.
     """
-    if isinstance(color, int):
+    if isinstance(color, int) and not isinstance(color, bool):
         return color if 0 <= color < 16 else None
     if isinstance(color, str):
         name = color.removeprefix("bright_")
@@ -1420,7 +1430,7 @@ def render_svg(
         # out. It catches the caller that never ran one: a Sphinx directive
         # option, a CLI argument, anything read from text.
         elif isinstance(hold, str):  # type: ignore[unreachable]
-            raise ValueError(f"{hold!r} is not a hold, which is seconds or 'auto'.")
+            raise ValueError(_not_a_hold(hold))
         if _check_pause(hold):
             # Spent on the last frame rather than on a pause of its own, so the
             # frame a still falls back to is the one that was held.
@@ -1780,10 +1790,11 @@ def render_svg(
 
     # The clip and the offset are the window's, not a frame's, so they wrap the
     # whole stack rather than being repeated inside it.
+    origin = f"translate({_svg_number(origin_x)}, {_svg_number(origin_y)})"
     body.extend((
         (
             f'<g clip-path="url(#{unique_id}-clip)">'
-            f'<g transform="translate({_svg_number(origin_x)}, {_svg_number(origin_y)})">'
+            f'<g transform="{origin}">'
             f"{stack}"
             "</g></g>"
         ),

@@ -37,6 +37,7 @@ from click_extra import (
 from click_extra.command_doc import (
     HELP_FORMATS,
     MAN_FORMATTERS,
+    MAN_INSTALL_DIR,
     OVERSTRIKE_RE,
     HelpFormat,
     install_manpages,
@@ -852,6 +853,17 @@ def test_json_spells_enum_choices_as_click_completes_them():
     options = [opt for group in doc["option_groups"] for opt in group["options"]]
     fruit = next(opt for opt in options if "--fruit" in opt["names"])
     assert fruit["choices"] == ["APPLE", "BANANA"]
+
+
+def test_man_install_dir_is_expanded():
+    """The public default is an absolute path, as `9.4.1` shipped it.
+
+    A consumer joining a page name onto it gets a usable path, where a `~` left
+    for a later expansion would give a relative one.
+    """
+    assert MAN_INSTALL_DIR.is_absolute()
+    assert "~" not in MAN_INSTALL_DIR.parts
+    assert MAN_INSTALL_DIR.parts[-4:] == (".local", "share", "man", "man1")
 
 
 def test_install_manpages_resolves_home_at_call_time(tmp_path, monkeypatch):

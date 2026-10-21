@@ -215,6 +215,8 @@ def decorator_factory(dec, *new_args, **new_defaults):
                 merged["params"] = hook_params
             return merged
 
+        has_hook = callable(kwargs.get("params", new_defaults.get("params")))
+
         # Return the original decorator with the new defaults.
         result = dec(*args, **merged_kwargs())
 
@@ -225,9 +227,7 @@ def decorator_factory(dec, *new_args, **new_defaults):
         # parametrize list as `command()`) would accumulate options across uses,
         # creating duplicate parameters. Calling the hook again on each application
         # prevents that shared mutation.
-        if callable({**new_defaults, **kwargs}.get("params")) and not isinstance(
-            result, click.Command
-        ):
+        if has_hook and not isinstance(result, click.Command):
 
             def apply(f):
                 return dec(*args, **merged_kwargs())(f)

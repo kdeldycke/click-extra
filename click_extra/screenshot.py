@@ -65,7 +65,7 @@ from .execution import args_cleanup, format_cli_prompt, run_cli
 # compatibility surface: a name this module stops using goes with it, and importers
 # follow it to its new home.
 from .layout import RULE_COLOR, cell_width, center_in_rule, fit_columns, number_lines
-from .output import STDOUT_SENTINEL, is_stdout
+from .output import is_stdout
 from .screenshot_html import render_html
 from .screenshot_presets import (
     CaptureBackground,
@@ -83,6 +83,7 @@ from .screenshot_svg import (
     OPAQUE,
     WATERMARK_INK,
     _check_pause,
+    _not_a_hold,
     cursor_cell,
     emphasis_paint,
     render_svg,
@@ -164,16 +165,6 @@ missing entry: the mapping is read through {meth}`dict.get`, and
 {data}`~click_extra.theme.BUILTIN_THEMES` is empty when a trimmed install drops
 `themes.toml`.
 """
-
-STDOUT_PATH = STDOUT_SENTINEL
-"""Destination naming the terminal rather than a file.
-
-The one {data}`~click_extra.output.STDOUT_SENTINEL` every `--output` option
-reads, kept under this module's name for the callers that import it from here.
-It is the one destination that states no extension, so it is what
-{func}`format_from_path` reads as {attr}`CaptureFormat.ANSI`.
-"""
-
 
 CAPTURE_BORDERS: dict[CaptureBackground, str] = {
     CaptureBackground.DARK: "rgba(255,255,255,0.35)",
@@ -545,9 +536,7 @@ def parse_hold(value: str) -> THold:
     try:
         hold = float(value)
     except ValueError:
-        raise ValueError(
-            f"{value!r} is not a hold, which is seconds or 'auto'."
-        ) from None
+        raise ValueError(_not_a_hold(value)) from None
     return _check_pause(hold)
 
 
@@ -1063,7 +1052,8 @@ def capture(
 def format_from_path(path: Path) -> CaptureFormat:
     """Pick the capture format a file name asks for.
 
-    A bare {data}`STDOUT_PATH` names the terminal, whose format is the escape
+    A bare {data}`~click_extra.output.STDOUT_SENTINEL` names the terminal, whose
+    format is the escape
     sequences themselves, see {func}`~click_extra.output.is_stdout`. A file
     *named* `-` in some directory is a file like any other, and answers by its
     extension, which it has none of. It is answered here rather than at the call
@@ -1086,3 +1076,15 @@ def format_from_path(path: Path) -> CaptureFormat:
         raise ValueError(
             f"Cannot tell the capture format of {path.name!r}: name it {known}."
         ) from None
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve deprecated `screenshot` symbols via the PEP 562 `__getattr__` hook.
+
+    `STDOUT_PATH` is {data}`~click_extra.output.STDOUT_SENTINEL`, the one
+    destination every `--output` option reads as the terminal. Fires only for
+    names not defined in this module. See {mod}`click_extra._deprecated`.
+    """
+    from ._deprecated import resolve_deprecated
+
+    return resolve_deprecated(__name__, name)

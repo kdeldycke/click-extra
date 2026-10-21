@@ -155,7 +155,7 @@ def render_html(
     ):
         if value is not UNSET:
             warn_deprecated_argument(
-                "render_html", name, "no argument: HTML draws no window around the text"
+                "render_html", name, "render_svg() to draw a window"
             )
     if palette is None:
         palette = resolve_palette(preset, background)

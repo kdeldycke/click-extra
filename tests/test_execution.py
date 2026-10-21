@@ -18,6 +18,7 @@ subprocess-execution primitives (run_cli and the interrupt machinery)."""
 
 from __future__ import annotations
 
+import _thread
 import ast
 import logging
 import os
@@ -588,6 +589,60 @@ def test_run_lanes_interrupt_stops_each_lane_after_its_current_item():
     assert sorted(ran) == [0, 1]
 
 
+@pytest.mark.parametrize(
+    "run",
+    (
+        pytest.param(lambda work: run_jobs(work, [0, 1], jobs=2), id="run_jobs"),
+        pytest.param(lambda work: run_lanes(work, ([0], [1]), jobs=2), id="run_lanes"),
+    ),
+)
+def test_interrupt_tripped_as_the_wait_began_is_handled_promptly(run):
+    """A Ctrl+C the interpreter noted as the main thread blocked on a task is
+    handled within the poll period, not when the task ends.
+
+    `interrupt_main()` leaves the interrupt pending without waking the main
+    thread: the state a `SIGINT` leaves when it lands after the interpreter last
+    checked for one and before the thread blocked in the C library. An unbounded
+    wait on the task would run the handler only when the task returns.
+    """
+    release = threading.Event()
+
+    def work(n):
+        if n == 0:
+            # Leaves the main thread time to block on this task's result.
+            sleep(0.3)
+            _thread.interrupt_main()
+        release.wait(timeout=5)
+        return n
+
+    start = monotonic()
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            list(run(work))
+        assert monotonic() - start < 2
+    finally:
+        release.set()
+
+
+def test_run_jobs_reports_a_task_timeout_error():
+    """A task raising `TimeoutError` ends the run on it, within the poll period.
+
+    `concurrent.futures.TimeoutError` is the builtin `TimeoutError` from Python
+    3.11 on, which a task raises itself when a socket times out: a wait reading
+    the result with a timeout of its own could not tell the two apart.
+    """
+
+    def work(n):
+        if n == 0:
+            raise TimeoutError("oven door left open")
+        return n
+
+    start = monotonic()
+    with pytest.raises(TimeoutError, match="oven door left open"):
+        list(run_jobs(work, [0, 1], jobs=2))
+    assert monotonic() - start < 2
+
+
 NAP_CLI = """
 import time
 
@@ -692,7 +747,7 @@ def test_ctrl_c_ends_the_process_by_sigint(tmp_path, script):
     which a calling shell needs to stop its own loop: a status of `1`, or even
     `130`, tells the shell the program handled the interrupt itself."""
     returncode, stderr = interrupt_cli(tmp_path, script)
-    assert returncode == -signal.SIGINT
+    assert returncode == -signal.SIGINT, stderr
     assert "Aborted!" in stderr
 
 
@@ -721,7 +776,7 @@ def test_ctrl_c_in_a_wrapped_cli_ends_the_process_by_sigint(tmp_path):
     returncode, stderr = interrupt_cli(
         tmp_path, PLAIN_NAP_CLI, launcher=("-m", "click_extra", "wrap", "--")
     )
-    assert returncode == -signal.SIGINT
+    assert returncode == -signal.SIGINT, stderr
     assert "Aborted!" in stderr
 
 
@@ -788,7 +843,7 @@ def test_second_ctrl_c_quits_while_tasks_finish(tmp_path, script, notice):
     """After a Ctrl+C, the run says it waits for its running tasks, and what a
     second Ctrl+C does: quit at once, instead of waiting for the tasks."""
     returncode, stderr = interrupt_cli(tmp_path, script, presses=2)
-    assert returncode == -signal.SIGINT
+    assert returncode == -signal.SIGINT, stderr
     assert "Aborted!" in stderr
     assert notice in stderr
     assert "Press Ctrl+C again to quit now." in stderr
@@ -896,8 +951,8 @@ def test_interrupted_run_kills_children_ignoring_sigterm(tmp_path):
     script = STUBBORN_CHILDREN_CLI.replace("FOLDER", repr(str(tmp_path)))
     start = monotonic()
     try:
-        returncode, _ = interrupt_cli(tmp_path, script)
-        assert returncode == -signal.SIGINT
+        returncode, stderr = interrupt_cli(tmp_path, script)
+        assert returncode == -signal.SIGINT, stderr
         assert monotonic() - start < 10
         pids = [
             int(path.read_text(encoding="utf-8"))
@@ -1000,8 +1055,8 @@ def test_interrupted_run_kills_grandchildren_ignoring_sigterm(
     pid_files = [tmp_path / f"grandchild-{n}.pid" for n in range(2)]
     start = monotonic()
     try:
-        returncode, _ = interrupt_cli(tmp_path, script)
-        assert returncode == -signal.SIGINT
+        returncode, stderr = interrupt_cli(tmp_path, script)
+        assert returncode == -signal.SIGINT, stderr
         assert monotonic() - start < 10
         for pid_file in pid_files:
             _assert_process_dies(int(pid_file.read_text(encoding="utf-8")))

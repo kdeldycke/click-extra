@@ -97,6 +97,7 @@ def is_windows() -> bool:
     Kept under the same name so the POSIX-only signal reads below stay under a
     guard `tests/test_execution.py` recognizes.
     """
+    # Deferred import: keeps extra_platforms off the startup path of every CLI.
     from extra_platforms import is_windows as platform_is_windows
 
     return platform_is_windows()
@@ -434,6 +435,38 @@ def _resolve_worker_cap(ctx: click.Context | None, serial_at_debug: bool) -> int
     return resolve_jobs(ctx, sys.maxsize, serial_at_debug=serial_at_debug)
 
 
+_JOIN_POLL: Final = 0.1
+"""Seconds between two checks while the main thread waits on another thread.
+
+A bounded wait returns to the interpreter that often, which is when a pending
+Ctrl+C is handled. Two cases need it. On Windows, no signal interrupts a wait on
+a lock. On every platform, a signal that lands after the interpreter last checked
+for one and before the thread blocked in the C library interrupts nothing: its
+handler runs only when the wait returns. {func}`_exit_interrupted` joins the
+running threads in such slices, and {func}`_wait_result` waits on each task of
+{func}`run_jobs` and {func}`run_lanes` the same way.
+"""
+
+
+def _wait_result(future: Future[R]) -> R:
+    """The result of `future`, waited for in slices of {data}`_JOIN_POLL` seconds.
+
+    A Ctrl+C that lands as the main thread enters the wait is then handled within
+    one slice. An unbounded wait would hand it to the handler only once the task
+    returns, however long it runs: see {data}`_JOIN_POLL`.
+
+    The future is read once it is done, never with a timeout of its own. A timed
+    read that runs out raises the {exc}`TimeoutError` a task may raise itself,
+    like a {exc}`socket.timeout`, and the two could not be told apart.
+    """
+    # Deferred import: keeps concurrent.futures off the startup path of every CLI.
+    from concurrent.futures import wait
+
+    while not future.done():
+        wait((future,), timeout=_JOIN_POLL)
+    return future.result()
+
+
 @contextmanager
 def _interruptible_pool(
     max_workers: int,
@@ -509,7 +542,7 @@ def _windowed_map(
         executor.submit(func, item) for item in islice(stream, window)
     )
     while pending:
-        result = pending.popleft().result()
+        result = _wait_result(pending.popleft())
         # Refill the freed slot before handing the result over, so a worker does
         # not sit idle while the caller processes what it just got.
         for item in islice(stream, 1):
@@ -1351,14 +1384,6 @@ _TERMINATE_GRACE: Final = 3.0
 
 They get `SIGTERM` as the run aborts, so they can clean up, and
 {data}`_KILL_SIGNAL` once this grace runs out.
-"""
-
-
-_JOIN_POLL: Final = 0.1
-"""Seconds between two checks while an interrupted run waits for its threads.
-
-A bounded join returns to the interpreter that often, so a second Ctrl+C is
-handled at once on every platform.
 """
 
 

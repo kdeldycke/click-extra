@@ -1562,7 +1562,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         for location, conf, _empty_formats in self._parse_matches(pattern):
             if not conf:
-                logger.debug(f"No parseable configuration in {location}.")
+                logger.debug(f"Nothing to load from {location}.")
                 continue
 
             yield location, conf
@@ -1601,12 +1601,15 @@ class ConfigOption(ExtraOption, ParamStructure):
         from boltons.urlutils import URL
         from wcmatch import fnmatch
 
-        # A file parsed from its path is never blank here: its content is an
-        # empty placeholder, which says nothing about the file itself.
-        if not content.strip() and not (
-            isinstance(location, Path)
-            and format_from_path(location, _PATH_READ_FORMATS)
+        # A file parsed from its path carries an empty placeholder as content,
+        # which says nothing about the file itself: its size decides.
+        if isinstance(location, Path) and format_from_path(
+            location, _PATH_READ_FORMATS
         ):
+            blank = location.stat().st_size == 0
+        else:
+            blank = not content.strip()
+        if blank:
             logger.debug(f"{location} is blank.")
             return {}, ()
 

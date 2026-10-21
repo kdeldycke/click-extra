@@ -98,14 +98,18 @@ if TYPE_CHECKING:
     from click import Command, Context, Parameter
 
 
-CARAPACE_SPECS_DIR = Path("~/.config/carapace/specs")
+_CARAPACE_SPECS_DIR = Path("~/.config/carapace/specs")
+"""The `~` form of {data}`CARAPACE_SPECS_DIR`, for {func}`xdg_dir` to expand at
+call time."""
+
+CARAPACE_SPECS_DIR = _CARAPACE_SPECS_DIR.expanduser()
 """User spec directory Carapace loads on startup.
 
 Writing `<prog>.yaml` here (see {func}`install_carapace_spec`) is all it takes
 for Carapace to pick up a CLI's completions. Mirrors the `$XDG_CONFIG_HOME`
-default documented by Carapace. The `~` is left for {func}`xdg_dir` to expand at
-call time, where an explicit `XDG_CONFIG_HOME` is honored too, so the `HOME` in
-force when a spec is installed is the one that counts.
+default documented by Carapace, expanded against the `HOME` of the process at
+import. {func}`install_carapace_spec` reads `XDG_CONFIG_HOME` and `HOME` at call
+time instead, through {func}`xdg_dir`.
 """
 
 CARAPACE_DOCS_URL = "https://kdeldycke.github.io/click-extra/carapace.html"
@@ -123,7 +127,8 @@ def xdg_dir(variable: str, fallback: str | Path, *parts: str) -> Path:
     `parts`. A leading `~` is expanded against the `HOME` in force at the call,
     so neither the environment nor the home directory is read at import time:
     a value set for one invocation, by a test fixture or a packaging script
-    staging into a build root, is the one honored.
+    staging into a build root, is the one honored. Pass `fallback` in its `~`
+    form for that: a path expanded at import carries that `HOME` for good.
     """
     base = os.environ.get(variable)
     if base:
@@ -135,9 +140,10 @@ def _require_yaml() -> ModuleType:
     """Import PyYAML on demand, with a pointed error when it is missing.
 
     PyYAML ships behind the `carapace` extra, and only the YAML-serializing
-    entry points need it. Importing it here rather than at module scope keeps
-    it off the startup path of every CLI, missing or not.
+    entry points need it.
     """
+    # Deferred import: keeps PyYAML off the startup path of every CLI, installed
+    # or not.
     try:
         import yaml
     except ImportError:
@@ -151,7 +157,7 @@ def _clean_description(text: str | None) -> str:
     r"""Collapse a help string to a single Carapace-friendly description line.
 
     Normalizes the prose with {func}`~click_extra.parameters.clean_help`, which
-    drops Click's `\b` no-rewrap marker, keeps only the first paragraph, strips
+    drops Click's `\b` no-rewrap marker, then keeps only the first paragraph, strips
     the reST inline-literal backticks while keeping the text they wrap (Click
     stores docstrings verbatim, so `"`...`"` markup leaks through) and squashes
     internal whitespace. Carapace truncates long descriptions itself. Every
@@ -729,11 +735,12 @@ def install_carapace_spec(
     """Write the spec into Carapace's user spec directory.
 
     Targets `$XDG_CONFIG_HOME/carapace/specs/<prog>.yaml` (honoring an explicit
-    `XDG_CONFIG_HOME`, else {data}`CARAPACE_SPECS_DIR`, both resolved at call
-    time by {func}`xdg_dir`), which Carapace loads on startup. Returns the path.
+    `XDG_CONFIG_HOME`, else the default behind {data}`CARAPACE_SPECS_DIR`, both
+    resolved at call time by {func}`xdg_dir`), which Carapace loads on startup.
+    Returns the path.
     """
     name = prog_name or command.name or "cli"
-    base = xdg_dir("XDG_CONFIG_HOME", CARAPACE_SPECS_DIR, "carapace", "specs")
+    base = xdg_dir("XDG_CONFIG_HOME", _CARAPACE_SPECS_DIR, "carapace", "specs")
     return write_carapace_spec(
         command, base / f"{name}.yaml", prog_name=name, invocation=invocation
     )

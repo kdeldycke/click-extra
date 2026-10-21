@@ -749,9 +749,8 @@ def test_extra_css_matches_sgr_attributes():
 def test_extra_css_follows_the_style_table():
     """Every attribute but blink renders with the declaration `Style.to_css` writes.
 
-    `Faint` in particular dims to the same `opacity` as a `dim` style, where the
-    two tables used to disagree. Blink has no CSS declaration of its own and takes
-    the keyframe animation instead.
+    `Faint` in particular dims to the same `opacity` as a `dim` style. Blink has
+    no CSS declaration of its own and takes the keyframe animation instead.
     """
     for attr, component in _ATTR_COMPONENTS.items():
         if attr == "blink":
@@ -987,8 +986,8 @@ def test_sgr_with_trailing_semicolons():
 def test_sgr_leading_semicolons():
     """An empty leading parameter is a `0`: a reset, then the color after it.
 
-    `split_ansi` has always read `\\x1b[;31m` as red, and the lexer shares its
-    decoder, so a page renders what a terminal shows.
+    The lexer shares the decoder of `split_ansi`, which reads `\\x1b[;31m` as
+    red, so a page renders what a terminal shows.
     """
     tokens = lex("\x1b[;31mtext")
     assert tokens[0] == (Ansi.Red, "text\n")

@@ -48,7 +48,8 @@ def _resolve_paths(module: Path | None) -> list[Path]:
     """Resolve target `__init__.py` paths.
 
     Precedence: an explicit `--module`, then the `[tool.click-extra.prebake]`
-    `module` config value, then `[project.scripts]` auto-discovery.
+    `module` config value, then the package behind the console scripts of
+    `pyproject.toml` or `setup.cfg`.
     """
     if module:
         return [module]
@@ -59,8 +60,8 @@ def _resolve_paths(module: Path | None) -> list[Path]:
     if not paths:
         raise ClickException(
             "No __init__.py found. Pass --module explicitly, set "
-            "[tool.click-extra.prebake] module, or add [project.scripts] to "
-            "pyproject.toml."
+            "[tool.click-extra.prebake] module, or declare a console script in "
+            "pyproject.toml or setup.cfg."
         )
     return paths
 
@@ -69,8 +70,8 @@ _module_option = option(
     "--module",
     type=Path,
     default=None,
-    help="Path to __init__.py to modify. "
-    "Auto-discovered from [project.scripts] if not provided.",
+    help="Path to __init__.py to modify. Auto-discovered from the console scripts "
+    "in pyproject.toml or setup.cfg if not provided.",
 )
 
 

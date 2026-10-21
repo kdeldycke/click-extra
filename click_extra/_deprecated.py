@@ -20,21 +20,22 @@ original location for one deprecation cycle. Accessing one emits a
 {exc}`DeprecationWarning` pointing at its replacement, through the
 [PEP 562](https://peps.python.org/pep-0562/) module `__getattr__` hooks wired
 into `click_extra/color.py`, `click_extra/command_doc.py`,
-`click_extra/parameters.py`, `click_extra/table.py`, `click_extra/theme.py` and
-`click_extra/version.py`. A renamed argument keeps
+`click_extra/parameters.py`, `click_extra/screenshot.py`, `click_extra/table.py`,
+`click_extra/theme.py` and `click_extra/version.py`. A renamed argument keeps
 its old name for the same cycle, and passing it warns through
 {func}`warn_deprecated_argument`, as a retired value or shape of a value does
-through {func}`warn_deprecated_usage`. `click_extra/screenshot_presets.py`
-serves its retired color constants through a hook of its own, worded by
-{func}`deprecation_message`, since each resolves to a field of a palette rather
-than to a module attribute.
+through {func}`warn_deprecated_usage`. `click_extra/myst_converter.py` and
+`click_extra/screenshot_presets.py` serve a retired constant through a hook of
+their own, worded by {func}`deprecation_message`, since each resolves to a value
+rather than to a module attribute: a pattern the converter no longer keeps, a
+field of a palette.
 
 ```{todo}
 Cut all of it in the release recorded in {data}`REMOVAL_VERSION`: delete this
-module, every `__getattr__` hook that calls {func}`resolve_deprecated`, every
-form handled by a call to {func}`warn_deprecated_argument` or
-{func}`warn_deprecated_usage`, and their tests,
-exactly as the `9.0.0` release did with the previous batch.
+module, every `__getattr__` hook that calls {func}`resolve_deprecated` or
+{func}`deprecation_message`, every form handled by a call to
+{func}`warn_deprecated_argument` or {func}`warn_deprecated_usage`, and their
+tests, exactly as the `9.0.0` release did with the previous batch.
 ```
 """
 
@@ -65,6 +66,9 @@ DEPRECATED_ALIASES: dict[str, dict[str, str]] = {
         "generator_tag": "_utils.generator_tag",
         "missing_extra_message": "_utils.missing_extra_message",
         "patch_attr": "_utils.patch_attr",
+    },
+    "click_extra.screenshot": {
+        "STDOUT_PATH": "output.STDOUT_SENTINEL",
     },
     "click_extra.table": {
         "render_columns_markdown_table": "columns.render_columns_markdown_table",

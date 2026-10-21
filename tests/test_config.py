@@ -485,6 +485,11 @@ def make_sqlite_config(
         connection.execute(
             f"CREATE TABLE {SQLITE_CONFIG_TABLE} (key TEXT PRIMARY KEY, value TEXT)"
         )
+    else:
+        # A table of another name makes the file a database with no configuration
+        # table, where a connection that writes nothing leaves a blank file, which
+        # loads as an empty configuration.
+        connection.execute("CREATE TABLE harvest (crop TEXT)")
     if data:
         for key, value in flatten_sqlite_keys(data).items():
             connection.execute(
@@ -722,6 +727,8 @@ def test_conf_unparsable(invoke, simple_config_cli, create_config):
         pytest.param("empty.toml", "", id="empty-file"),
         pytest.param("blank.yaml", "\n  \n", id="whitespace-only"),
         pytest.param("empty.json", "", id="empty-json"),
+        pytest.param("empty.plist", "", id="empty-plist"),
+        pytest.param("empty.sqlite", "", id="empty-sqlite"),
     ],
 )
 def test_conf_blank_source(invoke, simple_config_cli, create_config, filename, content):
@@ -729,7 +736,8 @@ def test_conf_blank_source(invoke, simple_config_cli, create_config, filename, c
 
     `/dev/null` (`nul` on Windows) is the Unix way to point a tool at no
     configuration. An empty file means the same, even where its format calls it
-    invalid, like JSON. Every parameter then keeps its default.
+    invalid, like JSON, and where its parser reads the file from its path, like
+    plist and SQLite. Every parameter then keeps its default.
     """
     conf_path = (
         os.devnull if filename is None else str(create_config(filename, content))
@@ -2828,6 +2836,38 @@ def test_lazy_group_included_params_imports(
     assert result.exit_code == 0, result.stderr
     assert result.stdout == expected_stdout
     assert "orchard_apple" in sys.modules
+    assert "orchard_banana" not in sys.modules
+
+
+def test_lazy_group_empty_allowlist_imports_no_subcommand(
+    invoke, create_config, orchard_modules
+):
+    """`included_params=()` loads a configuration without importing any lazy
+    subcommand.
+
+    The group runs on its own, so no dispatch imports a subcommand behind the
+    walk's back: a module in `sys.modules` is one the configuration load brought
+    in.
+    """
+    conf_path = create_config("orchard.toml", "[orchard]\ndry_run = true\n")
+
+    @group(
+        cls=LazyGroup,
+        invoke_without_command=True,
+        lazy_subcommands={
+            "apple": "orchard_apple.apple_cli",
+            "banana": "orchard_banana.banana_cli",
+        },
+        included_params=(),
+    )
+    @option("--dry-run", is_flag=True)
+    def orchard(dry_run):
+        echo(f"dry_run={dry_run!r}")
+
+    result = invoke(orchard, "--config", str(conf_path), color=False)
+    assert result.exit_code == 0, result.stderr
+    assert result.stdout == "dry_run=False\n"
+    assert "orchard_apple" not in sys.modules
     assert "orchard_banana" not in sys.modules
 
 

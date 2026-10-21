@@ -477,6 +477,10 @@ Sphinx fails a build on every warning or on none. click-extra's [`click_extra_fa
 
 PRs and features rejected by upstream maintainers. click-extra provides the functionality regardless.
 
+### [`cloup`](https://github.com/janluke/cloup)
+
+- [`#243` - Announce maintenance mode](https://github.com/janluke/cloup/pull/243): closed by the maintainer, who had a notice of their own drafted.
+
 ### [`python-tabulate`](https://github.com/astanin/python-tabulate)
 
 - [`#261` - Add support for alignments in Markdown tables](https://github.com/astanin/python-tabulate/pull/261)
@@ -502,10 +506,6 @@ PRs and issues still pending upstream.
 - [`#3878` - Print `\x04` and `\x1a` input bytes as `^D` and `^Z` in `CliRunner`](https://github.com/pallets/click/pull/3878)
 - [`#3827` - Require a parameter name to be a non-keyword Python identifier](https://github.com/pallets/click/pull/3827)
 - [`#3036` - Add support for `set` and `frozenset` as native Click types](https://github.com/pallets/click/issues/3036)
-
-### [`cloup`](https://github.com/janluke/cloup)
-
-- [`#243` - Announce maintenance mode](https://github.com/janluke/cloup/pull/243)
 
 ### [`pygments`](https://github.com/pygments/pygments)
 

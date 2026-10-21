@@ -663,7 +663,7 @@ class VersionScreen:
     """
 
     logo: str | Sequence[str] | Callable[[], str | Sequence[str]]
-    """The mark, pre-rendered, or a callable producing it. A string is split on newlines.
+    """The mark, pre-rendered, or a callable producing it. A string splits on newlines.
 
     A callable defers the rendering to the first `--version` that draws the
     screen, as {attr}`facts` does for its values: a mark painted by code, from

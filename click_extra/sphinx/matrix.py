@@ -288,13 +288,12 @@ def parse_python_spec(spec: str) -> tuple[str, str, set[str]]:
     return floor, ceiling, excluded
 
 
-def _git(project_root: Path, *args: str, check: bool = True) -> str:
+def _git(project_root: Path, *args: str) -> str:
     """Run a `git` command in `project_root` and return its captured stdout.
 
-    The single place the module shells out to git, so every history read uses
-    the same working tree and text decoding. `check` defaults to raising on a
-    non-zero exit; the `git show` blob lookups pass `check=False` so a tag
-    that lacks the file yields an empty string instead of an error.
+    The single place the module shells out to git for text, so every history
+    read uses the same working tree and decoding. A non-zero exit raises.
+    `_read_release_files` is the one read made as bytes, and runs its own call.
 
     A missing git binary or a non-repository path surfaces as an
     {class}`OSError` / {class}`subprocess.SubprocessError`, which callers let
@@ -305,7 +304,7 @@ def _git(project_root: Path, *args: str, check: bool = True) -> str:
         ["git", *args],
         capture_output=True,
         encoding="utf-8",
-        check=check,
+        check=True,
         cwd=project_root,
     ).stdout
 

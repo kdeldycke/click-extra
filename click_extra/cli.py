@@ -507,7 +507,7 @@ def convert_to_myst_cmd(directory: str | None) -> None:
     MyST back to reST at build time, so sphinx.ext.autodoc still works.
 
     If DIRECTORY is not specified, auto-detects the source package directory
-    from the project's script entry points in pyproject.toml.
+    from the project's console scripts in pyproject.toml or setup.cfg.
 
     Safe to re-run: already-converted MyST syntax does not match the reST
     patterns, so the conversion is idempotent.

@@ -838,12 +838,9 @@ def _config_args_for_target(
     Looks for a config section named after the target script under `wrap`.
     For example, `click-extra wrap -- flask` reads `[tool.click-extra.wrap.flask]`
     in `pyproject.toml`. All keys in that section are converted to CLI
-    arguments, through
-    {func}`~click_extra.config.flags.config_table_to_flags`, and prepended to
-    the target's invocation: a key's underscores become dashes, a `true` is a
-    bare `--key`, a `false` is dropped, and any other value is attached as
-    `--key=value`, one flag per item for a list. The attached form keeps a
-    value starting with a dash from being read as a flag of its own.
+    arguments through {func}`~click_extra.config.flags.config_table_to_flags`,
+    after their underscores become dashes, and prepended to the target's
+    invocation.
 
     Invalid options are naturally caught by the target CLI itself, producing
     standard Click error messages like "No such option: --foo".
