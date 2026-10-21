@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.5.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.5.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.5.0` (2026-10-21)](https://github.com/kdeldycke/click-extra/compare/v9.4.1...v9.5.0)
 
 - **Deprecated:** `click_extra.version.visible_width` is `click_extra.layout.cell_width` under its own name, and stops resolving in `10.0.0`.
