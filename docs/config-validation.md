@@ -145,11 +145,11 @@ $ echo $?
 
 The exit codes are:
 
-| Exit code | Meaning                              |
-| :-------- | :----------------------------------- |
-| `0`       | Configuration file is valid          |
-| `1`       | Validation error (unrecognized keys) |
-| `2`       | File not found or cannot be parsed   |
+| Exit code | Meaning                                                     |
+| :-------- | :---------------------------------------------------------- |
+| `0`       | Configuration file is valid                                 |
+| `1`       | Validation error (unrecognized keys)                        |
+| `2`       | File not found, cannot be parsed, or holds no configuration |
 
 ```{note}
 `--validate-config` always validates in [strict mode](#strictness), regardless of the `strict` setting on `@config_option`. It requires a sibling `@config_option` decorator to be present on the same command.

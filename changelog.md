@@ -73,6 +73,7 @@
 - Load a configuration file without importing the lazy subcommands an `included_params` allowlist leaves out: `included_params=()` imports none of them.
 - Load an empty configuration from an explicit `--config` with nothing to read, like `/dev/null`, `nul` on Windows or an empty file, which exited with code `2`. Closes [#2005](https://github.com/kdeldycke/click-extra/issues/2005).
 - Read a named pipe given to `--config` like a file, which reported that no configuration file was found.
+- Name the format of a `--config` file that parses to nothing, like a TOML file of comments only, where it reported a parse error.
 
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)
 

@@ -249,6 +249,21 @@ def _join_format_labels(formats: Iterable[ConfigFormat]) -> str:
     return f"{', '.join(labels[:-1])} or {labels[-1]}"
 
 
+class _EmptyConfigError(ValueError):
+    """A file the user names parses, but holds no configuration.
+
+    Like a TOML file of comments only, or an argfile naming no option. The message
+    names the formats that parse it, which says how the file was read: a file of
+    `key = value` lines named `*.conf` is read as an argfile, not as INI.
+    """
+
+    def __init__(self, location: Path | URL, formats: Iterable[ConfigFormat]) -> None:
+        super().__init__(
+            f"{location} parses as {_join_format_labels(formats)} "
+            "but holds no configuration."
+        )
+
+
 def _coerce_scalar(target_type: type | None, raw_value: str, subject: str) -> Any:
     """Convert text read from a typeless format to a parameter's Python type.
 
@@ -1402,7 +1417,9 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         ```{attention}
         Formats whose parsing raises an exception or does not return a `dict`
-        are considered a failure and are skipped.
+        are considered a failure and are skipped. A format parsing the content
+        to `None`, as YAML does for a document of comments only, yields an empty
+        `dict` instead.
 
         This follows the *parse, don't validate* principle.
         ```
@@ -1434,7 +1451,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                 continue
 
             # A parseable but empty configuration is expected to return an empty dict.
-            if not isinstance(conf, dict) or conf is None:
+            if conf is None:
+                conf = {}
+            elif not isinstance(conf, dict):
                 logger.debug(
                     f"{fmt} parsing failed: expecting a dict, got {conf!r} instead."
                 )
@@ -1504,20 +1523,15 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         return next(iter(self._search_pyproject_cwd_all()), (None, None))
 
-    def read_and_parse_all_conf(
+    def _parse_matches(
         self,
         pattern: str,
-        *,
-        allow_empty: bool = False,
-    ) -> Iterable[tuple[Path | URL, dict[str, Any]]]:
-        """Search for every parseable configuration file matching `pattern`.
+    ) -> Iterable[tuple[Path | URL, dict[str, Any] | None, tuple[ConfigFormat, ...]]]:
+        """Parse every file matching `pattern`, in discovery order.
 
-        Yields `(location, parsed_conf)` pairs in discovery order, which is
-        the most local first: the original search location, then each parent
-        directory when parent search is enabled. Files already yielded (as
-        matched by their resolved location) are skipped, as are files that
-        parse to an empty configuration. A blank file is skipped too, unless
-        `allow_empty` is set: it is then yielded with an empty configuration.
+        Yields a `(location, conf, empty_formats)` triple per file, as
+        {meth}`_parse_one_conf` returns them. A file found again, as matched by its
+        resolved location, is skipped.
 
         Raises `FileNotFoundError` if no file at all matched the pattern.
         """
@@ -1529,12 +1543,26 @@ class ConfigOption(ExtraOption, ParamStructure):
                 continue
             seen.add(str(location))
 
-            conf = self._parse_one_conf(location, content, media_type)
-            if conf is None:
+            conf, empty_formats = self._parse_one_conf(location, content, media_type)
+            yield location, conf, empty_formats
+
+    def read_and_parse_all_conf(
+        self,
+        pattern: str,
+    ) -> Iterable[tuple[Path | URL, dict[str, Any]]]:
+        """Search for every parseable configuration file matching `pattern`.
+
+        Yields `(location, parsed_conf)` pairs in discovery order, which is
+        the most local first: the original search location, then each parent
+        directory when parent search is enabled. Files already yielded (as
+        matched by their resolved location) are skipped, as are files that
+        parse to an empty configuration.
+
+        Raises `FileNotFoundError` if no file at all matched the pattern.
+        """
+        for location, conf, _empty_formats in self._parse_matches(pattern):
+            if not conf:
                 logger.debug(f"No parseable configuration in {location}.")
-                continue
-            if not conf and not allow_empty:
-                logger.debug(f"Skipping blank {location}.")
                 continue
 
             yield location, conf
@@ -1544,7 +1572,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         location: Path | URL,
         content: str,
         media_type: str | None = None,
-    ) -> dict[str, Any] | None:
+    ) -> tuple[dict[str, Any] | None, tuple[ConfigFormat, ...]]:
         """Parse a single file's `content` into a configuration dict.
 
         Candidate formats come from two sources, and are tried in order until
@@ -1560,11 +1588,13 @@ class ConfigOption(ExtraOption, ParamStructure):
         still tried behind it. A media type never widens the format set either,
         as it is resolved against `file_format_patterns` alone.
 
-        Returns an empty dict for a blank source, one holding nothing but
-        whitespace, before any format is tried: there is nothing to parse, so a
-        source no format matches, like `/dev/null`, is blank too. Returns `None`
-        when the file matches no format or no parse attempt produces a non-empty
-        structure.
+        Returns a `(conf, empty_formats)` pair. `conf` is the first non-empty
+        structure a format produces, or an empty dict for a blank source, one
+        holding nothing but whitespace. A blank source is caught before any format
+        is tried: there is nothing to parse, so a source no format matches, like
+        `/dev/null`, is blank too. `conf` is `None` when the file matches no
+        format, or no parse attempt produces a non-empty structure:
+        `empty_formats` then names the formats that parse it to an empty one.
         """
         # Deferred imports: keep boltons.urlutils and wcmatch off the startup path
         # of every CLI.
@@ -1578,7 +1608,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             and format_from_path(location, _PATH_READ_FORMATS)
         ):
             logger.debug(f"{location} is blank.")
-            return {}
+            return {}, ()
 
         if isinstance(location, URL):
             filename = location.path_parts[-1]
@@ -1616,23 +1646,22 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         if not matching_formats:
             logger.debug(f"{location} does not match {self.file_pattern}.")
-            return None
+            return None, ()
 
         logger.debug(f"Parsing {location} with {','.join(map(str, matching_formats))}")
-        for conf in self.parse_conf(
-            content, formats=matching_formats, location=location
-        ):
-            if conf:
-                return conf
-            logger.debug("Empty configuration, try next format.")
+        empty_formats = []
+        for fmt in matching_formats:
+            for conf in self.parse_conf(content, formats=(fmt,), location=location):
+                if conf:
+                    return conf, ()
+                logger.debug("Empty configuration, try next format.")
+                empty_formats.append(fmt)
 
-        return None
+        return None, tuple(empty_formats)
 
     def read_and_parse_conf(
         self,
         pattern: str,
-        *,
-        allow_empty: bool = False,
     ) -> tuple[Path | URL, dict[str, Any]] | tuple[None, None]:
         """Search for a parseable configuration file.
 
@@ -1648,24 +1677,47 @@ class ConfigOption(ExtraOption, ParamStructure):
         - can be parsed successfully, and
         - produce a non-empty data structure.
 
-        `allow_empty` falls back to a blank match: when no match meets all the
-        criteria above, the first blank one is returned with an empty
-        configuration. This is how an explicit `--config /dev/null` loads.
-
         Raises `FileNotFoundError` if no configuration file was found matching the
         criteria above.
 
         Returns `(None, None)` if files were found but none could be parsed.
         """
+        return next(iter(self.read_and_parse_all_conf(pattern)), (None, None))
+
+    def _read_explicit_conf(
+        self,
+        pattern: str,
+    ) -> tuple[Path | URL, dict[str, Any]] | tuple[None, None]:
+        """Read the configuration at a location the user names on purpose.
+
+        Works like {meth}`read_and_parse_conf`, for `--config` and
+        `--validate-config`, with two differences when no match holds a
+        configuration:
+
+        - The first blank match loads an empty configuration. This is how
+          `--config /dev/null` runs the CLI on its defaults.
+        - Failing that, the first match that a format parses to nothing raises
+          {class}`_EmptyConfigError`, which names that format.
+
+        Raises `FileNotFoundError` if no file at all matched the pattern.
+
+        Returns `(None, None)` if files were found but no format could parse them.
+        """
         first_blank: tuple[Path | URL, dict[str, Any]] | None = None
-        for location, conf in self.read_and_parse_all_conf(
-            pattern, allow_empty=allow_empty
-        ):
+        first_empty: tuple[Path | URL, tuple[ConfigFormat, ...]] | None = None
+        for location, conf, empty_formats in self._parse_matches(pattern):
             if conf:
                 return location, conf
-            if first_blank is None:
-                first_blank = location, conf
-        return first_blank or (None, None)
+            if conf is not None:
+                first_blank = first_blank or (location, conf)
+            elif empty_formats:
+                first_empty = first_empty or (location, empty_formats)
+
+        if first_blank:
+            return first_blank
+        if first_empty:
+            raise _EmptyConfigError(*first_empty)
+        return None, None
 
     def load_ini_config(self, content: str) -> dict[str, Any]:
         """Utility method to parse INI configuration file.
@@ -2280,9 +2332,10 @@ class ConfigOption(ExtraOption, ParamStructure):
             elif not layers:
                 # A source the user points at with nothing in it, like `/dev/null`,
                 # loads an empty configuration. Autodiscovery skips it.
-                result = self.read_and_parse_conf(
-                    path_pattern, allow_empty=explicit_conf
-                )
+                if explicit_conf:
+                    result = self._read_explicit_conf(path_pattern)
+                else:
+                    result = self.read_and_parse_conf(path_pattern)
                 if result[0] is not None:
                     layers.append(result)
         # Exit the CLI if no user-provided config file was found. Else, it
@@ -2296,6 +2349,9 @@ class ConfigOption(ExtraOption, ParamStructure):
                     ctx.exit(2)
                 else:
                     logger.debug(message)
+        except _EmptyConfigError as ex:
+            logger.critical(str(ex))
+            ctx.exit(2)
         else:
             if not layers:
                 formats = _join_format_labels(self.file_format_patterns)
@@ -2497,9 +2553,8 @@ class ValidateConfigOption(ExtraOption):
     ```{note}
     The value is left `UNPROCESSED` so it accepts everything
     {class}`ConfigOption` accepts: a file, a folder, a glob pattern, or an
-    `http://` or `https://` URL. Both options hand their value to the same
-    {meth}`ConfigOption.read_and_parse_conf`, so a configuration a CLI can
-    load is a configuration it can also validate.
+    `http://` or `https://` URL. Both options read their value the same way,
+    so a configuration a CLI can load is a configuration it can also validate.
     ```
     """
 
@@ -2561,11 +2616,12 @@ class ValidateConfigOption(ExtraOption):
 
         # Read and parse the config file.
         try:
-            _conf_path, user_conf = config_option.read_and_parse_conf(
-                value, allow_empty=True
-            )
+            _conf_path, user_conf = config_option._read_explicit_conf(value)
         except FileNotFoundError:
             info_msg(f"Configuration file not found: {value}")
+            ctx.exit(2)
+        except _EmptyConfigError as ex:
+            info_msg(str(ex))
             ctx.exit(2)
 
         if user_conf is None:

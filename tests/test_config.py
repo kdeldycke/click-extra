@@ -746,6 +746,36 @@ def test_conf_blank_source(invoke, simple_config_cli, create_config, filename, c
     assert result.exit_code == 0
 
 
+@pytest.mark.parametrize(
+    ("filename", "content", "label"),
+    [
+        pytest.param("comments.toml", "# Nothing here.\n", "TOML", id="toml-comments"),
+        pytest.param("comments.yaml", "# Nothing here.\n", "YAML", id="yaml-comments"),
+        pytest.param("braces.json", "{}\n", "JSON", id="json-empty-object"),
+        pytest.param("null.json", "null\n", "JSON", id="json-null"),
+    ],
+)
+def test_conf_parses_to_nothing(
+    invoke, simple_config_cli, create_config, filename, content, label
+):
+    """Explicit --config parsing to nothing names its format, not a parse error."""
+    conf_path = create_config(filename, content)
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        str(conf_path),
+        "default",
+        color=False,
+    )
+    assert not result.stdout
+    assert result.stderr == (
+        f"Load configuration matching {conf_path}\n"
+        f"critical: {conf_path.resolve()} parses as {label} "
+        "but holds no configuration.\n"
+    )
+    assert result.exit_code == 2
+
+
 @pytest.mark.parametrize("explicit", [True, False], ids=["explicit", "autodiscovery"])
 def test_conf_blank_file_never_shadows_a_configuration(invoke, tmp_path, explicit):
     """A blank file loses to a configuration the same pattern matches after it."""
@@ -1964,15 +1994,23 @@ def test_argfile_unknown_option_ignored_when_not_strict(invoke, create_config):
 
 
 @pytest.mark.parametrize(
-    "conf_text",
+    ("conf_text", "message"),
     [
-        pytest.param("--name\n", id="missing-value"),
-        pytest.param("# Only a comment.\n", id="comment-only"),
-        pytest.param("key = value\n", id="foreign-ini-style"),
+        pytest.param("--name\n", "Error parsing file as", id="missing-value"),
+        pytest.param(
+            "# Only a comment.\n",
+            "{path} parses as Argfile but holds no configuration.",
+            id="comment-only",
+        ),
+        pytest.param(
+            "key = value\n",
+            "{path} parses as Argfile but holds no configuration.",
+            id="foreign-ini-style",
+        ),
     ],
 )
-def test_argfile_unparsable_conf(invoke, create_config, conf_text):
-    """An argfile that produces no option is skipped like any other format."""
+def test_argfile_unparsable_conf(invoke, create_config, conf_text, message):
+    """An argfile that produces no option is rejected, saying how it was read."""
 
     @command
     @option("--name", default="nobody")
@@ -1982,7 +2020,7 @@ def test_argfile_unparsable_conf(invoke, create_config, conf_text):
     conf_path = create_config("broken.conf", conf_text)
     result = invoke(argfile_cli, "--config", str(conf_path), color=False)
     assert not result.stdout
-    assert "critical: Error parsing file as" in result.stderr
+    assert f"critical: {message.format(path=conf_path.resolve())}" in result.stderr
     assert result.exit_code == 2
 
 
@@ -2068,14 +2106,18 @@ def test_sqlite_read_and_parse_conf(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "make_db",
+    ("make_db", "message"),
     [
-        pytest.param("garbage", id="garbage-content"),
-        pytest.param("missing-table", id="missing-table"),
-        pytest.param("empty-table", id="empty-table"),
+        pytest.param("garbage", "Error parsing file as", id="garbage-content"),
+        pytest.param("missing-table", "Error parsing file as", id="missing-table"),
+        pytest.param(
+            "empty-table",
+            "{path} parses as SQLite but holds no configuration.",
+            id="empty-table",
+        ),
     ],
 )
-def test_sqlite_conf_unparsable(invoke, simple_config_cli, tmp_path, make_db):
+def test_sqlite_conf_unparsable(invoke, simple_config_cli, tmp_path, make_db, message):
     """A SQLite file that cannot yield a configuration is rejected."""
     conf_path = tmp_path / "configuration.sqlite"
     if make_db == "garbage":
@@ -2091,7 +2133,7 @@ def test_sqlite_conf_unparsable(invoke, simple_config_cli, tmp_path, make_db):
         color=False,
     )
     assert result.exit_code == 2
-    assert "critical: Error parsing file as" in result.stderr
+    assert f"critical: {message.format(path=conf_path.resolve())}" in result.stderr
 
 
 SPLITTABLE_STDLIB_MODULES = frozenset((
@@ -4125,6 +4167,24 @@ def test_validate_config_unparsable(invoke, create_config):
     result = invoke(validate_cli, "--validate-config", str(conf_path), color=False)
     assert result.exit_code == 2
     assert "Error parsing" in result.stderr
+
+
+def test_validate_config_parses_to_nothing(invoke, create_config):
+    """--validate-config names the format a file parses to nothing with."""
+    conf_path = create_config("comments.toml", "# Nothing here.\n")
+
+    @click.command
+    @option("--dummy-flag/--no-flag")
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    result = invoke(validate_cli, "--validate-config", str(conf_path), color=False)
+    assert result.stderr == (
+        f"{conf_path.resolve()} parses as TOML but holds no configuration.\n"
+    )
+    assert result.exit_code == 2
 
 
 def test_validate_config_missing_file(invoke, tmp_path):
