@@ -44,6 +44,7 @@ import json
 import logging
 import os
 import shlex
+import stat
 from collections import ChainMap
 from collections.abc import Iterable
 from enum import Enum
@@ -197,6 +198,15 @@ fall between them.
 
 _JSON_ENCODED_TYPES = frozenset({list, tuple, set, frozenset, dict})
 """Parameter types a typeless format carries as JSON-serialized strings."""
+
+_PATH_READ_FORMATS = (ConfigFormat.SQLITE, ConfigFormat.PLIST)
+"""Formats a local file is parsed from by its path, not from its text.
+
+A SQLite database is binary, and so is the binary variant of a plist: see
+{meth}`ConfigOption.load_sqlite_config` and {meth}`ConfigOption.load_plist_config`.
+{meth}`ConfigOption.search_and_read_file` returns such a file with an empty
+placeholder as its content.
+"""
 
 
 class Sentinel(Enum):
@@ -1265,8 +1275,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         one matching the pattern. `location` is normalized and `content` raw.
         `media_type` is the bare `type/subtype` the server advertised in its
         `Content-Type` header, and is `None` for a local file, whose format is
-        derived from its name. Only files are returned, directories are silently
-        skipped.
+        derived from its name. Only regular files are returned, directories are
+        silently skipped. The exception is a `pattern` naming a character device
+        or a named pipe, like `/dev/null`: it is read from that path.
 
         This method returns the raw content of all matching patterns, without trying to
         parse them. If the content is empty, it is still returned as-is.
@@ -1331,6 +1342,20 @@ class ConfigOption(ExtraOption, ParamStructure):
                 pattern = str(win_path.as_posix())
                 logger.debug(f"Windows pattern converted from {win_path} to {pattern}")
 
+            # A path naming a character device or a named pipe, like the null
+            # device, is read as given. The glob below keeps to regular files, so a
+            # pattern never blocks on a pipe it happens to match, and could not find
+            # the `nul` device of Windows anyway, which no directory lists.
+            try:
+                mode = os.stat(pattern).st_mode
+            except OSError:
+                mode = 0
+            if stat.S_ISCHR(mode) or stat.S_ISFIFO(mode):
+                stream = Path(pattern)
+                logger.debug(f"Read {stream} as a stream.")
+                yield stream, stream.read_text(encoding="utf-8"), None
+                return
+
             for root_dir, file_pattern in self.parent_patterns(pattern):
                 # Sort matches within each directory: iglob yields in filesystem
                 # order, so without this the winner among sibling files (and
@@ -1349,12 +1374,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                         logger.debug(f"Skipping non-file {file_path}")
                         continue
                     files_found += 1
-                    if format_from_path(
-                        file_path, (ConfigFormat.SQLITE, ConfigFormat.PLIST)
-                    ):
-                        # SQLite databases and binary plists are read from
-                        # their path, not from a text payload: see
-                        # load_sqlite_config() and load_plist_config().
+                    if format_from_path(file_path, _PATH_READ_FORMATS):
                         yield file_path, "", None
                     else:
                         yield file_path, file_path.read_text(encoding="utf-8"), None
@@ -1487,6 +1507,8 @@ class ConfigOption(ExtraOption, ParamStructure):
     def read_and_parse_all_conf(
         self,
         pattern: str,
+        *,
+        allow_empty: bool = False,
     ) -> Iterable[tuple[Path | URL, dict[str, Any]]]:
         """Search for every parseable configuration file matching `pattern`.
 
@@ -1494,7 +1516,8 @@ class ConfigOption(ExtraOption, ParamStructure):
         the most local first: the original search location, then each parent
         directory when parent search is enabled. Files already yielded (as
         matched by their resolved location) are skipped, as are files that
-        parse to an empty configuration.
+        parse to an empty configuration. A blank file is skipped too, unless
+        `allow_empty` is set: it is then yielded with an empty configuration.
 
         Raises `FileNotFoundError` if no file at all matched the pattern.
         """
@@ -1509,6 +1532,9 @@ class ConfigOption(ExtraOption, ParamStructure):
             conf = self._parse_one_conf(location, content, media_type)
             if conf is None:
                 logger.debug(f"No parseable configuration in {location}.")
+                continue
+            if not conf and not allow_empty:
+                logger.debug(f"Skipping blank {location}.")
                 continue
 
             yield location, conf
@@ -1534,13 +1560,25 @@ class ConfigOption(ExtraOption, ParamStructure):
         still tried behind it. A media type never widens the format set either,
         as it is resolved against `file_format_patterns` alone.
 
-        Returns `None` when the file matches no format or no parse attempt
-        produces a non-empty structure.
+        Returns an empty dict for a blank source, one holding nothing but
+        whitespace, before any format is tried: there is nothing to parse, so a
+        source no format matches, like `/dev/null`, is blank too. Returns `None`
+        when the file matches no format or no parse attempt produces a non-empty
+        structure.
         """
         # Deferred imports: keep boltons.urlutils and wcmatch off the startup path
         # of every CLI.
         from boltons.urlutils import URL
         from wcmatch import fnmatch
+
+        # A file parsed from its path is never blank here: its content is an
+        # empty placeholder, which says nothing about the file itself.
+        if not content.strip() and not (
+            isinstance(location, Path)
+            and format_from_path(location, _PATH_READ_FORMATS)
+        ):
+            logger.debug(f"{location} is blank.")
+            return {}
 
         if isinstance(location, URL):
             filename = location.path_parts[-1]
@@ -1593,6 +1631,8 @@ class ConfigOption(ExtraOption, ParamStructure):
     def read_and_parse_conf(
         self,
         pattern: str,
+        *,
+        allow_empty: bool = False,
     ) -> tuple[Path | URL, dict[str, Any]] | tuple[None, None]:
         """Search for a parseable configuration file.
 
@@ -1602,18 +1642,30 @@ class ConfigOption(ExtraOption, ParamStructure):
         Only return the first match that:
 
         - exists,
-        - is a file,
+        - is a file, or a character device or a named pipe that `pattern` names,
         - is not empty,
         - match file format patterns,
         - can be parsed successfully, and
         - produce a non-empty data structure.
+
+        `allow_empty` falls back to a blank match: when no match meets all the
+        criteria above, the first blank one is returned with an empty
+        configuration. This is how an explicit `--config /dev/null` loads.
 
         Raises `FileNotFoundError` if no configuration file was found matching the
         criteria above.
 
         Returns `(None, None)` if files were found but none could be parsed.
         """
-        return next(iter(self.read_and_parse_all_conf(pattern)), (None, None))
+        first_blank: tuple[Path | URL, dict[str, Any]] | None = None
+        for location, conf in self.read_and_parse_all_conf(
+            pattern, allow_empty=allow_empty
+        ):
+            if conf:
+                return location, conf
+            if first_blank is None:
+                first_blank = location, conf
+        return first_blank or (None, None)
 
     def load_ini_config(self, content: str) -> dict[str, Any]:
         """Utility method to parse INI configuration file.
@@ -2226,7 +2278,11 @@ class ConfigOption(ExtraOption, ParamStructure):
                     if str(layer[0]) not in found
                 )
             elif not layers:
-                result = self.read_and_parse_conf(path_pattern)
+                # A source the user points at with nothing in it, like `/dev/null`,
+                # loads an empty configuration. Autodiscovery skips it.
+                result = self.read_and_parse_conf(
+                    path_pattern, allow_empty=explicit_conf
+                )
                 if result[0] is not None:
                     layers.append(result)
         # Exit the CLI if no user-provided config file was found. Else, it
@@ -2505,7 +2561,9 @@ class ValidateConfigOption(ExtraOption):
 
         # Read and parse the config file.
         try:
-            _conf_path, user_conf = config_option.read_and_parse_conf(value)
+            _conf_path, user_conf = config_option.read_and_parse_conf(
+                value, allow_empty=True
+            )
         except FileNotFoundError:
             info_msg(f"Configuration file not found: {value}")
             ctx.exit(2)

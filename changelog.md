@@ -71,6 +71,8 @@
 - Name a CLI started from a package's `__main__` module after the package in `{exec_name}`, for a console script and a binary as for `python -m`.
 - Fix a Ctrl+C that could hang the process instead of ending it, when it landed while Click Extra updated its list of running subprocesses.
 - Load a configuration file without importing the lazy subcommands an `included_params` allowlist leaves out: `included_params=()` imports none of them.
+- Load an empty configuration from an explicit `--config` with nothing to read, like `/dev/null`, `nul` on Windows or an empty file, which exited with code `2`. Closes [#2005](https://github.com/kdeldycke/click-extra/issues/2005).
+- Read a named pipe given to `--config` like a file, which reported that no configuration file was found.
 
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)
 

@@ -24,6 +24,7 @@ import plistlib
 import re
 import subprocess
 import sys
+import threading
 import unittest.mock
 from dataclasses import dataclass, field
 from functools import partial
@@ -40,7 +41,7 @@ from extra_platforms import (
     is_unix_not_macos,
     is_windows,
 )
-from extra_platforms.pytest import unless_unix_not_macos
+from extra_platforms.pytest import skip_windows, unless_unix_not_macos
 from wcmatch import fnmatch, glob
 
 from click_extra import (
@@ -714,20 +715,81 @@ def test_conf_unparsable(invoke, simple_config_cli, create_config):
     assert result.exit_code == 2
 
 
-def test_conf_empty_file(invoke, simple_config_cli, create_config):
-    """Explicit --config pointing to an empty file."""
-    conf_path = create_config("empty.toml", "")
+@pytest.mark.parametrize(
+    ("filename", "content"),
+    [
+        pytest.param(None, None, id="null-device"),
+        pytest.param("empty.toml", "", id="empty-file"),
+        pytest.param("blank.yaml", "\n  \n", id="whitespace-only"),
+        pytest.param("empty.json", "", id="empty-json"),
+    ],
+)
+def test_conf_blank_source(invoke, simple_config_cli, create_config, filename, content):
+    """Explicit --config with nothing to read loads an empty configuration.
+
+    `/dev/null` (`nul` on Windows) is the Unix way to point a tool at no
+    configuration. An empty file means the same, even where its format calls it
+    invalid, like JSON. Every parameter then keeps its default.
+    """
+    conf_path = (
+        os.devnull if filename is None else str(create_config(filename, content))
+    )
     result = invoke(
         simple_config_cli,
         "--config",
-        str(conf_path),
+        conf_path,
         "default",
         color=False,
     )
-    assert not result.stdout
-    assert f"Load configuration matching {conf_path}\n" in result.stderr
-    assert "critical: Error parsing file as" in result.stderr
-    assert result.exit_code == 2
+    assert result.stdout == "dummy_flag = False\nmy_list = ()\nint_parameter = 10\n"
+    assert result.stderr == f"Load configuration matching {conf_path}\n"
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("explicit", [True, False], ids=["explicit", "autodiscovery"])
+def test_conf_blank_file_never_shadows_a_configuration(invoke, tmp_path, explicit):
+    """A blank file loses to a configuration the same pattern matches after it."""
+    (tmp_path / "a.toml").write_text("", encoding="utf-8")
+    (tmp_path / "b.toml").write_text("[orchard]\napples = 42\n", encoding="utf-8")
+    pattern = str(tmp_path / "*.toml")
+
+    @click.command
+    @option("--apples", type=int, default=0)
+    @config_option(default=pattern)
+    def orchard(apples):
+        echo(f"apples = {apples!r}")
+
+    args = ["--config", pattern] if explicit else []
+    result = invoke(orchard, args, color=False)
+    assert result.stdout == "apples = 42\n"
+    assert result.exit_code == 0
+
+
+@skip_windows(reason="os.mkfifo() does not exist on Windows.")
+def test_conf_named_pipe(invoke, simple_config_cli, tmp_path):
+    """A named pipe is read like a file: its content is the configuration."""
+    pipe = tmp_path / "configuration.toml"
+    os.mkfifo(pipe)
+    # Opening the pipe for writing blocks until the CLI opens it for reading.
+    writer = threading.Thread(
+        target=pipe.write_text,
+        args=(TOML_FILE,),
+        kwargs={"encoding": "utf-8"},
+        daemon=True,
+    )
+    writer.start()
+    result = invoke(
+        simple_config_cli,
+        "--config",
+        str(pipe),
+        "default",
+        color=False,
+    )
+    writer.join(timeout=10)
+    assert result.stdout == (
+        "dummy_flag = True\nmy_list = ('pip', 'npm', 'gem')\nint_parameter = 3\n"
+    )
+    assert result.exit_code == 0
 
 
 def test_no_config_option(invoke, simple_config_cli, create_config):
@@ -3949,6 +4011,21 @@ def test_validate_config_accepts_a_url(invoke, httpserver):
     )
     assert result.exit_code == 0
     assert "is valid" in result.stderr
+
+
+def test_validate_config_accepts_the_null_device(invoke):
+    """`/dev/null` is a valid configuration, as `--config` loads it."""
+
+    @click.command
+    @option("--dummy-flag/--no-flag")
+    @config_option
+    @validate_config_option
+    def validate_cli(dummy_flag):
+        echo(f"dummy_flag = {dummy_flag!r}")
+
+    result = invoke(validate_cli, "--validate-config", os.devnull, color=False)
+    assert result.stderr == f"Configuration file {os.devnull} is valid.\n"
+    assert result.exit_code == 0
 
 
 def test_validate_config_invalid_keys(invoke, create_config):

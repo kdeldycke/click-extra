@@ -8,7 +8,7 @@ After loading, the resolved file path, the full parsed document, and (when a `co
 
 ## Resolving a configuration file
 
-Before any value is read, Click Extra decides *which* file, if any, provides the configuration. An explicit `--config` (or its environment variable or interactive prompt) wins outright. Otherwise autodiscovery applies: `pyproject.toml` is searched from the current directory up to the VCS root, then the [app-dir search pattern](config-discovery.md) takes over. The first file that parses to a non-empty mapping is used, with no merging across files.
+Before any value is read, Click Extra decides *which* file, if any, provides the configuration. An explicit `--config` (or its environment variable or interactive prompt) wins outright. An explicit location with nothing to read, like an empty file or `/dev/null` (`nul` on Windows), loads an empty configuration: every parameter keeps its default. Otherwise autodiscovery applies: `pyproject.toml` is searched from the current directory up to the VCS root, then the [app-dir search pattern](config-discovery.md) takes over. The first file that parses to a non-empty mapping is used, with no merging across files.
 
 ```mermaid
 :align: center
@@ -25,8 +25,10 @@ flowchart TD
     exp -->|yes| search
     search --> parse{"a file parses to a non-empty config?"}
     parse -->|yes| win["First match wins, no merging"]
-    parse -->|"no, explicit"| fail["Exit with code 2"]
     parse -->|"no, auto-discover"| defaults["Use bare defaults"]
+    parse -->|"no, explicit"| empty{"an empty file matched?"}
+    empty -->|yes| defaults
+    empty -->|no| fail["Exit with code 2"]
 ```
 
 Once a file is selected, its values feed into the [precedence chain](#precedence) below: environment variables, CLI parameters, and interactive prompts all override what the file provides.

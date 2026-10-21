@@ -235,6 +235,8 @@ The search only considers matches that:
 
 All others are skipped, and the search continues with the next file. The next section covers how to change which formats are supported.
 
+A location naming a character device or a named pipe outright, like `/dev/null` (`nul` on Windows), is read like a file. When no match meets every rule above, an explicit `--config` falls back to the first empty match: it loads an empty configuration, and the CLI runs on its defaults.
+
 ## Format selection
 
 To limit the formats your CLI supports, use the `file_format_patterns` argument:
