@@ -2641,6 +2641,139 @@ def test_lazy_group_config_no_config_flag(invoke, create_config, tmp_path):
             sys.modules.pop(name, None)
 
 
+@pytest.fixture
+def orchard_modules(tmp_path):
+    """Put the `orchard_apple` and `orchard_banana` command modules on `sys.path`.
+
+    Both modules leave `sys.modules` before and after the test, so the test sees
+    which of them its CLI imports.
+    """
+    for fruit in ("apple", "banana"):
+        (tmp_path / f"orchard_{fruit}.py").write_text(
+            dedent(f"""\
+                import click
+
+                @click.command()
+                @click.option("--ripeness", default="green")
+                def {fruit}_cli(ripeness):
+                    click.echo(f"ripeness={{ripeness!r}}")
+                """),
+            encoding="utf-8",
+        )
+    module_names = ("orchard_apple", "orchard_banana")
+    for name in module_names:
+        sys.modules.pop(name, None)
+    sys.path.insert(0, str(tmp_path))
+    yield
+    sys.path.remove(str(tmp_path))
+    for name in module_names:
+        sys.modules.pop(name, None)
+
+
+@pytest.mark.parametrize(
+    ("included_params", "expected_stdout"),
+    [
+        pytest.param((), "dry_run=False\nripeness='green'\n", id="empty"),
+        pytest.param(
+            ("orchard.dry_run",), "dry_run=True\nripeness='green'\n", id="root_only"
+        ),
+        pytest.param(
+            ("orchard.apple.ripeness",),
+            "dry_run=False\nripeness='ripe'\n",
+            id="lazy_subcommand",
+        ),
+    ],
+)
+def test_lazy_group_included_params_imports(
+    invoke, create_config, orchard_modules, included_params, expected_stdout
+):
+    """A configuration loads without importing the lazy subcommands the allowlist
+    leaves out.
+
+    The walk building the parameter template skips each subcommand no allowed ID
+    lies under. The section of a subcommand the allowlist leaves out does not
+    reach it either, when the invocation imports it later.
+    """
+    conf_path = create_config(
+        "orchard.toml",
+        dedent("""\
+            [orchard]
+            dry_run = true
+
+            [orchard.apple]
+            ripeness = "ripe"
+
+            [orchard.banana]
+            ripeness = "ripe"
+            """),
+    )
+
+    @group(
+        cls=LazyGroup,
+        lazy_subcommands={
+            "apple": "orchard_apple.apple_cli",
+            "banana": "orchard_banana.banana_cli",
+        },
+        included_params=included_params,
+    )
+    @option("--dry-run", is_flag=True)
+    def orchard(dry_run):
+        echo(f"dry_run={dry_run!r}")
+
+    result = invoke(orchard, "--config", str(conf_path), "apple", color=False)
+    assert result.exit_code == 0, result.stderr
+    assert result.stdout == expected_stdout
+    assert "orchard_apple" in sys.modules
+    assert "orchard_banana" not in sys.modules
+
+
+def test_lazy_group_included_params_introspection(
+    invoke, create_config, orchard_modules
+):
+    """`--params`, `--export-config` and `--validate-config` honor an allowlist
+    for the subcommands its template walk skips.
+
+    The walk skips `banana`, so `excluded_params` lists none of its parameters.
+    """
+
+    @group(
+        cls=LazyGroup,
+        lazy_subcommands={
+            "apple": "orchard_apple.apple_cli",
+            "banana": "orchard_banana.banana_cli",
+        },
+        included_params=("orchard.apple.ripeness",),
+    )
+    @option("--dry-run", is_flag=True)
+    def orchard(dry_run):
+        echo(f"dry_run={dry_run!r}")
+
+    result = invoke(orchard, "--params", "--table-format", "json", color=False)
+    assert result.exit_code == 0, result.stderr
+    allowed = {row["ID"]: row["Allowed in conf?"] for row in json.loads(result.stdout)}
+    assert allowed["orchard.apple.ripeness"] is True
+    assert allowed["orchard.banana.ripeness"] is False
+    assert allowed["orchard.dry_run"] is False
+
+    result = invoke(orchard, "--export-config", "json", color=False)
+    assert result.exit_code == 0, result.stderr
+    assert json.loads(result.stdout) == {"orchard": {"apple": {"ripeness": "green"}}}
+
+    conf_path = create_config(
+        "orchard.toml",
+        dedent("""\
+            [orchard]
+            dry_run = true
+            """),
+    )
+    result = invoke(orchard, "--validate-config", str(conf_path), color=False)
+    assert result.exit_code == 1
+    assert (
+        "Configuration validation error: Configuration key 'dry_run' "
+        "is not allowed in configuration files." in result.stderr
+    )
+
+
 @pytest.mark.parametrize(
     ("file_format_patterns", "expected_pattern"),
     [

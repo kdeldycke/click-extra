@@ -1585,14 +1585,26 @@ class LazyGroup(Group):
     ) -> None:
         """Inject a lazy command's config into `ctx.default_map`.
 
-        Lazy commands are not yet registered when `ConfigOption.merge_default_map`
-        builds `params_template`, so their config sections get filtered out. This
-        method compensates by reading the full config from `ctx.meta` and placing
-        the lazy command's section into `ctx.default_map[cmd_name]`.
+        Covers a lazy command imported after the configuration loaded, which the
+        walk building `ConfigOption.params_template` did not reach, so its config
+        section never reached `default_map`. This method reads the full config
+        from `ctx.meta` and places the lazy command's section into
+        `ctx.default_map[cmd_name]`.
 
         Click will then pass that dict as the `default_map` of the command's own
         context.
+
+        An allowlist (`included_params`) on the root's `ConfigOption` turns the
+        injection off. Its walk imports each subcommand an allowed ID lies under,
+        so the template already carries every allowed value. A section injected
+        here would bypass the allowlist.
         """
+        if any(
+            isinstance(param, ConfigOption) and param.included_params is not None
+            for param in ctx.find_root().command.params
+        ):
+            return
+
         config_branch = _descend_to_group_config(ctx)
         if config_branch is None:
             return

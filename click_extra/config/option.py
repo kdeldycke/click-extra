@@ -2769,8 +2769,8 @@ class ExportConfigOption(ExtraOption):
         Walks the sibling {class}`ConfigOption`'s parameter structure, resolves
         each parameter's effective value by replaying
         {data}`~click_extra.context.RAW_ARGS` (falling back to defaults when the
-        command did not capture them), drops the
-        {attr}`~click_extra.parameters.ParamStructure.excluded_params`, and
+        command did not capture them), drops the parameters
+        {meth}`~click_extra.parameters.ParamStructure.is_excluded` rejects, and
         layers the coerced values into the ``{cli-name: {param: value, ...}}``
         shape a configuration file uses. Parameter keys are rendered in their
         kebab-case spelling, the canonical presentation for configuration
@@ -2783,11 +2783,6 @@ class ExportConfigOption(ExtraOption):
         harmless: {meth}`ConfigOption._install_default_map` cleans blank
         values out of the merged result.
         """
-        # Force the included_params -> excluded_params resolution that happens
-        # the first time the parameter tree is built.
-        config_option.params_objects  # noqa: B018
-        excluded = config_option.excluded_params
-
         opts = replay_raw_args(ctx)
         has_raw_args = context.get(ctx, context.RAW_ARGS) is not None
         if not has_raw_args:
@@ -2803,7 +2798,7 @@ class ExportConfigOption(ExtraOption):
 
         tree: dict[str, Any] = {}
         for keys, target in config_option.walk_params():
-            if PARAM_PATH_SEP.join(keys) in excluded:
+            if config_option.is_excluded(PARAM_PATH_SEP.join(keys)):
                 continue
             # A sub-tree the schema marks opaque holds app-owned data, not CLI
             # parameters: the loader hands it to the app's own validator, which

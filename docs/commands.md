@@ -1240,9 +1240,11 @@ assert result.exit_code == 0
 assert result.stdout == "carrots = 7\n"
 ```
 
-```{admonition} Lazy loading and the help screen
+```{admonition} Lazy loading, the help screen and configuration files
 :class: note
 A help screen prints the short help of every subcommand, so `--help` imports them all. Lazy loading pays off on a plain `mycli apple`, which imports the one module carrying `apple`.
+
+A configuration file also imports them all: `--config` matches the file against the parameters of every subcommand. An [`included_params`](config.md#including-parameters) allowlist limits that to the subcommands its IDs name, and `included_params=()` imports none of them.
 ```
 
 ## Third-party commands composition

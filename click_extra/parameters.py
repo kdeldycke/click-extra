@@ -66,7 +66,7 @@ from .types import EnumChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Sequence
     from pathlib import Path
     from typing import Any, ClassVar, Literal
 
@@ -705,14 +705,21 @@ class ParamStructure:
     `ConfigOption` resolves a dynamic default (or the user-provided list) within
     the active context. The two filters are mutually exclusive, a constraint each
     subclass enforces in its own constructor.
+
+    With an allowlist, this holds only the IDs that the walk of
+    {meth}`~click_extra.parameters.ParamStructure.build_param_trees` reaches and
+    the allowlist leaves out. Ask
+    {meth}`~click_extra.parameters.ParamStructure.is_excluded` about a parameter of
+    another subcommand.
     """
 
     included_params: frozenset[str] | None
     """Allowlist of parameter IDs, mutually exclusive with `excluded_params`.
 
-    `None` disables the allowlist. It is resolved into `excluded_params` by
-    {meth}`~click_extra.parameters.ParamStructure.build_param_trees`, once every
-    parameter ID is known.
+    `None` disables the allowlist. Otherwise
+    {meth}`~click_extra.parameters.ParamStructure.build_param_trees` walks only the
+    subcommands an allowed ID lies under, and resolves the parameters it reaches
+    into `excluded_params`.
     """
 
     @staticmethod
@@ -735,11 +742,15 @@ class ParamStructure:
         """
         return reduce(getitem, path, tree_dict)
 
-    def walk_params(self) -> Iterator[tuple[tuple[str, ...], click.Parameter]]:
+    def walk_params(
+        self,
+        *,
+        descend: Callable[[tuple[str, ...]], bool] | None = None,
+    ) -> Iterator[tuple[tuple[str, ...], click.Parameter]]:
         """Generate an unfiltered list of all CLI parameters.
 
         Everything is included, from top-level groups to subcommands, and from
-        options to arguments.
+        options to arguments, unless `descend` skips a subcommand.
 
         Yields a 2-element tuple:
             - a tuple of keys leading to the parameter;
@@ -748,11 +759,17 @@ class ParamStructure:
         Thin adapter over {func}`~click_extra.parameters.walk_command_params`: it
         resolves the root CLI from the active context and drops the per-parameter
         context that the free function also yields.
+
+        :param descend: passed on to
+            {func}`~click_extra.parameters.walk_command_params`, to skip the
+            subcommands it declines.
         """
         ctx = get_current_context()
         cli = ctx.find_root().command
         assert cli.name is not None
-        for keys, param, _ctx in walk_command_params(cli, ctx, (cli.name,)):
+        for keys, param, _ctx in walk_command_params(
+            cli, ctx, (cli.name,), descend=descend
+        ):
             yield keys, param
 
     TYPE_MAP: ClassVar[dict[type[ParamType], type[str | int | float | bool | list]]] = {
@@ -816,34 +833,62 @@ class ParamStructure:
 
         return ParamStructure.map_click_type(param.type)
 
+    def is_excluded(self, param_id: str) -> bool:
+        """Whether a configuration file cannot set the parameter `param_id`.
+
+        An allowlist answers alone: the parameter is excluded when
+        `included_params` does not name it. So the answer holds for a parameter
+        of a subcommand that the walk of
+        {meth}`~click_extra.parameters.ParamStructure.build_param_trees` skipped.
+        Without an allowlist, the parameter is excluded when `excluded_params`
+        lists it.
+
+        :param param_id: the fully-qualified ID of the parameter, its path keys
+            joined with {data}`~click_extra.parameters.PARAM_PATH_SEP`.
+        """
+        if self.included_params is not None:
+            return param_id not in self.included_params
+        return param_id in self.excluded_params
+
+    def _leads_to_included(self, keys: tuple[str, ...]) -> bool:
+        """Whether an ID of `included_params` lies under the subcommand at `keys`."""
+        assert self.included_params is not None
+        prefix = f"{PARAM_PATH_SEP.join(keys)}{PARAM_PATH_SEP}"
+        return any(param_id.startswith(prefix) for param_id in self.included_params)
+
     def build_param_trees(self) -> dict[str, Any]:
         """Build and return the parameters tree structure.
 
         This removes parameters whose fully-qualified IDs are in the `excluded_params`
         blocklist.
 
-        If `included_params` was provided, it is resolved into `excluded_params`
-        here, where all parameter IDs are available.
+        With an allowlist, the tree holds only the parameters `included_params`
+        names. The walk then skips each subcommand that no allowed ID lies under,
+        so it does not import a lazy subcommand of a
+        {class}`~click_extra.commands.LazyGroup` that the allowlist leaves out. An
+        empty allowlist walks the root command alone. The parameters the walk
+        reaches and the allowlist leaves out become `excluded_params`.
         """
-        # Resolve included_params into excluded_params before filtering.
-        if self.included_params is not None:
-            all_param_ids = frozenset(
-                PARAM_PATH_SEP.join(keys) for keys, _ in self.walk_params()
-            )
-            self.excluded_params = all_param_ids - self.included_params
+        descend = self._leads_to_included if self.included_params is not None else None
 
         # Deferred import: keeps deepmerge off the startup path of every CLI.
         from deepmerge import always_merger
 
         objects: dict[str, Any] = {}
+        reached_ids = set()
 
-        for keys, param in self.walk_params():
-            if PARAM_PATH_SEP.join(keys) in self.excluded_params:
+        for keys, param in self.walk_params(descend=descend):
+            param_id = PARAM_PATH_SEP.join(keys)
+            reached_ids.add(param_id)
+            if self.is_excluded(param_id):
                 continue
 
             objects = always_merger.merge(
                 objects, self.init_tree_dict(*keys, leaf=[param])
             )
+
+        if self.included_params is not None:
+            self.excluded_params = frozenset(reached_ids) - self.included_params
 
         return objects
 
@@ -1200,6 +1245,8 @@ def walk_command_params(
     cmd: click.Command,
     ctx: click.Context,
     parent_keys: tuple[str, ...] = (),
+    *,
+    descend: Callable[[tuple[str, ...]], bool] | None = None,
 ) -> Iterator[tuple[tuple[str, ...], click.Parameter, click.Context]]:
     """Walk the parameter tree of a Click command and all its subcommands.
 
@@ -1214,6 +1261,11 @@ def walk_command_params(
     A subcommand whose name collides with a sibling parameter at the same level
     is skipped: a single fully-qualified path cannot address both an option and
     a subcommand at once.
+
+    :param descend: called with the path keys of each subcommand, before the
+        group resolves it. The walk skips a subcommand for which it returns
+        `False`, so a lazy subcommand it declines is not imported. `None` walks
+        every subcommand.
     """
     level_param_names = set()
     for param in cmd.get_params(ctx):
@@ -1232,12 +1284,15 @@ def walk_command_params(
                     f"top-level parameter; excluded from parameter tree.",
                 )
                 continue
+            subcmd_keys = (*parent_keys, subcmd_name)
+            if descend is not None and not descend(subcmd_keys):
+                continue
             subcmd = cmd.get_command(ctx, subcmd_name)
             if subcmd is None:
                 continue
             subcmd_ctx = child_context(subcmd, ctx, subcmd_name)
             yield from walk_command_params(
-                subcmd, subcmd_ctx, (*parent_keys, subcmd_name)
+                subcmd, subcmd_ctx, subcmd_keys, descend=descend
             )
 
 
@@ -1468,8 +1523,7 @@ def render_params_table(
         # Whether the parameter is reachable from a configuration file.
         allowed_in_conf_bool = None
         if config_option:
-            config_option.params_template  # noqa: B018
-            allowed_in_conf_bool = path not in config_option.excluded_params
+            allowed_in_conf_bool = not config_option.is_excluded(path)
 
         row = format_param_row(param, owning_ctx, path, is_structured)
 

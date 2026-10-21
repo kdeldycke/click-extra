@@ -12,6 +12,7 @@
 - Add `LazyChoice` to `click_extra.types`, a `Choice` reading its values from a callable on first use, so a module providing them stays off the startup path of the CLI.
 - Add the `DEFAULT_FORMAT` and `DEFAULT_STYLE` constants to `click_extra.logging`.
 - Add `ConfigOption.apply_command_settings()`, which `@command` and `@group` call to hand their configuration settings to the default `--config` option.
+- Add `ParamStructure.is_excluded()`, and a `descend` argument to `walk_params()` and `walk_command_params()` that skips a subcommand without importing it.
 - Keep the built-in themes validator when `@command` or `@group` declares `config_validators`, which used to drop it.
 - Raise `TypeError` from `VersionOption.pin_field()` for a field the template does not know, as `@command(version_fields=...)` does.
 - Stop reading source files while `--version` locates the CLI module at startup.
@@ -68,6 +69,7 @@
 - Fix `--version` printing `None` in a binary Nuitka compiles with `--main-entry-point`, whether the entry point is a function or a command object.
 - Read the git and build fields baked into a package's `__init__.py` when the CLI sits in another module of that package, like `__main__`.
 - Name a CLI started from a package's `__main__` module after the package in `{exec_name}`, for a console script and a binary as for `python -m`.
+- Load a configuration file without importing the lazy subcommands an `included_params` allowlist leaves out: `included_params=()` imports none of them.
 
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)
 
