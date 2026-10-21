@@ -795,6 +795,57 @@ def test_second_ctrl_c_quits_while_tasks_finish(tmp_path, script, notice):
     assert "Traceback" not in stderr
 
 
+LOCKED_PRESS = """
+import signal
+
+import click
+
+from click_extra import execution
+
+{setup}
+with execution._LIVE_PROCESSES_LOCK:
+    signal.raise_signal(signal.SIGINT)
+"""
+"""A Ctrl+C that lands while the main thread holds the process registry lock."""
+
+
+@skip_windows
+@pytest.mark.parametrize(
+    "setup",
+    (
+        pytest.param(
+            'execution.install_interrupt_handler(click.Context(click.Command("tea")))',
+            id="first_press",
+        ),
+        pytest.param(
+            "signal.signal(signal.SIGINT, execution._second_interrupt)",
+            id="second_press",
+        ),
+    ),
+)
+def test_ctrl_c_while_the_registry_lock_is_held(tmp_path, setup):
+    """A Ctrl+C ends the process even when the main thread holds the registry lock.
+
+    Both handlers stop the running subprocesses, which takes that lock. The main
+    thread takes it too, as when the grace period of an interrupted run ends,
+    and a press landing in that moment used to block its handler for good.
+    """
+    script = tmp_path / "press.py"
+    script.write_text(LOCKED_PRESS.format(setup=setup), encoding="UTF-8")
+    try:
+        result = subprocess.run(
+            (sys.executable, str(script)),
+            capture_output=True,
+            text=True,
+            encoding="UTF-8",
+            timeout=20,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail("The Ctrl+C handler hung on the registry lock.")
+    assert result.returncode == -signal.SIGINT, result.stderr
+
+
 STUBBORN_CHILDREN_CLI = """
 import os
 import sys

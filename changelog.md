@@ -69,6 +69,7 @@
 - Fix `--version` printing `None` in a binary Nuitka compiles with `--main-entry-point`, whether the entry point is a function or a command object.
 - Read the git and build fields baked into a package's `__init__.py` when the CLI sits in another module of that package, like `__main__`.
 - Name a CLI started from a package's `__main__` module after the package in `{exec_name}`, for a console script and a binary as for `python -m`.
+- Fix a Ctrl+C that could hang the process instead of ending it, when it landed while Click Extra updated its list of running subprocesses.
 - Load a configuration file without importing the lazy subcommands an `included_params` allowlist leaves out: `included_params=()` imports none of them.
 
 ## [`9.4.1` (2026-10-04)](https://github.com/kdeldycke/click-extra/compare/v9.4.0...v9.4.1)

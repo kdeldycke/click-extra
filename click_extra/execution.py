@@ -927,9 +927,14 @@ from several worker threads at once.
 """
 
 
-_LIVE_PROCESSES_LOCK: Final = threading.Lock()
-"""Guards {data}`_LIVE_PROCESSES` and {data}`_GROUP_LEADERS` against concurrent
-mutation by worker threads."""
+_LIVE_PROCESSES_LOCK: Final = threading.RLock()
+"""Guards {data}`_LIVE_PROCESSES`, {data}`_GROUP_LEADERS` and
+{data}`_STRAY_DESCENDANTS` against concurrent mutation by worker threads.
+
+Reentrant, because the Ctrl+C handlers call {func}`terminate_live_processes` in
+the main thread, which can hold the lock at that moment: an interrupted run takes
+it when its grace period ends. A plain lock would block the handler for good.
+"""
 
 
 _GROUP_LEADERS: Final[set[subprocess.Popen[str]]] = set()
