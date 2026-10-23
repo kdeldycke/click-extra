@@ -313,6 +313,17 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
     which relies on the built-in `tomllib`.
     ```
 
+    ```{todo}
+    Switch the `[toml]` extra from `tomlkit` to
+    [`tomlrt`](https://dimbleby.github.io/tomlrt/) once `requires-python` reaches
+    3.11, the oldest Python `tomlrt` supports. The switch covers this function,
+    `_serialize_toml_with_unset()`, `_render_toml()`, their tests and the `docs`
+    group. `tomlrt` refuses tuples, which `tomlkit` writes as arrays. It also
+    writes no header for a section that holds only subsections.
+    `_serialize_toml_with_unset()` must force that header for a section with
+    commented-out keys. Otherwise, those comments land in the table above.
+    ```
+
     :raises ValueError: the format has no serializer.
     """
     match fmt:
