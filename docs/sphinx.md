@@ -31,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter, [todo-list deduplication](#todo-list-deduplication), a one-line first column for [two-axis tables](table.md#two-axis-tables), the [man-page hook](man-page.md#from-a-sphinx-build), and [failing on chosen warnings](#failing-on-chosen-warnings). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter, [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column for [two-axis tables](table.md#two-axis-tables), the [man-page hook](man-page.md#from-a-sphinx-build), and [failing on chosen warnings](#failing-on-chosen-warnings). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -1109,6 +1109,23 @@ Set the flag to get Sphinx's raw output back, one entry per rendering:
 :caption: `conf.py`
 click_extra_dedupe_todos = False
 ```
+
+## Todos missing from the todo-list
+
+A docstring that no page renders never reaches `sphinx.ext.todo`, so the `todolist` page misses every `{todo}` written in it. This is the case for the docstring of a private module, of a private member that `:members:` skips, and of a nested function.
+
+`click_extra.sphinx` reports each of these todos as a warning of type `click_extra.todo_unrendered`, at the file and line of the directive. To fix one, move the `{todo}` into a docstring that a page renders, or into a page of the documentation.
+
+The check reads the source of every module in a package that `automodule` documents, private modules included. It finds the MyST fences (```` ```{todo} ```` and `:::{todo}`) and the reST directives (`.. todo::`), and skips the ones quoted in a code block. A docstring that autodoc renders under a re-exported path counts as rendered. Like the consistency checks of Sphinx, the check runs only on a build that reads at least one page, and only with `sphinx.ext.todo` and `todo_include_todos = True`.
+
+To fail the build on the warning, list it in [`click_extra_fail_on_warnings`](#failing-on-chosen-warnings):
+
+```{code-block} python
+:caption: `conf.py`
+click_extra_fail_on_warnings = ["click_extra.todo_unrendered"]
+```
+
+To silence it, list it in `suppress_warnings` instead.
 
 ## Failing on chosen warnings
 

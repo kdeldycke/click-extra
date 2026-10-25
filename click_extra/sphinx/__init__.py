@@ -178,6 +178,11 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       nor a `todolist`, and switched off with
       {data}`click_extra.sphinx.todos.DEDUPE_TODOS_CONFIG`. See
       {mod}`click_extra.sphinx.todos`.
+    - A {data}`click_extra.sphinx.todos.UNRENDERED_TODO_WARNING` warning for
+      each `{todo}` in a docstring that no page renders, which no `todolist`
+      can list. Inert on a project that does not enable `sphinx.ext.todo`, and
+      silenced through `suppress_warnings`. See
+      {mod}`click_extra.sphinx.todos`.
     - A one-line first column for every table whose top-left cell names both
       axes, like the `matrix` tables: a narrow screen scrolls the table
       instead of wrapping its labels. See {mod}`click_extra.sphinx.tables`.
@@ -234,8 +239,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     matrix.setup(app)
 
     # Collapse the duplicate `todolist` entries autodoc's repeated docstring
-    # renderings produce (see todos.py). Inert unless the project enables
-    # `sphinx.ext.todo` and writes a `todolist`.
+    # renderings produce, and warn about the docstring todos no page renders
+    # (see todos.py). Inert unless the project enables `sphinx.ext.todo`.
     todos.setup(app)
 
     # Keep the first column of a corner-labeled table on one line (see
