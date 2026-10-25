@@ -30,13 +30,8 @@ their own, worded by {func}`deprecation_message`, since each resolves to a value
 rather than to a module attribute: a pattern the converter no longer keeps, a
 field of a palette.
 
-```{todo}
-Cut all of it in the release recorded in {data}`REMOVAL_VERSION`: delete this
-module, every `__getattr__` hook that calls {func}`resolve_deprecated` or
-{func}`deprecation_message`, every form handled by a call to
-{func}`warn_deprecated_argument` or {func}`warn_deprecated_usage`, and their
-tests, exactly as the `9.0.0` release did with the previous batch.
-```
+The `{todo}` that schedules the removal of all of it is in the docstring of
+`click_extra/__init__.py`, where the todo list collects it.
 """
 
 from __future__ import annotations
