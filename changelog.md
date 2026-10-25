@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Fix dotted-key expansion splitting the keys of an extension point: a key ending in a dot logged a warning, or failed in strict mode.
+
 ## [`9.5.0` (2026-10-22)](https://github.com/kdeldycke/click-extra/compare/v9.4.1...v9.5.0)
 
 > [!NOTE]

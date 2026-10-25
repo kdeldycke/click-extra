@@ -2390,6 +2390,32 @@ def test_merge_default_map_standalone(invoke):
     assert "default_map=ChainMap({'flag_a': True}, {})" in result.stdout
 
 
+def test_merge_default_map_keeps_dotted_keys_in_opaque_subtree(invoke, caplog):
+    """merge_default_map leaves a dotted key inside an opaque sub-tree whole.
+
+    `themes` is the extension point every `ConfigOption` registers. A theme name
+    that ends in a dot is data, so the merge logs no empty-segment warning.
+    """
+
+    @click.command
+    @option("--flag-a/--no-flag-a")
+    @config_option
+    @no_config_option
+    @pass_context
+    def opaque_merge_cli(ctx, flag_a):
+        config_opt = next(p for p in ctx.command.params if isinstance(p, ConfigOption))
+        config_opt.merge_default_map(
+            ctx, {"opaque-merge-cli": {"flag_a": True, "themes": {"dusk.": {}}}}
+        )
+        echo(f"default_map={ctx.default_map}")
+
+    with caplog.at_level(logging.WARNING, logger="click_extra"):
+        result = invoke(opaque_merge_cli, "--no-config", color=False)
+    assert result.exit_code == 0
+    assert "default_map=ChainMap({'flag_a': True}, {})" in result.stdout
+    assert "contains empty segments" not in caplog.text
+
+
 def test_default_map_none_without_config(invoke):
     """Verify default_map is left alone when --no-config is used."""
 

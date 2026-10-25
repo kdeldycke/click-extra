@@ -202,6 +202,8 @@ Both forms are equivalent. You can also freely mix them in the same file:
 
 Dotted keys are expanded into nested dicts and deep-merged before the configuration is applied. This works across all [supported formats](config-formats.md), and at any nesting depth (for example, `"subcommand.nested.option"` expands to three levels).
 
+The expansion stops at an [extension point](config-validation.md#extending-validation). Its keys are data, so a dot inside one is part of the key.
+
 ```{hint}
 This is especially handy in formats like JSON that have no native section syntax, letting you keep a flat structure when the nesting would be excessive.
 ```

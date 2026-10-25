@@ -2000,6 +2000,15 @@ class ConfigOption(ExtraOption, ParamStructure):
         app_name = self._app_section_name(ctx)
         return app_name, self._resolve_app_section(user_conf, app_name)
 
+    def _rooted_opaque_paths(self, ctx: click.Context) -> tuple[str, ...]:
+        """Return the opaque paths, each prefixed with the app's section name.
+
+        Opaque paths are relative to the app's section. Rooted at the
+        configuration file, they locate their sub-trees in a whole document.
+        """
+        app_name = self._app_section_name(ctx)
+        return tuple(_rooted_path(app_name, path) for path in self._opaque_paths)
+
     def _strip_opaque_from_conf(
         self,
         ctx: click.Context,
@@ -2013,9 +2022,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         if not self._opaque_paths:
             return normalized_conf
-        app_name = self._app_section_name(ctx)
-        prefixed_paths = (_rooted_path(app_name, path) for path in self._opaque_paths)
-        return _strip_opaque_subtrees(normalized_conf, prefixed_paths)
+        return _strip_opaque_subtrees(normalized_conf, self._rooted_opaque_paths(ctx))
 
     def _resolve_app_section(
         self,
@@ -2102,9 +2109,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         the result to :py:meth:`_install_default_map`.
 
         Opaque sub-trees declared by the schema or by registered
-        {class}`~click_extra.config.schema.ConfigValidator` instances are stripped from the conf before the
-        CLI-parameter strict check, so user-controlled keys (like mappings whose
-        keys are data, not flag names) don't trip `strict=True`.
+        {class}`~click_extra.config.schema.ConfigValidator` instances are stripped from the conf before
+        dotted-key expansion and the CLI-parameter strict check, so user-controlled
+        keys (like mappings whose keys are data, not flag names) neither split on a
+        dot nor trip `strict=True`.
 
         ```{note}
         This recomputes the filtered config that
@@ -2115,7 +2123,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         method; it stays as the standalone entry point for external callers.
         ```
         """
-        normalized_conf = _normalize_conf(user_conf, strict=self.strict)
+        normalized_conf = _normalize_conf(
+            user_conf, strict=self.strict, opaque_paths=self._rooted_opaque_paths(ctx)
+        )
         normalized_conf = self._strip_opaque_from_conf(ctx, normalized_conf)
         # Scope the merge (and its strict check) to the app's own section, so
         # foreign sections in a shared file are ignored and legacy fallback

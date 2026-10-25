@@ -288,8 +288,10 @@ def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
     return expanded
 
 
-def _normalize_conf(conf: dict, strict: bool = False) -> dict:
-    """Strip reserved keys, then expand dotted keys into nested dicts.
+def _normalize_conf(
+    conf: dict, strict: bool = False, opaque_paths: Iterable[str] = ()
+) -> dict:
+    """Strip opaque sub-trees and reserved keys, then expand dotted keys.
 
     The single normalization recipe shared by :py:func:`run_config_validation`
     (Stage 1) and
@@ -297,8 +299,14 @@ def _normalize_conf(conf: dict, strict: bool = False) -> dict:
     document that gets validated and the document that gets merged into
     `default_map` are normalized identically. A change to the recipe applies to
     both at once instead of risking drift between the two call sites.
+
+    Opaque sub-trees leave before the expansion: their keys are data, not
+    parameter paths, so a dot inside one belongs to the key. `opaque_paths`
+    locates each one from the document root, as
+    :py:func:`_strip_opaque_subtrees` takes them.
     """
-    return _expand_dotted_keys(_strip_reserved_keys(conf), strict=strict)
+    stripped = _strip_opaque_subtrees(conf, opaque_paths)
+    return _expand_dotted_keys(_strip_reserved_keys(stripped), strict=strict)
 
 
 def _merge_into_template(
@@ -1261,7 +1269,8 @@ def run_config_validation(
 
     Stages, in order:
 
-    1. **Normalize.** Strip reserved keys and expand dotted keys.
+    1. **Normalize.** Strip opaque sub-trees and reserved keys, then expand
+       dotted keys.
     2. **Partition.** Split opaque sub-trees (schema extension fields plus every
        registered validator's `extension_path`) from the CLI-flag-bound
        content. Extracted sub-trees land in
@@ -1308,11 +1317,13 @@ def run_config_validation(
         errors.append(error)
         return not collect_all
 
-    # Stage 1: normalize.
-    normalized = _normalize_conf(user_conf, strict=strict)
+    opaque_paths = _opaque_paths(config_schema, config_validators)
+    rooted_paths = tuple(_rooted_path(app_name, path) for path in opaque_paths)
+
+    # Stage 1: normalize everything but the opaque sub-trees.
+    normalized = _normalize_conf(user_conf, strict=strict, opaque_paths=rooted_paths)
 
     # Stage 2: partition opaque sub-trees from CLI-flag-bound content.
-    opaque_paths = _opaque_paths(config_schema, config_validators)
     app_section = _select_app_section(user_conf, app_name, fallback_sections)
     opaque_subtrees: dict[str, dict[str, Any]] = {}
     for path in opaque_paths:
@@ -1322,8 +1333,9 @@ def run_config_validation(
 
     # Stage 3: strict-check the CLI-flag-bound part against the template.
     if params_template is not None:
-        prefixed_paths = (_rooted_path(app_name, path) for path in opaque_paths)
-        stripped = _strip_opaque_subtrees(normalized, prefixed_paths)
+        # Stage 1 removed every opaque sub-tree the file nests. This pass
+        # removes one whose path the file spells as a dotted key.
+        stripped = _strip_opaque_subtrees(normalized, rooted_paths)
         # Scope the strict check to the app's own section: foreign sections in
         # a shared file are not ours to police. Stage 2 already resolved the
         # section once, so the legacy-section warning is muted here.

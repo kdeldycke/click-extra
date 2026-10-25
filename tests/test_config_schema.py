@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from textwrap import dedent
 from types import SimpleNamespace
@@ -1513,6 +1514,56 @@ def test_validate_config_skips_opaque_field(invoke, create_config):
     )
     assert result.exit_code == 0
     assert "is valid" in result.stderr
+
+
+@pytest.mark.parametrize("strict", (True, False))
+def test_opaque_field_keeps_dotted_keys(invoke, create_config, caplog, strict):
+    """A dot in a key of an opaque sub-tree is part of the key, not a path.
+
+    Dotted-key expansion skips extension points, whose keys are data. A key with
+    a trailing, inner or doubled dot reaches the schema whole, logs no
+    empty-segment warning and passes strict mode.
+    """
+
+    @dataclass
+    class AppConfig:
+        harvest: dict[str, str] = field(default_factory=dict)
+
+    @click.group
+    @option("--dummy-flag/--no-flag")
+    @config_option(config_schema=AppConfig, strict=strict)
+    @pass_context
+    def dotted_opaque_cli(ctx, dummy_flag):
+        echo(f"harvest is {get_tool_config(ctx).harvest!r}")
+
+    @dotted_opaque_cli.command
+    def sub():
+        echo("sub")
+
+    conf_path = create_config(
+        "dotted_opaque.toml",
+        dedent("""\
+            [dotted-opaque-cli]
+            dummy_flag = true
+
+            [dotted-opaque-cli.harvest]
+            "Pick when ripe." = "apple"
+            "citrus.*" = "orange"
+            "plum..damson" = "plum"
+            """),
+    )
+
+    with caplog.at_level(logging.WARNING, logger="click_extra"):
+        result = invoke(
+            dotted_opaque_cli, "--config", str(conf_path), "sub", color=False
+        )
+    assert result.exit_code == 0
+    assert (
+        "harvest is {'Pick when ripe.': 'apple', 'citrus.*': 'orange', "
+        "'plum..damson': 'plum'}"
+    ) in result.stdout
+    assert "contains empty segments" not in caplog.text
+    assert "contains empty segments" not in result.stderr
 
 
 # ConfigValidator: app-registered validators run against opaque sub-trees
