@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Add a `click_extra.todo_unrendered` Sphinx warning for each `{todo}` in a docstring that no page renders, which no `todolist` can list.
+- Measure test coverage with `coverage run` instead of `pytest-cov`, which the `test` dependency group no longer installs.
 - Fix dotted-key expansion splitting the keys of an extension point: a key ending in a dot logged a warning, or failed in strict mode.
 - Fix the todo-list deduplication keeping two entries for an attribute that a package re-exports.
 - Fix the git fields of `--version` raising on a branch or tag name that is no UTF-8, and read them as UTF-8 on Windows too.

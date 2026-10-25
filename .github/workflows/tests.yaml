@@ -308,8 +308,10 @@ jobs:
 
       - name: Unittests
         # The one job running the whole suite, so the one expected to clear the
-        # `[tool.coverage] report.fail_under` floor. No `--cov-fail-under` here:
-        # the flag outranks the config and would shadow the ratchet.
+        # `[tool.coverage] report.fail_under` floor. `coverage run` starts before
+        # pytest imports the package as a plugin: see `[tool.coverage]` in
+        # pyproject.toml. No `--fail-under` here: the flag outranks the config and
+        # would shadow the ratchet.
         env:
           CLICK_VERSION: ${{ matrix.click-version }}
           CLOUP_VERSION: ${{ matrix.cloup-version }}
@@ -323,6 +325,6 @@ jobs:
             with_args+=(--with "git+https://github.com/janluke/cloup.git@${CLOUP_VERSION}")
           fi
           uv --no-progress run --frozen "${with_args[@]}" -- \
-            pytest -m "not once" \
-            --cov \
-            --cov-report=term
+            coverage run --module pytest -m "not once"
+          uv --no-progress run --frozen -- coverage combine --quiet
+          uv --no-progress run --frozen -- coverage report --show-missing

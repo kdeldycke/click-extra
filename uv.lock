@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -394,7 +394,6 @@ test = [
     { name = "myst-parser", version = "5.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pymdown-extensions" },
     { name = "pytest" },
-    { name = "pytest-cov" },
     { name = "pytest-github-actions-annotate-failures" },
     { name = "pytest-httpserver" },
     { name = "pytest-randomly" },
@@ -413,6 +412,9 @@ typing = [
     { name = "types-tabulate" },
     { name = "types-xmltodict" },
 ]
+
+[package.group-requires-python]
+docs = ">=3.14"
 
 [package.metadata]
 requires-dist = [
@@ -470,7 +472,7 @@ docs = [
 ]
 test = [
     { name = "backports-strenum", marker = "python_full_version < '3.11'", specifier = ">=1.3" },
-    { name = "coverage", extras = ["toml"], specifier = ">=7.11" },
+    { name = "coverage", extras = ["toml"], specifier = ">=7.13" },
     { name = "extra-platforms", extras = ["pytest"], specifier = ">=13.4" },
     { name = "jsonschema", specifier = ">=4.18" },
     { name = "mkdocs", specifier = ">=1.4" },
@@ -478,7 +480,6 @@ test = [
     { name = "myst-parser", specifier = ">=4" },
     { name = "pymdown-extensions", specifier = ">=10" },
     { name = "pytest", specifier = ">=9" },
-    { name = "pytest-cov", specifier = ">=7" },
     { name = "pytest-github-actions-annotate-failures", specifier = ">=0.2" },
     { name = "pytest-httpserver", specifier = ">=1.1" },
     { name = "pytest-randomly", specifier = ">=3" },
@@ -1281,20 +1282,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e4/47/b9efed96c114afcfa3c9d3fe98a76a1d14c74a9e266d397cf6eb64be5e01/pytest-9.1.1.tar.gz", hash = "sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313", size = 1636369, upload-time = "2026-06-19T10:58:32.857Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl", hash = "sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c", size = 386536, upload-time = "2026-06-19T10:58:31.347Z" },
-]
-
-[[package]]
-name = "pytest-cov"
-version = "7.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "coverage", extra = ["toml"] },
-    { name = "pluggy" },
-    { name = "pytest" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/51/a849f96e117386044471c8ec2bd6cfebacda285da9525c9106aeb28da671/pytest_cov-7.1.0.tar.gz", hash = "sha256:30674f2b5f6351aa09702a9c8c364f6a01c27aae0c1366ae8016160d1efc56b2", size = 55592, upload-time = "2026-03-21T20:11:16.284Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9d/7a/d968e294073affff457b041c2be9868a40c1c71f4a35fcc1e45e5493067b/pytest_cov-7.1.0-py3-none-any.whl", hash = "sha256:a0461110b7865f9a271aa1b51e516c9a95de9d696734a2f71e3e78f46e1d4678", size = 22876, upload-time = "2026-03-21T20:11:14.438Z" },
 ]
 
 [[package]]
