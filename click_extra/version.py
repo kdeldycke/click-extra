@@ -215,6 +215,10 @@ def run_git(
             cwd=cwd,
             capture_output=True,
             text=True,
+            # Git prints a ref name as the bytes it stores, which a repository
+            # can hold in any encoding, and UTF-8 for the rest by default.
+            encoding="UTF-8",
+            errors="replace",
             check=True,
             timeout=5,
         )

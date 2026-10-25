@@ -74,6 +74,7 @@ from click_extra.version import (
     resolve_build_time,
     resolve_git_dirty,
     resolve_git_distance,
+    run_git,
 )
 
 from .conftest import skip_windows_colors
@@ -1406,6 +1407,48 @@ def test_resolve_git_distance(monkeypatch, describe_output, expected):
 def test_resolve_git_dirty(monkeypatch, status_output, expected):
     monkeypatch.setattr("click_extra.version.run_git", lambda *a, **k: status_output)
     assert resolve_git_dirty() == expected
+
+
+@pytest.mark.parametrize(
+    ("branch", "expected"),
+    (
+        # The `Á` holds a `0x81` byte, which cp1252, the encoding of Windows,
+        # cannot decode.
+        pytest.param("Ávila".encode(), "Ávila", id="utf-8"),
+        pytest.param(b"caf\xe9", "caf\ufffd", id="latin-1"),
+    ),
+)
+def test_run_git_decodes_a_branch_name(tmp_path, branch, expected):
+    """A branch name decodes as UTF-8, and a byte that is not becomes a replacement
+    character.
+
+    The branch goes in `packed-refs`: a loose ref is a file, and APFS refuses a
+    file name that is no UTF-8.
+    """
+    git = (
+        "git",
+        "-C",
+        str(tmp_path),
+        "-c",
+        "user.name=Ada",
+        "-c",
+        "user.email=ada@example.org",
+        "-c",
+        "commit.gpgsign=false",
+    )
+    subprocess.run((*git, "init", "--quiet"), check=True)
+    subprocess.run(
+        (*git, "commit", "--quiet", "--allow-empty", "--message", "Bake bread"),
+        check=True,
+    )
+    sha = subprocess.run(
+        (*git, "rev-parse", "HEAD"), capture_output=True, check=True
+    ).stdout.strip()
+    (tmp_path / ".git" / "packed-refs").write_bytes(
+        sha + b" refs/heads/" + branch + b"\n"
+    )
+    (tmp_path / ".git" / "HEAD").write_bytes(b"ref: refs/heads/" + branch + b"\n")
+    assert run_git("rev-parse", "--abbrev-ref", "HEAD", cwd=tmp_path) == expected
 
 
 # --- .git_archival.json fallback tests ---
