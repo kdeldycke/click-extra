@@ -57,8 +57,9 @@ hits it and none of them can fix it in their own source: `:no-index:` reads
 like the cure and is not.
 {class}`sphinx.ext.todo.TodoListProcessor` already flattens the whole domain
 in one place, which is where a `todo_deduplicate` config value would apply;
-the two helpers this module needed ({func}`todo_identity` and
-{func}`is_reexport`) are the whole of the logic.
+the helpers this module needed ({func}`todo_identity`, {func}`is_reexport`
+and the comparison of the objects behind two labels) are the whole of the
+logic.
 
 Should it land, keep this module as a shim for the Sphinx releases below
 that floor, then drop it once the floor moves past them.
@@ -139,6 +140,15 @@ block, so the lines inside one are read like any other line.
 """
 
 
+def _docstring_label(node: todo_node) -> str | None:
+    """Return the dotted path autodoc labeled the docstring of `node` with.
+
+    `None` for a node that comes from a document rather than from a docstring.
+    """
+    _, marker, dotted_path = (node.source or "").partition(AUTODOC_DOCSTRING_MARKER)
+    return dotted_path if marker else None
+
+
 def todo_identity(node: todo_node) -> tuple[str, int | None]:
     """Identify the `{todo}` directive a node was rendered from.
 
@@ -148,9 +158,10 @@ def todo_identity(node: todo_node) -> tuple[str, int | None]:
     docstring source precisely so a re-exported symbol matches the module that
     defines it.
     """
-    source = node.source or ""
-    _, marker, dotted_path = source.partition(AUTODOC_DOCSTRING_MARKER)
-    return (dotted_path if marker else source), node.line
+    label = _docstring_label(node)
+    if label is None:
+        label = node.source or ""
+    return label, node.line
 
 
 def is_reexport(node: todo_node) -> bool:
@@ -166,6 +177,29 @@ def is_reexport(node: todo_node) -> bool:
     return bool(marker) and Path(file_path).stem == "__init__"
 
 
+def _merge_key(node: todo_node, resolved: dict[str, object]) -> tuple[object, ...]:
+    """Return the key on which the renderings of one `{todo}` directive merge.
+
+    For a docstring whose label imports an object that `_identity` can tell
+    apart, the key is that object, the line and the text of the directive,
+    whatever label each rendering carries. The text keeps apart two attribute
+    docstrings of one shared object. For any other node, the key is
+    {func}`todo_identity`.
+
+    `resolved` caches the object behind each label. It also holds a reference
+    to each object, so that no `id()` is reused while the keys are compared.
+    """
+    label = _docstring_label(node)
+    if label is None:
+        return todo_identity(node)
+    if label not in resolved:
+        resolved[label] = _resolve_object(label)
+    target = _identity(resolved[label])
+    if target is None:
+        return todo_identity(node)
+    return target, node.line, node.astext()
+
+
 def deduplicate_todos(app: Sphinx, doctree: nodes.document, docname: str) -> None:
     """Drop every `todo` node duplicating one already held by the domain.
 
@@ -173,6 +207,12 @@ def deduplicate_todos(app: Sphinx, doctree: nodes.document, docname: str) -> Non
     {class}`sphinx.ext.todo.TodoListProcessor` runs at, and a no-op on any
     document holding no `todolist`, so the work happens once on the page that
     consumes the domain.
+
+    Two renderings come from one docstring when their labels import the same
+    object. autodoc labels a function or a class with the path of its defining
+    module, whatever path reached it, but labels an attribute or a property with
+    the path it documented: a re-exported attribute carries a different label
+    under its package and under its module, so only the object matches them.
 
     Among the renderings of one directive, the surviving node is the first in
     `(rendered through a defining module, document name, position in the
@@ -201,10 +241,11 @@ def deduplicate_todos(app: Sphinx, doctree: nodes.document, docname: str) -> Non
     if next(doctree.findall(todolist), None) is None:
         return
 
-    winners: dict[tuple[str, int | None], tuple[bool, str, int]] = {}
+    resolved: dict[str, object] = {}
+    winners: dict[tuple[object, ...], tuple[bool, str, int]] = {}
     for name in sorted(domain.todos):
         for position, node in enumerate(domain.todos[name]):
-            identity = todo_identity(node)
+            identity = _merge_key(node, resolved)
             rank = (is_reexport(node), name, position)
             current = winners.get(identity)
             if current is None or rank < current:
@@ -458,10 +499,9 @@ def report_unrendered_todos(app: Sphinx, env: BuildEnvironment) -> None:
     rendered = set()
     for todos in domain.todos.values():
         for node in todos:
-            source = node.source or ""
-            _, marker, dotted_path = source.partition(AUTODOC_DOCSTRING_MARKER)
-            if marker:
-                rendered.add(dotted_path)
+            label = _docstring_label(node)
+            if label is not None:
+                rendered.add(label)
 
     python_domain = env.domains.get("py")
     modules = python_domain.modules if python_domain is not None else {}

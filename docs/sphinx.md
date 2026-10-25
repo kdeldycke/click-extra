@@ -1095,7 +1095,7 @@ Which renders as:
 [`sphinx.ext.todo`](https://www.sphinx-doc.org/en/master/usage/extensions/todo.html) collects doctree nodes, not documented objects. A `{todo}` written once in a docstring therefore lands on the `todolist` page once per *rendering* of that docstring, and two conventions common to autodoc projects render one docstring several times:
 
 - **A full-API page plus per-feature pages.** A project that documents every module on one page, then documents the same modules again next to the prose explaining them, renders each docstring twice. Marking the second block `:no-index:` does not help: that option suppresses the cross-reference target and the search-index entry, and leaves the docstring rendered in full.
-- **A package that re-exports its members.** `automodule` documents the imported names a package lists in `__all__`, so a symbol shows up once under the package and once under the module defining it. Both renderings can land on the same page.
+- **A package that re-exports its members.** `automodule` documents the imported names a package lists in `__all__`, so a symbol shows up once under the package and once under the module defining it. Both renderings can land on the same page. autodoc labels a re-exported attribute with a different path under each, so the hook compares the objects the two paths import.
 
 The two multiply. Before this hook, [Click Extra's own todo-list](todolist.md) showed 35 entries for 17 distinct `{todo}` directives, one of them repeated four times.
 

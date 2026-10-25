@@ -99,6 +99,69 @@ GRAFTING_MODULE = dedent("""\
     """)
 """A module whose only todo sits in a private function, which `:members:` skips."""
 
+VARIETIES_MODULE = dedent("""\
+    \"\"\"Fruit varieties.\"\"\"
+
+
+    class Fruit:
+        \"\"\"A fruit.\"\"\"
+
+
+    APPLE = Fruit()
+    \"\"\"A crisp apple.
+
+    .. todo::
+       Pick the reddest one first.
+    \"\"\"
+
+    APPLE.__doc__ = \"\"\"A crisp apple.
+
+    .. todo::
+       Pick the reddest one first.
+    \"\"\"
+    """)
+"""A module whose attribute docstring the instance carries too.
+
+A registry of documented instances copies it this way, so that autodoc finds the
+docstring under a path that re-exports the attribute, where no source carries
+it. autodoc labels each rendering with the path it documented.
+"""
+
+VARIETIES_INIT = dedent("""\
+    \"\"\"An orchard.\"\"\"
+
+    from .varieties import APPLE
+
+    __all__ = ["APPLE"]
+    """)
+"""A package re-exporting the attribute of `VARIETIES_MODULE`."""
+
+BOWLS_MODULE = dedent("""\
+    \"\"\"Fruit bowls.\"\"\"
+
+
+    class Fruit:
+        \"\"\"A fruit.\"\"\"
+
+
+    BOWL = Fruit()
+
+    PEAR = BOWL
+    \"\"\"A pear.
+
+    .. todo::
+       Wait for autumn.
+    \"\"\"
+
+    QUINCE = BOWL
+    \"\"\"A quince.
+
+    .. todo::
+       Cook it first.
+    \"\"\"
+    """)
+"""Two attributes bound to one object, each with a todo of its own on one line."""
+
 UNRENDERED_RE = re.compile(
     r"(\S+):(\d+): WARNING: click_extra\.sphinx: no page renders the docstring "
     r"of (\S+), so no todolist can list this todo\."
@@ -306,6 +369,44 @@ def test_surviving_entry_attributes_to_the_defining_module(tmp_path):
     origins = [origin for _, origin, _ in entries]
     assert any("harvest.py:docstring of" in origin for origin in origins)
     assert not any("__init__.py:docstring of" in origin for origin in origins)
+
+
+def test_reexported_attribute_yields_one_entry(tmp_path):
+    """An attribute documented under its package and its module lists once.
+
+    The two renderings of its docstring carry different labels, the paths autodoc
+    documented: only the object behind both labels matches them.
+    """
+    package = "orchard_varieties"
+    entries = build_orchard(
+        tmp_path,
+        package,
+        {
+            "api": (
+                automodule(f"{package}.varieties")
+                + f"\n.. autodata:: {package}.APPLE\n"
+            ),
+        },
+        files={"__init__.py": VARIETIES_INIT, "varieties.py": VARIETIES_MODULE},
+    )
+    assert [origin.rsplit(" ", 1)[-1] for _, origin, _ in entries] == [
+        f"{package}.varieties.APPLE",
+    ]
+
+
+def test_attributes_sharing_an_object_keep_an_entry_each(tmp_path):
+    """Two docstrings of one object keep their entries, though the object matches."""
+    package = "orchard_bowls"
+    entries = build_orchard(
+        tmp_path,
+        package,
+        {"api": automodule(f"{package}.bowls")},
+        files={"bowls.py": BOWLS_MODULE},
+    )
+    assert sorted(origin.rsplit(" ", 1)[-1] for _, origin, _ in entries) == [
+        f"{package}.bowls.PEAR",
+        f"{package}.bowls.QUINCE",
+    ]
 
 
 def test_dedupe_switched_off_restores_every_rendering(tmp_path):
