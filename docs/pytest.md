@@ -130,6 +130,8 @@ That block runs on every documentation build: only the four lines the CLI actual
 
 {py:func}`~click_extra.pytest.runner` yields a {py:class}`~click_extra.testing.CliRunner` from inside an isolated filesystem, with `HOME` and its platform equivalents (`USERPROFILE`, `XDG_CONFIG_HOME`, `APPDATA`, `LOCALAPPDATA`) pointed at an empty subdirectory of it. A test therefore gets the same answers on a developer's machine and on a hermetic builder, both for the working directory the CLI writes into and for the configuration paths it derives from the home directory.
 
+The fixture also unsets every variable in {py:data}`~click_extra.color.COLOR_ENVVARS`, like `FORCE_COLOR` and `NO_COLOR`. A color variable set in the caller's shell would otherwise add ANSI codes to the output a test checks, or remove them. A test that wants color passes `env=` or `force_color=True` to `invoke`.
+
 {py:func}`~click_extra.pytest.invoke` is that runner's `invoke` method, which is the one most tests want:
 
 ```{code-block} python

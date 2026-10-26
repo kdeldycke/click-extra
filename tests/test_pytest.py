@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -24,7 +25,8 @@ import click
 import pytest
 from boltons.strutils import strip_ansi
 
-from click_extra import command, echo, option
+from click_extra import command, echo, option, style
+from click_extra.color import COLOR_ENVVARS
 from click_extra.pytest import (
     default_debug_colored_config,
     default_debug_colored_log_end,
@@ -107,3 +109,43 @@ def test_isolated_app_dir(invoke, isolated_app_dir):
     result = invoke(my_cli)
     assert result.exit_code == 0
     assert result.stdout == "dummy_flag = True\n"
+
+
+@pytest.fixture(params=sorted(COLOR_ENVVARS))
+def ambient_color_var(request, monkeypatch):
+    """One color variable set in the caller's shell, before `runner` starts.
+
+    Requested ahead of `runner` in a signature, so the variable is in place by the
+    time the fixture isolates the environment.
+    """
+    monkeypatch.setenv(request.param, "1")
+    return request.param
+
+
+def test_runner_ignores_ambient_color_vars(ambient_color_var, runner):
+    """A color variable of the caller's shell does not reach the invoked CLI.
+
+    Each one can switch the colors of the output a test matches as plain text.
+    """
+    assert ambient_color_var not in os.environ
+
+    @command
+    def my_cli():
+        echo(style("Apricot", fg="green"))
+
+    result = runner.invoke(my_cli)
+    assert result.exit_code == 0
+    assert result.stdout == "Apricot\n"
+
+
+def test_runner_lets_a_test_ask_for_color(runner):
+    """A variable passed to one invocation still turns its colors on."""
+
+    @command
+    def my_cli():
+        echo(style("Apricot", fg="green"))
+
+    result = runner.invoke(my_cli, env={"FORCE_COLOR": "1"})
+    assert result.exit_code == 0
+    assert result.stdout != "Apricot\n"
+    assert strip_ansi(result.stdout) == "Apricot\n"

@@ -32,6 +32,7 @@ import click
 import cloup
 from extra_platforms import is_windows
 
+from .color import COLOR_ENVVARS
 from .decorators import argument, command, group, option
 from .envvar import temporary_env
 from .testing import (
@@ -61,6 +62,11 @@ def runner():
     caller's `HOME`: hermetic builders set `HOME=/homeless-shelter`, which
     would otherwise leak into those assertions.
 
+    It also unsets every variable in {data}`~click_extra.color.COLOR_ENVVARS`. The
+    color option reads them, so a `FORCE_COLOR` or `CLICOLOR_FORCE` in the caller's
+    shell would otherwise leave ANSI codes in the output a test matches as plain
+    text. A test that wants them passes `env=` or `force_color=True` to `invoke()`.
+
     The environment is patched directly (via
     {func}`~click_extra.envvar.temporary_env`) rather than through the
     `monkeypatch` fixture on purpose: depending on `monkeypatch` here would
@@ -84,7 +90,7 @@ def runner():
     with runner.isolated_filesystem():
         home = os.path.join(os.getcwd(), "home")
         os.mkdir(home)
-        with temporary_env(dict.fromkeys(home_vars, home)):
+        with temporary_env(dict.fromkeys(home_vars, home), unset_vars=COLOR_ENVVARS):
             yield runner
 
 

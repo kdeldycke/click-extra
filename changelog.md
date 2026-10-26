@@ -10,6 +10,7 @@
 - Fix dotted-key expansion splitting the keys of an extension point: a key ending in a dot logged a warning, or failed in strict mode.
 - Fix the todo-list deduplication keeping two entries for an attribute that a package re-exports.
 - Fix the git fields of `--version` raising on a branch or tag name that is no UTF-8, and read them as UTF-8 on Windows too.
+- Fix the `runner` pytest fixture letting a color variable of the caller's shell, like `FORCE_COLOR`, add ANSI codes to the output a test checks.
 
 ## [`9.5.0` (2026-10-22)](https://github.com/kdeldycke/click-extra/compare/v9.4.1...v9.5.0)
 
