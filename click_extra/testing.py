@@ -219,6 +219,19 @@ We need to collect them to help us identify which extra parameters passed to
 This has been [reported upstream to Click project](https://github.com/pallets/click/issues/2110) but has been rejected and not
 considered an issue worth fixing.
 ```
+
+```{todo}
+[pallets/click#3896](https://github.com/pallets/click/pull/3896) adds a
+`context_settings` parameter to `click.testing.CliRunner.invoke()`. It sets the
+context color without the `Command.main()` patch in
+{meth}`~click_extra.testing.CliRunner.invoke`.
+
+On a Click release that carries it, this constant also catches
+`context_settings`, and the patch sends it to `Context`, which rejects it. On
+such a release, keep `context_settings` out of the collision set and pass
+`force_color` through it. Drop this constant and the patch once the Click floor
+of this package reaches that release.
+```
 """
 
 
