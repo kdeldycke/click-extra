@@ -68,9 +68,11 @@ from click_extra.version import (
     archival_field,
     colors_reach_output,
     default_facts,
+    direct_url_field,
     find_archival_file,
     is_main_module,
     read_archival,
+    read_direct_url,
     resolve_build_time,
     resolve_git_dirty,
     resolve_git_distance,
@@ -1557,6 +1559,99 @@ def test_archival_resolves_git_fields(tmp_path):
     assert opt.git_distance == "4"
     # No work tree in an archive, so dirtiness is unknowable.
     assert opt.git_dirty is None
+
+
+# --- direct_url.json fallback tests ---
+
+
+GIT_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+
+GIT_DIRECT_URL = {
+    "url": "https://github.com/orchard/apricot",
+    "vcs_info": {"vcs": "git", "requested_revision": "main", "commit_id": GIT_COMMIT},
+}
+
+
+def install_distribution(tmp_path, monkeypatch, direct_url: str | None) -> None:
+    """Install a fake `apricot` distribution, with a `direct_url.json` holding
+    *direct_url* unless it is `None`."""
+    dist_info = tmp_path / "apricot-1.2.3.dev0.dist-info"
+    dist_info.mkdir()
+    (dist_info / "METADATA").write_text(
+        "Metadata-Version: 2.1\nName: apricot\nVersion: 1.2.3.dev0\n",
+        encoding="utf-8",
+    )
+    if direct_url is not None:
+        (dist_info / "direct_url.json").write_text(direct_url, encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+
+@pytest.mark.parametrize(
+    ("data", "field_id", "expected"),
+    (
+        (GIT_DIRECT_URL, "git_long_hash", GIT_COMMIT),
+        (GIT_DIRECT_URL, "git_short_hash", "0123456"),
+        # A requested revision names a branch, a tag or a commit: none is guessed.
+        (GIT_DIRECT_URL, "git_branch", None),
+        (GIT_DIRECT_URL, "git_tag", None),
+        # Another VCS records a commit that is no Git hash.
+        (
+            {
+                "url": "https://hg.example/apricot",
+                "vcs_info": {"vcs": "hg", "commit_id": "a1b2"},
+            },
+            "git_long_hash",
+            None,
+        ),
+        # A local directory, editable or not, records no commit.
+        (
+            {"url": "file:///orchard", "dir_info": {"editable": True}},
+            "git_long_hash",
+            None,
+        ),
+        ({}, "git_short_hash", None),
+    ),
+)
+def test_direct_url_field(data, field_id, expected):
+    assert direct_url_field(data, field_id) == expected
+
+
+@pytest.mark.parametrize(
+    ("direct_url", "expected"),
+    (
+        (json.dumps(GIT_DIRECT_URL), GIT_DIRECT_URL),
+        (None, {}),
+        ("{not json", {}),
+        ("[]", {}),
+    ),
+)
+def test_read_direct_url(tmp_path, monkeypatch, direct_url, expected):
+    install_distribution(tmp_path, monkeypatch, direct_url)
+    assert read_direct_url("apricot") == expected
+
+
+@pytest.mark.parametrize("distribution", (None, "", "no-such-distribution"))
+def test_read_direct_url_unknown_distribution(distribution):
+    assert read_direct_url(distribution) == {}
+
+
+def test_direct_url_resolves_git_hashes(tmp_path, monkeypatch):
+    """A CLI installed from a Git URL names its commit, with no live git and no
+    archive."""
+    install_distribution(tmp_path, monkeypatch, json.dumps(GIT_DIRECT_URL))
+    mod = types.ModuleType("apricot.cli")
+    mod.__file__ = str(tmp_path / "apricot" / "cli.py")
+    mod.__package__ = "apricot"
+
+    opt = VersionOption()
+    opt.__dict__["module"] = mod
+    opt.__dict__["git_repo_path"] = None
+    opt.__dict__["_archival_data"] = {}
+
+    assert opt.git_long_hash == GIT_COMMIT
+    assert opt.git_short_hash == "0123456"
+    assert opt.version == "1.2.3.dev0+0123456"
+    assert opt.git_branch is None
 
 
 # --- dev-version hash assembly ---

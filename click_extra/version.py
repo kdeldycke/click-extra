@@ -21,10 +21,11 @@ and the live Git state) and renders them through a customizable, colorized
 message template.
 
 Git fields (`git_branch`, `git_short_hash`, ...) are resolved at runtime by
-shelling out to `git`, with two fallbacks for `git`-less environments: a
+shelling out to `git`, with three fallbacks for `git`-less environments: a
 pre-baked `__<field>__` dunder in the CLI module or its package (injected before
 build by {mod}`click_extra.prebake`), then a committed `.git_archival.json`
-populated by `git archive`.
+populated by `git archive`, then the commit an installer records for a
+distribution installed from a Git URL.
 """
 
 from __future__ import annotations
@@ -499,6 +500,56 @@ def archival_field(data: Mapping[str, str], field_id: str) -> str | None:
         # A bare "<tag>" means distance zero.
         match = _DESCRIBE_DISTANCE_RE.search(described)
         return match.group(1) if match else "0"
+    return None
+
+
+def read_direct_url(distribution: str | None) -> dict[str, Any]:
+    """Parse the `direct_url.json` record of an installed distribution.
+
+    [PEP 610](https://peps.python.org/pep-0610/) has installers write this record
+    beside the metadata of a distribution installed from a URL, like
+    `uvx --from git+https://...` or `pip install git+https://...`.
+
+    Returns an empty mapping when the distribution is not installed, carries no
+    record, or holds a record that is not a JSON object.
+    """
+    if not distribution:
+        return {}
+
+    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
+    from importlib import metadata
+
+    try:
+        text = metadata.distribution(distribution).read_text("direct_url.json")
+    except metadata.PackageNotFoundError:
+        return {}
+    try:
+        data = json.loads(text) if text else None
+    except ValueError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def direct_url_field(data: Mapping[str, Any], field_id: str) -> str | None:
+    """Resolve a `git_*` field from a parsed `direct_url.json` record.
+
+    Only an install from a Git URL records a commit: the full hash of the checkout
+    the installer built, in `vcs_info.commit_id`. It answers `git_long_hash`, and
+    its first 7 characters `git_short_hash`.
+
+    Every other field answers `None`. The `vcs_info.requested_revision` the record
+    may also hold names a branch, a tag or a commit, with nothing to tell which.
+    """
+    vcs_info = data.get("vcs_info")
+    if not isinstance(vcs_info, dict) or vcs_info.get("vcs") != "git":
+        return None
+    commit = vcs_info.get("commit_id")
+    if not isinstance(commit, str) or not commit:
+        return None
+    if field_id == "git_long_hash":
+        return commit
+    if field_id == "git_short_hash":
+        return commit[:7]
     return None
 
 
@@ -1417,8 +1468,8 @@ class VersionOption(ExtraOption):
         For development versions (containing `.dev`), automatically appends the Git
         short hash as a [PEP 440 local version identifier](https://peps.python.org/pep-0440/#local-version-identifiers), producing
         versions like `1.2.3.dev0+abc1234`. This helps identify the exact commit a
-        dev build was produced from. If Git is unavailable, the plain dev version is
-        returned.
+        dev build was produced from. When {attr}`git_short_hash` finds no commit,
+        the plain dev version is returned.
 
         Versions that already contain a `+` (a pre-baked local version
         identifier, typically set at build time by CI pipelines) are returned as-is
@@ -1492,13 +1543,27 @@ class VersionOption(ExtraOption):
         path = find_archival_file(self._search_start)
         return read_archival(path) if path else {}
 
+    @cached_property
+    def _direct_url_data(self) -> dict[str, Any]:
+        """Parsed `direct_url.json` record of the CLI's distribution, or an empty
+        mapping.
+
+        Only a distribution installed from a URL carries one. A wheel that
+        `uvx --from git+https://...` builds from a Git source ships no `.git`
+        directory, no substituted `.git_archival.json`, and no pre-baked dunder
+        unless the build ran `click-extra prebake`: this record is the one place
+        left that names its commit.
+        """
+        return read_direct_url(self._distribution_name)
+
     def _resolve_uniform_git_field(self, field_id: str) -> str | None:
         """Resolve a `git_*` field through the shared precedence.
 
         A pre-baked `__<field_id>__` dunder first, then the live value from
         {data}`GIT_RESOLVERS` (run inside {attr}`git_repo_path`), then the
-        `.git_archival.json` fallback, which answers `None` for a field it
-        does not carry.
+        `.git_archival.json` fallback, then the `direct_url.json` record of an
+        install from a Git URL. Both fallbacks answer `None` for a field they do
+        not carry.
 
         Valid for every field in {data}`GIT_RESOLVERS` but {attr}`git_tag_sha`,
         whose live value derives from a tag that may itself be pre-baked.
@@ -1510,6 +1575,7 @@ class VersionOption(ExtraOption):
             self._get_prebaked(field_id)
             or live
             or archival_field(self._archival_data, field_id)
+            or direct_url_field(self._direct_url_data, field_id)
         )
 
     @cached_property
@@ -1526,7 +1592,8 @@ class VersionOption(ExtraOption):
         """Returns the full Git commit hash.
 
         Checks for a pre-baked `__git_long_hash__` dunder first, then
-        `git rev-parse HEAD`, then `.git_archival.json`.
+        `git rev-parse HEAD`, then `.git_archival.json`, then the commit recorded
+        for an install from a Git URL.
         """
         return self._resolve_uniform_git_field("git_long_hash")
 
@@ -1535,8 +1602,9 @@ class VersionOption(ExtraOption):
         """Returns the short Git commit hash.
 
         Checks for a pre-baked `__git_short_hash__` dunder first, then
-        `git rev-parse --short HEAD`, then `.git_archival.json` (where it
-        is derived from the first 7 characters of the full hash).
+        `git rev-parse --short HEAD`, then `.git_archival.json`, then the commit
+        recorded for an install from a Git URL. Both fallbacks derive it from the
+        first 7 characters of the full hash.
 
         ```{hint}
         The short hash is usually the first 7 characters of the full hash, but this

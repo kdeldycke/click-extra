@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Add a `click_extra.todo_unrendered` Sphinx warning for each `{todo}` in a docstring that no page renders, which no `todolist` can list.
+- Read `{git_long_hash}` and `{git_short_hash}` from the `direct_url.json` record of a CLI installed from a Git URL, so its dev version names its commit.
 - Measure test coverage with `coverage run` instead of `pytest-cov`, which the `test` dependency group no longer installs.
 - Fix dotted-key expansion splitting the keys of an extension point: a key ending in a dot logged a warning, or failed in strict mode.
 - Fix the todo-list deduplication keeping two entries for an attribute that a package re-exports.

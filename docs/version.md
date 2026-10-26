@@ -99,7 +99,7 @@ The ``git_*`` variables are evaluated at runtime by calling ``git``. They return
 
 All ``git_*`` fields can be [pre-baked at build time](#pre-baking-git-metadata) by defining ``__<field>__`` dunder variables in the CLI module, or in the `__init__.py` of its package. Pre-baked values take priority over subprocess calls.
 
-The hash, date, branch, tag and distance fields also fall back to a [`.git_archival.json`](#git-metadata-in-archives) file, so they keep working when a CLI runs from a `git archive` export (like a GitHub source tarball) that has no `.git` directory.
+The hash, date, branch, tag and distance fields also fall back to a [`.git_archival.json`](#git-metadata-in-archives) file, so they keep working when a CLI runs from a `git archive` export (like a GitHub source tarball) that has no `.git` directory. The two hash fields then fall back to the commit recorded for a [CLI installed from a Git URL](#commit-of-an-install-from-a-git-url).
 ```
 
 ```{hint}
@@ -462,8 +462,14 @@ This is the schema used by [setuptools-scm](https://setuptools-scm.readthedocs.i
 ```
 
 ```{important}
-Substitution happens only inside `git archive` output. In a normal checkout the file still holds the literal `$Format:…$` placeholders, which Click Extra ignores in favor of live `git` calls. The resolution order for each field is: pre-baked dunder, then live `git`, then `.git_archival.json`.
+Substitution happens only inside `git archive` output. In a normal checkout the file still holds the literal `$Format:…$` placeholders, which Click Extra ignores in favor of live `git` calls. The resolution order for each field is: pre-baked dunder, then live `git`, then `.git_archival.json`, then [`direct_url.json`](#commit-of-an-install-from-a-git-url).
 ```
+
+## Commit of an install from a Git URL
+
+A CLI installed straight from a Git URL, like with `uvx --from git+https://...` or `pip install git+https://...`, runs from a wheel built out of a clone. That wheel holds no `.git` directory and no substituted `.git_archival.json`.
+
+The installer records the commit it built in a [`direct_url.json`](https://packaging.python.org/en/latest/specifications/direct-url/) file, beside the metadata of the distribution. Click Extra reads `{git_long_hash}` and `{git_short_hash}` from it, so the dev version of such an install still names its commit, as in `1.2.3.dev0+0123456`. The other `git_*` fields stay empty: the record holds no date, and the revision it names can be a branch, a tag or a commit.
 
 ## Colors
 
