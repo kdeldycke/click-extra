@@ -1902,6 +1902,14 @@ def progressbar(
     whose `color=None` resolves against `ctx.color`, so `--no-color` /
     `NO_COLOR` strip the bar's ANSI without any work from this wrapper.
     ```
+
+    ```{todo}
+    Drop `_flush_final_position()` and its call in this function once this
+    package's Click floor reaches `8.5.0`. That release carries
+    [pallets/click#3769](https://github.com/pallets/click/pull/3769), which makes
+    `ProgressBar.render_finish()` apply the pending steps itself. The floor is
+    `8.4.1` here.
+    ```
     """
     if hidden is None:
         hidden = not _progress_enabled()
