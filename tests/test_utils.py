@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import re
 from enum import Enum
 
 import pytest
@@ -62,7 +61,7 @@ def test_exception_chain_prefers_the_cause():
 
 
 def test_generator_tag():
-    assert re.fullmatch(r"Click Extra \d+\.\d+\.\d+(\.\w+)?", generator_tag())
+    assert generator_tag() == "Click Extra"
 
 
 def test_memoize_enums_seeds_every_member_of_a_held_class():

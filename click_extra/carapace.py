@@ -691,8 +691,8 @@ def dump_carapace_spec(
     Requires the optional PyYAML dependency (`click-extra[carapace]`). The
     output keeps Click's declaration order rather than sorting keys, so flags and
     subcommands line up with the help screen, and is prefixed with a provenance
-    header: the generator version, the `invocation` command line that produced
-    it (when given), and a link to the documentation.
+    header: the generator, the `invocation` command line that produced it
+    (when given), and a link to the documentation.
     """
     yaml = _require_yaml()
     spec = to_carapace_spec(command, prog_name, ctx)

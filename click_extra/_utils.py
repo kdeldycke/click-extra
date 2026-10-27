@@ -94,32 +94,20 @@ def console_script(name: str) -> EntryPoint | None:
 
 
 @cache
-def package_version() -> str | None:
-    """The installed version of Click Extra, or `None` without distribution metadata.
-
-    Metadata is missing from an uninstalled source tree and from a compiled binary
-    shipping none. Cached: the answer holds for the life of the process, and the
-    documents Click Extra generates stamp it on each of their pages.
-    """
-    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
-    from importlib import metadata
-
-    try:
-        return metadata.version("click-extra")
-    except metadata.PackageNotFoundError:
-        return None
-
-
 def generator_tag() -> str:
-    """Provenance tag for generated artifacts: `Click Extra <version>`.
+    """Provenance tag for generated artifacts: `Click Extra`.
 
     Stamped into the header comments of the documents Click Extra generates
     from a CLI (man pages, Carapace completion specs, captures). This is Click
-    Extra's *own* version (the generator), not the documented CLI's version.
-    Falls back to the bare name when {func}`package_version` answers `None`.
+    Extra's *own* name (the generator), not the documented CLI's.
+
+    The tag names no release. A capture carrying one is regenerated and
+    re-committed at every release, which would surface each bump as a diff in
+    every committed asset. A man page or completion spec is regenerated in
+    place on the machine that reads it, so its header gains nothing from naming
+    a release that machine's own environment already reports.
     """
-    version = package_version()
-    return f"Click Extra {version}" if version else "Click Extra"
+    return "Click Extra"
 
 
 def memoize_enums(obj: object, memo: dict[int, Any], *also: Enum) -> None:

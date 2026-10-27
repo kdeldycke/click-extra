@@ -2052,8 +2052,11 @@ def test_render_credits_what_drew_it(format):
     # markup between its parts is taken back out.
     assert DEFAULT_WATERMARK in re.sub(r"<[^>]+>", "", marked)
     assert WATERMARK_INK in marked
-    # A capture that travels says which release drew it.
-    assert re.search(r"click-extra \d+\.\d+", DEFAULT_WATERMARK)
+    # A capture that travels says what drew it, never which release: a
+    # committed capture is regenerated at every release, and a release number
+    # would rewrite every asset on release day.
+    assert "click-extra" in DEFAULT_WATERMARK
+    assert not re.search(r"\d", DEFAULT_WATERMARK)
     # And the mark is a default, not a fixture.
     assert DEFAULT_WATERMARK not in render(
         "kiwi", format=format, unique_id="fruit", chrome=Chrome(watermark="")

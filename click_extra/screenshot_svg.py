@@ -39,7 +39,7 @@ from hashlib import sha256
 from html import escape
 from math import ceil, cos, hypot, pi, sin
 
-from ._utils import generator_tag, package_version
+from ._utils import generator_tag
 from .layout import PADDING, cell_width, grid, is_bidirectional
 from .screenshot_presets import (
     CAPTURE_FONT_STACK,
@@ -166,29 +166,16 @@ PACKAGE_NAME = "click-extra"
 """Name this package is distributed and credited under."""
 
 
-def _package_release() -> str:
-    """The release this build of the package belongs to.
-
-    Read from the installed distribution rather than the package's own
-    `__version__`, the way {mod}`click_extra.version` reads its dependencies'.
-    The segment naming the build is dropped: a capture shot from a checkout of
-    the `1.2.3` cycle is showing what `1.2.3` draws, and stamping `1.2.3.dev4`
-    on it would date every committed image as unreleased, then rewrite it on the
-    day the release makes it true.
-
-    :return: the release, or an empty string when the package is not installed.
-    """
-    release = package_version()
-    return release.split(".dev")[0].split("+")[0] if release else ""
-
-
-DEFAULT_WATERMARK = f"generated with {PACKAGE_NAME} {_package_release()}".rstrip()
+DEFAULT_WATERMARK = f"generated with {PACKAGE_NAME}"
 """Credit line every capture carries unless another one, or none, is asked for.
 
 A capture travels: it lands on a slide, in a README, on a social card, far from
 the page that explains where it came from. The mark is what still says so, and
-names the release that drew it, so a reader can tell an image shot two years ago
-from one shot today.
+carries the link back.
+
+The line names the tool, never its release. A capture is committed beside the
+project that drew it and regenerated at every release, and a release number
+would rewrite every asset on release day for nothing but the bump.
 
 ```{note}
 This is a default, not a fixture. `--watermark ""` draws none, and any other
