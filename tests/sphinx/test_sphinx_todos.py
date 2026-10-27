@@ -297,11 +297,32 @@ def test_todo_identity_ignores_the_import_path_of_a_docstring():
     )
 
 
+def test_todo_identity_reads_the_source_form_without_a_file():
+    """A source autodoc wrote without a file yields its label like one with a file."""
+
+    class FakeNode:
+        def __init__(self, source, line):
+            self.source, self.line = source, line
+
+    without_file = FakeNode("docstring of orchard.pick", 4)
+    with_file = FakeNode("/src/orchard/harvest.py:docstring of orchard.pick", 4)
+    assert todo_identity(without_file) == todo_identity(with_file)
+    assert todo_identity(without_file) == ("orchard.pick", 4)
+
+    # A file name holding the marker inside is a document, not a label.
+    assert todo_identity(FakeNode("/src/orchard docstring of field.rst", 4)) == (
+        "/src/orchard docstring of field.rst",
+        4,
+    )
+
+
 @pytest.mark.parametrize(
     ("source", "expected"),
     (
         ("/src/orchard/__init__.py:docstring of orchard.pick", True),
         ("/src/orchard/harvest.py:docstring of orchard.harvest.pick", False),
+        # A source without a file names no module, so it cannot rank as one.
+        ("docstring of orchard.pick", False),
         # A document is never a re-export, whatever it is named.
         ("/src/__init__.py", False),
         ("", False),

@@ -95,14 +95,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-AUTODOC_DOCSTRING_MARKER = ":docstring of "
-"""Separator autodoc puts between a source file and the object it documented.
+AUTODOC_DOCSTRING_MARKER = "docstring of "
+"""Separator autodoc puts in front of the object a docstring belongs to.
 
-A node produced from a docstring carries a synthetic source of the form
-`{file}:docstring of {dotted.path}`, where `{file}` is the file the *reader*
-reached the object through, not necessarily the one defining it. Splitting on
-this marker is what lets {func}`todo_identity` recognize two renderings of a
-single docstring reached through two import paths.
+A node produced from a docstring carries a synthetic source naming the
+object autodoc documented: `{file}:docstring of {dotted.path}` when a source
+file was analyzed, and plain `docstring of {dotted.path}` when none was. Both
+forms live inside the supported `sphinx>=8` range, so the split has to
+accept the two of them. It is what lets {func}`todo_identity` recognize two
+renderings of a single docstring reached through two import paths.
 """
 
 DEDUPE_TODOS_CONFIG = "click_extra_dedupe_todos"
@@ -140,13 +141,30 @@ block, so the lines inside one are read like any other line.
 """
 
 
+def _split_docstring_source(node: todo_node) -> tuple[str, str] | None:
+    """Split the source of `node` into the file autodoc read and what it documented.
+
+    Return the `(file, dotted.path)` pair, where `file` is empty for the
+    source form autodoc writes when it analyzed no file. `None` for a node
+    that comes from a document rather than from a docstring: a file name
+    holding the marker inside is not a label, so only an empty or a
+    colon-ended prefix counts.
+    """
+    prefix, marker, dotted_path = (node.source or "").partition(
+        AUTODOC_DOCSTRING_MARKER
+    )
+    if not marker or (prefix and not prefix.endswith(":")):
+        return None
+    return prefix.removesuffix(":"), dotted_path
+
+
 def _docstring_label(node: todo_node) -> str | None:
     """Return the dotted path autodoc labeled the docstring of `node` with.
 
     `None` for a node that comes from a document rather than from a docstring.
     """
-    _, marker, dotted_path = (node.source or "").partition(AUTODOC_DOCSTRING_MARKER)
-    return dotted_path if marker else None
+    parts = _split_docstring_source(node)
+    return parts[1] if parts is not None else None
 
 
 def todo_identity(node: todo_node) -> tuple[str, int | None]:
@@ -172,9 +190,8 @@ def is_reexport(node: todo_node) -> bool:
     through the defining module is worth more to a reader than the same
     docstring reached through a re-exporting package.
     """
-    source = node.source or ""
-    file_path, marker, _ = source.partition(AUTODOC_DOCSTRING_MARKER)
-    return bool(marker) and Path(file_path).stem == "__init__"
+    parts = _split_docstring_source(node)
+    return parts is not None and Path(parts[0]).stem == "__init__"
 
 
 def _merge_key(node: todo_node, resolved: dict[str, object]) -> tuple[object, ...]:
