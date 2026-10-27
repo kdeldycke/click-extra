@@ -469,8 +469,10 @@ matching what `click.Command.parse_args` does for `ctx.params`.
 Open a narrowly-scoped Click issue and PR for a public
 {class}`click.Context` accessor returning a parameter's resolved
 `(value, ParameterSource)` after parsing, without re-firing eager callbacks.
-That is the forward resolution `--params` actually consumes, and landing it
-retires the re-parse this constant exists to feed.
+That is the forward resolution a live CLI needs: landing it retires the replay
+behind the `--params` table and the configuration dump. The
+`click-extra wrap --params` path keeps this constant and its replay, because
+Click never parses the foreign CLI it renders.
 
 Reference [`pallets/click#1279`](https://github.com/pallets/click/issues/1279)
 as related, not as home: it asks for the inverse direction (reconstructing a
