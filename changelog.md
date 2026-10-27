@@ -1,5 +1,10 @@
 # Changelog
 
+## [`9.5.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`9.5.1` (2026-10-27)](https://github.com/kdeldycke/click-extra/compare/v9.5.0...v9.5.1)
 
 - Add a `click_extra.todo_unrendered` Sphinx warning for each `{todo}` in a docstring that no page renders, which no `todolist` can list.
