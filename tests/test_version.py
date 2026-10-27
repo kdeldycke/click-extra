@@ -1417,7 +1417,9 @@ def test_resolve_git_dirty(monkeypatch, status_output, expected):
         # The `Á` holds a `0x81` byte, which cp1252, the encoding of Windows,
         # cannot decode.
         pytest.param("Ávila".encode(), "Ávila", id="utf-8"),
-        pytest.param(b"caf\xe9", "caf\ufffd", id="latin-1"),
+        # typos splits the literal at the escape and reads the fragment before it
+        # as a misspelling of `calf`, so the word here is "creme".
+        pytest.param(b"cr\xe8me", "cr\ufffdme", id="latin-1"),
     ),
 )
 def test_run_git_decodes_a_branch_name(tmp_path, branch, expected):
