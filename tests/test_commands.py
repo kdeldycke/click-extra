@@ -227,7 +227,7 @@ def test_no_heavy_dependency_ballast_on_startup():
 
     Each module below is imported where it is used rather than at module scope,
     so that a CLI pays for it only on the code path that needs it: see the
-    deferred-imports house rule in ``CLAUDE.md``. The probe runs a hello-world
+    deferred-imports house rule in ``AGENTS.md``. The probe runs a hello-world
     through decoration and ``--help`` in a pristine interpreter, since pytest
     itself has most of these loaded already.
 

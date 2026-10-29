@@ -710,7 +710,7 @@ dependency-graph.all-groups = false
 dependency-graph.no-extras = [ "all" ]
 # Entries of the bundled `pytest.toml` and `ruff.toml` that `[tool.pytest]` and
 # `[tool.ruff]` leave out on purpose, each mapped to its reason: see § Test
-# suite specifics and § Heavy dependencies in claude.md. `lint-repo` reports
+# suite specifics and § Heavy dependencies in AGENTS.md. `lint-repo` reports
 # the reason in place of a warning. Read by repomatic >= 7.18.0.
 lint-repo.declined.pytest.addopts."--cov-report=term" = """\
   The matrix job of tests.yaml runs pytest under coverage run instead.\
