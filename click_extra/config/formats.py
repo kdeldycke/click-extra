@@ -36,14 +36,9 @@ from __future__ import annotations
 import importlib.util
 import json
 import logging
-import sys
+import tomllib
 from enum import Enum
 from fnmatch import fnmatch
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

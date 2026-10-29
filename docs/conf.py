@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
-import tomllib  # type: ignore[import-not-found]  # stdlib >=3.11; docs require >=3.14.
 from docutils.nodes import container
 from sphinxcontrib.mermaid import MermaidClassDiagram
 

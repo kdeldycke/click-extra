@@ -1228,7 +1228,8 @@ def install_manpages(
     return write_manpages(command, target, prog_name, **overrides)
 
 
-class HelpFormat(str, Enum):
+# A `StrEnum` would change what `str()` and `format()` print for a member.
+class HelpFormat(str, Enum):  # noqa: UP042
     """The formats {func}`render_help` renders.
 
     The value is the spelling `--help-format` takes. Members are ordered

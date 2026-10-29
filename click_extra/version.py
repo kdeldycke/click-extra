@@ -39,14 +39,13 @@ import re
 import shutil
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import cached_property
 from gettext import gettext as _
 from pathlib import Path
 
 import click
 from click import echo, get_current_context
-from click._utils import UNSET
 
 # CLI_ECOSYSTEM_PACKAGES is bound under a private name so this module's
 # namespace does not resurrect the moved constant: its canonical home is
@@ -54,7 +53,6 @@ from click._utils import UNSET
 # resolves through the deprecation hook below.
 from ._utils import (
     CLI_ECOSYSTEM_PACKAGES as _CLI_ECOSYSTEM_PACKAGES,
-    memoize_enums,
 )
 from .color import invocation_color, is_a_tty
 from .context import ACCESSIBLE, _LazyMetaDict, get
@@ -339,8 +337,8 @@ def build_moment() -> datetime:
     """
     epoch = os.environ.get(SOURCE_DATE_EPOCH)
     if epoch:
-        return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
-    return datetime.now(tz=timezone.utc)
+        return datetime.fromtimestamp(int(epoch), tz=UTC)
+    return datetime.now(tz=UTC)
 
 
 def resolve_build_time() -> str:
@@ -1103,17 +1101,10 @@ class VersionOption(ExtraOption):
         reconstruct, and a copy is a new option anyway, free to resolve its
         fields against its own invocations. Only the configuration state
         (message template, styles, screen, field overrides) is carried over.
-
-        The copy reaches Click's `UNSET` sentinel, on this option or on a
-        sibling sharing its option group, so the memo is seeded with that
-        sentinel's members before the copy: see
-        {func}`~click_extra._utils.memoize_enums` for why Python 3.10 cannot
-        copy one on its own.
         """
         cls = type(self)
         clone = cls.__new__(cls)
         memo[id(self)] = clone
-        memoize_enums(self, memo, UNSET)
         for key, value in self.__dict__.items():
             if isinstance(getattr(cls, key, None), cached_property):
                 continue

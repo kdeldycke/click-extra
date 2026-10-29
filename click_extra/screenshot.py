@@ -95,9 +95,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
     from pathlib import Path
-    from typing import Any, Literal, TypeAlias, TypedDict
-
-    from typing_extensions import Unpack
+    from typing import Any, Literal, TypeAlias, TypedDict, Unpack
 
     from .execution import TArg, TNestedArgs
     from .screenshot_svg import THold

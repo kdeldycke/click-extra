@@ -85,11 +85,10 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
     from types import FrameType, TracebackType
-    from typing import IO, Any, Literal, Protocol, TextIO, TypeAlias
+    from typing import IO, Any, Literal, Protocol, Self, TextIO, TypeAlias
 
     from click._termui_impl import ProgressBar
     from click._utils import T_UNSET
-    from typing_extensions import Self
 
     TLive: TypeAlias = Literal["auto", "always", "never"]
     """Where a spinner or a progress bar may draw, see {data}`LIVE_MODES`."""

@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Breaking:** Drop Python 3.10, past its end of life: click-extra now requires Python 3.11 or newer.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.
 - Redraw a `progressbar()` bar at most once every 0.1 seconds, instead of once per item.

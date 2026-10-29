@@ -64,13 +64,7 @@ def _clean_mkdocs_click():
 @pytest.mark.once
 def test_mkdocs_entry_point():
     """Verify the ``mkdocs.plugins`` entry point is declared in ``pyproject.toml``."""
-    import sys
-
-    if sys.version_info >= (3, 11):
-        import tomllib
-    else:
-        import tomli as tomllib  # type: ignore[import-not-found]
-
+    import tomllib
     from pathlib import Path
 
     toml_path = Path(__file__).parent.parent.parent / "pyproject.toml"

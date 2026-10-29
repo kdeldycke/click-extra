@@ -51,9 +51,9 @@ import contextlib
 import json
 import re
 import subprocess
-import sys
+import tomllib
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http.client import HTTPException
 from pathlib import Path
 from typing import NamedTuple
@@ -77,11 +77,6 @@ from ..blocks import (
 )
 from ..table import TableFormat, corner_header, render_table
 from ._base import ContentOffsetMixin, parse_into_section
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -559,7 +554,7 @@ def python_matrix_groups(
 
     # Pass 3: resolve effective versions per group. Classifiers win when
     # present; otherwise apply the parsed floor / ceiling / excluded with cap.
-    today_iso = datetime.now(tz=timezone.utc).date().isoformat()
+    today_iso = datetime.now(tz=UTC).date().isoformat()
     resolved: list[tuple[str, str, str, tuple[str, ...], str]] = []
     for idx, group in enumerate(raw_groups):
         first_tag, last_tag, first_date, (cls, spec) = group

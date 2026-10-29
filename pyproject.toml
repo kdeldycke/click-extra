@@ -34,7 +34,7 @@ license = "GPL-2.0-or-later"
 license-files = [ "license" ]
 authors = [ { name = "Kevin Deldycke", email = "kevin@deldycke.com" } ]
 # Python versions and their status: https://devguide.python.org/versions/
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
   # See: https://pypi.org/pypi?%3Aaction=list_classifiers
   "Development Status :: 5 - Production/Stable",
@@ -52,7 +52,6 @@ classifiers = [
   "Operating System :: POSIX :: BSD :: OpenBSD",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -105,8 +104,6 @@ dependencies = [
   # tabulate 0.9 is widely packaged; the `colon_grid` format added in 0.10 is
   # backported in table.py by aliasing it to `grid` when missing.
   "tabulate[widechars]>=0.9",
-  # tomli 2.0 aligned API with stdlib tomllib; only installed on Python 3.10.
-  "tomli>=2; python_version<'3.11'",
   # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
   "wcmatch>=10",
   # wcwidth 0.8.3 fixed wrap() looping forever on an OSC 8 hyperlink followed by
@@ -212,9 +209,6 @@ entry-points.pytest11.click-extra = "click_extra.pytest"
 
 [dependency-groups]
 test = [
-  # backports.strenum 1.3.1 is the first release limited to Python < 3.11,
-  # matching the marker: the standard library has `enum.StrEnum` from 3.11.
-  "backports-strenum>=1.3; python_version<'3.11'",
   # coverage 7.13.0 is the first version to ship the permanent .pth file behind
   # `[tool.coverage] run.patch = ["subprocess"]`: older versions write it into
   # site-packages at run time, which fails when that directory is read-only.
@@ -231,7 +225,8 @@ test = [
   # fences, which stay unpatched.
   "mkdocs-click>=0.8.1",
   # myst-parser 4.0 added colon_fence extension for GitHub-style alert syntax.
-  # Pinned to >=4 (not >=5) because myst-parser 5 requires Python 3.11+ and tests run on 3.10+.
+  # Held at >=4 (not >=5.1) so the lowest-direct cell still tests the
+  # click_extra.sphinx.alerts converter, which only runs below myst-parser 5.1.
   "myst-parser>=4",
   # pymdown-extensions 10.0 is the first version with stable highlight extension API.
   "pymdown-extensions>=10",
@@ -249,8 +244,6 @@ test = [
   "requests>=2.34",
   # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
   "sphinx>=8",
-  # tomli 2.0 aligned API with stdlib tomllib; only installed on Python 3.10.
-  "tomli>=2; python_version<'3.11'",
 ]
 docs = [
   # Flask is used as a real-world example in docs {click:run} blocks.
@@ -505,7 +498,7 @@ overrides = [
   { module = [ "hjson", "jsonc", "pymdownx", "pymdownx.*", "sphinxcontrib.mermaid" ], ignore_missing_imports = true },
   # Sphinx uses Python 3.12+ type statement syntax (PEP 695), which causes
   # mypy to fail with syntax errors when checking against older Python versions.
-  # XXX This is a temporary workaround until we drop support for Python 3.10 and 3.11 for Click Extra.
+  # XXX This is a temporary workaround until we drop support for Python 3.11 for Click Extra.
   { module = [ "sphinx.*" ], ignore_missing_imports = true, follow_imports = "skip" },
 ]
 
@@ -779,8 +772,8 @@ nuitka.nofollow-imports = [ "tkinter" ]
 #     and the prerelease 3.16 probe held to ubuntu-26.04-arm by the `exclude`
 #     rows below. 10 jobs.
 #   - every direct dependency at its declared floor: ubuntu-26.04-arm ×
-#     Python 3.10, resolved again with `lowest-direct`. 1 job.
-#   - {8.4.1, 8.4.2} click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.10
+#     Python 3.11, resolved again with `lowest-direct`. 1 job.
+#   - {8.4.1, 8.4.2} click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.11
 #     (the floor corner), covering the declared >=8.4.1 range. 2 jobs.
 #   - released click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.14, the
 #     cloup 3.x line on the newest Click. 1 job.
@@ -831,13 +824,13 @@ test-matrix.full-include = [
   # runs the locked release of all but those two. It cannot reach a floor that
   # another requirement holds higher: the `sphinx` extra keeps Pygments at 2.18,
   # above the 2.14 of the `pygments` and `mkdocs` extras.
-  { os = "ubuntu-26.04-arm", python-version = "3.10", resolution = "lowest-direct" },
+  { os = "ubuntu-26.04-arm", python-version = "3.11", resolution = "lowest-direct" },
   # Every Click release from the >=8.4.1 floor through 8.4.2 (8.5.0 ships as
-  # `released`), each on the floor Python 3.10. Cloup 4.0.0 requires Click
+  # `released`), each on the floor Python 3.11. Cloup 4.0.0 requires Click
   # 8.5.0, and the Click overlay does not re-resolve the locked Cloup, so these
   # rows pin Cloup 3.1.0: the newest release a Click 8.4 install resolves to.
-  { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.1", cloup-version = "v3.1.0" },
-  { os = "ubuntu-26.04-arm", python-version = "3.10", click-version = "8.4.2", cloup-version = "v3.1.0" },
+  { os = "ubuntu-26.04-arm", python-version = "3.11", click-version = "8.4.1", cloup-version = "v3.1.0" },
+  { os = "ubuntu-26.04-arm", python-version = "3.11", click-version = "8.4.2", cloup-version = "v3.1.0" },
   # Cloup 3.x on the released Click: an install that pins cloup below 4.0.0.
   { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "released", cloup-version = "v3.1.0" },
   # Click's stable and main dev branches on released Cloup, latest Pythons.

@@ -20,8 +20,8 @@ import importlib.metadata
 import inspect
 import sys
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
-from enum import Enum, Flag, IntEnum, IntFlag, auto
+from datetime import UTC, datetime, timedelta
+from enum import Enum, Flag, IntEnum, IntFlag, StrEnum, auto
 from operator import attrgetter
 
 import click
@@ -43,11 +43,6 @@ from click_extra import (
 )
 from click_extra.pytest import command_decorators, option_decorators
 from click_extra.theme import ThemeChoice
-
-if sys.version_info >= (3, 11):
-    from enum import StrEnum
-else:
-    from backports.strenum import StrEnum  # type: ignore[import-not-found]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -242,9 +237,7 @@ def test_click_choice_behavior() -> None:
         (
             IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
             ChoiceSource.STR,
-            ("1", "2", "3")
-            if sys.version_info >= (3, 11)
-            else ("Priority.LOW", "Priority.MEDIUM", "Priority.HIGH"),
+            ("1", "2", "3"),
         ),
         (
             IntEnum("Priority", {"LOW": auto(), "MEDIUM": auto(), "HIGH": auto()}),
@@ -310,9 +303,7 @@ def test_click_choice_behavior() -> None:
                 "Options", {"OPTION_X": auto(), "OPTION_Y": auto(), "OPTION_Z": auto()}
             ),
             ChoiceSource.STR,
-            ("1", "2", "4")
-            if sys.version_info >= (3, 11)
-            else ("Options.OPTION_X", "Options.OPTION_Y", "Options.OPTION_Z"),
+            ("1", "2", "4"),
         ),
         (
             IntFlag(
@@ -358,9 +349,6 @@ def test_enum_string_choices(
         assert enum_choice.convert(member, None, None) == member
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 11), reason="Enum aliasing not supported in Python < 3.11"
-)
 @pytest.mark.parametrize(
     ("enum_definition", "choice_source", "show_aliases", "result"),
     (
@@ -1327,7 +1315,7 @@ def test_duration_rejects_calendar_units(value) -> None:
 def test_duration_absolute_timestamp(value) -> None:
     """An RFC 3339 timestamp is converted to ``now - timestamp`` at parse time."""
     result = Duration().convert(value, None, None)
-    expected = datetime.now(tz=timezone.utc) - datetime(2024, 5, 1, tzinfo=timezone.utc)
+    expected = datetime.now(tz=UTC) - datetime(2024, 5, 1, tzinfo=UTC)
     assert isinstance(result, timedelta)
     assert abs(result - expected) < timedelta(seconds=5)
 

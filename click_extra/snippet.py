@@ -80,9 +80,9 @@ from .screenshot_presets import (
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from typing import Unpack
 
     from pygments.lexer import Lexer
-    from typing_extensions import Unpack
 
     from .screenshot import ChromeArguments, TColumns
     from .screenshot_presets import TerminalPalette, TerminalPreset

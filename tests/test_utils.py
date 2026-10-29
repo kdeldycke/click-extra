@@ -17,14 +17,11 @@
 
 from __future__ import annotations
 
-from enum import Enum
-
 import pytest
 
 from click_extra._utils import (
     exception_chain,
     generator_tag,
-    memoize_enums,
     missing_extra_message,
     patch_attr,
 )
@@ -62,59 +59,6 @@ def test_exception_chain_prefers_the_cause():
 
 def test_generator_tag():
     assert generator_tag() == "Click Extra"
-
-
-def test_memoize_enums_seeds_every_member_of_a_held_class():
-    """A held member seeds its siblings too, not only itself."""
-
-    class Ripeness(Enum):
-        GREEN = "green"
-        RIPE = "ripe"
-
-    class Basket:
-        def __init__(self):
-            self.apple = Ripeness.GREEN
-            self.crate = "wooden"
-
-    memo: dict[int, object] = {}
-    memoize_enums(Basket(), memo)
-    assert memo == {
-        id(Ripeness.GREEN): Ripeness.GREEN,
-        id(Ripeness.RIPE): Ripeness.RIPE,
-    }
-
-
-def test_memoize_enums_leaves_an_enum_free_object_alone():
-    class Basket:
-        def __init__(self):
-            self.crate = "wooden"
-
-    memo: dict[int, object] = {}
-    memoize_enums(Basket(), memo)
-    assert memo == {}
-
-
-def test_memoize_enums_seeds_a_member_the_object_does_not_hold():
-    """A caller naming a member covers an object carrying none of its own.
-
-    What the sentinel a sibling holds needs: the object being copied is not
-    where it sits.
-    """
-
-    class Ripeness(Enum):
-        GREEN = "green"
-        RIPE = "ripe"
-
-    class Basket:
-        def __init__(self):
-            self.crate = "wooden"
-
-    memo: dict[int, object] = {}
-    memoize_enums(Basket(), memo, Ripeness.GREEN)
-    assert memo == {
-        id(Ripeness.GREEN): Ripeness.GREEN,
-        id(Ripeness.RIPE): Ripeness.RIPE,
-    }
 
 
 def test_missing_extra_message():

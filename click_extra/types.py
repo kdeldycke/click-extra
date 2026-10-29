@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import enum
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import click
 
@@ -545,8 +545,8 @@ def _parse_timestamp(
             f"{value!r} is missing a time zone. Use a fully qualified "
             "RFC 3339 timestamp with 'Z' or an offset like '+00:00'."
         )
-    reference = now if now is not None else datetime.now(tz=timezone.utc)
-    delta = reference - ts.astimezone(timezone.utc)
+    reference = now if now is not None else datetime.now(tz=UTC)
+    delta = reference - ts.astimezone(UTC)
     return delta if delta.total_seconds() > 0 else None
 
 

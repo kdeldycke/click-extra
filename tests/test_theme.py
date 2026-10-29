@@ -22,7 +22,7 @@ import dataclasses
 import importlib.resources
 import logging
 import re
-import sys
+import tomllib
 from pathlib import Path
 from textwrap import dedent
 
@@ -58,11 +58,6 @@ from click_extra.theme import (
     theme_registry,
     themes_from_config,
 )
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
 
 # Alias kept for the built-in-themes section, which reaches module-private
 # helpers (``_load_builtin_themes``, ``resources``) and patches module-level

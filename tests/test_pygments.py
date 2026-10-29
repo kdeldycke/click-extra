@@ -16,8 +16,8 @@
 
 from __future__ import annotations
 
-import sys
 import tarfile
+import tomllib
 from importlib import metadata
 from operator import itemgetter
 from pathlib import Path
@@ -56,12 +56,6 @@ from click_extra.pygments import (
 from click_extra.styling import _ATTR_CSS, _nearest_256
 
 from .conftest import fetch_or_skip, walk_commands
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
-
 
 PROJECT_ROOT = Path(__file__).parent.parent
 

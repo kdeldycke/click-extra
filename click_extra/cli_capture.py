@@ -84,9 +84,7 @@ from .types import EnumChoice
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any
-
-    from typing_extensions import Unpack
+    from typing import Any, Unpack
 
     from .screenshot import ChromeArguments, TColumns
     from .screenshot_presets import TerminalPreset

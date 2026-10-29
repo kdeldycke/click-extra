@@ -45,16 +45,11 @@ from __future__ import annotations
 
 import ast
 import re
-import sys
 import textwrap
+import tomllib
 from pathlib import Path
 
 import pytest
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
 
 PROJECT_ROOT = Path(__file__).parent.parent
 

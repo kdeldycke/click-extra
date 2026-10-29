@@ -86,8 +86,7 @@ except ImportError:  # pragma: no cover
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
-
-    from typing_extensions import Unpack
+    from typing import Unpack
 
     from .execution import TArg, TNestedArgs
     from .screenshot import ChromeArguments

@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import sys
 from contextlib import contextmanager
-from enum import Enum
 from functools import cache
 
 TYPE_CHECKING = False
@@ -108,45 +107,6 @@ def generator_tag() -> str:
     a release that machine's own environment already reports.
     """
     return "Click Extra"
-
-
-def memoize_enums(obj: object, memo: dict[int, Any], *also: Enum) -> None:
-    """Seed a `copy.deepcopy` *memo* with the enum members `obj` holds, and *also*.
-
-    Python 3.10's `Enum` implements no `__deepcopy__`, so `copy.deepcopy`
-    rebuilds a member by calling its class with a deep copy of the member's
-    *value*. Click and Click Extra both follow
-    [PEP 661](https://peps.python.org/pep-0661/) and back their sentinels with
-    bare `object()` values, which copy into a different object no lookup can
-    resolve, raising `ValueError: <object object> is not a valid Sentinel`.
-    Since Click 8.3 one of those sentinels sits on most parameters as their
-    unset default, so copying a parameter at all crashes there.
-
-    A memo entry mapping a member's `id()` to the member itself makes
-    `copy.deepcopy` hand it back untouched, which is what Python 3.11 and later
-    do natively. Every member of a class found on `obj` is seeded, not just the
-    one held, so a sibling sentinel nested deeper in the same copy is covered
-    too.
-
-    ```{caution}
-    Reading `obj` alone covers a copy only when `obj` itself holds a member of
-    the class that breaks it, which is why *also* takes the members a caller
-    knows the graph carries. Click 8.4 leaves `VersionOption.default` a plain
-    `False` and puts the sentinel on its siblings instead, so a copy seeded
-    from the option alone still reached an unseeded one through their shared
-    option group.
-
-    Seeding is required on every entry point into a copy: a `__deepcopy__`
-    reached with an empty memo has to do it for itself.
-    ```
-
-    :param obj: the object about to be copied, read for the members it holds.
-    :param memo: the `copy.deepcopy` memo to seed, updated in place.
-    :param also: members whose classes are seeded whatever `obj` holds.
-    """
-    for value in (*vars(obj).values(), *also):
-        if isinstance(value, Enum):
-            memo.update({id(member): member for member in type(value)})
 
 
 def missing_extra_message(

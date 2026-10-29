@@ -49,7 +49,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import os
-import sys
+import tomllib
 from dataclasses import dataclass
 from gettext import gettext as _
 from pathlib import Path
@@ -64,11 +64,6 @@ from cloup._util import identity
 from . import color, context
 from .parameters import ExtraOption
 from .styling import Style, dict_to_fields, fields_to_dict
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[import-not-found]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:

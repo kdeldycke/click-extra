@@ -80,16 +80,6 @@ Behavioral notes for personality mode:
 - The invocation name a command was started under is also exposed on its own,
   for custom dispatch logic: see {data}`click_extra.context.INVOCATION_NAME`.
 ```
-
-```{todo}
-Drop `click_extra._utils.memoize_enums()` and both its call sites, here and in
-`click_extra.version.VersionOption.__deepcopy__()`, once this package's
-Click floor reaches the release carrying
-[pallets/click#3805](https://github.com/pallets/click/pull/3805). That pull
-request gives `Sentinel` its own `__copy__`, `__deepcopy__` and `__reduce_ex__`,
-so a member survives a copy unaided and the memo seeding buys nothing. It is
-slated for Click `8.5.1`, against a floor of `8.4.1` here.
-```
 """
 
 from __future__ import annotations
@@ -102,9 +92,7 @@ from collections.abc import Sequence
 from typing import cast
 
 import click
-from click._utils import UNSET
 
-from ._utils import memoize_enums
 from .commands import ColorizedCommand, Command, Group, HelpCommand
 from .context import Context
 from .parameters import param_spellings
@@ -365,8 +353,8 @@ class MulticallGroup(Group):
             msg = f"Personality {name!r} maps to unknown subcommand {sub_name!r}."
             raise RuntimeError(msg)
 
-        group_params = _deepcopy_params(self.params)
-        sub_params = _deepcopy_params(sub.params)
+        group_params = copy.deepcopy(self.params)
+        sub_params = copy.deepcopy(sub.params)
 
         # The subcommand's context settings carry over, minus the ones the
         # personality re-derives from its own name: keeping the subcommand's
@@ -443,18 +431,6 @@ class MulticallGroup(Group):
         ):
             sub = register_lazy(name)
         return sub
-
-
-def _deepcopy_params(params: list[click.Parameter]) -> list[click.Parameter]:
-    """Deep-copy *params*, handing back the enum sentinels they carry untouched.
-
-    See {func}`~click_extra._utils.memoize_enums` for why a parameter cannot be
-    deep-copied as it is on Python 3.10.
-    """
-    memo: dict[int, Any] = {}
-    for param in params:
-        memoize_enums(param, memo, UNSET)
-    return copy.deepcopy(params, memo)
 
 
 def _param_keys(param: click.Parameter) -> set[str]:
