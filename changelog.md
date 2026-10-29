@@ -16,6 +16,9 @@
 
 ## [`9.5.1` (2026-10-27)](https://github.com/kdeldycke/click-extra/compare/v9.5.0...v9.5.1)
 
+> [!NOTE]
+> `9.5.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/9.5.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v9.5.1).
+
 - Add a `click_extra.todo_unrendered` Sphinx warning for each `{todo}` in a docstring that no page renders, which no `todolist` can list.
 - Read `{git_long_hash}` and `{git_short_hash}` from the `direct_url.json` record of a CLI installed from a Git URL, so its dev version names its commit.
 - Drop the release from the artifacts a build generates: the `@generated` stamp of captures, man pages and Carapace specs, and the default watermark of screenshots and snippets.
