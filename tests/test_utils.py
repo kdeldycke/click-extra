@@ -17,13 +17,18 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import pytest
 
 from click_extra._utils import (
     exception_chain,
+    flatten,
     generator_tag,
     missing_extra_message,
     patch_attr,
+    shrinkuser,
 )
 
 
@@ -98,3 +103,30 @@ def test_patch_attr_requires_existing_attribute():
 
     with pytest.raises(AttributeError), patch_attr(Kettle(), "temperature", "boiling"):
         pass
+
+
+def test_flatten_collapses_nested_iterables():
+    """Every nesting level is walked, strings and bytes staying whole."""
+    nested = [1, (2, [3, {4}]), "ab", b"cd", [[]], ()]
+    assert list(flatten(nested)) == [1, 2, 3, 4, "ab", b"cd"]
+
+
+def test_flatten_of_nothing_is_empty():
+    assert list(flatten(())) == []
+
+
+def test_shrinkuser_spells_the_home_directory_as_a_tilde():
+    home = Path.home()
+    assert shrinkuser(home) == "~"
+    assert shrinkuser(home / "notes" / "todo.txt") == str(
+        Path("~", "notes", "todo.txt")
+    )
+    # A sibling whose name merely starts with the home directory's is left alone.
+    assert shrinkuser(f"{home}1") == f"{home}1"
+    assert shrinkuser(Path("srv", "www")) == os.path.join("srv", "www")
+
+
+def test_shrinkuser_takes_another_home_spelling():
+    home = Path.home()
+    assert shrinkuser(home, home="$HOME") == "$HOME"
+    assert shrinkuser(home / "notes", home="$HOME") == os.path.join("$HOME", "notes")

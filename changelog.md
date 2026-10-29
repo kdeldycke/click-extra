@@ -13,6 +13,10 @@
 - **Breaking:** Table headers and `--sort-by` column definitions no longer accept a `(label, column_id)` tuple. Pass a `ColumnSpec` instead.
 - **Breaking:** Remove the `CAPTURE_BACKGROUND`-style color constants of `screenshot_presets` and `myst_converter.FENCE_OPEN_RE`.
 - **Breaking:** Remove `click_extra.sphinx.alerts`. The `sphinx` extra now requires `myst-parser` 5.1, whose `alert` extension renders GitHub alerts.
+- **Breaking:** `ctx.meta["click_extra.conf_source"]` and the locations of `click_extra.conf_sources` hold a remote configuration's URL as a `str`, instead of a `boltons` `URL` object.
+- **Breaking:** `{env_info}` drops the fields `boltons` blanked to `-` (`username`, `guid`, `hostname`, `hostfqdn`, `cwd`, `python.argv`, `python.bin` and `uname.node`), `umask` and `_eco_version`. It gains `python.implementation`, and reads `linux_dist_name` and `linux_dist_version` from `os-release`.
+- Drop the `boltons` dependency: the ANSI stripper, the version message parser, the environment profile and the configuration helpers use the standard library instead.
+- Add `strip_ansi()` to `click_extra.styling`, which removes every ANSI escape sequence from a string or bytes, and `environment_info()` and `template_segments()` to `click_extra.version`.
 - The `toml` extra installs `tomlrt` in place of `tomlkit` to write TOML configuration exports and tables.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.
@@ -58,7 +62,7 @@
 - Add `read_project_scripts()`, `entry_point_package()`, `locate_package_root()` and `prebake_dunders()` to `click_extra.prebake`, `dunder_name()` to `click_extra.version`, and `xdg_dir()` to `click_extra.carapace`.
 - Add `parse_columns()`, `parse_pause()`, `parse_hold()` and `capture_environment()` to `click_extra.screenshot`, and `emphasis_paint()` and `credit_markup()` to `click_extra.screenshot_svg`.
 - Add the `DEFAULT_FORMAT` and `DEFAULT_STYLE` constants to `click_extra.logging`, `CLEAR_LINE`, `HIDE_CURSOR`, `SHOW_CURSOR` and `DEFAULT_INTERVAL` to `click_extra.spinner`, and `DEFAULT_TRUE_COLOR` to `click_extra.pygments`.
-- Halve the import time of `click_extra`: wcwidth, PyYAML, wcmatch, deepmerge, extra-platforms, most of boltons and several standard library modules now load on the code path that uses them.
+- Halve the import time of `click_extra`: wcwidth, PyYAML, wcmatch, deepmerge, extra-platforms and several standard library modules now load on the code path that uses them.
 - Stop reading source files while `--version` locates the CLI module at startup.
 - Resolve the `file_pattern_flags` and `search_pattern_flags` of `ConfigOption` on first use: both default to `None`, and the pattern sanity check runs on the first configuration load instead of at decoration.
 - Load a configuration file without importing the lazy subcommands an `included_params` allowlist leaves out: `included_params=()` imports none of them.

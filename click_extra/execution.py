@@ -50,15 +50,15 @@ from time import perf_counter
 from typing import Final, NoReturn, TypeVar, cast
 
 import click
-from boltons.iterutils import flatten
 from click import echo
 from click.core import ParameterSource
 from click.shell_completion import CompletionItem
 
 from . import context
-from ._utils import IS_WINDOWS, exception_chain
+from ._utils import IS_WINDOWS, exception_chain, flatten
 from .envvar import env_copy
 from .parameters import ExtraOption
+from .styling import strip_ansi
 from .theme import get_current_theme
 
 TYPE_CHECKING = False
@@ -1533,9 +1533,6 @@ def _pump_stream(
     (`debug:mas: ...`) rather than polluting the message text itself.
     """
     extra = {"label": label} if label else None
-    # Deferred import: keeps boltons.strutils off the startup path of every CLI.
-    from boltons.strutils import strip_ansi
-
     for line in pipe:
         sink.append(line)
         text = strip_ansi(line).rstrip()

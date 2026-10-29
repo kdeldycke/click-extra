@@ -38,7 +38,6 @@ from typing import TypeVar
 
 import click
 import cloup
-from boltons.pathutils import shrinkuser
 from click import ParamType, echo, get_current_context, style
 from click._utils import UNSET
 from click.core import (
@@ -51,7 +50,7 @@ from . import context
 
 # Imported under a private name so this module does not offer a second public
 # spelling of the helper: its canonical home is click_extra._utils.
-from ._utils import patch_attr as _patch_attr
+from ._utils import patch_attr as _patch_attr, shrinkuser
 from .columns import (
     ColumnSpec,
     render_columns_markdown_table,
@@ -68,7 +67,6 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Any, ClassVar, Literal
 
-    from boltons.urlutils import URL
     from click.parser import _OptionParser
 
 logger = logging.getLogger(__name__)
@@ -1288,7 +1286,7 @@ def replay_raw_args(subject_ctx: click.Context) -> dict[str, Any]:
 def param_config_source(
     root_ctx: click.Context,
     keys: Sequence[str],
-) -> Path | URL | None:
+) -> Path | str | None:
     """Return the configuration file supplying a parameter's `default_map` value.
 
     *keys* is the parameter's fully-qualified path, root command name first
@@ -1317,7 +1315,7 @@ def param_config_source(
     several files contributed to the merge.
     ```
     """
-    sources: tuple[tuple[Path | URL, dict[str, Any]], ...] | None = context.get(
+    sources: tuple[tuple[Path | str, dict[str, Any]], ...] | None = context.get(
         root_ctx, context.CONF_SOURCES
     )
     if not sources:
@@ -1497,7 +1495,7 @@ def render_params_table(
         # Config-file provenance: only meaningful when the effective value
         # came from the default_map; the layer walk then names the file it
         # resolved from.
-        config_file: Path | URL | str | None = None
+        config_file: Path | str | None = None
         if source is ParameterSource.DEFAULT_MAP:
             location = param_config_source(subject_ctx.find_root(), keys)
             if location is not None:

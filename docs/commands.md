@@ -141,7 +141,7 @@ assert not result.stderr
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(forecast, args=["--city"])
 assert result.exit_code == 2
@@ -164,7 +164,7 @@ def weather(city):
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(weather)
 assert result.exit_code == 2
@@ -187,7 +187,7 @@ def orchard():
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(orchard, args=["--help"])
 assert result.exit_code == 0
@@ -213,7 +213,7 @@ def plant(seed):
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(garden, args=["plnat", "tomato"])
 assert result.exit_code == 2
@@ -221,7 +221,7 @@ assert "No such command 'plnat'. Did you mean 'plant'?" in strip_ansi(result.std
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(forecast, args=["--cityy", "Paris"])
 assert result.exit_code == 2
@@ -239,7 +239,7 @@ assert result.stdout == "Planted tomato.\n"
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(garden, args=["pla", "tomato"])
 assert result.exit_code == 2
@@ -271,7 +271,7 @@ assert result.stdout == "21 degrees.\n"
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(station, args=["read", "--unit", "kelvin"])
 assert result.exit_code == 2
@@ -388,7 +388,7 @@ def thermometer(fahrenheit):
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(thermometer, args=["--fahrenheit"])
 assert result.exit_code == 0
@@ -633,7 +633,7 @@ def forecast(city):
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(forecast, args=["--help"])
 assert result.exit_code == 0
@@ -671,7 +671,7 @@ def station(city, sensor):
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(station, args=["--help"])
 assert result.exit_code == 0
@@ -817,7 +817,7 @@ def forecast(units):
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(forecast, args=["--help"])
 assert result.exit_code == 0

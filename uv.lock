@@ -11,6 +11,9 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1W"
 
+[options.exclude-newer-package]
+repomatic = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
+
 [[package]]
 name = "accessible-pygments"
 version = "0.0.5"
@@ -70,15 +73,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/21/28/9b3f50ce0e048515135495f198351908d99540d69bfdc8c1d15b73dc55ce/blinker-1.9.0.tar.gz", hash = "sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf", size = 22460, upload-time = "2024-11-08T17:25:47.436Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl", hash = "sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc", size = 8458, upload-time = "2024-11-08T17:25:46.184Z" },
-]
-
-[[package]]
-name = "boltons"
-version = "26.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/71/56/14c4a4931910a81ddeccfbe227925ea738e3c445d3e2af960f0bcbba1616/boltons-26.2.0.tar.gz", hash = "sha256:d39cfd15c1a1c3bd4d705c82252fa9edb8e4f5e8cc039f8e39afac7b1b47e92c", size = 242047, upload-time = "2026-09-07T10:48:17.711Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d2/ac/1f8e4f4855e382a67392ca3bba329cb93aba1e3039289c52a86bf337f7a2/boltons-26.2.0-py3-none-any.whl", hash = "sha256:41942cbce440211bbcf2487ccdc356964ad674f95a01068b8a0dd7a1d1fed036", size = 199536, upload-time = "2026-09-07T10:48:16.319Z" },
 ]
 
 [[package]]
@@ -260,7 +254,6 @@ name = "click-extra"
 version = "10.0.0.dev0"
 source = { editable = "." }
 dependencies = [
-    { name = "boltons" },
     { name = "click" },
     { name = "cloup" },
     { name = "deepmerge" },
@@ -368,7 +361,6 @@ test = [
     { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 typing = [
-    { name = "types-boltons" },
     { name = "types-docutils" },
     { name = "types-jsonschema" },
     { name = "types-pygments" },
@@ -382,7 +374,6 @@ docs = ">=3.14"
 
 [package.metadata]
 requires-dist = [
-    { name = "boltons", specifier = ">=26.2" },
     { name = "click", specifier = ">=8.4.1" },
     { name = "click-extra", extras = ["carapace", "hjson", "json5", "jsonc", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"], marker = "extra == 'all'" },
     { name = "cloup", specifier = ">=3.0.7" },
@@ -450,7 +441,6 @@ test = [
     { name = "sphinx", specifier = ">=8" },
 ]
 typing = [
-    { name = "types-boltons", specifier = ">=25.0.0.20250919" },
     { name = "types-docutils", specifier = ">=0.22.3.20251115" },
     { name = "types-jsonschema", specifier = ">=4.18" },
     { name = "types-pygments", specifier = ">=2.19.0.20251121" },
@@ -1730,15 +1720,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/24/c9/20d73d14ad95e5644adcad09ce5cbccb6273e7d07ef72261c2eb648bf9c4/tomlrt-2.3.1.tar.gz", hash = "sha256:0be2fdc2fe920be471452a2d01acc9e7e24eedbdd850c8e1d9f5abf9f998df44", size = 135478, upload-time = "2026-10-17T13:26:03.084Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/5b/ead54c3d76df9ddc358d4bd063a2619911623f76b08ed9f9bccbf80c7813/tomlrt-2.3.1-py3-none-any.whl", hash = "sha256:2dbec2aaf1e953b5a45749c0575c6cd1c8b8215ca3c2fc71c194b32789bc6f0c", size = 149315, upload-time = "2026-10-17T13:26:01.665Z" },
-]
-
-[[package]]
-name = "types-boltons"
-version = "26.1.0.20260907"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/aa/91/cd037b5bb9b355893e338872abd79c724c57a7628a1f388d89f78c1d2007/types_boltons-26.1.0.20260907.tar.gz", hash = "sha256:e0d9ac1b1246723c45fab0b6ddd479cd84b138fe113feea584c7a179c1f96c44", size = 22546, upload-time = "2026-09-07T06:43:29.067Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/f3/28d54710f427fe5ed9d7cba9b9374cb008be019b50913984f1314962b053/types_boltons-26.1.0.20260907-py3-none-any.whl", hash = "sha256:ba6ebda0e4ceb85edf28800d08a41d142cdd514403ae1e492b43a277a471b459", size = 28788, upload-time = "2026-09-07T06:43:28.104Z" },
 ]
 
 [[package]]

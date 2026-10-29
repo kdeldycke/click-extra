@@ -25,7 +25,6 @@ from textwrap import dedent
 
 import click
 import pytest
-from boltons.strutils import strip_ansi
 
 from click_extra import (
     LogLevel,
@@ -35,6 +34,7 @@ from click_extra import (
     echo,
     group,
     quiet_option,
+    strip_ansi,
     timer_option,
     verbose_option,
     verbosity_option,

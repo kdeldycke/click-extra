@@ -30,8 +30,6 @@ from textwrap import dedent
 
 import click
 import pytest
-from boltons.iterutils import flatten, unique
-from boltons.strutils import strip_ansi
 from click.parser import _split_opt
 from extra_platforms import is_windows
 
@@ -67,8 +65,10 @@ from click_extra import (
     render_table,
     search_params,
     show_params_option,
+    strip_ansi,
     table_format_option,
 )
+from click_extra._utils import flatten
 from click_extra.commands import default_params
 from click_extra.config import NO_CONFIG
 from click_extra.logging import StreamHandler
@@ -544,12 +544,12 @@ def test_integrated_show_params_option(invoke, create_config):
             # On Windows, backslashes are double-escaped in Path string repr.
             (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                f"{{{','.join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))}}}'"
+                f"{{{','.join(dict.fromkeys(flatten(f.patterns for f in ConfigFormat if f.enabled)))}}}'"
             ).replace("\\", "\\\\")
             if is_windows
             else (
                 f"'{Path(get_app_dir('show-params-cli')).resolve()}{sep}"
-                f"{{{','.join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))}}}'"
+                f"{{{','.join(dict.fromkeys(flatten(f.patterns for f in ConfigFormat if f.enabled)))}}}'"
             ),
             "✘",
             "",

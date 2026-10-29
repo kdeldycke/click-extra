@@ -58,6 +58,7 @@ from click.types import IntRange
 from . import context
 from ._utils import patch_attr
 from .parameters import ExtraOption, last_param
+from .styling import strip_ansi
 from .theme import get_current_theme
 from .types import EnumChoice
 
@@ -265,9 +266,6 @@ class StreamHandler(logging.StreamHandler):
             if line is not None:
                 # The live line's echo writes raw: strip what click.echo would.
                 if color is False:
-                    # Deferred import: keeps boltons off the startup path of every CLI.
-                    from boltons.strutils import strip_ansi
-
                     message = strip_ansi(message)
                 line.echo(message)
             else:

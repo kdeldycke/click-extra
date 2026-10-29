@@ -21,6 +21,7 @@ import inspect
 import io
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -32,7 +33,6 @@ from textwrap import dedent
 
 import click
 import pytest
-from boltons.strutils import strip_ansi
 
 from click_extra import (
     Style,
@@ -44,6 +44,7 @@ from click_extra import (
     group,
     no_color_option,
     pass_context,
+    strip_ansi,
     verbosity_option,
     version_option,
 )
@@ -356,12 +357,11 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
 def test_env_info_resolves_no_hostname(monkeypatch):
     """The environment profile is built without resolving the host's name.
 
-    `boltons.ecoutils.get_profile(scrub=True)` skips every lookup whose value
-    it then replaces with `-`, since `boltons` `26.2.0`. One of them is a
-    reverse DNS query: a host whose resolver does not answer paid that timeout
-    for a value already discarded. It cost ~35 s per call on a GitHub macOS
-    runner, which is what made `--verbosity DEBUG` runs there take over an
-    hour. This test guards the version floor holding that fix.
+    A profile pasted into a bug report has no use for the host's name, and the
+    reverse DNS query behind it cost ~35 s per call on a GitHub macOS runner
+    whose resolver never answered, which made `--verbosity DEBUG` runs there
+    take over an hour. Nothing identifying the user, the host or the working
+    directory is looked up at all.
 
     Asserting on the calls rather than on a duration keeps the guard away from
     a timing threshold, which a loaded runner would flake on.
@@ -378,8 +378,6 @@ def test_env_info_resolves_no_hostname(monkeypatch):
         calls.append("gethostname")
         return "resolved"
 
-    # `ecoutils` reaches both through its own `import socket`, so patching the
-    # module patches the object it reads.
     monkeypatch.setattr(socket, "getfqdn", record_fqdn)
     monkeypatch.setattr(socket, "gethostname", record_hostname)
 
@@ -392,10 +390,13 @@ def test_env_info_resolves_no_hostname(monkeypatch):
     profile = option.env_info
 
     assert calls == []
-    # The scrubbed placeholders are what `get_profile()` would have written
-    # over the resolved names anyway, so nothing is lost by not asking.
-    assert profile["hostname"] == "-"
-    assert profile["hostfqdn"] == "-"
+    assert not {"username", "guid", "hostname", "hostfqdn", "cwd"} & profile.keys()
+    assert "node" not in profile["uname"]
+    assert not {"argv", "bin"} & profile["python"].keys()
+    assert profile["python"]["version"].startswith(platform.python_version())
+    assert profile["uname"]["system"] == platform.system()
+    # The whole profile is what a `--verbosity DEBUG` run dumps as JSON.
+    assert json.loads(json.dumps(profile)) == profile
 
 
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))

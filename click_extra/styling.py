@@ -45,6 +45,8 @@ intact and adds:
   measures.
 - {func}`open_ansi` reporting the escapes a string leaves open, so a styled
   fragment can be spliced into styled text without closing it.
+- {func}`strip_ansi` for the plain text of a styled string, every escape
+  sequence removed.
 - The {func}`ansi_to_html`, {func}`ansi_to_jira`, {func}`ansi_to_latex` and
   {func}`ansi_to_textile` converters, translating ANSI styling to markup
   languages with native styling support.
@@ -56,6 +58,7 @@ import os
 import re
 from dataclasses import dataclass, fields, replace
 from functools import lru_cache
+from typing import overload
 
 import cloup
 
@@ -768,14 +771,43 @@ every styled run {func}`split_ansi` compares. The names also cover the parent
 
 # --- ANSI stream parsing and markup rendering ---------------------------------
 
-_OSC_HYPERLINK_RE: re.Pattern[str] = re.compile(r"\x1b\]8;[^\x1b\x07]*(?:\x07|\x1b\\)")
-"""Match one boundary marker of an OSC 8 terminal hyperlink.
+_ANSI_ESCAPE_RE: re.Pattern[str] = re.compile(
+    r"\x1b(?:"
+    # An OSC command, like the boundary markers of a terminal hyperlink: `ESC ]`,
+    # a payload, then the BEL or `ESC \` closing it. A payload left open runs to
+    # the end of the text.
+    r"\][^\x07\x1b]*(?:\x07|\x1b\\)?"
+    # A CSI sequence, SGR styles included: `ESC [`, parameter bytes, intermediate
+    # bytes and a final byte.
+    r"|\[[0-?]*[ -/]*[@-~]"
+    # A two-byte sequence: `ESC` and one byte of the `@` to `_` range, the `[`
+    # and `]` opening the two forms above excepted.
+    r"|[@-Z\\^_]"
+    r")"
+)
+"""Match one ANSI escape sequence of any kind, SGR styles included."""
 
-Both the opening marker (which carries the URI) and the closing one (empty URI)
-match, leaving the display text between them untouched. Consumed by
-{func}`_strip_unsupported_ansi` so hyperlinked text survives with its link
-dropped, instead of leaking the URI as visible garbage.
-"""
+_ANSI_ESCAPE_BYTES_RE: re.Pattern[bytes] = re.compile(
+    _ANSI_ESCAPE_RE.pattern.encode("ascii")
+)
+"""The pattern of `_ANSI_ESCAPE_RE`, over bytes."""
+
+
+@overload
+def strip_ansi(text: str) -> str: ...
+@overload
+def strip_ansi(text: bytes) -> bytes: ...
+def strip_ansi(text: str | bytes) -> str | bytes:
+    """Remove every ANSI escape sequence from `text`, leaving its plain text.
+
+    Styles, cursor movements, screen clearing and OSC commands all go. A terminal
+    hyperlink keeps its display text and loses its URI, which lived in the markers
+    around it. Bytes come back as bytes.
+    """
+    if isinstance(text, bytes):
+        return _ANSI_ESCAPE_BYTES_RE.sub(b"", text)
+    return _ANSI_ESCAPE_RE.sub("", text)
+
 
 _JIRA_ATTR_MARKUP: dict[str, str] = {
     "bold": "*",
@@ -844,21 +876,6 @@ def _apply_sgr_codes(
         i += 1
 
 
-def _strip_unsupported_ansi(text: str) -> str:
-    """Remove non-SGR ANSI escapes, keeping OSC 8 hyperlinks' display text.
-
-    OSC 8 boundary markers are removed first, so the display text between them
-    survives the broader {func}`boltons.strutils.strip_ansi` pass (whose CSI
-    pattern would otherwise leave the URI behind as visible garbage). Every
-    other escape (cursor movements, screen clearing, other OSC commands) has
-    no markup equivalent and is dropped.
-    """
-    # Deferred import: keeps boltons.strutils off the startup path of every CLI.
-    from boltons.strutils import strip_ansi
-
-    return strip_ansi(_OSC_HYPERLINK_RE.sub("", text))
-
-
 def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
     """Split *text* into `(style, text)` runs at ANSI SGR escape boundaries.
 
@@ -869,8 +886,9 @@ def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
     Consecutive runs with equal styles are merged and empty runs are dropped,
     so wrapping each yielded run produces minimal markup.
 
-    Non-SGR escapes carry no style information and are removed from the
-    yielded text, per {func}`_strip_unsupported_ansi`.
+    Every other escape carries no style information and is removed from the
+    yielded text by {func}`strip_ansi`, so a terminal hyperlink keeps its display
+    text and loses its URI.
     """
     state: dict[str, Any] = {}
     current = Style()
@@ -885,7 +903,7 @@ def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
     buffer: list[str] = []
     pos = 0
     for match in _ANSI_SGR_RE.finditer(text):
-        segment = _strip_unsupported_ansi(text[pos : match.start()])
+        segment = strip_ansi(text[pos : match.start()])
         pos = match.end()
         if segment:
             buffer.append(segment)
@@ -896,7 +914,7 @@ def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
                 buffer = []
             current = Style(**state)
             current_state = dict(state)
-    tail = _strip_unsupported_ansi(text[pos:])
+    tail = strip_ansi(text[pos:])
     if tail:
         buffer.append(tail)
     if buffer:

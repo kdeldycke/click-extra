@@ -92,7 +92,7 @@ You can customize the message template with the following variables:
 | {py:attr}`{build_target} <click_extra.version.VersionOption.build_target>`           | The platform a distribution built there installs on (`macosx-15.0-arm64`, `linux-x86_64`, `win-amd64`), or `None` if never pre-baked.                                                  |
 | {py:attr}`{build_target_arch} <click_extra.version.VersionOption.build_target_arch>` | The CPU architecture the build ran on, or `None` if never pre-baked.                                                                                                                   |
 | {py:attr}`{prog_name} <click_extra.version.VersionOption.prog_name>`                 | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#version-fields).                        |
-| {py:attr}`{env_info} <click_extra.version.VersionOption.env_info>`                   | The [environment information](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile) in JSON.                                                            |
+| {py:attr}`{env_info} <click_extra.version.VersionOption.env_info>`                   | The interpreter and the machine running it, as a `dict`.                                                                                                                               |
 
 ```{note}
 The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (like standalone Nuitka binaries or Docker containers without Git).
@@ -591,7 +591,7 @@ assert re.fullmatch(r"\x1b\[90m{'.+'}\x1b\[0m\n", result.output)
 It's verbose but it's helpful for debugging and reporting of issues from end users.
 
 ```{important}
-The JSON output is scrubbed out of identifiable information by default: current working directory, hostname, Python executable path, command-line arguments and username are replaced with `-`.
+Nothing in it identifies the user, the host or the working directory, so it can be pasted into a public bug report as it comes.
 ```
 
 Another trick consist in picking into the content of `{env_info}` to produce highly customized version strings. This can be done because `{env_info}` is kept as a `dict`:
@@ -645,7 +645,7 @@ def my_cli():
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(my_cli, args=["--version"])
 assert result.exit_code == 0
@@ -684,7 +684,7 @@ Three conditions gate it, and failing any one falls back to the plain `message` 
 {data}`~click_extra.logo.BRAND_SCREEN` is the worked example: the six cubes of `docs/assets/logo-square.svg`, flat-shaded and painted with half blocks, two sub-pixels to a line. Its `logo` is the {func}`~click_extra.logo.render_logo` callable, so the mark is painted when `--version` asks for it, not when the CLI starts.
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 from click_extra.cli import demo
 
 result = invoke(demo, args=["--version"])

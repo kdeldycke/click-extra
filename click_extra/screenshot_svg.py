@@ -50,7 +50,14 @@ from .screenshot_presets import (
     TerminalPalette,
     WindowButtons,
 )
-from .styling import _ANSI_INDEX, _ATTR_CSS, _hex_to_rgb, _resolve_rgb, _rgb_to_hex
+from .styling import (
+    _ANSI_INDEX,
+    _ATTR_CSS,
+    _hex_to_rgb,
+    _resolve_rgb,
+    _rgb_to_hex,
+    strip_ansi,
+)
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -415,9 +422,6 @@ def auto_hold(text: str) -> float:
     :param text: the final frame's captured text, ANSI escapes included.
     :return: the pause, in seconds.
     """
-    # Deferred import: keeps boltons.strutils off the startup path of every CLI.
-    from boltons.strutils import strip_ansi
-
     lines = sum(1 for line in strip_ansi(text).splitlines() if line.strip())
     return min(AUTO_HOLD_MAX, max(AUTO_HOLD_MIN, lines * AUTO_HOLD_SECONDS_PER_LINE))
 

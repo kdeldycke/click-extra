@@ -83,11 +83,6 @@ classifiers = [
 # - aligns minimal Python requirements to ours,
 # - adds new explicit support Python version.
 dependencies = [
-  # boltons 26.2.0 skips the lookups `ecoutils.get_profile(scrub=True)` throws
-  # away: version.py no longer patches them out, so a `--verbosity DEBUG` run
-  # neither waits on a host without reverse DNS nor crashes in a deleted
-  # working directory.
-  "boltons>=26.2",
   # Click 8.4.1 records a parameter's source before process_value (PR
   # pallets/click#3484), the contract every eager callback in parameters.py reads,
   # and normalizes Choice completion (PR pallets/click#3471). Release 8.4.0 added
@@ -303,7 +298,6 @@ docs = [
 # against jsonschema 4.18). Below it the stubs describe an older API than the
 # library installed beside them, and mypy flags symbols that do exist.
 typing = [
-  "types-boltons>=25.0.0.20250919",
   "types-docutils>=0.22.3.20251115",
   "types-jsonschema>=4.18",
   "types-pygments>=2.19.0.20251121",

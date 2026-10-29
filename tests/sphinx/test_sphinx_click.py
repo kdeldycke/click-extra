@@ -27,11 +27,10 @@ from textwrap import dedent
 
 import click
 import pytest
-from boltons.strutils import strip_ansi
 from docutils import nodes
 from pygments.styles import get_style_by_name
 
-from click_extra import verbosity_option
+from click_extra import strip_ansi, verbosity_option
 from click_extra.screenshot_presets import CAPTURE_PALETTES, CaptureBackground
 from click_extra.snippet import DEFAULT_SYNTAX_STYLES
 from click_extra.sphinx.click import (

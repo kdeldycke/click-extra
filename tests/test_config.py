@@ -36,8 +36,6 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
-from boltons.iterutils import flatten, unique
-from boltons.pathutils import shrinkuser
 from extra_platforms import (
     is_macos,
     is_unix_not_macos,
@@ -67,6 +65,7 @@ from click_extra import (
     search_params,
     validate_config_option,
 )
+from click_extra._utils import flatten, shrinkuser
 from click_extra.config import SQLITE_CONFIG_TABLE
 from click_extra.config.formats import SQLITE_SUPPORT, disabled_format_message
 from click_extra.config.option import _serialize_toml_with_unset
@@ -581,7 +580,7 @@ def test_conf_default_path(invoke, simple_config_cli):
 
     # An inherited format set is collapsed away, so the folder is the whole default.
     # See ConfigOption.collapse_default().
-    fp = ",".join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))
+    fp = ",".join(dict.fromkeys(flatten(f.patterns for f in ConfigFormat if f.enabled)))
     assert f"{{{fp}}}" not in help_screen
 
     assert not result.stderr
@@ -3002,7 +3001,9 @@ def test_lazy_group_included_params_introspection(
         pytest.param(
             None,
             ",".join(
-                unique(flatten(fmt.patterns for fmt in ConfigFormat if fmt.enabled))
+                dict.fromkeys(
+                    flatten(fmt.patterns for fmt in ConfigFormat if fmt.enabled)
+                )
             ),
             id="default_all_formats",
         ),

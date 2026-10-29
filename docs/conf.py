@@ -232,7 +232,7 @@ nitpick_ignore_regex = [
     # fetcher cannot retrieve its objects.inv, so the docs cannot link there.
     (
         r"py:.*",
-        r"(boltons|cloup|docutils|extra_platforms|mkdocs|pygments|sphinx|_pytest)\..*",
+        r"(cloup|docutils|extra_platforms|mkdocs|pygments|sphinx|_pytest)\..*",
     ),
     (r"py:.*", r"click\.(testing|types|_\w+)\..*"),
     # Private (underscore-prefixed) symbols, in click-extra or upstream.

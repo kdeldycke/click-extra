@@ -33,7 +33,7 @@ def chill(hours, bottles):
 Invoked under its own name, the CLI is a regular group:
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(kitchen, args=["--help"])
 assert result.exit_code == 0
@@ -50,7 +50,7 @@ assert "Baking at 200 degrees: pie." in result.stdout
 Invoked under the name of one of its subcommands, it *is* that subcommand. {class}`~click_extra.testing.CliRunner` simulates the invocation name with its `prog_name` parameter, which stands in for the symlink below:
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(kitchen, args=["--help"], prog_name="bake")
 assert result.exit_code == 0
@@ -118,7 +118,7 @@ An explicit `personalities` mapping is exhaustive: only the names it declares di
 The auto-injected `personalities` subcommand enumerates every name the binary answers to, next to the command line each one invokes:
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(fridge, args=["personalities"])
 assert result.exit_code == 0

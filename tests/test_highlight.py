@@ -24,7 +24,6 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
-from boltons.strutils import strip_ansi
 from click.testing import CliRunner
 
 from click_extra import (
@@ -46,6 +45,7 @@ from click_extra import (
     help_option,
     option,
     option_group,
+    strip_ansi,
 )
 from click_extra.highlight import HelpKeywords, highlight
 from click_extra.pytest import (

@@ -16,15 +16,17 @@
 """Generic helpers with no Click knowledge, shared across the package.
 
 The counterpart of `extra_platforms._utils`: plumbing every module may need
-(attribute patching, provenance tagging, optional-extra messaging) without a
-domain of its own to live in. Nothing here imports from the rest of the
-package, so any module can reach for these helpers without risking an import
-cycle.
+(attribute patching, provenance tagging, optional-extra messaging, iterable
+flattening, home-relative paths) without a domain of its own to live in.
+Nothing here imports from the rest of the package, so any module can reach for
+these helpers without risking an import cycle.
 """
 
 from __future__ import annotations
 
+import os
 import sys
+from collections.abc import Iterable
 from contextlib import contextmanager
 from functools import cache
 
@@ -151,3 +153,30 @@ def patch_attr(obj: object, name: str, value: Any) -> Generator[None, None, None
         yield
     finally:
         setattr(obj, name, original)
+
+
+def flatten(iterable: Iterable[Any]) -> Iterator[Any]:
+    """Yield the leaves of `iterable`, collapsing the iterables nested in it.
+
+    A string or bytes counts as a leaf, not as an iterable of its characters.
+    """
+    for item in iterable:
+        if isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
+            yield from flatten(item)
+        else:
+            yield item
+
+
+def shrinkuser(path: str | os.PathLike[str], home: str = "~") -> str:
+    """Replace the home directory prefix of `path` with `home`, `~` by default.
+
+    The home directory itself becomes `home`, a path below it has that prefix
+    replaced, and any other path comes back normalized but otherwise unchanged.
+    """
+    normalized = os.path.normpath(path)
+    user_home = os.path.expanduser("~")
+    if normalized == user_home:
+        return home
+    if normalized.startswith(user_home + os.sep):
+        return home + normalized[len(user_home) :]
+    return normalized

@@ -27,9 +27,8 @@ import re
 from contextlib import contextmanager
 
 import click
-from boltons.iterutils import flatten_iter
 
-from ._utils import IS_WINDOWS
+from ._utils import IS_WINDOWS, flatten
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -93,7 +92,7 @@ def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ..
     # A dict keeps the first occurrence of each name, in order.
     return tuple(
         dict.fromkeys(
-            normalize_envvar_id(envvar) for envvar in flatten_iter(envvar_ids) if envvar
+            normalize_envvar_id(envvar) for envvar in flatten(envvar_ids) if envvar
         )
     )
 

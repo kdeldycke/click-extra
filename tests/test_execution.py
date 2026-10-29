@@ -36,7 +36,6 @@ from unittest.mock import patch
 import click
 import cloup
 import pytest
-from boltons.strutils import strip_ansi
 from extra_platforms import is_windows
 from extra_platforms.pytest import skip_windows
 
@@ -58,6 +57,7 @@ from click_extra import (
     run_cli,
     run_jobs,
     run_lanes,
+    strip_ansi,
     timer_option,
     zero_exit_option,
 )

@@ -42,6 +42,7 @@ from .styling import (
     ansi_to_jira,
     ansi_to_latex,
     ansi_to_textile,
+    strip_ansi,
 )
 from .types import EnumChoice, MultiChoice
 
@@ -667,9 +668,6 @@ def _visible_width(cell: object) -> int:
     """
     if cell is None:
         return 0
-    # Deferred import: keeps boltons.strutils off the startup path of every CLI.
-    from boltons.strutils import strip_ansi
-
     return max(_terminal_wcswidth(strip_ansi(str(cell))), 0)
 
 
@@ -1177,9 +1175,6 @@ def _strip_ansi_cells(
     headers: Sequence[str | None] | None = None,
 ) -> tuple[list[list[str | None]], Sequence[str | None] | None]:
     """Strip ANSI escape codes from all string cells and headers."""
-    # Deferred import: keeps boltons.strutils off the startup path of every CLI.
-    from boltons.strutils import strip_ansi
-
     cleaned_data: list[list[str | None]] = [
         [strip_ansi(v) if isinstance(v, str) else v for v in row] for row in table_data
     ]
@@ -1530,8 +1525,6 @@ def _row_sort_key(
     cells collating as the empty string.
     """
     if cell_key is None:
-        # Deferred import: keeps boltons.strutils off the startup path of every CLI.
-        from boltons.strutils import strip_ansi
 
         def cell_key(v):
             return strip_ansi(v).casefold() if v else ""

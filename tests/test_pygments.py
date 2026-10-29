@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+import inspect
+import re
 import tarfile
 import tomllib
 from importlib import metadata
@@ -24,8 +26,6 @@ from pathlib import Path
 
 import click
 import pytest
-from boltons.strutils import camel2under
-from boltons.typeutils import issubclass
 from pygments import highlight
 from pygments.filter import Filter
 from pygments.filters import get_filter_by_name
@@ -68,13 +68,23 @@ def lex(text: str) -> list[tuple]:
     return list(AnsiColorLexer().get_tokens(text))
 
 
+_CAMEL_BOUNDARY_RE = re.compile(r"((?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))")
+"""Match each capital opening a word of a CamelCase name, acronyms kept whole."""
+
+
+def _camel2under(name: str) -> str:
+    """Spell a CamelCase name in snake_case: `AnsiGAPConsoleLexer` becomes
+    `ansi_gap_console_lexer`."""
+    return _CAMEL_BOUNDARY_RE.sub(r"_\1", name).lower()
+
+
 def collect_classes(klass, prefix="Ansi"):
     """Returns all classes defined in ``click_extra.pygments`` that are a subclass of
     ``klass``, and whose name starts with the provided ``prefix``."""
     return {
         name: var
         for name, var in extra_pygments.__dict__.items()
-        if issubclass(var, klass) and name.startswith(prefix)
+        if inspect.isclass(var) and issubclass(var, klass) and name.startswith(prefix)
     }
 
 
@@ -190,7 +200,7 @@ def test_ansi_lexers_candidates(tmp_path):
 def test_formatter_entry_points():
     entry_points = {}
     for name in collect_classes(Formatter):
-        entry_id = camel2under(name).replace("_", "-")
+        entry_id = _camel2under(name).replace("_", "-")
         entry_points[entry_id] = f"click_extra.pygments:{name}"
 
     check_entry_points(entry_points, "project", "entry-points", "pygments.formatters")
@@ -200,7 +210,7 @@ def test_formatter_entry_points():
 def test_filter_entry_points():
     entry_points = {}
     for name in collect_classes(Filter):
-        entry_id = camel2under(name).replace("_", "-")
+        entry_id = _camel2under(name).replace("_", "-")
         entry_points[entry_id] = f"click_extra.pygments:{name}"
 
     check_entry_points(entry_points, "project", "entry-points", "pygments.filters")
@@ -220,7 +230,7 @@ def test_lexer_entry_points():
 
         # Transform ANSI lexer class ID into entry point ID.
         entry_id = "-".join(
-            w for w in camel2under(ansi_lexer_id).split("_") if w != "lexer"
+            w for w in _camel2under(ansi_lexer_id).split("_") if w != "lexer"
         )
 
         # Generate the lexer entry point.
@@ -240,7 +250,7 @@ def test_registered_formatters():
 @pytest.mark.once
 def test_registered_filters():
     for name in collect_classes(Filter):
-        entry_id = camel2under(name).replace("_", "-")
+        entry_id = _camel2under(name).replace("_", "-")
         get_filter_by_name(entry_id)
 
 

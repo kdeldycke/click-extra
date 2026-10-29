@@ -236,9 +236,6 @@ def test_no_heavy_dependency_ballast_on_startup():
     imports them at module scope itself.
     """
     ballast: tuple[str, ...] = (
-        "boltons.formatutils",
-        "boltons.strutils",
-        "boltons.urlutils",
         "click._termui_impl",
         "concurrent.futures",
         "configparser",

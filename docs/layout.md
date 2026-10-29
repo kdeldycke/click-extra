@@ -168,7 +168,7 @@ A rule drawn with a Box Drawing dash (`┄`, `┈`, `╌`) carries two or three 
 `wrap_ansi(text, width)` wraps a styled string to a visible width. `textwrap.wrap()` counts every byte of an escape toward the line length, so it breaks a styled string several words early. Here an escape measures no cells and a double-width character two, and each line opens and closes the styling it needs:
 
 ```{python:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 from click_extra import style, wrap_ansi
 

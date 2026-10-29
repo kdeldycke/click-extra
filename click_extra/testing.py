@@ -47,7 +47,7 @@ from .execution import (
     args_cleanup as _args_cleanup,
     format_cli_prompt as _format_cli_prompt,
 )
-from .styling import Style
+from .styling import Style, strip_ansi
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -247,10 +247,10 @@ class Result(click.testing.Result):
         if self.exception is None:
             return None
         if self.exc_info:
-            # Deferred import: keeps boltons.tbutils off the startup path of the CLI.
-            from boltons.tbutils import ExceptionInfo
+            # Deferred import: keeps traceback off the startup path of the CLI.
+            import traceback
 
-            return ExceptionInfo.from_exc_info(*self.exc_info).get_formatted()
+            return "".join(traceback.format_exception(*self.exc_info)).rstrip("\n")
         return f"Exception occurred: {self.exception}"
 
     def __repr__(self) -> str:
@@ -419,12 +419,9 @@ class CliRunner(click.testing.CliRunner):
 
         # `color` has been explicitly set to `False`, so strip all ANSI codes.
         if color is False:
-            # Deferred import: keeps boltons.strutils off the startup path of the CLI.
-            from boltons.strutils import strip_ansi
-
-            extra_result.stdout_bytes = strip_ansi(extra_result.stdout_bytes)  # type: ignore[assignment,arg-type]
-            extra_result.stderr_bytes = strip_ansi(extra_result.stderr_bytes)  # type: ignore[assignment,arg-type]
-            extra_result.output_bytes = strip_ansi(extra_result.output_bytes)  # type: ignore[assignment,arg-type]
+            extra_result.stdout_bytes = strip_ansi(extra_result.stdout_bytes)
+            extra_result.stderr_bytes = strip_ansi(extra_result.stderr_bytes)
+            extra_result.output_bytes = strip_ansi(extra_result.output_bytes)
 
         _print_cli_run(
             [simulated_prog_name, *clean_args],

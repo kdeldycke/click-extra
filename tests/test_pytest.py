@@ -23,9 +23,8 @@ from pathlib import Path
 
 import click
 import pytest
-from boltons.strutils import strip_ansi
 
-from click_extra import command, echo, option, style
+from click_extra import command, echo, option, strip_ansi, style
 from click_extra.color import COLOR_ENVVARS
 from click_extra.pytest import (
     default_debug_colored_config,

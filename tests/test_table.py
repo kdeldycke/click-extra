@@ -26,7 +26,6 @@ import pytest
 import tabulate
 import xmltodict
 import yaml
-from boltons.strutils import strip_ansi
 from extra_platforms import is_windows
 from tabulate import tabulate_formats
 from wcwidth import list_term_programs, wcswidth, width as cell_width
@@ -46,6 +45,7 @@ from click_extra import (
     option_group,
     pass_context,
     sort_by_option,
+    strip_ansi,
     style,
     table_format_option,
 )

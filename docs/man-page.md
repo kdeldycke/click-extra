@@ -252,7 +252,7 @@ The `Usage:` line is the synopsis. Click Extra styles its tokens along the same 
 Click prints the synopsis as the first line of the help screen. The rest of that screen, dissected in the two sections below, supplies the `DESCRIPTION` and the `OPTIONS` list:
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(weather, args=["--help"])
 assert result.exit_code == 0
@@ -315,7 +315,7 @@ assert "celsius" not in result.output
 `--params` prints the full mapping at once: every parameter, the environment variable it reads, its default, its resolved value, and the source that value came from.
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 
 result = invoke(weather, args=["--params"])
 assert result.exit_code == 0

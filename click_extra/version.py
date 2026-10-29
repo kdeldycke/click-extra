@@ -43,6 +43,7 @@ from datetime import UTC, datetime
 from functools import cached_property
 from gettext import gettext as _
 from pathlib import Path
+from string import Formatter
 
 import click
 from click import echo, get_current_context
@@ -153,7 +154,7 @@ def unstyled(text: str) -> str:
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
     from importlib.metadata import PackageMetadata
     from types import FrameType, ModuleType
     from typing import Any, ClassVar, TypeAlias
@@ -861,6 +862,112 @@ def colors_reach_output() -> bool:
     if color is None:
         return is_a_tty(sys.stdout)
     return color
+
+
+def template_segments(
+    template: str,
+) -> Iterator[tuple[str, str | None, str | None]]:
+    """Split a version message template into its literal and field segments.
+
+    Yields one `(literal, field_id, field)` triple per field of `template`, in
+    order: the literal text before the field, the identifier the field resolves
+    on the option (`env_info` for `{env_info[python][version]}`, the part before
+    any index or attribute), and the field as written, braces and format spec
+    included. A doubled brace of a literal comes back single. Literal text left
+    after the last field comes in a final triple carrying no field.
+    """
+    for literal, field_name, format_spec, conversion in Formatter().parse(template):
+        if field_name is None:
+            yield literal, None, None
+            continue
+        field = "{" + field_name
+        if conversion:
+            field += f"!{conversion}"
+        if format_spec:
+            field += f":{format_spec}"
+        yield literal, re.split(r"[.\[]", field_name, maxsplit=1)[0], field + "}"
+
+
+def environment_info() -> dict[str, Any]:
+    """Describe the interpreter and the machine running it, for a bug report.
+
+    Nothing in the profile identifies the user, the host or the working
+    directory, so it can be pasted in public as it comes. Under `python`,
+    `implementation`, `version`, `version_info`, `compiler` and `build_date`
+    describe the interpreter, and `features` the libraries it links: the
+    versions of OpenSSL, Expat, SQLite and zlib, an empty string standing for a
+    missing one, and whether the build is 64-bit, supports IPv6 and ships
+    `readline` and `tkinter`. Beside it, `uname` holds the system, release,
+    version, machine and processor of the platform, `linux_dist_name` and
+    `linux_dist_version` come from `os-release` on Linux, `cpu_count`,
+    `fs_encoding`, `ulimit_soft` and `ulimit_hard` size the host, and
+    `time_utc` and `time_utc_offset` date the report.
+
+    Every lookup behind a value is local: no host name is resolved, so a machine
+    whose resolver never answers does not stall, and the working directory is
+    never read, so one that has been deleted does not raise.
+    """
+    # Deferred imports: these modules serve this profile alone, which a version
+    # string seldom renders, so none of them joins the startup path of a CLI.
+    import platform
+    import socket
+    from importlib import import_module
+    from importlib.util import find_spec
+
+    def library_version(module: str, attribute: str) -> str:
+        """The version `attribute` of `module`, or an empty string without it."""
+        try:
+            return str(getattr(import_module(module), attribute))
+        except (ImportError, AttributeError):
+            return ""
+
+    uname = platform.uname()
+    try:
+        os_release = platform.freedesktop_os_release()
+    except OSError:
+        os_release = {}
+    try:
+        from resource import RLIMIT_NOFILE, getrlimit
+
+        ulimit_soft, ulimit_hard = getrlimit(RLIMIT_NOFILE)
+    except (ImportError, OSError):
+        ulimit_soft = ulimit_hard = 0
+    now = datetime.now(UTC)
+    offset = now.astimezone().utcoffset()
+    return {
+        "python": {
+            "implementation": platform.python_implementation(),
+            "version": " ".join(sys.version.split()),
+            "version_info": list(sys.version_info),
+            "compiler": platform.python_compiler(),
+            "build_date": platform.python_build()[1],
+            "features": {
+                "64bit": sys.maxsize > 2**32,
+                "ipv6": socket.has_ipv6,
+                "openssl": library_version("ssl", "OPENSSL_VERSION"),
+                "expat": library_version("pyexpat", "EXPAT_VERSION"),
+                "sqlite": library_version("sqlite3", "sqlite_version"),
+                "zlib": library_version("zlib", "ZLIB_VERSION"),
+                "readline": find_spec("readline") is not None,
+                "tkinter": find_spec("_tkinter") is not None,
+            },
+        },
+        "uname": {
+            "system": uname.system,
+            "release": uname.release,
+            "version": uname.version,
+            "machine": uname.machine,
+            "processor": uname.processor,
+        },
+        "linux_dist_name": os_release.get("NAME", ""),
+        "linux_dist_version": os_release.get("VERSION_ID", ""),
+        "cpu_count": os.cpu_count() or 0,
+        "fs_encoding": sys.getfilesystemencoding(),
+        "ulimit_soft": ulimit_soft,
+        "ulimit_hard": ulimit_hard,
+        "time_utc_offset": offset.total_seconds() / 3600 if offset else 0.0,
+        "time_utc": str(now),
+    }
 
 
 class VersionOption(ExtraOption):
@@ -1750,25 +1857,12 @@ class VersionOption(ExtraOption):
 
     @cached_property
     def env_info(self) -> dict[str, Any]:
-        """Various environment info.
+        """The interpreter and the machine running it, for a bug report.
 
-        Returns the data produced by [boltons.ecoutils.get_profile()](https://boltons.readthedocs.io/en/latest/ecoutils.html#boltons.ecoutils.get_profile).
+        The keys are those of {func}`~click_extra.version.environment_info`.
+        Built on first use, as a version string seldom renders `{env_info}`.
         """
-        # `boltons.ecoutils` introspects the interpreter, OS and platform to
-        # build its profile, and is comparatively expensive to import. It is
-        # only consulted when a version string actually renders ``{env_info}``,
-        # so it is imported lazily here to keep it off every CLI's startup
-        # path. Do not hoist this back to module scope.
-        from boltons.ecoutils import get_profile
-
-        # `scrub` does more than keep the user, host and working directory out
-        # of a profile meant to be pasted into a bug report: since `boltons`
-        # `26.2.0` it also skips the lookups behind them. One of those is a
-        # reverse DNS query costing ~35 s per call on a GitHub macOS runner
-        # whose resolver never answered, which made a `--verbosity DEBUG` run
-        # there take over an hour. Another is `os.getcwd()`, which raises once
-        # the working directory is gone. Never drop this argument.
-        return get_profile(scrub=True)
+        return environment_info()
 
     def field_style(self, field_id: str | None = None) -> IStyle:
         """Style painting the *field_id* segment of a rendered message.
@@ -1796,41 +1890,22 @@ class VersionOption(ExtraOption):
 
         default_style = self.field_style()
 
-        # Deferred import: keeps boltons.formatutils off the startup path of every CLI.
-        from boltons.formatutils import BaseFormatField, tokenize_format_str
-
-        # Split the template semantically between fields and literals.
-        segments = tokenize_format_str(template, resolve_pos=False)
-
-        # A copy of the template, where literals and fields segments are colored.
+        # A copy of the template, where literal and field segments are colored.
         colored_template = ""
 
-        # Apply styles to field and literal segments.
+        # Literals accumulate until the next field, so a run of them gets a single
+        # style span. Their braces are re-escaped: the copy is a template too.
         literal_accu = ""
-        for i, segment in enumerate(segments):
-            # Is the segment a format field?
-            is_field = isinstance(segment, BaseFormatField)
-            # If not, keep accumulating literal strings until the next field.
-            if not is_field:
-                # Re-escape literal curly braces to avoid messing up the format.
-                literal_accu += segment.replace(  # type: ignore[union-attr]
-                    "{", "{{"
-                ).replace("}", "}}")
-
-            # Dump the accumulated literals before processing the field, or at the end
-            # of the template.
-            is_last_segment = i + 1 == len(segments)
-            if (is_field or is_last_segment) and literal_accu:
-                # Colorize literals with the default style.
+        for literal, field_id, field in template_segments(template):
+            literal_accu += literal.replace("{", "{{").replace("}", "}}")
+            if field is None:
+                continue
+            if literal_accu:
                 colored_template += default_style(literal_accu)
-                # Reset the accumulator.
                 literal_accu = ""
-
-            # Add the field to the template copy, colored with its own style.
-            if is_field:
-                colored_template += self.field_style(
-                    segment.base_name  # type: ignore[union-attr]
-                )(str(segment))
+            colored_template += self.field_style(field_id)(field)
+        if literal_accu:
+            colored_template += default_style(literal_accu)
 
         return colored_template
 
@@ -1871,15 +1946,12 @@ class VersionOption(ExtraOption):
         if template is None:
             template = self.colored_template()
 
-        # Deferred import: keeps boltons.formatutils off the startup path of every CLI.
-        from boltons.formatutils import BaseFormatField, tokenize_format_str
-
         # Only resolve fields that actually appear in the template, so unused
         # properties (git calls, env_info, etc.) are never evaluated.
         used_fields = {
-            seg.base_name
-            for seg in tokenize_format_str(template, resolve_pos=False)
-            if isinstance(seg, BaseFormatField)
+            field_id
+            for _literal, field_id, _field in template_segments(template)
+            if field_id is not None
         }
         return template.format(**{v: getattr(self, v) for v in used_fields})
 
@@ -1890,8 +1962,7 @@ class VersionOption(ExtraOption):
         own label, instead of the single-line `repr` a template would produce for it.
         Only `{env_info}` is built that way today, and it alone accounts for two
         thirds of this listing: a thousand characters on one line is what a bug
-        report carries otherwise. Upstream reads its profile the same way, through
-        [`boltons.ecoutils.get_profile_json(indent=True)`](https://boltons.readthedocs.io/en/latest/ecoutils.html).
+        report carries otherwise.
         """
         if logger.getEffectiveLevel() != logging.DEBUG:
             return

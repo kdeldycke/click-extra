@@ -17,7 +17,7 @@
 
 Importing this package is the startup cost of every CLI built on it, so the
 dependencies a code path may never need (wcwidth, PyYAML, wcmatch, deepmerge,
-extra-platforms, most of boltons) are imported where they are used, and
+extra-platforms) are imported where they are used, and
 `tests/test_commands.py` checks that a hello-world `--help` loads none of them.
 
 ```{todo}
@@ -291,6 +291,7 @@ from .styling import (
     open_ansi,
     render_ansi,
     split_ansi,
+    strip_ansi,
 )
 from .table import (
     ColumnsOption,
@@ -580,6 +581,7 @@ __all__ = [
     "show_params_option",
     "sort_by_option",
     "split_ansi",
+    "strip_ansi",
     "style",
     "table_format_option",
     "telemetry_option",

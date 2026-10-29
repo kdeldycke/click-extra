@@ -50,9 +50,9 @@ from pathlib import Path
 from shutil import which
 from subprocess import TimeoutExpired
 
-from boltons.iterutils import flatten
 from click import echo
 
+from ._utils import flatten
 from .config.formats import (
     ConfigFormat,
     disabled_format_message,
@@ -62,6 +62,7 @@ from .config.formats import (
 from .envvar import merge_envvar_ids, normalize_envvar_id
 from .execution import CPU_COUNT, args_cleanup, run_cli, run_jobs
 from .spinner import Spinner
+from .styling import strip_ansi
 from .testing import (
     STREAM_FIELDS,
     StreamView,
@@ -497,9 +498,8 @@ class CLITestCase:
         which binary is executed, only what a relative path inside the command
         resolves against.
         """
-        # Deferred imports: keep extra_platforms and boltons.strutils off the
-        # startup path of the CLI, which only a running case needs.
-        from boltons.strutils import strip_ansi
+        # Deferred import: keeps extra_platforms off the startup path of the CLI,
+        # which only a running case needs.
         from extra_platforms import current_platform, extract_members
 
         if self.only_platforms and current_platform() not in extract_members(

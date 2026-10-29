@@ -218,7 +218,7 @@ def export(format):
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 result = invoke(export, args=["--help"])
 assert result.exit_code == 0
 # "json" is highlighted as a choice everywhere.
@@ -254,7 +254,7 @@ result = invoke(cli, args=["show", "--help"])
 assert result.exit_code == 0
 # "version" is a parent choice but excluded: not styled in the description.
 assert "\x1b[35m\x1b[1mversion\x1b[0m" not in result.output
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 assert "version" in strip_ansi(result.output)
 ```
 
@@ -486,7 +486,7 @@ def hello():
 ```
 
 ```{click:run}
-from boltons.strutils import strip_ansi
+from click_extra import strip_ansi
 result = invoke(hello, args=["-h"])
 assert result.exit_code == 0
 plain = strip_ansi(result.output)

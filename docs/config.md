@@ -351,7 +351,7 @@ The `Load configuration matching` line goes to `stderr`. `-q`, or a `--verbosity
 
 ```{hint}
 Variables in `meta` are presented in their original Python type:
-- `click_extra.conf_source` is either a normalized [`Path`](https://docs.python.org/3/library/pathlib.html) or [`URL` object](https://boltons.readthedocs.io/en/latest/urlutils.html#the-url-type)
+- `click_extra.conf_source` is a normalized [`Path`](https://docs.python.org/3/library/pathlib.html), or the URL the configuration was downloaded from, as a `str`
 - `click_extra.conf_full` is a `dict` whose values are either `str` or richer types, depending on the capabilities of [each format](config-formats.md)
 ```
 

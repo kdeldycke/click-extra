@@ -54,8 +54,6 @@ from pathlib import Path, PurePosixPath
 from threading import Lock
 
 import click
-from boltons.iterutils import flatten, unique
-from boltons.pathutils import shrinkuser
 from click import (
     UNPROCESSED,
     Choice,
@@ -68,6 +66,7 @@ from click.core import ParameterSource
 from click.parser import _split_opt
 
 from .. import context
+from .._utils import flatten, shrinkuser
 from ..logging import LogLevel, requested_level
 from ..parameters import (
     PARAM_PATH_SEP,
@@ -111,8 +110,6 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
     from typing import Any, Literal
-
-    from boltons.urlutils import URL
 
 logger = logging.getLogger(__name__)
 
@@ -258,7 +255,7 @@ class _EmptyConfigError(ValueError):
     `key = value` lines named `*.conf` is read as an argfile, not as INI.
     """
 
-    def __init__(self, location: Path | URL, formats: Iterable[ConfigFormat]) -> None:
+    def __init__(self, location: Path | str, formats: Iterable[ConfigFormat]) -> None:
         super().__init__(
             f"{location} parses as {_join_format_labels(formats)} "
             "but holds no configuration."
@@ -306,7 +303,7 @@ def _coerce_scalar(target_type: type | None, raw_value: str, subject: str) -> An
 def _exit_on_validation_error(
     ctx: click.Context,
     report: ValidationReport,
-    location: Path | URL | None = None,
+    location: Path | str | None = None,
 ) -> None:
     """Log the first error of a failed validation and exit the CLI with code `1`.
 
@@ -1037,7 +1034,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Returns a single pattern string.
         """
-        patterns = unique(flatten(self.file_format_patterns.values()))
+        patterns = dict.fromkeys(flatten(self.file_format_patterns.values()))
         return ",".join(patterns)
 
     def default_pattern(self) -> str:
@@ -1280,7 +1277,7 @@ class ConfigOption(ExtraOption, ParamStructure):
     def search_and_read_file(
         self,
         pattern: str,
-    ) -> Iterable[tuple[Path | URL, str, str | None]]:
+    ) -> Iterable[tuple[Path | str, str, str | None]]:
         """Search filesystem or URL for files matching the `pattern`.
 
         If `pattern` is an URL, download its content. A pattern is considered an URL
@@ -1305,16 +1302,16 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         files_found = 0
 
-        # Deferred imports: keep boltons.urlutils, extra_platforms and wcmatch off
-        # the startup path of every CLI.
-        from boltons.urlutils import URL
+        # Deferred imports: keep urllib, extra_platforms and wcmatch off the
+        # startup path of every CLI.
+        from urllib.parse import urlsplit
+
         from extra_platforms import is_windows
         from wcmatch import glob
 
         # Check if the pattern is an URL.
-        location = URL(pattern)
-        location.normalize()
-        if location and location.scheme in ("http", "https"):
+        if urlsplit(pattern).scheme in ("http", "https"):
+            location = pattern
             # It's an URL, try to download it.
             logger.debug(f"Download file from URL: {location}")
             # Fetch the remote config with the standard library rather than
@@ -1329,7 +1326,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             from urllib.request import urlopen
 
             try:
-                with urlopen(str(location)) as response:
+                with urlopen(location) as response:
                     files_found += 1
                     # Decode using the charset advertised in the Content-Type
                     # header, defaulting to UTF-8: the near-universal encoding
@@ -1402,7 +1399,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         self,
         content: str,
         formats: Sequence[ConfigFormat],
-        location: Path | URL | None = None,
+        location: Path | str | None = None,
     ) -> Iterable[dict[str, Any] | None]:
         """Parse the `content` with the given `formats`.
 
@@ -1527,7 +1524,7 @@ class ConfigOption(ExtraOption, ParamStructure):
     def _parse_matches(
         self,
         pattern: str,
-    ) -> Iterable[tuple[Path | URL, dict[str, Any] | None, tuple[ConfigFormat, ...]]]:
+    ) -> Iterable[tuple[Path | str, dict[str, Any] | None, tuple[ConfigFormat, ...]]]:
         """Parse every file matching `pattern`, in discovery order.
 
         Yields a `(location, conf, empty_formats)` triple per file, as
@@ -1550,7 +1547,7 @@ class ConfigOption(ExtraOption, ParamStructure):
     def read_and_parse_all_conf(
         self,
         pattern: str,
-    ) -> Iterable[tuple[Path | URL, dict[str, Any]]]:
+    ) -> Iterable[tuple[Path | str, dict[str, Any]]]:
         """Search for every parseable configuration file matching `pattern`.
 
         Yields `(location, parsed_conf)` pairs in discovery order, which is
@@ -1570,7 +1567,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
     def _parse_one_conf(
         self,
-        location: Path | URL,
+        location: Path | str,
         content: str,
         media_type: str | None = None,
     ) -> tuple[dict[str, Any] | None, tuple[ConfigFormat, ...]]:
@@ -1597,9 +1594,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         format, or no parse attempt produces a non-empty structure:
         `empty_formats` then names the formats that parse it to an empty one.
         """
-        # Deferred imports: keep boltons.urlutils and wcmatch off the startup path
-        # of every CLI.
-        from boltons.urlutils import URL
+        # Deferred imports: keep urllib and wcmatch off the startup path of every
+        # CLI.
+        from urllib.parse import urlsplit
+
         from wcmatch import fnmatch
 
         # A file parsed from its path carries an empty placeholder as content,
@@ -1614,10 +1612,10 @@ class ConfigOption(ExtraOption, ParamStructure):
             logger.debug(f"{location} is blank.")
             return {}, ()
 
-        if isinstance(location, URL):
-            filename = location.path_parts[-1]
-        else:
+        if isinstance(location, Path):
             filename = location.name
+        else:
+            filename = PurePosixPath(urlsplit(location).path).name
 
         # Match file with formats.
         matching_formats = tuple(
@@ -1666,7 +1664,7 @@ class ConfigOption(ExtraOption, ParamStructure):
     def read_and_parse_conf(
         self,
         pattern: str,
-    ) -> tuple[Path | URL, dict[str, Any]] | tuple[None, None]:
+    ) -> tuple[Path | str, dict[str, Any]] | tuple[None, None]:
         """Search for a parseable configuration file.
 
         Returns the location and data structure of the first configuration matching the
@@ -1691,7 +1689,7 @@ class ConfigOption(ExtraOption, ParamStructure):
     def _read_explicit_conf(
         self,
         pattern: str,
-    ) -> tuple[Path | URL, dict[str, Any]] | tuple[None, None]:
+    ) -> tuple[Path | str, dict[str, Any]] | tuple[None, None]:
         """Read the configuration at a location the user names on purpose.
 
         Works like {meth}`read_and_parse_conf`, for `--config` and
@@ -1707,8 +1705,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Returns `(None, None)` if files were found but no format could parse them.
         """
-        first_blank: tuple[Path | URL, dict[str, Any]] | None = None
-        first_empty: tuple[Path | URL, tuple[ConfigFormat, ...]] | None = None
+        first_blank: tuple[Path | str, dict[str, Any]] | None = None
+        first_empty: tuple[Path | str, tuple[ConfigFormat, ...]] | None = None
         for location, conf, empty_formats in self._parse_matches(pattern):
             if conf:
                 return location, conf
@@ -2148,7 +2146,7 @@ class ConfigOption(ExtraOption, ParamStructure):
     def _apply_cascaded_conf(
         self,
         ctx: click.Context,
-        layers: Sequence[tuple[Path | URL, dict[str, Any]]],
+        layers: Sequence[tuple[Path | str, dict[str, Any]]],
     ) -> dict[str, Any]:
         """Validate and install multiple config layers into `default_map`.
 
@@ -2316,9 +2314,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         # Discover configuration layers, in precedence order (highest first).
         # A pyproject.toml found near the CWD beats the app-dir search, which
         # itself yields the most local file first.
-        conf_path: Path | URL | None = None
+        conf_path: Path | str | None = None
         user_conf: dict[str, Any] | None = None
-        layers: list[tuple[Path | URL, dict[str, Any]]] = []
+        layers: list[tuple[Path | str, dict[str, Any]]] = []
         if (
             not explicit_conf
             and ConfigFormat.PYPROJECT_TOML in self.file_format_patterns

@@ -25,9 +25,8 @@ import textwrap
 import click
 import cloup
 import pytest
-from boltons.strutils import strip_ansi
 
-from click_extra import Style
+from click_extra import Style, strip_ansi
 from click_extra.layout import wrap_ansi
 from click_extra.styling import (
     _nearest_256,
@@ -906,3 +905,29 @@ BLUE_BOLD = "\x1b[34m\x1b[1mSummer\x1b[0m"
 )
 def test_ansi_converters(converter, text, expected):
     assert converter(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        pytest.param("plain", "plain", id="plain"),
+        pytest.param("\x1b[1;31mbold red\x1b[0m", "bold red", id="sgr"),
+        pytest.param("\x1b[38;2;255;0;0mtrue\x1b[m", "true", id="sgr_truecolor"),
+        pytest.param("\x1b[2J\x1b[H\x1b[?25lhidden\x1b[1;2H", "hidden", id="csi"),
+        pytest.param(
+            "\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\", "link", id="osc8_st"
+        ),
+        pytest.param(
+            "\x1b]8;;https://example.com\x07link\x1b]8;;\x07", "link", id="osc8_bel"
+        ),
+        pytest.param("\x1b]0;a title\x07body", "body", id="osc_title"),
+        pytest.param("body\x1b]0;left open", "body", id="osc_open"),
+        pytest.param("\x1bMup\x1bDdown", "updown", id="two_byte"),
+    ),
+)
+def test_strip_ansi(text, expected):
+    assert strip_ansi(text) == expected
+
+
+def test_strip_ansi_keeps_bytes_as_bytes():
+    assert strip_ansi(b"\x1b[32mok\x1b[0m \xc3\xa9") == b"ok \xc3\xa9"

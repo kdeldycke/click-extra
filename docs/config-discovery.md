@@ -128,10 +128,9 @@ The default then names every pattern the running install searches for:
 ```{click:run}
 :emphasize-result-lines: 6-8
 import re
-from boltons.iterutils import flatten, unique
 from click_extra import ConfigFormat
 result = invoke(cli, args=["--help"])
-fp = ",".join(unique(flatten(f.patterns for f in ConfigFormat if f.enabled)))
+fp = ",".join(dict.fromkeys(p for f in ConfigFormat if f.enabled for p in f.patterns))
 # Cloup wraps the default at a column driven by the widest option label, so
 # drop every whitespace run before looking for the pattern.
 assert f"~/.config/cli/{{{fp}}}]" in re.sub(r"\s+", "", result.stdout)

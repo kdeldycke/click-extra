@@ -29,7 +29,6 @@ import re
 from pathlib import Path
 
 import pytest
-from boltons.strutils import strip_ansi
 
 from click_extra.logo import (
     BRAND_HUES,
@@ -47,7 +46,7 @@ from click_extra.logo import (
     size,
     sub_pixels,
 )
-from click_extra.styling import _nearest_256, _relative_luminance
+from click_extra.styling import _nearest_256, _relative_luminance, strip_ansi
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
