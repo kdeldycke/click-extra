@@ -34,7 +34,7 @@ from enum import Enum
 from functools import cache, cached_property, reduce
 from gettext import gettext as _
 from operator import getitem
-from typing import TypeVar, overload
+from typing import TypeVar
 
 import click
 import cloup
@@ -48,11 +48,9 @@ from click.core import (
 )
 
 from . import context
-from ._deprecated import warn_deprecated_argument
 
-# Imported under a private name so this module's namespace does not resurrect
-# the moved helper: its canonical home is click_extra._utils, and the public
-# `parameters.patch_attr` spelling resolves through the deprecation hook below.
+# Imported under a private name so this module does not offer a second public
+# spelling of the helper: its canonical home is click_extra._utils.
 from ._utils import patch_attr as _patch_attr
 from .columns import (
     ColumnSpec,
@@ -71,7 +69,6 @@ if TYPE_CHECKING:
     from typing import Any, ClassVar, Literal
 
     from boltons.urlutils import URL
-    from click._utils import T_UNSET
     from click.parser import _OptionParser
 
 logger = logging.getLogger(__name__)
@@ -150,33 +147,11 @@ def choice_values(param_type: click.ParamType) -> tuple[str, ...]:
     )
 
 
-@overload
 def search_params(
     params: Iterable[click.Parameter],
     klass: type[P],
     include_subclasses: bool = True,
-    *,
-    unique: Literal[True] = ...,
-) -> P | None: ...
-
-
-@overload
-def search_params(
-    params: Iterable[click.Parameter],
-    klass: type[P],
-    include_subclasses: bool = True,
-    *,
-    unique: Literal[False],
-) -> list[P] | None: ...
-
-
-def search_params(
-    params: Iterable[click.Parameter],
-    klass: type[P],
-    include_subclasses: bool = True,
-    *,
-    unique: bool | T_UNSET = UNSET,
-) -> P | list[P] | None:
+) -> P | None:
     """Return the one parameter of class `klass` in `params`, or `None`.
 
     The result is typed as `klass` itself, so a caller needs no `isinstance`
@@ -187,8 +162,6 @@ def search_params(
     :param include_subclasses: if `True` (the default), a parameter subclassing
         `klass` matches too. If `False`, only a parameter of exactly `klass`
         does.
-    :param unique: deprecated. `False` returned every match as a list: filter
-        `params` yourself instead, as {func}`last_param` does.
     :raises RuntimeError: if more than one parameter matches.
     """
     param_list = [
@@ -196,12 +169,6 @@ def search_params(
         for p in params
         if isinstance(p, klass) and (include_subclasses or p.__class__ is klass)
     ]
-    if unique is not UNSET:
-        warn_deprecated_argument(
-            "search_params", "unique", "a list comprehension over params"
-        )
-        if not unique:
-            return param_list or None
     if not param_list:
         return None
     if len(param_list) != 1:
@@ -1979,15 +1946,3 @@ class ShowParamsOption(ExtraOption, ParamStructure):
         # would have fallen back to anyway.
         render_params_table(ctx, default_columns=type(self).default_column_ids())
         ctx.exit()
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated `parameters` symbols via the PEP 562 `__getattr__` hook.
-
-    The generic helpers (`patch_attr`, `generator_tag`,
-    `missing_extra_message`) moved to {mod}`click_extra._utils`. Fires only for
-    names not defined in this module. See {mod}`click_extra._deprecated`.
-    """
-    from ._deprecated import resolve_deprecated
-
-    return resolve_deprecated(__name__, name)

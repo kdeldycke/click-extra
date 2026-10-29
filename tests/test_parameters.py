@@ -194,16 +194,6 @@ def test_search_params_returns_the_one_match():
         search_params([fruit, apple], FruitOption)
 
 
-def test_search_params_unique_is_deprecated():
-    """`unique=False` still returns every match as a list, warning at the caller."""
-    fruit = FruitOption(["--fruit"])
-    apple = AppleOption(["--apple"])
-    with pytest.warns(DeprecationWarning, match=r"search_params\(unique=") as record:
-        found = search_params([fruit, apple], FruitOption, unique=False)
-    assert found == [fruit, apple]
-    assert record[0].filename == __file__
-
-
 def test_last_param_keeps_the_last_exact_match():
     """Duplicates resolve to the last one, and a subclass never matches."""
     first = FruitOption(["--fruit"])

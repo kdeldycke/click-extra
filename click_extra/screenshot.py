@@ -51,12 +51,11 @@ from __future__ import annotations
 
 import shlex
 import subprocess
-from dataclasses import asdict, dataclass, fields, replace
+from dataclasses import asdict, dataclass, replace
 from enum import Enum
 
 from click import style
 
-from ._deprecated import warn_deprecated_usage
 from .color import forced_color
 from .execution import args_cleanup, format_cli_prompt, run_cli
 
@@ -93,9 +92,9 @@ from .theme import BUILTIN_THEMES
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Sequence
     from pathlib import Path
-    from typing import Any, Literal, TypeAlias, TypedDict, Unpack
+    from typing import Any, Literal, TypeAlias, TypedDict
 
     from .execution import TArg, TNestedArgs
     from .screenshot_svg import THold
@@ -105,7 +104,7 @@ if TYPE_CHECKING:
     """Width a capture is taken and rendered at, see {data}`AUTO_COLUMNS`."""
 
     class ChromeArguments(TypedDict, total=False):
-        """The window arguments taken one by one before {class}`Chrome`."""
+        """The {class}`Chrome` fields, taken one by one as keyword arguments."""
 
         border: str | None
         border_width: int
@@ -306,37 +305,6 @@ class Chrome:
                 WATERMARK_INK if self.watermark_color is None else self.watermark_color
             ),
         )
-
-
-CHROME_FIELDS: frozenset[str] = frozenset(field.name for field in fields(Chrome))
-"""The {class}`Chrome` field names, which the capture functions once took one by one."""
-
-
-def fold_chrome_arguments(
-    function: str, chrome: Chrome, legacy: Mapping[str, Any]
-) -> Chrome:
-    """`chrome`, with the window arguments `function` used to take folded in.
-
-    Those arguments still resolve for one deprecation cycle, and passing any of
-    them warns.
-
-    :param function: name of the capture function, for the messages.
-    :param chrome: the chrome the call passed.
-    :param legacy: the other keyword arguments the call passed.
-    :return: `chrome` updated with `legacy`.
-    :raises TypeError: on an argument `function` never took.
-    """
-    unknown = sorted(set(legacy) - CHROME_FIELDS)
-    if unknown:
-        msg = f"{function}() got an unexpected keyword argument {unknown[0]!r}"
-        raise TypeError(msg)
-    if not legacy:
-        return chrome
-    warn_deprecated_usage(
-        f"Passing {', '.join(f'{name}=' for name in legacy)} to {function}()",
-        f"chrome=Chrome({', '.join(f'{name}=...' for name in legacy)})",
-    )
-    return replace(chrome, **legacy)
 
 
 CAPTURE_TERMINAL_HINTS: dict[CaptureBackground, dict[str, str]] = {
@@ -905,7 +873,6 @@ def render(
     preset: TerminalPreset | None = None,
     palette: TerminalPalette | None = None,
     chrome: Chrome = Chrome(),
-    **legacy: Unpack[ChromeArguments],
 ) -> str:
     """Render captured terminal text to the document `format` names.
 
@@ -956,11 +923,9 @@ def render(
         palette repaints the terminal's body, not the desktop's frame around it.
     :param chrome: how the window around the text is drawn, see
         {class}`Chrome`.
-    :param legacy: deprecated: the {class}`Chrome` fields, passed one by one.
     :return: the rendered document.
     :raises ValueError: asking an HTML capture to animate.
     """
-    chrome = fold_chrome_arguments("render", chrome, legacy)
     frame: dict[str, Any] = asdict(chrome.resolve(background, preset))
     # What the chrome would paint on its own, kept apart from the `palette` the
     # text is drawn with: the two differ for a capture whose colors come from
@@ -1082,7 +1047,6 @@ def capture(
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
     chrome: Chrome = Chrome(),
-    **legacy: Unpack[ChromeArguments],
 ) -> tuple[str, int]:
     """Run a command and render its output as a document.
 
@@ -1121,10 +1085,8 @@ def capture(
     :param background: see {func}`render`.
     :param preset: see {func}`render`.
     :param chrome: see {func}`render`.
-    :param legacy: deprecated: the {class}`Chrome` fields, passed one by one.
     :return: the rendered document, and the command's exit code.
     """
-    chrome = fold_chrome_arguments("capture", chrome, legacy)
     process = capture_output(
         args,
         columns=columns,
@@ -1197,15 +1159,3 @@ def format_from_path(path: Path) -> CaptureFormat:
         raise ValueError(
             f"Cannot tell the capture format of {path.name!r}: name it {known}."
         ) from None
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated `screenshot` symbols via the PEP 562 `__getattr__` hook.
-
-    `STDOUT_PATH` is {data}`~click_extra.output.STDOUT_SENTINEL`, the one
-    destination every `--output` option reads as the terminal. Fires only for
-    names not defined in this module. See {mod}`click_extra._deprecated`.
-    """
-    from ._deprecated import resolve_deprecated
-
-    return resolve_deprecated(__name__, name)

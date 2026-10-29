@@ -27,15 +27,6 @@
    :undoc-members:
 ```
 
-## `tests.sphinx.test_sphinx_alerts` module
-
-```{eval-rst}
-.. automodule:: tests.sphinx.test_sphinx_alerts
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
 ## `tests.sphinx.test_sphinx_click` module
 
 ```{eval-rst}

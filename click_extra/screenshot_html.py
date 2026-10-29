@@ -29,9 +29,6 @@ from __future__ import annotations
 from functools import partial
 from html import escape
 
-from click._utils import UNSET
-
-from ._deprecated import warn_deprecated_argument
 from .screenshot_presets import CAPTURE_FONT_STACK, CaptureBackground, resolve_palette
 from .screenshot_svg import (
     DEFAULT_BORDER_WIDTH,
@@ -50,9 +47,7 @@ from .styling import ansi_to_html
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from click._utils import T_UNSET
-
-    from .screenshot_presets import TerminalPalette, TerminalPreset, WindowButtons
+    from .screenshot_presets import TerminalPalette, TerminalPreset
 
 
 def _credit_link(url: str, name: str) -> str:
@@ -83,11 +78,7 @@ def render_html(
     shadow: str = NO_PAINT,
     margin: int = 0,
     padding: int = 0,
-    buttons: WindowButtons | T_UNSET | None = UNSET,
-    buttons_color: str | T_UNSET = UNSET,
     font_stack: str = CAPTURE_FONT_STACK,
-    titlebar: str | T_UNSET = UNSET,
-    collapse_titlebar: bool | T_UNSET = UNSET,
     opacity: float = OPAQUE,
     watermark: str = "",
     watermark_color: str = WATERMARK_INK,
@@ -132,12 +123,6 @@ def render_html(
         {func}`~click_extra.screenshot_svg.render_svg`.
     :param margin: pixels left around the block, on all four sides.
     :param padding: pixels added inside the block, on top of its own.
-    :param buttons: deprecated, and ignored. HTML reflows with the page embedding
-        it, so it carries the text and its colors, not a window drawn around
-        them. Passing it warns, and stops working in `10.0.0`.
-    :param buttons_color: deprecated, see `buttons`.
-    :param titlebar: deprecated, see `buttons`.
-    :param collapse_titlebar: deprecated, see `buttons`.
     :param opacity: how solid the block's background is, from
         {data}`~click_extra.screenshot_svg.OPAQUE` down to `0.0`, where the page shows
         straight through the text.
@@ -147,16 +132,6 @@ def render_html(
     :param watermark_url: where the package name points. Empty links nothing.
     :return: the rendered markup.
     """
-    for name, value in (
-        ("buttons", buttons),
-        ("buttons_color", buttons_color),
-        ("titlebar", titlebar),
-        ("collapse_titlebar", collapse_titlebar),
-    ):
-        if value is not UNSET:
-            warn_deprecated_argument(
-                "render_html", name, "render_svg() to draw a window"
-            )
     if palette is None:
         palette = resolve_palette(preset, background)
     chrome, ink = palette.background, palette.foreground

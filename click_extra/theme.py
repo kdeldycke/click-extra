@@ -1034,15 +1034,3 @@ theme_registry.update(BUILTIN_THEMES)
 # rather than crashing on a missing "dark" key.
 if "dark" in BUILTIN_THEMES:
     set_default_theme(BUILTIN_THEMES["dark"])
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated `theme` symbols via the PEP 562 `__getattr__` hook.
-
-    The `nocolor_theme` constant was renamed `NOCOLOR_THEME`, following the
-    uppercase constant convention. Fires only for names not defined in this
-    module. See {mod}`click_extra._deprecated`.
-    """
-    from ._deprecated import resolve_deprecated
-
-    return resolve_deprecated(__name__, name)

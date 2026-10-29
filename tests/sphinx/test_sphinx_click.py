@@ -32,11 +32,7 @@ from docutils import nodes
 from pygments.styles import get_style_by_name
 
 from click_extra import verbosity_option
-from click_extra.screenshot_presets import (
-    CAPTURE_BACKGROUND,
-    LIGHT_CAPTURE_BACKGROUND,
-    CaptureBackground,
-)
+from click_extra.screenshot_presets import CAPTURE_PALETTES, CaptureBackground
 from click_extra.snippet import DEFAULT_SYNTAX_STYLES
 from click_extra.sphinx.click import (
     SCREENSHOT_MARKER_END,
@@ -1983,8 +1979,8 @@ def test_click_run_screenshot_background(sphinx_app_myst):
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "pale-greet-screen.svg"
     svg = asset.read_text(encoding="utf-8")
-    assert LIGHT_CAPTURE_BACKGROUND in svg
-    assert CAPTURE_BACKGROUND not in svg
+    assert CAPTURE_PALETTES[CaptureBackground.LIGHT].background in svg
+    assert CAPTURE_PALETTES[CaptureBackground.DARK].background not in svg
 
 
 def test_click_run_screenshot_columns_auto(sphinx_app_myst):

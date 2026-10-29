@@ -22,7 +22,6 @@ from textwrap import dedent
 import pytest
 from click.testing import CliRunner
 
-from click_extra import myst_converter
 from click_extra.cli import convert_to_myst_cmd
 from click_extra.myst_converter import (
     convert_comment_blocks,
@@ -381,24 +380,3 @@ def test_convert_to_myst_cli_not_a_directory(tmp_path):
     result = CliRunner().invoke(convert_to_myst_cmd, [str(target)])
     assert result.exit_code != 0
     assert "Not a directory" in result.output
-
-
-def test_fence_open_re_warns_and_resolves():
-    """The retired `FENCE_OPEN_RE` still answers, with a deprecation warning.
-
-    It matches the backtick run opening a fence, as it did in `9.4.1`.
-    """
-    with pytest.deprecated_call(
-        match=r"click_extra\.myst_converter\.FENCE_OPEN_RE is deprecated"
-    ):
-        pattern = myst_converter.FENCE_OPEN_RE
-    match = pattern.match("````{note}")
-    assert match is not None
-    assert match.group(1) == "````"
-    assert pattern.match("`` inline ``") is None
-
-
-def test_myst_converter_unknown_attribute_raises():
-    """A name the hook does not serve still raises a standard AttributeError."""
-    with pytest.raises(AttributeError, match="has no attribute 'DOES_NOT_EXIST'"):
-        _ = myst_converter.DOES_NOT_EXIST

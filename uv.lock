@@ -277,6 +277,7 @@ all = [
     { name = "json-with-comments" },
     { name = "json5" },
     { name = "mkdocs" },
+    { name = "myst-parser" },
     { name = "pygments" },
     { name = "pymdown-extensions" },
     { name = "pytest" },
@@ -311,6 +312,7 @@ pytest = [
 ]
 sphinx = [
     { name = "docutils" },
+    { name = "myst-parser" },
     { name = "pygments" },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -391,6 +393,7 @@ requires-dist = [
     { name = "json-with-comments", marker = "extra == 'jsonc'", specifier = ">=1.2.10" },
     { name = "json5", marker = "extra == 'json5'", specifier = ">=0.12.1" },
     { name = "mkdocs", marker = "extra == 'mkdocs'", specifier = ">=1.4" },
+    { name = "myst-parser", marker = "extra == 'sphinx'", specifier = ">=5.1" },
     { name = "pygments", marker = "extra == 'mkdocs'", specifier = ">=2.14" },
     { name = "pygments", marker = "extra == 'pygments'", specifier = ">=2.14" },
     { name = "pygments", marker = "extra == 'sphinx'", specifier = ">=2.18" },
@@ -437,7 +440,7 @@ test = [
     { name = "jsonschema", specifier = ">=4.18" },
     { name = "mkdocs", specifier = ">=1.4" },
     { name = "mkdocs-click", specifier = ">=0.8.1" },
-    { name = "myst-parser", specifier = ">=4" },
+    { name = "myst-parser", specifier = ">=5.1" },
     { name = "pymdown-extensions", specifier = ">=10" },
     { name = "pytest", specifier = ">=9" },
     { name = "pytest-github-actions-annotate-failures", specifier = ">=0.2" },

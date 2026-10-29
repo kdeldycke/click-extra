@@ -258,8 +258,6 @@ nitpick_ignore = [
     ("py:class", "click.MultiCommand"),
     # pygments' inherited ``aliases`` attribute docstring.
     ("py:func", "get_formatter_by_name"),
-    # sphinx exception raised by the (deprecated) GitHub-alerts converter.
-    ("py:exc", "ConfigError"),
     # click ParameterSource enum members are absent from click's inventory.
     ("py:attr", "click.ParameterSource.DEFAULT_MAP"),
     # click-extra's own classes that live in a submodule but are re-exported at the

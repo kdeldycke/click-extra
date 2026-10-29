@@ -40,7 +40,6 @@ try:
 except ImportError as err:
     raise ImportError(missing_extra_message("sphinx", subject="This module")) from err
 
-from packaging.version import Version
 from sphinx.highlighting import PygmentsBridge
 from sphinx.util import logging
 
@@ -52,8 +51,6 @@ from ..blocks import (
 )
 from ..pygments import AnsiHtmlFormatter
 from . import fail_on_warnings, manpages, matrix, tables, todos
-from ._base import myst_version
-from .alerts import convert_github_alerts
 from .click import (
     RUN_CAPTURE_CONFIG as RUN_CAPTURE_CONFIG,
     SCREENSHOT_DIR_CONFIG as SCREENSHOT_DIR_CONFIG,
@@ -80,27 +77,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-MYST_NATIVE_ALERTS_VERSION = Version("5.1.0")
-"""First `myst-parser` release that ships the native `"alert"` syntax
-extension.
-
-Below this version, {mod}`click_extra.sphinx.alerts` patches GitHub alert
-syntax into MyST admonitions via a `source-read` / `include-read`
-hook. At or above this version, the converter is skipped at
-{func}`setup` time and projects should add `"alert"` to
-`myst_enable_extensions` instead. A project with no `myst-parser`
-installed writes no MyST document, so the converter is skipped there too.
-"""
-
-
 EXEC_DIRECTIVES_OPT_IN = "click_extra_enable_exec_directives"
 """Name of the `conf.py` config flag that gates every code-execution directive.
 
 Default is `False`. A project that adds `click_extra.sphinx` to its
-`extensions` list gets the ANSI Pygments formatter unconditionally, plus
-the GitHub-alerts converter when `myst-parser` is below
-{data}`MYST_NATIVE_ALERTS_VERSION` (see {mod}`.alerts` for the deprecation
-rationale), but does *not* gain access to either the `click:*` or the
+`extensions` list gets the ANSI Pygments formatter unconditionally, but
+does *not* gain access to either the `click:*` or the
 `python:*` directive families until the maintainer opts in explicitly.
 Both families `exec` user-supplied Python at build time with full
 Sphinx-process privileges; gating them behind a single explicit flag keeps
@@ -146,8 +128,8 @@ def _register_exec_directives(app: Sphinx, config: Config) -> None:
     # is parsed, so builds always render fresh output even when the committed
     # region is stale (the disk copy is refreshed offline by the click-extra
     # refresh-directives command). Priority 100 (below the default 500) runs
-    # it ahead of any other source-read transformer (like the GitHub-alerts
-    # converter) so generated content participates in later transforms.
+    # it ahead of any other source-read transformer so generated content
+    # participates in later transforms.
     app.connect("source-read", rewrite_python_mirror_regions, priority=100)
 
 
@@ -159,14 +141,6 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     - The ANSI-capable HTML formatter for Pygments (replaces
       `sphinx.highlighting.PygmentsBridge` with one that renders ANSI
       colors in code blocks).
-    - GitHub-flavored alert syntax (`> [!NOTE]`, etc.) in *included*
-      and regular *source* files, converted to MyST/reST admonitions.
-      Registered only when the installed `myst-parser` is below
-      {data}`MYST_NATIVE_ALERTS_VERSION` (`5.1.0`). On newer versions,
-      the converter is skipped and a one-shot info message points users
-      at `myst-parser`'s native `"alert"` extension; with no `myst-parser`
-      installed it is skipped without a message. See
-      {mod}`click_extra.sphinx.alerts` for the deprecation plan.
     - The `matrix` directive, which renders a package's compatibility grid
       (``{matrix} python`` or ``{matrix} <distribution>``) from its git tag
       history. It runs a canned generator rather than user-supplied Python, so
@@ -251,26 +225,6 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # Fail the build on the warning types a project lists (see
     # fail_on_warnings.py). Inert until `click_extra_fail_on_warnings` names one.
     fail_on_warnings.setup(app)
-
-    # Register GitHub alerts converter only when myst-parser predates
-    # the native "alert" syntax extension (added in 5.1.0). On newer
-    # versions, log a migration notice and skip the converter:
-    # projects should add "alert" to myst_enable_extensions to use
-    # myst-parser's native rendering instead. With no myst-parser at all
-    # there is no MyST document to convert, so it is skipped silently.
-    installed_myst = myst_version()
-    if installed_myst is not None:
-        if installed_myst < MYST_NATIVE_ALERTS_VERSION:
-            app.connect("source-read", convert_github_alerts)
-            app.connect("include-read", convert_github_alerts)
-        else:
-            logger.info(
-                "click_extra.sphinx: skipping the GitHub alerts converter "
-                "(myst-parser %s ships the native 'alert' syntax extension). "
-                "Add 'alert' to myst_enable_extensions to render "
-                "'> [!NOTE]' blockquotes as Sphinx admonitions.",
-                installed_myst,
-            )
 
     return {
         "version": __version__,

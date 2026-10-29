@@ -37,15 +37,16 @@ import re
 import shutil
 import sys
 import warnings
+from dataclasses import fields
 from html import escape, unescape
 from itertools import combinations, pairwise
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 import pytest
 from extra_platforms.pytest import skip_windows
 
-from click_extra import SPINNERS, Spinner, Style, screenshot_presets, style, unstyle
+from click_extra import SPINNERS, Spinner, Style, style, unstyle
 from click_extra.cli_capture import deliver_capture, screenshot_cmd
 from click_extra.execution import PROMPT
 from click_extra.layout import PADDING, cell_width, fit_columns, grid, number_lines
@@ -59,7 +60,6 @@ from click_extra.screenshot import (
     CAPTURE_HIDDEN_TERMINAL_VARS,
     CAPTURE_SHADOWS,
     CAPTURE_TERMINAL_HINTS,
-    CHROME_FIELDS,
     DEFAULT_COLUMNS,
     MIN_COLUMNS,
     TRUNCATION_LABEL,
@@ -80,7 +80,6 @@ from click_extra.screenshot import (
     resolve_wrap_marker,
     trim_lines,
 )
-from click_extra.screenshot_html import render_html
 from click_extra.screenshot_presets import (
     CAPTURE_PALETTES,
     PRESETS,
@@ -1868,19 +1867,7 @@ def test_capture_functions_take_one_chrome(function):
     """The window is one `chrome` argument everywhere, with one default."""
     parameters = inspect.signature(function).parameters
     assert parameters["chrome"].default == Chrome()
-    assert not CHROME_FIELDS & set(parameters)
-
-
-def test_render_window_arguments_are_deprecated():
-    """The window arguments still reach the capture, warning at the caller."""
-    with pytest.warns(
-        DeprecationWarning, match=r"Passing margin=, watermark= to render\(\)"
-    ) as record:
-        svg = render("kiwi", unique_id="fruit", margin=0, watermark="")
-    assert record[0].filename == __file__
-    assert svg == render(
-        "kiwi", unique_id="fruit", chrome=Chrome(margin=0, watermark="")
-    )
+    assert not {field.name for field in fields(Chrome)} & set(parameters)
 
 
 def test_render_rejects_an_unknown_argument():
@@ -2711,43 +2698,6 @@ def test_ansi_capture_does_not_animate():
     """There is no frame to hide in a stream a terminal paints as it arrives."""
     with pytest.raises(ValueError, match="do not animate"):
         render("mango", format=CaptureFormat.ANSI, frames=("a", "b"), interval=1)
-
-
-@pytest.mark.parametrize(
-    ("name", "background", "field"),
-    (
-        ("CAPTURE_BACKGROUND", CaptureBackground.DARK, "background"),
-        ("CAPTURE_FOREGROUND", CaptureBackground.DARK, "foreground"),
-        ("LIGHT_CAPTURE_BACKGROUND", CaptureBackground.LIGHT, "background"),
-        ("LIGHT_CAPTURE_FOREGROUND", CaptureBackground.LIGHT, "foreground"),
-    ),
-)
-def test_retired_palette_constants_warn_and_resolve(name, background, field):
-    """Each retired color constant still answers, with a deprecation warning."""
-    with pytest.deprecated_call(
-        match=rf"click_extra\.screenshot_presets\.{name} is deprecated"
-    ):
-        value = getattr(screenshot_presets, name)
-    assert value == getattr(CAPTURE_PALETTES[background], field)
-
-
-def test_screenshot_presets_unknown_attribute_raises():
-    """A name the hook does not serve still raises a standard AttributeError."""
-    with pytest.raises(AttributeError, match="has no attribute 'DOES_NOT_EXIST'"):
-        _ = screenshot_presets.DOES_NOT_EXIST
-
-
-@pytest.mark.parametrize(
-    "argument", ("buttons", "buttons_color", "titlebar", "collapse_titlebar")
-)
-def test_render_html_warns_on_a_window_argument(argument):
-    """The window decorations are the SVG's: passing one to the HTML renderer warns."""
-    window: dict[str, Any] = {argument: None}
-    with pytest.deprecated_call(
-        match=rf"render_html\({argument}=\.\.\.\) is deprecated"
-    ):
-        html = render_html(SAMPLE_CAPTURE, **window)
-    assert html == render_html(SAMPLE_CAPTURE)
 
 
 def test_render_keeps_the_window_arguments_from_html():

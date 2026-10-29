@@ -34,11 +34,9 @@ from functools import partial
 from gettext import gettext as _
 
 import click
-from click._utils import UNSET
 from click.core import ParameterSource
 
 from . import context
-from ._deprecated import warn_deprecated_argument
 from .envvar import temporary_env
 from .parameters import ExtraOption
 from .styling import _relative_luminance
@@ -58,7 +56,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import IO, Any, ClassVar, Literal
 
-    from click._utils import T_UNSET
     from click.parser import _OptionParser
 
 
@@ -431,8 +428,6 @@ def query_osc_background(
 
 def resolve_background(
     query_background: bool = False,
-    *,
-    allow_query: bool | T_UNSET = UNSET,
 ) -> Literal["dark", "light"] | None:
     """Detect whether the terminal has a dark or light background.
 
@@ -455,7 +450,6 @@ def resolve_background(
 
     :param query_background: permit the stdin-reading OSC 11 query. Off by
         default, as on {class}`~click_extra.theme.ThemeOption`.
-    :param allow_query: deprecated, use `query_background` instead.
 
     ```{seealso}
     "Is this terminal dark or light?" has a small ecosystem of prior art,
@@ -471,11 +465,6 @@ def resolve_background(
       Windows console.
     ```
     """
-    if allow_query is not UNSET:
-        warn_deprecated_argument(
-            "resolve_background", "allow_query", "query_background="
-        )
-        query_background = allow_query
     clitheme = os.environ.get("CLITHEME", "").strip().lower()
     mode = clitheme.split(":", 1)[0]
     if mode == "dark":
@@ -922,15 +911,3 @@ class NoColorOption(ExtraOption):
             help=help,
             **kwargs,
         )
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated `color` symbols via the PEP 562 `__getattr__` hook.
-
-    The `color_envvars` constant was renamed `COLOR_ENVVARS`, following the
-    uppercase constant convention. Fires only for names not defined in this
-    module. See {mod}`click_extra._deprecated`.
-    """
-    from ._deprecated import resolve_deprecated
-
-    return resolve_deprecated(__name__, name)

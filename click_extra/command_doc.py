@@ -1617,17 +1617,3 @@ class HelpFormatOption(ExtraOption):
             return
         click.echo(render_help(ctx.command, value, ctx=ctx), color=False)
         ctx.exit()
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated `command_doc` symbols via the PEP 562 `__getattr__` hook.
-
-    `INLINE_LITERAL_RE` moved to {mod}`click_extra.parameters`, beside the
-    other helpers every renderer of a CLI reads it through. `iter_inline_literals`
-    moved with it and needs no alias: this module imports it for its own use.
-    Fires only for names not defined in this module. See
-    {mod}`click_extra._deprecated`.
-    """
-    from ._deprecated import resolve_deprecated
-
-    return resolve_deprecated(__name__, name)

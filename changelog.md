@@ -6,6 +6,13 @@
 > This version is **not released yet** and is under active development.
 
 - **Breaking:** Drop Python 3.10, past its end of life: click-extra now requires Python 3.11 or newer.
+- **Breaking:** Remove the module aliases deprecated in `9.x`, like `theme.nocolor_theme` and `table.select_columns`. Import each name from the module its warning named.
+- **Breaking:** Remove the deprecated `allow_query`, `merge_streams`, `unique` and `enabled` arguments, `color="forced"`, and the window arguments of `render_html()`.
+- **Breaking:** Remove the `is_root`, `default_opts` and `inherited_opts` arguments of `extract_carapace_command()`, which had no effect.
+- **Breaking:** The capture functions no longer take the `Chrome` fields one by one. Pass `chrome=Chrome(...)` instead.
+- **Breaking:** Table headers and `--sort-by` column definitions no longer accept a `(label, column_id)` tuple. Pass a `ColumnSpec` instead.
+- **Breaking:** Remove the `CAPTURE_BACKGROUND`-style color constants of `screenshot_presets` and `myst_converter.FENCE_OPEN_RE`.
+- **Breaking:** Remove `click_extra.sphinx.alerts`. The `sphinx` extra now requires `myst-parser` 5.1, whose `alert` extension renders GitHub alerts.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.
 - Redraw a `progressbar()` bar at most once every 0.1 seconds, instead of once per item.

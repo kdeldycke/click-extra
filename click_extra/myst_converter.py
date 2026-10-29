@@ -70,17 +70,13 @@ import ast
 import io
 import re
 import tokenize
-import warnings
 from pathlib import Path
 
-from ._deprecated import deprecation_message
 from .blocks import fence_spans
 from .prebake import entry_point_package, locate_package_root, read_project_scripts
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Any
-
     from .blocks import FenceSpan
 
 
@@ -524,24 +520,3 @@ def convert_directory(directory: Path) -> list[Path]:
         if convert_file(filepath)
     ]
     return changed
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve the deprecated `FENCE_OPEN_RE` via the PEP 562 `__getattr__` hook.
-
-    The pattern matched the backtick run opening a fence.
-    {func}`~click_extra.blocks.fence_spans` reads every fence of a document,
-    indent and info string included, so the converter keeps no pattern of its
-    own. Fires only for names not defined in this module. See
-    {mod}`click_extra._deprecated`.
-    """
-    if name == "FENCE_OPEN_RE":
-        warnings.warn(
-            deprecation_message(
-                f"{__name__}.FENCE_OPEN_RE", "click_extra.blocks.fence_spans()"
-            ),
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return re.compile(r"(`{3,})")
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

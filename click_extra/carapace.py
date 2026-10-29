@@ -74,7 +74,6 @@ from cloup.constraints import mutually_exclusive
 # Imported first for its side effect: context, color and parameters import each other,
 # and only an import chain starting from context resolves that cycle.
 from . import context  # noqa: F401
-from ._deprecated import warn_deprecated_argument
 from ._utils import generator_tag, missing_extra_message
 from .parameters import (
     choice_values,
@@ -580,9 +579,6 @@ def extract_carapace_command(
     ctx: Context,
     *,
     command_path: tuple[str, ...],
-    is_root: bool | None = None,
-    default_opts: frozenset[str] | None = None,
-    inherited_opts: frozenset[str] | None = None,
 ) -> CarapaceCommand:
     """Build a {class}`CarapaceCommand` from a Click command and its context.
 
@@ -598,19 +594,7 @@ def extract_carapace_command(
     `command_path` is the chain of command names from the root down to this
     command, grown by one name per recursion and baked into dynamic callback
     macros (see {func}`_dynamic_action`).
-
-    `is_root`, `default_opts` and `inherited_opts` have no effect, and warn: they
-    used to route the default options into `persistentflags`.
     """
-    for argument, value in (
-        ("is_root", is_root),
-        ("default_opts", default_opts),
-        ("inherited_opts", inherited_opts),
-    ):
-        if value is not None:
-            warn_deprecated_argument(
-                "extract_carapace_command", argument, "the call without it"
-            )
 
     node = CarapaceCommand(
         name=ctx.info_name or command.name or "",

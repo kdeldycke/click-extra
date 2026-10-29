@@ -35,7 +35,6 @@ import click
 import click.testing
 from cloup import Color
 
-from ._deprecated import warn_deprecated_argument
 from ._utils import patch_attr
 
 # The CLI-invocation serialization and disclosure atoms moved to
@@ -54,7 +53,7 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
     from contextlib import AbstractContextManager
-    from typing import IO, Any, Literal
+    from typing import IO, Any
 
     from .envvar import TEnvVars
     from .execution import TArg, TNestedArgs
@@ -312,7 +311,7 @@ class CliRunner(click.testing.CliRunner):
         input: str | bytes | IO | None = None,
         env: TEnvVars | None = None,
         catch_exceptions: bool = True,
-        color: bool | Literal["forced"] | None = None,
+        color: bool | None = None,
         force_color: bool | None = None,
         **extra: Any,
     ) -> Result:
@@ -349,8 +348,7 @@ class CliRunner(click.testing.CliRunner):
         :param catch_exceptions: same as `click.testing.CliRunner.invoke()`.
         :param color: whether the captured streams keep ANSI codes, passed to
             `click.testing.CliRunner.isolation()`. `False` also scrubs the
-            result bytes. The string `"forced"` is deprecated: pass
-            `force_color=True` instead.
+            result bytes.
         :param force_color: keep the ANSI codes *and* initialize the invoked
             CLI's `Context.color` to `True`, so it takes its colored branch.
             `None` (the default) follows the {attr}`force_color` class
@@ -368,11 +366,6 @@ class CliRunner(click.testing.CliRunner):
         # Flatten and filters out CLI arguments.
         clean_args = _args_cleanup(*cli_args)
 
-        if color == "forced":
-            warn_deprecated_argument(
-                "CliRunner.invoke", 'color="forced"', "force_color=True"
-            )
-            color, force_color = None, True
         if force_color is None:
             # An explicit color=False on one call wins over the class default.
             force_color = self.force_color and color is not False

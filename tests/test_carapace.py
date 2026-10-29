@@ -46,13 +46,11 @@ from click_extra.carapace import (
     _flag_key,
     _flag_name,
     dump_carapace_spec,
-    extract_carapace_command,
     install_carapace_spec,
     to_carapace_spec,
     xdg_dir,
 )
 from click_extra.cli import demo
-from click_extra.parameters import make_resilient_context
 from click_extra.testing import CliRunner
 
 from .conftest import fetch_or_skip
@@ -515,24 +513,6 @@ def test_spec_agrees_with_click_on_flag_scope(invoke):
     result = invoke(xtool, "hello", "--version")
     assert result.exit_code == 2
     assert "No such option '--version'" in result.stderr
-
-
-@pytest.mark.parametrize(
-    ("argument", "value"),
-    (("is_root", True), ("default_opts", frozenset()), ("inherited_opts", frozenset())),
-)
-def test_extract_carapace_command_routing_arguments_are_deprecated(argument, value):
-    """The arguments that routed default options into `persistentflags` still parse,
-    have no effect, and warn at the caller."""
-    ctx = make_resilient_context(xtool, "xtool")
-    with pytest.warns(
-        DeprecationWarning, match=rf"extract_carapace_command\({argument}="
-    ) as record:
-        node = extract_carapace_command(
-            xtool, ctx, command_path=("xtool",), **{argument: value}
-        )
-    assert not node.persistentflags
-    assert record[0].filename == __file__
 
 
 def test_plain_cli_keeps_own_lookalike_option():

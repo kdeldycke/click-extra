@@ -727,18 +727,6 @@ def test_resolve_background_query_is_opt_in(monkeypatch):
     assert resolve_background(query_background=False) is None
 
 
-def test_resolve_background_allow_query_is_deprecated(monkeypatch):
-    """`allow_query` still permits the query, warning at the caller."""
-    for var in ("CLITHEME", "COLORFGBG"):
-        monkeypatch.delenv(var, raising=False)
-    monkeypatch.setattr(color, "query_osc_background", lambda: (255, 255, 255))
-    with pytest.warns(
-        DeprecationWarning, match="use query_background= instead"
-    ) as record:
-        assert resolve_background(allow_query=True) == "light"
-    assert record[0].filename == __file__
-
-
 def test_resolve_background_query_below_explicit_env(monkeypatch):
     """An explicit env signal outranks the live query even when querying is allowed."""
     monkeypatch.delenv("COLORFGBG", raising=False)

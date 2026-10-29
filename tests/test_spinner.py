@@ -1882,46 +1882,11 @@ def test_invisible_trail_draws_nothing_even_when_live_always():
     assert trail.ok_count == 1
 
 
-@pytest.mark.parametrize(
-    ("enabled", "visible", "live"),
-    (
-        pytest.param(None, True, "auto", id="none"),
-        pytest.param(True, True, "always", id="true"),
-        pytest.param(False, False, "auto", id="false"),
-    ),
-)
-def test_operation_trail_enabled_is_deprecated(enabled, visible, live):
-    """`enabled` still resolves onto `visible` and `live`, warning at the caller."""
-    with pytest.warns(
-        DeprecationWarning, match="use visible= and live= instead"
-    ) as record:
-        trail = OperationTrail(enabled=enabled)
-    assert Path(record[0].filename).name == Path(__file__).name
-    assert trail.visible is visible
-    assert trail.live == live
-
-
 def test_operation_trail_without_enabled_does_not_warn():
     """Only a caller passing `enabled` gets the deprecation warning."""
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
         OperationTrail(visible=False, live="never")
-
-
-@pytest.mark.parametrize(
-    ("enabled", "live"),
-    (
-        pytest.param(None, "auto", id="none"),
-        pytest.param(True, "always", id="true"),
-        pytest.param(False, "never", id="false"),
-    ),
-)
-def test_spinner_enabled_is_deprecated(enabled, live):
-    """`enabled` still resolves onto `live`, warning at the caller."""
-    with pytest.warns(DeprecationWarning, match="use live= instead") as record:
-        spinner = Spinner(enabled=enabled)
-    assert Path(record[0].filename).name == Path(__file__).name
-    assert spinner.live == live
 
 
 def test_spinner_without_enabled_does_not_warn():

@@ -47,15 +47,12 @@ configured theirs to.
 
 from __future__ import annotations
 
-import warnings
 from enum import Enum
 from typing import NamedTuple
 
-from ._deprecated import deprecation_message
-
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Any, Final
+    from typing import Final
 
 
 class TerminalPalette(NamedTuple):
@@ -443,38 +440,3 @@ def resolve_palette(
     on what a chrome looks like.
     """
     return preset_palette(preset or DEFAULT_PRESET, background)
-
-
-_DEPRECATED_PALETTE_COLORS: dict[str, tuple[CaptureBackground, str]] = {
-    "CAPTURE_BACKGROUND": (CaptureBackground.DARK, "background"),
-    "CAPTURE_FOREGROUND": (CaptureBackground.DARK, "foreground"),
-    "LIGHT_CAPTURE_BACKGROUND": (CaptureBackground.LIGHT, "background"),
-    "LIGHT_CAPTURE_FOREGROUND": (CaptureBackground.LIGHT, "foreground"),
-}
-"""The retired color constants, each mapped to the {data}`CAPTURE_PALETTES` entry
-and field it read.
-
-Served by the module `__getattr__` hook with a deprecation warning, for one
-cycle: see {mod}`click_extra._deprecated`.
-"""
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve the deprecated color constants via the PEP 562 `__getattr__` hook.
-
-    Each one is a field of a {data}`CAPTURE_PALETTES` entry, which is where a
-    caller reads it. Fires only for names not defined in this module.
-    """
-    if name in _DEPRECATED_PALETTE_COLORS:
-        background, field = _DEPRECATED_PALETTE_COLORS[name]
-        warnings.warn(
-            deprecation_message(
-                f"{__name__}.{name}",
-                f"{__name__}.CAPTURE_PALETTES[CaptureBackground.{background.name}]"
-                f".{field}",
-            ),
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return getattr(CAPTURE_PALETTES[background], field)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

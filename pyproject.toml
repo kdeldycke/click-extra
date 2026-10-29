@@ -152,6 +152,9 @@ optional-dependencies.pytest = [
 optional-dependencies.sphinx = [
   # docutils 0.20 is the minimal version for Sphinx 8.0.0.
   "docutils>=0.20",
+  # myst-parser 5.1 ships the "alert" syntax extension that renders GitHub
+  # alerts, which click_extra.sphinx no longer converts itself.
+  "myst-parser>=5.1",
   # Pygments 2.18.0 added `Formatter.__class_getitem__`. Sphinx 8.0.0 evaluates
   # `HtmlFormatter[str]` at import, which raises a `TypeError` on any older
   # Pygments.
@@ -224,10 +227,9 @@ test = [
   # `click_extra.mkdocs` rewrites to `ansi-output`. An older release emits bare
   # fences, which stay unpatched.
   "mkdocs-click>=0.8.1",
-  # myst-parser 4.0 added colon_fence extension for GitHub-style alert syntax.
-  # Held at >=4 (not >=5.1) so the lowest-direct cell still tests the
-  # click_extra.sphinx.alerts converter, which only runs below myst-parser 5.1.
-  "myst-parser>=4",
+  # myst-parser 5.1 ships the "alert" syntax extension the Sphinx test builds
+  # enable.
+  "myst-parser>=5.1",
   # pymdown-extensions 10.0 is the first version with stable highlight extension API.
   "pymdown-extensions>=10",
   # pytest 9.0.0 is the first supporting native TOML configuration files.

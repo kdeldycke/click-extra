@@ -9,15 +9,6 @@
 
 ## Submodules
 
-## click_extra.sphinx.alerts module
-
-```{eval-rst}
-.. automodule:: click_extra.sphinx.alerts
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
 ## click_extra.sphinx.click module
 
 ```{eval-rst}

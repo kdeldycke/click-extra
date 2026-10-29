@@ -47,10 +47,8 @@ from pathlib import Path
 import click
 from click import echo, get_current_context
 
-# CLI_ECOSYSTEM_PACKAGES is bound under a private name so this module's
-# namespace does not resurrect the moved constant: its canonical home is
-# click_extra._utils, and the public `version.CLI_ECOSYSTEM_PACKAGES` spelling
-# resolves through the deprecation hook below.
+# CLI_ECOSYSTEM_PACKAGES is bound under a private name so this module does not
+# offer a second public spelling of it: its canonical home is click_extra._utils.
 from ._utils import (
     CLI_ECOSYSTEM_PACKAGES as _CLI_ECOSYSTEM_PACKAGES,
 )
@@ -1980,17 +1978,3 @@ def reset_version_resolution(command: Command) -> None:
             walk(sub)
 
     walk(command)
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated `version` symbols via the PEP 562 `__getattr__` hook.
-
-    The `CLI_ECOSYSTEM_PACKAGES` constant moved to {mod}`click_extra._utils`,
-    which the deprecation `stacklevel` walk reads it from too, and
-    `visible_width` is {func}`click_extra.layout.cell_width`, the measure every
-    line of terminal text is sized with. Fires only for names not defined in
-    this module. See {mod}`click_extra._deprecated`.
-    """
-    from ._deprecated import resolve_deprecated
-
-    return resolve_deprecated(__name__, name)

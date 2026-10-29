@@ -68,7 +68,6 @@ from .screenshot import (
     DEFAULT_WRAP_MARKER,
     CaptureFormat,
     Chrome,
-    fold_chrome_arguments,
     render,
     trim_lines,
 )
@@ -80,11 +79,10 @@ from .screenshot_presets import (
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from typing import Unpack
 
     from pygments.lexer import Lexer
 
-    from .screenshot import ChromeArguments, TColumns
+    from .screenshot import TColumns
     from .screenshot_presets import TerminalPalette, TerminalPreset
 
 
@@ -293,7 +291,6 @@ def render_snippet(
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
     chrome: Chrome = Chrome(),
-    **legacy: Unpack[ChromeArguments],
 ) -> str:
     """Color source code and render it as a document.
 
@@ -329,12 +326,9 @@ def render_snippet(
     :param background: see {func}`~click_extra.screenshot.render`.
     :param preset: see {func}`~click_extra.screenshot.render`.
     :param chrome: see {func}`~click_extra.screenshot.render`.
-    :param legacy: deprecated: the {class}`~click_extra.screenshot.Chrome` fields,
-        passed one by one.
     :return: the rendered document.
     :raises ValueError: when `language` or `style` names nothing Pygments knows.
     """
-    chrome = fold_chrome_arguments("render_snippet", chrome, legacy)
     resolved_style = resolve_style(style, background)
     text = highlight_code(
         code,

@@ -170,18 +170,6 @@ def test_invoke_force_color(invoke):
     )
 
 
-def test_invoke_color_forced_is_deprecated(invoke):
-    """`color="forced"` still forces colors, warning at the caller."""
-    with pytest.warns(
-        DeprecationWarning, match="use force_color=True instead"
-    ) as record:
-        result = CliRunner().invoke(run_cli1, color="forced")
-    assert record[0].filename == __file__
-    assert result.stdout.endswith(
-        "Context.color = True\nclick.utils.should_strip_ansi = False\n",
-    )
-
-
 def test_invoke_force_color_contradicting_color_raises():
     """Asking for forced colors and stripped ones at once is refused."""
     with pytest.raises(ValueError, match="contradicts"):

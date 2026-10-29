@@ -59,7 +59,6 @@ from .screenshot import (
     Chrome,
     append_prompt,
     capture_environment,
-    fold_chrome_arguments,
     prompt_line,
     render,
 )
@@ -86,10 +85,8 @@ except ImportError:  # pragma: no cover
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
-    from typing import Unpack
 
     from .execution import TArg, TNestedArgs
-    from .screenshot import ChromeArguments
     from .screenshot_presets import Cursor, TerminalPreset
     from .screenshot_svg import THold
 
@@ -695,7 +692,6 @@ def record_and_render(
     unique_id: str | None = None,
     preset: TerminalPreset | None = None,
     chrome: Chrome = Chrome(),
-    **legacy: Unpack[ChromeArguments],
 ) -> tuple[str, int]:
     """Record a command under a pseudo-terminal and render it as an animated SVG.
 
@@ -748,14 +744,11 @@ def record_and_render(
     :param unique_id: see {func}`~click_extra.screenshot.render`.
     :param preset: see {func}`~click_extra.screenshot.render`.
     :param chrome: see {func}`~click_extra.screenshot.render`.
-    :param legacy: deprecated: the {class}`~click_extra.screenshot.Chrome` fields,
-        passed one by one.
     :return: the rendered SVG document, and the command's exit code.
     :raises NotImplementedError: on a platform with no pseudo-terminal.
     :raises ValueError: when the command drew nothing to record, or when a
         stated `typing` or `submit` is not positive.
     """
-    chrome = fold_chrome_arguments("record_and_render", chrome, legacy)
     frames, returncode = _record_process(
         args,
         columns=columns,

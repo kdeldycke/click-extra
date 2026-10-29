@@ -52,12 +52,10 @@ from typing import Final, NoReturn, TypeVar, cast
 import click
 from boltons.iterutils import flatten
 from click import echo
-from click._utils import UNSET
 from click.core import ParameterSource
 from click.shell_completion import CompletionItem
 
 from . import context
-from ._deprecated import warn_deprecated_argument
 from ._utils import IS_WINDOWS, exception_chain
 from .envvar import env_copy
 from .parameters import ExtraOption
@@ -70,8 +68,6 @@ if TYPE_CHECKING:
     from pathlib import Path
     from types import FrameType
     from typing import IO, Any
-
-    from click._utils import T_UNSET
 
     from .envvar import TEnvVars
     from .theme import HelpTheme
@@ -1578,7 +1574,6 @@ def run_cli(
     command_level: int = logging.INFO,
     output_level: int = logging.DEBUG,
     log: logging.Logger | None = None,
-    merge_streams: bool | T_UNSET = UNSET,
 ) -> subprocess.CompletedProcess[str]:
     r"""Run a CLI in a subprocess, disclosing the call and streaming its output live.
 
@@ -1686,11 +1681,7 @@ def run_cli(
         {data}`logging.DEBUG`.
     :param log: destination logger. Defaults to the root logger, whose level the
         {class}`~click_extra.logging.VerbosityOption` family manages.
-    :param merge_streams: deprecated, use `merge_stderr` instead.
     """
-    if merge_streams is not UNSET:
-        warn_deprecated_argument("run_cli", "merge_streams", "merge_stderr=")
-        merge_stderr = merge_streams
     if log is None:
         log = logging.getLogger()
     clean_args = args_cleanup(args)

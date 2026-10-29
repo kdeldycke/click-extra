@@ -31,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the GitHub-flavored alert (`> [!NOTE]`, `> [!WARNING]`, ...) → MyST/reST admonition converter, [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column for [two-axis tables](table.md#two-axis-tables), the [man-page hook](man-page.md#from-a-sphinx-build), and [failing on chosen warnings](#failing-on-chosen-warnings). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column for [two-axis tables](table.md#two-axis-tables), the [man-page hook](man-page.md#from-a-sphinx-build), and [failing on chosen warnings](#failing-on-chosen-warnings). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -909,106 +909,16 @@ Attribute docstrings are recovered from the schema's source file. A schema defin
 
 ## GitHub alerts
 
-A [GitHub-flavored Markdown alert](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) is a blockquote GitHub renders as a colored callout. Click Extra's Sphinx extension converts each one into a [MyST admonition](https://myst-parser.readthedocs.io/en/latest/syntax/admonitions.html), so the same source renders on GitHub and in the built documentation.
-
-```{deprecated} 7.16.0
-`myst-parser` `5.1.0` ships a native [`alert` syntax extension](https://myst-parser.readthedocs.io/en/latest/syntax/optional.html) covering the same five alert types. On that release and above, Click Extra's converter steps aside: add `"alert"` to `myst_enable_extensions` and the rest of this section no longer applies, `colon_fence` included.
-```
-
-### Setup
-
-On `myst-parser` below `5.1.0`, you need to enable the [`colon_fence` extension](https://myst-parser.readthedocs.io/en/latest/syntax/optional.html#code-fences-using-colons) in your Sphinx configuration, as the converter renders each alert as a colon fence:
+A [GitHub-flavored Markdown alert](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) is a blockquote GitHub renders as a colored callout. `myst-parser` renders it as an admonition through its [`alert` syntax extension](https://myst-parser.readthedocs.io/en/latest/syntax/optional.html), so the same source renders on GitHub and in the built documentation. Enable it in your Sphinx configuration:
 
 ```{code-block} python
 :caption: `conf.py`
-:emphasize-lines: 6
-extensions = [
-    ...
-    "click_extra.sphinx",
-]
-
-myst_enable_extensions = ["colon_fence"]
+myst_enable_extensions = ["alert"]
 ```
 
-### Supported alert types
-
-GitHub supports five alert types, all of which are replaced behind the scenes with their corresponding MyST admonitions:
-
-````{list-table}
-:header-rows: 1
-:widths: 10 30 30 30
-* - Type
-  - GitHub syntax
-  - MyST syntax
-  - Rendered
-* - Note
-  - ```markdown
-    > [!NOTE]
-    > Useful information.
-    ```
-  - ```markdown
-    :::{note}
-    Useful information.
-    :::
-    ```
-  - ```{note}
-    Useful information.
-    ```
-* - Tip
-  - ```markdown
-    > [!TIP]
-    > Helpful advice.
-    ```
-  - ```markdown
-    :::{tip}
-    Helpful advice.
-    :::
-    ```
-  - ```{tip}
-    Helpful advice.
-    ```
-* - Important
-  - ```markdown
-    > [!IMPORTANT]
-    > Key information.
-    ```
-  - ```markdown
-    :::{important}
-    Key information.
-    :::
-    ```
-  - ```{important}
-    Key information.
-    ```
-* - Warning
-  - ```markdown
-    > [!WARNING]
-    > Potential issues.
-    ```
-  - ```markdown
-    :::{warning}
-    Potential issues.
-    :::
-    ```
-  - ```{warning}
-    Potential issues.
-    ```
-* - Caution
-  - ```markdown
-    > [!CAUTION]
-    > Negative consequences.
-    ```
-  - ```markdown
-    :::{caution}
-    Negative consequences.
-    :::
-    ```
-  - ```{caution}
-    Negative consequences.
-    ```
-````
-
-### Usage
+```{versionchanged} 10.0.0
+Click Extra no longer converts alerts itself. The `sphinx` extra requires `myst-parser` `5.1.0` or newer, the first release with the `alert` extension.
+```
 
 Write alerts using GitHub's blockquote syntax:
 
@@ -1020,75 +930,13 @@ Write alerts using GitHub's blockquote syntax:
 > Reader discretion is strongly advised.
 ```
 
-These will render in Sphinx as:
+These render in Sphinx as:
 
 > [!NOTE]
 > This is a note that will render as an admonition in Sphinx.
 
 > [!WARNING]
 > Reader discretion is strongly advised.
-
-### Rules
-
-Playing with alerts on various GitHub websites, I reverse-engineered the following specifications:
-
-- Alert type must be in uppercase: `[!TIP]`, not `[!tip]`.
-- No spaces in the directive: `[! NOTE]`, `[!NOTE ]` or `[ !NOTE]` are invalid.
-- Must be the first thing in the blockquote: `> Hello [!NOTE] This is a note.` is interpreted as a normal blockquote, not an alert.
-- Only the first line of the blockquote is parsed for the alert type: subsequent lines are considered part of the alert content.
-- The alert content can span multiple lines, as long as they are part of the same blockquote.
-- Empty blockquotes are ignored: `> [!TIP]` without any content is not rendered.
-- Nested blockquotes are supported: the alert content can contain other blockquotes, lists, code blocks, etc.
-
-### Nested alerts
-
-GitHub alerts support nested content, including other blockquotes, lists, code blocks, and even nested alerts. This allows for complex documentation structures that render correctly both on GitHub and in Sphinx.
-
-You can include various Markdown elements inside an alert:
-
-````{code-block} markdown
-> [!NOTE]
-> This alert contains:
-> - A bullet list
-> - With multiple items
->
-> And a code block:
-> ```python
-> print("Hello, world!")
-> ```
-````
-
-Which renders as:
-
-> [!NOTE]
-> This alert contains:
->
-> - A bullet list
-> - With multiple items
->
-> And a code block:
->
-> ```python
-> print("Hello, world!")
-> ```
-
-You can nest alerts within alerts for hierarchical information:
-
-```{code-block} markdown
-> [!WARNING]
-> Be careful with this operation.
->
-> > [!TIP]
-> > If you encounter issues, try restarting the service.
-```
-
-Which renders as:
-
-> [!WARNING]
-> Be careful with this operation.
->
-> > [!TIP]
-> > If you encounter issues, try restarting the service.
 
 ## Todo-list deduplication
 

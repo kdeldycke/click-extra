@@ -1785,27 +1785,6 @@ def test_render_table_rich_headers_render_labels():
     assert json.loads(result) == [{"Fruit": "a", "Count": "1"}]
 
 
-def test_render_table_tuple_header_is_deprecated():
-    """A (label, column_id) header still renders its label, warning at the caller."""
-    with pytest.warns(DeprecationWarning, match="use ColumnSpec") as record:
-        result = render_table(
-            [["a", "1"]],
-            [ColumnSpec("fruit", "Fruit"), ("Count", "count")],
-            table_format=TableFormat.JSON,
-        )
-    assert record[0].filename == __file__
-    assert json.loads(result) == [{"Fruit": "a", "Count": "1"}]
-
-
-def test_sort_by_option_tuple_definition_is_deprecated():
-    """A (label, column_id) definition still resolves, warning at the caller."""
-    with pytest.warns(DeprecationWarning, match="use ColumnSpec") as record:
-        opt = SortByOption(("Fruit", "fruit"), ("Notes", None))
-    assert record[0].filename == __file__
-    assert opt.header_defs == (("Fruit", "fruit"), ("Notes", None))
-    assert list(opt.type.choices) == ["fruit"]  # type: ignore[attr-defined]
-
-
 def test_unsortable_column_keeps_its_place():
     """`sortable=False` keeps a column in the layout, out of the sort choices."""
     notes = ColumnSpec("notes", "Notes", sortable=False)

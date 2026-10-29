@@ -1832,15 +1832,6 @@ def test_run_cli_merged_streams():
     assert "to err" in result.stdout
 
 
-def test_run_cli_merge_streams_is_deprecated():
-    """`merge_streams` still merges, warning at the caller."""
-    code = 'import sys; print("to err", file=sys.stderr)'
-    with pytest.warns(DeprecationWarning, match="use merge_stderr= instead") as record:
-        result = run_cli((sys.executable, "-c", code), merge_streams=True)
-    assert Path(record[0].filename).name == Path(__file__).name
-    assert "to err" in result.stdout
-
-
 def test_run_cli_timeout_kills_child_and_attaches_partial_output():
     """An overrun raises TimeoutExpired carrying what was captured so far, and
     leaves no zombie in the live registry."""

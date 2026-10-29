@@ -32,7 +32,6 @@ import click
 from click import echo
 
 from . import context
-from ._deprecated import resolve_deprecated, warn_deprecated_usage
 from ._utils import missing_extra_message
 from .columns import ColumnSpec
 from .config.formats import ConfigFormat, serialize_content
@@ -57,18 +56,14 @@ if TYPE_CHECKING:
     MaxColumnWidths = Sequence[ColumnWidth] | ColumnWidth
     """Width limits of a table: one entry per column, or a scalar for all of them."""
 
-    THeader: TypeAlias = "str | ColumnSpec | tuple[str, str | None] | None"
+    THeader: TypeAlias = "str | ColumnSpec | None"
     """One entry of a table's `headers`: a plain label, or a
-    {class}`~click_extra.columns.ColumnSpec`.
+    {class}`~click_extra.columns.ColumnSpec`."""
 
-    The `(label, column_id)` tuple is deprecated.
-    """
-
-    TColumnDef: TypeAlias = "ColumnSpec | str | tuple[str, str | None]"
+    TColumnDef: TypeAlias = "ColumnSpec | str"
     """One column definition of {class}`SortByOption` or {func}`column_sort_key`.
 
-    A {class}`~click_extra.columns.ColumnSpec`, or a bare column ID. The `(label,
-    column_id)` tuple is deprecated.
+    A {class}`~click_extra.columns.ColumnSpec`, or a bare column ID.
     """
 
 
@@ -1068,11 +1063,6 @@ def _split_header_defs(
     """
     if headers is None:
         return None, None
-    if any(isinstance(header, (tuple, list)) for header in headers):
-        warn_deprecated_usage(
-            "A (label, column_id) table header",
-            "ColumnSpec(column_id, label), or the bare label for no column ID",
-        )
     labels: list[str | None] = []
     defs: list[tuple[str | None, str | None]] = []
     for header in headers:
@@ -1080,8 +1070,6 @@ def _split_header_defs(
         col_id: str | None
         if isinstance(header, ColumnSpec):
             label, col_id = header.label, header.id if header.sortable else None
-        elif isinstance(header, (tuple, list)):
-            label, col_id = header
         else:
             label, col_id = header, None
         labels.append(label)
@@ -1738,18 +1726,11 @@ def _normalize_column_def(column: TColumnDef) -> tuple[str | None, str | None]:
     Accepts a {class}`~click_extra.columns.ColumnSpec` (so a registry can be shared with
     `--columns`), whose column ID is dropped when it is not `sortable`, or a
     bare column ID string, which declares a sortable field untied to any table
-    layout (its label is `None`). A `(label, column_id)` tuple is deprecated.
+    layout (its label is `None`).
     """
-    if isinstance(column, ColumnSpec):
-        return (column.label, column.id if column.sortable else None)
     if isinstance(column, str):
         return (None, column)
-    warn_deprecated_usage(
-        "A (label, column_id) column definition",
-        "ColumnSpec(column_id, label), with sortable=False for no column ID",
-    )
-    label, column_id = column
-    return (label, column_id)
+    return (column.label, column.id if column.sortable else None)
 
 
 class SortByOption(ExtraOption):
@@ -1924,14 +1905,3 @@ class SortByOption(ExtraOption):
                 table_format=context.get(ctx, context.TABLE_FORMAT),
                 sort_key=sort_key,
             )
-
-
-def __getattr__(name: str) -> Any:
-    """Resolve deprecated `table` symbols via the PEP 562 `__getattr__` hook.
-
-    The column helpers `select_columns`, `select_row` and
-    `render_columns_markdown_table` moved to {mod}`click_extra.columns`.
-    `ColumnSpec` needs no alias: this module imports it for its own use. Fires
-    only for names not defined in this module. See {mod}`click_extra._deprecated`.
-    """
-    return resolve_deprecated(__name__, name)

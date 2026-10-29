@@ -62,10 +62,8 @@ from gettext import gettext as _
 from typing import Final, TypeVar, cast
 
 import click
-from click._utils import UNSET
 
 from . import context
-from ._deprecated import warn_deprecated_argument
 from .color import (
     COLOR_DISABLING_TERMS,
     invocation_color,
@@ -88,7 +86,6 @@ if TYPE_CHECKING:
     from typing import IO, Any, Literal, Protocol, Self, TextIO, TypeAlias
 
     from click._termui_impl import ProgressBar
-    from click._utils import T_UNSET
 
     TLive: TypeAlias = Literal["auto", "always", "never"]
     """Where a spinner or a progress bar may draw, see {data}`LIVE_MODES`."""
@@ -423,7 +420,6 @@ class Spinner:
         live: TLive = "auto",
         hide_cursor: bool = True,
         beep: bool = False,
-        enabled: bool | T_UNSET | None = UNSET,
     ) -> None:
         """Configure (but do not start) the spinner.
 
@@ -482,8 +478,6 @@ class Spinner:
         :param beep: ring the terminal bell once when the spinner stops. It
             fires only when the spinner was active, so a disabled or redirected
             spinner stays silent.
-        :param enabled: deprecated, use `live` instead: `None` stands for
-            `"auto"`, `True` for `"always"` and `False` for `"never"`.
         :raises ValueError: if `style`, `label_style` or `timer_style` carries a
             color or attribute that cannot be rendered, or if `live` is not one
             of {data}`~click_extra.spinner.LIVE_MODES`.
@@ -524,9 +518,6 @@ class Spinner:
         else:
             self.interval = DEFAULT_INTERVAL
         _check_live(live)
-        if enabled is not UNSET:
-            warn_deprecated_argument("Spinner", "enabled", "live=")
-            live = "auto" if enabled is None else "always" if enabled else "never"
         self.reverse = reverse
         self.delay = delay
         self.style = style
@@ -1446,7 +1437,6 @@ class OperationTrail:
         echo_sequential: bool = True,
         delay: float = 0.0,
         stream: IO[str] | None = None,
-        enabled: bool | T_UNSET | None = UNSET,
     ) -> None:
         """Configure (but do not start) the trail.
 
@@ -1502,8 +1492,6 @@ class OperationTrail:
             echoed plainly at {meth}`finish` instead (see `echo_sequential`).
         :param stream: where to render; defaults to {data}`sys.stderr` so the
             trail never mixes into `stdout` data.
-        :param enabled: deprecated, use `visible` and `live` instead: `False`
-            stands for `visible=False`, and `True` for `live="always"`.
         :raises ValueError: if `progress_bar` is set without a positive
             `total`, or together with `spinner`, if `clock` is neither
             `"elapsed"` nor `"eta"`, or if `live` is not one of
@@ -1516,12 +1504,6 @@ class OperationTrail:
         if clock not in ("elapsed", "eta"):
             raise ValueError('clock must be "elapsed" or "eta".')
         _check_live(live)
-        if enabled is not UNSET:
-            warn_deprecated_argument("OperationTrail", "enabled", "visible= and live=")
-            if enabled is False:
-                visible = False
-            elif enabled is True:
-                live = "always"
         self.label = label
         self.unit = unit
         self.total = total
