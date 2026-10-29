@@ -172,6 +172,18 @@ $ click-extra screenshot --output params.svg --columns auto -- my-cli --params
 
 Use it when the output holds a line the command does not wrap on its own: a long invocation drawn as the prompt, a wide table, a machine-readable dump. A pinned width folds such a line mid-word. The trade-off: the picture stops being a fixed-width terminal, so captures meant to sit side by side should name a width instead.
 
+### Marking a fold
+
+A terminal folds a line wider than itself without a mark, so a picture of one cannot tell a folded line from one the command printed in two pieces. A break that lands mid-word then reads as a typo. `--wrap-marker auto` closes each folded row on `↵`, the symbol `delta` draws for the same purpose:
+
+```shell-session
+$ click-extra screenshot --output report.svg --columns 100 --wrap-marker auto -- my-cli report
+```
+
+The marker is drawn in the gray of the truncation rule, so it reads as a mark of the picture and not as output. It takes the last cell of the row it closes: a line exactly as wide as `--columns` fits without a marker and folds with one. Any other text is taken as the marker itself, like `¬`. Left out, a capture folds silently, the way the terminal it pictures does.
+
+The marker applies to SVG captures only. An HTML capture reflows with its page, and a terminal reading ANSI folds on its own. A recording is refused it too: its pseudo-terminal already folds every line, so its screens hold no fold to mark.
+
 ### A long invocation
 
 The prompt is a line like any other, so it counts toward the picture's width. A script passed inline is the usual cause: the command line ends up longer than anything it prints. `--columns auto` then lays the image out at the invocation instead of at the output, and a pinned width folds that invocation across several rows.

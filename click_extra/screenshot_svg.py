@@ -1269,6 +1269,7 @@ def render_svg(
     speed: float = 1.0,
     emphasize: Sequence[int] = (),
     cursor: Cursor | None = None,
+    wrap_marker: str = "",
     palette: TerminalPalette = DEFAULT_PRESET.dark,
     font_stack: str = CAPTURE_FONT_STACK,
     border: str = NO_PAINT,
@@ -1362,6 +1363,9 @@ def render_svg(
         {func}`cursor_cell`, so an animation carries it from screen to screen
         on its own. A cursor landing under the last line of output grows the
         window by that line, the way a terminal's does.
+    :param wrap_marker: characters closing each row a fold cut short, see
+        {func}`~click_extra.layout.grid`. Empty folds silently, the way a
+        terminal does.
     :param palette: terminal colors the capture's ANSI codes resolve against.
     :param font_stack: fonts the text is set in, best first.
     :param border: paint for the window's frame. {data}`NO_PAINT` draws none.
@@ -1501,7 +1505,7 @@ def render_svg(
     # a band picks out a line of output, and a cursor draws no line.
     text_rows = 0
     for picture in pictures:
-        rows = grid(picture.rstrip("\n"), columns)
+        rows = grid(picture.rstrip("\n"), columns, wrap_marker=wrap_marker)
         text_rows = max(text_rows, len(rows))
         rendered_rows: list[tuple[str, str]] = []
         for row, runs in enumerate(rows):

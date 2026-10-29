@@ -487,6 +487,46 @@ DEFAULT_TRUNCATION: str = AUTO_TRUNCATION
 """Marker standing in for the lines {func}`trim_lines` cut away."""
 
 
+AUTO_WRAP_MARKER: Literal["auto"] = "auto"
+"""Marker asking for {data}`WRAP_MARKER_LABEL` at every fold.
+
+A terminal folds a line wider than itself silently, so a reader of a picture
+cannot tell a line that wrapped from one the command printed in pieces, and a
+break landing mid-word reads as a typo. The marker says which it is. It costs a
+cell of the row it closes, see {func}`~click_extra.layout.grid`.
+"""
+
+WRAP_MARKER_LABEL = "\N{DOWNWARDS ARROW WITH CORNER LEFTWARDS}"
+"""What {data}`AUTO_WRAP_MARKER` writes at the fold.
+
+`↵` rather than a right-pointing arrow: the line turns back to the left margin
+and continues on the row below, which is what the glyph draws. It is also the
+one convention with a precedent in another pager: `delta` ships it as its own
+`--wrap-left-symbol`, and paints it in a color of its own for the same reason
+this one is drawn in {data}`~click_extra.layout.RULE_COLOR`.
+"""
+
+DEFAULT_WRAP_MARKER: str = ""
+"""What closes a folded row when nothing asks for a marker.
+
+Empty, so a capture folds the way a terminal does. A reader drawing a terminal
+window is not owed a mark for something the terminal itself would not show.
+"""
+
+
+def resolve_wrap_marker(marker: str) -> str:
+    """Read a `wrap_marker` option into the characters written at a fold.
+
+    The one reading of the option every entry point shares: the `--wrap-marker`
+    of the capture commands, and the API those commands call.
+
+    :param marker: the text, {data}`AUTO_WRAP_MARKER`, or an empty string for no
+        marker at all.
+    :return: the characters to write at a fold, empty for none.
+    """
+    return WRAP_MARKER_LABEL if marker == AUTO_WRAP_MARKER else marker
+
+
 def parse_columns(value: str) -> TColumns:
     """Read a width written as text into a number, or into {data}`AUTO_COLUMNS`.
 
@@ -815,6 +855,7 @@ def render(
     speed: float = 1.0,
     emphasize: Sequence[int] = (),
     cursor: Cursor | None = None,
+    wrap_marker: str = DEFAULT_WRAP_MARKER,
     full: bool = True,
     background: CaptureBackground = CaptureBackground.DARK,
     preset: TerminalPreset | None = None,
@@ -857,6 +898,11 @@ def render(
         {class}`~click_extra.screenshot_presets.Cursor`. `None` draws none. A
         cursor naming no shape takes the one the `preset` says that terminal
         draws, so `--preset windows` gets its bar without stating it.
+    :param wrap_marker: SVG only. What closes each row a fold cut short,
+        {data}`AUTO_WRAP_MARKER` for {data}`WRAP_MARKER_LABEL`, or empty to fold
+        silently, see {func}`~click_extra.layout.grid`. HTML reflows with the page
+        embedding it, and a terminal reading ANSI folds on its own, so neither
+        has a fold of the capture's to mark.
     :param full: HTML only. See {func}`~click_extra.screenshot_html.render_html`.
     :param background: chrome to draw on, see
         {class}`~click_extra.screenshot_presets.CaptureBackground`.
@@ -925,6 +971,7 @@ def render(
             if columns == AUTO_COLUMNS
             else columns
         ),
+        wrap_marker=resolve_wrap_marker(wrap_marker),
         title=title,
         unique_id=unique_id,
         frames=frames,
@@ -983,6 +1030,7 @@ def capture(
     line_numbers: bool = False,
     emphasize: Sequence[int] = (),
     cursor: Cursor | None = None,
+    wrap_marker: str = DEFAULT_WRAP_MARKER,
     closing_prompt: bool = False,
     title: str = "",
     unique_id: str | None = None,
@@ -1019,6 +1067,7 @@ def capture(
         and a gutter does not shift the count.
     :param cursor: see {func}`render`. A still capture leaves its cursor after
         the last thing the command printed, which is where the shell finds it.
+    :param wrap_marker: see {func}`render`.
     :param closing_prompt: draw the shell's prompt on the row under the output,
         which is where it comes back once the command exits, see
         {func}`append_prompt`.
@@ -1062,6 +1111,7 @@ def capture(
             columns=columns,
             emphasize=emphasize,
             cursor=cursor,
+            wrap_marker=wrap_marker,
             title=title,
             unique_id=unique_id,
             full=full,

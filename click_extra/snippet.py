@@ -65,6 +65,7 @@ from .layout import number_lines
 from .screenshot import (
     AUTO_COLUMNS,
     DEFAULT_TRUNCATION,
+    DEFAULT_WRAP_MARKER,
     CaptureFormat,
     Chrome,
     fold_chrome_arguments,
@@ -285,6 +286,7 @@ def render_snippet(
     truncation: str = DEFAULT_TRUNCATION,
     line_numbers: bool = False,
     emphasize: Sequence[int] = (),
+    wrap_marker: str = DEFAULT_WRAP_MARKER,
     title: str = "",
     unique_id: str | None = None,
     full: bool = True,
@@ -320,6 +322,7 @@ def render_snippet(
     :param line_numbers: draw each line's number in a gutter, see
         {func}`~click_extra.layout.number_lines`.
     :param emphasize: lines to draw a band behind, counted from `1`.
+    :param wrap_marker: see {func}`~click_extra.screenshot.render`.
     :param title: see {func}`~click_extra.screenshot.render`.
     :param unique_id: see {func}`~click_extra.screenshot.render`.
     :param full: see {func}`~click_extra.screenshot.render`.
@@ -355,6 +358,7 @@ def render_snippet(
         title=title,
         unique_id=unique_id,
         emphasize=emphasize,
+        wrap_marker=wrap_marker,
         full=full,
         background=background,
         preset=preset,

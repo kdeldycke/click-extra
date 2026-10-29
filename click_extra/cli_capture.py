@@ -51,10 +51,13 @@ from .screenshot import (
     AUTO_COLUMNS,
     AUTO_CURSOR,
     AUTO_TRUNCATION,
+    AUTO_WRAP_MARKER,
     DEFAULT_COLUMNS,
     DEFAULT_MARGIN,
     DEFAULT_PADDING,
     DEFAULT_TRUNCATION,
+    DEFAULT_WRAP_MARKER,
+    WRAP_MARKER_LABEL,
     CaptureFormat,
     Chrome,
     capture,
@@ -367,6 +370,15 @@ def capture_options(
             f"span.",
         ),
         option(
+            "--wrap-marker",
+            metavar="[auto|TEXT]",
+            default=DEFAULT_WRAP_MARKER,
+            help=f"Character closing each row a line wider than --columns folds "
+            f"at, or {AUTO_WRAP_MARKER} for {WRAP_MARKER_LABEL}. It takes a cell "
+            "of the row it closes. Left out, a line folds silently, the way a "
+            "terminal folds it. SVG only.",
+        ),
+        option(
             "--line-numbers",
             is_flag=True,
             help="Number the drawn lines in a gutter, the way Pygments does "
@@ -576,6 +588,7 @@ def screenshot_cmd(
     head: int | None,
     tail: int | None,
     truncation: str,
+    wrap_marker: str,
     merge_stderr: bool,
     line_numbers: bool,
     emphasize: tuple[int, ...],
@@ -647,6 +660,11 @@ def screenshot_cmd(
         if head is not None or tail is not None:
             raise click.UsageError(
                 "--head and --tail do not apply to --record, which keeps whole screens."
+            )
+        if wrap_marker:
+            raise click.UsageError(
+                "--wrap-marker does not apply to --record: a pseudo-terminal folds "
+                "its own lines, so the screens it draws hold no fold to mark."
             )
     else:
         for name, given in (
@@ -737,6 +755,7 @@ def screenshot_cmd(
                 line_numbers=line_numbers,
                 emphasize=emphasize,
                 cursor=drawn_cursor,
+                wrap_marker=wrap_marker,
                 closing_prompt=closing_prompt,
                 title=title,
                 unique_id=output.stem,
@@ -818,6 +837,7 @@ def snippet_cmd(
     head: int | None,
     tail: int | None,
     truncation: str,
+    wrap_marker: str,
     line_numbers: bool,
     emphasize: tuple[int, ...],
     title: str,
@@ -880,6 +900,7 @@ def snippet_cmd(
             truncation=truncation,
             line_numbers=line_numbers,
             emphasize=emphasize,
+            wrap_marker=wrap_marker,
             title=title,
             unique_id=output.stem,
             full=not fragment,

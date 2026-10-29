@@ -53,6 +53,7 @@ from click_extra.output import STDOUT_SENTINEL
 from click_extra.recording import TerminalScreen, record_and_render
 from click_extra.screenshot import (
     AUTO_COLUMNS,
+    AUTO_WRAP_MARKER,
     CAPTURE_BORDERS,
     CAPTURE_HIDDEN_TERMINAL_VARS,
     CAPTURE_SHADOWS,
@@ -62,6 +63,7 @@ from click_extra.screenshot import (
     MIN_COLUMNS,
     TRUNCATION_LABEL,
     TRUNCATION_RULE,
+    WRAP_MARKER_LABEL,
     CaptureFormat,
     Chrome,
     append_prompt,
@@ -74,6 +76,7 @@ from click_extra.screenshot import (
     parse_hold,
     parse_pause,
     render,
+    resolve_wrap_marker,
     trim_lines,
 )
 from click_extra.screenshot_html import render_html
@@ -327,6 +330,32 @@ def test_rule_marker_tracks_the_drawn_width(columns, expected):
     ))
     trimmed = trim_lines(text, head=2, tail=1, columns=columns).splitlines()
     assert cell_width(unstyle(trimmed[2])) == expected
+
+
+@pytest.mark.parametrize(
+    ("wrap_marker", "expected"),
+    (
+        (AUTO_WRAP_MARKER, WRAP_MARKER_LABEL),
+        (WRAP_MARKER_LABEL, WRAP_MARKER_LABEL),
+        ("\N{NOT SIGN}", "\N{NOT SIGN}"),
+        ("", ""),
+    ),
+)
+def test_resolve_wrap_marker(wrap_marker, expected):
+    """Only `auto` is replaced: any other marker, empty included, is taken as is."""
+    assert resolve_wrap_marker(wrap_marker) == expected
+
+
+def test_render_draws_the_wrap_marker_at_each_fold():
+    """An SVG capture closes each folded row on the marker, and only those rows."""
+    text = "apple\n" + "kiwi " * 10
+    lines = svg_to_lines(render(text, columns=20, wrap_marker=AUTO_WRAP_MARKER))
+    folded = [line for line in lines if line.endswith(WRAP_MARKER_LABEL)]
+    assert len(folded) == 2
+    assert all(cell_width(line) <= 20 for line in lines)
+    assert lines[0] == "apple"
+    # The default leaves a fold the way a terminal leaves it.
+    assert WRAP_MARKER_LABEL not in "".join(svg_to_lines(render(text, columns=20)))
 
 
 def test_trim_lines_keeps_a_marker_too_wide_for_its_rule_bare():
@@ -1981,6 +2010,35 @@ def test_grid_wraps_at_the_terminal_edge():
     ]
 
 
+def test_grid_marks_each_fold_with_its_wrap_marker():
+    """A marked fold closes its row on the marker, painted as a mark of the layout.
+
+    The marker takes the last cell of the row it closes, so each folded row holds
+    one cell less of text, and the last row of the line carries none: nothing
+    continues past it.
+    """
+    rows = grid("fruit basket", 6, wrap_marker=WRAP_MARKER_LABEL)
+    assert [[(run, column) for _, run, column in row] for row in rows] == [
+        [("fruit", 0), (WRAP_MARKER_LABEL, 5)],
+        [(" bask", 0), (WRAP_MARKER_LABEL, 5)],
+        [("et", 0)],
+    ]
+    marker_style = rows[0][1][0]
+    assert marker_style != rows[0][0][0], "the marker reads as part of the output"
+    assert all(cell_width(unstyle(run)) <= 6 for row in rows for _, run, _ in row)
+
+
+def test_grid_without_a_wrap_marker_folds_a_full_row_silently():
+    """No marker means the terminal's own fold: a line exactly as wide fits."""
+    assert [[run for _, run, _ in row] for row in grid("banana", 6)] == [["banana"]]
+    # Asking for a marker costs the cell, so the same line now folds.
+    marked = grid("banana", 6, wrap_marker=WRAP_MARKER_LABEL)
+    assert [[run for _, run, _ in row] for row in marked] == [
+        ["banan", WRAP_MARKER_LABEL],
+        ["a"],
+    ]
+
+
 def test_grid_never_splits_a_wide_glyph():
     """A wide glyph straddling the last column moves down whole."""
     # The ideograph needs two cells and only one is left on the first row.
@@ -2422,6 +2480,12 @@ def test_screenshot_pacing_needs_record(invoke, tmp_path, arguments, message):
             "shot.svg",
             "keeps whole screens",
             id="no-trimming",
+        ),
+        pytest.param(
+            ["--wrap-marker", "auto"],
+            "shot.svg",
+            "folds its own lines",
+            id="no-wrap-marker",
         ),
     ),
 )

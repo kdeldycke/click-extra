@@ -259,7 +259,12 @@ def fit_columns(text: str, floor: int = 0) -> int:
     )
 
 
-def grid(text: str, columns: int) -> list[list[tuple[Style, str, int]]]:
+def grid(
+    text: str,
+    columns: int,
+    *,
+    wrap_marker: str = "",
+) -> list[list[tuple[Style, str, int]]]:
     """Lay ANSI text out on a terminal's character grid.
 
     Where a stream of styled text stops being a stream and becomes a picture.
@@ -277,10 +282,30 @@ def grid(text: str, columns: int) -> list[list[tuple[Style, str, int]]]:
     Returning the column with each run is what lets a renderer place a run
     without measuring anything back out of its own output.
 
+    ```{note}
+    `wrap_marker` closes each row a fold cut short, which is what tells a reader
+    that the row continues below instead of the command having printed a line
+    that stops mid-word. It is the renderer's own mark, so it is painted with
+    {data}`RULE_COLOR` rather than left in the terminal's ink, and it takes a
+    cell of the row it closes: a marked row carries one cell less of text, and a
+    line that would have fit exactly folds once the marker is asked for. A
+    terminal folds silently, so the default draws nothing.
+    ```
+
     :param text: the text to lay out, ANSI escape sequences included.
     :param columns: width of the grid, in cells.
+    :param wrap_marker: character closing each row a fold cut short, or an empty
+        string to fold silently.
     :return: one list of `(style, text, column)` runs per row.
     """
+    marker_runs = (
+        tuple(split_ansi(style(wrap_marker, fg=RULE_COLOR))) if wrap_marker else ()
+    )
+    marker_width = sum(cell_width(run) for _, run in marker_runs)
+    # `max(..., 1)` keeps a marker wider than the whole grid from folding the
+    # text away entirely: it would otherwise leave no cell for a glyph.
+    wrap_width = max(columns - marker_width, 1)
+
     rows: list[list[tuple[Style, str, int]]] = [[]]
     column = 0
     for run_style, run in split_ansi(text):
@@ -296,10 +321,13 @@ def grid(text: str, columns: int) -> list[list[tuple[Style, str, int]]]:
                 size = _char_width(char)
                 # `and column` keeps a glyph wider than the whole grid on the
                 # row it started, instead of wrapping forever onto empty ones.
-                if column + size > columns and column:
+                if column + size > wrap_width and column:
                     if kept:
                         rows[-1].append((run_style, "".join(kept), start))
                         kept = []
+                    for marker_style, marker_text in marker_runs:
+                        rows[-1].append((marker_style, marker_text, column))
+                        column += cell_width(marker_text)
                     rows.append([])
                     column = start = 0
                 kept.append(char)
