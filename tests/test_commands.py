@@ -239,6 +239,7 @@ def test_no_heavy_dependency_ballast_on_startup():
         "boltons.formatutils",
         "boltons.strutils",
         "boltons.urlutils",
+        "click._termui_impl",
         "concurrent.futures",
         "configparser",
         "deepmerge",

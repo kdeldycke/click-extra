@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import io
 import itertools
+import logging
 import os
 import re
 import signal
@@ -54,11 +55,14 @@ from click_extra.cli import (
     demo,
 )
 from click_extra.context import PROGRESS, START_TIME
+from click_extra.logging import StreamHandler as ExtraStreamHandler
 from click_extra.pytest import command_decorators
+from click_extra.recording import TerminalScreen, record_command
 from click_extra.screenshot import cell_width
 from click_extra.spinner import (
     CLEAR_LINE,
     HIDE_CURSOR,
+    PROGRESSBAR_REDRAWS,
     SHOW_CURSOR,
     OperationTrail,
     _active_line,
@@ -634,6 +638,99 @@ def test_progressbar_shows_final_position_with_update_min_steps():
             pass
     output = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
     assert "20/20" in output
+
+
+def test_progressbar_prints_a_log_record_above_itself(monkeypatch):
+    """A record logged while a bar draws lands on a line of its own, above it.
+
+    Click draws a bar with a carriage return and no line feed until it finishes,
+    so a record written in between continued the bar's row, after its position.
+    """
+    terminal = TTYStringIO()
+    monkeypatch.setattr(sys, "stderr", terminal)
+    handler = ExtraStreamHandler()
+    handler.stream = sys.stderr
+    logger = logging.getLogger("click_extra.test.progressbar")
+    logger.addHandler(handler)
+    logger.propagate = False
+    try:
+        with click_extra.progressbar(range(3), label="Sorting plums") as bar:
+            # Compared by identity: the registry types its entries as live lines.
+            assert id(_active_line(terminal)) == id(bar)
+            for _ in bar:
+                logger.warning("Opening the fruit basket")
+    finally:
+        logger.removeHandler(handler)
+    assert _active_line(terminal) is None
+
+    screen = TerminalScreen()
+    screen.feed(terminal.getvalue())
+    rows = [re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", row) for row in screen.rows]
+    records = [row for row in rows if "Opening the fruit basket" in row]
+    assert len(records) == 3
+    assert not [row for row in records if "Sorting plums" in row], rows
+    # The bar keeps drawing below the records, and ends there.
+    assert [row for row in rows if row.strip()][-1].startswith("Sorting plums")
+
+
+LOGGING_UNDER_A_BAR_SCRIPT = """
+import logging
+import time
+
+from click_extra import command, progressbar
+
+
+@command
+def sort_plums():
+    with progressbar(range(3), label="Sorting plums") as bar:
+        for _ in bar:
+            logging.warning("Opening the fruit basket")
+            time.sleep(0.05)
+
+
+sort_plums()
+"""
+"""A CLI logging from inside an open progress bar."""
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_progressbar_logging_on_a_pseudo_terminal():
+    """On a real terminal, each record a CLI logs under a bar gets its own row."""
+    frames = record_command(
+        (sys.executable, "-c", LOGGING_UNDER_A_BAR_SCRIPT), columns=80, rows=12
+    )
+    rows = [
+        re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", row).rstrip()
+        for row in frames[-1].text.splitlines()
+    ]
+    records = [row for row in rows if "Opening the fruit basket" in row]
+    assert records == ["warning: Opening the fruit basket"] * 3, rows
+    assert [row for row in rows if row][-1].startswith("Sorting plums"), rows
+
+
+def test_progressbar_draws_on_stderr_by_default():
+    """The bar draws where log records and the other live lines go."""
+    assert click_extra.progressbar([1, 2, 3]).file is sys.stderr
+    assert click_extra.progressbar([1, 2, 3], file=sys.stdout).file is sys.stdout
+
+
+@pytest.mark.parametrize(
+    ("length", "given", "expected"),
+    (
+        (20_000, {}, 200),
+        (150, {}, 2),
+        (100, {}, 1),
+        (3, {}, 1),
+        (20_000, {"update_min_steps": 7}, 7),
+    ),
+)
+def test_progressbar_caps_its_redraws(length, given, expected):
+    """A long bar redraws at most PROGRESSBAR_REDRAWS times, unless told otherwise."""
+    bar = click_extra.progressbar(range(length), **given)
+    assert bar.update_min_steps == expected
+    if not given:
+        redraws = -(-length // bar.update_min_steps)
+        assert redraws <= PROGRESSBAR_REDRAWS
 
 
 def test_progressbar_show_eta_follows_time_flag():

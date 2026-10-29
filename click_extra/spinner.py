@@ -1840,6 +1840,72 @@ class ProgressOption(ExtraOption):
 
 V = TypeVar("V")
 
+PROGRESSBAR_REDRAWS: Final = 100
+"""Most times {func}`progressbar` redraws a bar of known length.
+
+Click redraws a bar on every step by default, which is once per item: 20,000
+writes for a bar over 20,000 items, and as many frames for a recording of it. A
+hundred redraws move the bar by the percent. A caller passing its own
+`update_min_steps` keeps it.
+"""
+
+
+@functools.cache
+def _live_progressbar_class() -> type[ProgressBar[Any]]:
+    """The Click progress bar class that other output can print above.
+
+    Its bars register as a live line while they draw, so
+    {class}`~click_extra.logging.StreamHandler` routes each log record through
+    their `echo`: the bar line is erased, the record printed, and the bar drawn
+    again below it. Left to itself, a record lands on the bar's row, right after
+    its position, because Click draws the bar with a carriage return and no line
+    feed until it finishes.
+
+    ```{note}
+    {func}`progressbar` builds the bar through {func}`click.progressbar` and then
+    switches its class to this one. `click.progressbar` passes defaults of its own
+    (a bracketed template, a dash for the empty part, a width of 36) that
+    {class}`~click._termui_impl.ProgressBar` does not have, so building this
+    class directly would draw a different bar.
+    ```
+    """
+    # Deferred import: keeps click._termui_impl off the startup path of every CLI.
+    from click._termui_impl import ProgressBar as ClickProgressBar
+
+    class LiveProgressBar(ClickProgressBar):
+        def _resolve_stream(self) -> IO[str]:
+            return self.file
+
+        def _draws(self) -> bool:
+            """Whether this bar writes to its stream, rather than staying silent."""
+            return not self.hidden and self._is_atty
+
+        def __enter__(self) -> Self:
+            if self._draws():
+                _register_line(self)
+            super().__enter__()
+            return self
+
+        def render_finish(self) -> None:
+            _deregister_line(self)
+            super().render_finish()
+
+        def echo(self, message: str) -> None:
+            """Print `message` as a persistent line above the bar, then redraw it."""
+            stream = self.file
+            drawn = self.entered and self._draws()
+            if drawn:
+                stream.write(f"\r{CLEAR_LINE}")
+            stream.write(f"{message}\n")
+            if drawn:
+                # Click skips a redraw whose line did not change, which is the
+                # case here: the bar moved down a row, not forward.
+                self._last_line = None
+                self.render_progress()
+            stream.flush()
+
+    return LiveProgressBar
+
 
 def _flush_final_position(bar: ProgressBar[Any]) -> None:
     """Make the bar render its true final position on finish.
@@ -1896,6 +1962,14 @@ def progressbar(
         timing in step with an {class}`OperationTrail`'s `timer`. Click's own
         default is `True`.
 
+    Unlike {func}`click.progressbar`, the bar draws on {data}`sys.stderr` unless
+    `file` says otherwise, like {class}`Spinner` and {class}`OperationTrail`. That
+    keeps stdout free for the data a command prints, and puts the bar on the
+    stream log records go to. A record logged while the bar draws then prints on a
+    line of its own above the bar, which draws again below it. A bar of known
+    length is also redrawn at most {data}`PROGRESSBAR_REDRAWS` times, unless
+    `update_min_steps` says otherwise.
+
     ```{note}
     The `--progress` flag gates visibility and `--time` the ETA. Color is
     already handled upstream: Click renders the bar through {func}`click.echo`,
@@ -1917,6 +1991,8 @@ def progressbar(
         # The ETA follows --time / --no-time, like a trail's timer, so a bare
         # bar and a trail agree on when to show timing.
         show_eta = _time_flag_active()
+    if kwargs.get("file") is None:
+        kwargs["file"] = _stream_or_stderr(None)
     bar = click.progressbar(
         iterable,
         length=length,
@@ -1925,6 +2001,12 @@ def progressbar(
         show_eta=show_eta,
         **kwargs,
     )
+    bar.__class__ = _live_progressbar_class()
+    # Click reads the length off the iterable when none is given, so the bar is
+    # the one place that knows it.
+    if "update_min_steps" not in kwargs and bar.length:
+        # Rounded up, so a bar of 150 items steps by 2 rather than by 1.
+        bar.update_min_steps = -(-bar.length // PROGRESSBAR_REDRAWS)
     # Repair the final-position freeze of pallets/click#3571 (harmless otherwise).
     _flush_final_position(bar)
     return bar

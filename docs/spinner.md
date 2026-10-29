@@ -684,6 +684,12 @@ The `hidden` argument stays authoritative: pass an explicit `hidden=True` or `hi
 
 The bar's estimated-time display is gated the same way, but on `--time` rather than `--progress`: `show_eta` defaults to `None`, shown under `--time` and hidden otherwise, so a bare bar and an [operation trail](#the-operation-trail) agree on when to surface timing. An explicit `show_eta=True` or `show_eta=False` overrides it (Click's own default is `True`).
 
+Three more defaults set the bar apart from Click's:
+
+- It draws on stderr, like a spinner and a trail, unless `file` names another stream. That keeps stdout free for the data a command prints.
+- A record logged while the bar draws prints on a line of its own above the bar, which then draws again below it. Click draws a bar with a carriage return and no line feed until it finishes, so its own bar leaves a record on the bar's row, after its position.
+- A bar of known length redraws at most 100 times, so a bar over 20,000 items does not write to the terminal 20,000 times. An explicit `update_min_steps` keeps its value.
+
 ## `click_extra.spinner` API
 
 ```{eval-rst}
