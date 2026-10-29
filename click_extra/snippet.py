@@ -339,7 +339,13 @@ def render_snippet(
         filename=filename,
         style=resolved_style,
     )
-    text = trim_lines(text, head=head, tail=tail, truncation=truncation)
+    text = trim_lines(
+        text,
+        head=head,
+        tail=tail,
+        truncation=truncation,
+        columns=columns,
+    )
     if line_numbers:
         text = number_lines(text)
     return render(

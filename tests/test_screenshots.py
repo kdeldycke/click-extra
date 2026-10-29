@@ -284,6 +284,51 @@ def test_trim_lines_rules_the_default_marker_across_the_kept_width():
     assert cell_width(marker) == max(cell_width(unstyle(line)) for line in trimmed)
 
 
+def test_trim_lines_caps_the_rule_at_the_terminal_width():
+    """A kept line wider than the capture draws a rule as wide as the capture.
+
+    The rule is measured on the kept lines, so a 150-cell log line among them
+    asked for a 150-cell rule in an 80-column image. The renderer folds any line
+    reaching past the width, so that rule came back as a row of dots plus its
+    tail alone on a second row, started outside the text column.
+    """
+    text = "\n".join((
+        "short first line",
+        "x" * 150,
+        "short last line",
+        "short line cut away",
+    ))
+    trimmed = trim_lines(text, head=2, tail=1, columns=80).splitlines()
+
+    assert len(trimmed) == 4, "the rule folded onto a row of its own"
+    marker = unstyle(trimmed[2])
+    assert f" {TRUNCATION_LABEL} " in marker
+    assert cell_width(marker) == 80
+
+
+@pytest.mark.parametrize(
+    ("columns", "expected"),
+    (
+        # Nothing folds when the width is left to the command, so the rule keeps
+        # spanning the widest line it was measured on.
+        (AUTO_COLUMNS, 150),
+        (80, 80),
+        # A width the kept lines all stop short of is not padded out to either.
+        (200, 150),
+    ),
+)
+def test_rule_marker_tracks_the_drawn_width(columns, expected):
+    """The `auto` rule spans the widest kept line, capped to the drawn width."""
+    text = "\n".join((
+        "short first line",
+        "x" * 150,
+        "short last line",
+        "short line cut away",
+    ))
+    trimmed = trim_lines(text, head=2, tail=1, columns=columns).splitlines()
+    assert cell_width(unstyle(trimmed[2])) == expected
+
+
 def test_trim_lines_keeps_a_marker_too_wide_for_its_rule_bare():
     """A capture narrower than the frame gets the label alone, not a broken rule."""
     marker = trim_lines("a\nb\nc", head=1, tail=1).splitlines()[1]

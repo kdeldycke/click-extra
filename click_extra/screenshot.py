@@ -458,9 +458,11 @@ which is what a cut is. It carries no brackets, unlike a rule naming a section:
 there is nothing to name here, and the label is the cut itself.
 
 Measured on the kept lines alone, so the marker can never be what decides the
-image width. That also makes it track an explicit `columns` only as far as the
-text does: a capture whose lines all stop short draws a rule that stops there
-too.
+image width, and capped to the width the capture is drawn at. Both bounds are
+needed: a capture whose lines all stop short draws a rule that stops there too,
+while a line wider than the terminal folds where it is drawn and takes the rule
+with it, which left the tail of a 150-cell rule alone on a second row, outside
+the text column. See {func}`_rule_marker`.
 """
 
 TRUNCATION_LABEL = "\N{BLACK SCISSORS}"
@@ -677,6 +679,7 @@ def trim_lines(
     head: int | None = None,
     tail: int | None = None,
     truncation: str = DEFAULT_TRUNCATION,
+    columns: TColumns = DEFAULT_COLUMNS,
 ) -> str:
     """Keep only the first `head` and last `tail` lines of `text`.
 
@@ -688,6 +691,8 @@ def trim_lines(
     :param head: number of leading lines to keep, or `None` for no head bound.
     :param tail: number of trailing lines to keep, or `None` for no tail bound.
     :param truncation: line standing in for what was cut.
+    :param columns: width the text is drawn at, which bounds the rule
+        {data}`AUTO_TRUNCATION` draws, see {func}`_rule_marker`.
     :return: the trimmed text.
     """
     if head is None and tail is None:
@@ -700,19 +705,37 @@ def trim_lines(
     tail_lines = lines[-tail:] if tail else []
     marker = truncation
     if truncation == AUTO_TRUNCATION:
-        marker = _rule_marker([*head_lines, *tail_lines])
+        marker = _rule_marker([*head_lines, *tail_lines], columns)
     return "\n".join([*head_lines, marker, *tail_lines])
 
 
-def _rule_marker(lines: Sequence[str]) -> str:
+def _rule_marker(lines: Sequence[str], columns: TColumns = DEFAULT_COLUMNS) -> str:
     """Center {data}`TRUNCATION_LABEL` in a rule as wide as the widest of `lines`.
 
+    The width stops at `columns`, because a line wider than the terminal is
+    drawn folded: a rule spanning the line it came from would fold in turn, and
+    its tail would land on a row of its own, outside the text column the rule
+    sits in.
+
+    ```{note}
+    Folding is what {func}`~click_extra.layout.grid` does to any line reaching
+    past the width, prompt and rule alike. So the rule has to be measured
+    against what is *drawn*, not against what was captured: a command printing
+    one 150-character line to an 80-column capture gets an 80-cell rule, and the
+    fold that line takes does not come back as a second row of dots.
+    ```
+
     :param lines: the lines the marker is drawn between.
+    :param columns: width the capture is drawn at, or {data}`AUTO_COLUMNS` when
+        nothing folds.
     :return: the marker to write in their place.
     """
+    width = fit_columns("\n".join(lines))
+    if columns != AUTO_COLUMNS:
+        width = min(width, columns)
     return center_in_rule(
         style(TRUNCATION_LABEL, fg=RULE_COLOR),
-        fit_columns("\n".join(lines)),
+        width,
         rule=TRUNCATION_RULE,
         opening=" ",
         closing=" ",
@@ -1021,6 +1044,7 @@ def capture(
         head=head,
         tail=tail,
         truncation=truncation,
+        columns=columns,
     )
     invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
     if invocation:
