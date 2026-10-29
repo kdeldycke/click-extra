@@ -775,12 +775,12 @@ nuitka.nofollow-imports = [ "tkinter" ]
 #     Python 3.11, resolved again with `lowest-direct`. 1 job.
 #   - {8.4.1, 8.4.2} click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.11
 #     (the floor corner), covering the declared >=8.4.1 range. 2 jobs.
-#   - released click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.14, the
+#   - released click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.15, the
 #     cloup 3.x line on the newest Click. 1 job.
-#   - {stable, main} click × released cloup: ubuntu-26.04-arm × {3.14, 3.14t}.
+#   - {stable, main} click × released cloup: ubuntu-26.04-arm × {3.15, 3.15t}.
 #     4 jobs, unstable.
 #   - {released, stable, main} click × master cloup: ubuntu-26.04-arm ×
-#     {3.14, 3.14t}. 6 jobs, the 4 on a Click dev branch unstable.
+#     {3.15, 3.15t}. 6 jobs, the 4 on a Click dev branch unstable.
 # The Click dev branches are probes, not gates: they move under us, and a help
 # screen they reshape cannot be pictured by a committed capture shot against
 # the released Click the project ships with. Click 8.5.0 shipped exactly that,
@@ -832,19 +832,19 @@ test-matrix.full-include = [
   { os = "ubuntu-26.04-arm", python-version = "3.11", click-version = "8.4.1", cloup-version = "v3.1.0" },
   { os = "ubuntu-26.04-arm", python-version = "3.11", click-version = "8.4.2", cloup-version = "v3.1.0" },
   # Cloup 3.x on the released Click: an install that pins cloup below 4.0.0.
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "released", cloup-version = "v3.1.0" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "released", cloup-version = "v3.1.0" },
   # Click's stable and main dev branches on released Cloup, latest Pythons.
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "stable", cloup-version = "released", state = "unstable" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "stable", cloup-version = "released", state = "unstable" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "main", cloup-version = "released", state = "unstable" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "main", cloup-version = "released", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "stable", cloup-version = "released", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15t", click-version = "stable", cloup-version = "released", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "main", cloup-version = "released", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15t", click-version = "main", cloup-version = "released", state = "unstable" },
   # Cloup's master branch on released, stable, and main Click, latest Pythons.
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "released", cloup-version = "master" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "released", cloup-version = "master" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "stable", cloup-version = "master", state = "unstable" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "stable", cloup-version = "master", state = "unstable" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14", click-version = "main", cloup-version = "master", state = "unstable" },
-  { os = "ubuntu-26.04-arm", python-version = "3.14t", click-version = "main", cloup-version = "master", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "released", cloup-version = "master" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15t", click-version = "released", cloup-version = "master" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "stable", cloup-version = "master", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15t", click-version = "stable", cloup-version = "master", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "main", cloup-version = "master", state = "unstable" },
+  { os = "ubuntu-26.04-arm", python-version = "3.15t", click-version = "main", cloup-version = "master", state = "unstable" },
 ]
 
 [tool.click-extra]
