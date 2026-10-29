@@ -45,7 +45,7 @@ from typing import Any, NamedTuple
 import pytest
 from extra_platforms.pytest import skip_windows
 
-from click_extra import SPINNERS, Spinner, Style, screenshot_presets, unstyle
+from click_extra import SPINNERS, Spinner, Style, screenshot_presets, style, unstyle
 from click_extra.cli_capture import deliver_capture, screenshot_cmd
 from click_extra.execution import PROMPT
 from click_extra.layout import PADDING, cell_width, fit_columns, grid, number_lines
@@ -53,6 +53,7 @@ from click_extra.output import STDOUT_SENTINEL
 from click_extra.recording import TerminalScreen, record_and_render
 from click_extra.screenshot import (
     AUTO_COLUMNS,
+    AUTO_TRUNCATION,
     AUTO_WRAP_MARKER,
     CAPTURE_BORDERS,
     CAPTURE_HIDDEN_TERMINAL_VARS,
@@ -383,6 +384,31 @@ def test_render_draws_the_wrap_marker_at_each_fold():
     assert lines[0] == "apple"
     # The default leaves a fold the way a terminal leaves it.
     assert WRAP_MARKER_LABEL not in "".join(svg_to_lines(render(text, columns=20)))
+
+
+@pytest.mark.parametrize("truncation", (AUTO_TRUNCATION, "<cut>"))
+def test_trim_lines_closes_a_style_the_cut_left_open(truncation):
+    """A cut between a style's opening and its reset does not style the marker.
+
+    A heading printed as `style("\\n● Step")` opens its style on the line above
+    the text and resets it on the text's own line. Cut between the two, the open
+    underline ran into the marker, and into the lines `tail` kept after it.
+    """
+    heading = style("\n\N{BLACK CIRCLE} Step", fg="bright_blue", underline=True)
+    text = f"apple\nbanana\n{heading}\ncherry\ndate"
+    trimmed = trim_lines(text, head=3, tail=1, truncation=truncation)
+
+    # Read whole, so the state the head leaves open reaches what follows it. The
+    # head keeps no underlined glyph: the heading's text is the line cut away.
+    underlined = [run for run_style, run in split_ansi(trimmed) if run_style.underline]
+    assert not any(run.strip() for run in underlined), underlined
+    assert unstyle(trimmed).splitlines()[-1] == "date"
+
+
+def test_trim_lines_adds_no_reset_after_a_closed_style():
+    """A head that closes every style it opens gets its marker untouched."""
+    text = "\n".join((style("apple", fg="green"), "banana", "cherry"))
+    assert trim_lines(text, head=1, truncation="<cut>").splitlines()[1] == "<cut>"
 
 
 def test_trim_lines_keeps_a_marker_too_wide_for_its_rule_bare():

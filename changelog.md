@@ -7,6 +7,7 @@
 
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
 - Fix the `auto` truncation rule of a capture spanning a line wider than `--columns`, which wrapped it onto a second row.
+- Fix the truncation marker of a capture taking on a style the cut left open, which underlined part of the rule.
 
 ## [`9.5.1` (2026-10-27)](https://github.com/kdeldycke/click-extra/compare/v9.5.0...v9.5.1)
 

@@ -88,7 +88,7 @@ from .screenshot_svg import (
     emphasis_paint,
     render_svg,
 )
-from .styling import _ANSI_SGR_RE, _hex_to_rgb
+from .styling import _ANSI_SGR_RE, Style, _hex_to_rgb, split_ansi
 from .theme import BUILTIN_THEMES
 
 TYPE_CHECKING = False
@@ -486,6 +486,13 @@ there, and the rule shimmers. One dot per cell has nothing to merge with.
 DEFAULT_TRUNCATION: str = AUTO_TRUNCATION
 """Marker standing in for the lines {func}`trim_lines` cut away."""
 
+SGR_RESET = "\x1b[0m"
+"""Escape sequence clearing every style attribute.
+
+Written ahead of a truncation marker when the cut leaves a style open, see
+{func}`_leaves_style_open`.
+"""
+
 
 AUTO_WRAP_MARKER: Literal["auto"] = "auto"
 """Marker asking for {data}`WRAP_MARKER_LABEL` at every fold.
@@ -749,7 +756,30 @@ def trim_lines(
     marker = truncation
     if truncation == AUTO_TRUNCATION:
         marker = _rule_marker([*head_lines, *tail_lines], columns, wrap_marker)
+    if _leaves_style_open(head_lines):
+        marker = SGR_RESET + marker
     return "\n".join([*head_lines, marker, *tail_lines])
+
+
+def _leaves_style_open(lines: Sequence[str]) -> bool:
+    """Whether `lines` end with a style still in effect.
+
+    A cut drops whatever closes a style opened above it. A heading printed as
+    `style("\\n● Step")` puts its opening escapes on the line before the text and
+    its reset on the text's own line, so cutting between the two leaves the style
+    open. The marker would inherit it, and so would every line `tail` keeps: a
+    rule whose first segment only sets a color came out underlined.
+
+    :param lines: the lines kept above the marker.
+    :return: `True` when anything but the default style is still in effect.
+    """
+    if not lines:
+        return False
+    # A sentinel character makes the style in effect at the end visible:
+    # `split_ansi` drops empty runs, so escapes closing the text would yield
+    # nothing to read the state off.
+    *_, (state, _sentinel) = split_ansi("\n".join(lines) + "\x00")
+    return state != Style()
 
 
 def _rule_marker(
