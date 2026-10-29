@@ -346,6 +346,33 @@ def test_resolve_wrap_marker(wrap_marker, expected):
     assert resolve_wrap_marker(wrap_marker) == expected
 
 
+def test_trim_lines_leaves_room_for_the_wrap_marker():
+    """A rule capped to the width gives up the cell a wrap marker takes.
+
+    Capped to `columns` alone, the rule filled the row the marker shortens, so it
+    folded on its last dot and closed its row on the marker, reading as a rule
+    that continues below.
+    """
+    text = "\n".join((
+        "short first line",
+        "x" * 150,
+        "short last line",
+        "short line cut away",
+    ))
+    trimmed = trim_lines(
+        text, head=2, tail=1, columns=80, wrap_marker=AUTO_WRAP_MARKER
+    ).splitlines()
+    assert cell_width(unstyle(trimmed[2])) == 79
+
+    lines = svg_to_lines(
+        render("\n".join(trimmed), columns=80, wrap_marker=AUTO_WRAP_MARKER)
+    )
+    rule_rows = [line for line in lines if TRUNCATION_LABEL in line]
+    assert len(rule_rows) == 1
+    assert not rule_rows[0].endswith(WRAP_MARKER_LABEL)
+    assert not any(set(line) <= {TRUNCATION_RULE} for line in lines if line)
+
+
 def test_render_draws_the_wrap_marker_at_each_fold():
     """An SVG capture closes each folded row on the marker, and only those rows."""
     text = "apple\n" + "kiwi " * 10

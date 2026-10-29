@@ -720,6 +720,7 @@ def trim_lines(
     tail: int | None = None,
     truncation: str = DEFAULT_TRUNCATION,
     columns: TColumns = DEFAULT_COLUMNS,
+    wrap_marker: str = DEFAULT_WRAP_MARKER,
 ) -> str:
     """Keep only the first `head` and last `tail` lines of `text`.
 
@@ -733,6 +734,8 @@ def trim_lines(
     :param truncation: line standing in for what was cut.
     :param columns: width the text is drawn at, which bounds the rule
         {data}`AUTO_TRUNCATION` draws, see {func}`_rule_marker`.
+    :param wrap_marker: what closes a folded row, see {func}`render`. It takes a
+        cell of every row, so it narrows the rule by as much.
     :return: the trimmed text.
     """
     if head is None and tail is None:
@@ -745,11 +748,15 @@ def trim_lines(
     tail_lines = lines[-tail:] if tail else []
     marker = truncation
     if truncation == AUTO_TRUNCATION:
-        marker = _rule_marker([*head_lines, *tail_lines], columns)
+        marker = _rule_marker([*head_lines, *tail_lines], columns, wrap_marker)
     return "\n".join([*head_lines, marker, *tail_lines])
 
 
-def _rule_marker(lines: Sequence[str], columns: TColumns = DEFAULT_COLUMNS) -> str:
+def _rule_marker(
+    lines: Sequence[str],
+    columns: TColumns = DEFAULT_COLUMNS,
+    wrap_marker: str = DEFAULT_WRAP_MARKER,
+) -> str:
     """Center {data}`TRUNCATION_LABEL` in a rule as wide as the widest of `lines`.
 
     The width stops at `columns`, because a line wider than the terminal is
@@ -763,16 +770,23 @@ def _rule_marker(lines: Sequence[str], columns: TColumns = DEFAULT_COLUMNS) -> s
     against what is *drawn*, not against what was captured: a command printing
     one 150-character line to an 80-column capture gets an 80-cell rule, and the
     fold that line takes does not come back as a second row of dots.
+
+    A wrap marker narrows what is drawn by the cell it takes, see
+    {func}`~click_extra.layout.grid`, so the rule gives up that cell too. A rule
+    as wide as `columns` would otherwise fold on its last dot, and close its row
+    on the marker as if the rule continued below.
     ```
 
     :param lines: the lines the marker is drawn between.
     :param columns: width the capture is drawn at, or {data}`AUTO_COLUMNS` when
         nothing folds.
+    :param wrap_marker: what closes a folded row, {data}`AUTO_WRAP_MARKER`
+        included.
     :return: the marker to write in their place.
     """
     width = fit_columns("\n".join(lines))
     if columns != AUTO_COLUMNS:
-        width = min(width, columns)
+        width = min(width, columns - cell_width(resolve_wrap_marker(wrap_marker)))
     return center_in_rule(
         style(TRUNCATION_LABEL, fg=RULE_COLOR),
         width,
@@ -1094,6 +1108,7 @@ def capture(
         tail=tail,
         truncation=truncation,
         columns=columns,
+        wrap_marker=wrap_marker,
     )
     invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
     if invocation:

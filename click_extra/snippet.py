@@ -348,6 +348,7 @@ def render_snippet(
         tail=tail,
         truncation=truncation,
         columns=columns,
+        wrap_marker=wrap_marker,
     )
     if line_numbers:
         text = number_lines(text)
