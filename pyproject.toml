@@ -323,7 +323,7 @@ typing = [
 package-data.click_extra = [ "*.toml", "py.typed" ]
 
 [tool.uv]
-required-version = ">=0.11.15"
+required-version = ">=0.12.22"
 # We rely on recent Python features in some of our {click:run} directives.
 dependency-groups.docs = { requires-python = ">= 3.14" }
 # Cooldown period: 7-day buffer before using newly released packages.
