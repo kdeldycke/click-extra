@@ -62,7 +62,6 @@ from click_extra.screenshot import cell_width
 from click_extra.spinner import (
     CLEAR_LINE,
     HIDE_CURSOR,
-    PROGRESSBAR_REDRAWS,
     SHOW_CURSOR,
     OperationTrail,
     _active_line,
@@ -714,23 +713,49 @@ def test_progressbar_draws_on_stderr_by_default():
     assert click_extra.progressbar([1, 2, 3], file=sys.stdout).file is sys.stdout
 
 
-@pytest.mark.parametrize(
-    ("length", "given", "expected"),
-    (
-        (20_000, {}, 200),
-        (150, {}, 2),
-        (100, {}, 1),
-        (3, {}, 1),
-        (20_000, {"update_min_steps": 7}, 7),
-    ),
-)
-def test_progressbar_caps_its_redraws(length, given, expected):
-    """A long bar redraws at most PROGRESSBAR_REDRAWS times, unless told otherwise."""
-    bar = click_extra.progressbar(range(length), **given)
-    assert bar.update_min_steps == expected
-    if not given:
-        redraws = -(-length // bar.update_min_steps)
-        assert redraws <= PROGRESSBAR_REDRAWS
+def _drawn_positions(stream: TTYStringIO) -> list[str]:
+    """The `done/total` tallies a bar drew on `stream`, in order."""
+    plain = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
+    return re.findall(r"(\d+/\d+)", plain)
+
+
+def test_progressbar_draws_fast_items_once_per_interval():
+    """Items faster than the interval draw nothing between the first and the last
+    position, however many there are."""
+    stream = TTYStringIO()
+    bar = click_extra.progressbar(range(1000), show_pos=True, file=stream)
+    bar.clock = lambda: 0.0  # type: ignore[attr-defined]
+    with bar:
+        for index, _ in enumerate(bar, 1):
+            # The position moves on every step, drawn or not.
+            assert bar.pos == index - 1
+    assert _drawn_positions(stream) == ["0/1000", "1000/1000"]
+
+
+def test_progressbar_draws_every_slow_item():
+    """Items slower than the interval each draw their position: a bar over slow
+    items never looks frozen, which a gate counting items made it."""
+    stream = TTYStringIO()
+    now = [0.0]
+
+    def clock() -> float:
+        now[0] += 1.0
+        return now[0]
+
+    bar = click_extra.progressbar(range(300), show_pos=True, file=stream)
+    bar.clock = clock  # type: ignore[attr-defined]
+    with bar:
+        for _ in bar:
+            pass
+    assert _drawn_positions(stream) == [f"{done}/300" for done in range(301)]
+
+
+def test_progressbar_keeps_an_explicit_update_min_steps():
+    """A caller stating `update_min_steps` keeps Click's gate on a count of items."""
+    assert click_extra.progressbar(range(10)).time_gated is True  # type: ignore[attr-defined]
+    bar = click_extra.progressbar(range(10), update_min_steps=4)
+    assert bar.time_gated is False  # type: ignore[attr-defined]
+    assert bar.update_min_steps == 4
 
 
 def test_progressbar_show_eta_follows_time_flag():

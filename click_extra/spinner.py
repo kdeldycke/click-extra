@@ -52,6 +52,7 @@ conhost) already have it on; this just covers older consoles.
 from __future__ import annotations
 
 import functools
+import math
 import os
 import signal
 import sys
@@ -1840,15 +1841,6 @@ class ProgressOption(ExtraOption):
 
 V = TypeVar("V")
 
-PROGRESSBAR_REDRAWS: Final = 100
-"""Most times {func}`progressbar` redraws a bar of known length.
-
-Click redraws a bar on every step by default, which is once per item: 20,000
-writes for a bar over 20,000 items, and as many frames for a recording of it. A
-hundred redraws move the bar by the percent. A caller passing its own
-`update_min_steps` keeps it.
-"""
-
 
 @functools.cache
 def _live_progressbar_class() -> type[ProgressBar[Any]]:
@@ -1860,6 +1852,16 @@ def _live_progressbar_class() -> type[ProgressBar[Any]]:
     again below it. Left to itself, a record lands on the bar's row, right after
     its position, because Click draws the bar with a carriage return and no line
     feed until it finishes.
+
+    Its bars also draw at most once every {data}`DEFAULT_INTERVAL`, the cadence
+    of a spinner's frames, unless the caller passed `update_min_steps`. Click
+    redraws a bar on every step otherwise, which is once per item: 20,000 writes
+    for a bar over 20,000 items, and as many frames for a recording of it. A gate
+    on time rather than on a count of items bounds the writes whatever the items
+    do: a count spreads redraws by items, so a bar over slow items froze for as
+    long as the items it waited for took. The position itself moves on every
+    step, so a redraw forced in between, like the one after a log record, shows
+    where the bar really is.
 
     ```{note}
     {func}`progressbar` builds the bar through {func}`click.progressbar` and then
@@ -1873,8 +1875,44 @@ def _live_progressbar_class() -> type[ProgressBar[Any]]:
     from click._termui_impl import ProgressBar as ClickProgressBar
 
     class LiveProgressBar(ClickProgressBar):
+        time_gated = False
+        """Whether redraws wait {data}`DEFAULT_INTERVAL` from one to the next."""
+
+        clock: Callable[[], float] = staticmethod(time.monotonic)
+        """What the time gate reads the time off."""
+
+        _last_render = -math.inf
+
         def _resolve_stream(self) -> IO[str]:
             return self.file
+
+        def update(self, n_steps: int, current_item: Any = None) -> None:
+            """Move the bar by `n_steps`, and redraw it if the time gate allows.
+
+            Click holds the steps back until `update_min_steps` add up, and
+            leaves `pos` behind meanwhile. A time-gated bar applies every step.
+            """
+            if not self.time_gated:
+                super().update(n_steps, current_item)
+                return
+            if current_item is not None:
+                self.current_item = current_item
+            self.make_step(n_steps)
+            self.render_progress()
+
+        def render_progress(self) -> None:
+            """Draw the bar, unless it was drawn less than an interval ago.
+
+            Click's iterator redraws before every item on its own, outside
+            {meth}`update`, so the gate sits here, where every redraw passes. The
+            first and the last positions always draw.
+            """
+            if self.time_gated and not self.finished:
+                now = self.clock()
+                if now - self._last_render < DEFAULT_INTERVAL:
+                    return
+                self._last_render = now
+            super().render_progress()
 
         def _draws(self) -> bool:
             """Whether this bar writes to its stream, rather than staying silent."""
@@ -1899,9 +1937,11 @@ def _live_progressbar_class() -> type[ProgressBar[Any]]:
             stream.write(f"{message}\n")
             if drawn:
                 # Click skips a redraw whose line did not change, which is the
-                # case here: the bar moved down a row, not forward.
+                # case here: the bar moved down a row, not forward. Drawn past
+                # the time gate, which would leave the bar erased until the next
+                # interval.
                 self._last_line = None
-                self.render_progress()
+                ClickProgressBar.render_progress(self)
             stream.flush()
 
     return LiveProgressBar
@@ -1966,9 +2006,10 @@ def progressbar(
     `file` says otherwise, like {class}`Spinner` and {class}`OperationTrail`. That
     keeps stdout free for the data a command prints, and puts the bar on the
     stream log records go to. A record logged while the bar draws then prints on a
-    line of its own above the bar, which draws again below it. A bar of known
-    length is also redrawn at most {data}`PROGRESSBAR_REDRAWS` times, unless
-    `update_min_steps` says otherwise.
+    line of its own above the bar, which draws again below it. The bar is also
+    redrawn at most once every {data}`DEFAULT_INTERVAL`, the cadence of a
+    spinner's frames, unless `update_min_steps` says otherwise. Its position
+    still moves on every step.
 
     ```{note}
     The `--progress` flag gates visibility and `--time` the ETA. Color is
@@ -2002,11 +2043,8 @@ def progressbar(
         **kwargs,
     )
     bar.__class__ = _live_progressbar_class()
-    # Click reads the length off the iterable when none is given, so the bar is
-    # the one place that knows it.
-    if "update_min_steps" not in kwargs and bar.length:
-        # Rounded up, so a bar of 150 items steps by 2 rather than by 1.
-        bar.update_min_steps = -(-bar.length // PROGRESSBAR_REDRAWS)
+    # A caller stating `update_min_steps` keeps Click's own gate on a count.
+    bar.time_gated = "update_min_steps" not in kwargs  # type: ignore[attr-defined]
     # Repair the final-position freeze of pallets/click#3571 (harmless otherwise).
     _flush_final_position(bar)
     return bar

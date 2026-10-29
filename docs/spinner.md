@@ -688,7 +688,7 @@ Three more defaults set the bar apart from Click's:
 
 - It draws on stderr, like a spinner and a trail, unless `file` names another stream. That keeps stdout free for the data a command prints.
 - A record logged while the bar draws prints on a line of its own above the bar, which then draws again below it. Click draws a bar with a carriage return and no line feed until it finishes, so its own bar leaves a record on the bar's row, after its position.
-- A bar of known length redraws at most 100 times, so a bar over 20,000 items does not write to the terminal 20,000 times. An explicit `update_min_steps` keeps its value.
+- The bar redraws at most once every 0.1 seconds, the cadence of a spinner's frames, so a bar over 20,000 fast items does not write to the terminal 20,000 times, and a bar over slow items still moves with each of them. Its position moves on every step. An explicit `update_min_steps` keeps Click's own gate on a count of items.
 
 ## `click_extra.spinner` API
 

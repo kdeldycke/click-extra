@@ -7,7 +7,7 @@
 
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.
-- Redraw a `progressbar()` bar of known length at most 100 times, instead of once per item.
+- Redraw a `progressbar()` bar at most once every 0.1 seconds, instead of once per item.
 - Fix a log record emitted while a `progressbar()` bar is open, which printed on the bar's row instead of a line of its own.
 - Draw the `auto` truncation rule of a capture across the whole window, instead of the width of the lines it kept.
 - Fix the `auto` truncation rule of a capture spanning a line wider than `--columns`, which wrapped it onto a second row.
