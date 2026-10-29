@@ -85,6 +85,7 @@ from .formats import (
     SERIALIZABLE_FORMATS,
     SQLITE_CONFIG_TABLE,
     ConfigFormat,
+    _toml_ready,
     disabled_format_message,
     format_from_mime,
     format_from_path,
@@ -2722,27 +2723,57 @@ def _serialize_toml_with_unset(tree: dict[str, Any]) -> str:
     rendered as a `# key =` comment line: the generated file documents every
     key that can be set, while leaving the unset ones inert.
 
-    Relies on `tomlkit` (the `[toml]` extra), like
+    Relies on `tomlrt` (the `[toml]` extra), like
     {func}`~click_extra.config.formats.serialize_content` does for TOML.
 
-    :raises ImportError: when `tomlkit` is not installed.
+    `tomlrt` attaches a comment to the key or the section header below it. The
+    tree is walked in the order TOML renders it, the keys of a table before its
+    sub-tables. Each comment waits for the next key or header, or goes to the
+    end of the document.
+
+    `tomlrt` writes no header for a table that holds only sub-tables. When such a
+    table also has commented-out keys, they would read as keys of the table
+    above. A comment or a blank line set above a header pins it, so each section
+    gets a blank line there.
+
+    :raises ImportError: when `tomlrt` is not installed.
     """
-    import tomlkit
+    import tomlrt
+
+    pending: list[str] = []
 
     def fill(container: Any, mapping: dict[str, Any]) -> None:
         for key, value in mapping.items():
             if isinstance(value, dict):
-                table = tomlkit.table()
-                fill(table, value)
-                container[key] = table
-            elif value is None:
-                container.add(tomlkit.comment(f"{key} ="))
-            else:
-                container[key] = value
+                continue
+            if value is None:
+                pending.append(f"{key} =")
+                continue
+            container[key] = _toml_ready(value)
+            if pending:
+                container.leading_comments[key] = tuple(pending)
+                pending.clear()
+        for key, value in mapping.items():
+            if not isinstance(value, dict):
+                continue
+            section = tomlrt.Table.section()
+            # A blank line above the header pins it, and separates the section
+            # from the one above.
+            section.header_leading_block = (None,)
+            container[key] = section
+            # Comments waiting for this header are set on the installed table:
+            # set on the detached one, tomlrt adds a second blank line above them.
+            table = container[key]
+            if pending:
+                table.header_leading_block = (*pending, None)
+                pending.clear()
+            fill(table, value)
 
-    doc = tomlkit.document()
+    doc = tomlrt.Document()
     fill(doc, tree)
-    return str(tomlkit.dumps(doc))
+    if pending:
+        doc.epilogue = tuple(pending)
+    return tomlrt.dumps(doc)
 
 
 def _under_opaque_path(keys: Sequence[str], opaque_paths: frozenset[str]) -> bool:

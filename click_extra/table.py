@@ -512,19 +512,12 @@ def _render_toml(
 ) -> str:
     """Render a table as TOML using array-of-tables syntax.
 
-    `None` values are omitted (TOML has no null type). Requires the `tomlkit`
-    package (installable via the `[toml]` extra).
+    `None` values are omitted (TOML has no null type). Requires the `tomlrt`
+    package (installable via the `[toml]` extra), which writes a list of
+    mappings as an array of tables.
     """
-    import tomlkit
-
-    aot = tomlkit.aot()
-    for record in _records_without_none(table_data, headers):
-        t = tomlkit.table()
-        for key, value in record.items():
-            t.add(key, value)
-        aot.append(t)
-
-    return serialize_content(ConfigFormat.TOML, {RECORD_KEY: aot}, **kwargs)
+    records = _records_without_none(table_data, headers)
+    return serialize_content(ConfigFormat.TOML, {RECORD_KEY: records}, **kwargs)
 
 
 def _xml_safe_name(name: str) -> str:

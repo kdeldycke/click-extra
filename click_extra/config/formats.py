@@ -197,6 +197,20 @@ The table holds `key`/`value` columns: dotted parameter paths and their
 JSON-encoded values."""
 
 
+def _toml_ready(data: Any) -> Any:
+    """Replace every tuple in *data* with a list, at any depth.
+
+    `tomlrt` refuses a tuple, while Click returns one for a parameter with
+    `multiple=True` or `nargs`. TOML has a single array type, so the list writes
+    the same array.
+    """
+    if isinstance(data, dict):
+        return {key: _toml_ready(value) for key, value in data.items()}
+    if isinstance(data, (list, tuple)):
+        return [_toml_ready(value) for value in data]
+    return data
+
+
 def parse_content(fmt: ConfigFormat, content: str) -> Any:
     """Parse content with a single stateless format.
 
@@ -304,19 +318,8 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
 
     ```{note}
     Optional third-party serializers are imported lazily, at the point of use.
-    Writing `TOML` uses `tomlkit` (the `[toml]` extra), unlike reading
-    which relies on the built-in `tomllib`.
-    ```
-
-    ```{todo}
-    Switch the `[toml]` extra from `tomlkit` to
-    [`tomlrt`](https://dimbleby.github.io/tomlrt/) once `requires-python` reaches
-    3.11, the oldest Python `tomlrt` supports. The switch covers this function,
-    `_serialize_toml_with_unset()`, `_render_toml()`, their tests and the `docs`
-    group. `tomlrt` refuses tuples, which `tomlkit` writes as arrays. It also
-    writes no header for a section that holds only subsections.
-    `_serialize_toml_with_unset()` must force that header for a section with
-    commented-out keys. Otherwise, those comments land in the table above.
+    Writing `TOML` uses [`tomlrt`](https://dimbleby.github.io/tomlrt/) (the
+    `[toml]` extra), unlike reading which relies on the built-in `tomllib`.
     ```
 
     :raises ValueError: the format has no serializer.
@@ -337,12 +340,9 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
                 )
             )
         case ConfigFormat.TOML:
-            import tomlkit
+            import tomlrt
 
-            doc = tomlkit.document()
-            for key, value in data.items():
-                doc.add(key, value)
-            return tomlkit.dumps(doc)
+            return tomlrt.dumps(_toml_ready(data))
         case ConfigFormat.HJSON:
             import hjson
 

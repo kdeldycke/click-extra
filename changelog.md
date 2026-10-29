@@ -13,6 +13,7 @@
 - **Breaking:** Table headers and `--sort-by` column definitions no longer accept a `(label, column_id)` tuple. Pass a `ColumnSpec` instead.
 - **Breaking:** Remove the `CAPTURE_BACKGROUND`-style color constants of `screenshot_presets` and `myst_converter.FENCE_OPEN_RE`.
 - **Breaking:** Remove `click_extra.sphinx.alerts`. The `sphinx` extra now requires `myst-parser` 5.1, whose `alert` extension renders GitHub alerts.
+- The `toml` extra installs `tomlrt` in place of `tomlkit` to write TOML configuration exports and tables.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.
 - Redraw a `progressbar()` bar at most once every 0.1 seconds, instead of once per item.

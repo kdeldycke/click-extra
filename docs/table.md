@@ -92,7 +92,7 @@ Table formats are aggregated from these sources:
 - Python's [`csv` module](https://docs.python.org/3/library/csv.html) from the standard library
 - Python's [`json` module](https://docs.python.org/3/library/json.html) from the standard library
 - [`hjson`](https://hjson.github.io) (requires the [`[hjson]` extra](install.md#extra-dependencies))
-- [`tomlkit`](https://github.com/sdispater/tomlkit) (requires the [`[toml]` extra](install.md#extra-dependencies))
+- [`tomlrt`](https://github.com/dimbleby/tomlrt) (requires the [`[toml]` extra](install.md#extra-dependencies))
 - [`xmltodict`](https://github.com/martinblech/xmltodict) (requires the [`[xml]` extra](install.md#extra-dependencies))
 - [`PyYAML`](https://pyyaml.org) (requires the [`[yaml]` extra](install.md#extra-dependencies))
 
@@ -152,7 +152,7 @@ For a screen-reader-friendly rendering, use `--table-format plain`: it keeps the
 | `simple-grid`     | Simple grid table                                                                                                                                                                                                         | `python-tabulate`                            | ❌     |
 | `simple-outline`  | Simple outline table                                                                                                                                                                                                      | `python-tabulate`                            | ❌     |
 | `textile`         | [Textile markup](https://textile-lang.com/doc/tables)                                                                                                                                                                     | `python-tabulate`                            | ✅     |
-| `toml`            | [TOML](https://toml.io) array of tables                                                                                                                                                                                   | [`tomlkit`](install.md#extra-dependencies)   | ✅     |
+| `toml`            | [TOML](https://toml.io) array of tables                                                                                                                                                                                   | [`tomlrt`](install.md#extra-dependencies)    | ✅     |
 | `tsv`             | [Tab-separated values](https://en.wikipedia.org/wiki/Tab-separated_values)                                                                                                                                                | `python-tabulate`                            | ✅     |
 | `unsafehtml`      | [HTML table](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table) without escaping                                                                                                                            | `python-tabulate`                            | ✅     |
 | `vertical`        | Vertical table layout                                                                                                                                                                                                     | Click Extra                                  | ❌     |

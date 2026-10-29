@@ -18,12 +18,12 @@ from __future__ import annotations
 
 import csv
 import json
+import tomllib
 from pathlib import PurePosixPath
 
 import hjson
 import pytest
 import tabulate
-import tomlkit
 import xmltodict
 import yaml
 from boltons.strutils import strip_ansi
@@ -1016,7 +1016,7 @@ def test_serialize_json_compatible(table_format, data):
         pytest.param(
             TableFormat.TOML,
             {"section": {"key": "value"}},
-            tomlkit.loads,
+            tomllib.loads,
             id="toml",
         ),
         pytest.param(
@@ -1036,7 +1036,7 @@ def test_serialize_toml_list_wrapping():
     """Top-level lists are wrapped under a ``record`` key for TOML."""
     data = [{"id": "a"}, {"id": "b"}]
     result = serialize_data(data, TableFormat.TOML)
-    parsed = tomlkit.loads(result)
+    parsed = tomllib.loads(result)
     assert parsed == {"record": data}
 
 

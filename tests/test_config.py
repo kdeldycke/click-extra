@@ -25,6 +25,7 @@ import re
 import subprocess
 import sys
 import threading
+import tomllib
 import unittest.mock
 from contextlib import chdir
 from dataclasses import dataclass, field
@@ -68,6 +69,7 @@ from click_extra import (
 )
 from click_extra.config import SQLITE_CONFIG_TABLE
 from click_extra.config.formats import SQLITE_SUPPORT, disabled_format_message
+from click_extra.config.option import _serialize_toml_with_unset
 from click_extra.config.schema import (
     _expand_dotted_keys,
 )
@@ -1109,6 +1111,55 @@ def test_export_config_includes_unset_params(invoke):
     assert "<key>tag</key>" in result.stdout
     # plist has no null type: the unset parameter is dropped from the export.
     assert "regexp" not in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("tree", "expected"),
+    (
+        pytest.param(
+            {"weather": {"city": None, "days": 3, "unit": None}},
+            "[weather]\n# city =\ndays = 3\n# unit =\n",
+            id="around-a-key",
+        ),
+        pytest.param(
+            {"weather": {"days": 3, "unit": None, "radar": {"zoom": None}}},
+            "[weather]\ndays = 3\n# unit =\n\n[weather.radar]\n# zoom =\n",
+            id="before-a-sub-table",
+        ),
+        pytest.param(
+            {"weather": {"unit": None, "radar": {"zoom": 4}}},
+            "[weather]\n# unit =\n\n[weather.radar]\nzoom = 4\n",
+            id="table-with-no-key",
+        ),
+        pytest.param(
+            {"weather": {"radar": {"zoom": 4}, "city": None, "days": (1, 2)}},
+            "[weather]\n# city =\ndays = [1, 2]\n\n[weather.radar]\nzoom = 4\n",
+            id="keys-before-sub-tables",
+        ),
+    ),
+)
+def test_serialize_toml_with_unset_layout(tree, expected):
+    """A commented-out key sits under the header of its own table.
+
+    A table with no key of its own keeps its header, else its commented-out keys
+    read as keys of the table above.
+    """
+    result = _serialize_toml_with_unset(tree)
+    assert result == expected
+    assert tomllib.loads(result) == _strip_unset(tree)
+
+
+def _strip_unset(tree):
+    """Drop the `None` leaves of *tree*, and turn its tuples into lists."""
+    return {
+        key: _strip_unset(value)
+        if isinstance(value, dict)
+        else list(value)
+        if isinstance(value, tuple)
+        else value
+        for key, value in tree.items()
+        if value is not None
+    }
 
 
 def test_export_config_reads_a_repeatable_flag_as_a_toggle(invoke):

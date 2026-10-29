@@ -32,7 +32,7 @@ $ test-env/bin/python -m installer dist/*.whl
 $ test-env/bin/python -m pytest -m "not network"
 ```
 
-Several test modules import optional libraries at collection time (`hjson`, `jsonschema`, `pygments`, `tomlkit`, `xmltodict`, and others) to exercise the matching features. Install them to run the full suite, as the [project's own CI](https://github.com/kdeldycke/click-extra/actions) does.
+Several test modules import optional libraries at collection time (`hjson`, `jsonschema`, `pygments`, `xmltodict`, and others) to exercise the matching features. Install them to run the full suite, as the [project's own CI](https://github.com/kdeldycke/click-extra/actions) does.
 
 ## Test helpers for downstream projects
 

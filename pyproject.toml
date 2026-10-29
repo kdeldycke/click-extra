@@ -163,8 +163,10 @@ optional-dependencies.sphinx = [
   "sphinx>=8",
 ]
 optional-dependencies.toml = [
-  # tomlkit.document(), tomlkit.dumps() for TOML config and table rendering.
-  "tomlkit>=0.13",
+  # tomlrt.dumps() for TOML config and table rendering. 2.2.10 is the first release
+  # to keep a comment set on a section before it joins a document: --export-config
+  # pins each section header that way.
+  "tomlrt>=2.2.10",
 ]
 optional-dependencies.xml = [
   # xmltodict.unparse() for XML table rendering; first major release.
@@ -293,7 +295,7 @@ docs = [
   # sphinxext-opengraph 0.13 stabilized OpenGraph metadata generation for Sphinx 8+.
   "sphinxext-opengraph>=0.13",
   # Mirrors the toml extra floor, exercised by config.md's TOML export {click:run} blocks.
-  "tomlkit>=0.13",
+  "tomlrt>=2.2.10",
   # Mirrors the xml extra floor, exercised by config.md's XML {click:run} blocks.
   "xmltodict>=1",
 ]
