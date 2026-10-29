@@ -25,7 +25,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from contextlib import contextmanager, nullcontext
+from contextlib import chdir, contextmanager, nullcontext
 from dataclasses import dataclass
 from functools import cached_property, partial
 from itertools import zip_longest
@@ -284,13 +284,11 @@ def isolated_filesystem(
         the directory is left in place on exit.
     :return: path of the directory the working directory was changed to.
     """
-    previous_cwd = os.getcwd()
     target = tempfile.mkdtemp(dir=temp_dir)
-    os.chdir(target)
     try:
-        yield target
+        with chdir(target):
+            yield target
     finally:
-        os.chdir(previous_cwd)
         if temp_dir is None:
             shutil.rmtree(target, ignore_errors=True)
 

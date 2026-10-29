@@ -39,8 +39,8 @@ from packaging.version import Version
 from sphinx.directives import SphinxDirective
 from sphinx.domains import Domain
 
-# The `sphinx` extra does not declare `myst-parser` and Sphinx does not pull it
-# in, so a reST-only project has none: the extension stays importable for it.
+# Sphinx does not pull in `myst-parser`, so a project that installs Sphinx
+# without the `sphinx` extra has none: the extension stays importable for it.
 try:
     import myst_parser
 except ImportError:
@@ -72,7 +72,7 @@ def myst_version() -> Version | None:
     """The installed `myst-parser` release, or `None` when there is none.
 
     Every MyST-specific behavior of the extension is keyed on this answer, so a
-    reST-only project, which has no `myst-parser`, takes none of them.
+    project without `myst-parser` takes none of them.
     """
     return None if myst_parser is None else Version(myst_parser.__version__)
 

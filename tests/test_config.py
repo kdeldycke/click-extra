@@ -26,6 +26,7 @@ import subprocess
 import sys
 import threading
 import unittest.mock
+from contextlib import chdir
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
@@ -3270,11 +3271,7 @@ def test_parent_patterns_relative_path(tmp_path):
         pass
 
     # Change to the parent directory to create a relative path.
-    import os
-
-    old_cwd = os.getcwd()
-    try:
-        os.chdir(tmp_path / "level1")
+    with chdir(tmp_path / "level1"):
         relative_path = "level2/config.toml"
 
         with click.Context(test_cli, info_name="test-cli"):
@@ -3294,8 +3291,6 @@ def test_parent_patterns_relative_path(tmp_path):
             assert root_dir is not None
             assert Path(root_dir) == config_file.parent
             assert file_pattern == config_file.name
-    finally:
-        os.chdir(old_cwd)
 
 
 def test_parent_patterns_stop_at_path(tmp_path):

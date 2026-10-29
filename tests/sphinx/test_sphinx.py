@@ -49,10 +49,11 @@ NO_MYST_PARSER_SCRIPT = dedent("""
 
 @pytest.mark.once
 def test_import_without_myst_parser():
-    """The extension imports for a reST-only project, which installs no myst-parser.
+    """The extension imports in a project that installs no myst-parser.
 
-    The `sphinx` extra does not declare `myst-parser` and Sphinx does not depend on
-    it, so a hard import of it in `click_extra.sphinx` breaks such a project outright.
+    Sphinx does not depend on `myst-parser`, so a project that installs Sphinx
+    without the `sphinx` extra has none. A hard import of it in `click_extra.sphinx`
+    breaks such a project outright.
     """
     result = subprocess.run(
         (sys.executable, "-c", NO_MYST_PARSER_SCRIPT),
