@@ -91,9 +91,9 @@ jobs:
       metadata: ${{ steps.metadata.outputs.metadata }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
         with:
-          version: "0.13.0"
+          version: "0.13.4"
       - name: Run repomatic show-metadata
         id: metadata
         # The `--exclude-newer-package` flag is not optional: the workflow-level
@@ -105,8 +105,8 @@ jobs:
         # the bypass has to ride on the command line. See claude.md.
         run: >
           uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==8.0.0' show-metadata
-          --format github-json --output "$GITHUB_OUTPUT"
-          test_matrix test_matrix_pr
+          --output-format github-json --output "$GITHUB_OUTPUT"
+          test_matrix test_matrix_pr latest_stable_python
 
   once-tests:
     name: 🔂 Once tests
@@ -116,11 +116,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
         with:
-          version: "0.13.0"
+          version: "0.13.4"
       - name: Install Python
-        run: uv --no-progress venv --python 3.14
+        env:
+          PYTHON_VERSION: ${{ fromJSON(needs.metadata.outputs.metadata).latest_stable_python }}
+        run: uv --no-progress venv --python "${PYTHON_VERSION}"
       - name: Install project
         run: uv --no-progress sync --frozen --all-extras --group test
 
@@ -178,12 +180,13 @@ jobs:
       # inherits `permissions: {}`, takes no secrets, and only runs `--version`
       # on a throwaway runner. See claude.md.
       UV_EXCLUDE_NEWER: P0D
+      PYTHON_VERSION: ${{ fromJSON(needs.metadata.outputs.metadata).latest_stable_python }}
     steps:
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
         with:
-          version: "0.13.0"
+          version: "0.13.4"
       - name: Install Python
-        run: uv --no-progress venv --python 3.14
+        run: uv --no-progress venv --python "${PYTHON_VERSION}"
 
       - name: Run stable CLI
         run: |
@@ -260,39 +263,25 @@ jobs:
     timeout-minutes: 30
     # We keep going when a job flagged as not stable fails.
     continue-on-error: ${{ matrix.state == 'unstable' }}
+    env:
+      # Workaround for https://github.com/pallets/click/issues/2121: Windows GitHub Actions runners
+      # redirect command output to files, which sets the encoding to the system default (cp1252).
+      # Python CLI frameworks like Click then raise UnicodeEncodeError on non-ASCII output. The Linux
+      # and macOS runners already default to UTF-8, so the variable changes nothing there.
+      PYTHONIOENCODING: utf8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
         with:
-          version: "0.13.0"
-      - name: Force native ARM64 Python on Windows ARM64
-        # Workaround for https://github.com/astral-sh/uv/issues/12906: uv defaults to x86_64 Python on ARM64 Windows,
-        # relying on transparent emulation, so an ARM64 Windows cell would silently test emulated x86_64 Python
-        # instead of native ARM64. Setting UV_PYTHON to an architecture-qualified specifier forces uv (and uvx) to
-        # use native ARM64 Python for all steps. Inert while `test-matrix.remove.os` drops `windows-11-arm`, and
-        # kept so restoring that cell restores the workaround with it.
-        if: runner.os == 'Windows' && runner.arch == 'ARM64'
-        shell: bash
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-        run: echo "UV_PYTHON=cpython-${PYTHON_VERSION}-aarch64" >> "$GITHUB_ENV"
+          version: "0.13.4"
       - name: Install Python ${{ matrix.python-version }}
         # If UV cannot find the requested Python version, it exits with code 2, which let the job pass unnoticed on
-        # Windows. So we force the shell to bash, even on Windows, and "set -e" to ensure any error in the install
-        # process is caught and fails the job. It works because Windows runners too Git Bash available).
+        # Windows. So we force the shell to bash, even on Windows, whose runners ship Git Bash: GitHub runs a bash
+        # step with `-e`, so the failed install fails the job.
         shell: bash
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
-        run: |
-          set -e
-          uv --no-progress venv --python "${UV_PYTHON:-${PYTHON_VERSION}}"
-      - name: Force UTF-8 encoding on Windows
-        # Workaround for https://github.com/pallets/click/issues/2121: Windows GitHub Actions runners
-        # redirect command output to files, which sets the encoding to the system default (cp1252).
-        # Python CLI frameworks like Click then raise UnicodeEncodeError on non-ASCII output.
-        if: runner.os == 'Windows'
-        shell: bash
-        run: echo "PYTHONIOENCODING=utf8" >> "$GITHUB_ENV"
+        run: uv --no-progress venv --python "${PYTHON_VERSION}"
       - name: Install project
         # Install all extras, so we can check any incompatibility.
         run: >
@@ -324,7 +313,7 @@ jobs:
         # `[tool.coverage] report.fail_under` floor. `coverage run` starts before
         # pytest imports the package as a plugin: see `[tool.coverage]` in
         # pyproject.toml. No `--fail-under` here: the flag outranks the config and
-        # would shadow the ratchet.
+        # would shadow the ratchet. The JSON report feeds the next step.
         env:
           CLICK_VERSION: ${{ matrix.click-version }}
           CLOUP_VERSION: ${{ matrix.cloup-version }}
@@ -341,3 +330,14 @@ jobs:
             coverage run --module pytest -m "not once"
           uv --no-progress run --frozen -- coverage combine --quiet
           uv --no-progress run --frozen -- coverage report --show-missing
+          uv --no-progress run --frozen -- coverage json --quiet -o "${RUNNER_TEMP}/coverage.json"
+
+      - name: Check the coverage floor
+        # Warns when the floor sits more than two points under the coverage total,
+        # so the ratchet gets raised instead of drifting. It runs only after the
+        # step above passed: a failed test or a total under the floor stops that
+        # step before `coverage json` writes the report.
+        shell: bash
+        run: >
+          uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==8.0.0' lint-coverage
+          --report "${RUNNER_TEMP}/coverage.json" --no-fatal
