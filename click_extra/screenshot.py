@@ -449,20 +449,17 @@ in.
 
 
 AUTO_TRUNCATION: Literal["auto"] = "auto"
-"""Marker asking for a rule as wide as the lines it stands between.
+"""Marker asking for a rule across the width of the picture.
 
 {data}`TRUNCATION_LABEL` centered in a run of {data}`TRUNCATION_RULE`, spanning
-the widest line the capture kept. A bare label sits in the left margin and reads
+the text column of the window. A bare label sits in the left margin and reads
 as one more line of output; a rule crosses the picture and reads as a seam,
 which is what a cut is. It carries no brackets, unlike a rule naming a section:
 there is nothing to name here, and the label is the cut itself.
 
-Measured on the kept lines alone, so the marker can never be what decides the
-image width, and capped to the width the capture is drawn at. Both bounds are
-needed: a capture whose lines all stop short draws a rule that stops there too,
-while a line wider than the terminal folds where it is drawn and takes the rule
-with it, which left the tail of a 150-cell rule alone on a second row, outside
-the text column. See {func}`_rule_marker`.
+Never wider than what decides the image width, so the marker cannot widen the
+picture it cuts: the pinned `columns`, or the widest line under
+{data}`AUTO_COLUMNS`. See {func}`_rule_marker`.
 """
 
 TRUNCATION_LABEL = "\N{BLACK SCISSORS}"
@@ -728,6 +725,7 @@ def trim_lines(
     truncation: str = DEFAULT_TRUNCATION,
     columns: TColumns = DEFAULT_COLUMNS,
     wrap_marker: str = DEFAULT_WRAP_MARKER,
+    width_floor: int = 0,
 ) -> str:
     """Keep only the first `head` and last `tail` lines of `text`.
 
@@ -743,6 +741,8 @@ def trim_lines(
         {data}`AUTO_TRUNCATION` draws, see {func}`_rule_marker`.
     :param wrap_marker: what closes a folded row, see {func}`render`. It takes a
         cell of every row, so it narrows the rule by as much.
+    :param width_floor: under {data}`AUTO_COLUMNS`, the width of a line the
+        picture draws besides `text`, like the prompt, which the rule spans too.
     :return: the trimmed text.
     """
     if head is None and tail is None:
@@ -755,7 +755,9 @@ def trim_lines(
     tail_lines = lines[-tail:] if tail else []
     marker = truncation
     if truncation == AUTO_TRUNCATION:
-        marker = _rule_marker([*head_lines, *tail_lines], columns, wrap_marker)
+        marker = _rule_marker(
+            [*head_lines, *tail_lines], columns, wrap_marker, width_floor
+        )
     if _leaves_style_open(head_lines):
         marker = SGR_RESET + marker
     return "\n".join([*head_lines, marker, *tail_lines])
@@ -786,25 +788,22 @@ def _rule_marker(
     lines: Sequence[str],
     columns: TColumns = DEFAULT_COLUMNS,
     wrap_marker: str = DEFAULT_WRAP_MARKER,
+    width_floor: int = 0,
 ) -> str:
-    """Center {data}`TRUNCATION_LABEL` in a rule as wide as the widest of `lines`.
+    """Center {data}`TRUNCATION_LABEL` in a rule across the picture's text column.
 
-    The width stops at `columns`, because a line wider than the terminal is
-    drawn folded: a rule spanning the line it came from would fold in turn, and
-    its tail would land on a row of its own, outside the text column the rule
-    sits in.
+    A cut crosses the whole picture, so the rule spans the width the text is
+    drawn at: `columns`, less the cell a wrap marker takes. Under
+    {data}`AUTO_COLUMNS` the picture is as wide as its widest line, so the rule
+    spans the widest of `lines`, or `width_floor` when a line drawn besides them,
+    like the prompt, is wider still.
 
     ```{note}
-    Folding is what {func}`~click_extra.layout.grid` does to any line reaching
-    past the width, prompt and rule alike. So the rule has to be measured
-    against what is *drawn*, not against what was captured: a command printing
-    one 150-character line to an 80-column capture gets an 80-cell rule, and the
-    fold that line takes does not come back as a second row of dots.
-
-    A wrap marker narrows what is drawn by the cell it takes, see
-    {func}`~click_extra.layout.grid`, so the rule gives up that cell too. A rule
-    as wide as `columns` would otherwise fold on its last dot, and close its row
-    on the marker as if the rule continued below.
+    Never past the width the text is drawn at. {func}`~click_extra.layout.grid`
+    folds any line reaching past it, and a rule folded on its last dots puts them
+    alone on a row of their own, outside the text column. A wrap marker takes a
+    cell of every row, so a rule as wide as `columns` would also fold, and close
+    its row on the marker as if the rule continued below.
     ```
 
     :param lines: the lines the marker is drawn between.
@@ -812,11 +811,14 @@ def _rule_marker(
         nothing folds.
     :param wrap_marker: what closes a folded row, {data}`AUTO_WRAP_MARKER`
         included.
+    :param width_floor: under {data}`AUTO_COLUMNS`, the width of the widest line
+        drawn besides `lines`.
     :return: the marker to write in their place.
     """
-    width = fit_columns("\n".join(lines))
-    if columns != AUTO_COLUMNS:
-        width = min(width, columns - cell_width(resolve_wrap_marker(wrap_marker)))
+    if columns == AUTO_COLUMNS:
+        width = fit_columns("\n".join(lines), floor=width_floor)
+    else:
+        width = columns - cell_width(resolve_wrap_marker(wrap_marker))
     return center_in_rule(
         style(TRUNCATION_LABEL, fg=RULE_COLOR),
         width,
@@ -1132,6 +1134,7 @@ def capture(
         merge_stderr=merge_stderr,
         timeout=timeout,
     )
+    invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
     text = trim_lines(
         process.stdout,
         head=head,
@@ -1139,8 +1142,9 @@ def capture(
         truncation=truncation,
         columns=columns,
         wrap_marker=wrap_marker,
+        # The prompt joins the picture below, and widens it under `auto`.
+        width_floor=fit_columns(invocation),
     )
-    invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
     if invocation:
         text = f"{invocation}\n{text}"
     if closing_prompt:

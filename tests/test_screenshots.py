@@ -271,10 +271,11 @@ def test_trim_lines(head, tail, expected):
     assert trimmed.splitlines() == expected
 
 
-def test_trim_lines_rules_the_default_marker_across_the_kept_width():
-    """The default marker is a rule, spanning the widest line the capture kept."""
+def test_trim_lines_rules_the_default_marker_across_the_picture():
+    """The default marker is a rule, spanning the width the picture is laid out
+    at: the widest kept line when the width is left to the command."""
     text = "\n".join(f"line {index} of the captured output" for index in range(1, 9))
-    trimmed = trim_lines(text, head=2, tail=1).splitlines()
+    trimmed = trim_lines(text, head=2, tail=1, columns=AUTO_COLUMNS).splitlines()
 
     marker = unstyle(trimmed[2])
     assert marker.startswith(TRUNCATION_RULE)
@@ -311,25 +312,30 @@ def test_trim_lines_caps_the_rule_at_the_terminal_width():
 
 
 @pytest.mark.parametrize(
-    ("columns", "expected"),
+    ("columns", "width_floor", "expected"),
     (
-        # Nothing folds when the width is left to the command, so the rule keeps
-        # spanning the widest line it was measured on.
-        (AUTO_COLUMNS, 150),
-        (80, 80),
-        # A width the kept lines all stop short of is not padded out to either.
-        (200, 150),
+        # Nothing folds when the width is left to the command, so the rule spans
+        # the widest line the picture draws: a kept one, or the prompt.
+        (AUTO_COLUMNS, 0, 150),
+        (AUTO_COLUMNS, 170, 170),
+        (80, 0, 80),
+        # A pinned width the kept lines all stop short of: the rule still crosses
+        # the whole window, as the cut does.
+        (200, 0, 200),
+        (200, 170, 200),
     ),
 )
-def test_rule_marker_tracks_the_drawn_width(columns, expected):
-    """The `auto` rule spans the widest kept line, capped to the drawn width."""
+def test_rule_marker_tracks_the_drawn_width(columns, width_floor, expected):
+    """The `auto` rule spans the text column the picture is drawn at."""
     text = "\n".join((
         "short first line",
         "x" * 150,
         "short last line",
         "short line cut away",
     ))
-    trimmed = trim_lines(text, head=2, tail=1, columns=columns).splitlines()
+    trimmed = trim_lines(
+        text, head=2, tail=1, columns=columns, width_floor=width_floor
+    ).splitlines()
     assert cell_width(unstyle(trimmed[2])) == expected
 
 
@@ -413,7 +419,7 @@ def test_trim_lines_adds_no_reset_after_a_closed_style():
 
 def test_trim_lines_keeps_a_marker_too_wide_for_its_rule_bare():
     """A capture narrower than the frame gets the label alone, not a broken rule."""
-    marker = trim_lines("a\nb\nc", head=1, tail=1).splitlines()[1]
+    marker = trim_lines("a\nb\nc", head=1, tail=1, columns=AUTO_COLUMNS).splitlines()[1]
     assert unstyle(marker) == TRUNCATION_LABEL
 
 
