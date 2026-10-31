@@ -1035,6 +1035,19 @@ def test_command_forwards_config_strict(invoke, create_config):
     )
 
 
+@pytest.mark.parametrize("cascade", (True, False))
+def test_command_forwards_config_cascade(cascade):
+    """@command(config_cascade=...) sets the cascade of the default option."""
+
+    @command(config_cascade=cascade)
+    def cascade_forward_cli():
+        pass
+
+    config_opt = search_params(cascade_forward_cli.params, ConfigOption)
+    assert isinstance(config_opt, ConfigOption)
+    assert config_opt.cascade is cascade
+
+
 def test_command_excluded_params_additive(invoke, create_config):
     """@command(excluded_params=...) extends the default blocklist.
 

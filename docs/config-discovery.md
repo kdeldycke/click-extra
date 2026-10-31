@@ -517,7 +517,19 @@ A key defined in several files resolves to the most local one; a key defined in 
 An explicit `--config` value never cascades: it pins a single configuration source, whatever `cascade` is set to. Cascading only applies to auto-discovery.
 ```
 
-Every loaded file is recorded in `ctx.meta[context.CONF_SOURCES]` as `(location, parsed_conf)` pairs, highest precedence first, and `ctx.meta[context.CONF_FULL]` holds the deep-merged document as it was applied. To see the layering at work, ask [`--params`](parameters.md) for the opt-in `config_file` column: it names, for every parameter sourced from a configuration file, the exact file its value resolved from:
+A command built with `@command` or `@group` turns the cascade on for its default `--config` option with `config_cascade=True`, with no need to replace that option:
+
+```{code-block} python
+:caption: Cascade the default configuration option
+:emphasize-lines: 3
+from click_extra import command
+
+@command(config_cascade=True)
+def cli():
+    pass
+```
+
+Every loaded file is recorded in `ctx.meta[context.CONF_SOURCES]` as `(location, parsed_conf)` pairs, highest precedence first, and `ctx.meta[context.CONF_FULL]` holds the deep-merged document as it was applied. To see the layering at work, read the `config_file` column of [`--params`](parameters.md), drawn by default when the option cascades: it names, for every parameter sourced from a configuration file, the exact file its value resolved from. A `--columns` projection keeps it only when named:
 
 ```{code-block} shell-session
 $ my-cli --params --columns id,value,source,config_file

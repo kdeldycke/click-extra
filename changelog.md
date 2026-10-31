@@ -21,6 +21,8 @@
 - **Breaking:** Remove the `jsonc` extra and the `json-with-comments` dependency behind it: `JSONC` is now built in, its comments and trailing commas stripped in-house before `json` reads the file.
 - **Breaking:** Remove the `xml` extra and the `xmltodict` dependency behind it: `XML` is now built in, read with the standard library's `expat` parser and written in-house, with the same `@attribute`, `#text` and repeated-element conventions.
 - Add `strip_ansi()` to `click_extra.styling`, which removes every ANSI escape sequence from a string or bytes, and `template_segments()` to `click_extra.version`.
+- Add a `config_cascade` argument to `@command` and `@group`, which turns on the cascade of the default `--config` option without replacing it.
+- Draw the `Config file` column of `--params` by default when the `--config` option cascades.
 - The `toml` extra installs `tomlrt` in place of `tomlkit` to write TOML configuration exports and tables.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.

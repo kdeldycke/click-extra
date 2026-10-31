@@ -383,6 +383,7 @@ class Command(  # type: ignore[misc]
         config_validators: Sequence[ConfigValidator] = (),
         included_params: Sequence[str] | None = None,
         excluded_params: Sequence[str] | None = None,
+        config_cascade: bool = False,
         extra_option_at_end: bool = True,
         option_priorities: Mapping[str, float] | None = None,
         populate_auto_envvars: bool = True,
@@ -407,6 +408,10 @@ class Command(  # type: ignore[misc]
             `config_*` and `*_params` forwards, it spares you from
             replacing the whole default `params` list to customize the
             config option.
+        :param config_cascade: forwarded to the default
+            {class}`~click_extra.config.option.ConfigOption`'s `cascade`
+            setting: auto-discovery layers every configuration file it finds, the
+            most local one winning key by key, instead of stopping at the first.
         :param excluded_params: additional parameter IDs to block from
             configuration files, merged into the default
             {class}`~click_extra.config.option.ConfigOption`'s
@@ -591,6 +596,7 @@ class Command(  # type: ignore[misc]
             or config_validators
             or included_params is not None
             or excluded_params is not None
+            or config_cascade
         ):
             for param in self.params:
                 if isinstance(param, ConfigOption):
@@ -602,6 +608,7 @@ class Command(  # type: ignore[misc]
                         config_validators=config_validators,
                         included_params=included_params,
                         excluded_params=excluded_params,
+                        cascade=config_cascade,
                     )
 
         if populate_auto_envvars:

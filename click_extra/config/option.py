@@ -766,6 +766,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         config_validators: Sequence[ConfigValidator] = (),
         included_params: Iterable[str] | None = None,
         excluded_params: Iterable[str] | None = None,
+        cascade: bool = False,
     ) -> None:
         """Take over the configuration settings a command was built with.
 
@@ -818,6 +819,8 @@ class ConfigOption(ExtraOption, ParamStructure):
             )
         if fallback_sections:
             self.fallback_sections = tuple(fallback_sections)
+        if cascade:
+            self.cascade = cascade
         if config_validators:
             self.config_validators = _builtin_config_validators() + tuple(
                 config_validators

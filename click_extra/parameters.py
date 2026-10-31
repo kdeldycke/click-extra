@@ -1453,12 +1453,27 @@ def render_params_table(
                 else (),
             )
     selected_ids: tuple[str, ...] = context.get(subject_ctx, context.COLUMNS) or ()
+    projected = bool(selected_ids)
     if not selected_ids and default_columns:
         selected_ids = tuple(default_columns)
     if not selected_ids:
         # No projection asked for: show every column but the opt-in ones, which
         # would otherwise squeeze all the others (see ColumnSpec.optional).
         selected_ids = ShowParamsOption.default_column_ids()
+    # A cascading --config layers several files, so `Source` alone no longer
+    # tells which one a value came from: draw the column naming it, in its
+    # canonical place, unless the user projected the table.
+    if (
+        not projected
+        and config_option is not None
+        and config_option.cascade
+        and "config_file" not in selected_ids
+    ):
+        selected_ids = tuple(
+            col_id
+            for col_id in ShowParamsOption.column_ids()
+            if col_id in selected_ids or col_id == "config_file"
+        )
 
     # Validate the requested IDs against the column registry so unknown IDs
     # become a clear, actionable UsageError.
@@ -1798,8 +1813,9 @@ class ShowParamsOption(ExtraOption, ParamStructure):
                 "won the parameter; with a single loaded file, every "
                 "config-sourced parameter names that file. Empty for every "
                 "other source and when no configuration file was loaded. "
-                "Opt-in, like `help`: paths are wide and stay redundant with "
-                "`Source` until several files take part."
+                "Drawn by default when the `--config` option cascades, and "
+                "opt-in otherwise, like `help`: paths are wide and stay "
+                "redundant with `Source` until several files can take part."
             ),
         ),
     )

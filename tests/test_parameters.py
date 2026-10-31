@@ -1285,6 +1285,47 @@ def test_show_params_config_file_column_is_opt_in(invoke):
     assert "Config file" not in result.stdout
 
 
+def test_show_params_config_file_column_drawn_when_cascading(invoke):
+    """A cascading `--config` draws the `config_file` column without being asked.
+
+    Several files can then take part, so `Source` alone no longer tells which one
+    a value came from.
+    """
+
+    @command(config_cascade=True)
+    @option("--int-param", type=int, default=10)
+    def provenance_cli(int_param):
+        echo(f"int_param = {int_param!r}")
+
+    result = invoke(provenance_cli, "--params", "--table-format", "csv", color=False)
+    assert result.exit_code == 0
+    header = result.stdout.splitlines()[0].split(",")
+    assert header[-1] == "Config file"
+    assert "Help" not in header
+
+
+def test_show_params_projection_overrides_the_cascade_column(invoke):
+    """An explicit `--columns` projection is honored as given, cascade or not."""
+
+    @command(config_cascade=True)
+    @columns_option(columns=ShowParamsOption.TABLE_HEADERS)
+    @option("--int-param", type=int, default=10)
+    def provenance_cli(int_param):
+        echo(f"int_param = {int_param!r}")
+
+    result = invoke(
+        provenance_cli,
+        "--params",
+        "--table-format",
+        "csv",
+        "--columns",
+        "id,value",
+        color=False,
+    )
+    assert result.exit_code == 0
+    assert result.stdout.splitlines()[0] == "ID,Value"
+
+
 def test_show_params_subclass_widens_the_default_columns(invoke):
     """A subclass widening `default_columns()` draws the column it added.
 
