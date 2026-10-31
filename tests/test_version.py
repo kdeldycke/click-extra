@@ -829,6 +829,35 @@ def test_nuitka_runner_resolves_the_entry_point_version(tmp_path, module, functi
                 """),
             id="atexit_hook",
         ),
+        pytest.param(
+            dedent("""\
+                import threading
+
+                from orchard.cli import cli
+
+                thread = threading.Thread(
+                    target=cli.main,
+                    args=(["--version"],),
+                    kwargs={"standalone_mode": False},
+                )
+                thread.start()
+                thread.join()
+                """),
+            id="thread",
+        ),
+        pytest.param(
+            dedent("""\
+                from concurrent.futures import ThreadPoolExecutor
+
+                from orchard.cli import cli
+
+                with ThreadPoolExecutor() as executor:
+                    executor.submit(
+                        cli.main, ["--version"], standalone_mode=False
+                    ).result()
+                """),
+            id="thread_pool",
+        ),
     ),
 )
 def test_package_version_without_a_cli_frame(tmp_path, runner_source):
@@ -839,7 +868,8 @@ def test_package_version_without_a_cli_frame(tmp_path, runner_source):
     compiles calls the command object from a packageless `__main__`. An `atexit`
     hook calls it once the main module has left the stack, like the target of
     `_thread.start_new_thread()` or a call from a C host: the walk then sees only
-    the Click ecosystem, and falls back to the `main()` of the command.
+    the Click ecosystem, and falls back to the `main()` of the command. A thread
+    and an executor call it from the standard library, where the walk stops.
     """
     package = tmp_path / "orchard"
     package.mkdir()

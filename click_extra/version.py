@@ -1261,7 +1261,11 @@ class VersionOption(ExtraOption):
         # runner Nuitka compiles for `--main-entry-point`. A standalone script
         # declares its command in that same `__main__`, and gets it back.
         #
-        # Ecosystem plumbing that no installed distribution provides is the other
+        # Standard library code is such a frame too, as no CLI lives there. The
+        # walk stops on it when a thread or an executor starts the command, like
+        # `threading.Thread(target=cli.main)`.
+        #
+        # Ecosystem plumbing that no installed distribution provides is another
         # case: the walk ran out of user frames and stopped on the runner that
         # invoked an imported command. Both halves of that test matter. A runner
         # living in a real distribution (`click.testing`, `click_extra.testing`)
@@ -1283,12 +1287,13 @@ class VersionOption(ExtraOption):
         # exemption `_package_dunder()` needs to read the pre-baked `__version__`
         # off the parent package.
         launcher = module.__name__ == "__main__" and not module.__package__
+        stdlib = module.__name__.split(".", 1)[0] in sys.stdlib_module_names
         plumbing = (
             not is_main_module(module.__name__)
             and module.__name__.split(".", 1)[0] in _CLI_ECOSYSTEM_PACKAGES
             and (frame.f_back is None or distribution_of(module.__package__) is None)
         )
-        if launcher or plumbing:
+        if launcher or stdlib or plumbing:
             ctx = click.get_current_context(silent=True)
             if ctx is not None:
                 from_command = self.command_module(ctx)
