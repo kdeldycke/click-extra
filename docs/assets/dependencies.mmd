@@ -16,12 +16,12 @@ flowchart LR
     colorama(["`colorama`"])
     markdown_it_py(["`markdown-it-py`"])
     packaging(["`packaging`"])
+    python_dateutil(["`python-dateutil`"])
     ghp_import(["`ghp-import`"])
     markdown(["`markdown`"])
     markupsafe(["`markupsafe`"])
     mdit_py_plugins(["`mdit-py-plugins`"])
     mergedeep(["`mergedeep`"])
-    python_dateutil(["`python-dateutil`"])
     pyyaml_env_tag(["`pyyaml-env-tag`"])
     typing_extensions(["`typing-extensions`"])
     alabaster(["`alabaster`"])
@@ -45,6 +45,7 @@ flowchart LR
     sphinxcontrib_jsmath(["`sphinxcontrib-jsmath`"])
     sphinxcontrib_qthelp(["`sphinxcontrib-qthelp`"])
     sphinxcontrib_serializinghtml(["`sphinxcontrib-serializinghtml`"])
+    tzdata(["`tzdata`"])
     urllib3(["`urllib3`"])
     watchdog(["`watchdog`"])
 
@@ -157,6 +158,7 @@ flowchart LR
     mdit_py_plugins --> markdown_it_py
     pyyaml_env_tag --> pyyaml
     python_dateutil --> six
+    python_dateutil --> tzdata
     click_extra -.-> ext_carapace
     click_extra -.-> ext_hjson
     click_extra -.-> ext_json5
@@ -221,6 +223,7 @@ flowchart LR
     click tabulate "https://pypi.org/project/tabulate/" _blank
     click tomlrt "https://pypi.org/project/tomlrt/" _blank
     click typing_extensions "https://pypi.org/project/typing-extensions/" _blank
+    click tzdata "https://pypi.org/project/tzdata/" _blank
     click urllib3 "https://pypi.org/project/urllib3/" _blank
     click watchdog "https://pypi.org/project/watchdog/" _blank
     click wcmatch "https://pypi.org/project/wcmatch/" _blank
