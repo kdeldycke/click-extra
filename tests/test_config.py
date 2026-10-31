@@ -71,6 +71,8 @@ from click_extra.config.formats import (
     SQLITE_SUPPORT,
     disabled_format_message,
     parse_jsonc,
+    parse_xml,
+    serialize_xml,
 )
 from click_extra.config.option import _serialize_toml_with_unset
 from click_extra.config.schema import (
@@ -5967,3 +5969,69 @@ def test_parse_jsonc_reports_the_line_of_an_error():
     with pytest.raises(json.JSONDecodeError) as error:
         parse_jsonc('{\n/* a\nlong\ncomment */\n"a": 1 2\n}')
     assert error.value.lineno == 5
+
+
+def test_parse_xml_conventions():
+    """Attributes, text, repeated tags and empty elements read as `xmltodict` read them."""
+    document = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<root a="1"><!-- skipped -->'
+        "<item>first</item><item>second</item><blank></blank><spaces>   </spaces>"
+        '<mixed k="v">  text  </mixed><n:tag xmlns:n="urn:x">1</n:tag>'
+        "<![CDATA[a < b]]></root>"
+    )
+    assert parse_xml(document) == {
+        "root": {
+            "@a": "1",
+            "item": ["first", "second"],
+            "blank": None,
+            "spaces": None,
+            "mixed": {"@k": "v", "#text": "text"},
+            "n:tag": {"@xmlns:n": "urn:x", "#text": "1"},
+            "#text": "a < b",
+        }
+    }
+
+
+def test_parse_xml_rejects_a_malformed_document():
+    from xml.parsers.expat import ExpatError
+
+    with pytest.raises(ExpatError):
+        parse_xml("<root><open></root>")
+
+
+def test_serialize_xml_conventions():
+    data = {
+        "root": {
+            "@a": "1",
+            "item": ["x", "y"],
+            "blank": None,
+            "empty": "",
+            "none_in_list": [],
+            "flag": True,
+            "count": 3,
+            "escaped": "a<b&c",
+            "nested": {"@k": 'q"uote', "#text": "t"},
+        }
+    }
+    assert serialize_xml(data) == (
+        '<root a="1">\n'
+        "\t<item>x</item>\n"
+        "\t<item>y</item>\n"
+        "\t<blank></blank>\n"
+        "\t<empty></empty>\n"
+        "\t<flag>true</flag>\n"
+        "\t<count>3</count>\n"
+        "\t<escaped>a&lt;b&amp;c</escaped>\n"
+        "\t<nested k='q\"uote'>t</nested>\n"
+        "</root>"
+    )
+    assert serialize_xml({"a": {"b": []}}) == "<a></a>"
+    assert serialize_xml({"a": "1", "b": {"c": "2"}}, indent="  ") == (
+        "<a>1</a>\n<b>\n  <c>2</c>\n</b>"
+    )
+
+
+def test_xml_round_trip():
+    data = {"cli": {"verbosity": "DEBUG", "items": ["pip", "npm"], "sub": {"n": "3"}}}
+    assert parse_xml(serialize_xml(data)) == data

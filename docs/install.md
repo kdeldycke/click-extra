@@ -271,12 +271,6 @@ By default, Click Extra supports TOML [configuration files](config-formats.md#to
     $ uv pip install click-extra[toml]
     ```
   - - [`toml` table format](table.md#table-formats): `--table-format toml`
-* - `xml`
-  - ```{code-block} shell-session
-    $ uv pip install click-extra[xml]
-    ```
-  - - [XML](config-formats.md#xml) config files: `--config app.xml`
-    - [`xml` table format](table.md#table-formats): `--table-format xml`
 * - `yaml`
   - ```{code-block} shell-session
     $ uv pip install click-extra[yaml]

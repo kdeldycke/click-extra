@@ -107,7 +107,7 @@ dependencies = [
 optional-dependencies.all = [
   # Aggregate extra: pulls in every optional feature at once. Self-references the
   # package so the version pins stay defined once, in the extras below.
-  "click-extra[carapace,hjson,json5,mkdocs,pygments,pytest,sphinx,toml,xml,yaml]",
+  "click-extra[carapace,hjson,json5,mkdocs,pygments,pytest,sphinx,toml,yaml]",
 ]
 optional-dependencies.carapace = [
   # PyYAML serializes the Carapace completion spec (carapace.dump_carapace_spec).
@@ -156,10 +156,6 @@ optional-dependencies.toml = [
   # to keep a comment set on a section before it joins a document: --export-config
   # pins each section header that way.
   "tomlrt>=2.2.10",
-]
-optional-dependencies.xml = [
-  # xmltodict.unparse() for XML table rendering; first major release.
-  "xmltodict>=1",
 ]
 optional-dependencies.yaml = [
   # PyYAML < 6.0.2 uses Cython extensions that fail to compile on Python 3.14,
@@ -283,8 +279,6 @@ docs = [
   "sphinxext-opengraph>=0.13",
   # Mirrors the toml extra floor, exercised by config.md's TOML export {click:run} blocks.
   "tomlrt>=2.2.10",
-  # Mirrors the xml extra floor, exercised by config.md's XML {click:run} blocks.
-  "xmltodict>=1",
 ]
 # Every stub floor tracks the library release it describes (types-jsonschema
 # against jsonschema 4.18). Below it the stubs describe an older API than the
@@ -295,7 +289,6 @@ typing = [
   "types-pygments>=2.19.0.20251121",
   "types-pyyaml>=6.0.12.9",
   "types-tabulate>=0.9.0.2",
-  "types-xmltodict>=1.0.1.20250920",
 ]
 
 [tool.setuptools]

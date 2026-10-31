@@ -11,7 +11,7 @@ Click Extra reads a configuration file in any of the dialects below. Each one li
 | [`JSONC`](#jsonc)                   | `*.jsonc`               | Like JSON, but with comments and trailing commas                                          | ✅                 |
 | [`HJSON`](#hjson)                   | `*.hjson`               | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
 | [`INI`](#ini)                       | `*.ini`                 | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
-| [`XML`](#xml)                       | `*.xml`                 | -                                                                                         | ❌                 |
+| [`XML`](#xml)                       | `*.xml`                 | -                                                                                         | ✅                 |
 | [`plist`](#plist)                   | `*.plist`               | Apple's property list, in its XML or binary variant                                       | ✅                 |
 | [`SQLITE`](#sqlite)                 | `*.sqlite`, `*.sqlite3` | Reads a `config` table of dotted keys and JSON-encoded values                             | ✅                 |
 | [`ARGFILE`](#argfile)               | `*.conf`                | Plain-text list of command-line options, in the style of `mpv` and `yt-dlp`               | ✅                 |
@@ -239,11 +239,9 @@ The `JSON5` parser also reads [`JWCC`](https://nigeltao.github.io/blog/2021/json
 
 ## XML
 
-```{important}
-`XML` support requires the `xml` extra: [install `click-extra[xml]`](install.md#extra-dependencies).
-```
+`XML` is enabled by default, and read with the standard library's [`expat` parser](https://docs.python.org/3/library/pyexpat.html), so no extra dependency is needed.
 
-The root element is the CLI's name. A repeated element (like `my_list` above) is collected into a list, and every value is read as a string, then coerced to its matching parameter's type.
+The root element is the CLI's name. A repeated element (like `my_list` above) is collected into a list, and every value is read as a string, then coerced to its matching parameter's type. An attribute is read under its name prefixed with `@`, and the text of an element that also carries attributes or children under `#text`.
 
 ## plist
 

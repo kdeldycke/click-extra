@@ -249,7 +249,6 @@ def test_no_heavy_dependency_ballast_on_startup():
         "wcmatch",
         "wcwidth",
         "xml",
-        "xmltodict",
         "yaml",
     )
     if (

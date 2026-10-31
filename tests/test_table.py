@@ -24,7 +24,6 @@ from pathlib import PurePosixPath
 import hjson
 import pytest
 import tabulate
-import xmltodict
 import yaml
 from extra_platforms import is_windows
 from tabulate import tabulate_formats
@@ -50,6 +49,7 @@ from click_extra import (
     table_format_option,
 )
 from click_extra.columns import ColumnSpec, select_columns
+from click_extra.config.formats import parse_xml
 from click_extra.pytest import command_decorators
 from click_extra.table import (
     SERIALIZATION_FORMATS,
@@ -1057,7 +1057,7 @@ def test_serialize_strips_none(table_format):
 def test_serialize_xml():
     data = {"item": {"name": "test"}}
     result = serialize_data(data, TableFormat.XML)
-    parsed = xmltodict.parse(f"<root>{result}</root>")
+    parsed = parse_xml(f"<root>{result}</root>")
     assert parsed["root"]["records"]["item"]["name"] == "test"
 
 
@@ -1065,7 +1065,7 @@ def test_serialize_xml_list_wrapping():
     """Top-level lists are wrapped under a ``record`` key for XML."""
     data = [{"id": "a"}, {"id": "b"}]
     result = serialize_data(data, TableFormat.XML)
-    parsed = xmltodict.parse(f"<root>{result}</root>")
+    parsed = parse_xml(f"<root>{result}</root>")
     records = parsed["root"]["records"]["record"]
     assert len(records) == 2
     assert records[0]["id"] == "a"

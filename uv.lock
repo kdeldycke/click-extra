@@ -276,7 +276,6 @@ all = [
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "tomlrt" },
-    { name = "xmltodict" },
 ]
 carapace = [
     { name = "pyyaml" },
@@ -308,9 +307,6 @@ sphinx = [
 toml = [
     { name = "tomlrt" },
 ]
-xml = [
-    { name = "xmltodict" },
-]
 yaml = [
     { name = "pyyaml" },
 ]
@@ -336,7 +332,6 @@ docs = [
     { name = "sphinxcontrib-mermaid", marker = "python_full_version >= '3.14'" },
     { name = "sphinxext-opengraph", marker = "python_full_version >= '3.14'" },
     { name = "tomlrt", marker = "python_full_version >= '3.14'" },
-    { name = "xmltodict", marker = "python_full_version >= '3.14'" },
 ]
 test = [
     { name = "coverage", extra = ["toml"] },
@@ -360,7 +355,6 @@ typing = [
     { name = "types-pygments" },
     { name = "types-pyyaml" },
     { name = "types-tabulate" },
-    { name = "types-xmltodict" },
 ]
 
 [package.group-requires-python]
@@ -369,7 +363,7 @@ docs = ">=3.14"
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.4.1" },
-    { name = "click-extra", extras = ["carapace", "hjson", "json5", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"], marker = "extra == 'all'" },
+    { name = "click-extra", extras = ["carapace", "hjson", "json5", "mkdocs", "pygments", "pytest", "sphinx", "toml", "yaml"], marker = "extra == 'all'" },
     { name = "cloup", specifier = ">=3.0.7" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
     { name = "extra-platforms", specifier = ">=13.4" },
@@ -389,9 +383,8 @@ requires-dist = [
     { name = "tomlrt", marker = "extra == 'toml'", specifier = ">=2.2.10" },
     { name = "wcmatch", specifier = ">=10" },
     { name = "wcwidth", specifier = ">=0.8.3" },
-    { name = "xmltodict", marker = "extra == 'xml'", specifier = ">=1" },
 ]
-provides-extras = ["all", "carapace", "hjson", "json5", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"]
+provides-extras = ["all", "carapace", "hjson", "json5", "mkdocs", "pygments", "pytest", "sphinx", "toml", "yaml"]
 
 [package.metadata.requires-dev]
 docs = [
@@ -414,7 +407,6 @@ docs = [
     { name = "sphinxcontrib-mermaid", marker = "python_full_version >= '3.14'", specifier = ">=1.2.3" },
     { name = "sphinxext-opengraph", marker = "python_full_version >= '3.14'", specifier = ">=0.13" },
     { name = "tomlrt", marker = "python_full_version >= '3.14'", specifier = ">=2.2.10" },
-    { name = "xmltodict", marker = "python_full_version >= '3.14'", specifier = ">=1" },
 ]
 test = [
     { name = "coverage", extras = ["toml"], specifier = ">=7.13" },
@@ -437,7 +429,6 @@ typing = [
     { name = "types-pygments", specifier = ">=2.19.0.20251121" },
     { name = "types-pyyaml", specifier = ">=6.0.12.9" },
     { name = "types-tabulate", specifier = ">=0.9.0.2" },
-    { name = "types-xmltodict", specifier = ">=1.0.1.20250920" },
 ]
 
 [[package]]
@@ -1744,15 +1735,6 @@ wheels = [
 ]
 
 [[package]]
-name = "types-xmltodict"
-version = "1.0.1.20260518"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8f/b8/5c43e147eec89125e3f56670c86bc6ba8ea4d0c4cb738a77b3f46940e50d/types_xmltodict-1.0.1.20260518.tar.gz", hash = "sha256:b9d0b364dc47508b4c9040635a94c28f5472f9ab588f6c864ae4c96823bccb33", size = 8890, upload-time = "2026-05-18T06:03:00.296Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f6/5d/e0eee00dd3c7299c1f5ae7ef596409c51dba4af93cfaf05ea7d27f4afc7d/types_xmltodict-1.0.1.20260518-py3-none-any.whl", hash = "sha256:b396dd53afbd8b034014922b95333f10d12515566a6a08282d39fdb1a3a529b9", size = 8377, upload-time = "2026-05-18T06:02:59.076Z" },
-]
-
-[[package]]
 name = "typing-extensions"
 version = "4.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1855,13 +1837,4 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a4/34/4dd12fc8bb7d61c91467ec3efe415ffa7d5456f799954b40c5bbaeae470e/werkzeug-3.1.9.tar.gz", hash = "sha256:55ca7c70a75689be937aa27f8ff4b018f06ff4838fc73045560bf0f5a1291060", size = 940188, upload-time = "2026-09-27T18:33:41.637Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/38/df03f564f43cec2684823f3cccae1a652ee7face1cbaa76fb223096e64d7/werkzeug-3.1.9-py3-none-any.whl", hash = "sha256:6392e50c78460ba618e5b21f08a71f59c99ce99cdc6cf6e3dd7e6ccca8754fab", size = 228700, upload-time = "2026-09-27T18:33:39.685Z" },
-]
-
-[[package]]
-name = "xmltodict"
-version = "1.0.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/19/70/80f3b7c10d2630aa66414bf23d210386700aa390547278c789afa994fd7e/xmltodict-1.0.4.tar.gz", hash = "sha256:6d94c9f834dd9e44514162799d344d815a3a4faec913717a9ecbfa5be1bb8e61", size = 26124, upload-time = "2026-02-22T02:21:22.074Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/34/98a2f52245f4d47be93b580dae5f9861ef58977d73a79eb47c58f1ad1f3a/xmltodict-1.0.4-py3-none-any.whl", hash = "sha256:a4a00d300b0e1c59fc2bfccb53d7b2e88c32f200df138a0dd2229f842497026a", size = 13580, upload-time = "2026-02-22T02:21:21.039Z" },
 ]

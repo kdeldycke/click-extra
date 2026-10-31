@@ -43,7 +43,7 @@ from fnmatch import fnmatch
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Mapping
     from pathlib import Path
     from typing import Any
 
@@ -55,7 +55,6 @@ _OPTIONAL_PARSERS: tuple[tuple[str, str, str], ...] = (
     ("yaml", "yaml", "YAML"),
     ("json5", "json5", "JSON5"),
     ("hjson", "hjson", "Hjson"),
-    ("xmltodict", "xml", "XML"),
 )
 """Third-party parsers each gating one optional configuration format.
 
@@ -148,7 +147,7 @@ class ConfigFormat(Enum):
     JSONC = (("*.jsonc",), True, "JSONC", ("application/jsonc",))
     HJSON = (("*.hjson",), PARSER_SUPPORT["hjson"], "Hjson", ("application/hjson",))
     INI = (("*.ini",), True, "INI", ())
-    XML = (("*.xml",), PARSER_SUPPORT["xml"], "XML", ("application/xml", "text/xml"))
+    XML = (("*.xml",), True, "XML", ("application/xml", "text/xml"))
     PLIST = (("*.plist",), True, "plist", ("application/x-plist",))
     SQLITE = (
         ("*.sqlite", "*.sqlite3"),
@@ -239,6 +238,120 @@ def parse_jsonc(content: str) -> Any:
     return json.loads(content)
 
 
+def parse_xml(content: str) -> dict[str, Any]:
+    """Read an XML document into nested dictionaries, the root element outermost.
+
+    An element holding text alone reads as that text, stripped of the whitespace
+    around it, or as `None` when there is none. One holding attributes or child
+    elements reads as a dictionary: an attribute under its name prefixed with
+    `@`, a child under its tag, and the text under `#text`. Elements repeating
+    a tag under the same parent are collected into a list, in document order.
+    Comments and processing instructions are skipped, and a tag keeps its
+    namespace prefix as written.
+
+    These are the conventions of `xmltodict`, which every XML configuration file
+    read so far was parsed with, so a file keeps the same meaning.
+
+    :raises xml.parsers.expat.ExpatError: on a malformed document.
+    """
+    # Deferred import: keeps xml off the startup path of every CLI.
+    from xml.parsers import expat
+
+    root: dict[str, Any] = {}
+    # Each open element, as the dictionary it builds and its text so far.
+    stack: list[tuple[dict[str, Any], list[str]]] = [(root, [])]
+
+    def start_element(name: str, attributes: dict[str, str]) -> None:
+        stack.append(({f"@{key}": value for key, value in attributes.items()}, []))
+
+    def end_element(name: str) -> None:
+        node, chunks = stack.pop()
+        text = "".join(chunks).strip()
+        value: Any
+        if node:
+            if text:
+                node["#text"] = text
+            value = node
+        else:
+            value = text or None
+        parent = stack[-1][0]
+        if name in parent:
+            siblings = parent[name]
+            if isinstance(siblings, list):
+                siblings.append(value)
+            else:
+                parent[name] = [siblings, value]
+        else:
+            parent[name] = value
+
+    def character_data(data: str) -> None:
+        stack[-1][1].append(data)
+
+    parser = expat.ParserCreate()
+    parser.StartElementHandler = start_element
+    parser.EndElementHandler = end_element
+    parser.CharacterDataHandler = character_data
+    parser.Parse(content, True)
+    return root
+
+
+def _xml_text(value: Any) -> str:
+    """Spell a value as XML text: `true` or `false` for a boolean, `str()` otherwise."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def serialize_xml(data: Mapping[str, Any], *, indent: str = "\t") -> str:
+    """Write nested dictionaries as an XML document, one element per level.
+
+    The inverse of {func}`parse_xml`, with the same conventions: a `@` key is an
+    attribute, `#text` the text of an element that also carries attributes or
+    children, a list a run of elements sharing a tag, and `None` or an empty
+    string an empty element. Each top-level key is a root element. Child
+    elements sit on their own lines, each level pushed by one `indent`.
+    """
+    # Deferred import: keeps xml off the startup path of every CLI.
+    from xml.sax.saxutils import escape, quoteattr
+
+    lines: list[str] = []
+
+    def emit(name: str, value: Any, depth: int) -> None:
+        if isinstance(value, list):
+            for item in value:
+                emit(name, item, depth)
+            return
+        attributes = ""
+        text: str | None = None
+        children: list[tuple[str, Any]] = []
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key.startswith("@"):
+                    attributes += f" {key[1:]}={quoteattr(_xml_text(item))}"
+                elif key == "#text":
+                    text = _xml_text(item)
+                else:
+                    children.append((key, item))
+        elif value is not None:
+            text = _xml_text(value)
+        pad = indent * depth
+        opening = len(lines)
+        lines.append(f"{pad}<{name}{attributes}>")
+        for key, item in children:
+            emit(key, item, depth + 1)
+        if len(lines) == opening + 1:
+            # Nothing was written under the element: close it on its own line.
+            lines[opening] += f"{escape(text) if text else ''}</{name}>"
+            return
+        if text:
+            lines.append(f"{pad}{indent}{escape(text)}")
+        lines.append(f"{pad}</{name}>")
+
+    for name, value in data.items():
+        emit(name, value, 0)
+    return "\n".join(lines)
+
+
 def parse_content(fmt: ConfigFormat, content: str) -> Any:
     """Parse content with a single stateless format.
 
@@ -286,9 +399,7 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
             return hjson.loads(content)
 
         case ConfigFormat.XML:
-            import xmltodict
-
-            return xmltodict.parse(content)
+            return parse_xml(content)
 
         case ConfigFormat.PLIST:
             # Deferred import: keeps plistlib off the startup path of every CLI.
@@ -374,18 +485,7 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
 
             return str(hjson.dumps(data, **{"ensure_ascii": False, **kwargs})) + "\n"
         case ConfigFormat.XML:
-            import xmltodict
-
-            result: str = xmltodict.unparse(
-                data,
-                **{
-                    "pretty": True,
-                    "encoding": "unicode",
-                    "full_document": False,
-                    **kwargs,
-                },
-            )
-            return result + "\n"
+            return serialize_xml(data, **kwargs) + "\n"
         case ConfigFormat.PLIST:
             # Deferred import: keeps plistlib off the startup path of every CLI.
             import plistlib

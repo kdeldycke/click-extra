@@ -534,8 +534,7 @@ def _render_xml(
 ) -> str:
     """Render a table as XML.
 
-    `None` values are omitted. Requires the `xmltodict` package (installable
-    via the `[xml]` extra).
+    `None` values are omitted.
     """
     records = _records_without_none(table_data, headers, key=_xml_safe_name)
     return serialize_content(
