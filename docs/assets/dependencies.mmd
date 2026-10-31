@@ -7,21 +7,19 @@ flowchart LR
         tabulate{{"`tabulate`"}}
         wcmatch{{"`wcmatch`"}}
         click_0{{"`click`"}}
-        tomli{{"`tomli`"}}
         wcwidth{{"`wcwidth`"}}
-        boltons{{"`boltons`"}}
-        deepmerge{{"`deepmerge`"}}
     end
 
     requests(["`requests`"])
+    jinja2(["`jinja2`"])
     mkdocs_get_deps(["`mkdocs-get-deps`"])
     colorama(["`colorama`"])
-    jinja2(["`jinja2`"])
+    markdown_it_py(["`markdown-it-py`"])
     packaging(["`packaging`"])
-    exceptiongroup(["`exceptiongroup`"])
     ghp_import(["`ghp-import`"])
     markdown(["`markdown`"])
     markupsafe(["`markupsafe`"])
+    mdit_py_plugins(["`mdit-py-plugins`"])
     mergedeep(["`mergedeep`"])
     python_dateutil(["`python-dateutil`"])
     pyyaml_env_tag(["`pyyaml-env-tag`"])
@@ -34,6 +32,7 @@ flowchart LR
     idna(["`idna`"])
     imagesize(["`imagesize`"])
     iniconfig(["`iniconfig`"])
+    mdurl(["`mdurl`"])
     pathspec(["`pathspec`"])
     platformdirs(["`platformdirs`"])
     pluggy(["`pluggy`"])
@@ -61,10 +60,6 @@ flowchart LR
         json5{{"`json5 >=0.12.1`"}}
     end
 
-    subgraph ext_jsonc [--extra jsonc]
-        json_with_comments{{"`json-with-comments >=1.2.10`"}}
-    end
-
     subgraph ext_mkdocs [--extra mkdocs]
         mkdocs{{"`mkdocs >=1.4`"}}
         pymdown_extensions{{"`pymdown-extensions >=10`"}}
@@ -81,16 +76,13 @@ flowchart LR
 
     subgraph ext_sphinx [--extra sphinx]
         sphinx{{"`sphinx >=8`"}}
-        pygments{{"`pygments >=2.18`"}}
+        myst_parser{{"`myst-parser >=5.1`"}}
         docutils{{"`docutils >=0.20`"}}
+        pygments{{"`pygments >=2.18`"}}
     end
 
     subgraph ext_toml [--extra toml]
-        tomlkit{{"`tomlkit >=0.13`"}}
-    end
-
-    subgraph ext_xml [--extra xml]
-        xmltodict{{"`xmltodict >=1`"}}
+        tomlrt{{"`tomlrt >=2.2.10`"}}
     end
 
     subgraph ext_yaml [--extra yaml]
@@ -99,20 +91,16 @@ flowchart LR
 
     click_extra ==>|" >=8.4.1 "| click_0
     click_extra ==>|" >=3.0.7 "| cloup
-    click_extra ==>|" >=2 "| tomli
     click_extra ==>|" >=13.4 "| extra_platforms
     click_extra ==>|" >=0.9 "| tabulate
     click_extra ==>|" >=10 "| wcmatch
     click_extra ==>|" >=0.8.3 "| wcwidth
-    click_extra ==>|" >=26.2 "| boltons
-    click_extra ==>|" >=1.0.1 "| deepmerge
     sphinx --> requests
-    sphinx --> colorama
     sphinx --> jinja2
+    sphinx --> colorama
+    sphinx --> docutils
     sphinx --> packaging
     sphinx --> pygments
-    sphinx --> tomli
-    sphinx --> docutils
     sphinx --> alabaster
     sphinx --> babel
     sphinx --> imagesize
@@ -125,10 +113,10 @@ flowchart LR
     sphinx --> sphinxcontrib_qthelp
     sphinx --> sphinxcontrib_serializinghtml
     mkdocs --> pyyaml
+    mkdocs --> jinja2
     mkdocs --> mkdocs_get_deps
     mkdocs --> click_0
     mkdocs --> colorama
-    mkdocs --> jinja2
     mkdocs --> packaging
     mkdocs --> ghp_import
     mkdocs --> markdown
@@ -137,11 +125,15 @@ flowchart LR
     mkdocs --> pyyaml_env_tag
     mkdocs --> pathspec
     mkdocs --> watchdog
+    myst_parser --> sphinx
+    myst_parser --> pyyaml
+    myst_parser --> jinja2
+    myst_parser --> docutils
+    myst_parser --> markdown_it_py
+    myst_parser --> mdit_py_plugins
     pytest --> colorama
     pytest --> packaging
     pytest --> pygments
-    pytest --> tomli
-    pytest --> exceptiongroup
     pytest --> iniconfig
     pytest --> pluggy
     cloup --> click_0
@@ -150,29 +142,29 @@ flowchart LR
     pymdown_extensions --> markdown
     extra_platforms --> pytest
     tabulate --> wcwidth
+    tomlrt --> typing_extensions
     wcmatch --> bracex
     requests --> certifi
     requests --> charset_normalizer
     requests --> idna
     requests --> urllib3
+    jinja2 --> markupsafe
     mkdocs_get_deps --> pyyaml
     mkdocs_get_deps --> mergedeep
     mkdocs_get_deps --> platformdirs
-    jinja2 --> markupsafe
-    exceptiongroup --> typing_extensions
+    markdown_it_py --> mdurl
     ghp_import --> python_dateutil
+    mdit_py_plugins --> markdown_it_py
     pyyaml_env_tag --> pyyaml
     python_dateutil --> six
     click_extra -.-> ext_carapace
     click_extra -.-> ext_hjson
     click_extra -.-> ext_json5
-    click_extra -.-> ext_jsonc
     click_extra -.-> ext_mkdocs
     click_extra -.-> ext_pygments
     click_extra -.-> ext_pytest
     click_extra -.-> ext_sphinx
     click_extra -.-> ext_toml
-    click_extra -.-> ext_xml
     click_extra -.-> ext_yaml
     ext_mkdocs_pygments -.- pygments
     ext_pygments_pygments -.- pygments
@@ -180,7 +172,6 @@ flowchart LR
 
     click alabaster "https://pypi.org/project/alabaster/" _blank
     click babel "https://pypi.org/project/babel/" _blank
-    click boltons "https://pypi.org/project/boltons/" _blank
     click bracex "https://pypi.org/project/bracex/" _blank
     click certifi "https://pypi.org/project/certifi/" _blank
     click charset_normalizer "https://pypi.org/project/charset-normalizer/" _blank
@@ -188,9 +179,7 @@ flowchart LR
     click click_extra "https://pypi.org/project/click-extra/" _blank
     click cloup "https://pypi.org/project/cloup/" _blank
     click colorama "https://pypi.org/project/colorama/" _blank
-    click deepmerge "https://pypi.org/project/deepmerge/" _blank
     click docutils "https://pypi.org/project/docutils/" _blank
-    click exceptiongroup "https://pypi.org/project/exceptiongroup/" _blank
     click extra_platforms "https://pypi.org/project/extra-platforms/" _blank
     click ghp_import "https://pypi.org/project/ghp-import/" _blank
     click hjson "https://pypi.org/project/hjson/" _blank
@@ -198,13 +187,16 @@ flowchart LR
     click imagesize "https://pypi.org/project/imagesize/" _blank
     click iniconfig "https://pypi.org/project/iniconfig/" _blank
     click jinja2 "https://pypi.org/project/jinja2/" _blank
-    click json_with_comments "https://pypi.org/project/json-with-comments/" _blank
     click json5 "https://pypi.org/project/json5/" _blank
     click markdown "https://pypi.org/project/markdown/" _blank
+    click markdown_it_py "https://pypi.org/project/markdown-it-py/" _blank
     click markupsafe "https://pypi.org/project/markupsafe/" _blank
+    click mdit_py_plugins "https://pypi.org/project/mdit-py-plugins/" _blank
+    click mdurl "https://pypi.org/project/mdurl/" _blank
     click mergedeep "https://pypi.org/project/mergedeep/" _blank
     click mkdocs "https://pypi.org/project/mkdocs/" _blank
     click mkdocs_get_deps "https://pypi.org/project/mkdocs-get-deps/" _blank
+    click myst_parser "https://pypi.org/project/myst-parser/" _blank
     click packaging "https://pypi.org/project/packaging/" _blank
     click pathspec "https://pypi.org/project/pathspec/" _blank
     click platformdirs "https://pypi.org/project/platformdirs/" _blank
@@ -227,40 +219,34 @@ flowchart LR
     click sphinxcontrib_qthelp "https://pypi.org/project/sphinxcontrib-qthelp/" _blank
     click sphinxcontrib_serializinghtml "https://pypi.org/project/sphinxcontrib-serializinghtml/" _blank
     click tabulate "https://pypi.org/project/tabulate/" _blank
-    click tomli "https://pypi.org/project/tomli/" _blank
-    click tomlkit "https://pypi.org/project/tomlkit/" _blank
+    click tomlrt "https://pypi.org/project/tomlrt/" _blank
     click typing_extensions "https://pypi.org/project/typing-extensions/" _blank
     click urllib3 "https://pypi.org/project/urllib3/" _blank
     click watchdog "https://pypi.org/project/watchdog/" _blank
     click wcmatch "https://pypi.org/project/wcmatch/" _blank
     click wcwidth "https://pypi.org/project/wcwidth/" _blank
-    click xmltodict "https://pypi.org/project/xmltodict/" _blank
     click ext_mkdocs_pygments "https://pypi.org/project/pygments/" _blank
     click ext_pygments_pygments "https://pypi.org/project/pygments/" _blank
     click ext_yaml_pyyaml "https://pypi.org/project/pyyaml/" _blank
 
     style click_extra stroke-width:3px
-    style boltons stroke-width:3px
     style click_0 stroke-width:3px
     style cloup stroke-width:3px
-    style deepmerge stroke-width:3px
     style docutils stroke-width:3px
     style extra_platforms stroke-width:3px
     style hjson stroke-width:3px
-    style json_with_comments stroke-width:3px
     style json5 stroke-width:3px
     style mkdocs stroke-width:3px
+    style myst_parser stroke-width:3px
     style pygments stroke-width:3px
     style pymdown_extensions stroke-width:3px
     style pytest stroke-width:3px
     style pyyaml stroke-width:3px
     style sphinx stroke-width:3px
     style tabulate stroke-width:3px
-    style tomli stroke-width:3px
-    style tomlkit stroke-width:3px
+    style tomlrt stroke-width:3px
     style wcmatch stroke-width:3px
     style wcwidth stroke-width:3px
-    style xmltodict stroke-width:3px
     style ext_mkdocs_pygments stroke-width:3px,stroke-dasharray:5 5
     style ext_pygments_pygments stroke-width:3px,stroke-dasharray:5 5
     style ext_yaml_pyyaml stroke-width:3px,stroke-dasharray:5 5
@@ -269,11 +255,9 @@ flowchart LR
     style ext_carapace fill:#7B1FA220,stroke:#BA68C8
     style ext_hjson fill:#7B1FA220,stroke:#BA68C8
     style ext_json5 fill:#7B1FA220,stroke:#BA68C8
-    style ext_jsonc fill:#7B1FA220,stroke:#BA68C8
     style ext_mkdocs fill:#7B1FA220,stroke:#BA68C8
     style ext_pygments fill:#7B1FA220,stroke:#BA68C8
     style ext_pytest fill:#7B1FA220,stroke:#BA68C8
     style ext_sphinx fill:#7B1FA220,stroke:#BA68C8
     style ext_toml fill:#7B1FA220,stroke:#BA68C8
-    style ext_xml fill:#7B1FA220,stroke:#BA68C8
     style ext_yaml fill:#7B1FA220,stroke:#BA68C8
