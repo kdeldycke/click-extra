@@ -239,7 +239,6 @@ def test_no_heavy_dependency_ballast_on_startup():
         "click._termui_impl",
         "concurrent.futures",
         "configparser",
-        "deepmerge",
         "difflib",
         "extra_platforms",
         "plistlib",

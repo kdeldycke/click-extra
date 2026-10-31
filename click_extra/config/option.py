@@ -66,7 +66,7 @@ from click.core import ParameterSource
 from click.parser import _split_opt
 
 from .. import context
-from .._utils import flatten, shrinkuser
+from .._utils import deep_merge, flatten, shrinkuser
 from ..logging import LogLevel, requested_level
 from ..parameters import (
     PARAM_PATH_SEP,
@@ -1731,11 +1731,8 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         Returns a ready-to-use data structure.
         """
-        # Deferred imports: keep configparser and deepmerge off the startup path of
-        # every CLI.
+        # Deferred import: keeps configparser off the startup path of every CLI.
         from configparser import ConfigParser, ExtendedInterpolation
-
-        from deepmerge import always_merger
 
         ini_config = ConfigParser(interpolation=ExtendedInterpolation())
         ini_config.read_string(content)
@@ -1781,7 +1778,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 )
 
             # Place collected options at the right level of the dict tree.
-            conf = always_merger.merge(
+            conf = deep_merge(
                 conf,
                 self.init_tree_dict(*section_id.split(PARAM_PATH_SEP), leaf=sub_conf),
             )
@@ -1942,12 +1939,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         finally:
             connection.close()
 
-        # Deferred import: keeps deepmerge off the startup path of every CLI.
-        from deepmerge import always_merger
-
         conf: dict[str, Any] = {}
         for key, raw_value in rows:
-            conf = always_merger.merge(
+            conf = deep_merge(
                 conf,
                 self.init_tree_dict(
                     *key.split(PARAM_PATH_SEP), leaf=json.loads(raw_value)
@@ -2179,15 +2173,12 @@ class ConfigOption(ExtraOption, ParamStructure):
             assert report.merged_conf is not None  # params_template is always set.
             per_file_conf.append(report.merged_conf)
 
-        # Deferred import: keeps deepmerge off the startup path of every CLI.
-        from deepmerge import always_merger
-
         # Deep-merge the raw documents, highest-precedence layer winning, for
         # the schema and the extension validators. Merging starts from the
         # lowest-precedence file so each later merge overwrites it.
         merged_view: dict[str, Any] = {}
         for _location, conf in reversed(layers):
-            merged_view = always_merger.merge(merged_view, copy.deepcopy(conf))
+            merged_view = deep_merge(merged_view, copy.deepcopy(conf))
 
         report = run_config_validation(
             merged_view,
@@ -2947,9 +2938,7 @@ class ExportConfigOption(ExtraOption):
                 "inherit from Command; dumping defaults.",
             )
 
-        # Deferred imports: keep deepmerge and extra_platforms off the startup path
-        # of every CLI.
-        from deepmerge import always_merger
+        # Deferred import: keeps extra_platforms off the startup path of every CLI.
         from extra_platforms._utils import _remove_blanks
 
         tree: dict[str, Any] = {}
@@ -2976,7 +2965,7 @@ class ExportConfigOption(ExtraOption):
             # names) are kept verbatim: the app-section lookup matches the
             # root exactly, and command names are displayed as invoked.
             file_keys = (*keys[:-1], keys[-1].replace("_", "-"))
-            tree = always_merger.merge(
+            tree = deep_merge(
                 tree, ParamStructure.init_tree_dict(*file_keys, leaf=leaf)
             )
 

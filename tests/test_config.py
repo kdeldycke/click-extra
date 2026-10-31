@@ -3528,6 +3528,27 @@ def test_cascade_merges_files_local_wins(invoke, cascade_tree):
     assert result.exit_code == 0
 
 
+def test_cascade_list_local_wins(invoke, cascade_tree):
+    """A list two layers both set resolves to the most local one, like any value."""
+    tmp_path, app_dir = cascade_tree
+    (app_dir / "config.toml").write_text(
+        '[cascade-cli]\ntags = ["local"]\n', encoding="utf-8"
+    )
+    (tmp_path / "config.toml").write_text(
+        '[cascade-cli]\ntags = ["parent", "root"]\n', encoding="utf-8"
+    )
+
+    @click.command
+    @config_option(search_parents=True, stop_at=tmp_path, cascade=True)
+    @click.option("--tags", multiple=True)
+    def cascade_cli(tags):
+        echo(f"tags = {tags!r}")
+
+    result = invoke(cascade_cli, color=False)
+    assert result.stdout == "tags = ('local',)\n"
+    assert result.exit_code == 0
+
+
 def test_no_cascade_first_file_wins(invoke, cascade_tree):
     """Without cascade, the first parseable file wins entirely."""
     tmp_path, app_dir = cascade_tree

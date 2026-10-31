@@ -16,7 +16,7 @@
 """Expose package-wide elements.
 
 Importing this package is the startup cost of every CLI built on it, so the
-dependencies a code path may never need (wcwidth, PyYAML, wcmatch, deepmerge,
+dependencies a code path may never need (wcwidth, PyYAML, wcmatch and
 extra-platforms) are imported where they are used, and
 `tests/test_commands.py` checks that a hello-world `--help` loads none of them.
 

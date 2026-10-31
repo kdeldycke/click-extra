@@ -50,7 +50,7 @@ from . import context
 
 # Imported under a private name so this module does not offer a second public
 # spelling of the helper: its canonical home is click_extra._utils.
-from ._utils import patch_attr as _patch_attr, shrinkuser
+from ._utils import deep_merge, patch_attr as _patch_attr, shrinkuser
 from .columns import (
     ColumnSpec,
     render_columns_markdown_table,
@@ -836,9 +836,6 @@ class ParamStructure:
         """
         descend = self._leads_to_included if self.included_params is not None else None
 
-        # Deferred import: keeps deepmerge off the startup path of every CLI.
-        from deepmerge import always_merger
-
         objects: dict[str, Any] = {}
         reached_ids = set()
 
@@ -848,9 +845,7 @@ class ParamStructure:
             if self.is_excluded(param_id):
                 continue
 
-            objects = always_merger.merge(
-                objects, self.init_tree_dict(*keys, leaf=[param])
-            )
+            objects = deep_merge(objects, self.init_tree_dict(*keys, leaf=[param]))
 
         if self.included_params is not None:
             self.excluded_params = frozenset(reached_ids) - self.included_params

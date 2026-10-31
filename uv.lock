@@ -256,7 +256,6 @@ source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "cloup" },
-    { name = "deepmerge" },
     { name = "extra-platforms" },
     { name = "tabulate", extra = ["widechars"] },
     { name = "wcmatch" },
@@ -377,7 +376,6 @@ requires-dist = [
     { name = "click", specifier = ">=8.4.1" },
     { name = "click-extra", extras = ["carapace", "hjson", "json5", "jsonc", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"], marker = "extra == 'all'" },
     { name = "cloup", specifier = ">=3.0.7" },
-    { name = "deepmerge", specifier = ">=1.0.1" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
     { name = "extra-platforms", specifier = ">=13.4" },
     { name = "hjson", marker = "extra == 'hjson'", specifier = ">=3.1" },
@@ -588,15 +586,6 @@ wheels = [
 [package.optional-dependencies]
 toml = [
     { name = "tomli", marker = "python_full_version <= '3.11'" },
-]
-
-[[package]]
-name = "deepmerge"
-version = "3.0.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/38/6e/5cb3548b4d3112fea529375e55e6f3cdc52b8054e3a66f203b1f888ba885/deepmerge-3.0.1.tar.gz", hash = "sha256:35b39a4cb92cf328d6eca61cbbf65f68a37c2ceb3085f0f853cbb2e52a59fc23", size = 22328, upload-time = "2026-09-01T14:09:44.383Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/20/91/600003aaad107e27553fbc9cbfc57e96fa37e0223d2ef9d7d3a0e8d8d070/deepmerge-3.0.1-py3-none-any.whl", hash = "sha256:35c96f6a68fcf90719a5b31d9f8042ecef6c00fb56836660d33455d0f5cfda65", size = 14909, upload-time = "2026-09-01T14:09:43.364Z" },
 ]
 
 [[package]]

@@ -37,6 +37,7 @@ from typing import NamedTuple, get_origin, get_type_hints
 from click import get_current_context
 
 from .. import context
+from .._utils import deep_merge
 from ..parameters import PARAM_PATH_SEP, ParamStructure, canonical_param_name
 
 TYPE_CHECKING = False
@@ -264,9 +265,6 @@ def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
     In strict mode, raises `ValueError` on type conflicts and invalid
     dotted keys (empty segments).
     """
-    # Deferred import: keeps deepmerge off the startup path of every CLI.
-    from deepmerge import always_merger
-
     expanded: dict = {}
     for key, value in conf.items():
         if isinstance(value, dict):
@@ -281,10 +279,10 @@ def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
                 continue
             nested = ParamStructure.init_tree_dict(*parts, leaf=value)
             _check_type_conflict(expanded, parts, value, key, strict)
-            expanded = always_merger.merge(expanded, nested)
+            expanded = deep_merge(expanded, nested)
         else:
             _check_type_conflict(expanded, [key], value, key, strict)
-            expanded = always_merger.merge(expanded, {key: value})
+            expanded = deep_merge(expanded, {key: value})
     return expanded
 
 

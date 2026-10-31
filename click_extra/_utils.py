@@ -17,7 +17,7 @@
 
 The counterpart of `extra_platforms._utils`: plumbing every module may need
 (attribute patching, provenance tagging, optional-extra messaging, iterable
-flattening, home-relative paths) without a domain of its own to live in.
+flattening, dictionary merging, home-relative paths) without a domain of its own to live in.
 Nothing here imports from the rest of the package, so any module can reach for
 these helpers without risking an import cycle.
 """
@@ -32,7 +32,7 @@ from functools import cache
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterator
+    from collections.abc import Generator, Iterator, Mapping
     from importlib.metadata import EntryPoint
     from typing import Any
 
@@ -180,3 +180,21 @@ def shrinkuser(path: str | os.PathLike[str], home: str = "~") -> str:
     if normalized.startswith(user_home + os.sep):
         return home + normalized[len(user_home) :]
     return normalized
+
+
+def deep_merge(base: Mapping[str, Any], overlay: Mapping[str, Any]) -> dict[str, Any]:
+    """Return `base` updated with `overlay`, nested dictionaries merged key by key.
+
+    A key both carry resolves to the value of `overlay`, unless the two values
+    are dictionaries, which merge the same way. A list, like any other value,
+    comes whole from `overlay`: a layer setting one replaces the layer below.
+    Neither argument is modified.
+    """
+    merged = dict(base)
+    for key, value in overlay.items():
+        current = merged.get(key)
+        if isinstance(current, dict) and isinstance(value, dict):
+            merged[key] = deep_merge(current, value)
+        else:
+            merged[key] = value
+    return merged

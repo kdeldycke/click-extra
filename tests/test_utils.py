@@ -23,6 +23,7 @@ from pathlib import Path
 import pytest
 
 from click_extra._utils import (
+    deep_merge,
     exception_chain,
     flatten,
     generator_tag,
@@ -130,3 +131,23 @@ def test_shrinkuser_takes_another_home_spelling():
     home = Path.home()
     assert shrinkuser(home, home="$HOME") == "$HOME"
     assert shrinkuser(home / "notes", home="$HOME") == os.path.join("$HOME", "notes")
+
+
+def test_deep_merge_merges_dicts_and_takes_every_other_value_from_the_overlay():
+    base = {"a": {"b": 1, "c": [1, 2], "d": {"e": 1}}, "f": "base", "g": {"h": 1}}
+    overlay = {"a": {"b": 2, "c": [3]}, "f": {"i": 1}, "j": None}
+    assert deep_merge(base, overlay) == {
+        "a": {"b": 2, "c": [3], "d": {"e": 1}},
+        "f": {"i": 1},
+        "g": {"h": 1},
+        "j": None,
+    }
+
+
+def test_deep_merge_leaves_both_arguments_alone():
+    base = {"a": {"b": 1}}
+    overlay = {"a": {"c": 2}}
+    merged = deep_merge(base, overlay)
+    merged["a"]["d"] = 3
+    assert base == {"a": {"b": 1}}
+    assert overlay == {"a": {"c": 2}}
