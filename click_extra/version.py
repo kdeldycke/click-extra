@@ -388,11 +388,11 @@ BUILD_RESOLVERS: dict[str, Callable[[], str]] = {
 """Canonical resolver for every pre-bakeable `build_*` field.
 
 These describe the machine and moment a distribution was *built*, which
-{data}`GIT_RESOLVERS` and `{env_info}` both leave unanswered: git states what
-source went in, `{env_info}` states where the binary is running now, and neither
-one identifies the host that produced it. That gap is what a cross-built binary
-turns into a support question, and what shadow-rs answers for Rust with its
-`BUILD_TIME`, `BUILD_OS` and `BUILD_TARGET` constants.
+{data}`GIT_RESOLVERS` and {func}`env_summary` both leave unanswered: git states
+what source went in, {func}`env_summary` states where the binary is running now,
+and neither one identifies the host that produced it. That gap is what a
+cross-built binary turns into a support question, and what shadow-rs answers for
+Rust with its `BUILD_TIME`, `BUILD_OS` and `BUILD_TARGET` constants.
 
 A build fact has no live fallback, unlike a git one: nothing at runtime can
 recover the host a binary was compiled on, so `click-extra prebake all` is the
@@ -653,9 +653,11 @@ def platform_label() -> str:
 def env_summary() -> str:
     """One-line interpreter and platform summary.
 
-    The same two facts {func}`default_facts` puts on the version screen, joined for
-    a CLI that would rather spend one line of its plain `--version` on them than
-    draw a screen at all: `@version_option(fields={"env_info": env_summary()})`.
+    Reads `Python 3.14.7, macOS ARM64 (AArch64)` on an Apple Silicon Mac: the
+    same two facts {func}`default_facts` puts on the version screen, joined for a
+    CLI that would rather spend one line of its plain `--version` on them than
+    draw a screen at all:
+    `@version_option(message="{prog_name} {version} (" + env_summary() + ")")`.
     """
     # Deferred import: keeps platform off the startup path of every CLI.
     import platform
@@ -871,8 +873,8 @@ def template_segments(
 
     Yields one `(literal, field_id, field)` triple per field of `template`, in
     order: the literal text before the field, the identifier the field resolves
-    on the option (`env_info` for `{env_info[python][version]}`, the part before
-    any index or attribute), and the field as written, braces and format spec
+    on the option (`module` for `{module.__name__}`, the part before any index
+    or attribute), and the field as written, braces and format spec
     included. A doubled brace of a literal comes back single. Literal text left
     after the last field comes in a final triple carrying no field.
     """
@@ -886,88 +888,6 @@ def template_segments(
         if format_spec:
             field += f":{format_spec}"
         yield literal, re.split(r"[.\[]", field_name, maxsplit=1)[0], field + "}"
-
-
-def environment_info() -> dict[str, Any]:
-    """Describe the interpreter and the machine running it, for a bug report.
-
-    Nothing in the profile identifies the user, the host or the working
-    directory, so it can be pasted in public as it comes. Under `python`,
-    `implementation`, `version`, `version_info`, `compiler` and `build_date`
-    describe the interpreter, and `features` the libraries it links: the
-    versions of OpenSSL, Expat, SQLite and zlib, an empty string standing for a
-    missing one, and whether the build is 64-bit, supports IPv6 and ships
-    `readline` and `tkinter`. Beside it, `uname` holds the system, release,
-    version, machine and processor of the platform, `linux_dist_name` and
-    `linux_dist_version` come from `os-release` on Linux, `cpu_count`,
-    `fs_encoding`, `ulimit_soft` and `ulimit_hard` size the host, and
-    `time_utc` and `time_utc_offset` date the report.
-
-    Every lookup behind a value is local: no host name is resolved, so a machine
-    whose resolver never answers does not stall, and the working directory is
-    never read, so one that has been deleted does not raise.
-    """
-    # Deferred imports: these modules serve this profile alone, which a version
-    # string seldom renders, so none of them joins the startup path of a CLI.
-    import platform
-    import socket
-    from importlib import import_module
-    from importlib.util import find_spec
-
-    def library_version(module: str, attribute: str) -> str:
-        """The version `attribute` of `module`, or an empty string without it."""
-        try:
-            return str(getattr(import_module(module), attribute))
-        except (ImportError, AttributeError):
-            return ""
-
-    uname = platform.uname()
-    try:
-        os_release = platform.freedesktop_os_release()
-    except OSError:
-        os_release = {}
-    try:
-        from resource import RLIMIT_NOFILE, getrlimit
-
-        ulimit_soft, ulimit_hard = getrlimit(RLIMIT_NOFILE)
-    except (ImportError, OSError):
-        ulimit_soft = ulimit_hard = 0
-    now = datetime.now(UTC)
-    offset = now.astimezone().utcoffset()
-    return {
-        "python": {
-            "implementation": platform.python_implementation(),
-            "version": " ".join(sys.version.split()),
-            "version_info": list(sys.version_info),
-            "compiler": platform.python_compiler(),
-            "build_date": platform.python_build()[1],
-            "features": {
-                "64bit": sys.maxsize > 2**32,
-                "ipv6": socket.has_ipv6,
-                "openssl": library_version("ssl", "OPENSSL_VERSION"),
-                "expat": library_version("pyexpat", "EXPAT_VERSION"),
-                "sqlite": library_version("sqlite3", "sqlite_version"),
-                "zlib": library_version("zlib", "ZLIB_VERSION"),
-                "readline": find_spec("readline") is not None,
-                "tkinter": find_spec("_tkinter") is not None,
-            },
-        },
-        "uname": {
-            "system": uname.system,
-            "release": uname.release,
-            "version": uname.version,
-            "machine": uname.machine,
-            "processor": uname.processor,
-        },
-        "linux_dist_name": os_release.get("NAME", ""),
-        "linux_dist_version": os_release.get("VERSION_ID", ""),
-        "cpu_count": os.cpu_count() or 0,
-        "fs_encoding": sys.getfilesystemencoding(),
-        "ulimit_soft": ulimit_soft,
-        "ulimit_hard": ulimit_hard,
-        "time_utc_offset": offset.total_seconds() / 3600 if offset else 0.0,
-        "time_utc": str(now),
-    }
 
 
 class VersionOption(ExtraOption):
@@ -1018,7 +938,6 @@ class VersionOption(ExtraOption):
         "build_target",
         "build_target_arch",
         "prog_name",
-        "env_info",
     )
     """List of field IDs recognized by the message template."""
 
@@ -1043,7 +962,6 @@ class VersionOption(ExtraOption):
         "build_target": MUTED,
         "build_target_arch": MUTED,
         "prog_name": theme_slot("invoked_command"),
-        "env_info": MUTED,
     }
     """Default style for each template field.
 
@@ -1860,15 +1778,6 @@ class VersionOption(ExtraOption):
         """
         self.__dict__["_prog_name_override"] = value
 
-    @cached_property
-    def env_info(self) -> dict[str, Any]:
-        """The interpreter and the machine running it, for a bug report.
-
-        The keys are those of {func}`~click_extra.version.environment_info`.
-        Built on first use, as a version string seldom renders `{env_info}`.
-        """
-        return environment_info()
-
     def field_style(self, field_id: str | None = None) -> IStyle:
         """Style painting the *field_id* segment of a rendered message.
 
@@ -1952,7 +1861,7 @@ class VersionOption(ExtraOption):
             template = self.colored_template()
 
         # Only resolve fields that actually appear in the template, so unused
-        # properties (git calls, env_info, etc.) are never evaluated.
+        # properties, the git calls above all, are never evaluated.
         used_fields = {
             field_id
             for _literal, field_id, _field in template_segments(template)
@@ -1961,14 +1870,7 @@ class VersionOption(ExtraOption):
         return template.format(**{v: getattr(self, v) for v in used_fields})
 
     def print_debug_message(self) -> None:
-        """Render in debug logs all template fields in color.
-
-        A field resolving to a nested structure is dumped as indented JSON under its
-        own label, instead of the single-line `repr` a template would produce for it.
-        Only `{env_info}` is built that way today, and it alone accounts for two
-        thirds of this listing: a thousand characters on one line is what a bug
-        report carries otherwise.
-        """
+        """Render in debug logs all template fields in color."""
         if logger.getEffectiveLevel() != logging.DEBUG:
             return
 
@@ -1979,21 +1881,11 @@ class VersionOption(ExtraOption):
 
         logger.debug("Version string template variables:")
         for field_id, label in labels.items():
-            value = getattr(self, field_id)
-            if isinstance(value, (dict, list)):
-                logger.debug(
-                    self.render_message(self.colored_template(f"{label:<{max_len}}:"))
+            logger.debug(
+                self.render_message(
+                    self.colored_template(f"{label:<{max_len}}: {{{field_id}}}")
                 )
-                style = self.field_style(field_id)
-                dump = json.dumps(value, sort_keys=True, indent=2, default=str)
-                for line in dump.splitlines():
-                    logger.debug(style(f"  {line}"))
-            else:
-                logger.debug(
-                    self.render_message(
-                        self.colored_template(f"{label:<{max_len}}: {{{field_id}}}")
-                    )
-                )
+            )
 
     def print_and_exit(
         self,

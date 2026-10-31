@@ -4,7 +4,7 @@ Click Extra provides its own version option which, compared to [Click's built-in
 
 - adds [new variable](#variables) to compose your version string
 - adds [colors](#colors)
-- adds complete [environment information in JSON](#environment-information)
+- adds an [environment summary](#environment-information) for bug reports
 - works with [standalone scripts](#standalone-script)
 - use [format string syntax](https://docs.python.org/3/library/string.html#format-string-syntax)
 - prints [details metadata in `DEBUG` logs](#debug-logs)
@@ -92,7 +92,6 @@ You can customize the message template with the following variables:
 | {py:attr}`{build_target} <click_extra.version.VersionOption.build_target>`           | The platform a distribution built there installs on (`macosx-15.0-arm64`, `linux-x86_64`, `win-amd64`), or `None` if never pre-baked.                                                  |
 | {py:attr}`{build_target_arch} <click_extra.version.VersionOption.build_target_arch>` | The CPU architecture the build ran on, or `None` if never pre-baked.                                                                                                                   |
 | {py:attr}`{prog_name} <click_extra.version.VersionOption.prog_name>`                 | The display name of the program. Defaults to Click's `info_name`, but can be [overridden via `prog_name` on the command decorator](commands.md#version-fields).                        |
-| {py:attr}`{env_info} <click_extra.version.VersionOption.env_info>`                   | The interpreter and the machine running it, as a `dict`.                                                                                                                               |
 
 ```{note}
 The ``git_*`` variables are evaluated at runtime by calling ``git``. They return ``None`` in environments where Git is not available (like standalone Nuitka binaries or Docker containers without Git).
@@ -391,7 +390,7 @@ prebake_dunder(Path("mypackage/__init__.py"), "__git_short_hash__", "abc1234")
 
 ### Pre-baking build metadata
 
-The `build_*` template fields answer a question the `git_*` ones cannot: which machine produced this binary, and when. A cross-built executable carries no trace of its build host, and `{env_info}` reports the machine *running* it, so the two describe different things and a bug report often needs both.
+The `build_*` template fields answer a question the `git_*` ones cannot: which machine produced this binary, and when. A cross-built executable carries no trace of its build host, and {func}`~click_extra.version.env_summary` reports the machine *running* it, so the two describe different things and a bug report often needs both.
 
 They are pre-baked exactly like the git fields, through the same empty-string dunders:
 
@@ -504,7 +503,6 @@ Fields not listed in `styles` keep the defaults below, taken from {py:attr}`Vers
 | `package_version`   | `Style(fg="green")`{l=python}                      |
 | `prog_name`         | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
 | `version`           | `Style(fg="green")`{l=python}                      |
-| `env_info`          | `Style(fg="bright_black")`{l=python}               |
 
 The remaining fields (`module`, `module_file`, `author`, `license`) have no default style and fall back to `message_style`.
 
@@ -567,57 +565,34 @@ assert result.output == f"cli, version 1.2.3\n"
 
 ## Environment information
 
-The `{env_info}` variable compiles all sorts of environment information.
-
-Here is how it looks like:
+{func}`~click_extra.version.env_summary` names the interpreter and the platform in one line, the two facts a bug report needs first. Add it to the message of a plain `--version`:
 
 ```{click:source}
-:emphasize-lines: 5
+:emphasize-lines: 7
 import click
 from click_extra import version_option
-
-@click.command
-@version_option(message="{env_info}")
-def env_info_cli():
-    pass
-```
-
-```{click:run}
-import re
-result = invoke(env_info_cli, args=["--version"])
-assert re.fullmatch(r"\x1b\[90m{'.+'}\x1b\[0m\n", result.output)
-```
-
-It's verbose but it's helpful for debugging and reporting of issues from end users.
-
-```{important}
-Nothing in it identifies the user, the host or the working directory, so it can be pasted into a public bug report as it comes.
-```
-
-Another trick consist in picking into the content of `{env_info}` to produce highly customized version strings. This can be done because `{env_info}` is kept as a `dict`:
-
-```{click:source}
-:emphasize-lines: 6
-import click
-from click_extra import version_option
+from click_extra.version import env_summary
 
 @click.command
 @version_option(
-    message="{prog_name} {version}, from {module_file} (Python {env_info[python][version]})",
+    message="{prog_name} {version} (" + env_summary() + ")",
     fields={"version": "1.2.3"},
 )
-def custom_env_info():
+def weather():
     pass
 ```
 
 ```{click:run}
 import re
-result = invoke(custom_env_info, args=["--version"])
+result = invoke(weather, args=["--version"])
+assert result.exit_code == 0
 assert re.fullmatch((
-    r"\x1b\[97m\x1b\[1mcustom-env-info\x1b\[0m \x1b\[32m1.2.3\x1b\[0m, "
-    r"from .+ \(Python \x1b\[90m3\.\d+\.\d+ .+\x1b\[0m\)\n"
+    r"\x1b\[97m\x1b\[1mweather\x1b\[0m \x1b\[32m1\.2\.3\x1b\[0m "
+    r"\(Python 3\.\d+\.\d+\S*, .+\)\n"
 ), result.output)
 ```
+
+The message is a plain string, built when the decorator runs, so any other fact joins it the same way: from the standard library's [`platform`](https://docs.python.org/3/library/platform.html) module, or from anywhere else. The [version screen](#version-screen) seats the same two facts beside a logo.
 
 ## Version screen
 
@@ -726,14 +701,12 @@ result = invoke(version_in_logs, ["--verbosity", "DEBUG"])
 assert "\n\x1b[34mdebug\x1b[0m: Version string template variables:\n" in result.output
 ```
 
-A variable holding a nested structure is dumped as indented JSON under its own label, rather than the single line a template renders it as. Only `{env_info}` is built that way, and it is the one variable a thousand characters wide.
-
 ## Get metadata values
 
 You can get the uncolored, Python values used in the composition of the version message from the context:
 
 ```{click:source}
-:emphasize-lines: 8-11
+:emphasize-lines: 8-10
 import click
 from click_extra import echo, pass_context, version_option
 
@@ -744,12 +717,10 @@ def version_metadata(ctx):
     version = ctx.meta["click_extra.version"]
     package_name = ctx.meta["click_extra.package_name"]
     prog_name = ctx.meta["click_extra.prog_name"]
-    env_info = ctx.meta["click_extra.env_info"]
 
     echo(f"version = {version}")
     echo(f"package_name = {package_name}")
     echo(f"prog_name = {prog_name}")
-    echo(f"env_info = {env_info}")
 ```
 
 ```{click:run}
@@ -764,16 +735,15 @@ assert re.fullmatch((
     r"version = 1.2.3\n"
     r"package_name = click_extra.sphinx\n"
     r"prog_name = version-metadata\n"
-    r"env_info = {'.+'}\n"
 ), result.output)
 ```
 
 ```{hint}
-These variables are presented in their original Python type. If most of these variables are strings, others like `env_info` retains their original `dict` type.
+These variables are presented in their original Python type: most are strings, `module` is the module object itself, and a field with nothing to report is `None`.
 ```
 
 ```{note}
-Metadata values in `ctx.meta` are **lazily evaluated**: a field like `env_info` or `git_long_hash` is only computed the first time you access it. If your command only reads `ctx.meta["click_extra.version"]`, the expensive Git subprocess calls and environment profiling are never executed.
+Metadata values in `ctx.meta` are **lazily evaluated**: a field like `git_long_hash` is only computed the first time you access it. If your command only reads `ctx.meta["click_extra.version"]`, the Git subprocess calls are never executed.
 ```
 
 ## Template rendering

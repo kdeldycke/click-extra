@@ -27,8 +27,8 @@ injects build-time constants (`BRANCH`, `SHORT_COMMIT`, `COMMIT_HASH`,
 `COMMIT_DATE`, `TAG`, ...) into Rust binaries at compile time. Its
 `BUILD_TIME`, `BUILD_OS` and `BUILD_TARGET` constants have counterparts here
 too, in {data}`click_extra.version.BUILD_RESOLVERS`: those describe the host
-that produced the binary, which neither the git fields nor `{env_info}` can
-answer once it is running somewhere else.
+that produced the binary, which neither the git fields nor the running
+interpreter can answer once it is running somewhere else.
 
 The module also reads a project's packaging metadata, to find the files to bake:
 {func}`read_project_scripts` lists its console scripts, and

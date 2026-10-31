@@ -14,13 +14,13 @@
 - **Breaking:** Remove the `CAPTURE_BACKGROUND`-style color constants of `screenshot_presets` and `myst_converter.FENCE_OPEN_RE`.
 - **Breaking:** Remove `click_extra.sphinx.alerts`. The `sphinx` extra now requires `myst-parser` 5.1, whose `alert` extension renders GitHub alerts.
 - **Breaking:** `ctx.meta["click_extra.conf_source"]` and the locations of `click_extra.conf_sources` hold a remote configuration's URL as a `str`, instead of a `boltons` `URL` object.
-- **Breaking:** `{env_info}` drops the fields `boltons` blanked to `-` (`username`, `guid`, `hostname`, `hostfqdn`, `cwd`, `python.argv`, `python.bin` and `uname.node`), `umask` and `_eco_version`. It gains `python.implementation`, and reads `linux_dist_name` and `linux_dist_version` from `os-release`.
+- **Breaking:** Remove the `{env_info}` version field, its `click_extra.env_info` context key and its JSON dump in `--verbosity DEBUG` logs. Append `env_summary()` to a version message for the interpreter and the platform in one line.
 - **Breaking:** A list two cascading configuration files both set resolves to the most local one, like every other value. The two used to be concatenated.
-- Drop the `boltons` dependency: the ANSI stripper, the version message parser, the environment profile and the configuration helpers use the standard library instead.
+- Drop the `boltons` dependency: the ANSI stripper, the version message parser and the configuration helpers use the standard library instead.
 - Drop the `deepmerge` dependency: configuration layers, dotted keys and parameter trees are merged in-house.
 - **Breaking:** Remove the `jsonc` extra and the `json-with-comments` dependency behind it: `JSONC` is now built in, its comments and trailing commas stripped in-house before `json` reads the file.
 - **Breaking:** Remove the `xml` extra and the `xmltodict` dependency behind it: `XML` is now built in, read with the standard library's `expat` parser and written in-house, with the same `@attribute`, `#text` and repeated-element conventions.
-- Add `strip_ansi()` to `click_extra.styling`, which removes every ANSI escape sequence from a string or bytes, and `environment_info()` and `template_segments()` to `click_extra.version`.
+- Add `strip_ansi()` to `click_extra.styling`, which removes every ANSI escape sequence from a string or bytes, and `template_segments()` to `click_extra.version`.
 - The `toml` extra installs `tomlrt` in place of `tomlkit` to write TOML configuration exports and tables.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.

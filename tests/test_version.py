@@ -21,7 +21,6 @@ import inspect
 import io
 import json
 import os
-import platform
 import re
 import shutil
 import subprocess
@@ -70,6 +69,7 @@ from click_extra.version import (
     colors_reach_output,
     default_facts,
     direct_url_field,
+    env_summary,
     find_archival_file,
     is_main_module,
     read_archival,
@@ -196,16 +196,6 @@ def test_version_option_conflicting_version():
             ),
         ),
         (
-            "{prog_name}, version {version}\n{env_info}",
-            (
-                r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
-                rf"version \x1b\[32m{_ver}"
-                r"\x1b\[0m\n"
-                r"\x1b\[90m{'.+'}"
-                r"\x1b\[0m\n"
-            ),
-        ),
-        (
             "{prog_name} v{version} - {package_name}",
             (
                 r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m "
@@ -216,11 +206,11 @@ def test_version_option_conflicting_version():
             ),
         ),
         (
-            "{prog_name}, version {version} (Python {env_info[python][version]})",
+            "{prog_name}, version {version} (from {module.__name__})",
             (
                 r"\x1b\[97m\x1b\[1mcolor-cli3\x1b\[0m, "
                 rf"version \x1b\[32m{_ver}\x1b\[0m "
-                r"\(Python \x1b\[90m3\.\d+\.\d+.+\x1b\[0m\)\n"
+                r"\(from [\w.]+\)\n"
             ),
         ),
     ),
@@ -345,7 +335,6 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
             r"build_target = None\n"
             r"build_target_arch = None\n"
             r"prog_name = version-metadata\n"
-            r"env_info = {'.+'}\n"
         ),
     )
     assert result.output == strip_ansi(result.output)
@@ -354,14 +343,12 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
     assert result.exit_code == 0
 
 
-def test_env_info_resolves_no_hostname(monkeypatch):
-    """The environment profile is built without resolving the host's name.
+def test_debug_version_run_resolves_no_host_name(invoke, monkeypatch):
+    """A `--verbosity DEBUG` run lists every version field without a DNS query.
 
-    A profile pasted into a bug report has no use for the host's name, and the
-    reverse DNS query behind it cost ~35 s per call on a GitHub macOS runner
-    whose resolver never answered, which made `--verbosity DEBUG` runs there
-    take over an hour. Nothing identifying the user, the host or the working
-    directory is looked up at all.
+    A reverse DNS query cost ~35 s per call on a GitHub macOS runner whose
+    resolver never answered, and the debug listing of the version fields once
+    made one per run, which took that test cell over an hour.
 
     Asserting on the calls rather than on a duration keeps the guard away from
     a timing threshold, which a loaded runner would flake on.
@@ -374,29 +361,21 @@ def test_env_info_resolves_no_hostname(monkeypatch):
         calls.append("getfqdn")
         return "resolved.example.com"
 
-    def record_hostname() -> str:
-        calls.append("gethostname")
-        return "resolved"
+    def record_addr(*args: object) -> tuple[str, list[str], list[str]]:
+        calls.append("gethostbyaddr")
+        return "resolved.example.com", [], []
 
     monkeypatch.setattr(socket, "getfqdn", record_fqdn)
-    monkeypatch.setattr(socket, "gethostname", record_hostname)
+    monkeypatch.setattr(socket, "gethostbyaddr", record_addr)
 
     @command
-    @version_option()
     def forecast():
         """Report the weather."""
 
-    option = next(p for p in forecast.params if isinstance(p, VersionOption))
-    profile = option.env_info
-
+    result = invoke(forecast, "--verbosity", "DEBUG", "--version")
+    assert result.exit_code == 0
+    assert "Version string template variables:" in result.stderr
     assert calls == []
-    assert not {"username", "guid", "hostname", "hostfqdn", "cwd"} & profile.keys()
-    assert "node" not in profile["uname"]
-    assert not {"argv", "bin"} & profile["python"].keys()
-    assert profile["python"]["version"].startswith(platform.python_version())
-    assert profile["uname"]["system"] == platform.system()
-    # The whole profile is what a `--verbosity DEBUG` run dumps as JSON.
-    assert json.loads(json.dumps(profile)) == profile
 
 
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
@@ -404,8 +383,8 @@ def test_context_meta_laziness(invoke, cmd_decorator):
     """Accessing a single field from ``ctx.meta`` must not evaluate unrelated fields.
 
     Ensures that the ``_LazyVersionDict`` defers property evaluation: reading
-    ``click_extra.version`` should not trigger expensive properties like
-    ``env_info`` or git fields.
+    ``click_extra.version`` should not trigger expensive properties like the git
+    fields.
     """
 
     @cmd_decorator
@@ -422,7 +401,6 @@ def test_context_meta_laziness(invoke, cmd_decorator):
     # Retrieve the VersionOption instance from the command.
     version_param = next(p for p in lazy_cli.params if isinstance(p, VersionOption))
     # Fields that were never accessed should NOT have been cached.
-    assert "env_info" not in version_param.__dict__
     assert "git_date" not in version_param.__dict__
     assert "git_long_hash" not in version_param.__dict__
 
@@ -1807,6 +1785,12 @@ def test_screen_facts_replace_a_default_row_in_place():
     facts = default_facts() | {"Platform": "Pinball", "Docs": "https://example.com"}
     assert list(facts) == ["Python", "Platform", "Docs"]
     assert facts["Platform"] == "Pinball"
+
+
+def test_env_summary_joins_the_default_facts():
+    """The one-line summary says what the version screen's default rows say."""
+    facts = default_facts()
+    assert env_summary() == f"Python {facts['Python']}, {facts['Platform']}"
 
 
 def test_screen_declines_when_too_narrow(terminal_width):

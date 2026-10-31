@@ -512,9 +512,6 @@ default_debug_uncolored_version_details = (
     r"debug: {build_target}     : \S+\n"
     r"debug: {build_target_arch}: .+\n"
     r"debug: {prog_name}        : \S+\n"
-    r"debug: {env_info}         :\n"
-    # The nested profile is dumped as indented JSON, one log line per JSON line.
-    r"(?:debug:   .+\n)+"
 )
 default_debug_colored_version_details = (
     r"\x1b\[34mdebug\x1b\[0m: Version string template variables:\n"
@@ -542,8 +539,6 @@ default_debug_colored_version_details = (
     r"\x1b\[34mdebug\x1b\[0m: {build_target}     : \x1b\[90m\S+\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {build_target_arch}: \x1b\[90m.+\x1b\[0m\n"
     r"\x1b\[34mdebug\x1b\[0m: {prog_name}        : \x1b\[97m\S+\x1b\[0m\n"
-    r"\x1b\[34mdebug\x1b\[0m: {env_info}         :\n"
-    r"(?:\x1b\[34mdebug\x1b\[0m: \x1b\[90m  .+\x1b\[0m\n)+"
 )
 
 
