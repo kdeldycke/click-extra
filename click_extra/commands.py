@@ -56,6 +56,7 @@ from .execution import (
 )
 from .highlight import HelpKeywords, _HelpColorsMixin, highlight
 from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
+from .output import force_unicode_output
 from .parameters import (
     ExtraOption,
     ShowParamsOption,
@@ -774,7 +775,13 @@ class Command(  # type: ignore[misc]
         with it, a run that fails while parsing included: the log handler they
         attach to the `root` logger, the levels the verbosity options set, and the
         color the color options publish. See `click_extra.context._scoped_run`.
+
+        A standard stream that cannot encode Unicode is switched to UTF-8 before
+        anything prints, and stays so: see
+        {func}`~click_extra.output.force_unicode_output`.
         """
+        force_unicode_output()
+
         if not prog_name and self.name:
             prog_name = self.name
 

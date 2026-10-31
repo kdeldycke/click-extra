@@ -254,7 +254,7 @@ from .myst_converter import (
     convert_source,
     detect_source_package,
 )
-from .output import STDOUT_SENTINEL, is_stdout, prep_path
+from .output import STDOUT_SENTINEL, force_unicode_output, is_stdout, prep_path
 from .parameters import (
     Argument,
     ExtraOption,
@@ -494,6 +494,7 @@ __all__ = [
     "field_docstrings",
     "file_path",
     "flatten_config_keys",
+    "force_unicode_output",
     "format_cli_prompt",
     "format_duration",
     "format_filename",

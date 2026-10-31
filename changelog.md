@@ -23,6 +23,7 @@
 - Add `strip_ansi()` to `click_extra.styling`, which removes every ANSI escape sequence from a string or bytes, and `template_segments()` to `click_extra.version`.
 - Add a `config_cascade` argument to `@command` and `@group`, which turns on the cascade of the default `--config` option without replacing it.
 - Draw the `Config file` column of `--params` by default when the `--config` option cascades.
+- Switch a standard stream that does not speak UTF-8 to UTF-8 as a command starts, so redirected tables stop crashing on legacy Windows code pages.
 - The `toml` extra installs `tomlrt` in place of `tomlkit` to write TOML configuration exports and tables.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.
