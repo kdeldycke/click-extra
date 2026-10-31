@@ -616,7 +616,15 @@ def _release_invocation_handler(token: object) -> None:
     the middle of any call, the start of another run included. No lock guards
     against that: a finalizer waiting for a lock its own thread holds never gets
     it. Each step below is a single operation of a set or of a dict instead, in
-    an order that leaves a run starting at that moment with its handler.
+    an order that leaves a run starting at that moment with its handler. Only the
+    lock of {mod}`logging` is taken, as `removeHandler` does: its own thread can
+    take it again.
+
+    The middle of any call includes {meth}`logging.Logger.callHandlers`, looping
+    over the handlers of the `root` logger. The handler so leaves a copy of that
+    list, which the loop does not see: taken out of the list itself, it would make
+    the loop skip the handler after it, as `removeHandler` does on Python versions
+    without [python/cpython#79366](https://github.com/python/cpython/issues/79366).
     """
     _INVOCATION_HOLDERS.discard(token)
     if _INVOCATION_HOLDERS:
@@ -632,7 +640,11 @@ def _release_invocation_handler(token: object) -> None:
         and _INVOCATION_HANDLERS.setdefault(root.name, handler) is handler
     ):
         return
-    root.removeHandler(handler)
+    with logging._lock:  # type: ignore[attr-defined]
+        handlers = root.handlers.copy()
+        if handler in handlers:
+            handlers.remove(handler)
+            root.handlers = handlers
     handler.close()
 
 

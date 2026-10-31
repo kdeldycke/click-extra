@@ -31,6 +31,7 @@
 - Fix the truncation marker of a capture taking on a style the cut left open, which underlined part of the rule.
 - Fix `--version` printing Click Extra's version for a CLI started with no frame under it, like from an `atexit` hook or a C host.
 - Fix `--version` printing `None` for a CLI started from a thread or an executor, like with `threading.Thread(target=cli.main)`.
+- Fix a log record skipping a handler of the `root` logger when Python collected the context of a failed run while handling it.
 
 ## [`9.5.1` (2026-10-27)](https://github.com/kdeldycke/click-extra/compare/v9.5.0...v9.5.1)
 

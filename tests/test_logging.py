@@ -1072,6 +1072,53 @@ def test_run_keeps_its_handler_when_a_failed_run_is_collected(invoke, app_handle
     assert root.handlers == handlers
 
 
+def test_failed_run_collected_while_a_record_is_handled(invoke, restored_root_logger):
+    """The context of a failed run may be collected while the `root` logger hands
+    a record to its handlers: the handlers after the one of that run still get it.
+    """
+    contexts = []
+
+    def keep_context(ctx, param, value):
+        contexts.append(ctx)
+
+    @click.command
+    @verbosity_option
+    @click.option(
+        "--keep",
+        is_flag=True,
+        is_eager=True,
+        expose_value=False,
+        callback=keep_context,
+    )
+    @click.option("--baskets", type=int, expose_value=False)
+    def orchard():
+        pass
+
+    # The failed run keeps its handler on the root logger, as long as its
+    # context lives.
+    failed = invoke(orchard, "--baskets", "many", color=False)
+    assert failed.exit_code == 2
+    del failed
+    held = len(_INVOCATION_HOLDERS)
+
+    class CollectingHandler(logging.Handler):
+        """Lets the context of the failed run go, and collects it."""
+
+        def emit(self, record):
+            contexts.clear()
+            gc.collect()
+
+    late = RecordingHandler()
+    restored_root_logger.addHandler(CollectingHandler())
+    restored_root_logger.addHandler(late)
+
+    logging.getLogger("orchard").warning("figs are ripe")
+
+    # The failed run let go of its handler in the middle of the record.
+    assert len(_INVOCATION_HOLDERS) == held - 1
+    assert late.messages == ["figs are ripe"]
+
+
 @pytest.mark.parametrize(
     "inner_args",
     (
