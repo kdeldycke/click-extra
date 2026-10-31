@@ -438,11 +438,11 @@ class ClickRunner(CliRunner):
         """Echo a `^D` marker at the end of the isolated stdin.
 
         ```{todo}
-        Declare {class}`TerminatedEchoingStdin` instead of rewriting the
-        `__class__` of the instance Click already built. That needs Click to
-        make `EchoingStdin` overridable: an `echo_stdin_class` attribute on
-        {class}`click.testing.CliRunner`, say, that `isolation()` instantiates
-        rather than hard-coding. Worth proposing upstream.
+        Delete {class}`TerminatedEchoingStdin` and this override once the Click
+        floor reaches the release that ships
+        [pallets/click#3878](https://github.com/pallets/click/pull/3878), targeted
+        at `8.6.0`: `CliRunner(echo_stdin=True)` then echoes the EOT byte as `^D`
+        itself.
         ```
         """
         iso = super().isolation(*args, **kwargs)
