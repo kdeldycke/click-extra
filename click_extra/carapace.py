@@ -60,6 +60,7 @@ constraint is dropped for want of anywhere to put it.
 from __future__ import annotations
 
 import os
+import posixpath
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -133,6 +134,39 @@ def xdg_dir(variable: str, fallback: str | Path, *parts: str) -> Path:
     if base:
         return Path(base).expanduser().joinpath(*parts)
     return Path(fallback).expanduser()
+
+
+def get_cache_dir(app_name: str) -> Path:
+    r"""The user cache directory of `app_name`, resolved at call time.
+
+    The cache counterpart of {func}`click.get_app_dir`, which locates the
+    configuration directory:
+
+    - Windows: `%LOCALAPPDATA%\<app_name>\Cache`.
+    - macOS: `$XDG_CACHE_HOME/<app_name>`, else `~/Library/Caches/<app_name>`.
+    - Linux and other POSIX systems: `$XDG_CACHE_HOME/<app_name>`, else
+      `~/.cache/<app_name>`.
+
+    A user who sets `XDG_CACHE_HOME` asks every tool to keep its cache there,
+    macOS included. Unlike {func}`xdg_dir`, a relative value is ignored, as the
+    XDG specification says: a cache must not move with the working directory.
+    """
+    # Deferred import: keeps extra_platforms off the startup path of every CLI.
+    from extra_platforms import is_macos, is_windows
+
+    if is_windows():
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            return Path(local_app_data, app_name, "Cache")
+        return Path.home().joinpath("AppData", "Local", app_name, "Cache")
+    # XDG paths are POSIX paths, so posixpath checks them the same way on every
+    # host.
+    xdg_cache_home = os.environ.get("XDG_CACHE_HOME", "").strip()
+    if posixpath.isabs(xdg_cache_home):
+        return Path(xdg_cache_home, app_name)
+    if is_macos():
+        return Path.home().joinpath("Library", "Caches", app_name)
+    return Path.home().joinpath(".cache", app_name)
 
 
 def _require_yaml() -> ModuleType:

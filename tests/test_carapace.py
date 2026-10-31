@@ -46,6 +46,7 @@ from click_extra.carapace import (
     _flag_key,
     _flag_name,
     dump_carapace_spec,
+    get_cache_dir,
     install_carapace_spec,
     to_carapace_spec,
     xdg_dir,
@@ -704,6 +705,71 @@ def test_xdg_dir_resolves_at_call_time(tmp_path, monkeypatch, environ, expected)
         "XDG_CONFIG_HOME", "~/.config/carapace/specs", "carapace", "specs"
     )
     assert resolved == Path(expected.format(tmp=tmp_path))
+
+
+@pytest.mark.parametrize(
+    ("platform_id", "environ", "expected"),
+    (
+        pytest.param("macos", {}, "/home/fig/Library/Caches/plum", id="macos"),
+        pytest.param(
+            "macos",
+            {"XDG_CACHE_HOME": "/orchard/cache"},
+            "/orchard/cache/plum",
+            id="macos-xdg",
+        ),
+        pytest.param("linux", {}, "/home/fig/.cache/plum", id="linux"),
+        pytest.param(
+            "linux",
+            {"XDG_CACHE_HOME": "  /orchard/cache/  "},
+            "/orchard/cache/plum",
+            id="linux-xdg-padded",
+        ),
+        # The XDG specification says to ignore a relative path.
+        pytest.param(
+            "macos",
+            {"XDG_CACHE_HOME": "orchard/cache"},
+            "/home/fig/Library/Caches/plum",
+            id="macos-xdg-relative",
+        ),
+        pytest.param(
+            "linux",
+            {"XDG_CACHE_HOME": "~/cache"},
+            "/home/fig/.cache/plum",
+            id="linux-xdg-tilde",
+        ),
+        pytest.param(
+            "linux",
+            {"XDG_CACHE_HOME": "   "},
+            "/home/fig/.cache/plum",
+            id="linux-xdg-blank",
+        ),
+        pytest.param(
+            "windows",
+            {"LOCALAPPDATA": "/orchard/local", "XDG_CACHE_HOME": "/orchard/cache"},
+            "/orchard/local/plum/Cache",
+            id="windows",
+        ),
+        pytest.param(
+            "windows",
+            {},
+            "/home/fig/AppData/Local/plum/Cache",
+            id="windows-no-localappdata",
+        ),
+    ),
+)
+def test_get_cache_dir(monkeypatch, platform_id, environ, expected):
+    """An absolute `XDG_CACHE_HOME` comes first, except on Windows."""
+    monkeypatch.setattr("extra_platforms.is_macos", lambda: platform_id == "macos")
+    monkeypatch.setattr("extra_platforms.is_windows", lambda: platform_id == "windows")
+    for name in ("LOCALAPPDATA", "XDG_CACHE_HOME"):
+        monkeypatch.delenv(name, raising=False)
+    # Path.home() reads HOME on POSIX and USERPROFILE on Windows.
+    monkeypatch.setenv("HOME", "/home/fig")
+    monkeypatch.setenv("USERPROFILE", "/home/fig")
+    for name, value in environ.items():
+        monkeypatch.setenv(name, value)
+
+    assert get_cache_dir("plum") == Path(expected)
 
 
 def test_carapace_specs_dir_is_expanded():
