@@ -1223,7 +1223,10 @@ class VersionOption(ExtraOption):
         Inspects the execution stack frames to find the package in which the user's CLI
         is implemented.
 
-        Returns the frame itself.
+        Returns the frame itself. When every frame belongs to the Click ecosystem
+        and none is an entry point, returns the outermost frame, which has no
+        caller: {attr}`module` then defers to the module of the root command's
+        callback.
         """
         # Keep a list of all frames inspected for debugging.
         frame_chain: list[tuple[str | None, str]] = []
@@ -1278,18 +1281,15 @@ class VersionOption(ExtraOption):
 
         # Our heuristics to locate the CLI implementation failed: every frame
         # belongs to the Click ecosystem, and none is an entry point. Fall back to
-        # the outermost frame in the stack.
+        # the outermost frame in the stack, the last one the walk visited.
         count_size = len(str(len(frame_chain)))
         for counter, (p_name, f_name) in enumerate(frame_chain):
             logger.debug(f"Frame {counter:<{count_size}} # {p_name}:{f_name}")
-
-        # The outermost frame is the last one returned by inspect.stack().
-        outermost = inspect.stack(0)[-1].frame
         logger.debug(
             "cli_frame heuristics exhausted, falling back to outermost frame: "
-            f"{outermost.f_globals.get('__name__')}:{outermost.f_code.co_name}"
+            f"{frame.f_globals.get('__name__')}:{frame.f_code.co_name}"
         )
-        return outermost
+        return frame
 
     @staticmethod
     def command_module(ctx: click.Context) -> ModuleType | None:
@@ -1348,9 +1348,14 @@ class VersionOption(ExtraOption):
         # invoked an imported command. Both halves of that test matter. A runner
         # living in a real distribution (`click.testing`, `click_extra.testing`)
         # still answers as it always has, which is what a CLI declared in the
-        # module driving the runner relies on. Only a runner under a subpackage
-        # that resolves to nothing (`click_extra.sphinx`, which the `click:run`
-        # directive invokes through) reaches the fallback.
+        # module driving the runner relies on. Among runners, only one under a
+        # subpackage that resolves to nothing (`click_extra.sphinx`, which the
+        # `click:run` directive invokes through) reaches the fallback.
+        #
+        # Ecosystem plumbing with no caller is deferred whatever its distribution:
+        # the walk ran out of frames and fell back to the outermost one. That is
+        # the `main()` of a CLI started with no frame under it, like the target of
+        # `_thread.start_new_thread()`, an `atexit` hook or a call from a C host.
         #
         # An entry point with a package is never deferred. The distribution test
         # cannot see it: a Nuitka binary ships no metadata at all, so
@@ -1363,7 +1368,7 @@ class VersionOption(ExtraOption):
         plumbing = (
             not is_main_module(module.__name__)
             and module.__name__.split(".", 1)[0] in _CLI_ECOSYSTEM_PACKAGES
-            and distribution_of(module.__package__) is None
+            and (frame.f_back is None or distribution_of(module.__package__) is None)
         )
         if launcher or plumbing:
             ctx = click.get_current_context(silent=True)

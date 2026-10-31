@@ -660,9 +660,10 @@ def test_cli_frame_fallback(monkeypatch):
     monkeypatch.setattr(inspect, "stack", patched_stack)
 
     try:
-        # Should not raise RuntimeError; instead falls back to outermost frame.
+        # Should not raise RuntimeError; instead falls back to outermost frame,
+        # which has no caller: `module` reads that as a walk that ran out.
         frame = VersionOption.cli_frame()
-        assert frame is not None
+        assert frame.f_back is None
     finally:
         for frame_globals, original in saved_names.values():
             if original is missing:
@@ -833,12 +834,34 @@ def test_nuitka_runner_resolves_the_entry_point_version(tmp_path, module, functi
     assert outputs[0] == outputs[1]
 
 
-def test_nuitka_runner_of_a_package_without_metadata(tmp_path):
-    """A binary whose entry point is a command object reads its package version.
+@pytest.mark.parametrize(
+    "runner_source",
+    (
+        pytest.param(
+            NUITKA_RUNNER.format(module="orchard.cli", function="cli"),
+            id="nuitka_runner",
+        ),
+        pytest.param(
+            dedent("""\
+                import atexit
 
-    The runner imports a package no distribution provides, as in a compiled
-    binary, so the version can only come from the `__version__` of its
-    `__init__.py`.
+                from orchard.cli import cli
+
+                atexit.register(cli.main, ["--version"], standalone_mode=False)
+                """),
+            id="atexit_hook",
+        ),
+    ),
+)
+def test_package_version_without_a_cli_frame(tmp_path, runner_source):
+    """A CLI reads its package version when no frame of its module is on the stack.
+
+    No distribution provides the package, as in a compiled binary, so the version
+    can only come from the `__version__` of its `__init__.py`. The runner Nuitka
+    compiles calls the command object from a packageless `__main__`. An `atexit`
+    hook calls it once the main module has left the stack, like the target of
+    `_thread.start_new_thread()` or a call from a C host: the walk then sees only
+    the Click ecosystem, and falls back to the `main()` of the command.
     """
     package = tmp_path / "orchard"
     package.mkdir()
@@ -855,9 +878,7 @@ def test_nuitka_runner_of_a_package_without_metadata(tmp_path):
         encoding="UTF-8",
     )
     runner = tmp_path / "orchard-runner.py"
-    runner.write_text(
-        NUITKA_RUNNER.format(module="orchard.cli", function="cli"), encoding="UTF-8"
-    )
+    runner.write_text(runner_source, encoding="UTF-8")
 
     result = subprocess.run(
         [sys.executable, str(runner), "--version"],

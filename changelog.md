@@ -29,6 +29,7 @@
 - Draw the `auto` truncation rule of a capture across the whole window, instead of the width of the lines it kept.
 - Fix the `auto` truncation rule of a capture spanning a line wider than `--columns`, which wrapped it onto a second row.
 - Fix the truncation marker of a capture taking on a style the cut left open, which underlined part of the rule.
+- Fix `--version` printing Click Extra's version for a CLI started with no frame under it, like from an `atexit` hook or a C host.
 
 ## [`9.5.1` (2026-10-27)](https://github.com/kdeldycke/click-extra/compare/v9.5.0...v9.5.1)
 
