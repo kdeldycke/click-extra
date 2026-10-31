@@ -1,5 +1,10 @@
 # Changelog
 
+## [`10.0.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.0.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`10.0.0` (2026-10-31)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...v10.0.0)
 
 - **Breaking:** Drop Python 3.10, past its end of life: click-extra now requires Python 3.11 or newer.
