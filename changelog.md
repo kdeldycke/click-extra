@@ -1,9 +1,11 @@
 # Changelog
 
-## [`10.0.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...main)
+## [`10.0.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.0.0...main)
 
 > [!WARNING]
 > This version is **not released yet** and is under active development.
+
+## [`10.0.0` (2026-10-31)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...v10.0.0)
 
 - **Breaking:** Drop Python 3.10, past its end of life: click-extra now requires Python 3.11 or newer.
 - **Breaking:** Remove the module aliases deprecated in `9.x`, like `theme.nocolor_theme` and `table.select_columns`. Import each name from the module its warning named.
