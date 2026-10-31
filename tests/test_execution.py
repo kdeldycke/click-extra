@@ -28,6 +28,7 @@ import signal
 import subprocess
 import sys
 import threading
+from concurrent.futures import Future
 from pathlib import Path
 from textwrap import dedent
 from time import monotonic, sleep
@@ -71,10 +72,12 @@ from click_extra.execution import (
     DEFAULT_JOBS,
     PROMPT,
     _descendant_pids,
+    _die_by_sigint,
     _escaped_process_groups,
     _logical_cpu_count,
     _parse_proc_stat,
     _posix_process_table,
+    _wait_result,
     install_interrupt_handler,
     terminate_live_processes,
 )
@@ -622,6 +625,62 @@ def test_interrupt_tripped_as_the_wait_began_is_handled_promptly(run):
         assert monotonic() - start < 2
     finally:
         release.set()
+
+
+@pytest.mark.parametrize(
+    ("context", "expected"),
+    (
+        pytest.param(KeyboardInterrupt(), KeyboardInterrupt, id="interrupted"),
+        pytest.param(None, RuntimeError, id="unrelated"),
+    ),
+)
+def test_wait_result_raises_the_interrupt_a_lock_error_replaced(
+    monkeypatch, context, expected
+):
+    """A `RuntimeError` the wait raises in place of a Ctrl+C becomes the Ctrl+C again.
+
+    A free-threaded CPython can raise the interrupt between the wait and the lock it
+    takes back, then fail to release it, as python/cpython#118433 reports. Any other
+    `RuntimeError` of the wait stays as it is.
+    """
+
+    def failing_wait(*args, **kwargs):
+        error = RuntimeError("release unlocked lock")
+        error.__context__ = context
+        raise error
+
+    monkeypatch.setattr("concurrent.futures.wait", failing_wait)
+    with pytest.raises(expected):
+        _wait_result(Future())
+
+
+def test_die_by_sigint_skips_a_stream_refusing_a_reentrant_flush(monkeypatch):
+    """The process still dies when a stream is mid-write in the interrupted code.
+
+    The handler of a second Ctrl+C can run inside a write to `stderr`, whose buffer
+    then refuses the flush with a `RuntimeError`.
+    """
+
+    class BusyStream:
+        def flush(self):
+            raise RuntimeError("reentrant call inside <_io.BufferedWriter>")
+
+    class Exited(Exception):
+        pass
+
+    def fake_exit(code):
+        raise Exited(code)
+
+    signals = []
+    monkeypatch.setattr("sys.stdout", BusyStream())
+    monkeypatch.setattr("sys.stderr", BusyStream())
+    monkeypatch.setattr("signal.signal", lambda *args: None)
+    monkeypatch.setattr("os.kill", lambda pid, signum: signals.append(signum))
+    monkeypatch.setattr("os._exit", fake_exit)
+
+    with pytest.raises(Exited):
+        _die_by_sigint()
+    assert signals == ([] if is_windows() else [signal.SIGINT])
 
 
 def test_run_jobs_reports_a_task_timeout_error():

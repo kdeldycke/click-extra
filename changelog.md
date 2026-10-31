@@ -36,6 +36,8 @@
 - Fix `--version` printing Click Extra's version for a CLI started with no frame under it, like from an `atexit` hook or a C host.
 - Fix `--version` printing `None` for a CLI started from a thread or an executor, like with `threading.Thread(target=cli.main)`.
 - Fix a log record skipping a handler of the `root` logger when Python collected the context of a failed run while handling it.
+- Fix a second Ctrl+C landing while the run prints its wait notice, which raised a reentrant `RuntimeError` on `stderr` instead of quitting.
+- Raise a Ctrl+C that a free-threaded Python turns into `RuntimeError: release unlocked lock` within `run_jobs()` or `run_lanes()` as the interrupt again.
 
 ## [`9.5.1` (2026-10-27)](https://github.com/kdeldycke/click-extra/compare/v9.5.0...v9.5.1)
 

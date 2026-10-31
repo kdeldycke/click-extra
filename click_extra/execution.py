@@ -29,6 +29,13 @@ and {func}`terminate_live_processes` make Ctrl+C abort in-flight children
 cleanly. {func}`args_cleanup` and {func}`format_cli_prompt` are the shared
 serialization and disclosure atoms both altitudes (and
 {mod}`click_extra.testing`) build upon.
+
+```{todo}
+Stop turning a {exc}`RuntimeError` of the wait in `_wait_result()` back into the
+{exc}`KeyboardInterrupt` it replaced, once
+[python/cpython#118433](https://github.com/python/cpython/issues/118433) is fixed
+in every free-threaded Python Click Extra supports.
+```
 """
 
 from __future__ import annotations
@@ -454,12 +461,23 @@ def _wait_result(future: Future[R]) -> R:
     The future is read once it is done, never with a timeout of its own. A timed
     read that runs out raises the {exc}`TimeoutError` a task may raise itself,
     like a {exc}`socket.timeout`, and the two could not be told apart.
+
+    A free-threaded CPython can raise the Ctrl+C after the wait releases its lock
+    and before it takes the lock back, then fail to release a lock it no longer
+    holds: the {exc}`KeyboardInterrupt` comes out as a {exc}`RuntimeError`
+    ([python/cpython#118433](https://github.com/python/cpython/issues/118433)).
+    The interrupt is raised again in its place.
     """
     # Deferred import: keeps concurrent.futures off the startup path of every CLI.
     from concurrent.futures import wait
 
     while not future.done():
-        wait((future,), timeout=_JOIN_POLL)
+        try:
+            wait((future,), timeout=_JOIN_POLL)
+        except RuntimeError as exc:
+            if isinstance(exc.__context__, KeyboardInterrupt):
+                raise exc.__context__ from None
+            raise
     return future.result()
 
 
@@ -1352,12 +1370,17 @@ def _die_by_sigint() -> NoReturn:
     handled the interrupt itself, and the loop goes on. On Windows, exits with
     {data}`_STATUS_CONTROL_C_EXIT`. Skips every clean-up but flushing the
     standard streams.
+
+    Called from the handler of a second Ctrl+C, it can run while the interrupted
+    code is writing to one of those streams: Python then refuses the flush as a
+    reentrant call, with a {exc}`RuntimeError`, and the stream is left as is.
     """
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.flush()
-        except (OSError, ValueError):
-            # A closed or broken stream has nothing left to flush.
+        except (OSError, RuntimeError, ValueError):
+            # A closed or broken stream has nothing left to flush, and one the
+            # interrupted code is writing to refuses a reentrant flush.
             pass
     if not is_windows():
         signal.signal(signal.SIGINT, signal.SIG_DFL)
