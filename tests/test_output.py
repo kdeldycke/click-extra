@@ -136,9 +136,13 @@ def test_a_stream_without_reconfigure_is_skipped(monkeypatch) -> None:
 
 
 def test_command_prints_glyphs_to_a_legacy_stream(monkeypatch) -> None:
-    """A command prints a glyph to a `cp1252` stream instead of crashing on it."""
-    stdout = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
-    stderr = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+    """A command prints a glyph to a `cp1252` stream instead of crashing on it.
+
+    The streams keep `\\n` as written: the default would turn it into `\\r\\n` on
+    Windows.
+    """
+    stdout = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", newline="\n")
+    stderr = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", newline="\n")
     monkeypatch.setattr("sys.stdout", stdout)
     monkeypatch.setattr("sys.stderr", stderr)
 
