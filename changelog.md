@@ -21,7 +21,7 @@
 - **Breaking:** Remove the `jsonc` extra and the `json-with-comments` dependency behind it: `JSONC` is now built in, its comments and trailing commas stripped in-house before `json` reads the file.
 - **Breaking:** Remove the `xml` extra and the `xmltodict` dependency behind it: `XML` is now built in, read with the standard library's `expat` parser and written in-house, with the same `@attribute`, `#text` and repeated-element conventions.
 - Add `strip_ansi()` to `click_extra.styling`, which removes every ANSI escape sequence from a string or bytes, and `template_segments()` to `click_extra.version`.
-- Add `get_cache_dir()` to `click_extra.carapace`, which locates the user cache directory of a CLI on Windows, macOS and other POSIX systems.
+- Add `get_cache_dir()`, which locates the user cache directory of a CLI, and export it with `xdg_dir()` from the package root.
 - Add a `config_cascade` argument to `@command` and `@group`, which turns on the cascade of the default `--config` option without replacing it.
 - Draw the `Config file` column of `--params` by default when the `--config` option cascades.
 - Switch a standard stream that does not speak UTF-8 to UTF-8 as a command starts, so redirected tables stop crashing on legacy Windows code pages.

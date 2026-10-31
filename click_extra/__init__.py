@@ -115,6 +115,7 @@ from . import (
     context,
 )
 from .accessibility import AccessibleOption, clear, echo_via_pager
+from .carapace import get_cache_dir, xdg_dir
 from .color import (
     ColorOption,
     NoColorOption,
@@ -505,6 +506,7 @@ __all__ = [
     "format_size",
     "get_app_dir",
     "get_binary_stream",
+    "get_cache_dir",
     "get_current_context",
     "get_current_theme",
     "get_default_theme",
@@ -599,6 +601,7 @@ __all__ = [
     "wrap_ansi",
     "wrap_text",
     "write_manpages",
+    "xdg_dir",
     "zero_exit_option",
 ]
 """Expose all of Click, Cloup and Click Extra.
