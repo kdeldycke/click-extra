@@ -742,7 +742,6 @@ minimum-release-age = "7 days"
 # command embeds click_extra.test_suite, whose click.testing import chains
 # into pdb and asyncio. Pin the exclusions to the bare tkinter default so a
 # leaner repomatic default never strips the debugger stack this binary needs.
-# Read by repomatic >= 7.4.0; earlier releases warn on the unknown key.
 nuitka.nofollow-imports = [ "tkinter" ]
 # Full test matrix (24 jobs; runs on push-to-main and the monthly schedule,
 # never on PRs). It composes from two parts: a shipped cross-product for
