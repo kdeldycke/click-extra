@@ -36,6 +36,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import logging
+import re
 import tomllib
 from enum import Enum
 from fnmatch import fnmatch
@@ -53,7 +54,6 @@ _OPTIONAL_PARSERS: tuple[tuple[str, str, str], ...] = (
     # (import module name, click-extra[extra] name, display label).
     ("yaml", "yaml", "YAML"),
     ("json5", "json5", "JSON5"),
-    ("jsonc", "jsonc", "JSONC"),
     ("hjson", "hjson", "Hjson"),
     ("xmltodict", "xml", "XML"),
 )
@@ -145,7 +145,7 @@ class ConfigFormat(Enum):
         "JSON5",
         ("application/json5",),
     )
-    JSONC = (("*.jsonc",), PARSER_SUPPORT["jsonc"], "JSONC", ("application/jsonc",))
+    JSONC = (("*.jsonc",), True, "JSONC", ("application/jsonc",))
     HJSON = (("*.hjson",), PARSER_SUPPORT["hjson"], "Hjson", ("application/hjson",))
     INI = (("*.ini",), True, "INI", ())
     XML = (("*.xml",), PARSER_SUPPORT["xml"], "XML", ("application/xml", "text/xml"))
@@ -211,6 +211,34 @@ def _toml_ready(data: Any) -> Any:
     return data
 
 
+_JSONC_COMMENT_RE = re.compile(r'("(?:\\.|[^"\\])*")|//[^\n]*|/\*.*?\*/', re.DOTALL)
+"""Match a JSON string, kept, or a `//` line or `/* */` block comment, dropped."""
+
+_JSONC_TRAILING_COMMA_RE = re.compile(r'("(?:\\.|[^"\\])*")|,(\s*[}\]])')
+"""Match a JSON string, kept, or the comma closing an object or an array, dropped."""
+
+
+def parse_jsonc(content: str) -> Any:
+    """Read a JSONC document: JSON with comments and trailing commas.
+
+    The comments are blanked and the trailing commas removed before {mod}`json`
+    reads the rest, so an error it raises still names the line it sits on. A
+    string keeps its content whole: a `//` or a comma inside it is not syntax.
+    """
+
+    def blank_comment(match: re.Match[str]) -> str:
+        if match.group(1) is not None:
+            return match.group(1)
+        return "\n" * match.group().count("\n")
+
+    content = _JSONC_COMMENT_RE.sub(blank_comment, content)
+    content = _JSONC_TRAILING_COMMA_RE.sub(
+        lambda match: match.group(1) if match.group(1) is not None else match.group(2),
+        content,
+    )
+    return json.loads(content)
+
+
 def parse_content(fmt: ConfigFormat, content: str) -> Any:
     """Parse content with a single stateless format.
 
@@ -250,9 +278,7 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
             return json5.loads(content)
 
         case ConfigFormat.JSONC:
-            import jsonc
-
-            return jsonc.loads(content)
+            return parse_jsonc(content)
 
         case ConfigFormat.HJSON:
             import hjson

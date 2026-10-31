@@ -266,11 +266,6 @@ By default, Click Extra supports TOML [configuration files](config-formats.md#to
     $ uv pip install click-extra[json5]
     ```
   - - [JSON5](config-formats.md#json5) config files: `--config app.json5`
-* - `jsonc`
-  - ```{code-block} shell-session
-    $ uv pip install click-extra[jsonc]
-    ```
-  - - [JSONC](config-formats.md#jsonc) config files: `--config app.jsonc`
 * - `toml`
   - ```{code-block} shell-session
     $ uv pip install click-extra[toml]

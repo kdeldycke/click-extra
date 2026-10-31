@@ -18,6 +18,7 @@
 - **Breaking:** A list two cascading configuration files both set resolves to the most local one, like every other value. The two used to be concatenated.
 - Drop the `boltons` dependency: the ANSI stripper, the version message parser, the environment profile and the configuration helpers use the standard library instead.
 - Drop the `deepmerge` dependency: configuration layers, dotted keys and parameter trees are merged in-house.
+- **Breaking:** Remove the `jsonc` extra and the `json-with-comments` dependency behind it: `JSONC` is now built in, its comments and trailing commas stripped in-house before `json` reads the file.
 - Add `strip_ansi()` to `click_extra.styling`, which removes every ANSI escape sequence from a string or bytes, and `environment_info()` and `template_segments()` to `click_extra.version`.
 - The `toml` extra installs `tomlrt` in place of `tomlkit` to write TOML configuration exports and tables.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.

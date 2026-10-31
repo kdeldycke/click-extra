@@ -107,7 +107,7 @@ dependencies = [
 optional-dependencies.all = [
   # Aggregate extra: pulls in every optional feature at once. Self-references the
   # package so the version pins stay defined once, in the extras below.
-  "click-extra[carapace,hjson,json5,jsonc,mkdocs,pygments,pytest,sphinx,toml,xml,yaml]",
+  "click-extra[carapace,hjson,json5,mkdocs,pygments,pytest,sphinx,toml,xml,yaml]",
 ]
 optional-dependencies.carapace = [
   # PyYAML serializes the Carapace completion spec (carapace.dump_carapace_spec).
@@ -121,10 +121,6 @@ optional-dependencies.hjson = [
 optional-dependencies.json5 = [
   # json5.loads() for JSON5 config parsing.
   "json5>=0.12.1",
-]
-optional-dependencies.jsonc = [
-  # jsonc.loads() for JSONC config parsing.
-  "json-with-comments>=1.2.10",
 ]
 optional-dependencies.mkdocs = [
   # MkDocs 1.4.0 is the first version with the on_startup plugin event.
@@ -250,8 +246,6 @@ docs = [
   # The optional config format parsers, all needed by config.md's {click:run}
   # blocks. Each floor mirrors the runtime extra declaring it, justified there.
   "hjson>=3.1",
-  # Mirrors the jsonc extra floor.
-  "json-with-comments>=1.2.10",
   # Mirrors the json5 extra floor.
   "json5>=0.12.1",
   # MkDocs is needed for automodule/autoclasstree of click_extra.mkdocs.
@@ -491,7 +485,7 @@ warn_unreachable = true
 pretty = true
 warn_unused_configs = true
 overrides = [
-  { module = [ "hjson", "jsonc", "pymdownx", "pymdownx.*", "sphinxcontrib.mermaid" ], ignore_missing_imports = true },
+  { module = [ "hjson", "pymdownx", "pymdownx.*", "sphinxcontrib.mermaid" ], ignore_missing_imports = true },
   # Sphinx uses Python 3.12+ type statement syntax (PEP 695), which causes
   # mypy to fail with syntax errors when checking against older Python versions.
   # XXX This is a temporary workaround until we drop support for Python 3.11 for Click Extra.

@@ -8,7 +8,7 @@ Click Extra reads a configuration file in any of the dialects below. Each one li
 | [`YAML`](#yaml)                     | `*.yaml`, `*.yml`       | -                                                                                         | ❌                 |
 | [`JSON`](#json)                     | `*.json`                | -                                                                                         | ✅                 |
 | [`JSON5`](#json5)                   | `*.json5`, `*.jwcc`     | A [superset of JSON made for configuration file](https://json5.org)                       | ❌                 |
-| [`JSONC`](#jsonc)                   | `*.jsonc`               | Like JSON, but with comments and trailing commas                                          | ❌                 |
+| [`JSONC`](#jsonc)                   | `*.jsonc`               | Like JSON, but with comments and trailing commas                                          | ✅                 |
 | [`HJSON`](#hjson)                   | `*.hjson`               | Another flavor of a [user-friendly JSON](https://hjson.github.io)                         | ❌                 |
 | [`INI`](#ini)                       | `*.ini`                 | With extended interpolation, multi-level sections and non-native types (`list`, `set`, …) | ✅                 |
 | [`XML`](#xml)                       | `*.xml`                 | -                                                                                         | ❌                 |
@@ -225,9 +225,7 @@ The `JSON5` parser also reads [`JWCC`](https://nigeltao.github.io/blog/2021/json
 
 ## JSONC
 
-```{important}
-`JSONC` support requires the `jsonc` extra: [install `click-extra[jsonc]`](install.md#extra-dependencies).
-```
+`JSONC` is enabled by default, and needs no extra dependency: `//` and `/* */` comments and trailing commas are stripped before the built-in [`json`](https://docs.python.org/3/library/json.html) module reads the rest.
 
 ## HJSON
 

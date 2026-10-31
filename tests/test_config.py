@@ -67,7 +67,11 @@ from click_extra import (
 )
 from click_extra._utils import flatten, shrinkuser
 from click_extra.config import SQLITE_CONFIG_TABLE
-from click_extra.config.formats import SQLITE_SUPPORT, disabled_format_message
+from click_extra.config.formats import (
+    SQLITE_SUPPORT,
+    disabled_format_message,
+    parse_jsonc,
+)
 from click_extra.config.option import _serialize_toml_with_unset
 from click_extra.config.schema import (
     _expand_dotted_keys,
@@ -5923,3 +5927,43 @@ def test_strict_conf_dotted_key_conflict(invoke, create_config):
     assert type(result.exception) is ValueError
     assert "conflicts" in str(result.exception)
     assert result.exit_code == 1
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    (
+        pytest.param('{"a": 1}', {"a": 1}, id="plain_json"),
+        pytest.param(
+            '// head\n{"a": 1, // tail\n "b": [1, /* in */ 2], /* multi\nline */ "c": 3}',
+            {"a": 1, "b": [1, 2], "c": 3},
+            id="comments",
+        ),
+        pytest.param(
+            '{"a": [1, 2,], "b": {"c": 1,},}',
+            {"a": [1, 2], "b": {"c": 1}},
+            id="trailing_commas",
+        ),
+        pytest.param("[1, // last\n]", [1], id="comment_before_closing"),
+        pytest.param(
+            '{"s": "quote \\" and // slashes /* kept */, trailing,", "u": "http://x/*y*/z"}',
+            {
+                "s": 'quote " and // slashes /* kept */, trailing,',
+                "u": "http://x/*y*/z",
+            },
+            id="syntax_inside_strings",
+        ),
+        pytest.param(
+            '{"a": 1} // no newline at the end', {"a": 1}, id="comment_at_eof"
+        ),
+        pytest.param("[]", [], id="empty_array"),
+    ),
+)
+def test_parse_jsonc(content, expected):
+    assert parse_jsonc(content) == expected
+
+
+def test_parse_jsonc_reports_the_line_of_an_error():
+    """A blanked block comment keeps its newlines, so the line numbers hold."""
+    with pytest.raises(json.JSONDecodeError) as error:
+        parse_jsonc('{\n/* a\nlong\ncomment */\n"a": 1 2\n}')
+    assert error.value.lineno == 5

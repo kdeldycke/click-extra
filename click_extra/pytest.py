@@ -456,21 +456,19 @@ default_debug_colored_quiet_log = _colored_debug_log(default_debug_uncolored_qui
 
 
 default_config_file_pattern = (
-    # `*.json5`, `*.jwcc` and `*.jsonc` are only emitted by `ConfigFormat`
-    # when the optional `json5` and `json-with-comments` packages are
-    # importable (see `click_extra.config`). Make each group optional in
-    # the regex so the same assertion matches whether or not those extras are
-    # installed: full match in upstream CI, gracefully shorter match in
-    # hermetic builders (Guix, Nixpkgs) that ship neither extra. `*.json5`
-    # and `*.jwcc` share one group because the same parser gates them both.
+    # `*.json5` and `*.jwcc` are only emitted by `ConfigFormat` when the
+    # optional `json5` package is importable (see `click_extra.config`). Make
+    # the group optional in the regex so the same assertion matches whether or
+    # not that extra is installed: full match in upstream CI, gracefully
+    # shorter match in hermetic builders (Guix, Nixpkgs) that ship no extra.
     # `*.sqlite` and `*.sqlite3` are optional for the same reason, on the
     # standard library instead of an extra: FreeBSD serves the `sqlite3`
     # bindings as a `pyXXX-sqlite3` package apart from the interpreter.
     # Same shape as the `git_long_hash = (?:hash|None)` graceful-degradation
     # pattern further down.
     r"\{\*\.toml,\*\.yaml,\*\.yml,\*\.json"
-    r"(?:,\*\.json5,\*\.jwcc)?(?:,\*\.jsonc)?"
-    r",\*\.hjson,\*\.ini,\*\.xml,\*\.plist"
+    r"(?:,\*\.json5,\*\.jwcc)?"
+    r",\*\.jsonc,\*\.hjson,\*\.ini,\*\.xml,\*\.plist"
     r"(?:,\*\.sqlite,\*\.sqlite3)?"
     r",\*\.conf,pyproject\.toml\}"
 )

@@ -266,7 +266,6 @@ dependencies = [
 all = [
     { name = "docutils" },
     { name = "hjson" },
-    { name = "json-with-comments" },
     { name = "json5" },
     { name = "mkdocs" },
     { name = "myst-parser" },
@@ -287,9 +286,6 @@ hjson = [
 ]
 json5 = [
     { name = "json5" },
-]
-jsonc = [
-    { name = "json-with-comments" },
 ]
 mkdocs = [
     { name = "mkdocs" },
@@ -324,7 +320,6 @@ docs = [
     { name = "flask", marker = "python_full_version >= '3.14'" },
     { name = "furo", marker = "python_full_version >= '3.14'" },
     { name = "hjson", marker = "python_full_version >= '3.14'" },
-    { name = "json-with-comments", marker = "python_full_version >= '3.14'" },
     { name = "json5", marker = "python_full_version >= '3.14'" },
     { name = "mkdocs", marker = "python_full_version >= '3.14'" },
     { name = "myst-parser", marker = "python_full_version >= '3.14'" },
@@ -374,12 +369,11 @@ docs = ">=3.14"
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.4.1" },
-    { name = "click-extra", extras = ["carapace", "hjson", "json5", "jsonc", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"], marker = "extra == 'all'" },
+    { name = "click-extra", extras = ["carapace", "hjson", "json5", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"], marker = "extra == 'all'" },
     { name = "cloup", specifier = ">=3.0.7" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
     { name = "extra-platforms", specifier = ">=13.4" },
     { name = "hjson", marker = "extra == 'hjson'", specifier = ">=3.1" },
-    { name = "json-with-comments", marker = "extra == 'jsonc'", specifier = ">=1.2.10" },
     { name = "json5", marker = "extra == 'json5'", specifier = ">=0.12.1" },
     { name = "mkdocs", marker = "extra == 'mkdocs'", specifier = ">=1.4" },
     { name = "myst-parser", marker = "extra == 'sphinx'", specifier = ">=5.1" },
@@ -397,14 +391,13 @@ requires-dist = [
     { name = "wcwidth", specifier = ">=0.8.3" },
     { name = "xmltodict", marker = "extra == 'xml'", specifier = ">=1" },
 ]
-provides-extras = ["all", "carapace", "hjson", "json5", "jsonc", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"]
+provides-extras = ["all", "carapace", "hjson", "json5", "mkdocs", "pygments", "pytest", "sphinx", "toml", "xml", "yaml"]
 
 [package.metadata.requires-dev]
 docs = [
     { name = "flask", marker = "python_full_version >= '3.14'", specifier = ">=3" },
     { name = "furo", marker = "python_full_version >= '3.14'", specifier = ">=2025.9.25" },
     { name = "hjson", marker = "python_full_version >= '3.14'", specifier = ">=3.1" },
-    { name = "json-with-comments", marker = "python_full_version >= '3.14'", specifier = ">=1.2.10" },
     { name = "json5", marker = "python_full_version >= '3.14'", specifier = ">=0.12.1" },
     { name = "mkdocs", marker = "python_full_version >= '3.14'", specifier = ">=1.4" },
     { name = "myst-parser", marker = "python_full_version >= '3.14'", specifier = ">=5.1" },
@@ -711,15 +704,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
-]
-
-[[package]]
-name = "json-with-comments"
-version = "1.3.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/63/8d/08b696af5b68210999c8f9f4ba1729ccbd4ae2bbf535f547a9d07ca36ce7/json_with_comments-1.3.0.tar.gz", hash = "sha256:8e9668f9aaa9f50cb546828da958c606e45f3866daceb51f16b0ee61985c0677", size = 7070, upload-time = "2026-08-24T01:33:14.494Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cf/72/79259c11af4c22f187d0da18411982883428c2e915b2f9eb43bcd20d81fe/json_with_comments-1.3.0-py3-none-any.whl", hash = "sha256:cc96215e8960687180a6e60db8567c806ba40fb56187b2b8cf60ccc0bdfeb81e", size = 6603, upload-time = "2026-08-24T01:33:13.275Z" },
 ]
 
 [[package]]
