@@ -1,9 +1,6 @@
 # Changelog
 
-## [`10.0.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`10.0.0` (2026-11-01)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...v10.0.0)
 
 - **Breaking:** Drop Python 3.10, past its end of life: click-extra now requires Python 3.11 or newer.
 - **Breaking:** Raise the floors of Click to `8.5.0`, Cloup to `4.0.0`, tabulate to `0.10` and extra-platforms to `14.0.0`, dropping the shims older releases needed.
