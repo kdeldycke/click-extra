@@ -8,10 +8,10 @@ Locating and parsing it happens in three stages:
 2. Match each file against the supported formats, in order, until one parses.
 3. Use the first successfully parsed file, or layer every one of them with [`cascade=True`](#cascading-configuration-files).
 
-By default, the pattern is `<app_dir>/{*.toml,*.json,*.ini}`, where:
+By default, the pattern is `<app_dir>/{*.toml,*.json,*.jsonc,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyproject.toml}`, where:
 
 - `<app_dir>` is the [default application folder](#default-folder)
-- `{*.toml,*.json,*.ini}` are the [extensions of formats](config-formats.md) enabled by default, wrapped in brace-expansion syntax
+- the braced list holds the [file patterns of the formats](config-formats.md) enabled by default, in brace-expansion syntax
 
 ```{hint}
 Depending on the formats you enabled in your installation of Click Extra, the default extensions may vary. For example, if you installed Click Extra with all extra dependencies, the default extensions would be extended to `{*.toml,*.yaml,*.yml,*.json,*.json5,*.jwcc,*.jsonc,*.hjson,*.ini,*.xml,*.plist,*.sqlite,*.sqlite3,*.conf,pyproject.toml}`.
@@ -219,7 +219,7 @@ This is the same principle as [file pattern flags](#file-pattern-flags).
 
 ## Multi-format matching
 
-By default, the search covers all files matching the `{*.toml,*.json,*.ini}` pattern, or more depending on the [extra dependencies](install.md#extra-dependencies) installed.
+By default, the search covers all files matching the file patterns of the [formats enabled by default](config-formats.md), or more depending on the [extra dependencies](install.md#extra-dependencies) installed.
 
 Each located file is matched against each supported format, in order, until one parses. The first successfully parsed file feeds the CLI's default values.
 

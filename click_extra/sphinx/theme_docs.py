@@ -245,12 +245,7 @@ def inject_slot_example_docstring(
     if not name.startswith(prefix):
         return
     slot = name[len(prefix) :]
-    # Skip the example when the built-in "dark" palette was removed: there is
-    # nothing to render the slot with.
-    default_theme = BUILTIN_THEMES.get("dark")
-    if default_theme is None:
-        return
-    rendered = _render_slot_ansi(default_theme, slot)
+    rendered = _render_slot_ansi(BUILTIN_THEMES["dark"], slot)
     if not rendered:
         return
     lines.extend((

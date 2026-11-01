@@ -6,7 +6,7 @@
 For these helpers to work, you need to install `click_extra`'s additional dependencies from the `sphinx` extra group:
 
 ```{code-block} shell-session
-$ pip install click_extra[sphinx]
+$ uv pip install 'click-extra[sphinx]'
 ```
 ````
 
@@ -480,7 +480,7 @@ Inside these pages a `click:run` block renders live, so none of them needs a scr
 
   The frames come from a declared subject and not from a timing, so the same expression composes the same lines on every build. The committed asset keeps the same bytes: the `@generated` stamp names no release, so a new Click Extra version does not rewrite it. See [picturing a spinner](spinner.md#picturing-a-spinner) for a worked example.
 
-- `:screenshot-record:` is the same option for frames that were *recorded* rather than declared, and it is written once. A recording cannot be reproduced: which spinner glyph pairs with which screen is settled by the scheduler, so the same command records a different set of frames every other run, and regenerating would dirty the working tree for nothing anyone did. The expression is therefore not even evaluated once the asset exists, which also keeps the command it records off every later build's clock. To take a fresh recording, delete the file and build again. `:screenshot-quantum:` rounds the recorded durations onto a grid, in seconds. `:screenshot-hold:` states how long the last frame stays up, `:screenshot-blank:` how long the cycle then closes on an empty screen, and `:screenshot-speed:` how much faster to replay than was recorded. A recording defaults to a two-second hold and a six-tenths blank; a declared animation cycles in place with no end to mark, so it defaults to neither. See [printing while spinning](spinner.md#printing-while-spinning) for a worked example, and [keeping a recording committable](screenshots.md#keeping-a-recording-committable) for why the two options differ.
+- `:screenshot-record:` is the same option for frames that were *recorded* rather than declared, and it is written once. A recording cannot be reproduced: which spinner glyph pairs with which screen is settled by the scheduler, so the same command records a different set of frames every other run, and regenerating would dirty the working tree for nothing anyone did. The expression is therefore not even evaluated once the asset exists, which also keeps the command it records off every later build's clock. To take a fresh recording, delete the file and build again. `:screenshot-quantum:` rounds the recorded durations onto a grid, in seconds. `:screenshot-hold:` states how long the last frame stays up, `:screenshot-blank:` how long the cycle then closes on an empty screen, and `:screenshot-speed:` how much faster to replay than was recorded. A recording defaults to an `auto` hold, which [scales to the closing frame](screenshots.md#animated-captures), and a six-tenths blank; a declared animation cycles in place with no end to mark, so it defaults to neither. See [printing while spinning](spinner.md#printing-while-spinning) for a worked example, and [keeping a recording committable](screenshots.md#keeping-a-recording-committable) for why the two options differ.
 
 ````{code-block} markdown
 :emphasize-lines: 2-3

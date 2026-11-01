@@ -130,7 +130,7 @@ Python 3.14.0 free-threading build (main, Oct 28 2025, 11:52:40) [Clang 20.1.4 ]
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import click_extra
 >>> click_extra.__version__
-'9.5.0'
+'9.5.1'
 >>>
 ```
 
@@ -247,7 +247,7 @@ This is a graph of the default, main dependencies of the Python package:
 
 ## Extra dependencies
 
-By default, Click Extra supports TOML [configuration files](config-formats.md#toml) and all standard [table formats](table.md#table-formats). Optional extras unlock additional features:
+By default, Click Extra reads the [configuration formats enabled by default](config-formats.md) and renders all standard [table formats](table.md#table-formats). Optional extras unlock additional features:
 
 ````{list-table}
 :header-rows: 1
@@ -271,6 +271,7 @@ By default, Click Extra supports TOML [configuration files](config-formats.md#to
     $ uv pip install 'click-extra[toml]'
     ```
   - - [`toml` table format](table.md#table-formats): `--table-format toml`
+    - [TOML export](config.md#exporting-the-configuration): `--export-config toml`
 * - `yaml`
   - ```{code-block} shell-session
     $ uv pip install 'click-extra[yaml]'

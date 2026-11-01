@@ -194,10 +194,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # declares one or more entries in `click_extra_manpages`.
     manpages.setup(app)
 
-    # Register the always-on `matrix:*` compatibility-matrix directives (see
-    # matrix.py). Unlike the `click:*` / `python:*` families, these run a
-    # canned generator against the documented project's git history rather
-    # than user-supplied Python, so they need no exec opt-in.
+    # Register the always-on `matrix` compatibility-matrix directive (see
+    # matrix.py). Unlike the `click:*` / `python:*` families, it runs a canned
+    # generator against the documented project's git history rather than
+    # user-supplied Python, so it needs no exec opt-in.
     matrix.setup(app)
 
     # Collapse the duplicate `todolist` entries autodoc's repeated docstring

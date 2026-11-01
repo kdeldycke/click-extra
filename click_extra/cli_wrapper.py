@@ -484,6 +484,27 @@ def _scan_for_command(mod: ModuleType, module_path: str) -> click.Command:
     )
 
 
+def _root_context(command: click.Command, script: str) -> click.Context:
+    """Build the root context of `command` without parsing any argument.
+
+    Built from the command's own `context_class` and `context_settings`, as
+    {meth}`click.Command.make_context` builds the context of a run, so
+    introspection reads what a run reads: the `auto_envvar_prefix`, the help
+    option spellings, the `default_map` and the subcommand order. A plain
+    `click.Context` would not do: a Cloup command's `context_settings` carry
+    Cloup-only keys (`align_option_groups`, `show_constraints`, …) that it
+    rejects with a `TypeError`. The root counterpart of
+    {func}`~click_extra.param_tools.child_context`.
+
+    :param command: the command to build the context of.
+    :param script: the name the command answers to when it has none of its own.
+    :return: the root context, with no argument parsed.
+    """
+    return command.context_class(
+        command, info_name=command.name or script, **command.context_settings
+    )
+
+
 def resolve_target_command(
     script: str,
     subcommands: tuple[str, ...] = (),
@@ -525,17 +546,11 @@ def resolve_target_command(
         else _scan_for_command(mod, module_path)
     )
 
-    # Each context is built from its command's own `context_settings` (notably
-    # `auto_envvar_prefix`), so introspection sees the same environment
-    # variables the CLI reads at runtime. Click applies these only through
-    # `make_context`, which would also parse arguments. Build through
-    # `cmd.context_class` (not `click.Context`) exactly as `make_context` does:
-    # a Cloup command's `context_settings` carry Cloup-only keys
-    # (`align_option_groups`, `show_constraints`, …) that a plain
-    # `click.Context` rejects with a `TypeError`.
-    cmd_ctx = cmd.context_class(
-        cmd, info_name=cmd.name or script, **cmd.context_settings
-    )
+    # Each context is built from its command's own `context_settings`, so the
+    # environment variables introspection names are the ones a run reads. Click
+    # applies these only through `make_context`, which would also parse
+    # arguments.
+    cmd_ctx = _root_context(cmd, script)
     for sub in subcommands:
         if not isinstance(cmd, click.Group):
             raise click.ClickException(
@@ -636,13 +651,9 @@ def _wrap_params(
 
     # `render_params_table` walks from `subject_ctx.command` downward, so a
     # fresh root context scopes the table to the resolved node (matching what
-    # the user navigated to). It is built from the command's own context class
-    # and settings, like the one a run gets: the help option spellings, the
-    # `default_map` and the subcommand order all read from them. The drilled
-    # context already carries the nested envvar prefix, so copy it over.
-    subject_ctx = cmd.context_class(
-        cmd, info_name=cmd.name or script, **cmd.context_settings
-    )
+    # the user navigated to). The drilled context already carries the nested
+    # envvar prefix, so copy it over.
+    subject_ctx = _root_context(cmd, script)
     subject_ctx.auto_envvar_prefix = drill_ctx.auto_envvar_prefix
 
     # An explicit `wrap --table-format` wins; otherwise defer to the group's

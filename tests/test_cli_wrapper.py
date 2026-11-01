@@ -652,7 +652,7 @@ def test_split_navigation(args, nav, rest):
 
 
 def test_wrap_man_reads_manual(runner, greet_script):
-    """``click-extra wrap --man SCRIPT`` reads the target's manual and exits.
+    """``click-extra wrap --man -- SCRIPT`` reads the target's manual and exits.
 
     A CLI shipping no man page of its own still gets one to read, typeset from
     its own command tree.

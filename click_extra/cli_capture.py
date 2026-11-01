@@ -372,8 +372,7 @@ def capture_options(
             default=DEFAULT_TRUNCATION,
             show_default=True,
             help=f"Line standing in for what --head or --tail cut away, or "
-            f"{AUTO_TRUNCATION} to rule one across the width the kept lines "
-            f"span.",
+            f"{AUTO_TRUNCATION} to draw a rule across the width of the picture.",
         ),
         option(
             "--wrap-marker",

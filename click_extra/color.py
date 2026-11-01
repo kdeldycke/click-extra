@@ -141,14 +141,14 @@ COLOR_WHEN_ALIASES: dict[str, str] = {
     "tty": AUTO,
     "if-tty": AUTO,
 }
-"""GNU coreutils synonyms accepted as hidden aliases for each {data}`~click_extra.color.WHEN`
-value.
+"""GNU coreutils synonyms accepted as hidden aliases for each
+{data}`~click_extra.color.WHEN` value.
 
 GNU `ls` accepts `yes`/`force` for `always`, `no`/`none` for `never`
 and `tty`/`if-tty` for `auto`, alongside the three canonical spellings (see
-{data}`~click_extra.color.WHEN`). Click Extra mirrors that leniency but keeps the synonyms out of
-`--help` output, error messages and shell completion, which only ever advertise
-{data}`~click_extra.color.WHEN`.
+{data}`~click_extra.color.WHEN`). Click Extra mirrors that leniency but keeps the
+synonyms out of `--help` output, error messages and shell completion, which only
+ever advertise {data}`~click_extra.color.WHEN`.
 """
 
 
@@ -166,7 +166,8 @@ Combines the identity mapping of the canonical values with
 
 
 def _color_envvar_vote(var: str, value: str) -> bool | None:
-    """Read the value of one {data}`~click_extra.color.COLOR_ENVVARS` variable by its own convention.
+    """Read the value of one {data}`~click_extra.color.COLOR_ENVVARS` variable by its
+    own convention.
 
     Returns `True` for color, `False` for no color, and `None` for no opinion. The
     conventions are listed in {func}`resolve_color_env`. A falsy value is one of
@@ -211,7 +212,8 @@ own dumb-terminal detection on the same two values and not on absence.
 
 
 def is_dumb_terminal() -> bool:
-    """Whether `TERM` names a terminal in {data}`~click_extra.color.COLOR_DISABLING_TERMS`.
+    """Whether `TERM` names a terminal in
+    {data}`~click_extra.color.COLOR_DISABLING_TERMS`.
 
     Such a terminal renders neither color nor the cursor movements of an
     animation. Case does not matter, and an unset `TERM` is no dumb terminal.
@@ -234,8 +236,8 @@ def is_a_tty(stream: IO[str]) -> bool:
 def resolve_color_env() -> bool | None:
     """Reconcile the recognized color environment variables into a tri-state.
 
-    Reads every variable listed in {data}`~click_extra.color.COLOR_ENVVARS` by its own convention, and
-    returns:
+    Reads every variable listed in {data}`~click_extra.color.COLOR_ENVVARS` by its
+    own convention, and returns:
 
     - `True` if at least one variable asks for color. A variable asking for color
       wins over one refusing it, as in the reference code of
@@ -260,14 +262,16 @@ def resolve_color_env() -> bool | None:
     - `LLM` refuses color unless it is falsy, which casts no vote: it marks an AI
       agent, not a color preference.
     - `COLOR` takes the words of `--color` (see {data}`~click_extra.color.WHEN` and
-      {data}`~click_extra.color.COLOR_WHEN_ALIASES`) and booleans. Any other value casts no vote.
+      {data}`~click_extra.color.COLOR_WHEN_ALIASES`) and booleans. Any other value
+      casts no vote.
 
-    The plural and unspaced spellings in {data}`~click_extra.color.COLOR_ENVVARS` follow the variable
-    they spell.
+    The plural and unspaced spellings in {data}`~click_extra.color.COLOR_ENVVARS`
+    follow the variable they spell.
 
-    A `dumb` or `unknown` `TERM` (see {data}`~click_extra.color.COLOR_DISABLING_TERMS`) refuses color as
-    well, so a terminal that cannot render ANSI is treated as color-off even when it
-    reports as a TTY. A variable asking for color still wins over it.
+    A `dumb` or `unknown` `TERM` (see
+    {data}`~click_extra.color.COLOR_DISABLING_TERMS`) refuses color as well, so a
+    terminal that cannot render ANSI is treated as color-off even when it reports
+    as a TTY. A variable asking for color still wins over it.
     """
     votes = set()
     for var in COLOR_ENVVARS:
@@ -301,9 +305,10 @@ def forced_color() -> Generator[None, None, None]:
       uses, and `color=True` never reaches it.
 
     `FORCE_COLOR` is the only signal common to both systems (Rich reads it directly;
-    Click Extra recognizes it through {data}`~click_extra.color.COLOR_ENVVARS`), so this sets it. It also
-    clears the color-disabling variables Click Extra recognizes (`NO_COLOR`, `LLM`, …)
-    so an opt-out in the build environment cannot suppress the rendering, and pins
+    Click Extra recognizes it through {data}`~click_extra.color.COLOR_ENVVARS`), so
+    this sets it. It also clears the color-disabling variables Click Extra
+    recognizes (`NO_COLOR`, `LLM`, …) so an opt-out in the build environment cannot
+    suppress the rendering, and pins
     `COLORTERM=truecolor` so the branded 24-bit themes render at full depth instead of
     being quantized to the 256-color palette (see
     {func}`~click_extra.styling.supports_truecolor`). The previous environment is
@@ -323,8 +328,8 @@ def forced_color() -> Generator[None, None, None]:
 class TerminalBackground(StrEnum):
     """Shade of the background of a terminal.
 
-    What {func}`~click_extra.color.resolve_background` detects of the terminal a CLI runs in, and the
-    chrome of a capture, which pictures a terminal: see
+    What {func}`~click_extra.color.resolve_background` detects of the terminal a
+    CLI runs in, and the chrome of a capture, which pictures a terminal: see
     {mod}`click_extra.capture.presets`. A capture tells the command it pictures
     which one it is drawn on through the same variables
     {func}`~click_extra.color.resolve_background` reads, see
@@ -657,8 +662,8 @@ def invocation_color() -> bool | None:
 
     Prefers the pinned `ctx.color` of the calling thread's own Click context,
     then the process-wide mirror published by the color callbacks
-    ({func}`~click_extra.color.publish_invocation_color`). `None` means auto: defer to the output
-    stream's TTY status, exactly like `ctx.color`'s own default.
+    ({func}`~click_extra.color.publish_invocation_color`). `None` means auto: defer
+    to the output stream's TTY status, exactly like `ctx.color`'s own default.
 
     This is what makes `--no-color` reach output produced outside the main
     thread, like the subprocess lines {func}`click_extra.execution.run_cli`
@@ -671,9 +676,10 @@ def invocation_color() -> bool | None:
 
 
 class ColorWhenChoice(click.Choice):
-    """{class}`click.Choice` over {data}`~click_extra.color.WHEN` that also accepts the hidden GNU
-    synonyms ({data}`~click_extra.color.COLOR_WHEN_ALIASES`) and native configuration booleans, folding
-    them to a canonical value before validation.
+    """{class}`click.Choice` over {data}`~click_extra.color.WHEN` that also accepts
+    the hidden GNU synonyms ({data}`~click_extra.color.COLOR_WHEN_ALIASES`) and
+    native configuration booleans, folding them to a canonical value before
+    validation.
 
     Only the three canonical {data}`~click_extra.color.WHEN` values reach
     `--help`, error messages and shell completion, because the public `choices`

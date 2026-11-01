@@ -150,7 +150,8 @@ optional-dependencies.sphinx = [
   # `HtmlFormatter[str]` at import, which raises a `TypeError` on any older
   # Pygments.
   "pygments>=2.18",
-  # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
+  # myst-parser 5.1 above requires Sphinx 8.0.0, so a lower floor here would
+  # declare releases this extra can never install.
   "sphinx>=8",
 ]
 optional-dependencies.toml = [
@@ -235,7 +236,7 @@ test = [
   # (test_pygments, test_pyproject); the runtime config-URL loader uses urllib.
   # 2.34 ships inline types, removing the need for the types-requests stub.
   "requests>=2.34",
-  # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
+  # Mirrors the sphinx extra floor, which myst-parser 5.1 sets.
   "sphinx>=8",
 ]
 docs = [
@@ -266,10 +267,11 @@ docs = [
   "pytest>=9",
   # PyYAML renders the Carapace spec in carapace.md {click:run} blocks.
   "pyyaml>=6.0.3",
-  # Sphinx 8.0.0 is the first version to drop Python 3.9, like us.
+  # Mirrors the sphinx extra floor, which myst-parser 5.1 sets.
   "sphinx>=8",
-  # sphinx-autodoc-typehints 2.4.0 is the first version that is aligned to our Python >= 3.10 requirement.
-  "sphinx-autodoc-typehints>=2.4",
+  # sphinx-autodoc-typehints 3.4.0 is the first release supporting Python 3.14,
+  # the only Python this group installs on.
+  "sphinx-autodoc-typehints>=3.4",
   # sphinx-copybutton 0.5.2 stabilized the copy button behavior for code blocks.
   "sphinx-copybutton>=0.5.2",
   # sphinx-datatables 1.0.0 is the first stable release; renders the binaries

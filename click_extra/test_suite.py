@@ -24,8 +24,9 @@ rules, so one suite runs across operating systems unchanged.
 
 Suites are written in any list-capable configuration format and loaded with
 {func}`load_test_suite` (which picks the format from the file extension) or
-{func}`parse_test_suite` (which parses a serialized string). TOML and JSON are
-built in; YAML and the other {data}`~click_extra.test_suite.SUITE_FORMATS` need their matching
+{func}`parse_test_suite` (which parses a serialized string). TOML, JSON and
+JSONC are built in; YAML and the other
+{data}`~click_extra.test_suite.SUITE_FORMATS` need their matching
 `click-extra[…]` extra. {func}`run_test_suite` drives a list of cases against
 a target, parallelized per the resolved `--jobs` count (see
 {func}`click_extra.jobs.run_jobs`) and reporting live progress through a
@@ -83,17 +84,17 @@ SUITE_FORMATS: tuple[ConfigFormat, ...] = (
     # Built-in, no extra dependency.
     ConfigFormat.TOML,
     ConfigFormat.JSON,
+    ConfigFormat.JSONC,
     # Each needs its matching click-extra[…] extra.
     ConfigFormat.YAML,
     ConfigFormat.JSON5,
-    ConfigFormat.JSONC,
     ConfigFormat.HJSON,
 )
 """Configuration formats a test suite can be serialized in, built-in ones first.
 
 These are the formats able to represent a top-level list of case mappings,
-matched against a file's extension by {func}`load_test_suite`. TOML and JSON
-parse with no extra dependency; the others each need their matching
+matched against a file's extension by {func}`load_test_suite`. TOML, JSON and
+JSONC parse with no extra dependency; the others each need their matching
 `click-extra[…]` extra. TOML has no bare top-level array, so a TOML suite
 lists its cases under a `[[cases]]` array of tables (see
 {func}`parse_test_suite`); the others use a bare list. INI (no nesting) and XML

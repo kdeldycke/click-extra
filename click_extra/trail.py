@@ -330,7 +330,8 @@ class _BarIndicator:
         """Stop and join the elapsed-clock ticker. Idempotent.
 
         :return: `False` when the ticker is still blocked in a write after
-            {data}`_STOP_GRACE`, so the caller skips its own clean-up writes.
+            {data}`~click_extra.spinner._STOP_GRACE`, so the caller skips its own
+            clean-up writes.
         """
         if self._ticker is None:
             return True
@@ -390,7 +391,8 @@ class _BarIndicator:
         self._finished = True
         _deregister_line(self)
         if not self._stop_ticker():
-            # See _STOP_GRACE: the stream does not drain, so skip the clean-up.
+            # See spinner._STOP_GRACE: the stream does not drain, so skip the
+            # clean-up.
             return
         with self._lock:
             if not self._drawn:

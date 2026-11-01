@@ -367,8 +367,7 @@ def test_empty_envvar_falls_back_to_the_default(invoke, cmd_decorator, default):
     default flips the outcome with it.
     """
 
-    # Parenthesized: Cloup rejects the naked form, and the rest of this module
-    # calls every decorator anyway.
+    # Parenthesized, like every decorator call in this module.
     @cmd_decorator()
     @option("--flag/--no-flag", default=default, envvar="Magic")
     def my_cli(flag):

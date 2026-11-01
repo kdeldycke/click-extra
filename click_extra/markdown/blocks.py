@@ -24,7 +24,7 @@ document through {func}`walk_fences`, or rebuilds it through
 {func}`rewrite_fences`: a fence is one opaque unit, whose body is never read as
 live markup.
 
-The toolkit backs the `{matrix}` directive ({mod}`click_extra.sphinx.matrix`),
+The toolkit backs the ``{matrix}`` directive ({mod}`click_extra.sphinx.matrix`),
 the `python:render` `:mirror:` flag and the `click:run` `:screenshot:` mirror,
 but it depends only on {mod}`re` and {mod}`pathlib`: nothing here imports Sphinx
 or docutils. Living outside {mod}`click_extra.sphinx` lets a release pipeline or
@@ -103,7 +103,9 @@ def fence_spans(lines: Sequence[str], *, chars: str = "`") -> dict[int, FenceSpa
     `close=None`.
 
     :param chars: The characters a fence is made of: backticks by default,
-        `:` for colon fences alone, or both, see `_fence_open_re`.
+        `:` for colon fences alone, or both. A colon fence delimits a MyST
+        directive whose body is parsed, so most scanners read backtick fences
+        alone.
     """
     fence_open = _fence_open_re(chars)
     spans: dict[int, FenceSpan] = {}
@@ -235,15 +237,16 @@ def replace_region(text: str, name: str, content: str, *, pad: bool = True) -> s
     """Return `text` with the body of a `<!-- name -->` region swapped for `content`.
 
     Finds the `<!-- name [args] -->` opening and `<!-- name-end -->` closing
-    markers (the grammar of {func}`~click_extra.markdown.blocks.marker_res`) and replaces everything between
-    them with `content`. The markers themselves are preserved, so the region
-    round-trips: a second call with the same `content` is a no-op. A marker
-    quoted inside a code fence, like in a page documenting the grammar, is
-    never taken for a live one.
+    markers (the grammar of {func}`~click_extra.markdown.blocks.marker_res`) and
+    replaces everything between them with `content`. The markers themselves are
+    preserved, so the region round-trips: a second call with the same `content`
+    is a no-op. A marker quoted inside a code fence, like in a page documenting
+    the grammar, is never taken for a live one.
 
     When either marker is missing the text is returned unchanged, so the call is
-    safe to fan out over every file of an {func}`~click_extra.markdown.blocks.update_blocks` rewrite even when
-    only some carry the region. This is the generic counterpart to the
+    safe to fan out over every file of an
+    {func}`~click_extra.markdown.blocks.update_blocks` rewrite even when only
+    some carry the region. This is the generic counterpart to the
     fence-driven refreshers of {mod}`click_extra.sphinx.matrix` and the
     `python:render` `:mirror:` flag: use it when the content is produced outside
     the document (a registry dump, an external generator) rather than by an
@@ -287,9 +290,10 @@ def replace_region(text: str, name: str, content: str, *, pad: bool = True) -> s
 def region_markers(name: str) -> tuple[str, str]:
     """The `(open, close)` marker lines of a `<!-- name -->` region.
 
-    The writing-side twin of {func}`~click_extra.markdown.blocks.marker_res`: `<!-- name -->` opens the
-    region and `<!-- name-end -->` closes it, and every refresher writes both
-    through here so they cannot drift from what that reader matches.
+    The writing-side twin of {func}`~click_extra.markdown.blocks.marker_res`:
+    `<!-- name -->` opens the region and `<!-- name-end -->` closes it, and every
+    refresher writes both through here so they cannot drift from what that
+    reader matches.
     """
     return f"<!-- {name} -->", f"<!-- {name}-end -->"
 
@@ -415,7 +419,9 @@ def rewrite_file(
     """Apply `rewrite` to the text of `path`, and write it back when it changed.
 
     The one write-if-changed step of every source rewriter: the block refreshers
-    through {func}`~click_extra.markdown.blocks.update_blocks`, and the reST-to-MyST docstring converter.
+    through {func}`~click_extra.markdown.blocks.update_blocks`, and the
+    reST-to-MyST docstring converter through
+    {func}`~click_extra.markdown.myst.convert_file`.
 
     :param check: report the change without writing it.
     :return: whether the text changed, or would have under `check`.

@@ -933,7 +933,8 @@ class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
 
-        Defaults to ``<app_dir>/{*.toml,*.json,*.ini}``. Where `<app_dir>` is
+        Defaults to the patterns of every format in `file_format_patterns`, under
+        `<app_dir>`: ``<app_dir>/{*.toml,*.json,*.ini,…}``. Where `<app_dir>` is
         produced by the [click.get_app_dir() method](https://click.palletsprojects.com/en/stable/api/#click.get_app_dir).
         The result depends on OS and is influenced by the `roaming` and
         `force_posix` properties.
@@ -1570,8 +1571,8 @@ class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
         extension point nor a dot inside one trips `strict=True`, and neither does
         a key the schema reads.
 
-        :raises ValidationError: in strict mode, on an invalid dotted key or a key
-            matching no parameter.
+        :raises ~click_extra.config.schema.ValidationError: in strict mode, on an
+            invalid dotted key or a key matching no parameter.
         """
         return _build_merged_conf(
             conf,
@@ -1673,8 +1674,8 @@ class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
         validation it runs: it does not call this method.
         ```
 
-        :raises ValidationError: in strict mode, on an invalid dotted key or a key
-            matching no parameter.
+        :raises ~click_extra.config.schema.ValidationError: in strict mode, on an
+            invalid dotted key or a key matching no parameter.
         """
         self._install_default_map(ctx, self._merged_conf(ctx, user_conf))
 

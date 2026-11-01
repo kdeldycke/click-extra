@@ -603,7 +603,7 @@ The message is a plain string, built when the decorator runs, so any other fact 
 {class}`~click_extra.version.VersionScreen` owns the layout and nothing else. The mark arrives already rendered, as a string or the lines of one, so it can be ASCII line art, half-blocks, or whatever your renderer produces. Pass a callable returning either, and it runs when `--version` draws the screen:
 
 ```{click:source}
-:emphasize-lines: 13
+:emphasize-lines: 14
 from functools import partial
 
 from click_extra import group

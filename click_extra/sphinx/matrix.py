@@ -1425,16 +1425,6 @@ def dependency_matrix_table(
     )
 
 
-def _find_git_root(start: Path) -> Path:
-    """Walk up from `start` to the first directory holding a `.git` entry.
-
-    Falls back to `start` when none is found; the caller then gets an empty
-    matrix (no tags) rather than an exception. See
-    {func}`~click_extra.version_facts.find_git_root`.
-    """
-    return find_git_root(start) or start
-
-
 def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
     """Resolve the git working tree to walk from a `:path:` option value.
 
@@ -1445,8 +1435,11 @@ def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
     """
     # Resolve to an absolute path so a relative `base_dir` (like the `docs`
     # the CLI passes) yields a git root whose `.name` is the real repo folder,
-    # not an empty string from `Path(".")`.
-    git_root = _find_git_root(base_dir.resolve())
+    # not an empty string from `Path(".")`. Outside a repository the walk falls
+    # back on `base_dir` itself: the git reads that follow fail there, and the
+    # callers report it.
+    start = base_dir.resolve()
+    git_root = find_git_root(start) or start
     if not path_opt:
         return git_root
     candidate = Path(path_opt)
@@ -1772,7 +1765,7 @@ def update_matrix_blocks(paths: Iterable[Path], *, check: bool = False) -> list[
     `check`-mode contract.
 
     Every block of the refresh reads the git history through one memo, see
-    `memoized_history`: a project's tags are listed once, and each tag's
+    {func}`memoized_history`: a project's tags are listed once, and each tag's
     release files read once, however many pages and axes render them.
 
     :return: the files whose ``{matrix}`` blocks were (or, under `check`,

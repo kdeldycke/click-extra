@@ -293,9 +293,9 @@ def _dynamic_action(command_path: tuple[str, ...], option: str | None = None) ->
       to resolve. It is appended after `$*` so it stays the trailing token Click
       reads as the option awaiting a value.
 
-    So a subcommand option `--city` yields ``COMP_WORDS=weather forecast $*
+    So a subcommand option `--city` yields `COMP_WORDS=weather forecast $*
     --city`, while a subcommand argument yields `COMP_WORDS=weather forecast
-    $*`. The env var and the invoked binary stay rooted at `command_path[0]``,
+    $*`. The env var and the invoked binary stay rooted at `command_path[0]`,
     the executable Carapace dispatches and the name Click derives its completion
     variable from.
     """

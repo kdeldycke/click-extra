@@ -201,7 +201,7 @@ build-time pass regenerates it in memory.
 SCREENSHOT_MARKER_END = region_markers("screenshot")[1]
 """Closing marker of a `:mirror:` region. See {data}`SCREENSHOT_MARKER_START`."""
 
-_CAPTURE_FENCE_OPEN = re.compile(
+_CAPTURE_FENCE_OPEN_RE = re.compile(
     r"^[ \t]*`{3,}\{(?:click:(?:run|source)|python:(?:run|source))\}[ \t]*\S*[ \t]*$"
 )
 """Match the opening line of a MyST fence whose `:mirror:` shows a capture.
@@ -657,7 +657,9 @@ class ClickDirective(ContentOffsetMixin):
         holding a line Click does not wrap needs to keep on one line: a prompt,
         a wide table, a machine-readable dump.
         """
-        return self.options.get("screenshot-columns", DEFAULT_COLUMNS)  # type: ignore[no-any-return]
+        return self.options.get(  # type: ignore[no-any-return]
+            "screenshot-columns", DEFAULT_COLUMNS
+        )
 
     def resolve_animation(
         self,
@@ -823,7 +825,9 @@ class ClickDirective(ContentOffsetMixin):
         :param fallback: what to hold for when the block states nothing.
         :return: the pause, in seconds, or the `auto` sentinel.
         """
-        return self.options.get("screenshot-hold", fallback)  # type: ignore[no-any-return]
+        return self.options.get(  # type: ignore[no-any-return]
+            "screenshot-hold", fallback
+        )
 
     @cached_property
     def screenshot_syntax_style(self) -> str:
@@ -1267,7 +1271,7 @@ def rewrite_screenshot_regions(
             return None
         return [f"![{name}]({directory}/{name}.svg)"]
 
-    return rewrite_fenced_regions(text, "screenshot", _CAPTURE_FENCE_OPEN, link)
+    return rewrite_fenced_regions(text, "screenshot", _CAPTURE_FENCE_OPEN_RE, link)
 
 
 def update_screenshot_blocks(
@@ -1295,7 +1299,7 @@ def update_screenshot_blocks(
     return update_blocks(paths, rewrite, check=check)
 
 
-cleanup_runner = make_cleanup("click_runner")
+cleanup_runner = make_cleanup(ClickDirective.runner_attr)
 """Drop the {class}`~click_extra.sphinx.click_runner.ClickRunner` from the doctree.
 
 Connected to `doctree-read`, so it runs once the document is read.

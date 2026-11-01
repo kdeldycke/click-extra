@@ -89,7 +89,7 @@ $ uv run --frozen --all-extras --group test --group docs -- sphinx-build -b html
 
 Name all three of `--all-extras`, `--group test` and `--group docs`: `docs` is not a default group, so a run without it dies in `conf.py` on a missing `sphinxcontrib.mermaid`, and a run naming only `--group docs` drops the test packages from the shared environment, as § Testing warns.
 
-A local build also rewrites the committed captures in `docs/assets/`: their `@generated` version stamp, and output that varies by machine. Unless refreshing them is the task, restore them with `git checkout -- docs/assets` before staging.
+A local build rewrites a committed capture in `docs/assets/` only when its bytes change, as they do for output that varies by machine. The `@generated` stamp names no release, so a version bump does not restamp them. Unless refreshing them is the task, restore them with `git checkout -- docs/assets` before staging.
 
 ### Running the CLI
 

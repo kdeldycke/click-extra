@@ -486,7 +486,7 @@ def cli():
 See how the `--version` option shows up twice: once in the command's own section, and once more where Click Extra lists its own.
 
 ```{click:run}
-:emphasize-result-lines: 4,58
+:emphasize-result-lines: 5,56
 result = invoke(cli, args=["--help"])
 version_line = (
     "  \x1b[36m\x1b[1m--version\x1b[0m                    Show the version and exit.\n"

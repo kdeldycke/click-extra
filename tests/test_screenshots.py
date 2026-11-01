@@ -401,6 +401,45 @@ def test_trim_lines_leaves_room_for_the_wrap_marker():
     assert not any(set(line) <= {TRUNCATION_RULE} for line in lines if line)
 
 
+@pytest.mark.parametrize(
+    ("prompt", "head", "tail"),
+    (
+        # Five rows, one digit to number them with.
+        pytest.param("", 2, 2, id="one-digit"),
+        # Nine rows of output and the prompt above them: the tenth row is the
+        # one that widens the gutter by a digit.
+        pytest.param("basket", 4, 4, id="prompt-adds-a-digit"),
+    ),
+)
+def test_capture_leaves_room_for_line_numbers_on_the_rule(prompt, head, tail):
+    """A numbered capture rules its cut inside the text column the gutter leaves.
+
+    The gutter takes cells in front of every row, the rule's included, so a rule
+    as wide as `columns` would fold on its last dots and put them alone on a row
+    of their own.
+    """
+    command = [
+        sys.executable,
+        "-c",
+        "print('\\n'.join(f'kiwi {n}' for n in range(30)))",
+    ]
+    document, _ = capture(
+        command,
+        columns=40,
+        prompt=prompt,
+        head=head,
+        tail=tail,
+        line_numbers=True,
+        chrome=Chrome(watermark=""),
+    )
+    lines = svg_to_lines(document)
+
+    assert len(lines) == bool(prompt) + head + 1 + tail, "the rule folded"
+    rule_rows = [line for line in lines if TRUNCATION_LABEL in line]
+    assert len(rule_rows) == 1
+    assert cell_width(rule_rows[0]) == 40
+
+
 def test_render_draws_the_wrap_marker_at_each_fold():
     """An SVG capture closes each folded row on the marker, and only those rows."""
     text = "apple\n" + "kiwi " * 10

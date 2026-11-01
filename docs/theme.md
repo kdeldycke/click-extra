@@ -337,7 +337,7 @@ def cocktail():
 After this runs, `cocktail --theme neon` becomes a valid invocation, and `cocktail --help` lists `neon` alongside the built-in choices.
 
 ```{tip}
-For themes that depend on runtime state (terminal-background detection, environment variables, user settings), compute the `HelpTheme` once at startup and pass it to `register_theme`. The registry holds plain instances only: if you need lazy or per-invocation resolution, load the theme from `[tool.<cli>.themes.<name>]` (see [Themes from your `--config` file](#themes-from-your-config-file) below) so it lands on `ctx.meta` rather than the process-wide dict.
+For themes that depend on runtime state (terminal-background detection, environment variables, user settings), compute the `HelpTheme` once at startup and pass it to `register_theme`. The registry holds plain instances only: if you need lazy or per-invocation resolution, load the theme from `[tool.<cli>.themes.<name>]` (see [Themes from your `--config` file](#themes-from-your-config-file) below) so it lands on `ctx.meta` rather than the process-wide registry.
 ```
 
 ## Anatomy of a theme

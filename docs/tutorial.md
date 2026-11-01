@@ -214,7 +214,7 @@ def hello(count, name, foo, bar, hello_conf):
 See how the configuration option is grouped with others:
 
 ```{click:run}
-:emphasize-result-lines: 6-10
+:emphasize-result-lines: 6-9
 from textwrap import dedent
 result = invoke(hello, args=["--help"])
 assert dedent(
@@ -224,10 +224,6 @@ assert dedent(
       --bar TEXT              Another important option.
       --hello-conf CONF_FILE  Loads CLI config."""
 ) in result.output
-```
-
-```{caution}
-Notice in the example above how the `@command()` decorator from Cloup is used with parenthesis. Contrary to Click and Click Extra, [Cloup requires parenthesis on its decorators](https://github.com/janluke/cloup/issues/127).
 ```
 
 ## Available options
@@ -352,7 +348,7 @@ You can target specific versions of Click Extra in your script dependencies:
 :emphasize-lines: 3
 #!/usr/bin/env -S uv run --script
 # /// script
-# dependencies = ["click-extra == 9.5.0"]
+# dependencies = ["click-extra == 9.5.1"]
 # ///
 ```
 ````

@@ -194,7 +194,8 @@ looks for it first.
 
 
 def _assign_option_groups(params: Sequence[click.Parameter]) -> None:
-    """Sort *params* into a fresh set of {data}`~click_extra.commands.DEFAULT_OPTION_GROUPS`.
+    """Sort *params* into a fresh set of
+    {data}`~click_extra.commands.DEFAULT_OPTION_GROUPS`.
 
     An option the CLI author put in a group of their own is left where they put
     it. Any other is re-filed, including one already in a section from an earlier
@@ -311,9 +312,9 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
     [click_extra#544 issue](https://github.com/kdeldycke/click-extra/issues/544).
 
     Presentation also sorts these options into the sections
-    {data}`~click_extra.commands.DEFAULT_OPTION_GROUPS` declares, drawn after the command's own
-    options. The two orders are independent: `--time` is processed first and
-    rendered last.
+    {data}`~click_extra.commands.DEFAULT_OPTION_GROUPS` declares, drawn after the
+    command's own options. The two orders are independent: `--time` is processed
+    first and rendered last.
     ```
     """
     params: list[click.Option] = [
@@ -685,7 +686,8 @@ class Command(  # type: ignore[misc]
         :param config_cascade: forwarded to the default
             {class}`~click_extra.config.option.ConfigOption`'s `cascade`
             setting: auto-discovery layers every configuration file it finds, the
-            most local one winning key by key, instead of stopping at the first.
+            most local one winning on key lookup, instead of stopping at the
+            first.
         :param excluded_params: additional parameter IDs to block from
             configuration files, merged into the default
             {class}`~click_extra.config.option.ConfigOption`'s
@@ -1791,7 +1793,8 @@ class LazyGroup(Group):
         ```
 
         A subcommand needing registration settings on top of its import path is
-        declared with a {class}`~click_extra.commands.LazySubcommand` instead of a bare string:
+        declared with a {class}`~click_extra.commands.LazySubcommand` instead of a
+        bare string:
 
         .. code-block:: python
 
@@ -1874,7 +1877,8 @@ class LazyGroup(Group):
         """Import `cmd_name` and register it with the settings it was declared with.
 
         The single place a lazy subcommand enters the group, so a settings-carrying
-        {class}`~click_extra.commands.LazySubcommand` reaches Cloup whichever route triggered the import.
+        {class}`~click_extra.commands.LazySubcommand` reaches Cloup whichever route
+        triggered the import.
         """
         spec = self.lazy_subcommands[cmd_name]
         cmd_object = self._lazy_load(cmd_name)

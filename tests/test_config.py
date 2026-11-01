@@ -2044,6 +2044,44 @@ def test_argfile_secondary_flag_and_inline_value(invoke, create_config):
     assert result.exit_code == 0
 
 
+@pytest.mark.parametrize("preparation", ("peeled", "sliced"))
+def test_argfile_switches_sharing_a_destination(invoke, create_config, preparation):
+    """Each feature switch of one destination is read from an argfile.
+
+    The two options share a name, so the parameter structure lists both under
+    one leaf. Keeping only the last one there leaves `--peeled` unmatched.
+    """
+
+    @click.command
+    @config_option
+    @option("--peeled", "preparation", flag_value="peeled")
+    @option("--sliced", "preparation", flag_value="sliced")
+    def fruit(preparation):
+        echo(f"preparation = {preparation!r}")
+
+    conf_path = create_config("switches.conf", f"--{preparation}\n")
+    result = invoke(fruit, "--config", str(conf_path), color=False)
+    assert result.stdout == f"preparation = {preparation!r}\n"
+    assert result.exit_code == 0
+
+
+def test_ini_name_shared_by_two_types_rejected(invoke, create_config):
+    """An INI item a name of two option types addresses is refused, not guessed."""
+
+    @click.command
+    @config_option
+    @option("--weight", "amount", type=int)
+    @option("--label", "amount", type=str)
+    def basket(amount):
+        echo(f"amount = {amount!r}")
+
+    conf_path = create_config("basket.ini", "[basket]\namount = 12\n")
+    result = invoke(basket, "--config", str(conf_path), color=False)
+    assert not result.stdout
+    assert "critical: Error parsing file as" in result.stderr
+    assert result.exit_code == 2
+
+
 @pytest.mark.parametrize(
     ("conf_text", "expected_key"),
     [

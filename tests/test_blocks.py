@@ -44,8 +44,8 @@ REGION = "intro\n\n<!-- t -->\nOLD\n<!-- t-end -->\n\nend\n"
 def test_blocks_module_needs_no_sphinx_extra():
     """`click_extra.markdown.blocks` imports without pulling in the `sphinx` extra.
 
-    The whole point of hosting the toolkit in the package root is that a
-    release pipeline or standalone script can reuse it without installing
+    The whole point of hosting the toolkit outside `click_extra.sphinx` is that
+    a release pipeline or standalone script can reuse it without installing
     Sphinx or docutils. Assert it in a fresh interpreter so an already-loaded
     Sphinx (from another test) cannot mask a regression.
     """
@@ -131,9 +131,9 @@ def test_skip_region_steps_over_a_quoted_end_marker():
 def test_rewrite_fenced_regions_keeps_a_quoted_end_marker():
     """A region holding a fence that quotes its closing marker round-trips.
 
-    The closing marker of the region was searched without stepping over
-    fences: the quoted one ended the region early, and each refresh left the
-    rest of the stale region below the new one.
+    A search for the closing marker that does not step over fences ends the
+    region on the quoted one, and each refresh then leaves the rest of the
+    stale region below the new one.
     """
     fence = re.compile(r"^```\{demo\}")
     region = ["```markdown", "<!-- t-end -->", "```"]

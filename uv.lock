@@ -369,9 +369,9 @@ docs = ">=3.14"
 
 [package.metadata]
 requires-dist = [
-    { name = "click", specifier = ">=8.5.0" },
+    { name = "click", specifier = ">=8.5" },
     { name = "click-extra", extras = ["carapace", "hjson", "json5", "mkdocs", "pygments", "pytest", "sphinx", "toml", "yaml"], marker = "extra == 'all'" },
-    { name = "cloup", specifier = ">=4.0.0" },
+    { name = "cloup", specifier = ">=4" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
     { name = "extra-platforms", specifier = ">=14" },
     { name = "hjson", marker = "extra == 'hjson'", specifier = ">=3.1" },
@@ -408,7 +408,7 @@ docs = [
     { name = "pytest", marker = "python_full_version >= '3.14'", specifier = ">=9" },
     { name = "pyyaml", marker = "python_full_version >= '3.14'", specifier = ">=6.0.3" },
     { name = "sphinx", marker = "python_full_version >= '3.14'", specifier = ">=8" },
-    { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.14'", specifier = ">=2.4" },
+    { name = "sphinx-autodoc-typehints", marker = "python_full_version >= '3.14'", specifier = ">=3.4" },
     { name = "sphinx-copybutton", marker = "python_full_version >= '3.14'", specifier = ">=0.5.2" },
     { name = "sphinx-datatables", marker = "python_full_version >= '3.14'", specifier = ">=1" },
     { name = "sphinx-design", marker = "python_full_version >= '3.14'", specifier = ">=0.6" },

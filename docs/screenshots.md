@@ -1036,7 +1036,7 @@ $ click-extra screenshot --output docs/assets/theme-gallery-screen.svg --head 34
 
 `--prompt` makes each image show the bare `click-extra …` a reader would type, while `uv run --frozen --` is what actually ran. The plumbing that reaches a checkout's copy of the CLI is not worth picturing. `--head` bounds the two long ones, and a dotted rule closing on `✂` says the rest was cut.
 
-The rule crosses the whole window, as the cut does: it spans `--columns`, less the cell a `--wrap-marker` takes. Under `--columns auto` the picture is as wide as its widest line, prompt included, and the rule spans that width.
+The rule crosses the whole window, as the cut does: it spans `--columns`, less the cell a `--wrap-marker` takes and the gutter `--line-numbers` draws. Under `--columns auto` the picture is as wide as its widest line, prompt included, and the rule spans that width.
 
 The before/after pair opening the [readme](https://github.com/kdeldycke/click-extra#example) takes the other route. Those two screens already exist as live [`click:run`](sphinx.md#committed-captures) blocks in the [tutorial](tutorial.md), so the blocks maintain them instead of shooting them again: a `:screenshot:` option writes each image on every documentation build. That keeps the readme's front page in step with the code.
 

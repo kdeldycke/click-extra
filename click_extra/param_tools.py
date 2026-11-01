@@ -528,6 +528,9 @@ class ParamStructure:
     def build_param_trees(self) -> dict[str, Any]:
         """Build and return the parameters tree structure.
 
+        Each leaf is the list of the parameters its path names: one, or several
+        when options share a name, like the feature switches of one destination.
+
         This removes parameters whose fully-qualified IDs are in the `excluded_params`
         blocklist.
 
@@ -549,7 +552,15 @@ class ParamStructure:
             if self.is_excluded(param_id):
                 continue
 
-            set_nested(objects, keys, [param])
+            # Parameters sharing a name, like the feature switches of a single
+            # destination, gather in one leaf, in declaration order.
+            try:
+                leaf = self.get_tree_value(objects, *keys)
+            except (KeyError, TypeError):
+                leaf = None
+            set_nested(
+                objects, keys, [*leaf, param] if isinstance(leaf, list) else [param]
+            )
 
         if self.included_params is not None:
             self.excluded_params = frozenset(reached_ids) - self.included_params

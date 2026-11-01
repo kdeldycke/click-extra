@@ -228,7 +228,7 @@ def param_config_source(
     ```{note}
     Lazy subcommands receive their section from the merged configuration
     document, injected into the front layer by
-    {meth}`~click_extra.commands.Group._apply_config_to_parent_context`:
+    {meth}`~click_extra.commands.LazyGroup._apply_config_to_parent_context`:
     those values are attributed to the highest-precedence file even when
     several files contributed to the merge.
     ```

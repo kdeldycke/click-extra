@@ -520,8 +520,8 @@ class ConfigDirective(ReferenceDirective):
         top-level section of the document. A line wrap that leaves a lone `=` or
         `-` under a paragraph is enough to make one.
 
-        Each docstring is parsed with the MyST configuration of the host
-        document. Each heading is reported as a
+        Each docstring is parsed with the MyST configuration `conf.py` sets for
+        the project. Each heading is reported as a
         {data}`CONFIG_DOCSTRING_HEADING_WARNING` at the directive, with the
         option and the docstring line that makes the heading: the underline of a
         setext heading, the line of an ATX one.

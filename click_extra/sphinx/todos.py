@@ -478,7 +478,7 @@ def _identity(target: object) -> int | None:
 
 
 def report_unrendered_todos(app: Sphinx, env: BuildEnvironment) -> None:
-    """Warn about each docstring `{todo}` that no page renders.
+    """Warn about each docstring ``{todo}`` that no page renders.
 
     The warning has the {data}`UNRENDERED_TODO_WARNING` type, and points at the
     line of the directive. The check is connected to `env-check-consistency`,

@@ -403,7 +403,8 @@ def _escape_markup(text: str, *, quote: bool = False) -> str:
     """Escape the characters markup reads, as {func}`html.escape` does.
 
     Spelled out rather than imported: {mod}`html` loads its whole entity table
-    on import, and the capture modules load with the `click-extra` CLI.
+    on import, which the `screenshot` and `snippet` commands of the
+    `click-extra` CLI would pay for on every run.
 
     :param text: the text to escape.
     :param quote: escape both quote characters too, for an attribute value.

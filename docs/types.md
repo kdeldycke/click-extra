@@ -523,7 +523,7 @@ def cli(format):
 See the unmatched default value in the help message:
 
 ```{click:run}
-:emphasize-lines: 6
+:emphasize-result-lines: 6
 result = invoke(cli, args=["--help"])
 assert "--format [text|html|other-format]" in result.stdout
 assert "[default: HTML]" in result.stdout
@@ -562,7 +562,7 @@ def cli(format):
 ```
 
 ```{click:run}
-:emphasize-lines: 6
+:emphasize-result-lines: 6
 result = invoke(cli, args=["--help"])
 assert "--format [text|html|other-format]" in result.stdout
 assert "[default: html]" in result.stdout

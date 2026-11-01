@@ -132,9 +132,9 @@ def test_prebake_dunders_writes_a_literal_holding_the_value(
 ):
     """The baked literal parses back to the value, in the quotes it opened with.
 
-    A value carrying the quote character the placeholder is written in, like a
-    branch named after a fruit's owner, closed the literal early and left a
-    file that no longer compiled.
+    A value can carry the quote character the placeholder is written in, like a
+    branch named after a fruit's owner: escaped, it cannot close the literal
+    early, and the file still compiles.
     """
     source = tmp_path / "__init__.py"
     source.write_text(f"__git_branch__ = {placeholder}\n", encoding="UTF-8")
@@ -153,7 +153,7 @@ def test_prebake_dunders_counts_columns_past_non_ascii_text(tmp_path):
     """A placeholder after a non-ASCII literal on the same line lands in place.
 
     The parser counts columns in UTF-8 bytes: read as characters, every
-    multi-byte character ahead of the placeholder shifted the splice right.
+    multi-byte character ahead of the placeholder would shift the splice right.
     """
     source = tmp_path / "__init__.py"
     source.write_text(

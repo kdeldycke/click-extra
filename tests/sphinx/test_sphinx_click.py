@@ -42,6 +42,7 @@ from click_extra.sphinx.click import (
     _screenshot_background,
     _screenshot_opacity,
     rewrite_screenshot_regions,
+    update_screenshot_blocks,
 )
 from click_extra.sphinx.click_runner import ClickRunner, program_from_command_line
 from click_extra.spinner_presets import SPINNERS
@@ -2383,6 +2384,32 @@ def test_click_run_mirror_skips_a_nested_example():
         ````
     """)
     assert rewrite_screenshot_regions(source) == source
+
+
+def test_update_screenshot_blocks_writes_and_checks(tmp_path):
+    """The file-level refresher reports a stale page, then writes its region.
+
+    ``check`` leaves the page alone, a write links the capture under the given
+    directory, and a page already current is not reported again.
+    """
+    page = tmp_path / "harvest.md"
+    source = dedent("""
+        ```{click:run}
+        :screenshot: harvest-screen
+        :mirror:
+        result = invoke(harvest)
+        ```
+    """)
+    page.write_text(source, encoding="UTF-8")
+
+    assert update_screenshot_blocks([tmp_path], check=True) == [page]
+    assert page.read_text(encoding="UTF-8") == source
+
+    assert update_screenshot_blocks([page], directory="images") == [page]
+    assert "![harvest-screen](images/harvest-screen.svg)" in page.read_text(
+        encoding="UTF-8"
+    )
+    assert update_screenshot_blocks([page], directory="images") == []
 
 
 def test_click_source_screenshot_pictures_its_own_code(sphinx_app_myst):

@@ -37,6 +37,9 @@ from .config.formats import ConfigFormat, parse_content
 
 logger = logging.getLogger(__name__)
 
+_SCRIPT_SOURCES = "[project.scripts] in pyproject.toml and console_scripts in setup.cfg"
+"""Where {func}`read_project_scripts` looks, named when a project declares none."""
+
 
 def read_project_scripts(directory: Path) -> dict[str, str]:
     """Read the console-script entry points declared by a local project.
@@ -156,8 +159,7 @@ def resolve_entry_point(directory: Path) -> ProjectEntryPoint:
     if not scripts:
         msg = (
             f"No console-script entry point found in {directory.resolve()}. Looked"
-            " for [project.scripts] in pyproject.toml and console_scripts in"
-            " setup.cfg."
+            f" for {_SCRIPT_SOURCES}."
         )
         raise ValueError(msg)
 
@@ -224,9 +226,7 @@ def discover_package_init_files(directory: Path | None = None) -> list[Path]:
     scripts = read_project_scripts(directory)
     if not scripts:
         logger.warning(
-            "No console script found in %s: looked for [project.scripts] in "
-            "pyproject.toml and console_scripts in setup.cfg.",
-            directory,
+            "No console script found in %s: looked for %s.", directory, _SCRIPT_SOURCES
         )
         return []
 

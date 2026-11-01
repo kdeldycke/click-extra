@@ -310,6 +310,11 @@ def _markdown_help(text: str) -> list[str]:
     return out
 
 
+def _code_span(text: str) -> str:
+    """Wrap text in a Markdown code span."""
+    return f"`{text}`"
+
+
 def _markdown_inline(text: str) -> str:
     """Collapse help prose to a single Markdown line, for list items and tables.
 
@@ -318,14 +323,9 @@ def _markdown_inline(text: str) -> str:
     """
     cleaned = " ".join(clean_help(text).split())
     return "".join(
-        f"`{segment}`" if is_literal else segment
+        _code_span(segment) if is_literal else segment
         for segment, is_literal in iter_inline_literals(cleaned)
     )
-
-
-def _code_span(text: str) -> str:
-    """Wrap text in a Markdown code span."""
-    return f"`{text}`"
 
 
 def _markdown_item(label: str, help_text: str) -> str:
@@ -442,16 +442,14 @@ class DocOptionItem:
         aligned it on purpose, and a list item can carry a block as well as a
         paragraph can.
         """
-        item = f"- `{self.spec}`"
+        label = _code_span(self.spec)
         if self.required:
-            item += " *(required)*"
+            label += " *(required)*"
 
         paragraphs = list(_iter_help_paragraphs(self.help or ""))
-        help_text = _markdown_inline(" ".join(filled for filled, _ in paragraphs))
-        if help_text:
-            item += f": {help_text}"
+        item = _markdown_item(label, " ".join(filled for filled, _ in paragraphs))
         if self.unlisted_choices:
-            values = ", ".join(f"`{choice}`" for choice in self.unlisted_choices)
+            values = ", ".join(map(_code_span, self.unlisted_choices))
             item += f" Values: {values}."
         lines = [item]
 
@@ -722,7 +720,7 @@ class CommandDoc:
         if self.short_help:
             lines.extend((_markdown_inline(self.short_help), ""))
         if self.version:
-            lines.extend((f"Version `{self.version}`.", ""))
+            lines.extend((f"Version {_code_span(self.version)}.", ""))
 
         lines.extend((
             "## Synopsis",

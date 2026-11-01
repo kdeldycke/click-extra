@@ -35,7 +35,7 @@ The table below lists every entry Click Extra publishes for your code, the optio
 | ------------------------- | ----------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------- |
 | `context.RAW_ARGS`        | `click_extra.raw_args`        | `Command.make_context` (always, on `@command` and `@group`)  | `list[str]`: pre-parsed `argv` slice fed to the current command         |
 | `context.INVOCATION_NAME` | `click_extra.invocation_name` | `Command.make_context` (root context only)                   | `str`: the name the CLI was invoked under *(write-only)*                |
-| `context.CONF_SOURCE`     | `click_extra.conf_source`     | `ConfigOption.load_conf` (`@config_option`)                  | `pathlib.Path \| URL \| None`: file the configuration was loaded from   |
+| `context.CONF_SOURCE`     | `click_extra.conf_source`     | `ConfigOption.load_conf` (`@config_option`)                  | `pathlib.Path \| str \| None`: file or URL the configuration came from  |
 | `context.CONF_FULL`       | `click_extra.conf_full`       | `ConfigOption.load_conf` (`@config_option`)                  | `dict \| None`: full parsed configuration document                      |
 | `context.CONF_SOURCES`    | `click_extra.conf_sources`    | `ConfigOption.load_conf` (`@config_option`)                  | `tuple[(path, dict), ...]`: every loaded file, highest precedence first |
 | `context.TOOL_CONFIG`     | `click_extra.tool_config`     | `ConfigOption.load_conf` (with `config_schema`)              | The deserialised app section (also reachable via `get_tool_config()`)   |

@@ -138,7 +138,7 @@ An unparsable file produces exit code 2:
 ```{code-block} shell-session
 :emphasize-lines: 2,4
 $ my-cli --validate-config garbage.txt
-Error parsing garbage.txt as TOML, YAML, JSON, INI, XML, plist, SQLite, Argfile or pyproject.toml.
+Error parsing garbage.txt as TOML, JSON, JSONC, INI, XML, plist, SQLite, Argfile or pyproject.toml.
 $ echo $?
 2
 ```

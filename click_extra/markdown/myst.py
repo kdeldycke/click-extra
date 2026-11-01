@@ -71,7 +71,8 @@ directives with indented options, and structural headers like `Submodules`.
 ```{note}
 Autodoc directives cannot be used as native MyST directives because they
 perform internal rST nested parsing that requires an rST parser context
-only ``{eval-rst}`` provides. See [MyST-Parser #587](https://github.com/executablebooks/MyST-Parser/issues/587).
+only ``{eval-rst}`` provides. See
+[executablebooks/MyST-Parser#587](https://github.com/executablebooks/MyST-Parser/issues/587).
 ```
 
 The patterns are compiled on first use, through the cache of {mod}`re`.

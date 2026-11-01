@@ -433,8 +433,9 @@ def record_command(
     ```{caution}
     Unix only. A pseudo-terminal is `termios` and `pty`, neither of which
     Windows ships, and reaching ConPTY means a dependency. Recording a spinner
-    this process *hosts* needs none of that: hand a {class}`~click_extra.capture.recording.ScreenRecorder` to
-    its `stream` and it animates on any platform.
+    this process *hosts* needs none of that: hand a
+    {class}`~click_extra.capture.recording.ScreenRecorder` to its `stream` and
+    it animates on any platform.
     ```
 
     The terminal this runs *from* is hidden from the command, see

@@ -24,6 +24,8 @@ active theme: {class}`HelpFormatter` styles `--help` output and
 The patterns of the help screen stay uncompiled strings at module level. Most
 runs of a CLI render no help screen, so none of them is worth compiling on
 import: `re` compiles each on its first use and caches it from then on.
+{data}`DEPRECATED_RE` is the exception: {func}`highlight` reads a string as a
+literal, so the marker pattern other renderers share is handed over compiled.
 ```
 """
 

@@ -45,7 +45,7 @@ while a terminal names sixteen and leaves their shades to whoever draws them.
 
 from __future__ import annotations
 
-from functools import cache
+from functools import cache, partial
 
 from .._utils import missing_extra_message
 
@@ -69,6 +69,7 @@ from .screenshot import (
     DEFAULT_TRUNCATION,
     DEFAULT_WRAP_MARKER,
     CaptureFormat,
+    _gutter_width,
     render,
     trim_lines,
 )
@@ -334,7 +335,8 @@ def render_snippet(
         filename=filename,
         style=resolved_style,
     )
-    text = trim_lines(
+    trim = partial(
+        trim_lines,
         text,
         head=head,
         tail=tail,
@@ -342,8 +344,10 @@ def render_snippet(
         columns=columns,
         wrap_marker=wrap_marker,
     )
+    text = trim()
     if line_numbers:
-        text = number_lines(text)
+        # Cut again first, for the rule to leave room for the gutter.
+        text = number_lines(trim(gutter=_gutter_width(text)))
     return render(
         text,
         format=format,

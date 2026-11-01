@@ -41,6 +41,7 @@ from click_extra.capture.presets import (
 from click_extra.capture.screenshot import (
     AUTO_COLUMNS,
     DEFAULT_COLUMNS,
+    TRUNCATION_LABEL,
     CaptureFormat,
 )
 from click_extra.capture.snippet import (
@@ -60,6 +61,7 @@ from click_extra.cli_capture import (
     snippet_cmd,
 )
 from click_extra.color import TerminalBackground
+from click_extra.layout import cell_width
 from click_extra.styling import split_ansi
 
 from .test_screenshots import svg_to_lines
@@ -167,6 +169,32 @@ def test_snippet_numbers_its_lines():
     )
     assert lines[0].startswith("1 │ ")
     assert lines[-1].startswith("3 │ ")
+
+
+def test_snippet_leaves_room_for_line_numbers_on_the_rule():
+    """A numbered snippet cut short rules the cut inside its text column.
+
+    The gutter takes cells in front of every row, the rule's included, so a rule
+    as wide as `columns` would fold on its last dots and put them alone on a row
+    of their own.
+    """
+    code = "".join(f"mango = {weight}\n" for weight in range(30))
+    lines = svg_to_lines(
+        render_snippet(
+            code,
+            language="python",
+            columns=40,
+            head=2,
+            tail=2,
+            line_numbers=True,
+            chrome=Chrome(watermark=""),
+        ),
+    )
+
+    assert len(lines) == 5, "the rule folded onto a row of its own"
+    rule_rows = [line for line in lines if TRUNCATION_LABEL in line]
+    assert len(rule_rows) == 1
+    assert cell_width(rule_rows[0]) == 40
 
 
 def test_snippet_renders_the_same_bytes_twice():

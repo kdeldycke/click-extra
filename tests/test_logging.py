@@ -171,7 +171,6 @@ def test_integrated_verbosity_options(
         def logging_cli3():
             pass
 
-        # Parenthesized: the group is Cloup-based, which rejects the naked form.
         @logging_cli3.command()
         def worker():
             echo("It works!")
@@ -810,7 +809,6 @@ def extra_group(body):
     def farm():
         pass
 
-    # Parenthesized: the group is Cloup-based, which rejects the naked form.
     @farm.command()
     def orchard():
         body()
@@ -1420,7 +1418,6 @@ def test_levels_are_given_back_when_a_subcommand_fails_while_parsing(
     def farm():
         pass
 
-    # Parenthesized: the group is Cloup-based, which rejects the naked form.
     @farm.command()
     @verbosity_option
     @click.option("--baskets", type=int)

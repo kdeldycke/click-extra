@@ -197,7 +197,7 @@ window is not owed a mark for something the terminal itself would not show.
 
 PROMPT_THEMES: dict[TerminalBackground, HelpTheme | None] = {
     TerminalBackground.DARK: None,
-    TerminalBackground.LIGHT: BUILTIN_THEMES.get("light"),
+    TerminalBackground.LIGHT: BUILTIN_THEMES["light"],
 }
 """Theme the prompt line is drawn with, per chrome.
 
@@ -206,8 +206,7 @@ whatever theme *that* run was told to use. The prompt is the one line this
 process draws itself, so it is the one that would otherwise land on white
 chrome in the dark default's near-white `invoked_command` style, invisible.
 
-`None` keeps whatever theme the invocation already runs under. So does a
-missing entry: the mapping is read through {meth}`dict.get`.
+`None` keeps whatever theme the invocation already runs under.
 """
 
 CAPTURE_TERMINAL_HINTS: dict[TerminalBackground, dict[str, str]] = {
@@ -336,8 +335,9 @@ def resolve_wrap_marker(marker: str) -> str:
     The one reading of the option every entry point shares: the `--wrap-marker`
     of the capture commands, and the API those commands call.
 
-    :param marker: the text, {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER`, or an empty string for no
-        marker at all.
+    :param marker: the text,
+        {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER`, or an empty
+        string for no marker at all.
     :return: the characters to write at a fold, empty for none.
     """
     return WRAP_MARKER_LABEL if marker == AUTO_WRAP_MARKER else marker
@@ -557,36 +557,41 @@ def _rule_marker(
     columns: TColumns = DEFAULT_COLUMNS,
     wrap_marker: str = DEFAULT_WRAP_MARKER,
     width_floor: int = 0,
+    gutter: int = 0,
 ) -> str:
     """Center {data}`TRUNCATION_LABEL` in a rule across the picture's text column.
 
     A cut crosses the whole picture, so the rule spans the width the text is
-    drawn at: `columns`, less the cell a wrap marker takes. Under
-    {data}`AUTO_COLUMNS` the picture is as wide as its widest line, so the rule
-    spans the widest of `lines`, or `width_floor` when a line drawn besides them,
-    like the prompt, is wider still.
+    drawn at: `columns`, less the cell a wrap marker takes and the `gutter` the
+    line numbers take. Under {data}`AUTO_COLUMNS` the picture is as wide as its
+    widest line, so the rule spans the widest of `lines`, or `width_floor` when
+    a line drawn besides them, like the prompt, is wider still.
 
     ```{note}
     Never past the width the text is drawn at. {func}`~click_extra.layout.grid`
     folds any line reaching past it, and a rule folded on its last dots puts them
     alone on a row of their own, outside the text column. A wrap marker takes a
     cell of every row, so a rule as wide as `columns` would also fold, and close
-    its row on the marker as if the rule continued below.
+    its row on the marker as if the rule continued below. A line-number gutter
+    is drawn in front of every row, the rule's included, and pushes it past the
+    width the same way.
     ```
 
     :param lines: the lines the marker is drawn between.
     :param columns: width the capture is drawn at, or {data}`AUTO_COLUMNS` when
         nothing folds.
-    :param wrap_marker: what closes a folded row, {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER`
-        included.
+    :param wrap_marker: what closes a folded row,
+        {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER` included.
     :param width_floor: under {data}`AUTO_COLUMNS`, the width of the widest line
         drawn besides `lines`.
+    :param gutter: cells the line numbers take in front of every row.
     :return: the marker to write in their place.
     """
     if columns == AUTO_COLUMNS:
+        # The gutter widens every row alike, the rule's included.
         width = fit_columns("\n".join(lines), floor=width_floor)
     else:
-        width = columns - cell_width(resolve_wrap_marker(wrap_marker))
+        width = columns - cell_width(resolve_wrap_marker(wrap_marker)) - gutter
     return center_in_rule(
         style(TRUNCATION_LABEL, fg=RULE_COLOR),
         width,
@@ -605,6 +610,7 @@ def trim_lines(
     columns: TColumns = DEFAULT_COLUMNS,
     wrap_marker: str = DEFAULT_WRAP_MARKER,
     width_floor: int = 0,
+    gutter: int = 0,
 ) -> str:
     """Keep only the first `head` and last `tail` lines of `text`.
 
@@ -625,6 +631,9 @@ def trim_lines(
         cell of every row, so it narrows the rule by as much.
     :param width_floor: under {data}`AUTO_COLUMNS`, the width of a line the
         picture draws besides `text`, like the prompt, which the rule spans too.
+    :param gutter: cells the line numbers drawn after the cut take in front of
+        every row, see {func}`~click_extra.layout.number_lines`. It narrows the
+        rule by as much.
     :return: the trimmed text.
     """
     if head is None and tail is None:
@@ -638,11 +647,27 @@ def trim_lines(
     marker = truncation
     if truncation == AUTO_TRUNCATION:
         marker = _rule_marker(
-            [*head_lines, *tail_lines], columns, wrap_marker, width_floor
+            [*head_lines, *tail_lines], columns, wrap_marker, width_floor, gutter
         )
     if _leaves_style_open(head_lines):
         marker = RESET + marker
     return "\n".join([*head_lines, marker, *tail_lines])
+
+
+def _gutter_width(text: str) -> int:
+    """Cells {func}`~click_extra.layout.number_lines` draws in front of each row.
+
+    Measured on a numbered copy of `text` rather than restated, so the two
+    cannot drift. The gutter widens by a digit when the row count does, so it
+    is measured on the whole text the numbers are drawn on.
+
+    :param text: the text to be numbered.
+    :return: the gutter's width, in cells. Zero for a text with no row.
+    """
+    rows = text.splitlines()
+    if not rows:
+        return 0
+    return cell_width(number_lines(text).partition("\n")[0]) - cell_width(rows[0])
 
 
 def emphasize_ansi(
@@ -747,10 +772,11 @@ def render(
         cursor naming no shape takes the one the `preset` says that terminal
         draws, so `--preset windows` gets its bar without stating it.
     :param wrap_marker: SVG only. What closes each row a fold cut short,
-        {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER` for {data}`WRAP_MARKER_LABEL`, or empty to fold
-        silently, see {func}`~click_extra.layout.grid`. HTML reflows with the page
-        embedding it, and a terminal reading ANSI folds on its own, so neither
-        has a fold of the capture's to mark.
+        {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER` for
+        {data}`WRAP_MARKER_LABEL`, or empty to fold silently, see
+        {func}`~click_extra.layout.grid`. HTML reflows with the page embedding
+        it, and a terminal reading ANSI folds on its own, so neither has a fold
+        of the capture's to mark.
     :param full: HTML only. See {func}`~click_extra.capture.html.render_html`.
     :param background: chrome to draw on, see
         {class}`~click_extra.color.TerminalBackground`.
@@ -895,24 +921,32 @@ def capture(
         timeout=timeout,
     )
     invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
-    text = trim_lines(
-        process.stdout,
-        head=head,
-        tail=tail,
-        truncation=truncation,
-        columns=columns,
-        wrap_marker=wrap_marker,
-        # The prompt joins the picture below, and widens it under `auto`.
-        width_floor=fit_columns(invocation),
-    )
-    if invocation:
-        text = f"{invocation}\n{text}"
-    if closing_prompt:
-        text = append_prompt(text, background=background, preset=preset)
+
+    def picture(gutter: int = 0) -> str:
+        """The rows the capture draws, from the invocation to the shell's return."""
+        text = trim_lines(
+            process.stdout,
+            head=head,
+            tail=tail,
+            truncation=truncation,
+            columns=columns,
+            wrap_marker=wrap_marker,
+            # The prompt joins the picture below, and widens it under `auto`.
+            width_floor=fit_columns(invocation),
+            gutter=gutter,
+        )
+        if invocation:
+            text = f"{invocation}\n{text}"
+        if closing_prompt:
+            text = append_prompt(text, background=background, preset=preset)
+        return text
+
+    text = picture()
     # Numbered after both prompts join it, so line 1 is the invocation that
-    # produced everything under it and the last is the shell coming back.
+    # produced everything under it and the last is the shell coming back. The
+    # rows are drawn again first, for the rule to leave room for the gutter.
     if line_numbers:
-        text = number_lines(text)
+        text = number_lines(picture(gutter=_gutter_width(text)))
     return (
         render(
             text,

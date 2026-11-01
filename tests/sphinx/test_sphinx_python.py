@@ -606,8 +606,7 @@ def test_refresh_directives_cli_refreshes_mirror_blocks(tmp_path):
 def test_refresh_directives_cli_reads_and_writes_a_page_once(tmp_path, monkeypatch):
     """Every kind of block of a page is refreshed in one read and one write.
 
-    The matrix, mirror and screenshot refreshers each read and wrote every page
-    on their own.
+    The matrix, mirror and screenshot refreshers share one pass over the page.
     """
     doc = tmp_path / "page.md"
     doc.write_text(_MIRROR_TABLE_BLOCK, encoding="UTF-8")
