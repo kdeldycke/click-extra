@@ -86,11 +86,11 @@ dependencies = [
   # Click 8.5.0 adds `custom_version_option`, which the package root re-exports,
   # and makes `ProgressBar.render_finish()` apply pending steps
   # (pallets/click#3769), which progress.progressbar() relies on.
-  "click>=8.5.0",
+  "click>=8.5",
   # Cloup 4.0.0 hashes `Style` by value (janluke/cloup#224), builds the themes of
   # `HelpTheme` subclasses (janluke/cloup#225), and exports the `ArgumentKwargs`
   # and `OptionKwargs` the package root re-exports.
-  "cloup>=4.0.0",
+  "cloup>=4",
   # 14.0.0 requires Python 3.11 like click-extra, and stops importing `typing`
   # at runtime, which every click-extra run that detects a platform paid for.
   "extra-platforms>=14",
