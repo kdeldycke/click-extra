@@ -395,6 +395,31 @@ def test_lazy_export_modules_stay_off_startup():
     assert process.returncode == 0, process.stderr
 
 
+@pytest.mark.once
+def test_lazy_export_modules_are_visible_to_freezers():
+    """Each module a lazy name lives in has an import statement in a function.
+
+    Nuitka bundles what a live import statement names. It drops the
+    `TYPE_CHECKING` block as dead code, and cannot follow a computed
+    `import_module()` call, so a module missing here is missing from every
+    binary built on click-extra, which then crashes on the lazy name.
+    """
+    imported = {
+        ".".join(filter(None, (node.module, alias.name)))
+        for function in ast.walk(ast.parse(inspect.getsource(click_extra)))
+        if isinstance(function, ast.FunctionDef)
+        for node in ast.walk(function)
+        if isinstance(node, ast.ImportFrom) and node.level == 1
+        for alias in node.names
+    }
+    modules = {
+        module
+        for registry in LAZY_REGISTRIES
+        for module in getattr(click_extra, registry).values()
+    }
+    assert not modules - imported, sorted(modules - imported)
+
+
 @pytest.fixture
 def all_command_cli():
     """A CLI that is mixing all variations and flavors of subcommands."""

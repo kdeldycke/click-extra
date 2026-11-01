@@ -49,6 +49,7 @@ TYPE_CHECKING = False
 # __getattr__ hook at the bottom of this file, so this block is also what keeps
 # them visible to type checkers.
 if TYPE_CHECKING:
+    from types import ModuleType
     from typing import Any
 
     from .capture.recording import record_command
@@ -775,6 +776,62 @@ for _name in _DEPRECATED_CLICK_EXPORTS:
 del _name
 
 
+def _lazy_module(path: str) -> ModuleType:
+    """Import the module a lazy name lives in, by an import statement of its own.
+
+    ```{note}
+    Nuitka bundles what a live import statement names: it drops the
+    `TYPE_CHECKING` block above as dead code, and cannot follow a computed
+    `import_module()` call. Spelling out each import keeps these modules in a
+    binary built on click-extra, and each one still loads on the first access
+    to one of its names only.
+    ```
+    """
+    match path:
+        case "capture.recording":
+            from .capture import recording
+
+            return recording
+        case "capture.screenshot":
+            from .capture import screenshot
+
+            return screenshot
+        case "capture.svg":
+            from .capture import svg
+
+            return svg
+        case "markdown.blocks":
+            from .markdown import blocks
+
+            return blocks
+        case "markdown.myst":
+            from .markdown import myst
+
+            return myst
+        case "progress":
+            from . import progress
+
+            return progress
+        case "project":
+            from . import project
+
+            return project
+        case "test_suite":
+            from . import test_suite
+
+            return test_suite
+        case "testing":
+            from . import testing
+
+            return testing
+        case "trail":
+            from . import trail
+
+            return trail
+        case _:
+            raise ModuleNotFoundError(f"No module named '{__name__}.{path}'")
+
+
 def __getattr__(name: str) -> Any:
     """Resolve lazy top-level symbols via PEP 562.
 
@@ -801,10 +858,7 @@ def __getattr__(name: str) -> Any:
         or _LAZY_DISPLAYS.get(name)
     )
     if lazy_module:
-        # Imported here, so no `import_module` binding joins the public namespace.
-        from importlib import import_module
-
-        value = getattr(import_module(f"{__name__}.{lazy_module}"), name)
+        value = getattr(_lazy_module(lazy_module), name)
         # Cache the symbol on the module so later accesses bypass this hook.
         globals()[name] = value
         return value
