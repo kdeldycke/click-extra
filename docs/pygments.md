@@ -386,7 +386,9 @@ truecolor = highlight(gradient, AnsiColorLexer(), formatter)
 # Wrap each ``<pre>`` in ``<div class="highlight">`` so the Pygments stylesheet's
 # ``.highlight .-Ansi-*`` rules scope correctly to the quantized row. The true-color
 # row carries inline styles and renders identically with or without the wrapper.
-print("<p><strong>Quantized to 256 colors (<code>true_color=False</code>):</strong></p>")
+print(
+    "<p><strong>Quantized to 256 colors (<code>true_color=False</code>):</strong></p>"
+)
 print(
     f'<div class="highlight"><pre style="font-size: 1.1em; line-height: 1">'
     f"{quantized}</pre></div>"
