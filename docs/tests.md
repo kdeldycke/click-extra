@@ -17,7 +17,7 @@ tests.sphinx
 
 ## Submodules
 
-## tests.conftest module
+## `tests.conftest` module
 
 ```{eval-rst}
 .. automodule:: tests.conftest
@@ -26,7 +26,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_accessibility module
+## `tests.test_accessibility` module
 
 ```{eval-rst}
 .. automodule:: tests.test_accessibility
@@ -35,7 +35,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_ansi module
+## `tests.test_ansi` module
 
 ```{eval-rst}
 .. automodule:: tests.test_ansi
@@ -44,7 +44,25 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_cli_wrapper module
+## `tests.test_blocks` module
+
+```{eval-rst}
+.. automodule:: tests.test_blocks
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_carapace` module
+
+```{eval-rst}
+.. automodule:: tests.test_carapace
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_cli_wrapper` module
 
 ```{eval-rst}
 .. automodule:: tests.test_cli_wrapper
@@ -53,7 +71,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_color module
+## `tests.test_color` module
 
 ```{eval-rst}
 .. automodule:: tests.test_color
@@ -62,7 +80,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_command_doc module
+## `tests.test_command_doc` module
 
 ```{eval-rst}
 .. automodule:: tests.test_command_doc
@@ -71,7 +89,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_commands module
+## `tests.test_commands` module
 
 ```{eval-rst}
 .. automodule:: tests.test_commands
@@ -80,7 +98,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_config module
+## `tests.test_config` module
 
 ```{eval-rst}
 .. automodule:: tests.test_config
@@ -89,7 +107,25 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_config_schema module
+## `tests.test_config_discovery` module
+
+```{eval-rst}
+.. automodule:: tests.test_config_discovery
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_config_flags` module
+
+```{eval-rst}
+.. automodule:: tests.test_config_flags
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_config_schema` module
 
 ```{eval-rst}
 .. automodule:: tests.test_config_schema
@@ -98,7 +134,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_context module
+## `tests.test_context` module
 
 ```{eval-rst}
 .. automodule:: tests.test_context
@@ -107,7 +143,25 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_envvar module
+## `tests.test_docs_anchors` module
+
+```{eval-rst}
+.. automodule:: tests.test_docs_anchors
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_docs_directives` module
+
+```{eval-rst}
+.. automodule:: tests.test_docs_directives
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_envvar` module
 
 ```{eval-rst}
 .. automodule:: tests.test_envvar
@@ -116,7 +170,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_execution module
+## `tests.test_execution` module
 
 ```{eval-rst}
 .. automodule:: tests.test_execution
@@ -125,7 +179,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_highlight module
+## `tests.test_highlight` module
 
 ```{eval-rst}
 .. automodule:: tests.test_highlight
@@ -134,7 +188,43 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_logging module
+## `tests.test_humanize` module
+
+```{eval-rst}
+.. automodule:: tests.test_humanize
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_hygiene` module
+
+```{eval-rst}
+.. automodule:: tests.test_hygiene
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_jobs` module
+
+```{eval-rst}
+.. automodule:: tests.test_jobs
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_layout` module
+
+```{eval-rst}
+.. automodule:: tests.test_layout
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_logging` module
 
 ```{eval-rst}
 .. automodule:: tests.test_logging
@@ -143,7 +233,43 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_parameters module
+## `tests.test_logo` module
+
+```{eval-rst}
+.. automodule:: tests.test_logo
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_multicall` module
+
+```{eval-rst}
+.. automodule:: tests.test_multicall
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_myst` module
+
+```{eval-rst}
+.. automodule:: tests.test_myst
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_output` module
+
+```{eval-rst}
+.. automodule:: tests.test_output
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_parameters` module
 
 ```{eval-rst}
 .. automodule:: tests.test_parameters
@@ -152,7 +278,34 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_pygments module
+## `tests.test_prebake` module
+
+```{eval-rst}
+.. automodule:: tests.test_prebake
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_progress` module
+
+```{eval-rst}
+.. automodule:: tests.test_progress
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_project` module
+
+```{eval-rst}
+.. automodule:: tests.test_project
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_pygments` module
 
 ```{eval-rst}
 .. automodule:: tests.test_pygments
@@ -161,7 +314,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_pyproject module
+## `tests.test_pyproject` module
 
 ```{eval-rst}
 .. automodule:: tests.test_pyproject
@@ -170,7 +323,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_pytest module
+## `tests.test_pytest` module
 
 ```{eval-rst}
 .. automodule:: tests.test_pytest
@@ -179,7 +332,43 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_spinner module
+## `tests.test_recording` module
+
+```{eval-rst}
+.. automodule:: tests.test_recording
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_screenshots` module
+
+```{eval-rst}
+.. automodule:: tests.test_screenshots
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_snippet` module
+
+```{eval-rst}
+.. automodule:: tests.test_snippet
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_sphinx_crossrefs` module
+
+```{eval-rst}
+.. automodule:: tests.test_sphinx_crossrefs
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_spinner` module
 
 ```{eval-rst}
 .. automodule:: tests.test_spinner
@@ -188,7 +377,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_styling module
+## `tests.test_styling` module
 
 ```{eval-rst}
 .. automodule:: tests.test_styling
@@ -197,7 +386,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_table module
+## `tests.test_table` module
 
 ```{eval-rst}
 .. automodule:: tests.test_table
@@ -206,7 +395,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_telemetry module
+## `tests.test_telemetry` module
 
 ```{eval-rst}
 .. automodule:: tests.test_telemetry
@@ -215,7 +404,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_test_suite module
+## `tests.test_test_suite` module
 
 ```{eval-rst}
 .. automodule:: tests.test_test_suite
@@ -224,7 +413,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_testing module
+## `tests.test_testing` module
 
 ```{eval-rst}
 .. automodule:: tests.test_testing
@@ -233,7 +422,7 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_theme module
+## `tests.test_theme` module
 
 ```{eval-rst}
 .. automodule:: tests.test_theme
@@ -242,7 +431,25 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_types module
+## `tests.test_trail` module
+
+```{eval-rst}
+.. automodule:: tests.test_trail
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_tree` module
+
+```{eval-rst}
+.. automodule:: tests.test_tree
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_types` module
 
 ```{eval-rst}
 .. automodule:: tests.test_types
@@ -251,7 +458,16 @@ tests.sphinx
    :undoc-members:
 ```
 
-## tests.test_version module
+## `tests.test_utils` module
+
+```{eval-rst}
+.. automodule:: tests.test_utils
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_version` module
 
 ```{eval-rst}
 .. automodule:: tests.test_version
