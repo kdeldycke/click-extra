@@ -557,6 +557,20 @@ def test_render_help_takes_a_member_or_its_value(help_format):
     assert json.loads(rendered)
 
 
+@pytest.mark.parametrize(
+    ("prog_name", "spec_name"),
+    (
+        (None, "weather"),
+        ("meteo", "meteo"),
+        ("python -m meteo", "meteo"),
+    ),
+)
+def test_render_help_names_carapace_spec_after_prog_name(prog_name, spec_name):
+    """A passed `prog_name` names a Carapace spec, over the command's own name."""
+    spec = render_help(weather, HelpFormat.CARAPACE, prog_name=prog_name)
+    assert f"\nname: {spec_name}\n" in spec
+
+
 def test_json_carries_every_section():
     """The JSON document covers what the man page covers, as native types."""
     doc = json.loads(render_help(documented, "json", prog_name="weather"))

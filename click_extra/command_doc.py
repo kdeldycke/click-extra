@@ -1349,13 +1349,13 @@ def render_help(
 
     if help_format is HelpFormat.CARAPACE:
         # A spec is keyed on the binary name a shell completes, never on the
-        # invocation a synopsis line prints. `prog_name` carries the latter for
-        # the document formats (`click-extra wrap` hands it a whole script path),
-        # so narrow it to the last word here. A spec named after a path binds to
-        # nothing, and does so silently.
+        # invocation a synopsis line prints, so narrow `prog_name` to its last
+        # word: a spec named after `python -m meteo` binds to nothing, and does
+        # so silently. A passed name beats the command's own, as in
+        # `target_prog_name()`.
         return dump_carapace_spec(
             command,
-            prog_name=command.name or (prog_name.split()[-1] if prog_name else None),
+            prog_name=prog_name.split()[-1] if prog_name else command.name,
         )
 
     if help_format is HelpFormat.JSON_FULL:

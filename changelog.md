@@ -120,6 +120,7 @@
 - Fix `run_config_validation()` with an empty `app_name`, which now reads the whole document.
 - Report a missing writer for `--export-config` and `--help-format carapace` as `Error:` with exit code 1, not a traceback.
 - Fix the `EXAMPLES` section of generated man pages, which showed a backslash before each dash of an example command.
+- Fix `render_help()` ignoring a passed `prog_name` when it names a Carapace spec.
 - Fix `wrap --params` ignoring the context settings of its target and of its subcommands, like their `auto_envvar_prefix`.
 - Fix `help NAME` suggestions leaving out lazy subcommands, and `help --search` listing hidden ones.
 - Fix `click:tree` missing lazy subcommands and ignoring the `list_commands()` order: it walks like `--tree` and skips hidden subcommands.
